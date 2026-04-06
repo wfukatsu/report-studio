@@ -99,7 +99,7 @@ describe('importFromJSON — Zod schema validation', () => {
     expect(result.ok).toBe(false)
   })
 
-  it('rejects when visibilityRule expression exceeds max length (500)', () => {
+  it('strips legacy visibilityRule on import (field is no longer validated)', () => {
     const longRule = 'x'.repeat(501)
     const obj = JSON.parse(makeValidV1Json())
     obj.pages[0].sections[0].elements = [{
@@ -115,7 +115,13 @@ describe('importFromJSON — Zod schema validation', () => {
       style: {},
     }]
     const result = importFromJSON(JSON.stringify(obj))
-    expect(result.ok).toBe(false)
+    // visibilityRule is stripped (not rejected) — import succeeds
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      const el = result.definition.pages[0]?.sections[0]?.elements[0]
+      expect(el).toBeDefined()
+      expect('visibilityRule' in (el ?? {})).toBe(false)
+    }
   })
 
   it('includes field path in error message', () => {

@@ -155,6 +155,35 @@ export function migrateReport(report: Report): ReportDefinition {
 // SCHEMA_VERSION is imported from ./exportUtils (single source of truth)
 
 /**
+ * Remove legacy visibilityRule from all elements.
+ * visibilityRule was never evaluated client-side; conditionalDisplay is the replacement.
+ * Old templates simply lose the field (no conversion — it was dead code).
+ */
+function stripVisibilityRule(definition: ReportDefinition): ReportDefinition {
+  const hasAny = definition.pages.some((page) =>
+    page.sections.some((sec) =>
+      sec.elements.some((el) => 'visibilityRule' in el),
+    ),
+  )
+  if (!hasAny) return definition
+
+  return {
+    ...definition,
+    pages: definition.pages.map((page) => ({
+      ...page,
+      sections: page.sections.map((sec) => ({
+        ...sec,
+        elements: sec.elements.map((el) => {
+          if (!('visibilityRule' in el)) return el
+          const { visibilityRule: _removed, ...rest } = el as ReportElement & { visibilityRule?: unknown }
+          return rest
+        }),
+      })),
+    })),
+  }
+}
+
+/**
  * Defensively migrate pages that have no sections (wrap elements in a body section).
  * Returns a new array of pages with sections guaranteed.
  */
@@ -219,8 +248,8 @@ export function importFromJSON(
         error: `Invalid report-definition/v1: 必須フィールドが不正または不足しています (${path}: ${msg})`,
       }
     }
-    const definition = ensurePageSections(result.data as unknown as ReportDefinition)
-    return { ok: true, definition }
+    const migrated = stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition))
+    return { ok: true, definition: migrated }
   }
 
   // Reject any other $schema version — do not attempt auto-migration for unknown schemas

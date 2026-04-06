@@ -39,6 +39,30 @@ const TextStyleSchema = z.object({
 }).passthrough()
 
 // ---------------------------------------------------------------------------
+// ConditionalDisplay — structured AND/OR visibility conditions
+// ---------------------------------------------------------------------------
+
+const NullaryConditionSchema = z.object({
+  id: z.string(),
+  fieldPath: z.string().max(256),
+  operator: z.enum(['empty', 'not_empty']),
+})
+
+const ValuedConditionSchema = z.object({
+  id: z.string(),
+  fieldPath: z.string().max(256),
+  operator: z.enum(['equals', 'not_equals', 'greater_than', 'less_than', 'contains', 'not_contains']),
+  value: z.union([z.string().max(500), z.number()]),
+})
+
+const DisplayConditionSchema = z.union([NullaryConditionSchema, ValuedConditionSchema])
+
+const ConditionalDisplaySchema = z.object({
+  logic: z.enum(['and', 'or']),
+  conditions: z.array(DisplayConditionSchema).max(20),
+})
+
+// ---------------------------------------------------------------------------
 // Element base — all elements share these fields
 // ---------------------------------------------------------------------------
 
@@ -51,7 +75,7 @@ const ElementBaseSchema = z.object({
   locked: z.boolean(),
   visible: z.boolean(),
   name: z.string().optional(),
-  visibilityRule: z.string().max(500).optional(),
+  conditionalDisplay: ConditionalDisplaySchema.optional(),
   printable: z.boolean().optional(),
 }).passthrough()
 

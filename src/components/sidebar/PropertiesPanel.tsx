@@ -7,6 +7,7 @@ import { memo, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { CopyPlus, Trash2, ShieldAlert } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
+import { ConditionalDisplayEditor } from './ConditionalDisplayEditor'
 import { TextPropertiesPanel } from '@/elements/text/PropertiesPanel'
 import { LabelPropertiesPanel } from '@/elements/label/PropertiesPanel'
 import { DataFieldPropertiesPanel } from '@/elements/dataField/PropertiesPanel'
@@ -50,7 +51,7 @@ function PositionSizeSection({ el, onChange }: {
 }
 
 function ElementCommonSection({ el, onChange }: {
-  el: { name?: string; visible: boolean; locked: boolean; printable?: boolean; visibilityRule?: string }
+  el: { name?: string; visible: boolean; locked: boolean; printable?: boolean; conditionalDisplay?: import('@/types').ConditionalDisplay }
   onChange: (patch: object) => void
 }) {
   return (
@@ -69,9 +70,10 @@ function ElementCommonSection({ el, onChange }: {
           <input type="checkbox" checked={el.printable ?? true} onChange={(e) => onChange({ printable: e.target.checked })} className="rounded" />印刷
         </label>
       </div>
-      <PropRow label="表示条件式">
-        <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background font-mono" value={el.visibilityRule ?? ''} placeholder="例: data.total > 0" onChange={(e) => onChange({ visibilityRule: e.target.value || undefined })} />
-      </PropRow>
+      <ConditionalDisplayEditor
+        value={el.conditionalDisplay}
+        onChange={(cd) => onChange({ conditionalDisplay: cd })}
+      />
     </PropSection>
   )
 }

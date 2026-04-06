@@ -12,10 +12,11 @@
  * N subscriptions (one per element) down to 1.
  */
 
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore } from '@/store'
 import type { ReportElement } from '@/types'
+import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 
 import { TextRenderer } from '@/elements/text/Renderer'
 import { LabelRenderer } from '@/elements/label/Renderer'
@@ -35,15 +36,23 @@ import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
 interface Props {
   element: ReportElement
   data?: Record<string, unknown>
+  /** Row index for detail-row conditional display evaluation */
+  rowIndex?: number
 }
 
-export const ElementRenderer = memo(function ElementRenderer({ element, data = {} }: Props) {
+export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex }: Props) {
   // Merge computedValues into data so calculated fields are available to all renderers.
   // useShallow: re-render only when computedValues keys or values actually change.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
   const mergedData: Record<string, unknown> = { ...data, ...computedValues }
 
-  if (!element.visible) return null
+  // Evaluate structured visibility conditions (memoized — re-runs only when cd or data changes)
+  const isConditionVisible = useMemo(() => {
+    if (!element.conditionalDisplay) return true
+    return evaluateConditionalDisplay(element.conditionalDisplay, mergedData, rowIndex)
+  }, [element.conditionalDisplay, mergedData, rowIndex])
+
+  if (!element.visible || !isConditionVisible) return null
 
   switch (element.type) {
     case 'text':            return <TextRenderer element={element} data={mergedData} />

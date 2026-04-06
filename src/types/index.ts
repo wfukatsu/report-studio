@@ -119,6 +119,38 @@ export type ElementType =
   | 'revenueStamp'
 
 // ---------------------------------------------------------------------------
+// ConditionalDisplay — structured AND/OR visibility conditions
+// ---------------------------------------------------------------------------
+
+export type NullaryOperator = 'empty' | 'not_empty'
+export type ValuedOperator =
+  | 'equals' | 'not_equals'
+  | 'greater_than' | 'less_than'
+  | 'contains' | 'not_contains'
+export type ConditionOperator = NullaryOperator | ValuedOperator
+
+interface DisplayConditionBase {
+  id: string
+  fieldPath: string
+}
+
+export interface NullaryDisplayCondition extends DisplayConditionBase {
+  operator: NullaryOperator
+}
+
+export interface ValuedDisplayCondition extends DisplayConditionBase {
+  operator: ValuedOperator
+  value: string | number
+}
+
+export type DisplayCondition = NullaryDisplayCondition | ValuedDisplayCondition
+
+export interface ConditionalDisplay {
+  logic: 'and' | 'or'
+  conditions: DisplayCondition[]
+}
+
+// ---------------------------------------------------------------------------
 // ElementBase
 // ---------------------------------------------------------------------------
 
@@ -134,8 +166,8 @@ export interface ElementBase {
   visible: boolean
   /** レイヤーパネル表示名 */
   name?: string
-  /** 表示条件式 (calculationEngine で評価) */
-  visibilityRule?: string
+  /** 構造化表示条件 (AND/OR ロジック) */
+  conditionalDisplay?: ConditionalDisplay
   /** 印刷対象か (default: true) */
   printable?: boolean
 }
