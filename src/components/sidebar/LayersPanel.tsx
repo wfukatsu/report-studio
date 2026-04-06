@@ -226,14 +226,6 @@ export function LayersPanel() {
     return <div className="p-4 text-xs text-muted-foreground">ページがありません</div>
   }
 
-  if (totalElements === 0) {
-    return (
-      <div className="p-4 text-xs text-muted-foreground">
-        要素がありません。左パネルから要素を追加してください。
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col h-full relative">
       {/* Search + new layer/group buttons */}
@@ -346,6 +338,11 @@ export function LayersPanel() {
 
       {/* Layer list by section */}
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
+        {totalElements === 0 && (
+          <p className="text-xs text-muted-foreground text-center pt-4">
+            要素がありません。<br />＋ボタンから追加してください。
+          </p>
+        )}
         {displaySections.map((section) => (
           <SectionDndContainer
             key={section.id}
