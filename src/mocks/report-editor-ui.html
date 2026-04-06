@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>帳票テンプレートエディタ — Report Design Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ─── Design Tokens ─────────────────────────────────────────── */
+:root {
+  --bg:           #f1f5f9;
+  --surface:      #ffffff;
+  --surface-2:    #f8fafc;
+  --border:       #e2e8f0;
+  --border-2:     #cbd5e1;
+  --text:         #0f172a;
+  --text-2:       #475569;
+  --text-3:       #94a3b8;
+  --primary:      #3b82f6;
+  --primary-h:    #2563eb;
+  --primary-bg:   #eff6ff;
+  --header-bg:    #1e293b;
+  --header-text:  #e2e8f0;
+  --header-border:#334155;
+  --section-a-bg: #eff6ff;
+  --section-a-bd: #93c5fd;
+  --section-b-bg: #ffffff;
+  --section-b-bd: #cbd5e1;
+  --section-c-bg: #f8fafc;
+  --section-c-bd: #cbd5e1;
+  --sel-ring:     #3b82f6;
+  --canvas-bg:    #dde1e7;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow:       0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+  --radius:       4px;
+  --radius-lg:    8px;
+  --font:         'Noto Sans JP', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; font-family: var(--font); font-size: 13px; color: var(--text); background: var(--bg); }
+button { cursor: pointer; font-family: inherit; font-size: inherit; border: none; background: none; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+svg { display: block; }
+
+/* ─── Layout Shell ───────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-rows: 40px 36px 1fr 176px;
+  grid-template-columns: 240px 1fr 280px;
+  grid-template-areas:
+    "header  header  header"
+    "toolbar toolbar toolbar"
+    "left    canvas  right"
+    "bottom  bottom  bottom";
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+#header {
+  grid-area: header;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--header-text);
+}
+.header-logo {
+  display: flex; align-items: center; gap-6px; gap: 6px;
+  font-weight: 700; font-size: 13px; color: #93c5fd; flex-shrink: 0;
+}
+.header-logo svg { width: 16px; height: 16px; }
+.header-divider { width: 1px; height: 20px; background: var(--header-border); flex-shrink: 0; }
+.header-name {
+  background: transparent; border: none; color: var(--header-text);
+  font-size: 13px; font-weight: 500; outline: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 4px; width: 180px;
+  transition: border-color .15s;
+}
+.header-name:hover, .header-name:focus { border-color: var(--primary); }
+.header-ver {
+  font-size: 11px; color: #64748b; flex-shrink: 0;
+  background: #0f172a; border: 1px solid #334155;
+  padding: 2px 6px; border-radius: 10px;
+}
+.header-spacer { flex: 1; }
+.hbtn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius);
+  font-size: 12px; font-weight: 500; color: var(--header-text);
+  transition: background .12s;
+}
+.hbtn:hover { background: #334155; }
+.hbtn.primary {
+  background: var(--primary); color: white;
+}
+.hbtn.primary:hover { background: var(--primary-h); }
+.hbtn svg { width: 14px; height: 14px; }
+
+/* ─── Toolbar ─────────────────────────────────────────────────── */
+#toolbar {
+  grid-area: toolbar;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 10px;
+}
+.tbtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--radius);
+  color: var(--text-2); transition: background .1s, color .1s;
+}
+.tbtn:hover { background: var(--bg); color: var(--text); }
+.tbtn.active { background: var(--primary-bg); color: var(--primary); }
+.tbtn svg { width: 15px; height: 15px; }
+.tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.tb-zoom {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px; font-size: 12px; color: var(--text-2);
+}
+.tb-zoom select {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg); padding: 2px 4px; font-size: 11px;
+  color: var(--text);
+}
+.tb-variant {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-2);
+}
+.tb-variant select {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg); padding: 3px 6px; font-size: 12px;
+  color: var(--text); cursor: pointer;
+}
+
+/* ─── Left Panel ─────────────────────────────────────────────── */
+#left {
+  grid-area: left;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ptab {
+  flex: 1; padding: 8px 0; text-align: center;
+  font-size: 12px; font-weight: 500; color: var(--text-2);
+  border-bottom: 2px solid transparent; transition: all .12s;
+  cursor: pointer;
+}
+.ptab:hover { color: var(--text); }
+.ptab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.panel-body { flex: 1; overflow-y: auto; }
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+/* Palette */
+.palette-cat {
+  border-bottom: 1px solid var(--border);
+}
+.palette-cat-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; cursor: pointer;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--text-2);
+  transition: background .1s;
+}
+.palette-cat-header:hover { background: var(--bg); }
+.palette-cat-header svg { width: 12px; height: 12px; transition: transform .15s; }
+.palette-cat-header.collapsed svg { transform: rotate(-90deg); }
+.palette-items {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px; padding: 6px 10px 10px;
+}
+.palette-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px; border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface); cursor: grab;
+  font-size: 11px; color: var(--text-2);
+  transition: background .1s, border-color .1s, color .1s;
+}
+.palette-item:hover {
+  background: var(--primary-bg); border-color: var(--section-a-bd); color: var(--primary);
+}
+.palette-item svg { width: 18px; height: 18px; }
+
+/* Layer tree */
+.layer-tree { padding: 6px 0; }
+.layer-item {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px 4px 12px;
+  font-size: 12px; color: var(--text-2); cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background .1s;
+}
+.layer-item:hover { background: var(--bg); }
+.layer-item.selected { background: var(--primary-bg); color: var(--primary); border-left-color: var(--primary); }
+.layer-item.section { font-weight: 600; color: var(--text); }
+.layer-item.section .ltag { font-size: 10px; padding: 1px 5px; border-radius: 8px; background: #e0e7ff; color: #4338ca; font-weight: 600; }
+.layer-item.child { padding-left: 28px; }
+.layer-icons { margin-left: auto; display: flex; gap: 4px; opacity: 0; }
+.layer-item:hover .layer-icons { opacity: 1; }
+.layer-icons button { padding: 2px; border-radius: 3px; color: var(--text-3); }
+.layer-icons button:hover { background: var(--border); color: var(--text-2); }
+.layer-icons svg { width: 12px; height: 12px; }
+.layer-item svg.li { width: 13px; height: 13px; flex-shrink: 0; }
+.layer-expand { width: 12px; height: 12px; flex-shrink: 0; cursor: pointer; }
+
+/* ─── Canvas ─────────────────────────────────────────────────── */
+#canvas-wrap {
+  grid-area: canvas;
+  background: var(--canvas-bg);
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+}
+#canvas-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+#canvas-wrap::-webkit-scrollbar-thumb { background: #b0b8c4; border-radius: 4px; }
+
+/* Rulers */
+.ruler-h, .ruler-v {
+  position: sticky; z-index: 10; background: #e8ecf0;
+  border-color: var(--border-2);
+  font-size: 9px; color: var(--text-3); font-family: var(--font-mono);
+  overflow: hidden; flex-shrink: 0;
+}
+.ruler-h { height: 18px; border-bottom: 1px solid var(--border-2); width: 100%; top: 0; }
+.ruler-v { width: 18px; border-right: 1px solid var(--border-2); }
+
+/* A4 page */
+#page {
+  width: 794px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Section container */
+.section-wrap {
+  position: relative;
+  width: 100%;
+  border: 1.5px solid transparent;
+  transition: border-color .15s;
+}
+.section-wrap:hover { border-color: var(--border-2); }
+.section-wrap.selected { border-color: var(--sel-ring); }
+
+.section-label {
+  position: absolute; top: -1px; left: -1px;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--primary); color: white;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; z-index: 20;
+  border-bottom-right-radius: 4px;
+  letter-spacing: .04em;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.section-wrap:hover .section-label,
+.section-wrap.selected .section-label { opacity: 1; }
+
+.section-header { background: var(--section-a-bg); border-bottom: 1.5px solid var(--section-a-bd); min-height: 80px; }
+.section-body   { background: var(--section-b-bg); border-bottom: 1.5px solid var(--section-b-bd); min-height: 520px; }
+.section-footer { background: var(--section-c-bg); min-height: 60px; }
+
+.section-inner {
+  position: relative;
+  width: 100%; height: 100%;
+}
+
+/* Elements on canvas */
+.el {
+  position: absolute;
+  border: 1px solid transparent;
+  cursor: move;
+  transition: border-color .1s;
+  user-select: none;
+}
+.el:hover { border-color: var(--border-2); }
+.el.selected { border: 1.5px solid var(--sel-ring); }
+.el .resize-handle {
+  display: none; position: absolute; width: 7px; height: 7px;
+  background: white; border: 1.5px solid var(--sel-ring); border-radius: 1px;
+}
+.el.selected .resize-handle { display: block; }
+.rh-se { bottom: -4px; right: -4px; cursor: se-resize; }
+.rh-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+.rh-ne { top: -4px; right: -4px; cursor: ne-resize; }
+.rh-nw { top: -4px; left: -4px; cursor: nw-resize; }
+.rh-n  { top: -4px; left: calc(50% - 3px); cursor: n-resize; }
+.rh-s  { bottom: -4px; left: calc(50% - 3px); cursor: s-resize; }
+.rh-e  { right: -4px; top: calc(50% - 3px); cursor: e-resize; }
+.rh-w  { left: -4px; top: calc(50% - 3px); cursor: w-resize; }
+
+/* Element content styles */
+.el-text { font-size: 13px; color: var(--text); white-space: pre-wrap; overflow: hidden; }
+.el-text.heading { font-size: 20px; font-weight: 700; color: #1e293b; }
+.el-label { font-size: 11px; color: var(--text-2); }
+.el-img {
+  display: flex; align-items: center; justify-content: center;
+  background: #f1f5f9; border: 1px dashed var(--border-2);
+  color: var(--text-3); font-size: 11px; gap: 5px;
+}
+.el-img svg { width: 20px; height: 20px; }
+.el-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 11px;
+}
+.el-table th {
+  background: #f1f5f9; padding: 4px 8px; text-align: left;
+  border: 1px solid var(--border-2); font-weight: 600; color: var(--text);
+}
+.el-table td {
+  padding: 4px 8px; border: 1px solid var(--border-2); color: var(--text-2);
+}
+.el-shape-rect { background: #dbeafe; border: 1.5px solid #93c5fd; border-radius: 2px; }
+.el-line { border-top: 1.5px solid #3b82f6; }
+.el-barcode {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; background: white; border: 1px solid var(--border);
+}
+.el-barcode .bars {
+  display: flex; gap: 1px; align-items: flex-end; height: 30px;
+}
+.el-barcode .bar {
+  background: #1e293b; width: 2px;
+}
+.el-data-field {
+  border-bottom: 1px dashed var(--primary);
+  color: var(--primary); font-size: 12px; padding: 2px 0;
+  font-family: var(--font-mono);
+}
+
+/* ─── Right Panel ─────────────────────────────────────────────── */
+#right {
+  grid-area: right;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.right-tabs {
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.rtab {
+  flex: 1; padding: 8px 0; text-align: center;
+  font-size: 11px; font-weight: 500; color: var(--text-2);
+  border-bottom: 2px solid transparent; cursor: pointer;
+  transition: all .12s;
+}
+.rtab:hover { color: var(--text); }
+.rtab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.right-body { flex: 1; overflow-y: auto; }
+.right-body::-webkit-scrollbar { width: 4px; }
+.right-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+/* Properties */
+.prop-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.prop-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-3); margin-bottom: 8px;
+}
+.prop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.prop-label { font-size: 11px; color: var(--text-2); width: 54px; flex-shrink: 0; }
+.prop-input {
+  flex: 1; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); padding: 4px 7px; font-size: 12px;
+  color: var(--text); outline: none; transition: border-color .12s;
+}
+.prop-input:focus { border-color: var(--primary); }
+.prop-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.prop-input-unit {
+  display: flex; align-items: center;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); overflow: hidden;
+}
+.prop-input-unit input {
+  flex: 1; padding: 4px 6px; font-size: 12px; border: none;
+  background: transparent; color: var(--text); outline: none; width: 0;
+}
+.prop-input-unit span {
+  padding: 0 6px; font-size: 10px; color: var(--text-3);
+  background: var(--bg); border-left: 1px solid var(--border); flex-shrink: 0;
+}
+
+/* Style props */
+.style-toolbar { display: flex; gap: 3px; flex-wrap: wrap; }
+.style-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface-2);
+  color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .1s;
+}
+.style-btn:hover { border-color: var(--primary); color: var(--primary); }
+.style-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+.style-btn svg { width: 13px; height: 13px; }
+.color-swatch {
+  width: 26px; height: 26px; border-radius: var(--radius);
+  border: 1.5px solid var(--border); cursor: pointer;
+  position: relative; overflow: hidden;
+}
+
+/* Binding */
+.binding-path-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg); overflow: hidden;
+}
+.binding-path-inner {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; border-bottom: 1px solid var(--border);
+}
+.binding-path-inner span { font-size: 10px; color: var(--text-3); flex-shrink: 0; }
+.binding-path-inner input {
+  flex: 1; border: none; background: transparent; font-size: 12px;
+  font-family: var(--font-mono); color: var(--primary); outline: none;
+}
+.codemirror-mock {
+  background: #0f172a; padding: 8px 10px; font-family: var(--font-mono);
+  font-size: 11px; line-height: 1.6; min-height: 56px; border-radius: 0;
+}
+.cm-kw  { color: #c084fc; }
+.cm-fn  { color: #60a5fa; }
+.cm-str { color: #86efac; }
+.cm-num { color: #fbbf24; }
+.cm-cmt { color: #64748b; }
+.cm-op  { color: #f472b6; }
+.cm-var { color: #e2e8f0; }
+
+/* Constraint */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.toggle-label { font-size: 12px; color: var(--text); }
+.toggle {
+  width: 32px; height: 18px; border-radius: 9px; background: var(--border-2);
+  position: relative; cursor: pointer; transition: background .15s;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--primary); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: white; transition: transform .15s; box-shadow: var(--shadow-sm);
+}
+.toggle.on::after { transform: translateX(14px); }
+
+/* ─── Bottom Panel ───────────────────────────────────────────── */
+#bottom {
+  grid-area: bottom;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.bottom-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.btab {
+  padding: 6px 14px; font-size: 12px; font-weight: 500;
+  color: var(--text-2); border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap;
+  transition: all .12s;
+}
+.btab:hover { color: var(--text); }
+.btab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.bottom-body { flex: 1; overflow: auto; }
+.bottom-body::-webkit-scrollbar { width: 4px; height: 4px; }
+.bottom-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+/* DataSource tree */
+.ds-tree { padding: 8px 0; }
+.ds-node {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 12px; font-size: 12px; cursor: pointer;
+  transition: background .1s;
+}
+.ds-node:hover { background: var(--bg); }
+.ds-node .ds-type {
+  font-size: 9px; padding: 1px 5px; border-radius: 8px;
+  font-weight: 600; margin-left: auto; flex-shrink: 0;
+}
+.ds-type.obj { background: #dbeafe; color: #1d4ed8; }
+.ds-type.col { background: #dcfce7; color: #15803d; }
+.ds-type.str { background: #fef9c3; color: #a16207; }
+.ds-type.num { background: #fce7f3; color: #9d174d; }
+.ds-node svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--text-3); }
+.ds-node.leaf { padding-left: 28px; }
+.ds-node.deep { padding-left: 44px; }
+
+/* Variants */
+.variant-list { display: flex; flex-direction: column; gap: 0; }
+.variant-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .1s;
+}
+.variant-item:hover { background: var(--bg); }
+.variant-item.active { background: var(--primary-bg); }
+.variant-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.variant-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.variant-meta { font-size: 11px; color: var(--text-3); margin-left: auto; }
+.variant-badge {
+  font-size: 10px; padding: 1px 7px; border-radius: 8px;
+  font-weight: 600; background: var(--primary-bg); color: var(--primary);
+}
+
+/* Rule list */
+.rule-list { padding: 8px 12px; }
+.rule-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.rule-severity {
+  width: 4px; height: 100%; min-height: 32px; border-radius: 2px; flex-shrink: 0;
+  margin-top: 2px;
+}
+.rule-severity.error { background: #ef4444; }
+.rule-severity.warning { background: #f59e0b; }
+.rule-severity.info { background: #3b82f6; }
+.rule-id { font-family: var(--font-mono); font-size: 10px; color: var(--primary); }
+.rule-desc { font-size: 12px; color: var(--text); margin-top: 1px; }
+.rule-target { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.rule-add-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border: 1px dashed var(--border-2);
+  border-radius: var(--radius); color: var(--text-3);
+  font-size: 12px; cursor: pointer; transition: all .12s; margin: 8px 0;
+}
+.rule-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+.rule-add-btn svg { width: 12px; height: 12px; }
+
+/* Empty state */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 8px; color: var(--text-3); padding: 20px;
+}
+.empty-state svg { width: 28px; height: 28px; opacity: .4; }
+.empty-state p { font-size: 12px; text-align: center; }
+
+/* Scrollbars */
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Tab panel visibility */
+[data-tab-panel] { display: none; }
+[data-tab-panel].active { display: block; }
+[data-btab-panel] { display: none; }
+[data-btab-panel].active { display: block; }
+[data-rtab-panel] { display: none; }
+[data-rtab-panel].active { display: block; }
+
+/* No-selection state */
+#no-selection {
+  padding: 24px 16px; text-align: center; color: var(--text-3);
+  font-size: 12px; line-height: 1.6;
+}
+#no-selection svg { width: 28px; height: 28px; margin: 0 auto 10px; opacity: .3; }
+
+/* Snap indicator */
+.snap-line-h, .snap-line-v {
+  position: absolute; background: var(--primary); pointer-events: none; z-index: 100; opacity: 0;
+}
+.snap-line-h { height: 1px; width: 100%; }
+.snap-line-v { width: 1px; height: 100%; }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" fill="#93c5fd"/><rect x="4" y="5" width="8" height="1.2" rx=".6" fill="#1e3a5f"/><rect x="4" y="7.4" width="5" height="1.2" rx=".6" fill="#1e3a5f"/><rect x="4" y="9.8" width="6" height="1.2" rx=".6" fill="#1e3a5f"/></svg>
+      Report Studio
+    </div>
+    <div class="header-divider"></div>
+    <input class="header-name" value="年末調整申告書（給与所得者）" />
+    <span class="header-ver">v1.0.0</span>
+    <div class="header-spacer"></div>
+    <button class="hbtn">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v10M4 7l4 4 4-4"/><path d="M2 13h12"/></svg>
+      保存
+    </button>
+    <button class="hbtn">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8h.01M8 8h.01M11 8h.01"/></svg>
+      プレビュー
+    </button>
+    <button class="hbtn primary">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M3 8h7M3 11h5"/><path d="M12 10l2 2-2 2"/></svg>
+      出力
+    </button>
+  </header>
+
+  <!-- ── TOOLBAR ────────────────────────────────────────────── -->
+  <div id="toolbar">
+    <!-- Undo/Redo -->
+    <button class="tbtn" title="元に戻す (⌘Z)">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7.5C3 5 5 3 7.5 3c2 0 3.7 1.2 4.4 3"/><path d="M3 4v3.5h3.5"/></svg>
+    </button>
+    <button class="tbtn" title="やり直し (⌘⇧Z)">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 7.5C12 5 10 3 7.5 3c-2 0-3.7 1.2-4.4 3"/><path d="M12 4v3.5H8.5"/></svg>
+    </button>
+    <div class="tb-sep"></div>
+    <!-- Align -->
+    <button class="tbtn" title="左揃え">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3v9M5 5h6M5 9h4"/></svg>
+    </button>
+    <button class="tbtn" title="中央揃え">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7.5 2v11M3 5h9M4 9h7"/></svg>
+    </button>
+    <button class="tbtn" title="右揃え">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 3v9M9 5H3M9 9H5"/></svg>
+    </button>
+    <div class="tb-sep"></div>
+    <!-- Z-order -->
+    <button class="tbtn" title="前面へ">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="5" width="8" height="8" rx="1" fill="currentColor" opacity=".15"/><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
+    </button>
+    <button class="tbtn" title="背面へ">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="8" height="8" rx="1" fill="currentColor" opacity=".15"/><rect x="5" y="5" width="8" height="8" rx="1"/></svg>
+    </button>
+    <div class="tb-sep"></div>
+    <!-- Grid/Ruler toggles -->
+    <button class="tbtn active" title="グリッド表示" id="btn-grid">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M5 1v13M10 1v13M1 5h13M1 10h13"/></svg>
+    </button>
+    <button class="tbtn active" title="ルーラー表示">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="4" width="13" height="7" rx="1"/><path d="M4 4V7M7 4v4M10 4V7M13 4v4"/></svg>
+    </button>
+    <button class="tbtn" title="スナップ">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7.5" cy="7.5" r="5"/><path d="M7.5 2.5v1M7.5 11.5v1M2.5 7.5h1M11.5 7.5h1"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>
+    </button>
+    <!-- Zoom -->
+    <div class="tb-sep"></div>
+    <div class="tb-zoom">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="5.5" cy="5.5" r="4"/><path d="M9 9l2.5 2.5"/><path d="M3.5 5.5h4M5.5 3.5v4"/></svg>
+      <select>
+        <option>50%</option>
+        <option>75%</option>
+        <option selected>100%</option>
+        <option>125%</option>
+        <option>150%</option>
+        <option>200%</option>
+      </select>
+    </div>
+    <!-- Variant switcher -->
+    <div class="tb-variant">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="7" y="1" width="5" height="5" rx="1"/><rect x="1" y="7" width="5" height="5" rx="1"/><rect x="7" y="7" width="5" height="5" rx="1"/></svg>
+      バリアント:
+      <select id="variant-select">
+        <option>税務署提出用</option>
+        <option>本人控え</option>
+        <option>社内保管用</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ── LEFT PANEL ─────────────────────────────────────────── -->
+  <aside id="left">
+    <div class="panel-tabs">
+      <div class="ptab active" data-tab="tools">ツール</div>
+      <div class="ptab" data-tab="layers">レイヤー</div>
+    </div>
+
+    <!-- Tools: Palette -->
+    <div class="panel-body" data-tab-panel="tools" style="display:block">
+
+      <!-- テキスト系 -->
+      <div class="palette-cat">
+        <div class="palette-cat-header" data-cat="text">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 3h10M4 3v6M8 3v6M4 9h4"/></svg>
+          テキスト系
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:auto"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+        <div class="palette-items" id="cat-text">
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5h14M6 5v8M12 5v8M5 13h2M10 13h3"/></svg>
+            TextElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5" width="14" height="8" rx="1"/><path d="M5 9h8M5 12h5"/></svg>
+            LabelElement
+          </div>
+        </div>
+      </div>
+
+      <!-- 図形系 -->
+      <div class="palette-cat">
+        <div class="palette-cat-header" data-cat="shape">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="3" width="10" height="7" rx="1"/></svg>
+          図形系
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:auto"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+        <div class="palette-items" id="cat-shape">
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 9h14"/></svg>
+            LineElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="4" width="14" height="10" rx="1"/></svg>
+            RectangleElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="12" height="12" rx="1"/><path d="M6 7h6M6 10h4"/></svg>
+            ImageElement
+          </div>
+        </div>
+      </div>
+
+      <!-- 入力系 -->
+      <div class="palette-cat">
+        <div class="palette-cat-header collapsed" data-cat="input">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="3" width="10" height="6" rx="1"/><path d="M4 6h4"/></svg>
+          入力系
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:auto"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+        <div class="palette-items" id="cat-input" style="display:none">
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5" width="8" height="8" rx="1"/><path d="M4 9l2 2 4-4"/></svg>
+            Checkbox
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="9" r="6"/><circle cx="9" cy="9" r="3" fill="currentColor" opacity=".3"/></svg>
+            RadioElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5" width="14" height="8" rx="1"/><path d="M12 9l2 2-2 2" opacity=".5"/></svg>
+            TableElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 9h14M2 6h14M2 12h10"/></svg>
+            ManualEntry
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="9" r="3"/><path d="M11 9h5M11 7h4M11 11h3"/></svg>
+            CodeMapped
+          </div>
+        </div>
+      </div>
+
+      <!-- 複合・繰り返し -->
+      <div class="palette-cat">
+        <div class="palette-cat-header collapsed" data-cat="repeat">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 3h10M1 6h10M1 9h10"/></svg>
+          複合・繰り返し
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:auto"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+        <div class="palette-items" id="cat-repeat" style="display:none">
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="16" height="12" rx="1"/><path d="M1 7h16M5 7v8M10 7v8"/></svg>
+            TableElement
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="14" height="4" rx="1"/><rect x="2" y="8" width="14" height="4" rx="1" opacity=".5"/><rect x="2" y="14" width="14" height="2" rx="1" opacity=".25"/></svg>
+            Repeating
+          </div>
+        </div>
+      </div>
+
+      <!-- 特殊 -->
+      <div class="palette-cat">
+        <div class="palette-cat-header collapsed" data-cat="special">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="2" width="10" height="8" rx="1"/><path d="M3 5h1M5 3v6M7 4v4M9 5h1"/></svg>
+          特殊
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:auto"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+        <div class="palette-items" id="cat-special" style="display:none">
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="16" height="12" rx="1"/><path d="M3 9h1M5 5v8M7 7v4M9 5v8M11 7v4M13 9h2"/></svg>
+            Barcode
+          </div>
+          <div class="palette-item" draggable="true">
+            <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx=".5"/><rect x="11" y="2" width="5" height="5" rx=".5"/><rect x="2" y="11" width="5" height="5" rx=".5"/><rect x="11" y="11" width="5" height="5" rx=".5" opacity=".3"/><rect x="7.5" y="7.5" width="3" height="3" rx=".5"/></svg>
+            QRCode
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Layers panel -->
+    <div class="panel-body" data-tab-panel="layers">
+      <div class="layer-tree">
+
+        <!-- ReportHeader section -->
+        <div class="layer-item section" data-layer="header" onclick="selectLayer(this, 'section-header')">
+          <svg class="layer-expand" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="11" height="4" rx="1"/><path d="M1 7h11"/></svg>
+          ReportHeader
+          <span class="ltag">HEADER</span>
+          <div class="layer-icons">
+            <button title="表示切替"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button title="ロック"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child" data-layer="company" onclick="selectLayer(this, 'el-company')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4h9M2 7h6M2 10h7"/></svg>
+          会社名テキスト
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child" data-layer="logo" onclick="selectLayer(this, 'el-logo')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="2" width="11" height="9" rx="1"/><path d="M1 8l3-3 2 2 3-4 3 5"/></svg>
+          ロゴ画像
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child" data-layer="title" onclick="selectLayer(this, 'el-title')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4h9M2 7h6M2 10h7"/></svg>
+          帳票タイトル
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Body section -->
+        <div class="layer-item section" data-layer="body" onclick="selectLayer(this, 'section-body')">
+          <svg class="layer-expand" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="11" height="11" rx="1"/></svg>
+          Body
+          <span class="ltag" style="background:#dcfce7;color:#15803d">BODY</span>
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child selected" data-layer="table" onclick="selectLayer(this, 'el-table')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="11" height="11" rx="1"/><path d="M1 5h11M5 5v7M9 5v7"/></svg>
+          明細テーブル
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child" data-layer="df1" onclick="selectLayer(this, 'el-df1')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6" cy="6" r="5"/><path d="M4 6h4M6 4v4"/></svg>
+          {{employee.name}}
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- ReportFooter section -->
+        <div class="layer-item section" data-layer="footer" onclick="selectLayer(this, 'section-footer')">
+          <svg class="layer-expand" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 6h11"/><rect x="1" y="8" width="11" height="4" rx="1"/></svg>
+          ReportFooter
+          <span class="ltag" style="background:#fce7f3;color:#9d174d">FOOTER</span>
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+        <div class="layer-item child" data-layer="pagenum" onclick="selectLayer(this, 'el-pagenum')">
+          <svg class="layer-expand" viewBox="0 0 12 12" style="visibility:hidden"></svg>
+          <svg class="li" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4h9M2 7h6M2 10h7"/></svg>
+          ページ番号
+          <div class="layer-icons">
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="6" cy="6" rx="5" ry="3.5"/><circle cx="6" cy="6" r="1.5"/></svg></button>
+            <button><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="6" width="6" height="5" rx="1"/><path d="M4 6V4.5a2 2 0 114 0V6"/></svg></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── CANVAS ──────────────────────────────────────────────── -->
+  <main id="canvas-wrap" onclick="clearCanvasSelection(event)">
+    <div id="page">
+
+      <!-- ReportHeader -->
+      <div class="section-wrap" id="section-header" onclick="selectSection(event,'section-header')">
+        <div class="section-label">ReportHeader</div>
+        <div class="section-inner section-header" style="height:90px">
+          <!-- Company name -->
+          <div class="el" id="el-company" style="left:20px;top:12px;width:320px;height:24px" onclick="selectEl(event,'el-company')">
+            <div class="el-text" style="font-size:11px;color:#64748b;font-weight:500">株式会社 山田商事</div>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+            <div class="resize-handle rh-n"></div><div class="resize-handle rh-s"></div>
+            <div class="resize-handle rh-e"></div><div class="resize-handle rh-w"></div>
+          </div>
+          <!-- Logo -->
+          <div class="el" id="el-logo" style="right:20px;top:10px;width:60px;height:60px" onclick="selectEl(event,'el-logo')">
+            <div class="el-img" style="height:100%;width:100%">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="18" height="18" rx="2"/><path d="M2 14l5-5 4 4 4-6 5 7"/></svg>
+            </div>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+          </div>
+          <!-- Title -->
+          <div class="el" id="el-title" style="left:20px;top:40px;width:500px;height:36px" onclick="selectEl(event,'el-title')">
+            <div class="el-text heading" style="font-size:16px">年末調整申告書（給与所得者）</div>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+            <div class="resize-handle rh-n"></div><div class="resize-handle rh-s"></div>
+            <div class="resize-handle rh-e"></div><div class="resize-handle rh-w"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="section-wrap" id="section-body" onclick="selectSection(event,'section-body')">
+        <div class="section-label" style="background:#16a34a">Body</div>
+        <div class="section-inner section-body" style="height:940px">
+
+          <!-- Separator line -->
+          <div class="el" id="el-line1" style="left:20px;top:10px;width:754px;height:2px" onclick="selectEl(event,'el-line1')">
+            <div class="el-line" style="margin-top:0px"></div>
+          </div>
+
+          <!-- Label row -->
+          <div class="el" id="el-lbl1" style="left:20px;top:22px;width:80px;height:16px" onclick="selectEl(event,'el-lbl1')">
+            <div class="el-label">氏名</div>
+          </div>
+          <!-- DataField: name -->
+          <div class="el" id="el-df1" style="left:110px;top:18px;width:200px;height:22px" onclick="selectEl(event,'el-df1')">
+            <div class="el-data-field">{{employee.name}}</div>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+            <div class="resize-handle rh-e"></div><div class="resize-handle rh-w"></div>
+          </div>
+
+          <div class="el" id="el-lbl2" style="left:340px;top:22px;width:80px;height:16px" onclick="selectEl(event,'el-lbl2')">
+            <div class="el-label">社員番号</div>
+          </div>
+          <div class="el" id="el-df2" style="left:430px;top:18px;width:140px;height:22px" onclick="selectEl(event,'el-df2')">
+            <div class="el-data-field">{{employee.code}}</div>
+          </div>
+
+          <!-- Table: selected -->
+          <div class="el selected" id="el-table" style="left:20px;top:60px;width:754px;height:200px" onclick="selectEl(event,'el-table')">
+            <table class="el-table" style="width:100%;height:100%">
+              <thead>
+                <tr>
+                  <th style="width:30%">項目</th>
+                  <th style="width:20%">所得金額</th>
+                  <th style="width:20%">控除額</th>
+                  <th style="width:15%">税額</th>
+                  <th style="width:15%">備考</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>{{items[0].name}}</td><td>{{items[0].income}}</td><td>{{items[0].deduction}}</td><td>{{items[0].tax}}</td><td></td></tr>
+                <tr><td>{{items[1].name}}</td><td>{{items[1].income}}</td><td>{{items[1].deduction}}</td><td>{{items[1].tax}}</td><td></td></tr>
+                <tr><td>{{items[2].name}}</td><td>{{items[2].income}}</td><td>{{items[2].deduction}}</td><td>{{items[2].tax}}</td><td></td></tr>
+                <tr style="background:#fafafa;font-weight:600"><td>合計</td><td>{{totals.income}}</td><td>{{totals.deduction}}</td><td>{{totals.tax}}</td><td></td></tr>
+              </tbody>
+            </table>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+            <div class="resize-handle rh-n"></div><div class="resize-handle rh-s"></div>
+            <div class="resize-handle rh-e"></div><div class="resize-handle rh-w"></div>
+          </div>
+
+          <!-- RectangleElement: note box -->
+          <div class="el" id="el-rect1" style="left:20px;top:280px;width:754px;height:60px" onclick="selectEl(event,'el-rect1')">
+            <div class="el-shape-rect" style="width:100%;height:100%;display:flex;align-items:center;padding:8px 12px">
+              <div style="font-size:11px;color:#374151">備考: {{remarks}}</div>
+            </div>
+            <div class="resize-handle rh-se"></div><div class="resize-handle rh-sw"></div>
+            <div class="resize-handle rh-ne"></div><div class="resize-handle rh-nw"></div>
+            <div class="resize-handle rh-e"></div><div class="resize-handle rh-w"></div>
+          </div>
+
+          <!-- Barcode -->
+          <div class="el" id="el-barcode" style="right:20px;top:360px;width:120px;height:60px" onclick="selectEl(event,'el-barcode')">
+            <div class="el-barcode" style="width:100%;height:100%">
+              <div class="bars">
+                <div class="bar" style="height:24px"></div><div class="bar" style="height:20px;width:1px"></div><div class="bar" style="height:24px;width:3px"></div>
+                <div class="bar" style="height:18px"></div><div class="bar" style="height:24px;width:2px"></div><div class="bar" style="height:20px"></div>
+                <div class="bar" style="height:24px;width:3px"></div><div class="bar" style="height:20px;width:1px"></div><div class="bar" style="height:24px"></div>
+                <div class="bar" style="height:22px;width:2px"></div><div class="bar" style="height:24px"></div>
+              </div>
+              <div style="font-size:9px;font-family:monospace;color:#374151">{{employee.code}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ReportFooter -->
+      <div class="section-wrap" id="section-footer" onclick="selectSection(event,'section-footer')">
+        <div class="section-label" style="background:#9333ea">ReportFooter</div>
+        <div class="section-inner section-footer" style="height:50px">
+          <div class="el" id="el-pagenum" style="right:20px;top:14px;width:120px;height:20px" onclick="selectEl(event,'el-pagenum')">
+            <div class="el-text" style="text-align:right;font-size:11px;color:#64748b">{{page.current}} / {{page.total}}</div>
+          </div>
+          <div class="el" id="el-date" style="left:20px;top:14px;width:200px;height:20px" onclick="selectEl(event,'el-date')">
+            <div class="el-label">提出日: {{submission.date}}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── RIGHT PANEL ────────────────────────────────────────── -->
+  <aside id="right">
+    <!-- No selection state -->
+    <div id="props-empty" style="display:none">
+      <div id="no-selection">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="4" width="20" height="20" rx="2"/><path d="M9 14h10M14 9v10"/></svg>
+        <p>要素を選択して<br/>プロパティを編集</p>
+      </div>
+    </div>
+
+    <!-- Element properties -->
+    <div id="props-element">
+      <div class="right-tabs">
+        <div class="rtab active" data-rtab="basic">基本</div>
+        <div class="rtab" data-rtab="style">スタイル</div>
+        <div class="rtab" data-rtab="binding">バインディング</div>
+        <div class="rtab" data-rtab="constraint">制約</div>
+      </div>
+      <div class="right-body">
+
+        <!-- Basic tab -->
+        <div data-rtab-panel="basic" class="active">
+          <div class="prop-section">
+            <div class="prop-section-title">位置（mm）</div>
+            <div class="prop-row-2">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">X</div>
+                <div class="prop-input-unit"><input type="number" value="5.3"/><span>mm</span></div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Y</div>
+                <div class="prop-input-unit"><input type="number" value="15.9"/><span>mm</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">サイズ（mm）</div>
+            <div class="prop-row-2">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">幅</div>
+                <div class="prop-input-unit"><input type="number" value="200.0"/><span>mm</span></div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">高さ</div>
+                <div class="prop-input-unit"><input type="number" value="53.0"/><span>mm</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">要素 ID</div>
+            <div class="prop-row">
+              <input class="prop-input" value="table_meisai_001" style="font-family:var(--font-mono);font-size:11px"/>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">表示条件</div>
+            <div class="codemirror-mock" style="border-radius:var(--radius)">
+              <span class="cm-var">variant</span><span class="cm-op">.</span><span class="cm-var">audience</span>
+              <span class="cm-op"> !== </span><span class="cm-str">'internal'</span>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1">
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Z-index</div>
+                <input class="prop-input" type="number" value="3"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Style tab -->
+        <div data-rtab-panel="style">
+          <div class="prop-section">
+            <div class="prop-section-title">フォント</div>
+            <div class="prop-row">
+              <select class="prop-input">
+                <option>Noto Sans JP</option>
+                <option>Hiragino Kaku Gothic</option>
+                <option>Meiryo</option>
+                <option>Yu Gothic</option>
+              </select>
+            </div>
+            <div class="prop-row-2">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">サイズ</div>
+                <div class="prop-input-unit"><input type="number" value="12"/><span>pt</span></div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">行高</div>
+                <div class="prop-input-unit"><input type="number" value="1.5"/><span>×</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">スタイル</div>
+            <div class="style-toolbar">
+              <button class="style-btn active" title="太字"><b>B</b></button>
+              <button class="style-btn" title="斜体"><i>I</i></button>
+              <button class="style-btn" title="下線"><u>U</u></button>
+              <button class="style-btn" title="取り消し線"><s>S</s></button>
+              <div class="tb-sep" style="height:24px;margin:0 2px"></div>
+              <button class="style-btn active" title="左揃え">
+                <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 3h11M1 6h7M1 9h9"/></svg>
+              </button>
+              <button class="style-btn" title="中央揃え">
+                <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 3h11M3 6h7M2 9h9"/></svg>
+              </button>
+              <button class="style-btn" title="右揃え">
+                <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 3h11M5 6h7M3 9h9"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">色</div>
+            <div class="prop-row">
+              <div class="prop-label">テキスト</div>
+              <div class="color-swatch" style="background:#0f172a" title="#0f172a"></div>
+              <input class="prop-input" value="#0f172a" style="font-family:var(--font-mono);font-size:11px"/>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">背景</div>
+              <div class="color-swatch" style="background:white;border-color:var(--border-2)" title="透明"></div>
+              <input class="prop-input" value="transparent" style="font-family:var(--font-mono);font-size:11px"/>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">枠線</div>
+              <div class="color-swatch" style="background:#e2e8f0" title="#e2e8f0"></div>
+              <input class="prop-input" value="#e2e8f0" style="font-family:var(--font-mono);font-size:11px"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Binding tab -->
+        <div data-rtab-panel="binding">
+          <div class="prop-section">
+            <div class="prop-section-title">バインディングパス</div>
+            <div class="binding-path-wrap">
+              <div class="binding-path-inner">
+                <span>path</span>
+                <input value="items" style="color:var(--primary)" />
+              </div>
+              <div style="padding:6px 8px;background:#f8fafc;font-size:10px;color:var(--text-3)">
+                ← データソースツリーからドロップ
+              </div>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">書式パターン</div>
+            <div class="prop-row">
+              <input class="prop-input" value="¥#,##0" style="font-family:var(--font-mono);font-size:11px"/>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">デフォルト値</div>
+            <div class="prop-row">
+              <input class="prop-input" placeholder="未設定" />
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">集計</div>
+            <div class="prop-row">
+              <select class="prop-input">
+                <option value="">なし</option>
+                <option value="sum" selected>sum</option>
+                <option value="count">count</option>
+                <option value="avg">avg</option>
+                <option value="max">max</option>
+                <option value="min">min</option>
+              </select>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">式（expression）</div>
+            <div class="codemirror-mock" style="border-radius:var(--radius)">
+              <span class="cm-cmt">// 税額計算式</span><br/>
+              <span class="cm-var">income</span> <span class="cm-op">*</span> <span class="cm-num">0.2</span><br/>
+              <span class="cm-op">-</span> <span class="cm-fn">round</span><span class="cm-op">(</span><span class="cm-var">deduction</span><span class="cm-op"> * </span><span class="cm-num">0.05</span><span class="cm-op">)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Constraint tab -->
+        <div data-rtab-panel="constraint">
+          <div class="prop-section">
+            <div class="prop-section-title">入力制約</div>
+            <div class="toggle-row">
+              <span class="toggle-label">必須項目</span>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">最大文字数</div>
+              <input class="prop-input" type="number" value="50" />
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">最小文字数</div>
+              <input class="prop-input" type="number" value="" placeholder="制限なし" />
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">文字種別</div>
+              <select class="prop-input">
+                <option>制限なし</option>
+                <option>全角のみ</option>
+                <option>半角のみ</option>
+                <option selected>数字のみ</option>
+                <option>英数字</option>
+              </select>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">数値範囲</div>
+            <div class="prop-row-2">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">最小値</div>
+                <input class="prop-input" type="number" value="0" />
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">最大値</div>
+                <input class="prop-input" type="number" placeholder="無制限" />
+              </div>
+            </div>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">入力パターン</div>
+            <div class="prop-row">
+              <input class="prop-input" value="^\d{1,10}$" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <button style="font-size:11px;color:var(--primary);margin-top:4px;padding:3px 0">テスト実行 →</button>
+          </div>
+          <div class="prop-section">
+            <div class="prop-section-title">精度</div>
+            <div class="prop-row-2">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">整数部桁数</div>
+                <input class="prop-input" type="number" value="10" />
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-3);margin-bottom:3px">小数部桁数</div>
+                <input class="prop-input" type="number" value="0" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── BOTTOM PANEL ───────────────────────────────────────── -->
+  <div id="bottom">
+    <div class="bottom-tabs">
+      <div class="btab active" data-btab="datasource">データソース</div>
+      <div class="btab" data-btab="variants">バリアント</div>
+      <div class="btab" data-btab="valrules">検証ルール</div>
+      <div class="btab" data-btab="calcrules">計算ルール</div>
+      <div class="btab" data-btab="submission">提出モデル</div>
+      <div class="btab" data-btab="preview">プレビュー</div>
+    </div>
+    <div class="bottom-body">
+
+      <!-- DataSource -->
+      <div data-btab-panel="datasource" class="active" style="display:flex;gap:0;height:100%">
+        <div style="width:240px;border-right:1px solid var(--border);padding:8px 0">
+          <div style="padding:4px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">定義済みデータソース</div>
+          <div class="ds-node" style="font-weight:600">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+            employee
+            <span class="ds-type obj">Object</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"><path d="M2 4l4 4 4-4"/></svg>
+            .name
+            <span class="ds-type str">string</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            .code
+            <span class="ds-type str">string</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            .department
+            <span class="ds-type str">string</span>
+          </div>
+          <div class="ds-node" style="font-weight:600">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+            items
+            <span class="ds-type col">Collection</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            [].name
+            <span class="ds-type str">string</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            [].income
+            <span class="ds-type num">number</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            [].deduction
+            <span class="ds-type num">number</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" style="visibility:hidden"></svg>
+            [].tax
+            <span class="ds-type num">number</span>
+          </div>
+          <div class="ds-node" style="font-weight:600">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4l4 4 4-4"/></svg>
+            totals
+            <span class="ds-type obj">Object</span>
+          </div>
+          <div class="ds-node leaf">
+            <svg style="visibility:hidden" viewBox="0 0 13 13"></svg>
+            .income / .deduction / .tax
+            <span class="ds-type num">number</span>
+          </div>
+        </div>
+        <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;color:var(--text-3)">データソースを追加:</div>
+          <div style="display:flex;gap:8px">
+            <button style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text-2);cursor:pointer">
+              + Object
+            </button>
+            <button style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text-2);cursor:pointer">
+              + Collection
+            </button>
+            <button style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text-2);cursor:pointer">
+              + Derived
+            </button>
+            <button style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text-2);cursor:pointer">
+              + External
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Variants -->
+      <div data-btab-panel="variants">
+        <div class="variant-list">
+          <div class="variant-item active">
+            <div class="variant-dot" style="background:#3b82f6"></div>
+            <div>
+              <div class="variant-name">税務署提出用</div>
+              <div style="font-size:10px;color:var(--text-3)">targetAudience: tax_office</div>
+            </div>
+            <div class="variant-meta">
+              <span class="variant-badge">アクティブ</span>
+            </div>
+          </div>
+          <div class="variant-item">
+            <div class="variant-dot" style="background:#10b981"></div>
+            <div>
+              <div class="variant-name">本人控え</div>
+              <div style="font-size:10px;color:var(--text-3)">targetAudience: employee — マスキング: 一部</div>
+            </div>
+            <div class="variant-meta">
+              <button style="font-size:11px;color:var(--primary);cursor:pointer">切替</button>
+            </div>
+          </div>
+          <div class="variant-item">
+            <div class="variant-dot" style="background:#f59e0b"></div>
+            <div>
+              <div class="variant-name">社内保管用</div>
+              <div style="font-size:10px;color:var(--text-3)">targetAudience: internal — マスキング: フル</div>
+            </div>
+            <div class="variant-meta">
+              <button style="font-size:11px;color:var(--primary);cursor:pointer">切替</button>
+            </div>
+          </div>
+          <div style="padding:8px 12px">
+            <button class="rule-add-btn">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 2v8M2 6h8"/></svg>
+              バリアントを追加
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Rules -->
+      <div data-btab-panel="valrules">
+        <div class="rule-list">
+          <div class="rule-item">
+            <div class="rule-severity error"></div>
+            <div>
+              <div class="rule-id">VAL-001</div>
+              <div class="rule-desc">所得金額は0以上の整数であること</div>
+              <div class="rule-target">対象: items[].income</div>
+            </div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-severity error"></div>
+            <div>
+              <div class="rule-id">VAL-002</div>
+              <div class="rule-desc">氏名は必須かつ全角50文字以内</div>
+              <div class="rule-target">対象: employee.name</div>
+            </div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-severity warning"></div>
+            <div>
+              <div class="rule-id">VAL-003</div>
+              <div class="rule-desc">控除額は所得金額を超えていないこと</div>
+              <div class="rule-target">対象: items[].deduction, items[].income</div>
+            </div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-severity info"></div>
+            <div>
+              <div class="rule-id">VAL-004</div>
+              <div class="rule-desc">合計税額は各行税額の合計と一致すること（クロスチェック）</div>
+              <div class="rule-target">対象: totals.tax, items[].tax</div>
+            </div>
+          </div>
+          <button class="rule-add-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 2v8M2 6h8"/></svg>
+            検証ルールを追加
+          </button>
+        </div>
+      </div>
+
+      <!-- Calculation Rules -->
+      <div data-btab-panel="calcrules">
+        <div class="rule-list">
+          <div class="rule-item">
+            <div class="rule-severity info" style="background:#8b5cf6"></div>
+            <div>
+              <div class="rule-id">CALC-001</div>
+              <div class="rule-desc">税額 = round(所得金額 × 税率 − 控除額 × 0.05)</div>
+              <div class="rule-target">targetField: items[].tax</div>
+            </div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-severity info" style="background:#8b5cf6"></div>
+            <div>
+              <div class="rule-id">CALC-002</div>
+              <div class="rule-desc">合計所得 = sum(items[].income)</div>
+              <div class="rule-target">targetField: totals.income</div>
+            </div>
+          </div>
+          <button class="rule-add-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 2v8M2 6h8"/></svg>
+            計算ルールを追加
+          </button>
+        </div>
+      </div>
+
+      <!-- Submission Model -->
+      <div data-btab-panel="submission">
+        <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:12px;color:var(--text-2);width:100px">提出種別</div>
+            <select class="prop-input" style="max-width:200px">
+              <option>XmlSubmission</option>
+              <option>CsvSubmission</option>
+              <option>PaperSubmission</option>
+              <option>ApiSubmission</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:12px;color:var(--text-2);width:100px">スキーマVer</div>
+            <input class="prop-input" value="2024.1.0" style="max-width:200px"/>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:4px">フィールドマッピング</div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:11px">
+            <div style="display:grid;grid-template-columns:1fr 24px 1fr;background:var(--bg);padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text-3);font-weight:600">
+              <span>帳票フィールド</span><span></span><span>提出フィールド</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 24px 1fr;padding:5px 10px;border-bottom:1px solid var(--border);align-items:center">
+              <span style="font-family:var(--font-mono);color:var(--primary)">employee.name</span>
+              <span style="text-align:center;color:var(--text-3)">→</span>
+              <span style="font-family:var(--font-mono)">SHIMEI</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 24px 1fr;padding:5px 10px;border-bottom:1px solid var(--border);align-items:center">
+              <span style="font-family:var(--font-mono);color:var(--primary)">totals.income</span>
+              <span style="text-align:center;color:var(--text-3)">→</span>
+              <span style="font-family:var(--font-mono)">SHOTOKU_GOKEI</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 24px 1fr;padding:5px 10px;align-items:center">
+              <span style="font-family:var(--font-mono);color:var(--primary)">totals.tax</span>
+              <span style="text-align:center;color:var(--text-3)">→</span>
+              <span style="font-family:var(--font-mono)">ZEIGAKU_GOKEI</span>
+            </div>
+          </div>
+          <button class="rule-add-btn" style="width:fit-content">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 2v8M2 6h8"/></svg>
+            マッピングを追加
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div data-btab-panel="preview">
+        <div style="display:flex;height:100%;gap:0">
+          <div style="width:240px;border-right:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-2)">サンプルデータ (JSON)</div>
+            <textarea style="flex:1;resize:none;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-mono);font-size:10px;padding:6px;background:var(--bg);color:var(--text);outline:none" rows="7">{
+  "employee": {
+    "name": "山田 太郎",
+    "code": "EMP-0042"
+  },
+  "items": [
+    { "name": "給与所得", "income": 5000000, "deduction": 154000, "tax": 969200 }
+  ]
+}</textarea>
+            <button style="padding:7px 12px;background:var(--primary);color:white;border-radius:var(--radius);font-size:12px;cursor:pointer">
+              プレビュー描画
+            </button>
+          </div>
+          <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;color:var(--text-3)">検証結果</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);font-size:11px;color:#dc2626">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="6" r="5"/><path d="M6 3v4M6 8.5h.01"/></svg>
+                エラー 0件
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);font-size:11px;color:#d97706">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 1l5 9H1z"/><path d="M6 5v2.5M6 9h.01"/></svg>
+                警告 1件
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Tab switching ────────────────────────────────────────────────
+function activateTab(containerSelector, tabAttr, panelAttr, value) {
+  const tabs = document.querySelectorAll(`${containerSelector} [${tabAttr}]`);
+  const panels = document.querySelectorAll(`[${panelAttr}]`);
+  tabs.forEach(t => t.classList.toggle('active', t.getAttribute(tabAttr) === value));
+  panels.forEach(p => p.classList.toggle('active', p.getAttribute(panelAttr) === value));
+}
+
+// Left panel tabs
+document.querySelectorAll('.ptab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activateTab('#left', 'data-tab', 'data-tab-panel', tab.dataset.tab);
+  });
+});
+
+// Right panel tabs
+document.querySelectorAll('.rtab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activateTab('#right', 'data-rtab', 'data-rtab-panel', tab.dataset.rtab);
+  });
+});
+
+// Bottom panel tabs
+document.querySelectorAll('.btab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const value = tab.dataset.btab;
+    document.querySelectorAll('.btab').forEach(t => t.classList.toggle('active', t.dataset.btab === value));
+    document.querySelectorAll('[data-btab-panel]').forEach(p => p.classList.toggle('active', p.getAttribute('data-btab-panel') === value));
+  });
+});
+
+// ── Palette category collapse ───────────────────────────────────
+document.querySelectorAll('.palette-cat-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const id = 'cat-' + header.dataset.cat;
+    const items = document.getElementById(id);
+    if (!items) return;
+    const collapsed = header.classList.toggle('collapsed');
+    items.style.display = collapsed ? 'none' : 'grid';
+  });
+});
+
+// ── Canvas element selection ────────────────────────────────────
+let selectedEl = 'el-table';
+let selectedSection = null;
+
+function clearCanvasSelection(e) {
+  if (e && e.target !== document.getElementById('canvas-wrap') && !e.target.closest('#page') === false) return;
+  if (e && e.target === document.getElementById('canvas-wrap')) {
+    selectNone();
+  }
+}
+
+function selectNone() {
+  document.querySelectorAll('.el').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.section-wrap').forEach(s => s.classList.remove('selected'));
+  document.querySelectorAll('.layer-item').forEach(l => l.classList.remove('selected'));
+  selectedEl = null;
+  selectedSection = null;
+}
+
+function selectEl(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.el').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.section-wrap').forEach(s => s.classList.remove('selected'));
+  document.getElementById(id)?.classList.add('selected');
+  selectedEl = id;
+
+  // Sync layer tree
+  document.querySelectorAll('.layer-item').forEach(l => {
+    l.classList.toggle('selected', l.dataset.layer === id.replace('el-', ''));
+  });
+
+  // Ensure right panel shows props
+  document.getElementById('props-element').style.display = '';
+  document.getElementById('props-empty') && (document.getElementById('props-empty').style.display = 'none');
+
+  // Show basic tab
+  activateTab('#right', 'data-rtab', 'data-rtab-panel', 'basic');
+}
+
+function selectSection(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.el').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.section-wrap').forEach(s => s.classList.remove('selected'));
+  document.getElementById(id)?.classList.add('selected');
+  selectedSection = id;
+
+  const sectionLayerMap = {
+    'section-header': 'header',
+    'section-body': 'body',
+    'section-footer': 'footer'
+  };
+  document.querySelectorAll('.layer-item').forEach(l => {
+    l.classList.toggle('selected', l.dataset.layer === sectionLayerMap[id]);
+  });
+}
+
+function selectLayer(el, canvasId) {
+  document.querySelectorAll('.layer-item').forEach(l => l.classList.remove('selected'));
+  el.classList.add('selected');
+
+  document.querySelectorAll('.el').forEach(e => e.classList.remove('selected'));
+  document.querySelectorAll('.section-wrap').forEach(s => s.classList.remove('selected'));
+
+  const target = document.getElementById(canvasId);
+  if (target) {
+    target.classList.add('selected');
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  if (canvasId.startsWith('section-')) {
+    selectSection({ stopPropagation: () => {} }, canvasId);
+  } else {
+    selectEl({ stopPropagation: () => {} }, canvasId);
+  }
+}
+
+// ── Toggle buttons ──────────────────────────────────────────────
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('active'));
+});
+
+document.querySelectorAll('.tbtn').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('active'));
+});
+
+// ── Drag feedback (visual only mock) ───────────────────────────
+let isDragging = false;
+document.querySelectorAll('.palette-item').forEach(item => {
+  item.addEventListener('dragstart', e => {
+    isDragging = true;
+    e.dataTransfer.setData('text', item.textContent.trim());
+    item.style.opacity = '0.5';
+  });
+  item.addEventListener('dragend', () => {
+    isDragging = false;
+    item.style.opacity = '';
+  });
+});
+
+// Initial state: table is selected
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('el-table')?.classList.add('selected');
+});
+</script>
+</body>
+</html>

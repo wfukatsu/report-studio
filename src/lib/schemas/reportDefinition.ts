@@ -1,0 +1,197 @@
+/**
+ * Zod schemas for ReportDefinition API boundary validation.
+ *
+ * Enforces structural constraints:
+ * - Pages max: 50
+ * - Sections per page max: 20
+ * - Elements per section max: 300
+ * - Calculation rules max: 100
+ * - Template variables max: 100
+ *
+ * Uses .passthrough() so unknown future fields aren't rejected (forward compat).
+ */
+import { z } from 'zod'
+
+// ---------------------------------------------------------------------------
+// Primitives
+// ---------------------------------------------------------------------------
+
+const PositionSchema = z.object({ x: z.number(), y: z.number() })
+const SizeSchema = z.object({ width: z.number(), height: z.number() })
+
+const TextStyleSchema = z.object({
+  fontSize: z.number().optional(),
+  fontFamily: z.string().optional(),
+  fontWeight: z.enum(['normal', 'bold']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
+  textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
+  color: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
+  letterSpacing: z.number().optional(),
+  lineHeight: z.number().optional(),
+  paddingTop: z.number().optional(),
+  paddingRight: z.number().optional(),
+  paddingBottom: z.number().optional(),
+  paddingLeft: z.number().optional(),
+  writingMode: z.enum(['horizontal-tb', 'vertical-rl']).optional(),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// Element base — all elements share these fields
+// ---------------------------------------------------------------------------
+
+const ElementBaseSchema = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  position: PositionSchema,
+  size: SizeSchema,
+  zIndex: z.number().int(),
+  locked: z.boolean(),
+  visible: z.boolean(),
+  name: z.string().optional(),
+  visibilityRule: z.string().max(500).optional(),
+  printable: z.boolean().optional(),
+}).passthrough()
+
+// Accept any element that satisfies ElementBase — individual type fields are
+// validated in the app layer. Unknown element types from new API versions pass
+// through without rejection.
+const ReportElementSchema = ElementBaseSchema
+
+// ---------------------------------------------------------------------------
+// Section
+// ---------------------------------------------------------------------------
+
+const SectionSchema = z.object({
+  id: z.string().min(1),
+  sectionType: z.enum(['header', 'body', 'footer', 'custom']),
+  height: z.number().positive(),
+  elements: z.array(ReportElementSchema).max(300),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// LayerGroup
+// ---------------------------------------------------------------------------
+
+const LayerGroupSchema = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().max(200),
+  elementIds: z.array(z.string().min(1).max(100)).max(300),
+  collapsed: z.boolean(),
+  visible: z.boolean(),
+  locked: z.boolean(),
+})
+
+// ---------------------------------------------------------------------------
+// PageDef
+// ---------------------------------------------------------------------------
+
+const PageDefSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  background: z.string(),
+  sections: z.array(SectionSchema).max(20),
+  groups: z.array(LayerGroupSchema).max(100).optional(),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// PageSettings
+// ---------------------------------------------------------------------------
+
+const MarginsSchema = z.object({
+  top: z.number(),
+  right: z.number(),
+  bottom: z.number(),
+  left: z.number(),
+})
+
+const PageSettingsSchema = z.object({
+  paperSize: z.enum(['A4', 'A3', 'Letter', 'Legal', 'custom']),
+  orientation: z.enum(['portrait', 'landscape']),
+  margins: MarginsSchema,
+  unit: z.literal('mm'),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
+
+const MetadataSchema = z.object({
+  documentName: z.string(),
+  version: z.string(),
+  reportType: z.string(),
+  applicableRegulation: z.string().optional(),
+  effectiveFrom: z.string().optional(),
+  effectiveTo: z.string().optional(),
+  description: z.string().optional(),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// CalculationRule
+// ---------------------------------------------------------------------------
+
+const CalculationRuleSchema = z.object({
+  key: z.string().min(1).max(100),
+  label: z.string().max(200),
+  description: z.string().optional(),
+  expression: z.string().max(500),
+  resultType: z.enum(['number', 'string', 'boolean']),
+  onError: z.enum(['zero', 'empty', 'error_text']),
+  format: z.object({
+    type: z.string(),
+    decimalPlaces: z.number().optional(),
+    customPattern: z.string().optional(),
+  }).passthrough().optional(),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// ValidationRule
+// ---------------------------------------------------------------------------
+
+const ValidationRuleSchema = z.object({
+  id: z.string().min(1).max(100),
+  condition: z.string().max(500),
+  message: z.string().max(500),
+  severity: z.enum(['error', 'warning']),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// TemplateVariable
+// ---------------------------------------------------------------------------
+
+const TemplateVariableSchema = z.object({
+  key: z.string().min(1).max(100),
+  label: z.string().max(200),
+  description: z.string().optional(),
+  defaultValue: z.string(),
+}).passthrough()
+
+// ---------------------------------------------------------------------------
+// ReportDefinition — top-level schema
+// ---------------------------------------------------------------------------
+
+export const ReportDefinitionSchema = z.object({
+  id: z.string().min(1),
+  metadata: MetadataSchema,
+  pageSettings: PageSettingsSchema,
+  defaultTextStyle: TextStyleSchema,
+  templateVariables: z.array(TemplateVariableSchema).max(100),
+  calculationRules: z.array(CalculationRuleSchema).max(100),
+  dataSources: z.array(z.object({
+    id: z.string().min(1),
+    name: z.string(),
+    fields: z.record(z.string(), z.unknown()),
+  }).passthrough()).max(50),
+  outputVariants: z.array(z.record(z.string(), z.unknown())).max(50),
+  submissionModels: z.array(z.record(z.string(), z.unknown())).max(50),
+  validationRules: z.array(ValidationRuleSchema).max(200),
+  pages: z.array(PageDefSchema).min(1).max(50),
+  masterHeader: SectionSchema.optional(),
+  masterFooter: SectionSchema.optional(),
+}).passthrough()
+
+export type ReportDefinitionInput = z.input<typeof ReportDefinitionSchema>

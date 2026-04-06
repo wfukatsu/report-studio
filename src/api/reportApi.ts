@@ -1,0 +1,230 @@
+/**
+ * Report API — all V2 backend API calls.
+ *
+ * Design decisions:
+ * - No services/ layer (DHH): async operations live here directly
+ * - loadFromBackend is here (not in a separate service file)
+ * - Zod validation on every response (ReportDefinitionSchema)
+ * - full PUT only — no JSON Patch (YAGNI for single-user tool)
+ * - generation counter prevents concurrent load overwrite
+ */
+import { z } from 'zod'
+import { apiFetch, isNetworkError } from './client'
+import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
+import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
+import type { ReportDefinition } from '@/types'
+import {
+  EvaluateResponseSchema,
+  ValidateResponseSchema,
+  type EvaluateResponse,
+  type ValidateResponse,
+} from '@/lib/schemas/evaluateResponse'
+import { useReportStore } from '@/store'
+
+// ---------------------------------------------------------------------------
+// Response schemas
+// ---------------------------------------------------------------------------
+
+const TemplateListItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  updatedAt: z.string().optional(),
+  createdAt: z.string().optional(),
+}).passthrough()
+
+const TemplateListSchema = z.object({
+  items: z.array(TemplateListItemSchema),
+  total: z.number(),
+})
+
+const VersionListItemSchema = z.object({
+  id: z.string(),
+  versionNumber: z.number().int(),
+  createdAt: z.string(),
+  createdBy: z.string().optional(),
+}).passthrough()
+
+export type TemplateListItem = z.infer<typeof TemplateListItemSchema>
+export type VersionListItem = z.infer<typeof VersionListItemSchema>
+
+// ---------------------------------------------------------------------------
+// Helper: JSON body init
+// ---------------------------------------------------------------------------
+
+function jsonBody(body: unknown): RequestInit {
+  return {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Template CRUD
+// ---------------------------------------------------------------------------
+
+export async function listReports(): Promise<{ items: TemplateListItem[]; total: number }> {
+  return apiFetch('/api/v2/templates', TemplateListSchema)
+}
+
+export async function getReport(id: string): Promise<ReportDefinition> {
+  return apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, ReportDefinitionSchema) as unknown as Promise<ReportDefinition>
+}
+
+export async function createReport(name: string): Promise<TemplateListItem> {
+  return apiFetch('/api/v2/templates', TemplateListItemSchema, jsonBody({ name }))
+}
+
+export async function saveReport(id: string, definition: ReportDefinition): Promise<ReportDefinition> {
+  return apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, ReportDefinitionSchema, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(definition),
+  }) as unknown as Promise<ReportDefinition>
+}
+
+export async function deleteReport(id: string): Promise<void> {
+  return apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
+}
+
+// ---------------------------------------------------------------------------
+// Version management
+// ---------------------------------------------------------------------------
+
+export async function listVersions(templateId: string): Promise<VersionListItem[]> {
+  return apiFetch(`/api/v2/templates/${encodeURIComponent(templateId)}/versions`, z.array(VersionListItemSchema))
+}
+
+export async function createVersion(templateId: string): Promise<VersionListItem> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/versions`,
+    VersionListItemSchema,
+    { method: 'POST' },
+  )
+}
+
+export async function restoreVersion(templateId: string, versionId: string): Promise<void> {
+  // Uses generation counter to prevent concurrent load overwrite
+  return loadFromBackend(templateId, versionId)
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+const MeSchema = z.object({
+  id: z.string(),
+  email: z.string().optional(),
+  name: z.string().optional(),
+}).passthrough()
+
+export type Me = z.infer<typeof MeSchema>
+
+export async function getMe(): Promise<Me> {
+  return apiFetch('/api/v1/auth/me', MeSchema)
+}
+
+export async function login(email: string, password: string): Promise<Me> {
+  return apiFetch('/api/v1/auth/login', MeSchema, jsonBody({ email, password }))
+}
+
+export async function logout(): Promise<void> {
+  return apiFetch('/api/v1/auth/logout', z.undefined(), { method: 'POST' })
+}
+
+// ---------------------------------------------------------------------------
+// Health check
+// ---------------------------------------------------------------------------
+
+export async function checkHealth(): Promise<boolean> {
+  try {
+    await apiFetch('/api/v2/health', z.undefined())
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Expression evaluation
+// ---------------------------------------------------------------------------
+
+/**
+ * Evaluate calculation rules against testData.
+ * Call from useEvaluator only — this function does NOT touch the store.
+ * Pass signal to cancel in-flight requests when deps change.
+ */
+export async function evaluateCalculations(
+  templateId: string,
+  definition: ReportDefinitionInput,
+  testData: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<EvaluateResponse> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/evaluate`,
+    EvaluateResponseSchema,
+    { ...jsonBody({ definition, testData }), signal },
+  )
+}
+
+/**
+ * Validate the report against validation rules (P2 stub — not called in P1).
+ * Wire up in P2 when the "Validate" UI action is implemented.
+ */
+export async function evaluateValidate(
+  templateId: string,
+  definition: ReportDefinitionInput,
+  testData: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<ValidateResponse> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/validate`,
+    ValidateResponseSchema,
+    { ...jsonBody({ definition, testData }), signal },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// loadFromBackend — concurrent load prevention via generation counter
+//
+// The generation counter lives inside the store (not module scope) so:
+// - Tests don't leak state between runs
+// - Zustand devtools can observe it
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a template from the backend into the store.
+ * If a version ID is provided, loads that specific snapshot.
+ *
+ * Race condition prevention:
+ * - Increments loadGeneration before the fetch
+ * - If generation has changed by the time the fetch completes, discards result
+ *   (a newer load won the race and its result should be kept)
+ */
+export async function loadFromBackend(templateId: string, versionId?: string): Promise<void> {
+  useReportStore.getState().incrementLoadGeneration()
+  const generation = useReportStore.getState().loadGeneration
+  useReportStore.getState().setLoadState('loading')
+
+  try {
+    const url = versionId
+      ? `/api/v2/templates/${encodeURIComponent(templateId)}/versions/${encodeURIComponent(versionId)}/restore`
+      : `/api/v2/templates/${encodeURIComponent(templateId)}`
+
+    const method = versionId ? 'POST' : undefined
+    const raw = await apiFetch(url, ReportDefinitionSchema, method ? { method } : undefined)
+
+    // Discard if a newer load has already started
+    if (generation !== useReportStore.getState().loadGeneration) return
+
+    useReportStore.getState().loadReport(raw as unknown as ReportDefinition)
+    useReportStore.getState().setCurrentTemplateId(templateId)
+    useReportStore.getState().setBackendConnected(true)
+    useReportStore.getState().setLoadState('idle')
+    useReportStore.getState().invalidateComputed()
+  } catch (err) {
+    if (generation !== useReportStore.getState().loadGeneration) return
+    if (isNetworkError(err)) useReportStore.getState().setBackendConnected(false)
+    useReportStore.getState().setLoadState('error')
+  }
+}

@@ -1,0 +1,79 @@
+/**
+ * ElementRenderer — thin dispatcher that routes to type-specific renderers.
+ * Each element type lives in src/elements/{type}/Renderer.tsx.
+ *
+ * P1: computedValues from the store are merged into `data` so that all child
+ * renderers can reference calculated field values (e.g. {{total}}, fieldKey="subtotal")
+ * without any changes to the individual renderer implementations.
+ *
+ * Note: memo() prevents re-renders from prop changes, but the useShallow subscription
+ * to computedValues means this component will re-render when computedValues changes.
+ * P2 task: lift computedValues subscription to the parent canvas component to reduce
+ * N subscriptions (one per element) down to 1.
+ */
+
+import { memo } from 'react'
+import { useShallow } from 'zustand/shallow'
+import { useReportStore } from '@/store'
+import type { ReportElement } from '@/types'
+
+import { TextRenderer } from '@/elements/text/Renderer'
+import { LabelRenderer } from '@/elements/label/Renderer'
+import { DataFieldRenderer } from '@/elements/dataField/Renderer'
+import { ImageRenderer } from '@/elements/image/Renderer'
+import { ShapeRenderer } from '@/elements/shape/Renderer'
+import { TableRenderer } from '@/elements/table/Renderer'
+import { ChartRenderer } from '@/elements/chart/Renderer'
+import { BarcodeRenderer } from '@/elements/barcode/Renderer'
+import { ManualEntryRenderer } from '@/elements/manualEntry/Renderer'
+import { HankoRenderer } from '@/elements/hanko/Renderer'
+import { ApprovalStampRowRenderer } from '@/elements/approvalStampRow/Renderer'
+import { RevenueStampRenderer } from '@/elements/revenueStamp/Renderer'
+import { RepeatingBandRenderer } from '@/elements/repeatingBand/Renderer'
+import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
+
+interface Props {
+  element: ReportElement
+  data?: Record<string, unknown>
+}
+
+export const ElementRenderer = memo(function ElementRenderer({ element, data = {} }: Props) {
+  // Merge computedValues into data so calculated fields are available to all renderers.
+  // useShallow: re-render only when computedValues keys or values actually change.
+  const computedValues = useReportStore(useShallow((s) => s.computedValues))
+  const mergedData: Record<string, unknown> = { ...data, ...computedValues }
+
+  if (!element.visible) return null
+
+  switch (element.type) {
+    case 'text':            return <TextRenderer element={element} data={mergedData} />
+    case 'label':           return <LabelRenderer element={element} />
+    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} />
+    case 'image':           return <ImageRenderer element={element} />
+    case 'shape':           return <ShapeRenderer element={element} />
+    case 'table':           return <TableRenderer element={element} data={mergedData} />
+    case 'chart':           return <ChartRenderer element={element} />
+    case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
+    case 'manualEntry':     return <ManualEntryRenderer element={element} />
+    case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
+    case 'approvalStampRow': return <ApprovalStampRowRenderer element={element} />
+    case 'revenueStamp':    return <RevenueStampRenderer element={element} />
+    case 'repeatingBand': {
+      const bandRecords = element.dataSource
+        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
+        : undefined
+      return <RepeatingBandRenderer element={element} records={bandRecords} />
+    }
+    case 'repeatingList': {
+      const listRecords = element.dataSource
+        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
+        : undefined
+      return <RepeatingListRenderer element={element} records={listRecords} />
+    }
+    default:                return assertNever(element)
+  }
+})
+
+function assertNever(x: never): never {
+  throw new Error(`Unhandled element type: ${(x as { type: string }).type}`)
+}
