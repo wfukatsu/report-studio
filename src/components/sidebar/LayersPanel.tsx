@@ -78,6 +78,8 @@ export function LayersPanel() {
   // Add-element dropdown state
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const addMenuRef = useRef<HTMLDivElement>(null)
+  const addButtonRef = useRef<HTMLButtonElement>(null)
+  const [addMenuPos, setAddMenuPos] = useState<{ top: number; left: number; width: number } | null>(null)
   useDropdownDismiss(addMenuRef, addMenuOpen, () => setAddMenuOpen(false))
 
   // Add a new element to the body section (or first section) of the active page
@@ -249,19 +251,35 @@ export function LayersPanel() {
         </div>
 
         {/* Add new element dropdown */}
-        <div className="relative shrink-0" ref={addMenuRef}>
+        <div className="shrink-0" ref={addMenuRef}>
           <button
+            ref={addButtonRef}
             title="新規レイヤーを追加"
             aria-label="新規レイヤーを追加"
             aria-expanded={addMenuOpen}
             className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
-            onClick={() => setAddMenuOpen((v) => !v)}
+            onClick={() => {
+              if (!addMenuOpen && addButtonRef.current) {
+                const btnRect = addButtonRef.current.getBoundingClientRect()
+                const sidebar = addButtonRef.current.closest('aside')
+                const sidebarRect = sidebar?.getBoundingClientRect()
+                setAddMenuPos({
+                  top: btnRect.bottom + 4,
+                  left: sidebarRect?.left ?? 0,
+                  width: sidebarRect?.width ?? 208,
+                })
+              }
+              setAddMenuOpen((v) => !v)
+            }}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
 
-          {addMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-popover border rounded-md shadow-lg overflow-hidden">
+          {addMenuOpen && addMenuPos && (
+            <div
+              style={{ position: 'fixed', top: addMenuPos.top, left: addMenuPos.left, width: addMenuPos.width, zIndex: 9999 }}
+              className="bg-popover border rounded-md shadow-lg overflow-hidden"
+            >
               <div className="max-h-72 overflow-y-auto py-1">
                 {PALETTE_CATEGORIES.map((cat) => (
                   <div key={cat.category}>
