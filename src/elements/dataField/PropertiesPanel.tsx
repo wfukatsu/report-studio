@@ -1,16 +1,6 @@
 import type { DataFieldElement } from '@/types'
-import { useReportStore } from '@/store/reportStore'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
-
-function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
-  return Object.entries(obj).flatMap(([k, v]) => {
-    const key = prefix ? `${prefix}.${k}` : k
-    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-      return [key, ...flattenKeys(v as Record<string, unknown>, key)]
-    }
-    return [key]
-  })
-}
+import { FieldKeyInput } from '@/components/common/FieldKeyInput'
 
 interface Props {
   el: DataFieldElement
@@ -18,29 +8,14 @@ interface Props {
 }
 
 export function DataFieldPropertiesPanel({ el, onChange }: Props) {
-  const dataSource = useReportStore((s) => s.definition.dataSources[0] ?? null)
-  const fieldSuggestions = dataSource
-    ? flattenKeys(dataSource.fields as Record<string, unknown>)
-    : []
-
   return (
     <PropSection title="データバインド">
       <PropRow label="フィールドキー">
-        <input
-          list="field-key-suggestions"
-          type="text"
-          className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
+        <FieldKeyInput
           value={el.fieldKey}
-          placeholder="例: customer.name"
-          onChange={(e) => onChange({ fieldKey: e.target.value })}
+          onChange={(v) => onChange({ fieldKey: v })}
+          placeholder="例: customer_name"
         />
-        {fieldSuggestions.length > 0 && (
-          <datalist id="field-key-suggestions">
-            {fieldSuggestions.map(key => (
-              <option key={key} value={key} />
-            ))}
-          </datalist>
-        )}
       </PropRow>
       <PropRow label="ラベル">
         <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.label ?? ''} placeholder="未入力時のラベル" onChange={(e) => onChange({ label: e.target.value })} />

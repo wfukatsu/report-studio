@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import type { TextElement } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput, IconToggle } from '@/elements/_base/sharedUI'
+import { TokenInput } from '@/components/common/TokenInput'
 
 const FONT_FAMILIES = [
   'sans-serif', 'serif', 'monospace',
@@ -79,11 +80,11 @@ export function TextPropertiesPanel({ el, onChange }: Props) {
         </PropRow>
       </PropSection>
       <PropSection title="コンテンツ">
-        <textarea
-          className="border rounded px-2 py-1 text-xs w-full bg-background resize-y"
-          rows={4}
+        <TokenInput
           value={el.content}
-          onChange={(e) => onChange({ content: e.target.value })}
+          onChange={(v) => onChange({ content: v })}
+          rows={4}
+          placeholder={'テキスト内容（{{フィールドキー}} でデータ参照）'}
         />
         <PropRow label="ふりがな">
           <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.furigana ?? ''} placeholder="ふりがな" onChange={(e) => onChange({ furigana: e.target.value || undefined })} />
