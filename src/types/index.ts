@@ -531,8 +531,25 @@ export interface DataSourceDefinition {
   fields: Record<string, unknown>
 }
 
-export type OutputVariant = Record<string, unknown>
 export type SubmissionModel = Record<string, unknown>
+
+// ---------------------------------------------------------------------------
+// OutputVariant — per-audience PDF variants with masking rules
+// ---------------------------------------------------------------------------
+
+export type MaskingRule =
+  | { id: string; targetElementId: string; type: 'fullReplace'; replaceValue: string }
+  | { id: string; targetElementId: string; type: 'partial'; keepFirst?: number; keepLast?: number }
+
+export interface OutputVariant {
+  id: string
+  name: string
+  targetAudience?: string
+  /** Element IDs hidden in this variant (checked at export time) */
+  hiddenElementIds: string[]
+  /** Text masking rules — fullReplace or partial character masking */
+  maskingRules: MaskingRule[]
+}
 
 export type ValidationSeverity = 'error' | 'warning'
 

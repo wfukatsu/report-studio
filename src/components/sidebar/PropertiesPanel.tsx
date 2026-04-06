@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/shallow'
 import { CopyPlus, Trash2, ShieldAlert } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { ConditionalDisplayEditor } from './ConditionalDisplayEditor'
+import type { OutputVariant } from '@/types'
 import { TextPropertiesPanel } from '@/elements/text/PropertiesPanel'
 import { LabelPropertiesPanel } from '@/elements/label/PropertiesPanel'
 import { DataFieldPropertiesPanel } from '@/elements/dataField/PropertiesPanel'
@@ -51,9 +52,14 @@ function PositionSizeSection({ el, onChange }: {
 }
 
 function ElementCommonSection({ el, onChange }: {
-  el: { name?: string; visible: boolean; locked: boolean; printable?: boolean; conditionalDisplay?: import('@/types').ConditionalDisplay }
+  el: { id: string; name?: string; visible: boolean; locked: boolean; printable?: boolean; conditionalDisplay?: import('@/types').ConditionalDisplay }
   onChange: (patch: object) => void
 }) {
+  const variants = useReportStore(
+    useShallow((s) => s.definition.outputVariants as OutputVariant[]),
+  )
+  const toggleElementHidden = useReportStore((s) => s.toggleElementHidden)
+
   return (
     <PropSection title="要素">
       <PropRow label="名前">
@@ -74,6 +80,24 @@ function ElementCommonSection({ el, onChange }: {
         value={el.conditionalDisplay}
         onChange={(cd) => onChange({ conditionalDisplay: cd })}
       />
+      {variants.length > 0 && (
+        <div className="mt-2">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">バリアント非表示</div>
+          <div className="space-y-1">
+            {variants.map((v) => (
+              <label key={v.id} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded"
+                  checked={v.hiddenElementIds.includes(el.id)}
+                  onChange={() => toggleElementHidden(v.id, el.id)}
+                />
+                <span className="truncate">{v.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
     </PropSection>
   )
 }

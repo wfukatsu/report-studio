@@ -14,6 +14,8 @@ import type {
   LayerGroup,
   SchemaGroup,
   SchemaField,
+  OutputVariant,
+  MaskingRule,
 } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -199,6 +201,16 @@ export interface StoreState {
   setSaveState: (state: SaveState) => void
   incrementLoadGeneration: () => void
   setLayerSearchQuery: (query: string) => void
+
+  // ── Variants slice actions ────────────────────────────────────────────────
+  addVariant: (name: string) => void
+  removeVariant: (variantId: string) => void
+  updateVariant: (variantId: string, patch: Partial<Pick<OutputVariant, 'name' | 'targetAudience'>>) => void
+  toggleElementHidden: (variantId: string, elementId: string) => void
+  addMaskingRule: (variantId: string, rule: Omit<MaskingRule, 'id'>) => void
+  removeMaskingRule: (variantId: string, ruleId: string) => void
+  replaceMaskingRule: (variantId: string, rule: MaskingRule) => void
+  cleanupVariantRefsForElement: (elementId: string) => void
 
   // ── Schema slice actions ──────────────────────────────────────────────────
   addSchemaGroup: (role: 'master' | 'detail') => void

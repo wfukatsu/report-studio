@@ -351,6 +351,8 @@ export const createLayoutSlice: StateCreator<
         (id) => id !== elementId,
       )
     })
+    // Clean up variant references — called after set() so the draft is committed
+    get().cleanupVariantRefsForElement(elementId)
     get().pushHistory()
   },
 

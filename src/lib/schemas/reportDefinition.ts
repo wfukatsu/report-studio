@@ -238,7 +238,32 @@ export const ReportDefinitionSchema = z.object({
     name: z.string(),
     fields: z.record(z.string(), z.unknown()),
   }).passthrough()).max(50),
-  outputVariants: z.array(z.record(z.string(), z.unknown())).max(50),
+  outputVariants: z.array(z.union([
+    // New typed format
+    z.object({
+      id: z.string(),
+      name: z.string().max(200),
+      targetAudience: z.string().max(200).optional(),
+      hiddenElementIds: z.array(z.string()).max(500),
+      maskingRules: z.array(z.union([
+        z.object({
+          id: z.string(),
+          targetElementId: z.string(),
+          type: z.literal('fullReplace'),
+          replaceValue: z.string().max(500),
+        }),
+        z.object({
+          id: z.string(),
+          targetElementId: z.string(),
+          type: z.literal('partial'),
+          keepFirst: z.number().int().min(0).max(100).optional(),
+          keepLast: z.number().int().min(0).max(100).optional(),
+        }),
+      ])).max(200),
+    }),
+    // Legacy / unknown format — passthrough
+    z.record(z.string(), z.unknown()),
+  ])).max(50),
   schema: SchemaDefinitionSchema.optional(),
   submissionModels: z.array(z.record(z.string(), z.unknown())).max(50),
   validationRules: z.array(ValidationRuleSchema).max(200),

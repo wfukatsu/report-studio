@@ -7,13 +7,15 @@ import {
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
-  ShieldCheck, ShieldAlert, Database,
+  ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
 import { evaluateValidate } from '@/api/reportApi'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
-import type { Section } from '@/types'
+import type { Section, OutputVariant } from '@/types'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
+import { VariantsModal } from '@/components/modals/VariantsModal'
+import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
 import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
@@ -109,6 +111,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
+  const [showVariantsModal, setShowVariantsModal] = useState(false)
+  const [showVariantDialog, setShowVariantDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
@@ -146,16 +150,38 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setPreflightErrors([])
     const ok = await runPreflight()
     if (!ok) return
+    // If variants exist, show selection dialog first
+    const { definition } = useReportStore.getState()
+    const variants = definition.outputVariants as OutputVariant[]
+    if (variants.length > 0) {
+      setShowVariantDialog(true)
+      return
+    }
+    await doExportPdf(null)
+  }
+
+  const doExportPdf = async (variant: OutputVariant | null) => {
     setIsExporting(true)
     setExportError(null)
+    // Temporarily hide variant elements in DOM before html2canvas capture
+    const hiddenNodes: HTMLElement[] = []
+    if (variant && variant.hiddenElementIds.length > 0) {
+      for (const id of variant.hiddenElementIds) {
+        const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`)
+        if (node) { node.style.visibility = 'hidden'; hiddenNodes.push(node) }
+      }
+    }
     try {
       const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-      await exportReportToPdf(els, `${reportName}.pdf`)
+      const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
+      await exportReportToPdf(els, filename)
     } catch (_err) {
       const msg = 'エクスポートに失敗しました。もう一度お試しください。'
       setExportError(msg)
       setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
     } finally {
+      // Restore hidden nodes regardless of success/failure
+      for (const node of hiddenNodes) { node.style.visibility = '' }
       setIsExporting(false)
     }
   }
@@ -357,6 +383,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         {/* Data binding */}
         <ToolbarButton onClick={() => setShowDataModal(true)} title="データ設定">
           <Database className="w-4 h-4" />
+        </ToolbarButton>
+
+        {/* Output variants */}
+        <ToolbarButton onClick={() => setShowVariantsModal(true)} title="出力バリアント設定">
+          <Shuffle className="w-4 h-4" />
         </ToolbarButton>
 
         <Divider />
@@ -689,6 +720,22 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         onClose={() => setShowDataModal(false)}
       />
     )}
+
+    {/* Variants modal */}
+    <VariantsModal
+      open={showVariantsModal}
+      onClose={() => setShowVariantsModal(false)}
+    />
+
+    {/* Export variant selector */}
+    <ExportVariantDialog
+      open={showVariantDialog}
+      onSelect={(variant) => {
+        setShowVariantDialog(false)
+        void doExportPdf(variant)
+      }}
+      onCancel={() => setShowVariantDialog(false)}
+    />
     </>
   )
 }
