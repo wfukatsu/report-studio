@@ -12,6 +12,8 @@ import type {
   CalculationRule,
   ValidationRule,
   LayerGroup,
+  SchemaGroup,
+  SchemaField,
 } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -197,6 +199,14 @@ export interface StoreState {
   setSaveState: (state: SaveState) => void
   incrementLoadGeneration: () => void
   setLayerSearchQuery: (query: string) => void
+
+  // ── Schema slice actions ──────────────────────────────────────────────────
+  addSchemaGroup: (role: 'master' | 'detail') => void
+  removeSchemaGroup: (groupId: string) => void
+  updateSchemaGroup: (groupId: string, patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey'>>) => void
+  addSchemaField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
+  removeSchemaField: (groupId: string, fieldId: string) => void
+  updateSchemaField: (groupId: string, fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void
 
   // ── Computed slice actions ────────────────────────────────────────────────
   setComputedResults: (payload: {

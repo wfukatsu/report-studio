@@ -119,6 +119,35 @@ export type ElementType =
   | 'revenueStamp'
 
 // ---------------------------------------------------------------------------
+// SchemaDefinition — optional data schema (master/detail groups + fields)
+// ---------------------------------------------------------------------------
+
+export type SchemaFieldType = 'string' | 'number' | 'date' | 'boolean' | 'array' | 'image'
+
+export interface SchemaField {
+  id: string
+  /** Binding key — identifier chars only (^[a-zA-Z_][a-zA-Z0-9_]*$) */
+  key: string
+  label: string
+  type: SchemaFieldType
+  /** Element type for array fields */
+  itemType?: SchemaFieldType
+}
+
+export interface SchemaGroup {
+  id: string
+  label: string
+  role: 'master' | 'detail'
+  /** Key in the runtime data object (e.g. "items") — used for detail-row binding paths */
+  dataKey: string
+  fields: SchemaField[]
+}
+
+export interface SchemaDefinition {
+  groups: SchemaGroup[]
+}
+
+// ---------------------------------------------------------------------------
 // ConditionalDisplay — structured AND/OR visibility conditions
 // ---------------------------------------------------------------------------
 
@@ -527,6 +556,8 @@ export interface ReportDefinition {
   submissionModels: SubmissionModel[]
   validationRules: ValidationRule[]
   pages: PageDef[]
+  /** Optional data schema (master/detail groups + fields) */
+  schema?: SchemaDefinition
   /** Master header section — cloned to all pages on addPage */
   masterHeader?: Section
   /** Master footer section — cloned to all pages on addPage */

@@ -39,6 +39,34 @@ const TextStyleSchema = z.object({
 }).passthrough()
 
 // ---------------------------------------------------------------------------
+// SchemaDefinition — optional data schema
+// ---------------------------------------------------------------------------
+
+const SchemaFieldTypeSchema = z.enum(['string', 'number', 'date', 'boolean', 'array', 'image'])
+
+const SchemaFieldSchema = z.object({
+  id: z.string(),
+  key: z.string()
+    .max(128)
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます'),
+  label: z.string().max(200),
+  type: SchemaFieldTypeSchema,
+  itemType: SchemaFieldTypeSchema.optional(),
+})
+
+const SchemaGroupSchema = z.object({
+  id: z.string(),
+  label: z.string().max(200),
+  role: z.enum(['master', 'detail']),
+  dataKey: z.string().max(128),
+  fields: z.array(SchemaFieldSchema).max(200),
+})
+
+const SchemaDefinitionSchema = z.object({
+  groups: z.array(SchemaGroupSchema).max(20),
+})
+
+// ---------------------------------------------------------------------------
 // ConditionalDisplay — structured AND/OR visibility conditions
 // ---------------------------------------------------------------------------
 
@@ -211,6 +239,7 @@ export const ReportDefinitionSchema = z.object({
     fields: z.record(z.string(), z.unknown()),
   }).passthrough()).max(50),
   outputVariants: z.array(z.record(z.string(), z.unknown())).max(50),
+  schema: SchemaDefinitionSchema.optional(),
   submissionModels: z.array(z.record(z.string(), z.unknown())).max(50),
   validationRules: z.array(ValidationRuleSchema).max(200),
   pages: z.array(PageDefSchema).min(1).max(50),

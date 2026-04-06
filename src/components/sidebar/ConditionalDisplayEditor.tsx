@@ -8,6 +8,7 @@ import { memo } from 'react'
 import { Plus } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import type { ConditionalDisplay } from '@/types'
+import { useSchemaFieldOptions } from '@/hooks/useSchemaFieldOptions'
 import { ConditionRow } from './ConditionRow'
 import type { FieldOption } from './ConditionRow'
 
@@ -18,6 +19,7 @@ import type { FieldOption } from './ConditionRow'
 interface ConditionalDisplayEditorProps {
   value: ConditionalDisplay | undefined
   onChange: (cd: ConditionalDisplay | undefined) => void
+  /** Override field options (defaults to schema-derived options) */
   fieldOptions?: FieldOption[]
 }
 
@@ -36,8 +38,10 @@ function emptyDisplay(): ConditionalDisplay {
 export const ConditionalDisplayEditor = memo(function ConditionalDisplayEditor({
   value,
   onChange,
-  fieldOptions = [],
+  fieldOptions: fieldOptionsProp,
 }: ConditionalDisplayEditorProps) {
+  const schemaOptions = useSchemaFieldOptions()
+  const fieldOptions = fieldOptionsProp ?? schemaOptions
   const cd = value ?? emptyDisplay()
 
   function addCondition() {

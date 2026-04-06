@@ -9,6 +9,7 @@ import { PagePanel } from '@/components/sidebar/PagePanel'
 import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
+import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
 import { VersionHistoryPanel } from '@/components/sidebar/VersionHistoryPanel'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
@@ -16,13 +17,14 @@ import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-type LeftTab = 'elements' | 'pages' | 'layers'
+type LeftTab = 'elements' | 'pages' | 'layers' | 'schema'
 type RightTab = 'properties' | 'versions' | 'page'
 
 const LEFT_TABS: { id: LeftTab; label: string }[] = [
   { id: 'elements', label: '要素' },
   { id: 'layers', label: 'レイヤー' },
   { id: 'pages', label: 'ページ' },
+  { id: 'schema', label: 'スキーマ' },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
@@ -310,6 +312,7 @@ export default function App() {
                 {leftTab === 'elements' && <ElementPalette />}
                 {leftTab === 'layers' && <LayersPanel />}
                 {leftTab === 'pages' && <PagePanel />}
+                {leftTab === 'schema' && <SchemaPanel />}
               </div>
             )}
           </aside>

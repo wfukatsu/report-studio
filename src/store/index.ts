@@ -13,6 +13,7 @@ import { createRulesSlice } from './rulesSlice'
 import { createHistorySlice, snapshotPages } from './historySlice'
 import { createUISlice } from './uiSlice'
 import { createComputedSlice } from './computedSlice'
+import { createSchemaSlice } from './schemaSlice'
 import { createDefaultDefinition } from './layoutSlice'
 
 // Build the combined store
@@ -23,6 +24,7 @@ export const useReportStore = create<StoreState>()(
     const history = createHistorySlice(...a)
     const ui = createUISlice(...a)
     const computed = createComputedSlice(...a)
+    const schema = createSchemaSlice(...a)
 
     // Initialize history with the default definition's initial pages
     const initialHistory = [snapshotPages(createDefaultDefinition().pages)]
@@ -33,6 +35,7 @@ export const useReportStore = create<StoreState>()(
       ...history,
       ...ui,
       ...computed,
+      ...schema,
       // Override initial history state with populated snapshot
       history: initialHistory,
       historyIndex: 0,
