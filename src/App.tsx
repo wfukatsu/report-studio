@@ -10,14 +10,16 @@ import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
 import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
+import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
 import { VersionHistoryPanel } from '@/components/sidebar/VersionHistoryPanel'
+import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-type LeftTab = 'elements' | 'pages' | 'layers' | 'schema'
+type LeftTab = 'elements' | 'pages' | 'layers' | 'schema' | 'responses'
 type RightTab = 'properties' | 'versions' | 'page'
 
 const LEFT_TABS: { id: LeftTab; label: string }[] = [
@@ -25,6 +27,7 @@ const LEFT_TABS: { id: LeftTab; label: string }[] = [
   { id: 'schema', label: 'スキーマ' },
   { id: 'layers', label: 'レイヤー' },
   { id: 'pages', label: 'ページ' },
+  { id: 'responses', label: '回答' },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
@@ -313,6 +316,7 @@ export default function App() {
                 {leftTab === 'layers' && <LayersPanel />}
                 {leftTab === 'pages' && <PagePanel />}
                 {leftTab === 'schema' && <SchemaPanel />}
+                {leftTab === 'responses' && <ResponsesPanel />}
               </div>
             )}
           </aside>
@@ -388,6 +392,7 @@ export default function App() {
         title="テンプレートを変更"
         confirmLabel="変更"
       />
+      <SubmitResponseModal />
       {deleteToast && (
         <div role="status" aria-live="polite" className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 text-sm z-50">
           <span>{deleteToast.count}件の要素を削除しました</span>
