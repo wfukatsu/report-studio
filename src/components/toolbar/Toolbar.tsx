@@ -9,7 +9,8 @@ import {
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
-import { evaluateValidate } from '@/api/reportApi'
+import { evaluateValidate, generateTemplatePdf } from '@/api/reportApi'
+import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { Section, OutputVariant } from '@/types'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
@@ -108,6 +109,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const violationCount = useReportStore((s) => s.computedViolations.length)
   // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
+  const backendConnected = useReportStore((s) => s.backendConnected)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
@@ -183,6 +185,25 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     } finally {
       // Restore hidden nodes regardless of success/failure
       for (const node of hiddenNodes) { node.style.visibility = '' }
+      setIsExporting(false)
+    }
+  }
+
+  const handleBackendPdf = async () => {
+    if (isExporting) return
+    const { currentTemplateId, testData, definition } = useReportStore.getState()
+    if (!currentTemplateId) return
+    setIsExporting(true)
+    setExportError(null)
+    try {
+      const tdRecord = testData as Record<string, unknown>
+      const blob = await generateTemplatePdf(currentTemplateId, tdRecord)
+      downloadBlob(blob, `${definition.metadata.documentName}.pdf`)
+    } catch (_err) {
+      const msg = 'バックエンドPDF生成に失敗しました'
+      setExportError(msg)
+      setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
+    } finally {
       setIsExporting(false)
     }
   }
@@ -711,6 +732,17 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <FileText className="w-4 h-4" />
           <span className="text-xs ml-1">{isExporting ? 'PDF...' : 'PDF'}</span>
         </ToolbarButton>
+
+        {hasTemplateId && backendConnected && (
+          <ToolbarButton
+            onClick={handleBackendPdf}
+            disabled={isExporting}
+            title="バックエンドでPDFを生成（サーバーサイドレンダリング）"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="text-xs ml-1">{isExporting ? 'PDF...' : 'BEで生成'}</span>
+          </ToolbarButton>
+        )}
       </div>
     </header>
 

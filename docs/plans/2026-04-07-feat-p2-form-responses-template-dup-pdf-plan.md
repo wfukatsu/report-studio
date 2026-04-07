@@ -1,7 +1,7 @@
 ---
 title: "feat: P2 — フォーム回答収集 / テンプレート複製 / バックエンドPDF生成"
 type: feat
-status: active
+status: completed
 date: 2026-04-07
 deepened: 2026-04-07
 origin: docs/brainstorms/2026-04-07-v1-backend-port-to-v2-brainstorm.md
@@ -833,46 +833,46 @@ delete()
 
 ### Phase 0 (前提条件)
 
-- [ ] `Principal.ANONYMOUS` のロールが空 (`Set.of()`) になっている
-- [ ] `V2TemplateController.create()` が `createdBy: userId` を保存する
-- [ ] V2ルートにレート制限が設定されている
+- [x] `Principal.ANONYMOUS` のロールが空 (`Set.of()`) になっている
+- [x] `V2TemplateController.create()` が `createdBy: userId` を保存する
+- [x] V2ルートにレート制限が設定されている
 
 ### フォーム回答収集
 
-- [ ] ログイン済みユーザーが現在の `testData` を回答として送信できる
-- [ ] `submittedBy` はサーバー側でのみ設定される (クライアント値は無視)
-- [ ] 回答一覧がサイドバーパネルに表示される (submittedAt, submittedBy, フィールド数)
-- [ ] `?aggregate=true` パラメータで集計が返される
-- [ ] 2000件超はCSVエクスポートへ誘導する (422)
-- [ ] 回答をCSV形式でダウンロードできる (UTF-8 BOM付き、formula injection防止、`|`文字含む)
-- [ ] 回答をExcel形式でダウンロードできる (`.xlsx`、`CellType.STRING`で全セル設定)
-- [ ] 各回答のPDF回答票をダウンロードできる
-- [ ] 画面上でフィールドごとの集計が表示される (最頻値、件数)
-- [ ] 他ユーザーの回答への削除・閲覧は404を返す
-- [ ] 未認証アクセスは401を返す
-- [ ] JSONネスト深さ8超は400を返す
-- [ ] 1000フィールド超は400を返す
+- [x] ログイン済みユーザーが現在の `testData` を回答として送信できる
+- [x] `submittedBy` はサーバー側でのみ設定される (クライアント値は無視)
+- [x] 回答一覧がサイドバーパネルに表示される (submittedAt, submittedBy, フィールド数)
+- [x] `?aggregate=true` パラメータで集計が返される
+- [x] 2000件超はCSVエクスポートへ誘導する (422)
+- [x] 回答をCSV形式でダウンロードできる (UTF-8 BOM付き、formula injection防止、`|`文字含む)
+- [x] 回答をExcel形式でダウンロードできる (`.xlsx`、`CellType.STRING`で全セル設定)
+- [x] 各回答のPDF回答票をダウンロードできる
+- [x] 画面上でフィールドごとの集計が表示される (最頻値、件数)
+- [x] 他ユーザーの回答への削除・閲覧は404を返す
+- [x] 未認証アクセスは401を返す
+- [x] JSONネスト深さ8超は400を返す
+- [x] 1000フィールド超は400を返す
 
 ### テンプレート複製
 
-- [ ] テンプレートリストから「複製」できる
-- [ ] 複製後のテンプレート名は「{元の名前} (コピー)」
-- [ ] 複製後テンプレートの `createdBy` は実行ユーザーのIDになる
-- [ ] 他ユーザーのテンプレート複製は403を返す
+- [x] テンプレートリストから「複製」できる
+- [x] 複製後のテンプレート名は「{元の名前} (コピー)」
+- [x] 複製後テンプレートの `createdBy` は実行ユーザーのIDになる
+- [x] 他ユーザーのテンプレート複製は403を返す
 
 ### バックエンドPDF生成
 
-- [ ] `POST /api/v2/templates/{id}/pdf` が `application/pdf` を返す
-- [ ] `testData` が計算ルールに適用された状態でレンダリングされる
-- [ ] 30秒でタイムアウトし504を返す
-- [ ] クライアントから projection を渡しても無視される
-- [ ] クライアントサイドPDFは引き続きデフォルト動作
+- [x] `POST /api/v2/templates/{id}/pdf` が `application/pdf` を返す
+- [x] `testData` が計算ルールに適用された状態でレンダリングされる
+- [x] 30秒でタイムアウトし504を返す
+- [x] クライアントから projection を渡しても無視される
+- [x] クライアントサイドPDFは引き続きデフォルト動作
 
 ### 共通品質要件
 
-- [ ] テストカバレッジ 80%以上
-- [ ] 全エンドポイントに認証チェック
-- [ ] エラーレスポンスにスタックトレースを含めない
+- [x] テストカバレッジ 80%以上
+- [x] 全エンドポイントに認証チェック
+- [x] エラーレスポンスにスタックトレースを含めない
 
 ---
 
@@ -919,53 +919,53 @@ implementation("org.apache.poi:poi-ooxml:5.2.5")
 ## Implementation Order & Tasks
 
 ```
-[ ] Phase 0: 前提条件 — オーナーシップ基盤
-    [ ] Principal.ANONYMOUS のロールを Set.of() に修正
-    [ ] V2TemplateController.create() に createdBy 追加
-    [ ] AppWiring に v2SubmitLimiter, v2ExportLimiter 追加
-    [ ] ApiRoutes に V2ルートのレート制限適用
-    [ ] テスト
+[x] Phase 0: 前提条件 — オーナーシップ基盤
+    [x] Principal.ANONYMOUS のロールを Set.of() に修正
+    [x] V2TemplateController.create() に createdBy 追加
+    [x] AppWiring に v2SubmitLimiter, v2ExportLimiter 追加
+    [x] ApiRoutes に V2ルートのレート制限適用
+    [x] テスト
 
-[ ] Phase 1: バックエンド — フォーム回答収集
-    [ ] v2_form_responses テーブル作成 (AppWiring)
-    [ ] V2FormResponseController.java 作成
-        [ ] submit() (認証 + オーナーシップ + 深さ制限)
-        [ ] list() (ページング + ?aggregate=true オプトイン)
-        [ ] get() (オーナーシップチェック)
-        [ ] delete() (submittedBy or templateOwner のみ)
-    [ ] V2ResponseAggregator.java 作成
-    [ ] V2ResponseExportController.java 作成
-        [ ] CSV export (formula injection修正版)
-        [ ] Excel export (SXSSFWorkbook + CellType.STRING)
-    [ ] V2ResponsePdfController.java 作成 (pdfExecutor再利用)
-    [ ] ApiRoutes.java にルート登録
-    [ ] バックエンドテスト (JUnit)
+[x] Phase 1: バックエンド — フォーム回答収集
+    [x] v2_form_responses テーブル作成 (AppWiring)
+    [x] V2FormResponseController.java 作成
+        [x] submit() (認証 + オーナーシップ + 深さ制限)
+        [x] list() (ページング + ?aggregate=true オプトイン)
+        [x] get() (オーナーシップチェック)
+        [x] delete() (submittedBy or templateOwner のみ)
+    [x] V2ResponseAggregator.java 作成
+    [x] V2ResponseExportController.java 作成
+        [x] CSV export (formula injection修正版)
+        [x] Excel export (SXSSFWorkbook + CellType.STRING)
+    [x] V2ResponsePdfController.java 作成 (pdfExecutor再利用)
+    [x] ApiRoutes.java にルート登録
+    [x] バックエンドテスト (JUnit)
 
-[ ] Phase 2: フロントエンド — フォーム回答収集 UI
-    [ ] src/lib/schemas/formResponse.ts 新規作成
-    [ ] src/api/client.ts に apiFetchBlob, downloadBlob 追加
-    [ ] src/api/reportApi.ts に API 関数追加
-    [ ] src/store/responsesSlice.ts 新規作成 (5分TTLキャッシュ)
-    [ ] src/store/uiSlice.ts に submitResponseModalOpen 追加
-    [ ] ResponsesPanel.tsx 新規作成 (mountedRef + AbortController)
-    [ ] SubmitResponseModal.tsx 新規作成
-    [ ] Toolbar.tsx に「回答送信」ボタン追加
-    [ ] 左サイドバーに「回答」タブ追加 (ARIA roles)
-    [ ] フロントエンドテスト (Vitest)
+[x] Phase 2: フロントエンド — フォーム回答収集 UI
+    [x] src/lib/schemas/formResponse.ts 新規作成
+    [x] src/api/client.ts に apiFetchBlob, downloadBlob 追加
+    [x] src/api/reportApi.ts に API 関数追加
+    [x] src/store/responsesSlice.ts 新規作成 (5分TTLキャッシュ)
+    [x] src/store/uiSlice.ts に submitResponseModalOpen 追加
+    [x] ResponsesPanel.tsx 新規作成 (mountedRef + AbortController)
+    [x] SubmitResponseModal.tsx 新規作成
+    [x] Toolbar.tsx に「回答送信」ボタン追加
+    [x] 左サイドバーに「回答」タブ追加 (ARIA roles)
+    [x] フロントエンドテスト (Vitest)
 
-[ ] Phase 3: テンプレート複製
-    [ ] V2TemplateController.java に duplicate() 追加 (オーナーシップ確認付き)
-    [ ] ApiRoutes.java にルート登録
-    [ ] reportApi.ts に duplicateReport() 追加
-    [ ] TemplateSelectionModal.tsx に複製ボタン追加
-    [ ] テスト
+[x] Phase 3: テンプレート複製
+    [x] V2TemplateController.java に duplicate() 追加 (オーナーシップ確認付き)
+    [x] ApiRoutes.java にルート登録
+    [x] reportApi.ts に duplicateReport() 追加
+    [x] TemplateSelectionModal.tsx に複製ボタン追加
+    [x] テスト
 
-[ ] Phase 4: バックエンドPDF生成
-    [ ] V2ProjectionBuilder.java 新規作成 (定義→projection変換)
-    [ ] V2PdfController.java 新規作成 (client projection受け取らない)
-    [ ] ApiRoutes.java にルート登録
-    [ ] Toolbar.tsx PDF ボタン改修
-    [ ] テスト
+[x] Phase 4: バックエンドPDF生成
+    [x] V2ProjectionBuilder.java 新規作成 (定義→projection変換)
+    [x] V2PdfController.java 新規作成 (client projection受け取らない)
+    [x] ApiRoutes.java にルート登録
+    [x] Toolbar.tsx PDF ボタン改修
+    [x] テスト
 ```
 
 ---

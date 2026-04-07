@@ -297,6 +297,29 @@ export async function getResponsePdf(templateId: string, responseId: string): Pr
 }
 
 // ---------------------------------------------------------------------------
+// Template PDF generation (backend)
+// ---------------------------------------------------------------------------
+
+export async function generateTemplatePdf(
+  templateId: string,
+  testData?: Record<string, unknown>,
+  variantId?: string,
+): Promise<Blob> {
+  const body: Record<string, unknown> = {}
+  if (testData) body.testData = testData
+  if (variantId) body.variantId = variantId
+  const { blob } = await apiFetchBlobWithFilename(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/pdf`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  )
+  return blob
+}
+
+// ---------------------------------------------------------------------------
 // Template duplication
 // ---------------------------------------------------------------------------
 

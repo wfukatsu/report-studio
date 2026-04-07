@@ -205,5 +205,8 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::get);
         app.delete("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::delete);
         app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.v2ResponsePdfCtrl::generatePdf);
+
+        // V2 template PDF generation
+        app.post("/api/v2/templates/{id}/pdf", w.v2PdfCtrl::generate);
     }
 }
