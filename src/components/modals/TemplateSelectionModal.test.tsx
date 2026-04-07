@@ -9,9 +9,18 @@ import type { ReportDefinition } from '@/types'
 vi.mock('@/api/reportApi', () => ({
   listReports: vi.fn(),
   getReport: vi.fn(),
+  duplicateReport: vi.fn(),
+  exportTemplate: vi.fn(),
+  importTemplate: vi.fn(),
+}))
+vi.mock('@/api/client', () => ({
+  downloadBlob: vi.fn(),
+  apiFetch: vi.fn(),
+  apiFetchBlobWithFilename: vi.fn(),
 }))
 
-import { listReports, getReport } from '@/api/reportApi'
+import { listReports, getReport, exportTemplate, importTemplate } from '@/api/reportApi'
+import { downloadBlob } from '@/api/client'
 
 const onClose = vi.fn()
 const onSelect = vi.fn()
@@ -238,5 +247,94 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     })
     // onSelect should not be called because loading failed
     expect(onSelect).not.toHaveBeenCalled()
+  })
+})
+
+describe('TemplateSelectionModal — エクスポート/インポート', () => {
+  const TEMPLATE_LIST = {
+    items: [{ id: 'tmpl-1', name: 'テンプレートA', updatedAt: '2024-01-01' }],
+    total: 1,
+  }
+
+  beforeEach(() => {
+    useReportStore.getState().setBackendConnected(true)
+    vi.mocked(listReports).mockResolvedValue(TEMPLATE_LIST)
+  })
+
+  it('export button calls exportTemplate and downloadBlob on hover click', async () => {
+    const mockBlob = new Blob(['{}'], { type: 'application/json' })
+    vi.mocked(exportTemplate).mockResolvedValueOnce({ blob: mockBlob, filename: 'テンプレートA.rds2.json' })
+    vi.mocked(downloadBlob).mockReturnValue(undefined)
+
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    fireEvent.click(screen.getByText('一覧を取得'))
+    await waitFor(() => expect(screen.getByText('テンプレートA')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('テンプレートA をエクスポート'))
+
+    await waitFor(() => expect(exportTemplate).toHaveBeenCalledWith('tmpl-1'))
+    expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'テンプレートA.rds2.json')
+  })
+
+  it('shows error when export fails', async () => {
+    vi.mocked(exportTemplate).mockRejectedValueOnce(new Error('Server error'))
+
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    fireEvent.click(screen.getByText('一覧を取得'))
+    await waitFor(() => expect(screen.getByText('テンプレートA')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('テンプレートA をエクスポート'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('エクスポートに失敗'),
+    )
+  })
+
+  it('import button click triggers file input', () => {
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    const importBtn = screen.getByLabelText('テンプレートをインポート')
+    const fileInput = screen.getByLabelText('インポートファイルを選択') as HTMLInputElement
+    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {})
+
+    fireEvent.click(importBtn)
+
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('calls importTemplate after file selection and refreshes list', async () => {
+    vi.mocked(importTemplate).mockResolvedValueOnce({ id: 'new-id', name: 'テンプレートA (インポート)' })
+    vi.mocked(listReports).mockResolvedValue({
+      items: [
+        ...TEMPLATE_LIST.items,
+        { id: 'new-id', name: 'テンプレートA (インポート)', updatedAt: '2024-01-01' },
+      ],
+      total: 2,
+    })
+
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+
+    // Simulate file selection with a File whose .text() resolves to JSON
+    const content = '{"formatVersion":2}'
+    const file = { text: vi.fn().mockResolvedValue(content) } as unknown as File
+    const fileInput = screen.getByLabelText('インポートファイルを選択')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => expect(importTemplate).toHaveBeenCalled())
+    // After successful import, the list is refreshed
+    await waitFor(() => expect(listReports).toHaveBeenCalled())
+  })
+
+  it('shows error when importTemplate fails', async () => {
+    vi.mocked(importTemplate).mockRejectedValueOnce(new Error('Invalid format'))
+
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+
+    const file = { text: vi.fn().mockResolvedValue('{}') } as unknown as File
+    const fileInput = screen.getByLabelText('インポートファイルを選択')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Invalid format'),
+    )
   })
 })

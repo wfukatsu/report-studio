@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react'
-import { Loader2, AlertCircle, FolderOpen, FileText, Copy } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
-import { listReports, getReport, duplicateReport } from '@/api/reportApi'
+import { listReports, getReport, duplicateReport, exportTemplate, importTemplate } from '@/api/reportApi'
+import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
 
@@ -36,6 +37,10 @@ export function TemplateSelectionModal({
   const [backendLoadError, setBackendLoadError] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const [exportingId, setExportingId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFetchBackend = useCallback(async () => {
     setBackendLoadState('loading')
@@ -72,7 +77,6 @@ export function TemplateSelectionModal({
     setBackendLoadError(null)
     try {
       await duplicateReport(id)
-      // Refresh the list to show the new copy
       await handleFetchBackend()
     } catch {
       setBackendLoadError('テンプレートの複製に失敗しました')
@@ -81,10 +85,47 @@ export function TemplateSelectionModal({
     }
   }
 
+  const handleExport = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (exportingId) return
+    setExportingId(id)
+    setBackendLoadError(null)
+    try {
+      const { blob, filename } = await exportTemplate(id)
+      downloadBlob(blob, filename)
+    } catch {
+      setBackendLoadError('テンプレートのエクスポートに失敗しました')
+    } finally {
+      setExportingId(null)
+    }
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Reset so the same file can be re-imported
+    e.target.value = ''
+
+    setImporting(true)
+    setBackendLoadError(null)
+    try {
+      const text = await file.text()
+      await importTemplate(text)
+      await handleFetchBackend()
+    } catch (err) {
+      setBackendLoadError(err instanceof Error ? err.message : 'インポートに失敗しました')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const handleSelectBuiltin = (id: string | null) => {
     setSelectedBuiltinId(id)
     if (id === null) {
-      // blank
       setSelectedDefinition(createBlankDefinition())
     } else {
       const template = BUILTIN_TEMPLATES.find((t) => t.id === id)
@@ -174,18 +215,43 @@ export function TemplateSelectionModal({
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   バックエンドテンプレート
                 </p>
-                <button
-                  onClick={handleFetchBackend}
-                  disabled={backendLoadState === 'loading'}
-                  className="text-xs text-primary hover:underline disabled:opacity-50"
-                >
-                  {backendLoadState === 'loading'
-                    ? <Loader2 className="w-3 h-3 animate-spin inline" />
-                    : '一覧を取得'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleImportClick}
+                    disabled={importing}
+                    title="テンプレートをインポート (.rds2.json)"
+                    aria-label="テンプレートをインポート"
+                    className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                  >
+                    {importing
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Upload className="w-3 h-3" />
+                    }
+                    インポート
+                  </button>
+                  <button
+                    onClick={handleFetchBackend}
+                    disabled={backendLoadState === 'loading'}
+                    className="text-xs text-primary hover:underline disabled:opacity-50"
+                  >
+                    {backendLoadState === 'loading'
+                      ? <Loader2 className="w-3 h-3 animate-spin inline" />
+                      : '一覧を取得'}
+                  </button>
+                </div>
               </div>
 
-              {backendLoadState === 'error' && backendLoadError && (
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,.rds2.json"
+                className="hidden"
+                onChange={handleImportFile}
+                aria-label="インポートファイルを選択"
+              />
+
+              {backendLoadError && (
                 <div role="alert" className="flex items-center gap-1 text-xs text-destructive mb-2">
                   <AlertCircle className="w-3 h-3 shrink-0" />
                   <span>{backendLoadError}</span>
@@ -211,6 +277,20 @@ export function TemplateSelectionModal({
                         <p className="font-medium text-xs truncate">{t.name}</p>
                         {loadingId === t.id && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
                       </button>
+                      {/* Export button */}
+                      <button
+                        onClick={(e) => handleExport(t.id, e)}
+                        disabled={exportingId !== null || loadingId !== null}
+                        title="エクスポート"
+                        aria-label={`${t.name} をエクスポート`}
+                        className="shrink-0 p-1.5 rounded border border-border bg-card hover:bg-accent transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      >
+                        {exportingId === t.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Download className="w-3 h-3" />
+                        }
+                      </button>
+                      {/* Duplicate button */}
                       <button
                         onClick={(e) => handleDuplicate(t.id, e)}
                         disabled={duplicatingId !== null || loadingId !== null}

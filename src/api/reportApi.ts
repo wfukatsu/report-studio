@@ -330,3 +330,23 @@ export async function duplicateReport(id: string): Promise<{ id: string; name: s
     { method: 'POST' },
   )
 }
+
+// ---------------------------------------------------------------------------
+// Template export / import
+// ---------------------------------------------------------------------------
+
+export async function exportTemplate(id: string): Promise<{ blob: Blob; filename: string }> {
+  return apiFetchBlobWithFilename(`/api/v2/templates/${encodeURIComponent(id)}/export`)
+}
+
+export async function importTemplate(fileContent: string): Promise<{ id: string; name: string }> {
+  return apiFetch(
+    '/api/v2/templates/import',
+    DuplicateReportResultSchema,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: fileContent,
+    },
+  )
+}
