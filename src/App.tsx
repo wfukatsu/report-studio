@@ -22,9 +22,9 @@ type RightTab = 'properties' | 'versions' | 'page'
 
 const LEFT_TABS: { id: LeftTab; label: string }[] = [
   { id: 'elements', label: '要素' },
+  { id: 'schema', label: 'スキーマ' },
   { id: 'layers', label: 'レイヤー' },
   { id: 'pages', label: 'ページ' },
-  { id: 'schema', label: 'スキーマ' },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
