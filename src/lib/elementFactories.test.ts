@@ -16,6 +16,7 @@ import {
   createRepeatingBandElement,
   createRepeatingListElement,
   createFormTableElement,
+  createCheckboxElement,
 } from './elementFactories'
 
 describe('共通: 各ファクトリはユニーク id を生成する', () => {
@@ -143,5 +144,24 @@ describe('createFormTableElement', () => {
     const a = createFormTableElement()
     const b = createFormTableElement()
     expect(a.id).not.toBe(b.id)
+  })
+})
+
+describe('createCheckboxElement', () => {
+  it('type が checkbox', () => expect(createCheckboxElement().type).toBe('checkbox'))
+  it('デフォルト checked が false', () => expect((createCheckboxElement() as { checked: boolean }).checked).toBe(false))
+  it('デフォルト checkmark が ✓', () => expect((createCheckboxElement() as { checkmark: string }).checkmark).toBe('✓'))
+  it('デフォルト label が空文字', () => expect((createCheckboxElement() as { label: string }).label).toBe(''))
+  it('デフォルトサイズが 5×5 mm', () => {
+    const el = createCheckboxElement()
+    expect(el.size.width).toBe(5)
+    expect(el.size.height).toBe(5)
+  })
+  it('overrides が適用される', () => {
+    const el = createCheckboxElement({ id: 'cb-1' })
+    expect(el.id).toBe('cb-1')
+  })
+  it('呼び出しごとに UUID が異なる', () => {
+    expect(createCheckboxElement().id).not.toBe(createCheckboxElement().id)
   })
 })

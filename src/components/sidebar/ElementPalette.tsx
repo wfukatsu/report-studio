@@ -16,6 +16,7 @@ import {
   AlignJustify,
   LayoutGrid,
   TableProperties,
+  SquareCheck,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
@@ -35,6 +36,7 @@ import {
   createRepeatingBandElement,
   createRepeatingListElement,
   createFormTableElement,
+  createCheckboxElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
@@ -122,6 +124,7 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
       { label: '印鑑',       icon: <Stamp className="w-4 h-4" />,  createElement: createHankoElement, description: '押印欄（社印・個人印）' },
       { label: '多段印鑑欄', icon: <Rows3 className="w-4 h-4" />,  createElement: createApprovalStampRowElement, description: '承認フロー用の複数印鑑欄' },
       { label: '収入印紙欄', icon: <Ticket className="w-4 h-4" />, createElement: createRevenueStampElement, description: '収入印紙の貼付欄' },
+      { label: 'チェックボックス', icon: <SquareCheck className="w-4 h-4" />, createElement: createCheckboxElement, description: 'チェックボックス（固定／データバインド両対応）' },
     ],
   },
 ]

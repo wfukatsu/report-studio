@@ -33,6 +33,7 @@ import { RevenueStampRenderer } from '@/elements/revenueStamp/Renderer'
 import { RepeatingBandRenderer } from '@/elements/repeatingBand/Renderer'
 import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
 import { FormTableRenderer } from '@/elements/formTable/Renderer'
+import { CheckboxRenderer } from '@/elements/checkbox/Renderer'
 
 interface Props {
   element: ReportElement
@@ -91,6 +92,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
         : undefined
       return <FormTableRenderer element={element} records={tableRecords} />
     }
+    case 'checkbox':        return <CheckboxRenderer element={element} data={mergedData} />
     default:                return assertNever(element)
   }
 })

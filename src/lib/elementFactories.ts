@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow } from '@/types'
+import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle } from '@/types'
 
 /**
  * Factory functions for creating new elements with sensible defaults.
@@ -359,6 +359,22 @@ export function createRepeatingListElement(overrides?: Partial<ReportElement>): 
     itemBackground: '#ffffff',
     borderRadius: 1,
     pageBreak: 'none',
+    ...overrides,
+  } as ReportElement
+}
+
+export function createCheckboxElement(overrides?: Partial<ReportElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'checkbox',
+    position: { x: 13, y: 13 },
+    size: { width: 5, height: 5 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    checked: false,
+    checkmark: '✓' as CheckmarkStyle,
+    label: '',
     ...overrides,
   } as ReportElement
 }

@@ -121,6 +121,8 @@ export type ElementType =
   | 'revenueStamp'
   // 帳票専用テーブル
   | 'formTable'
+  // チェックボックス
+  | 'checkbox'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -296,6 +298,21 @@ export interface HankoElement extends ElementBase {
   doubleBorder: boolean
   /** データソースフィールドからテキストを自動入力 */
   binding?: string
+}
+
+export type CheckmarkStyle = '✓' | '×' | '●'
+
+export interface CheckboxElement extends ElementBase {
+  type: 'checkbox'
+  /** 静的 checked 状態（デザインプレビュー用） */
+  checked: boolean
+  /** チェックマーク記号 */
+  checkmark: CheckmarkStyle
+  /** ラベルテキスト（空文字なら非表示） */
+  label: string
+  /** データバインドモード: resolveField(data, dataSource) !== '' なら checked */
+  dataSource?: string
+  style?: TextStyle
 }
 
 export type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
@@ -540,6 +557,7 @@ export type ReportElement =
   | RepeatingBandElement
   | RepeatingListElement
   | FormTableElement
+  | CheckboxElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)
