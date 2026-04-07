@@ -17,6 +17,7 @@ import {
   createRepeatingListElement,
   createFormTableElement,
   createCheckboxElement,
+  createEraSelectElement,
 } from './elementFactories'
 
 describe('共通: 各ファクトリはユニーク id を生成する', () => {
@@ -163,5 +164,25 @@ describe('createCheckboxElement', () => {
   })
   it('呼び出しごとに UUID が異なる', () => {
     expect(createCheckboxElement().id).not.toBe(createCheckboxElement().id)
+  })
+})
+
+describe('createEraSelectElement', () => {
+  it('type が eraSelect', () => expect(createEraSelectElement().type).toBe('eraSelect'))
+  it('デフォルトサイズが 7×12 mm', () => {
+    const el = createEraSelectElement()
+    expect(el.size.width).toBe(7)
+    expect(el.size.height).toBe(12)
+  })
+  it('dataSource が未設定', () => {
+    const el = createEraSelectElement() as { dataSource?: string }
+    expect(el.dataSource).toBeUndefined()
+  })
+  it('overrides が適用される', () => {
+    const el = createEraSelectElement({ dataSource: 'employee.era' }) as { dataSource?: string }
+    expect(el.dataSource).toBe('employee.era')
+  })
+  it('呼び出しごとに UUID が異なる', () => {
+    expect(createEraSelectElement().id).not.toBe(createEraSelectElement().id)
   })
 })

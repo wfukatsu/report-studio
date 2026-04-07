@@ -1,6 +1,6 @@
 import {
   Type, Tag, Square, Image, Table, BarChart2, Database,
-  QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties, SquareCheck,
+  QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties, SquareCheck, Calendar,
 } from 'lucide-react'
 import { createElement } from 'react'
 import type { ReportElement, Section } from '@/types'
@@ -28,6 +28,7 @@ export function elementIcon(type: ReportElement['type']) {
     case 'repeatingList':   return createElement(LayoutGrid, { className: cls })
     case 'formTable':       return createElement(TableProperties, { className: cls })
     case 'checkbox':        return createElement(SquareCheck, { className: cls })
+    case 'eraSelect':       return createElement(Calendar, { className: cls })
     default:                return assertNever(type)
   }
 }
@@ -55,6 +56,7 @@ export function defaultName(el: ReportElement): string {
     case 'repeatingList':   return '繰り返しリスト'
     case 'formTable':       return '帳票テーブル'
     case 'checkbox':        return 'チェックボックス'
+    case 'eraSelect':       return '元号選択'
     default: return assertNever(el)
   }
 }

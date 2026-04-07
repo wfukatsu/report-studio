@@ -17,6 +17,7 @@ import {
   LayoutGrid,
   TableProperties,
   SquareCheck,
+  Calendar,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
@@ -37,6 +38,7 @@ import {
   createRepeatingListElement,
   createFormTableElement,
   createCheckboxElement,
+  createEraSelectElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
@@ -125,6 +127,7 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
       { label: '多段印鑑欄', icon: <Rows3 className="w-4 h-4" />,  createElement: createApprovalStampRowElement, description: '承認フロー用の複数印鑑欄' },
       { label: '収入印紙欄', icon: <Ticket className="w-4 h-4" />, createElement: createRevenueStampElement, description: '収入印紙の貼付欄' },
       { label: 'チェックボックス', icon: <SquareCheck className="w-4 h-4" />, createElement: createCheckboxElement, description: 'チェックボックス（固定／データバインド両対応）' },
+      { label: '元号選択', icon: <Calendar className="w-4 h-4" />, createElement: createEraSelectElement, description: '和暦元号選択（明・大・昭・平・令）' },
     ],
   },
 ]

@@ -123,6 +123,8 @@ export type ElementType =
   | 'formTable'
   // チェックボックス
   | 'checkbox'
+  // 和暦元号選択
+  | 'eraSelect'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -319,6 +321,12 @@ export interface CheckboxElement extends ElementBase {
   /** データバインドモード: resolveField(data, dataSource) !== '' なら checked */
   dataSource?: string
   style?: TextStyle
+}
+
+export interface EraSelectElement extends ElementBase {
+  type: 'eraSelect'
+  /** 選択中の元号 — resolveField で解決。空文字/未設定なら未選択（全て ○） */
+  dataSource?: string
 }
 
 export type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
@@ -564,6 +572,7 @@ export type ReportElement =
   | RepeatingListElement
   | FormTableElement
   | CheckboxElement
+  | EraSelectElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)

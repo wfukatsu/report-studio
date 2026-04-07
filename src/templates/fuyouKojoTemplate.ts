@@ -140,6 +140,22 @@ function checkbox(
   }
 }
 
+function eraSelect(
+  x: number, y: number, w: number, h: number,
+  dataSource?: string,
+): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'eraSelect',
+    position: { x, y },
+    size: { width: w, height: h },
+    zIndex: 3,
+    locked: true,
+    visible: true,
+    dataSource,
+  }
+}
+
 // ─── レイアウト定数 ──────────────────────────────────────
 // 列 X 座標 (mm, 左端 ML=3 から)
 const COL = {
@@ -256,7 +272,7 @@ elements.push(
     furiganaDataSource: 'employee.furigana',
   }),
   lbl('あなたの生年月日', ML + LEFT_COL_W + 68, HY, 22, 4, { fontSize: 2.5, textAlign: 'left' }),
-  lbl('明・大・\n昭・平・令', ML + LEFT_COL_W + 68, HY + 4, 12, 5, { fontSize: 2.2 }),
+  eraSelect(ML + LEFT_COL_W + 68, HY + 4, 12, 5, 'employee.era'),
   input(ML + LEFT_COL_W + 80, HY + 4, 10, 5, { label: '年', fontSize: 3.0 }),
   input(ML + LEFT_COL_W + 91, HY + 4, 7, 5, { label: '月', fontSize: 3.0 }),
   input(ML + LEFT_COL_W + 99, HY + 4, 7, 5, { label: '日', fontSize: 3.0 }),
@@ -387,7 +403,7 @@ function buildPersonRow(rowY: number, rowH: number): ReportElement[] {
 
   // 生年月日
   els.push(
-    lbl('明・大\n昭・平', COL.birthday.x + 1, rowY + 1, 7, rowH - 2, { fontSize: 2.2 }),
+    eraSelect(COL.birthday.x + 1, rowY + 1, 7, rowH - 2),
     input(COL.birthday.x + 8, rowY + 1, 8, 5, { label: '年', fontSize: 3.0 }),
     lbl('年', COL.birthday.x + 16, rowY + 2, 3, 4, { fontSize: 2.5 }),
     input(COL.birthday.x + 8, rowY + 6, 4, 5, { label: '月', fontSize: 3.0 }),

@@ -25,6 +25,7 @@ import { RepeatingBandPropertiesPanel } from '@/elements/repeatingBand/Propertie
 import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/PropertiesPanel'
 import { FormTablePropertiesPanel } from '@/elements/formTable/PropertiesPanel'
 import { CheckboxPropertiesPanel } from '@/elements/checkbox/PropertiesPanel'
+import { EraSelectPropertiesPanel } from '@/elements/eraSelect/PropertiesPanel'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 
 // ---------------------------------------------------------------------------
@@ -200,6 +201,7 @@ export function PropertiesPanel() {
       {el.type === 'repeatingList' && <RepeatingListPropertiesPanel el={el} onChange={update} />}
       {el.type === 'formTable' && <FormTablePropertiesPanel el={el} onChange={update} />}
       {el.type === 'checkbox' && <CheckboxPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'eraSelect' && <EraSelectPropertiesPanel el={el} onChange={update} />}
 
       <ElementCommonSection el={el} onChange={update} />
 
