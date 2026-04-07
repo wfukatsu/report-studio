@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl } from './reportApi'
 import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
@@ -496,5 +496,200 @@ describe('importTemplate', () => {
     }))
 
     await expect(importTemplate('bad json')).rejects.toThrow()
+  })
+})
+
+describe('submitResponse', () => {
+  it('sends POST to /responses with data payload', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 201,
+      json: () => Promise.resolve({ id: 'resp-1' }),
+    }))
+
+    const result = await submitResponse('tpl-1', { name: 'Alice' })
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/responses')
+    expect((init as RequestInit).method).toBe('POST')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ data: { name: 'Alice' } })
+    expect(result.id).toBe('resp-1')
+  })
+})
+
+describe('listResponses', () => {
+  const SUMMARY = { id: 'r1', templateId: 'tpl-1', submittedAt: 1000, submittedBy: 'u1', summary: ['x: 1'] }
+  const makeList = (items = [SUMMARY]) => ({ items, total: items.length, offset: 0, limit: 50, hasMore: false })
+
+  it('sends GET with default pagination params', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve(makeList()),
+    }))
+
+    const result = await listResponses('tpl-1')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toContain('/api/v2/templates/tpl-1/responses')
+    expect(url).toContain('offset=0')
+    expect(url).toContain('limit=50')
+    expect(result.total).toBe(1)
+  })
+
+  it('appends aggregate=true when requested', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ items: [], total: 0, offset: 10, limit: 20, hasMore: false }),
+    }))
+
+    await listResponses('tpl-1', { aggregate: true, offset: 10, limit: 20 })
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toContain('aggregate=true')
+    expect(url).toContain('offset=10')
+    expect(url).toContain('limit=20')
+  })
+})
+
+describe('getResponse', () => {
+  it('sends GET to /responses/{rid}', async () => {
+    const resp = { id: 'r1', templateId: 'tpl-1', submittedAt: 1000, submittedBy: 'u1', data: {}, summary: [] }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve(resp),
+    }))
+
+    const result = await getResponse('tpl-1', 'r1')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/responses/r1')
+    expect(result.id).toBe('r1')
+  })
+})
+
+describe('deleteResponse', () => {
+  it('sends DELETE to /responses/{rid}', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 204,
+      json: () => Promise.resolve(undefined),
+    }))
+
+    await deleteResponse('tpl-1', 'r1')
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/responses/r1')
+    expect((init as RequestInit).method).toBe('DELETE')
+  })
+})
+
+describe('exportResponses', () => {
+  beforeEach(() => {
+    // jsdom doesn't implement URL.createObjectURL
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  })
+
+  it('fetches export endpoint with csv format param', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => 'attachment; filename="export.csv"' },
+      blob: () => Promise.resolve(new Blob(['a,b'], { type: 'text/csv' })),
+    }))
+
+    await exportResponses('tpl-1', 'csv')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toContain('/api/v2/templates/tpl-1/responses/export')
+    expect(url).toContain('format=csv')
+  })
+
+  it('uses excel format param when requested', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => 'attachment; filename="export.xlsx"' },
+      blob: () => Promise.resolve(new Blob()),
+    }))
+
+    await exportResponses('tpl-1', 'excel')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toContain('format=excel')
+  })
+})
+
+describe('getResponsePdf', () => {
+  it('sends GET to /responses/{rid}/pdf and returns blob', async () => {
+    const mockBlob = new Blob(['%PDF'], { type: 'application/pdf' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => 'attachment; filename="response.pdf"' },
+      blob: () => Promise.resolve(mockBlob),
+    }))
+
+    const result = await getResponsePdf('tpl-1', 'r1')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/responses/r1/pdf')
+    expect(result).toBe(mockBlob)
+  })
+})
+
+describe('generateTemplatePdf', () => {
+  it('sends POST with testData and variantId', async () => {
+    const mockBlob = new Blob(['%PDF'], { type: 'application/pdf' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => null },
+      blob: () => Promise.resolve(mockBlob),
+    }))
+
+    const result = await generateTemplatePdf('tpl-1', { name: 'Alice' }, 'v1')
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/pdf')
+    expect((init as RequestInit).method).toBe('POST')
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.testData).toEqual({ name: 'Alice' })
+    expect(body.variantId).toBe('v1')
+    expect(result).toBe(mockBlob)
+  })
+
+  it('omits testData and variantId when not provided', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => null },
+      blob: () => Promise.resolve(new Blob()),
+    }))
+
+    await generateTemplatePdf('tpl-1')
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body).toEqual({})
+  })
+})
+
+describe('duplicateReport', () => {
+  it('sends POST to /duplicate and returns id and name', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 201,
+      json: () => Promise.resolve({ id: 'new-id', name: 'コピー' }),
+    }))
+
+    const result = await duplicateReport('tpl-1')
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/duplicate')
+    expect((init as RequestInit).method).toBe('POST')
+    expect(result.id).toBe('new-id')
+  })
+})
+
+describe('getTemplateThumbnailUrl', () => {
+  it('returns correct URL for template id', () => {
+    expect(getTemplateThumbnailUrl('tpl-1')).toBe('/api/v2/templates/tpl-1/thumbnail')
+  })
+
+  it('encodes special characters in id', () => {
+    expect(getTemplateThumbnailUrl('tpl/1 2')).toBe('/api/v2/templates/tpl%2F1%202/thumbnail')
   })
 })
