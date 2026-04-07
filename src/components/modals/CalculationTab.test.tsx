@@ -5,6 +5,11 @@ import { CalculationTab } from './CalculationTab'
 
 vi.mock('@/lib/jexlEngine', () => ({
   evaluateExpression: vi.fn(),
+  JEXL_BUILTINS: [
+    { name: 'sum',   signature: 'sum(array)',            description: '配列の合計値' },
+    { name: 'count', signature: 'count(array)',           description: '配列の要素数' },
+    { name: 'round', signature: 'round(value, places?)', description: '小数の丸め' },
+  ],
 }))
 
 import { evaluateExpression } from '@/lib/jexlEngine'
@@ -38,6 +43,14 @@ describe('CalculationTab — ルール追加', () => {
     fireEvent.click(screen.getByText('+ 追加'))
     const rules = useReportStore.getState().definition.calculationRules
     expect(rules).toHaveLength(1)
+  })
+
+  it('新規ルールに安定した id が付与される', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].id).toBeTruthy()
+    expect(typeof rules[0].id).toBe('string')
   })
 
   it('renders rule row with inputs after adding', () => {
@@ -321,9 +334,9 @@ describe('CalculationTab — 変数参照パネル', () => {
     fireEvent.click(screen.getByText('+ 追加'))
 
     fireEvent.click(screen.getByTestId('variable-panel-toggle'))
-    expect(screen.getByText('sum(arr)')).toBeInTheDocument()
-    expect(screen.getByText('count(arr)')).toBeInTheDocument()
-    expect(screen.getByText('round(value, places)')).toBeInTheDocument()
+    expect(screen.getByText('sum(array)')).toBeInTheDocument()
+    expect(screen.getByText('count(array)')).toBeInTheDocument()
+    expect(screen.getByText('round(value, places?)')).toBeInTheDocument()
   })
 
   it('shows schema fields when schema is defined', () => {
@@ -354,5 +367,25 @@ describe('CalculationTab — 変数参照パネル', () => {
     fireEvent.click(toggles[1])
 
     expect(screen.getByText('subtotal')).toBeInTheDocument()
+  })
+
+  it('変数ボタンをクリックすると式に挿入される', async () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, {
+      id: 'f1', key: 'price', label: '単価', type: 'number',
+    })
+
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    // Open variable panel
+    fireEvent.click(screen.getByTestId('variable-panel-toggle'))
+
+    // Click the schema field button to insert into expression
+    fireEvent.click(screen.getByText('price'))
+
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].expression).toContain('price')
   })
 })

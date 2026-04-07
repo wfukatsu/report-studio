@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { evaluateExpression } from './jexlEngine'
+import { evaluateExpression, JEXL_BUILTINS } from './jexlEngine'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -85,5 +85,44 @@ describe('evaluateExpression — タイムアウト', () => {
     // 500ms以内に完了する通常の式はタイムアウトしない
     const result = await evaluateExpression('1 + 1', {})
     expect(result).toBe(2)
+  })
+})
+
+describe('evaluateExpression — セキュリティガード', () => {
+  it('constructor キーワードを含む式をブロックする', async () => {
+    await expect(evaluateExpression('x.constructor', { x: {} })).rejects.toThrow('禁止されているキーワード')
+  })
+
+  it('__proto__ キーワードを含む式をブロックする', async () => {
+    await expect(evaluateExpression('x.__proto__', { x: {} })).rejects.toThrow('禁止されているキーワード')
+  })
+
+  it('prototype キーワードを含む式をブロックする', async () => {
+    await expect(evaluateExpression('Object.prototype', {})).rejects.toThrow('禁止されているキーワード')
+  })
+
+  it('500文字を超える式をブロックする', async () => {
+    const long = 'a + '.repeat(130)
+    await expect(evaluateExpression(long, {})).rejects.toThrow('長すぎます')
+  })
+
+  it('通常の式はブロックされない', async () => {
+    await expect(evaluateExpression('price * quantity', { price: 100, quantity: 3 })).resolves.toBe(300)
+  })
+})
+
+describe('JEXL_BUILTINS', () => {
+  it('sum, count, round の3関数が登録されている', () => {
+    const names = JEXL_BUILTINS.map((f) => f.name)
+    expect(names).toContain('sum')
+    expect(names).toContain('count')
+    expect(names).toContain('round')
+  })
+
+  it('各関数に signature と description がある', () => {
+    for (const fn of JEXL_BUILTINS) {
+      expect(fn.signature).toBeTruthy()
+      expect(fn.description).toBeTruthy()
+    }
   })
 })

@@ -76,6 +76,8 @@ export type CalculationResultType = 'number' | 'string' | 'boolean'
 export type OnErrorBehavior = 'zero' | 'empty' | 'error_text'
 
 export interface CalculationRule {
+  /** Stable UUID — never changes, used as React list key. */
+  id: string
   key: string
   label: string
   description?: string

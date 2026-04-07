@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import type {
   CalculationRule,
@@ -8,7 +8,7 @@ import type {
   SchemaField,
 } from '@/types'
 import { cn } from '@/lib/utils'
-import { evaluateExpression } from '@/lib/jexlEngine'
+import { evaluateExpression, JEXL_BUILTINS } from '@/lib/jexlEngine'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -46,11 +46,7 @@ const DATE_FORMAT_OPTIONS: { value: DateFormatType; label: string }[] = [
   { value: 'custom', label: 'カスタム' },
 ]
 
-const BUILTIN_FUNCTIONS = [
-  { name: 'sum(arr)', desc: '配列の合計値' },
-  { name: 'count(arr)', desc: '配列の要素数' },
-  { name: 'round(value, places)', desc: '小数の丸め' },
-]
+// JEXL_BUILTINS is the single source of truth — imported from jexlEngine
 
 // ---------------------------------------------------------------------------
 // FormatEditor
@@ -69,28 +65,12 @@ function FormatEditor({
 
   const isNumber = resultType === 'number'
   const formatOptions = isNumber ? NUMBER_FORMAT_OPTIONS : DATE_FORMAT_OPTIONS
-  const defaultType = isNumber ? 'integer' : 'yyyy/MM/dd'
+  const defaultType: NumberFormatType | DateFormatType = isNumber ? 'integer' : 'yyyy/MM/dd'
   const enabled = format !== undefined
 
-  function handleToggle() {
-    if (enabled) {
-      onUpdate(undefined)
-    } else {
-      onUpdate({ type: defaultType as NumberFormatType & DateFormatType })
-    }
-  }
-
-  function handleTypeChange(value: string) {
-    onUpdate({ ...(format ?? { type: defaultType }), type: value as NumberFormatType & DateFormatType })
-  }
-
-  function handleDecimalPlacesChange(value: string) {
-    const n = parseInt(value, 10)
-    onUpdate({ ...(format ?? { type: defaultType }), decimalPlaces: isNaN(n) ? undefined : n })
-  }
-
-  function handleCustomPatternChange(value: string) {
-    onUpdate({ ...(format ?? { type: defaultType }), customPattern: value })
+  // Single helper to patch any format field — avoids repeating the spread
+  function patch(fields: Partial<CalculationFormat>) {
+    onUpdate({ ...(format ?? { type: defaultType }), ...fields })
   }
 
   const showDecimalPlaces =
@@ -104,7 +84,7 @@ function FormatEditor({
           {isNumber ? '数値書式' : '日付書式'}
         </label>
         <button
-          onClick={handleToggle}
+          onClick={() => enabled ? onUpdate(undefined) : onUpdate({ type: defaultType })}
           className={cn(
             'h-4 px-1.5 text-[9px] rounded border transition-colors',
             enabled
@@ -122,7 +102,7 @@ function FormatEditor({
           <select
             className="h-6 px-1 text-xs border border-border rounded bg-background"
             value={format?.type ?? defaultType}
-            onChange={(e) => handleTypeChange(e.target.value)}
+            onChange={(e) => patch({ type: e.target.value as NumberFormatType | DateFormatType })}
             data-testid="format-type-select"
           >
             {formatOptions.map((o) => (
@@ -139,7 +119,7 @@ function FormatEditor({
                 max={10}
                 className="w-12 h-6 px-1 text-xs border border-border rounded bg-background"
                 value={format?.decimalPlaces ?? 2}
-                onChange={(e) => handleDecimalPlacesChange(e.target.value)}
+                onChange={(e) => { const n = parseInt(e.target.value, 10); patch({ decimalPlaces: isNaN(n) ? undefined : n }) }}
                 data-testid="format-decimal-places"
               />
               <span className="text-[10px] text-muted-foreground">桁</span>
@@ -150,7 +130,7 @@ function FormatEditor({
             <input
               className="flex-1 h-6 px-2 text-xs border border-border rounded bg-background font-mono"
               value={format?.customPattern ?? ''}
-              onChange={(e) => handleCustomPatternChange(e.target.value)}
+              onChange={(e) => patch({ customPattern: e.target.value })}
               placeholder="#,##0.00"
               data-testid="format-custom-pattern"
             />
@@ -166,12 +146,11 @@ function FormatEditor({
 // ---------------------------------------------------------------------------
 
 function VariablePanel({
-  currentKey,
   schemaFields,
   otherRuleKeys,
   onInsert,
 }: {
-  currentKey: string
+  /** Already excludes the current rule's key — no re-filtering needed. */
   schemaFields: { groupLabel: string; field: SchemaField }[]
   otherRuleKeys: string[]
   onInsert: (token: string) => void
@@ -213,17 +192,15 @@ function VariablePanel({
             <div>
               <p className="text-[9px] text-muted-foreground mb-0.5">他の計算ルール</p>
               <div className="flex flex-wrap gap-1">
-                {otherRuleKeys
-                  .filter((k) => k !== currentKey)
-                  .map((k) => (
-                    <button
-                      key={k}
-                      onClick={() => onInsert(k)}
-                      className="px-1.5 py-0.5 text-[9px] font-mono bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
-                    >
-                      {k}
-                    </button>
-                  ))}
+                {otherRuleKeys.map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => onInsert(k)}
+                    className="px-1.5 py-0.5 text-[9px] font-mono bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                  >
+                    {k}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -231,14 +208,14 @@ function VariablePanel({
           <div>
             <p className="text-[9px] text-muted-foreground mb-0.5">組み込み関数</p>
             <div className="flex flex-wrap gap-1">
-              {BUILTIN_FUNCTIONS.map((fn) => (
+              {JEXL_BUILTINS.map((fn) => (
                 <button
                   key={fn.name}
-                  onClick={() => onInsert(fn.name.replace(/\(.*\)/, '('))}
+                  onClick={() => onInsert(`${fn.name}(`)}
                   className="px-1.5 py-0.5 text-[9px] font-mono bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900 transition-colors"
-                  title={fn.desc}
+                  title={fn.description}
                 >
-                  {fn.name}
+                  {fn.signature}
                 </button>
               ))}
             </div>
@@ -253,16 +230,20 @@ function VariablePanel({
 // RuleRow
 // ---------------------------------------------------------------------------
 
-function RuleRow({
+const RuleRow = memo(function RuleRow({
   rule,
   allKeys,
+  duplicateKeySet,
   schemaFields,
+  testData,
   onUpdate,
   onRemove,
 }: {
   rule: CalculationRule
   allKeys: string[]
+  duplicateKeySet: Set<string>
   schemaFields: { groupLabel: string; field: SchemaField }[]
+  testData: Record<string, unknown>
   onUpdate: (patch: Partial<CalculationRule>) => void
   onRemove: () => void
 }) {
@@ -270,13 +251,16 @@ function RuleRow({
   const [testing, setTesting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const otherRuleKeys = allKeys.filter((k) => k !== rule.key)
-  const isDuplicateKey = allKeys.filter((k) => k === rule.key).length > 1
+  // Other rule keys (already excludes current key — safe to pass directly to VariablePanel)
+  const otherRuleKeys = useMemo(
+    () => allKeys.filter((k) => k !== rule.key),
+    [allKeys, rule.key],
+  )
+  const isDuplicateKey = duplicateKeySet.has(rule.key)
 
   async function handleTest() {
     setTesting(true)
     setTestResult(null)
-    const testData = useReportStore.getState().testData
     try {
       const result = await evaluateExpression(rule.expression, testData)
       setTestResult(String(result))
@@ -288,11 +272,8 @@ function RuleRow({
   }
 
   function handleInsertToken(token: string) {
-    const ta = textareaRef.current
-    if (!ta) {
-      onUpdate({ expression: rule.expression + token })
-      return
-    }
+    // textareaRef is always populated — the textarea renders unconditionally above VariablePanel
+    const ta = textareaRef.current!
     const start = ta.selectionStart ?? rule.expression.length
     const end = ta.selectionEnd ?? rule.expression.length
     const newExpr = rule.expression.slice(0, start) + token + rule.expression.slice(end)
@@ -315,6 +296,7 @@ function RuleRow({
               isDuplicateKey ? 'border-destructive' : 'border-border',
             )}
             value={rule.key}
+            pattern="[a-zA-Z_][a-zA-Z0-9_]*"
             onChange={(e) => onUpdate({ key: e.target.value })}
             placeholder="calc_total"
           />
@@ -352,6 +334,7 @@ function RuleRow({
           ref={textareaRef}
           className="w-full px-2 py-1 text-xs border border-border rounded bg-background font-mono resize-none"
           rows={2}
+          maxLength={500}
           value={rule.expression}
           onChange={(e) => onUpdate({ expression: e.target.value })}
           placeholder="price * quantity"
@@ -415,7 +398,6 @@ function RuleRow({
 
       {/* Variable reference panel */}
       <VariablePanel
-        currentKey={rule.key}
         schemaFields={schemaFields}
         otherRuleKeys={otherRuleKeys}
         onInsert={handleInsertToken}
@@ -434,7 +416,7 @@ function RuleRow({
       )}
     </div>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // CalculationTab
@@ -443,21 +425,41 @@ function RuleRow({
 export function CalculationTab() {
   const calculationRules = useReportStore((s) => s.definition.calculationRules)
   const schema = useReportStore((s) => s.definition.schema)
+  const testData = useReportStore((s) => s.testData)
   const addCalculationRule = useReportStore((s) => s.addCalculationRule)
   const updateCalculationRule = useReportStore((s) => s.updateCalculationRule)
   const removeCalculationRule = useReportStore((s) => s.removeCalculationRule)
 
-  // Flatten schema fields for variable reference panel
-  const schemaFields: { groupLabel: string; field: SchemaField }[] =
-    schema?.groups.flatMap((g) =>
-      g.fields.map((f) => ({ groupLabel: g.label, field: f })),
-    ) ?? []
+  // Memoized: stable reference across renders when schema unchanged
+  const schemaFields = useMemo<{ groupLabel: string; field: SchemaField }[]>(
+    () =>
+      schema?.groups.flatMap((g) =>
+        g.fields.map((f) => ({ groupLabel: g.label, field: f })),
+      ) ?? [],
+    [schema],
+  )
 
-  const allKeys = calculationRules.map((r) => r.key)
+  // Memoized: stable reference across renders when rules unchanged
+  const allKeys = useMemo(
+    () => calculationRules.map((r) => r.key),
+    [calculationRules],
+  )
+
+  // O(n) duplicate detection — passed to each RuleRow for O(1) lookup
+  const duplicateKeySet = useMemo(() => {
+    const seen = new Set<string>()
+    const dupes = new Set<string>()
+    for (const k of allKeys) {
+      seen.has(k) ? dupes.add(k) : seen.add(k)
+    }
+    return dupes
+  }, [allKeys])
 
   function handleAdd() {
-    const key = `calc_${crypto.randomUUID().slice(0, 8)}`
+    const id = crypto.randomUUID()
+    const key = `calc_${id.slice(0, 8)}`
     addCalculationRule({
+      id,
       key,
       label: '新しいルール',
       expression: '',
@@ -489,12 +491,14 @@ export function CalculationTab() {
         </p>
       ) : (
         <div className="space-y-2">
-          {calculationRules.map((rule: CalculationRule) => (
+          {calculationRules.map((rule) => (
             <RuleRow
-              key={rule.key}
+              key={rule.id ?? rule.key}
               rule={rule}
               allKeys={allKeys}
+              duplicateKeySet={duplicateKeySet}
               schemaFields={schemaFields}
+              testData={testData}
               onUpdate={(patch) => updateCalculationRule(rule.key, patch)}
               onRemove={() => removeCalculationRule(rule.key)}
             />

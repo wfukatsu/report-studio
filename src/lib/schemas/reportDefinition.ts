@@ -187,7 +187,9 @@ const MetadataSchema = z.object({
 // ---------------------------------------------------------------------------
 
 const CalculationRuleSchema = z.object({
-  key: z.string().min(1).max(100),
+  /** Stable UUID — optional for backward compat with older saved reports. */
+  id: z.string().optional(),
+  key: z.string().min(1).max(100).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'キーは英数字とアンダースコアのみ使用できます'),
   label: z.string().max(200),
   description: z.string().optional(),
   expression: z.string().max(500),
