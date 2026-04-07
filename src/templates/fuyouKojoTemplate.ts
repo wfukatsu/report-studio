@@ -240,6 +240,11 @@ elements.push(
   rect(ML + TABLE_W - 14, Y.title, 14, 14, { fill: '#f0f0f0' }),
   lbl('扶', ML + TABLE_W - 14, Y.title, 14, 14,
     { fontSize: 7, fontWeight: 'bold', textAlign: 'center' }),
+  // 従たる給与についての扶養控除等申告書の提出
+  rect(ML + TABLE_W - 14, Y.title + 14, 14, 20),
+  lbl('従たる給与についての\n扶養控除等申告書の提出\n（副から分けている場合のみ\n○をつけてください）',
+    ML + TABLE_W - 14, Y.title + 14, 14, 16, { fontSize: 1.6, textAlign: 'center' }),
+  lbl('○', ML + TABLE_W - 9, Y.title + 30, 4, 4, { fontSize: 3.5, textAlign: 'center' }),
 )
 
 // ════════════════════════════════════════════════════════
@@ -353,9 +358,9 @@ elements.push(
   lbl('区\n分\n等', COL.kubun.x, CH_Y, COL.kubun.w, CH_H, { fontSize: 2.8 }),
   lbl('（フリガナ）\n氏　　　名', COL.name.x, CH_Y, COL.name.w, CH_H, { fontSize: 2.5 }),
   lbl('あなたとの\n続柄', COL.kankei.x, CH_Y, COL.kankei.w, CH_H, { fontSize: 2.5 }),
-  lbl('個　人　番　号\n（平15.1.2〜H19.1.1生）', COL.myNumber.x, CH_Y, COL.myNumber.w, CH_H, { fontSize: 2.2 }),
+  lbl('個　人　番　号', COL.myNumber.x, CH_Y, COL.myNumber.w, CH_H, { fontSize: 2.2 }),
   lbl('生　年　月　日\n（明11.1.1〜）', COL.birthday.x, CH_Y, COL.birthday.w, CH_H, { fontSize: 2.2 }),
-  lbl('特定扶養\n年月日', COL.tokutei.x, CH_Y, COL.tokutei.w, CH_H, { fontSize: 2.2 }),
+  lbl('特定扶養親族等\n（平15.1.2〜\n平19.1.1生）', COL.tokutei.x, CH_Y, COL.tokutei.w, CH_H, { fontSize: 1.8 }),
   lbl('令和7年中の\n所得の見積額', COL.income.x, CH_Y, COL.income.w, CH_H, { fontSize: 2.2 }),
   lbl('非居住者で\nある親族', COL.nonRes.x, CH_Y, COL.nonRes.w, CH_H, { fontSize: 2.2 }),
   lbl('住　所　又　は　居　所', COL.address.x, CH_Y, COL.address.w, CH_H, { fontSize: 2.5 }),
@@ -477,15 +482,17 @@ B_ROWS.forEach((rowY, idx) => {
     checkbox(cbX, rowY + 11, 3.5),
     lbl('特定扶養親族', cbX + 4, rowY + 11, COL.tokutei.w - 5, 4, { fontSize: 2.2, textAlign: 'left' }),
   )
-  // 非居住者詳細チェック
+  // 非居住者詳細チェック（4項目）
   const nbX = COL.nonRes.x + 1
   elements.push(
     checkbox(nbX, rowY + 1, 3.0),
-    lbl('16歳以上30歳未満\nまたは70歳以上', nbX + 4, rowY + 1, COL.nonRes.w - 5, 5, { fontSize: 2.0, textAlign: 'left' }),
-    checkbox(nbX, rowY + 7, 3.0),
-    lbl('留学', nbX + 4, rowY + 7, 10, 4, { fontSize: 2.2, textAlign: 'left' }),
-    checkbox(nbX, rowY + 11, 3.0),
-    lbl('障害者', nbX + 4, rowY + 11, 10, 4, { fontSize: 2.2, textAlign: 'left' }),
+    lbl('16歳以上30歳未満\n又は70歳以上', nbX + 4, rowY + 1, COL.nonRes.w - 5, 5, { fontSize: 1.9, textAlign: 'left' }),
+    checkbox(nbX, rowY + 6, 3.0),
+    lbl('留学', nbX + 4, rowY + 6, 10, 3.5, { fontSize: 2.0, textAlign: 'left' }),
+    checkbox(nbX, rowY + 10, 3.0),
+    lbl('障害者', nbX + 4, rowY + 10, 10, 3.5, { fontSize: 2.0, textAlign: 'left' }),
+    checkbox(nbX, rowY + 13, 3.0),
+    lbl('38万円以上の支払', nbX + 4, rowY + 13, COL.nonRes.w - 5, 3, { fontSize: 1.8, textAlign: 'left' }),
   )
 })
 
@@ -565,7 +572,8 @@ for (let di = 0; di < 2; di++) {
     lbl('あなたとの\n続柄', COL.kankei.x, dRowY, COL.kankei.w, DH / 2, { fontSize: 2.2 }),
     input(COL.kankei.x + 1, dRowY + 1, COL.kankei.w - 2, DH / 2 - 2, { fontSize: 3.0 }),
     lbl('生年月日', COL.myNumber.x, dRowY, COL.myNumber.w, 4, { fontSize: 2.2, textAlign: 'left', paddingLeft: 1 }),
-    input(COL.myNumber.x + 1, dRowY + 4, COL.myNumber.w - 2, DH / 2 - 5, { fontSize: 3.0 }),
+    eraSelect(COL.myNumber.x + 1, dRowY + 4, 7, DH / 2 - 5),
+    input(COL.myNumber.x + 9, dRowY + 4, COL.myNumber.w - 10, DH / 2 - 5, { fontSize: 2.5 }),
     lbl('住所又は居所', COL.birthday.x, dRowY, COL.birthday.w + COL.tokutei.w, 4, { fontSize: 2.2, textAlign: 'left', paddingLeft: 1 }),
     input(COL.birthday.x + 1, dRowY + 4, COL.birthday.w + COL.tokutei.w - 2, DH / 2 - 5, { fontSize: 3.0 }),
     lbl('控除を受ける他の所得者\n氏名', COL.income.x, dRowY, COL.income.w + COL.nonRes.w, DH / 2, { fontSize: 2.2 }),
@@ -621,6 +629,7 @@ for (let ci = 0; ci < J_COL_W.length; ci++) {
 }
 
 // 2行
+const J_BIRTHDAY_CI = 3  // 生年月日列のインデックス
 for (let ji = 0; ji < 2; ji++) {
   const jRowY = Y.jumin1 + ji * JH
   elements.push(
@@ -629,10 +638,16 @@ for (let ji = 0; ji < 2; ji++) {
   )
   let jix = ML + 16
   for (let ci = 0; ci < J_COL_W.length; ci++) {
-    elements.push(
-      line(jix, jRowY, JH, { vertical: true }),
-      input(jix + 1, jRowY + 1, J_COL_W[ci] - 2, JH - 2, { fontSize: 2.8 }),
-    )
+    elements.push(line(jix, jRowY, JH, { vertical: true }))
+    if (ci === J_BIRTHDAY_CI) {
+      // 生年月日: 「平」固定プレフィックス + 年月日入力
+      elements.push(
+        lbl('平', jix + 1, jRowY + 1, 3, JH - 2, { fontSize: 2.0, textAlign: 'left', verticalAlign: 'top' }),
+        input(jix + 4, jRowY + 1, J_COL_W[ci] - 5, JH - 2, { fontSize: 2.5 }),
+      )
+    } else {
+      elements.push(input(jix + 1, jRowY + 1, J_COL_W[ci] - 2, JH - 2, { fontSize: 2.8 }))
+    }
     jix += J_COL_W[ci]
   }
 }
@@ -646,9 +661,10 @@ elements.push(
     ML, TY, 16, ROW_H.taishoku, { fontSize: 2.2, fontWeight: 'bold' }),
 )
 
+const T_BIRTHDAY_LABEL = '生年月日'
 const T_COLS: [string, number][] = [
   ['（フリガナ）\n氏名', 16], ['個人番号', 22], ['あなたとの続柄', 10],
-  ['生年月日', 10], ['住所又は居所', 25], ['非居住者', 12],
+  [T_BIRTHDAY_LABEL, 10], ['住所又は居所', 25], ['非居住者', 12],
   ['令和7年中の所得（退職所得を除く）', 28], ['障害者区分', 10], ['異動月日及び事由', 18],
 ]
 let tX = ML + 16
@@ -656,8 +672,16 @@ for (const [tLabel, tW] of T_COLS) {
   elements.push(
     line(tX, TY, ROW_H.taishoku, { vertical: true }),
     lbl(tLabel, tX, TY, tW, 5, { fontSize: 2.0 }),
-    input(tX + 1, TY + 5, tW - 2, ROW_H.taishoku - 6, { fontSize: 2.8 }),
   )
+  if (tLabel === T_BIRTHDAY_LABEL) {
+    // 生年月日: 元号選択 + 年月日入力
+    elements.push(
+      eraSelect(tX + 1, TY + 5, 6, ROW_H.taishoku - 6),
+      input(tX + 7, TY + 5, tW - 8, ROW_H.taishoku - 6, { fontSize: 2.5 }),
+    )
+  } else {
+    elements.push(input(tX + 1, TY + 5, tW - 2, ROW_H.taishoku - 6, { fontSize: 2.8 }))
+  }
   tX += tW
 }
 
