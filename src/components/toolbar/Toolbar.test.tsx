@@ -39,7 +39,7 @@ beforeEach(() => {
 describe('Toolbar — バリデートボタン', () => {
   it('renders the validate button', () => {
     renderToolbar()
-    expect(screen.getByTitle('バリデーション実行')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'バリデーション実行' })).toBeInTheDocument()
   })
 
   it('shows success violations in store on successful validate', async () => {
@@ -49,7 +49,7 @@ describe('Toolbar — バリデートボタン', () => {
     })
 
     renderToolbar()
-    await userEvent.click(screen.getByTitle('バリデーション実行'))
+    await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     await waitFor(() => {
       expect(useReportStore.getState().computedViolations).toHaveLength(1)
@@ -70,7 +70,7 @@ describe('Toolbar — バリデートボタン', () => {
     )
 
     renderToolbar()
-    await userEvent.click(screen.getByTitle('バリデーション実行'))
+    await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     // Before resolving: violations should be cleared (start-of-validate clear)
     await waitFor(() => {
@@ -85,7 +85,7 @@ describe('Toolbar — バリデートボタン', () => {
     // currentTemplateId is null by default after newReport()
     renderToolbar()
 
-    const btn = screen.getByTitle('バリデーション実行')
+    const btn = screen.getByRole('button', { name: 'バリデーション実行' })
     expect(btn).toBeDisabled()
   })
 
@@ -94,7 +94,7 @@ describe('Toolbar — バリデートボタン', () => {
     mockEvaluateValidate.mockRejectedValue(new Error('Network error'))
 
     renderToolbar()
-    await userEvent.click(screen.getByTitle('バリデーション実行'))
+    await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('バリデーションに失敗しました')
@@ -112,7 +112,7 @@ describe('Toolbar — バリデートボタン', () => {
     })
 
     renderToolbar()
-    await userEvent.click(screen.getByTitle('バリデーション実行'))
+    await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     await waitFor(() => {
       expect(mockEvaluateValidate).toHaveBeenCalled()
@@ -131,14 +131,14 @@ describe('Toolbar — バリデートボタン', () => {
     })
 
     renderToolbar()
-    await userEvent.click(screen.getByTitle('バリデーション実行'))
+    await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     await waitFor(() => {
       expect(useReportStore.getState().computedViolations).toHaveLength(2)
     })
 
     // Badge should appear inside the validate button
-    const btn = screen.getByTitle('バリデーション実行')
+    const btn = screen.getByRole('button', { name: 'バリデーション実行' })
     expect(btn.textContent).toContain('2')
   })
 })

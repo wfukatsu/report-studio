@@ -244,7 +244,7 @@ export default function App() {
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <aside className={cn('border-r bg-card flex flex-col shrink-0 overflow-hidden transition-all', leftSidebarOpen ? 'w-52' : 'w-8')}>
+          <aside className={cn('border-r bg-card flex flex-col shrink-0 overflow-hidden transition-all', leftSidebarOpen ? 'w-64' : 'w-8')}>
             <div className="flex border-b overflow-x-auto shrink-0">
               {leftSidebarOpen && (
                 <div
@@ -329,7 +329,7 @@ export default function App() {
           {livePreviewEnabled && <PreviewPane />}
 
           {/* Right Sidebar: Properties / Versions */}
-          <aside className={cn('border-l bg-card flex flex-col shrink-0 overflow-hidden transition-all', rightSidebarOpen ? 'w-56' : 'w-8')}>
+          <aside className={cn('border-l bg-card flex flex-col shrink-0 overflow-hidden transition-all', rightSidebarOpen ? 'w-64' : 'w-8')}>
             <div className="flex border-b shrink-0">
               <button
                 onClick={() => setRightSidebarOpen(v => !v)}

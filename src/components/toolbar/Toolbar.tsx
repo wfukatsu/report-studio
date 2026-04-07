@@ -21,6 +21,7 @@ import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom, FitWidthIcon, FitPageIcon } from '@/components/common/zoomUtils'
+import { Tooltip } from '@/components/common/Tooltip'
 
 interface Props {
   canvasRefs: React.RefObject<HTMLDivElement | null>[]
@@ -776,21 +777,22 @@ function ToolbarButton({
   ariaHasPopup?: 'menu' | 'listbox' | 'dialog' | 'true'
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      aria-pressed={active !== undefined && ariaExpanded === undefined ? active : undefined}
-      aria-expanded={ariaExpanded}
-      aria-haspopup={ariaHasPopup}
-      className={cn(
-        'flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
-        active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
-        'disabled:opacity-30 disabled:cursor-not-allowed',
-      )}
-    >
-      {children}
-    </button>
+    <Tooltip content={title} placement="bottom">
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={title}
+        aria-pressed={active !== undefined && ariaExpanded === undefined ? active : undefined}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
+        className={cn(
+          'flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
+          active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
+          'disabled:opacity-30 disabled:cursor-not-allowed',
+        )}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }

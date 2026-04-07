@@ -43,7 +43,7 @@ const FieldRow = memo(function FieldRow({
   return (
     <div className="flex items-center gap-1 py-0.5">
       <input
-        className="border rounded px-1 py-0.5 text-xs bg-background w-24 font-mono"
+        className="border rounded px-1 py-0.5 text-xs bg-background w-20 font-mono"
         value={localKey}
         onChange={(e) => setLocalKey(e.target.value)}
         onBlur={() => {

@@ -37,6 +37,7 @@ import {
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Tooltip } from '@/components/common/Tooltip'
 
 interface PaletteItem {
   label: string
@@ -145,20 +146,20 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
       {expanded && (
         <div className="grid grid-cols-2 gap-1.5 mb-3">
           {category.items.map((item) => (
-            <button
-              key={item.label}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('application/rds-palette', item.label)
-                e.dataTransfer.effectAllowed = 'copy'
-              }}
-              onClick={() => onAdd(item.createElement)}
-              title={item.description}
-              className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-sm cursor-grab active:cursor-grabbing"
-            >
-              {item.icon}
-              <span className="text-xs leading-tight text-center">{item.label}</span>
-            </button>
+            <Tooltip key={item.label} content={item.description} placement="bottom">
+              <button
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/rds-palette', item.label)
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
+                onClick={() => onAdd(item.createElement)}
+                className="w-full flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-sm cursor-grab active:cursor-grabbing"
+              >
+                {item.icon}
+                <span className="text-xs leading-tight text-center">{item.label}</span>
+              </button>
+            </Tooltip>
           ))}
         </div>
       )}
