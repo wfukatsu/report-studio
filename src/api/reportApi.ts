@@ -361,6 +361,46 @@ export function getTemplateThumbnailUrl(id: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Async PDF jobs
+// ---------------------------------------------------------------------------
+
+const PdfJobStatusSchema = z.object({
+  jobId: z.string(),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  error: z.string().optional(),
+  statusUrl: z.string().optional(),
+  resultUrl: z.string().optional(),
+})
+
+export type PdfJobStatus = z.infer<typeof PdfJobStatusSchema>
+
+/**
+ * Submit an async PDF generation job.
+ * Returns immediately with jobId — poll getAsyncPdfJobStatus for completion.
+ */
+export async function submitAsyncPdfJob(
+  templateId: string,
+  testData?: Record<string, unknown>,
+  variantId?: string,
+): Promise<PdfJobStatus> {
+  const body: Record<string, unknown> = { templateId }
+  if (testData) body.testData = testData
+  if (variantId) body.variantId = variantId
+  return apiFetch('/api/v2/pdf-jobs', PdfJobStatusSchema, jsonBody(body))
+}
+
+/** Poll a job's status. */
+export async function getAsyncPdfJobStatus(jobId: string): Promise<PdfJobStatus> {
+  return apiFetch(`/api/v2/pdf-jobs/${encodeURIComponent(jobId)}`, PdfJobStatusSchema)
+}
+
+/** Download the completed PDF result. */
+export async function downloadAsyncPdfResult(jobId: string): Promise<Blob> {
+  const { blob } = await apiFetchBlobWithFilename(`/api/v2/pdf-jobs/${encodeURIComponent(jobId)}/result`)
+  return blob
+}
+
+// ---------------------------------------------------------------------------
 // Schema inference
 // ---------------------------------------------------------------------------
 
