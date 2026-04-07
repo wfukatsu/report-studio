@@ -15,6 +15,7 @@ import {
   Minus,
   AlignJustify,
   LayoutGrid,
+  TableProperties,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
@@ -33,6 +34,7 @@ import {
   createRevenueStampElement,
   createRepeatingBandElement,
   createRepeatingListElement,
+  createFormTableElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
@@ -87,6 +89,12 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
         icon: <LayoutGrid className="w-4 h-4 text-purple-500" />,
         createElement: createRepeatingListElement,
         description: 'データをカード・グリッド形式で表示（例：商品カタログ）',
+      },
+      {
+        label: '帳票テーブル',
+        icon: <TableProperties className="w-4 h-4 text-green-600" />,
+        createElement: createFormTableElement,
+        description: '行・列定義を持つ帳票専用テーブル。固定レイアウトとデータバインドに両対応',
       },
     ],
   },

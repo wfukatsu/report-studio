@@ -1,6 +1,6 @@
 import {
   Type, Tag, Square, Image, Table, BarChart2, Database,
-  QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid,
+  QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties,
 } from 'lucide-react'
 import { createElement } from 'react'
 import type { ReportElement, Section } from '@/types'
@@ -26,6 +26,7 @@ export function elementIcon(type: ReportElement['type']) {
     case 'shape':           return createElement(Square, { className: cls })
     case 'repeatingBand':   return createElement(AlignJustify, { className: cls })
     case 'repeatingList':   return createElement(LayoutGrid, { className: cls })
+    case 'formTable':       return createElement(TableProperties, { className: cls })
     default:                return assertNever(type)
   }
 }
@@ -51,6 +52,7 @@ export function defaultName(el: ReportElement): string {
     }
     case 'repeatingBand':   return '繰り返しバンド'
     case 'repeatingList':   return '繰り返しリスト'
+    case 'formTable':       return '帳票テーブル'
     default: return assertNever(el)
   }
 }

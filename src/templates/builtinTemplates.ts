@@ -1,11 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { Template } from '@/types'
+import { FUYOU_KOJO_TEMPLATE } from './fuyouKojoTemplate'
 
 // A4 dimensions: 210 x 297 mm
 const A4_WIDTH = 210
 const A4_HEIGHT = 297
 
 export const BUILTIN_TEMPLATES: Template[] = [
+  FUYOU_KOJO_TEMPLATE,
   {
     id: 'blank',
     name: '白紙',
