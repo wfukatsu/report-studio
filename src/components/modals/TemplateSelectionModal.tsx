@@ -4,7 +4,7 @@ import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
-import { listReports, getReport, duplicateReport, exportTemplate, importTemplate } from '@/api/reportApi'
+import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, getTemplateThumbnailUrl } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
@@ -266,43 +266,64 @@ export function TemplateSelectionModal({
               )}
 
               {backendTemplates.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {backendTemplates.map((t) => (
-                    <div key={t.id} className="flex items-center gap-1 group">
+                    <div key={t.id} className="relative group">
                       <button
                         onClick={() => handleLoadBackend(t.id)}
                         disabled={loadingId !== null || duplicatingId !== null}
-                        className="flex-1 flex items-center justify-between gap-1 px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-sm disabled:opacity-50 min-w-0"
+                        className="w-full flex flex-col rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 overflow-hidden text-left"
+                        aria-label={`テンプレート ${t.name} を開く`}
                       >
-                        <p className="font-medium text-xs truncate">{t.name}</p>
-                        {loadingId === t.id && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                        {/* Thumbnail */}
+                        <div className="w-full bg-muted flex items-center justify-center" style={{ aspectRatio: '210/297' }}>
+                          <img
+                            src={getTemplateThumbnailUrl(t.id)}
+                            alt={`${t.name} のサムネイル`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget
+                              target.style.display = 'none'
+                              target.nextElementSibling?.classList.remove('hidden')
+                            }}
+                          />
+                          <FileText className="hidden w-8 h-8 text-muted-foreground" />
+                          {loadingId === t.id && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                              <Loader2 className="w-5 h-5 animate-spin text-white" />
+                            </div>
+                          )}
+                        </div>
+                        {/* Name */}
+                        <p className="px-2 py-1.5 font-medium text-xs truncate">{t.name}</p>
                       </button>
-                      {/* Export button */}
-                      <button
-                        onClick={(e) => handleExport(t.id, e)}
-                        disabled={exportingId !== null || loadingId !== null}
-                        title="エクスポート"
-                        aria-label={`${t.name} をエクスポート`}
-                        className="shrink-0 p-1.5 rounded border border-border bg-card hover:bg-accent transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                      >
-                        {exportingId === t.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <Download className="w-3 h-3" />
-                        }
-                      </button>
-                      {/* Duplicate button */}
-                      <button
-                        onClick={(e) => handleDuplicate(t.id, e)}
-                        disabled={duplicatingId !== null || loadingId !== null}
-                        title="複製"
-                        aria-label={`${t.name} を複製`}
-                        className="shrink-0 p-1.5 rounded border border-border bg-card hover:bg-accent transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                      >
-                        {duplicatingId === t.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <Copy className="w-3 h-3" />
-                        }
-                      </button>
+                      {/* Action buttons — appear on hover */}
+                      <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => handleExport(t.id, e)}
+                          disabled={exportingId !== null || loadingId !== null}
+                          title="エクスポート"
+                          aria-label={`${t.name} をエクスポート`}
+                          className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          {exportingId === t.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Download className="w-3 h-3" />
+                          }
+                        </button>
+                        <button
+                          onClick={(e) => handleDuplicate(t.id, e)}
+                          disabled={duplicatingId !== null || loadingId !== null}
+                          title="複製"
+                          aria-label={`${t.name} を複製`}
+                          className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          {duplicatingId === t.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Copy className="w-3 h-3" />
+                          }
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
