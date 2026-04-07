@@ -142,3 +142,217 @@ describe('CalculationTab — ルール削除', () => {
     expect(useReportStore.getState().definition.calculationRules).toHaveLength(0)
   })
 })
+
+describe('CalculationTab — 説明フィールド', () => {
+  it('renders description input', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    expect(screen.getByTestId('description-input')).toBeInTheDocument()
+  })
+
+  it('updates description when changed', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const descInput = screen.getByTestId('description-input')
+    fireEvent.change(descInput, { target: { value: '合計金額の計算' } })
+
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].description).toBe('合計金額の計算')
+  })
+
+  it('sets description to undefined when cleared', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const descInput = screen.getByTestId('description-input')
+    fireEvent.change(descInput, { target: { value: 'memo' } })
+    fireEvent.change(descInput, { target: { value: '' } })
+
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].description).toBeUndefined()
+  })
+})
+
+describe('CalculationTab — 式テキストエリア', () => {
+  it('renders expression as textarea', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    const ta = screen.getByPlaceholderText('price * quantity')
+    expect(ta.tagName).toBe('TEXTAREA')
+  })
+})
+
+describe('CalculationTab — キー重複バリデーション', () => {
+  it('shows duplicate warning when two rules share the same key', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const keyInputs = screen.getAllByPlaceholderText('calc_total')
+    // Set both keys to the same value
+    fireEvent.change(keyInputs[0], { target: { value: 'same_key' } })
+    fireEvent.change(keyInputs[1], { target: { value: 'same_key' } })
+
+    expect(screen.getAllByText('キーが重複しています')).toHaveLength(2)
+  })
+
+  it('does not show duplicate warning for unique keys', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const keyInputs = screen.getAllByPlaceholderText('calc_total')
+    fireEvent.change(keyInputs[0], { target: { value: 'key_a' } })
+    fireEvent.change(keyInputs[1], { target: { value: 'key_b' } })
+
+    expect(screen.queryByText('キーが重複しています')).not.toBeInTheDocument()
+  })
+})
+
+describe('CalculationTab — 書式エディタ', () => {
+  it('renders format toggle for number result type', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    // Default is number, so format toggle should be present
+    expect(screen.getByTestId('format-toggle')).toBeInTheDocument()
+  })
+
+  it('does not render format toggle for boolean result type', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const typeSelect = screen.getAllByRole('combobox')[0]
+    fireEvent.change(typeSelect, { target: { value: 'boolean' } })
+
+    expect(screen.queryByTestId('format-toggle')).not.toBeInTheDocument()
+  })
+
+  it('enables format when toggle is clicked', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    expect(screen.getByTestId('format-type-select')).toBeInTheDocument()
+  })
+
+  it('updates format type in store when format select changes', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    const formatSelect = screen.getByTestId('format-type-select')
+    fireEvent.change(formatSelect, { target: { value: 'currency_jpy' } })
+
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].format?.type).toBe('currency_jpy')
+  })
+
+  it('shows decimal places input for decimal format', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    const formatSelect = screen.getByTestId('format-type-select')
+    fireEvent.change(formatSelect, { target: { value: 'decimal' } })
+
+    expect(screen.getByTestId('format-decimal-places')).toBeInTheDocument()
+  })
+
+  it('shows custom pattern input for custom format', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    const formatSelect = screen.getByTestId('format-type-select')
+    fireEvent.change(formatSelect, { target: { value: 'custom' } })
+
+    expect(screen.getByTestId('format-custom-pattern')).toBeInTheDocument()
+  })
+
+  it('disables format when toggle clicked again', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    // Enable
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    expect(screen.getByTestId('format-type-select')).toBeInTheDocument()
+
+    // Disable
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    expect(screen.queryByTestId('format-type-select')).not.toBeInTheDocument()
+
+    const rules = useReportStore.getState().definition.calculationRules
+    expect(rules[0].format).toBeUndefined()
+  })
+
+  it('shows date format options for string result type', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    const typeSelect = screen.getAllByRole('combobox')[0]
+    fireEvent.change(typeSelect, { target: { value: 'string' } })
+
+    fireEvent.click(screen.getByTestId('format-toggle'))
+    const formatSelect = screen.getByTestId('format-type-select')
+    expect(formatSelect).toBeInTheDocument()
+    // Check a date format option is present
+    expect(screen.getByText('yyyy/MM/dd')).toBeInTheDocument()
+  })
+})
+
+describe('CalculationTab — 変数参照パネル', () => {
+  it('renders variable panel toggle', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    expect(screen.getByTestId('variable-panel-toggle')).toBeInTheDocument()
+  })
+
+  it('shows variable panel when toggle is clicked', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('variable-panel-toggle'))
+    expect(screen.getByTestId('variable-panel')).toBeInTheDocument()
+  })
+
+  it('shows builtin functions in variable panel', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    fireEvent.click(screen.getByTestId('variable-panel-toggle'))
+    expect(screen.getByText('sum(arr)')).toBeInTheDocument()
+    expect(screen.getByText('count(arr)')).toBeInTheDocument()
+    expect(screen.getByText('round(value, places)')).toBeInTheDocument()
+  })
+
+  it('shows schema fields when schema is defined', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, {
+      id: 'f1', key: 'price', label: '単価', type: 'number',
+    })
+
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    fireEvent.click(screen.getByTestId('variable-panel-toggle'))
+
+    expect(screen.getByText('price')).toBeInTheDocument()
+  })
+
+  it('shows other rule keys in variable panel', () => {
+    render(<CalculationTab />)
+    fireEvent.click(screen.getByText('+ 追加'))
+    fireEvent.click(screen.getByText('+ 追加'))
+
+    // Set first rule's key
+    const keyInputs = screen.getAllByPlaceholderText('calc_total')
+    fireEvent.change(keyInputs[0], { target: { value: 'subtotal' } })
+
+    // Open second rule's variable panel
+    const toggles = screen.getAllByTestId('variable-panel-toggle')
+    fireEvent.click(toggles[1])
+
+    expect(screen.getByText('subtotal')).toBeInTheDocument()
+  })
+})
