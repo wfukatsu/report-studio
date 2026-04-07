@@ -284,6 +284,12 @@ export interface ManualEntryField extends ElementBase {
   gridCount?: number
   placeholder?: string
   style: TextStyle
+  /** フリガナゾーンを表示する (デフォルト: false) */
+  furiganaEnabled?: boolean
+  /** フリガナのデータプレビュー値 — resolveField で解決するキー */
+  furiganaDataSource?: string
+  /** フリガナ行の高さ割合 0〜1 (デフォルト: 0.35) */
+  furiganaRatio?: number
 }
 
 export interface HankoElement extends ElementBase {

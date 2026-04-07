@@ -70,7 +70,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'table':           return <TableRenderer element={element} data={mergedData} />
     case 'chart':           return <ChartRenderer element={element} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
-    case 'manualEntry':     return <ManualEntryRenderer element={element} />
+    case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
     case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
     case 'approvalStampRow': return <ApprovalStampRowRenderer element={element} />
     case 'revenueStamp':    return <RevenueStampRenderer element={element} />

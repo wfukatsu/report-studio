@@ -73,4 +73,44 @@ describe('ManualEntryRenderer', () => {
     expect(container.firstChild).toBeInTheDocument()
     expect(screen.getByText('記入欄')).toBeInTheDocument()
   })
+
+  describe('furiganaEnabled', () => {
+    it('does not show フリガナ zone when furiganaEnabled is false (default)', () => {
+      render(<ManualEntryRenderer element={makeElement()} />)
+      expect(screen.queryByText('フリガナ')).not.toBeInTheDocument()
+    })
+
+    it('shows フリガナ zone when furiganaEnabled is true', () => {
+      render(<ManualEntryRenderer element={makeElement({ furiganaEnabled: true })} />)
+      expect(screen.getByText('フリガナ')).toBeInTheDocument()
+    })
+
+    it('displays resolved furiganaDataSource value in the furigana zone', () => {
+      render(
+        <ManualEntryRenderer
+          element={makeElement({ furiganaEnabled: true, furiganaDataSource: 'name.furigana' })}
+          data={{ name: { furigana: 'ヤマダ タロウ' } }}
+        />,
+      )
+      expect(screen.getByText('ヤマダ タロウ')).toBeInTheDocument()
+    })
+
+    it('shows empty furigana zone when data field is missing', () => {
+      render(
+        <ManualEntryRenderer
+          element={makeElement({ furiganaEnabled: true, furiganaDataSource: 'name.furigana' })}
+          data={{}}
+        />,
+      )
+      expect(screen.getByText('フリガナ')).toBeInTheDocument()
+      // no error thrown, furigana zone still renders
+    })
+
+    it('still shows main label when furiganaEnabled is true', () => {
+      render(
+        <ManualEntryRenderer element={makeElement({ furiganaEnabled: true, label: '氏名' })} />,
+      )
+      expect(screen.getByText('氏名')).toBeInTheDocument()
+    })
+  })
 })

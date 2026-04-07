@@ -87,7 +87,11 @@ function line(
 
 function input(
   x: number, y: number, w: number, h: number,
-  opts?: { label?: string; gridCount?: number; fontSize?: number; displayMode?: 'line' | 'box' | 'grid' | 'none' },
+  opts?: {
+    label?: string; gridCount?: number; fontSize?: number
+    displayMode?: 'line' | 'box' | 'grid' | 'none'
+    furiganaEnabled?: boolean; furiganaDataSource?: string; furiganaRatio?: number
+  },
 ): ReportElement {
   return {
     id: uuidv4(),
@@ -102,6 +106,9 @@ function input(
     displayMode: opts?.displayMode ?? 'none',
     lineColor: '#555555',
     gridCount: opts?.gridCount,
+    furiganaEnabled: opts?.furiganaEnabled,
+    furiganaDataSource: opts?.furiganaDataSource,
+    furiganaRatio: opts?.furiganaRatio,
     style: {
       fontSize: opts?.fontSize ?? 3.0,
       verticalAlign: 'bottom',
@@ -243,8 +250,11 @@ elements.push(
   // 右列 Row1
   lbl('（フリガナ）', ML + LEFT_COL_W + 1, HY, 25, 4, { fontSize: 2.5, textAlign: 'left' }),
   lbl('あなたの氏名', ML + LEFT_COL_W + 1, HY + 4, 25, 5, { fontSize: 2.8, textAlign: 'left' }),
-  input(ML + LEFT_COL_W + 26, HY + 1, 40, ROW_HH - 2, { label: 'フリガナ', fontSize: 2.8 }),
-  input(ML + LEFT_COL_W + 26, HY + 5, 40, ROW_HH - 6, { label: '氏名', fontSize: 3.5 }),
+  input(ML + LEFT_COL_W + 26, HY + 1, 40, ROW_HH - 2, {
+    label: '氏名', fontSize: 3.5,
+    furiganaEnabled: true, furiganaRatio: 0.55,
+    furiganaDataSource: 'employee.furigana',
+  }),
   lbl('あなたの生年月日', ML + LEFT_COL_W + 68, HY, 22, 4, { fontSize: 2.5, textAlign: 'left' }),
   lbl('明・大・\n昭・平・令', ML + LEFT_COL_W + 68, HY + 4, 12, 5, { fontSize: 2.2 }),
   input(ML + LEFT_COL_W + 80, HY + 4, 10, 5, { label: '年', fontSize: 3.0 }),
