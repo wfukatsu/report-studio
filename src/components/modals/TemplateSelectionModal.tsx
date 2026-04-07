@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react'
-import { Loader2, AlertCircle, FolderOpen, FileText } from 'lucide-react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
-import { listReports, getReport } from '@/api/reportApi'
+import { listReports, getReport, duplicateReport } from '@/api/reportApi'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
 
@@ -35,6 +35,7 @@ export function TemplateSelectionModal({
   const [backendLoadState, setBackendLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [backendLoadError, setBackendLoadError] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
 
   const handleFetchBackend = useCallback(async () => {
     setBackendLoadState('loading')
@@ -61,6 +62,22 @@ export function TemplateSelectionModal({
       setBackendLoadError('テンプレートの読み込みに失敗しました')
     } finally {
       setLoadingId(null)
+    }
+  }
+
+  const handleDuplicate = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (duplicatingId) return
+    setDuplicatingId(id)
+    setBackendLoadError(null)
+    try {
+      await duplicateReport(id)
+      // Refresh the list to show the new copy
+      await handleFetchBackend()
+    } catch {
+      setBackendLoadError('テンプレートの複製に失敗しました')
+    } finally {
+      setDuplicatingId(null)
     }
   }
 
@@ -185,15 +202,28 @@ export function TemplateSelectionModal({
               {backendTemplates.length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {backendTemplates.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleLoadBackend(t.id)}
-                      disabled={loadingId !== null}
-                      className="flex items-center justify-between gap-1 px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-sm disabled:opacity-50"
-                    >
-                      <p className="font-medium text-xs truncate">{t.name}</p>
-                      {loadingId === t.id && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                    </button>
+                    <div key={t.id} className="flex items-center gap-1 group">
+                      <button
+                        onClick={() => handleLoadBackend(t.id)}
+                        disabled={loadingId !== null || duplicatingId !== null}
+                        className="flex-1 flex items-center justify-between gap-1 px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-sm disabled:opacity-50 min-w-0"
+                      >
+                        <p className="font-medium text-xs truncate">{t.name}</p>
+                        {loadingId === t.id && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                      </button>
+                      <button
+                        onClick={(e) => handleDuplicate(t.id, e)}
+                        disabled={duplicatingId !== null || loadingId !== null}
+                        title="複製"
+                        aria-label={`${t.name} を複製`}
+                        className="shrink-0 p-1.5 rounded border border-border bg-card hover:bg-accent transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      >
+                        {duplicatingId === t.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Copy className="w-3 h-3" />
+                        }
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}

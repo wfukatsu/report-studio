@@ -191,6 +191,7 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}", w.v2TemplateCtrl::get);
         app.put("/api/v2/templates/{id}", w.v2TemplateCtrl::put);
         app.delete("/api/v2/templates/{id}", w.v2TemplateCtrl::delete);
+        app.post("/api/v2/templates/{id}/duplicate", w.v2TemplateCtrl::duplicate);
         app.post("/api/v2/templates/{id}/evaluate", w.v2EvalCtrl::evaluate);
         app.post("/api/v2/templates/{id}/validate", w.v2EvalCtrl::validate);
         app.get("/api/v2/templates/{id}/versions", w.v2VersionCtrl::list);

@@ -172,6 +172,64 @@ public final class V2TemplateController {
     }
 
     /**
+     * POST /api/v2/templates/{id}/duplicate
+     * Creates a copy of the template with a new ID.
+     * Returns 201 with {@code {id, name}}.
+     */
+    public void duplicate(Context ctx) throws Exception {
+        String sourceId = RequestValidator.validateId(ctx);
+        if (sourceId == null) return;
+
+        Principal principal = ctx.attribute("principal");
+
+        var stored = definitionsRepo.get(sourceId);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
+        JsonNode original;
+        try {
+            original = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to read template"));
+            return;
+        }
+
+        // Ownership check: only the creator can duplicate (or legacy templates without createdBy)
+        String owner = original.path("created_by").asText("");
+        if (!owner.isEmpty() && !owner.equals(principal.userId())) {
+            ctx.status(HttpStatus.FORBIDDEN);
+            ctx.json(Map.of("error", "Access denied"));
+            return;
+        }
+
+        String newId = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+        String originalName = original.path("name").asText(DEFAULT_NAME);
+        String newName = originalName + " (コピー)";
+        if (newName.length() > MAX_NAME_LENGTH) newName = newName.substring(0, MAX_NAME_LENGTH);
+
+        // Deep-copy the definition and update its id
+        JsonNode originalDef = original.path("definition");
+        ObjectNode newDef = originalDef.deepCopy();
+        newDef.put("id", newId);
+        // Also update metadata.documentName in the copy
+        if (newDef.has("metadata") && newDef.get("metadata").isObject()) {
+            ((ObjectNode) newDef.get("metadata")).put("documentName", newName);
+        }
+
+        ObjectNode newEnvelope = buildEnvelope(newId, newName, now, now, newDef);
+        newEnvelope.put("created_by", principal.userId());
+        definitionsRepo.put(newId, MAPPER.writeValueAsString(newEnvelope));
+
+        ctx.status(HttpStatus.CREATED);
+        ctx.json(Map.of("id", newId, "name", newName));
+    }
+
+    /**
      * DELETE /api/v2/templates/{id}
      * Returns 204.
      */
