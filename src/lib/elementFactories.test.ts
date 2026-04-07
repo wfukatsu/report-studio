@@ -15,6 +15,7 @@ import {
   createRevenueStampElement,
   createRepeatingBandElement,
   createRepeatingListElement,
+  createFormTableElement,
 } from './elementFactories'
 
 describe('共通: 各ファクトリはユニーク id を生成する', () => {
@@ -122,5 +123,25 @@ describe('createRepeatingListElement', () => {
   it('3フィールドが存在する', () => {
     const el = createRepeatingListElement() as { fields: unknown[] }
     expect(el.fields).toHaveLength(3)
+  })
+})
+
+describe('createFormTableElement', () => {
+  it('type が formTable', () => expect(createFormTableElement().type).toBe('formTable'))
+  it('デフォルト 3列 × 2行（header + body）を返す', () => {
+    const el = createFormTableElement() as { columns: unknown[]; rows: { role: string }[] }
+    expect(el.columns).toHaveLength(3)
+    expect(el.rows).toHaveLength(2)
+    expect(el.rows[0].role).toBe('header')
+    expect(el.rows[1].role).toBe('body')
+  })
+  it('overrides が適用される', () => {
+    const el = createFormTableElement({ borderColor: '#ff0000' }) as { borderColor: string }
+    expect(el.borderColor).toBe('#ff0000')
+  })
+  it('呼び出しごとに UUID が異なる', () => {
+    const a = createFormTableElement()
+    const b = createFormTableElement()
+    expect(a.id).not.toBe(b.id)
   })
 })

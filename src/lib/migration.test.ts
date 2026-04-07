@@ -1,5 +1,50 @@
 import { describe, it, expect } from 'vitest'
-import { importFromJSON } from './migration'
+import { importFromJSON, migrateReport } from './migration'
+import type { Report, TextElement } from '@/types'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeReport(pageOverrides: Partial<Report['pages'][number]> = {}): Report {
+  return {
+    id: 'r1',
+    name: 'Test Report',
+    pages: [
+      {
+        id: 'p1',
+        name: 'Page 1',
+        elements: [],
+        background: '#ffffff',
+        width: 210,
+        height: 297,
+        sections: [],
+        ...pageOverrides,
+      },
+    ],
+    settings: {
+      paperSize: 'A4',
+      orientation: 'portrait',
+      margin: { top: 20, right: 20, bottom: 20, left: 20 },
+      unit: 'mm',
+    },
+    dataSource: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  }
+}
+
+const SAMPLE_ELEMENT: TextElement = {
+  id: 'el-1',
+  type: 'text',
+  position: { x: 10, y: 10 },
+  size: { width: 100, height: 20 },
+  zIndex: 1,
+  locked: false,
+  visible: true,
+  content: 'Hello',
+  style: {},
+}
 
 function makeValidV1Json(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
@@ -132,5 +177,43 @@ describe('importFromJSON — Zod schema validation', () => {
     if (!result.ok) {
       expect(result.error).toContain('必須フィールドが不正または不足しています')
     }
+  })
+})
+
+describe('migrateSections — legacy page.elements フォールバック', () => {
+  it('page.sections が空で page.elements に要素がある場合、body section に移動する', () => {
+    const report = makeReport({ elements: [SAMPLE_ELEMENT], sections: [] })
+    const result = migrateReport(report)
+    const page = result.pages[0]
+    expect(page.sections).toHaveLength(1)
+    expect(page.sections[0].sectionType).toBe('body')
+    expect(page.sections[0].elements).toEqual([SAMPLE_ELEMENT])
+  })
+
+  it('page.sections と page.elements の両方がある場合、sections が優先される', () => {
+    const existingSection = {
+      id: 'sec-existing',
+      sectionType: 'body' as const,
+      height: 297,
+      elements: [SAMPLE_ELEMENT],
+    }
+    const report = makeReport({
+      elements: [SAMPLE_ELEMENT],
+      sections: [existingSection],
+    })
+    const result = migrateReport(report)
+    const page = result.pages[0]
+    expect(page.sections).toHaveLength(1)
+    expect(page.sections[0].id).toBe('sec-existing')
+  })
+
+  it('page.elements が undefined の場合、空の body section が生成される', () => {
+    // Cast to bypass TypeScript's required check — simulates legacy JSON with missing field
+    const report = makeReport({ elements: undefined as unknown as [], sections: [] })
+    const result = migrateReport(report)
+    const page = result.pages[0]
+    expect(page.sections).toHaveLength(1)
+    expect(page.sections[0].sectionType).toBe('body')
+    expect(page.sections[0].elements).toEqual([])
   })
 })

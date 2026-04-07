@@ -77,6 +77,83 @@ describe('FormTablePropertiesPanel — 行定義', () => {
   })
 })
 
+describe('FormTablePropertiesPanel — セル編集', () => {
+  it('input セルのプレースホルダー変更が onChange を呼ぶ', () => {
+    const onChange = vi.fn()
+    // Default body row has input cells
+    render(<FormTablePropertiesPanel el={makeElement()} onChange={onChange} />)
+    const placeholderInputs = screen.getAllByPlaceholderText('プレースホルダー')
+    fireEvent.change(placeholderInputs[0], { target: { value: '名前を入力' } })
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0] as Partial<FormTableElement>
+    expect(patch.rows).toBeDefined()
+  })
+
+  it('dataField セルの fieldKey 変更が onChange を呼ぶ', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 8,
+        cells: [{ id: 'c1', type: 'dataField' as const, fieldKey: '' }],
+      }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const fieldKeyInput = screen.getByPlaceholderText('field.key')
+    fireEvent.change(fieldKeyInput, { target: { value: 'customer.name' } })
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0] as Partial<FormTableElement>
+    expect(patch.rows?.[0]?.cells?.[0]).toMatchObject({ fieldKey: 'customer.name' })
+  })
+
+  it('行の高さ変更が onChange を呼ぶ', () => {
+    const onChange = vi.fn()
+    // Single-row element to make it easy to find the height input
+    const el = makeElement({
+      rows: [{ id: 'r1', role: 'header' as const, height: 8, cells: [] }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const heightInput = screen.getByDisplayValue('8')
+    fireEvent.change(heightInput, { target: { value: '12' } })
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0] as Partial<FormTableElement>
+    expect(patch.rows?.[0]?.height).toBe(12)
+  })
+})
+
+describe('FormTablePropertiesPanel — 列幅変更', () => {
+  it('列幅変更が onChange を呼ぶ', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+      rows: [],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const widthInput = screen.getByDisplayValue('40')
+    fireEvent.change(widthInput, { target: { value: '60' } })
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0] as Partial<FormTableElement>
+    expect(patch.columns?.[0]?.width).toBe(60)
+  })
+})
+
+describe('FormTablePropertiesPanel — セル種別変更', () => {
+  it('セル種別を label→input に変更すると onChange が呼ばれる', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'header' as const, height: 8,
+        cells: [{ id: 'c1', type: 'label' as const, text: '' }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    // The cell type select shows 'ラベル（固定テキスト）' — change it to 'input'
+    const typeSelect = screen.getByDisplayValue('ラベル（固定テキスト）')
+    fireEvent.change(typeSelect, { target: { value: 'input' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+})
+
 describe('FormTablePropertiesPanel — 外観設定', () => {
   it('renders border color input', () => {
     render(<FormTablePropertiesPanel el={makeElement()} onChange={vi.fn()} />)
@@ -94,5 +171,13 @@ describe('FormTablePropertiesPanel — 外観設定', () => {
     const input = screen.getByPlaceholderText(/items/)
     fireEvent.change(input, { target: { value: 'products' } })
     expect(onChange).toHaveBeenCalledWith({ dataSource: 'products' })
+  })
+
+  it('clears dataSource when empty string entered (→ undefined)', () => {
+    const onChange = vi.fn()
+    render(<FormTablePropertiesPanel el={makeElement({ dataSource: 'items' })} onChange={onChange} />)
+    const input = screen.getByPlaceholderText(/items/)
+    fireEvent.change(input, { target: { value: '' } })
+    expect(onChange).toHaveBeenCalledWith({ dataSource: undefined })
   })
 })

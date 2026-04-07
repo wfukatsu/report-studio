@@ -669,7 +669,8 @@ export interface ReportDefinition {
 export interface Page {
   id: string
   name: string
-  elements: ReportElement[]
+  /** @deprecated Use sections[0].elements (or appropriate section). This field is ignored by the renderer. */
+  elements?: ReportElement[]
   background: string
   width: number    // mm
   height: number   // mm

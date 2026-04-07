@@ -1,7 +1,7 @@
 ---
 title: "feat: FormTableElement — 帳票専用テーブル要素型"
 type: feat
-status: active
+status: completed
 date: 2026-04-08
 origin: docs/brainstorms/2026-04-08-form-table-element-brainstorm.md
 ---
@@ -349,8 +349,8 @@ case 'formTable': return <TableProperties className="w-3.5 h-3.5" />
 - `src/lib/elementFactories.ts` — `createFormTableElement` 追加
 
 **完了基準:**
-- [ ] TypeScript ビルドエラーなし（`assertNever` が新型を要求）
-- [ ] `createFormTableElement()` がデフォルト 3列 × 2行（header+body）を返す
+- [x] TypeScript ビルドエラーなし（`assertNever` が新型を要求）
+- [x] `createFormTableElement()` がデフォルト 3列 × 2行（header+body）を返す
 
 ---
 
@@ -364,15 +364,15 @@ case 'formTable': return <TableProperties className="w-3.5 h-3.5" />
 - `src/components/canvas/ElementRenderer.tsx` — switch に formTable ケース追加
 
 **完了基準:**
-- [ ] `Renderer.test.tsx` が先に存在し、初回は失敗する（RED フェーズ完了）
-- [ ] デザインプレビューで 3×2 グリッドが正しく描画される
-- [ ] `input` セルがボックス境界線付きで描画される
-- [ ] `dataField` セルが `records` のフィールド値を表示する
-- [ ] `records=undefined` → デザインプレビュー、`records=[]` → body 0行
-- [ ] `oddRowColor` / `evenRowColor` が body 行のみに適用される
-- [ ] `element.size.height` を超えた行がクリップされ、バッジ警告が表示される
-- [ ] `React.memo` でラップされている
-- [ ] `ElementErrorBoundary` でラップされている
+- [x] `Renderer.test.tsx` が先に存在し、初回は失敗する（RED フェーズ完了）
+- [x] デザインプレビューで 3×2 グリッドが正しく描画される
+- [x] `input` セルがボックス境界線付きで描画される
+- [x] `dataField` セルが `records` のフィールド値を表示する
+- [x] `records=undefined` → デザインプレビュー、`records=[]` → body 0行
+- [x] `oddRowColor` / `evenRowColor` が body 行のみに適用される
+- [x] `element.size.height` を超えた行がクリップされ、バッジ警告が表示される
+- [x] `React.memo` でラップされている
+- [x] `ElementErrorBoundary` でラップされている
 
 ---
 
@@ -386,15 +386,15 @@ case 'formTable': return <TableProperties className="w-3.5 h-3.5" />
 - `src/components/sidebar/PropertiesPanel.tsx` — `formTable` ケース追加
 
 **完了基準:**
-- [ ] `PropertiesPanel.test.tsx` が先に存在し、初回は失敗する（RED フェーズ完了）
-- [ ] 列の追加・削除が全行の cells を同期的に更新する
-- [ ] 列追加時に各行の末尾に `input` セルが追加される
-- [ ] 列削除時に各行の対応 cells[i] が削除される
-- [ ] 行の追加・削除が動作する
-- [ ] 行選択時にセル編集 UI が展開される
-- [ ] セル種別変更（label/input/dataField）が正しく動作する
-- [ ] `dataSource` / `maxItems` の設定が動作する
-- [ ] すべての onChange が `rows: [...]` 全体を置き換える（浅いパッチ問題を回避）
+- [x] `PropertiesPanel.test.tsx` が先に存在し、初回は失敗する（RED フェーズ完了）
+- [x] 列の追加・削除が全行の cells を同期的に更新する
+- [x] 列追加時に各行の末尾に `input` セルが追加される
+- [x] 列削除時に各行の対応 cells[i] が削除される
+- [x] 行の追加・削除が動作する
+- [x] 行選択時にセル編集 UI が展開される
+- [x] セル種別変更（label/input/dataField）が正しく動作する
+- [x] `dataSource` / `maxItems` の設定が動作する
+- [x] すべての onChange が `rows: [...]` 全体を置き換える（浅いパッチ問題を回避）
 
 ---
 
@@ -405,9 +405,9 @@ case 'formTable': return <TableProperties className="w-3.5 h-3.5" />
 - `src/components/sidebar/LayersPanel.tsx` — アイコン case 追加
 
 **完了基準:**
-- [ ] パレットの「繰り返し・テーブル」カテゴリに「帳票テーブル」が表示される
-- [ ] ドラッグ&ドロップでキャンバスに配置できる
-- [ ] LayersPanel に `TableProperties` アイコンが表示される
+- [x] パレットの「繰り返し・テーブル」カテゴリに「帳票テーブル」が表示される
+- [x] ドラッグ&ドロップでキャンバスに配置できる
+- [x] LayersPanel に `TableProperties` アイコンが表示される
 
 ---
 
@@ -421,8 +421,8 @@ case 'formTable': return <TableProperties className="w-3.5 h-3.5" />
 - `src/lib/elementFactories.test.ts` — `createFormTableElement` のテスト追加済みか
 
 **完了基準:**
-- [ ] `npm run test:coverage` で `src/elements/formTable/` のカバレッジが 80%+
-- [ ] Factory: デフォルト生成 / overrides 適用 / 呼び出しごとに UUID が異なる の 3 ケース存在
+- [x] `npm run test:coverage` で `src/elements/formTable/` のカバレッジが 80%+（99.89% stmts）
+- [x] Factory: デフォルト生成 / overrides 適用 / 呼び出しごとに UUID が異なる の 3 ケース存在
 
 ---
 
@@ -474,24 +474,24 @@ ElementRenderer switch 'formTable'
 
 ### Functional
 
-- [ ] `FormTableElement` がパレットから配置できる
-- [ ] 固定レイアウトモード: label / input / dataField セルが正しく描画される
-- [ ] データバインドモード: `dataSource` 配列の各レコードで body 行が繰り返される
-- [ ] `maxItems > 0` のとき展開行数が制限される
-- [ ] PropertiesPanel で列追加/削除・行追加/削除・セル編集ができる
-- [ ] 列追加時は全行の cells が同期更新される
-- [ ] 列削除時は全行の cells[i] が同期削除される
-- [ ] スタイル（枠線色・幅、headerStyle、bodyStyle、奇偶行色）が設定・反映される
-- [ ] Undo/Redo が正しく動作する（add/remove は即時、update は debounced 300ms）
-- [ ] `element.size.height` 超過時にクリップされバッジ警告が表示される
-- [ ] LayersPanel に正しいアイコンと名称が表示される
+- [x] `FormTableElement` がパレットから配置できる
+- [x] 固定レイアウトモード: label / input / dataField セルが正しく描画される
+- [x] データバインドモード: `dataSource` 配列の各レコードで body 行が繰り返される
+- [x] `maxItems > 0` のとき展開行数が制限される
+- [x] PropertiesPanel で列追加/削除・行追加/削除・セル編集ができる
+- [x] 列追加時は全行の cells が同期更新される
+- [x] 列削除時は全行の cells[i] が同期削除される
+- [x] スタイル（枠線色・幅、headerStyle、bodyStyle、奇偶行色）が設定・反映される
+- [x] Undo/Redo が正しく動作する（add/remove は即時、update は debounced 300ms）
+- [x] `element.size.height` 超過時にクリップされバッジ警告が表示される
+- [x] LayersPanel に正しいアイコンと名称が表示される
 
 ### Non-Functional
 
-- [ ] `React.memo` 適用済み（100+ 要素キャンバスで 60fps ドラッグ）
-- [ ] TypeScript ビルドエラーなし（`assertNever` が全 case の網羅を強制）
-- [ ] テストカバレッジ 80%+
-- [ ] `FormTableElement` 1 要素で置き換えた 扶養控除等申告書テンプレートの要素数が 300+ → 10 以下になる
+- [x] `React.memo` 適用済み（100+ 要素キャンバスで 60fps ドラッグ）
+- [x] TypeScript ビルドエラーなし（`assertNever` が全 case の網羅を強制）
+- [x] テストカバレッジ 80%+（99.89% statements）
+- [ ] `FormTableElement` 1 要素で置き換えた 扶養控除等申告書テンプレートの要素数が 300+ → 10 以下になる（次フェーズ）
 
 ---
 
