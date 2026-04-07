@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 
@@ -78,10 +79,14 @@ public final class V2TemplateController {
         String name = extractName(ctx);
         if (name == null) return; // response already sent
 
+        Principal principal = ctx.attribute("principal");
+        String createdBy = (principal != null) ? principal.userId() : "unknown";
+
         String id = UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
 
         ObjectNode envelope = buildEnvelope(id, name, now, now, buildDefaultDefinition(id, name));
+        envelope.put("created_by", createdBy);
         definitionsRepo.put(id, MAPPER.writeValueAsString(envelope));
 
         ctx.status(HttpStatus.CREATED);
@@ -140,12 +145,16 @@ public final class V2TemplateController {
             return;
         }
 
-        // Preserve created_at from existing envelope
+        // Preserve created_at and created_by from existing envelope
         long createdAt = System.currentTimeMillis();
+        String createdBy = null;
         var stored = definitionsRepo.get(id);
         if (stored.isPresent()) {
             try {
-                createdAt = MAPPER.readTree(stored.get()).path("created_at").asLong(createdAt);
+                JsonNode existingEnvelope = MAPPER.readTree(stored.get());
+                createdAt = existingEnvelope.path("created_at").asLong(createdAt);
+                String existing = existingEnvelope.path("created_by").asText(null);
+                if (existing != null && !existing.isBlank()) createdBy = existing;
             } catch (Exception ignored) { /* use current time */ }
         }
 
@@ -155,6 +164,7 @@ public final class V2TemplateController {
 
         long now = System.currentTimeMillis();
         ObjectNode envelope = buildEnvelope(id, name, createdAt, now, definition);
+        if (createdBy != null) envelope.put("created_by", createdBy);
         definitionsRepo.put(id, MAPPER.writeValueAsString(envelope));
 
         ctx.contentType("application/json");

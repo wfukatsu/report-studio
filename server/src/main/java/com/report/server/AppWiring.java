@@ -57,8 +57,14 @@ public final class AppWiring {
 
     // ── Executor pools ────────────────────────────────────────────────────────
     private final ExecutorService jobExecutor;
-    private final ExecutorService pdfExecutor;
+    final ExecutorService pdfExecutor;
     private final FormSessionManager formSessionManager;
+
+    // ── V2 rate limiters ──────────────────────────────────────────────────────
+    /** 5 response submissions per user per 60 seconds. */
+    final RateLimiter v2SubmitLimiter;
+    /** 3 exports per user per 60 seconds. */
+    final RateLimiter v2ExportLimiter;
 
     public AppWiring(TransactionFactory factory) {
         // Repositories
@@ -94,6 +100,10 @@ public final class AppWiring {
         jobExecutor = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
         pdfExecutor = Executors.newFixedThreadPool(4);
+
+        // V2 rate limiters
+        v2SubmitLimiter = new RateLimiter(5, 60_000L);
+        v2ExportLimiter = new RateLimiter(3, 60_000L);
 
         // Controllers
         authCtrl = new AuthController(userRepo);

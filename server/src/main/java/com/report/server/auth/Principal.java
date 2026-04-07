@@ -13,7 +13,7 @@ public record Principal(
         Set<String> roles
 ) {
     public static final Principal ANONYMOUS = new Principal(
-            "anonymous", "Anonymous User", Set.of("user")
+            "anonymous", "Anonymous User", Set.of()
     );
 
     public boolean hasRole(String role) {

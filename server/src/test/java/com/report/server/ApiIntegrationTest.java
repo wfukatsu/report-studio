@@ -126,7 +126,7 @@ class ApiIntegrationTest {
                     assertEquals("Anonymous User", body.get("displayName").asText());
                     assertTrue(body.get("anonymous").asBoolean());
                     assertTrue(body.get("roles").isArray());
-                    assertEquals("user", body.get("roles").get(0).asText());
+                    assertEquals(0, body.get("roles").size()); // ANONYMOUS has no roles
                 }
             });
         }
