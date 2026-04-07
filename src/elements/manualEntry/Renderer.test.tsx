@@ -52,6 +52,20 @@ describe('ManualEntryRenderer', () => {
     expect(container.querySelector('svg')).toBeInTheDocument()
   })
 
+  it('renders without border or grid when displayMode is none', () => {
+    const { container } = render(
+      <ManualEntryRenderer element={makeElement({ displayMode: 'none' })} />,
+    )
+    // No border on the inner div
+    const inner = container.querySelector('div > div') as HTMLDivElement
+    expect(inner.style.border).toBeFalsy()
+    expect(inner.style.borderBottom).toBeFalsy()
+    // No SVG grid
+    expect(container.querySelector('svg')).not.toBeInTheDocument()
+    // Element is still present in the DOM
+    expect(container.firstChild).toBeInTheDocument()
+  })
+
   it('renders without error for left label position', () => {
     const { container } = render(
       <ManualEntryRenderer element={makeElement({ labelPosition: 'left' })} />,
