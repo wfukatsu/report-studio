@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, container } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { ShapeRenderer } from './Renderer'
 import type { ShapeElement } from '@/types'
 

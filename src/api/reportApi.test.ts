@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
 import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth } from './reportApi'
+import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
 function makeDefinition(id: string) {
@@ -343,7 +344,7 @@ describe('saveReport', () => {
       json: () => Promise.resolve(def),
     }))
 
-    const result = await saveReport('save-tpl', def as any)
+    const result = await saveReport('save-tpl', def as ReportDefinition)
     expect(result.id).toBe('save-tpl')
     const [url, init] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/v2/templates/save-tpl')

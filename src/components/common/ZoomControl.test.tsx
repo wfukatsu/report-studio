@@ -54,7 +54,6 @@ describe('ZoomControl', () => {
   it('opens the dropdown when the chevron button is clicked', () => {
     const onSetZoom = vi.fn()
     render(<ZoomControl zoom={1.0} onSetZoom={onSetZoom} />)
-    const chevronBtn = screen.getByRole('button', { name: '' })
     // Find the expand button by aria-haspopup
     const expandBtn = screen.getByRole('button', { expanded: false })
     fireEvent.click(expandBtn)

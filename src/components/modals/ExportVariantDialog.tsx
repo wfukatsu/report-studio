@@ -15,11 +15,11 @@ interface Props {
 }
 
 export function ExportVariantDialog({ open, onSelect, onCancel }: Props) {
-  if (!open) return null
-
   const variants = useReportStore(
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )
+
+  if (!open) return null
 
   return (
     <div

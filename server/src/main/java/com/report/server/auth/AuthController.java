@@ -1,0 +1,182 @@
+package com.report.server.auth;
+
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import com.report.server.AppConfig;
+import io.javalin.http.Context;
+import io.javalin.http.Cookie;
+import io.javalin.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Authentication controller with session-based login/logout.
+ * Sessions are stored in-memory (suitable for local development).
+ */
+public final class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    private static final String SESSION_COOKIE = "session_id";
+    /** Dummy hash used for constant-time comparison when user doesn't exist (timing attack prevention). */
+    private static final String DUMMY_HASH =
+            BCrypt.withDefaults().hashToString(12, "dummy".toCharArray());
+
+    private static final long SESSION_TTL_MS = 86_400_000L; // 24 hours
+    /** Evict expired sessions every 30 minutes regardless of login traffic. */
+    private static final long EVICTION_INTERVAL_MINUTES = 30;
+
+    private final UserRepository userRepo;
+    private final RateLimiter loginRateLimiter = new RateLimiter();
+    private final ConcurrentHashMap<String, SessionEntry> sessions = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService evictionScheduler;
+
+    private record SessionEntry(Principal principal, long expiresAt) {}
+
+    public AuthController(UserRepository userRepo) {
+        this.userRepo = userRepo;
+        evictionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = Thread.ofVirtual().unstarted(r);
+            t.setName("session-eviction");
+            t.setDaemon(true);
+            return t;
+        });
+        evictionScheduler.scheduleAtFixedRate(
+            this::evictExpiredSessions,
+            EVICTION_INTERVAL_MINUTES,
+            EVICTION_INTERVAL_MINUTES,
+            TimeUnit.MINUTES
+        );
+    }
+
+    /** Graceful shutdown — call from AppWiring.shutdown(). */
+    public void shutdown() {
+        evictionScheduler.shutdown();
+        try {
+            if (!evictionScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                evictionScheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            evictionScheduler.shutdownNow();
+        }
+    }
+
+    private void evictExpiredSessions() {
+        long now = System.currentTimeMillis();
+        int removed = 0;
+        for (var it = sessions.entrySet().iterator(); it.hasNext(); ) {
+            if (now > it.next().getValue().expiresAt()) {
+                it.remove();
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            log.debug("Session eviction: removed {} expired sessions ({} active)", removed, sessions.size());
+        }
+    }
+
+    /**
+     * Resolve the principal for the current request from the session cookie.
+     * Returns ANONYMOUS if no valid session exists.
+     */
+    public Principal resolveFromRequest(Context ctx) {
+        String sessionId = ctx.cookie(SESSION_COOKIE);
+        if (sessionId == null) return Principal.ANONYMOUS;
+        SessionEntry entry = sessions.get(sessionId);
+        if (entry == null) return Principal.ANONYMOUS;
+        if (System.currentTimeMillis() > entry.expiresAt()) {
+            sessions.remove(sessionId);
+            return Principal.ANONYMOUS;
+        }
+        return entry.principal();
+    }
+
+    /** POST /api/v1/auth/login — authenticate with userId + password */
+    public void login(Context ctx) {
+        // Rate limit by IP
+        String clientIp = ctx.ip();
+        if (!loginRateLimiter.isAllowed(clientIp)) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
+            ctx.json(Map.of("error", "Too many login attempts. Please try again later."));
+            return;
+        }
+
+        var body = ctx.bodyAsClass(Map.class);
+        String userId = (String) body.get("userId");
+        String password = (String) body.get("password");
+
+        if (userId == null || password == null) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "userId and password required"));
+            return;
+        }
+
+        Optional<UserRecord> userOpt = userRepo.findById(userId);
+        if (userOpt.isEmpty()) {
+            BCrypt.verifyer().verify(password.toCharArray(), DUMMY_HASH);
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            ctx.json(Map.of("error", "Invalid credentials"));
+            return;
+        }
+
+        UserRecord user = userOpt.get();
+        if (!BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash()).verified) {
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            ctx.json(Map.of("error", "Invalid credentials"));
+            return;
+        }
+
+        // Invalidate existing sessions for this user
+        sessions.entrySet().removeIf(e -> userId.equals(e.getValue().principal().userId()));
+
+        String sessionId = UUID.randomUUID().toString();
+        Principal principal = new Principal(user.userId(), user.displayName(), user.roles());
+        sessions.put(sessionId, new SessionEntry(principal, System.currentTimeMillis() + SESSION_TTL_MS));
+
+        Cookie cookie = new Cookie(SESSION_COOKIE, sessionId);
+        cookie.setMaxAge(86400);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(AppConfig.secureCookies());
+        cookie.setSameSite(io.javalin.http.SameSite.LAX);
+        cookie.setPath("/api/");
+        ctx.cookie(cookie);
+        ctx.json(Map.of(
+            "userId", principal.userId(),
+            "displayName", principal.displayName(),
+            "roles", principal.roles(),
+            "anonymous", false
+        ));
+
+        log.info("User logged in: {}", userId);
+    }
+
+    /** POST /api/v1/auth/logout — clear session */
+    public void logout(Context ctx) {
+        String sessionId = ctx.cookie(SESSION_COOKIE);
+        if (sessionId != null) {
+            sessions.remove(sessionId);
+        }
+        ctx.removeCookie(SESSION_COOKIE, "/api/");
+        ctx.json(Map.of("status", "logged_out"));
+    }
+
+    /** GET /api/v1/auth/me — return current principal */
+    public void me(Context ctx) {
+        Principal principal = (Principal) ctx.attribute("principal");
+        if (principal == null) principal = Principal.ANONYMOUS;
+        ctx.json(Map.of(
+            "userId", principal.userId(),
+            "displayName", principal.displayName(),
+            "roles", principal.roles(),
+            "anonymous", principal.isAnonymous()
+        ));
+    }
+}

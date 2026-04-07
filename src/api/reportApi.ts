@@ -9,7 +9,7 @@
  * - generation counter prevents concurrent load overwrite
  */
 import { z } from 'zod'
-import { apiFetch, isNetworkError } from './client'
+import { apiFetch, apiFetchBlobWithFilename, downloadBlob, isNetworkError } from './client'
 import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinition } from '@/types'
@@ -19,6 +19,14 @@ import {
   type EvaluateResponse,
   type ValidateResponse,
 } from '@/lib/schemas/evaluateResponse'
+import {
+  FormResponseSchema,
+  FormResponseListSchema,
+  SubmitResponseResultSchema,
+  DuplicateReportResultSchema,
+  type FormResponse,
+  type FormResponseList,
+} from '@/lib/schemas/formResponse'
 import { useReportStore } from '@/store'
 
 // ---------------------------------------------------------------------------
@@ -168,8 +176,8 @@ export async function evaluateCalculations(
 }
 
 /**
- * Validate the report against validation rules (P2 stub — not called in P1).
- * Wire up in P2 when the "Validate" UI action is implemented.
+ * Validate the report against validation rules.
+ * Called by Toolbar.handleValidate() when the user clicks the Validate button.
  */
 export async function evaluateValidate(
   templateId: string,
@@ -227,4 +235,98 @@ export async function loadFromBackend(templateId: string, versionId?: string): P
     if (isNetworkError(err)) useReportStore.getState().setBackendConnected(false)
     useReportStore.getState().setLoadState('error')
   }
+}
+
+// ---------------------------------------------------------------------------
+// Form responses
+// ---------------------------------------------------------------------------
+
+export async function submitResponse(
+  templateId: string,
+  data: Record<string, unknown>,
+): Promise<{ id: string }> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses`,
+    SubmitResponseResultSchema,
+    jsonBody({ data }),
+  )
+}
+
+export async function listResponses(
+  templateId: string,
+  opts: { offset?: number; limit?: number; aggregate?: boolean } = {},
+): Promise<FormResponseList> {
+  const params = new URLSearchParams({
+    offset: String(opts.offset ?? 0),
+    limit: String(opts.limit ?? 50),
+    ...(opts.aggregate ? { aggregate: 'true' } : {}),
+  })
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses?${params}`,
+    FormResponseListSchema,
+  )
+}
+
+export async function getResponse(templateId: string, responseId: string): Promise<FormResponse> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}`,
+    FormResponseSchema,
+  )
+}
+
+export async function deleteResponse(templateId: string, responseId: string): Promise<void> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}`,
+    z.undefined(),
+    { method: 'DELETE' },
+  )
+}
+
+export async function exportResponses(templateId: string, format: 'csv' | 'excel'): Promise<void> {
+  const { blob, filename } = await apiFetchBlobWithFilename(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/export?format=${format}`,
+  )
+  downloadBlob(blob, filename)
+}
+
+export async function getResponsePdf(templateId: string, responseId: string): Promise<Blob> {
+  const { blob } = await apiFetchBlobWithFilename(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}/pdf`,
+  )
+  return blob
+}
+
+// ---------------------------------------------------------------------------
+// Template PDF generation (backend)
+// ---------------------------------------------------------------------------
+
+export async function generateTemplatePdf(
+  templateId: string,
+  testData?: Record<string, unknown>,
+  variantId?: string,
+): Promise<Blob> {
+  const body: Record<string, unknown> = {}
+  if (testData) body.testData = testData
+  if (variantId) body.variantId = variantId
+  const { blob } = await apiFetchBlobWithFilename(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/pdf`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  )
+  return blob
+}
+
+// ---------------------------------------------------------------------------
+// Template duplication
+// ---------------------------------------------------------------------------
+
+export async function duplicateReport(id: string): Promise<{ id: string; name: string }> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(id)}/duplicate`,
+    DuplicateReportResultSchema,
+    { method: 'POST' },
+  )
 }

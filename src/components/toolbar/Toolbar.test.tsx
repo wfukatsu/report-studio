@@ -273,7 +273,6 @@ describe('Toolbar — 順序メニュー', () => {
 describe('Toolbar — ズームメニュー', () => {
   it('opens zoom menu when chevron is clicked', () => {
     renderToolbar()
-    const zoomChevron = screen.getByRole('button', { name: '' })
     // Find the chevron button near the zoom input
     const zoomContainer = screen.getByLabelText('拡大率').parentElement!
     const chevronBtn = zoomContainer.querySelector('button[aria-haspopup="listbox"]')!

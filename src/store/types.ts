@@ -17,6 +17,7 @@ import type {
   OutputVariant,
   MaskingRule,
 } from '@/types'
+import type { FormResponseSummary } from '@/lib/schemas/formResponse'
 
 // ---------------------------------------------------------------------------
 // Alignment / Z-order enums (moved from reportStore for shared use)
@@ -228,4 +229,17 @@ export interface StoreState {
   setComputedLoading: (loading: boolean) => void
   setComputedViolations: (violations: ValidationViolation[]) => void
   invalidateComputed: () => void
+
+  // ── Responses slice ───────────────────────────────────────────────────────
+  responses: FormResponseSummary[]
+  responsesTotal: number
+  /** Epoch ms of last successful responses fetch. 0 = cache miss. */
+  responsesCacheTime: number
+  responsesLoading: boolean
+  submitResponseModalOpen: boolean
+  setResponses: (items: FormResponseSummary[], total: number) => void
+  setResponsesLoading: (v: boolean) => void
+  invalidateResponsesCache: () => void
+  openSubmitResponseModal: () => void
+  closeSubmitResponseModal: () => void
 }

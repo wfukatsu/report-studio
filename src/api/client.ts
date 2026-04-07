@@ -91,3 +91,44 @@ export async function apiFetch<T>(
 
   return schema.parse(await res.json())
 }
+
+// ---------------------------------------------------------------------------
+// Blob download helpers (CSV, Excel, PDF — cannot use Zod)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch a binary response (blob) with error handling.
+ * Returns the blob and the filename from the Content-Disposition header.
+ */
+export async function apiFetchBlobWithFilename(
+  path: string,
+  init?: RequestInit,
+): Promise<{ blob: Blob; filename: string }> {
+  let res: Response
+  try {
+    res = await fetch(path, { credentials: 'include', ...init })
+  } catch (cause) {
+    throw new NetworkError('Network request failed', { cause })
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new ApiError(res.status, body, `HTTP ${res.status}: ${res.statusText}`)
+  }
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') ?? ''
+  const match = cd.match(/filename="?([^";\r\n]+)"?/)
+  const filename = match ? match[1] : 'download'
+  return { blob, filename }
+}
+
+/** Trigger a browser file download from a Blob. */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

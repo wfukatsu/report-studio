@@ -1,0 +1,7 @@
+.gradle/
+build/
+data/
+*.db
+.idea/
+*.iml
+scalardb.properties

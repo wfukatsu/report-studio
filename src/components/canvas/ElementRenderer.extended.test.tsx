@@ -2,7 +2,7 @@
  * Extended ElementRenderer tests — covers additional element types to improve function coverage.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { ElementRenderer } from './ElementRenderer'

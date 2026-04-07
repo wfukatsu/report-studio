@@ -1,0 +1,17 @@
+# ScalarDB configuration for local development (SQLite via JDBC)
+# Copy this file to scalardb.properties and adjust as needed.
+#
+# Alternatively, set environment variables (takes priority over this file):
+#   SCALARDB_CONTACT_POINTS  (required to activate env-based config)
+#   SCALARDB_STORAGE         (default: jdbc)
+#   SCALARDB_USERNAME         (default: empty)
+#   SCALARDB_PASSWORD         (default: empty)
+#   SCALARDB_TX_MANAGER       (default: jdbc)
+scalar.db.storage=jdbc
+scalar.db.contact_points=jdbc:sqlite:data/report-studio.db
+scalar.db.username=
+scalar.db.password=
+scalar.db.jdbc.connection_pool.min_idle=1
+scalar.db.jdbc.connection_pool.max_idle=5
+scalar.db.jdbc.connection_pool.max_total=10
+scalar.db.transaction_manager=jdbc
