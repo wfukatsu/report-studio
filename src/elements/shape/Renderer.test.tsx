@@ -1,0 +1,91 @@
+import { describe, it, expect } from 'vitest'
+import { render, container } from '@testing-library/react'
+import { ShapeRenderer } from './Renderer'
+import type { ShapeElement } from '@/types'
+
+function makeElement(overrides: Partial<ShapeElement> = {}): ShapeElement {
+  return {
+    id: 'shape-1',
+    type: 'shape',
+    position: { x: 0, y: 0 },
+    size: { width: 30, height: 20 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    shape: 'rectangle',
+    fill: 'transparent',
+    stroke: '#000000',
+    strokeWidth: 0.3,
+    strokeDash: 'solid',
+    ...overrides,
+  } as ShapeElement
+}
+
+describe('ShapeRenderer — rectangle', () => {
+  it('renders an SVG for rectangle', () => {
+    const { container } = render(<ShapeRenderer element={makeElement()} />)
+    expect(container.querySelector('svg')).toBeInTheDocument()
+    expect(container.querySelector('rect')).toBeInTheDocument()
+  })
+
+  it('applies fill color', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ fill: '#ff0000' })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe('#ff0000')
+  })
+
+  it('applies stroke color', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ stroke: '#0000ff' })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('stroke')).toBe('#0000ff')
+  })
+})
+
+describe('ShapeRenderer — circle', () => {
+  it('renders an ellipse for circle shape', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'circle' })} />,
+    )
+    expect(container.querySelector('ellipse')).toBeInTheDocument()
+    expect(container.querySelector('rect')).not.toBeInTheDocument()
+  })
+})
+
+describe('ShapeRenderer — line', () => {
+  it('renders a line element for line shape', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'line', size: { width: 53, height: 0.5 } })} />,
+    )
+    expect(container.querySelector('line')).toBeInTheDocument()
+  })
+})
+
+describe('ShapeRenderer — dash styles', () => {
+  it('applies dashed stroke dasharray', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ strokeDash: 'dashed' })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('stroke-dasharray')).toBe('6 3')
+  })
+
+  it('applies dotted stroke dasharray', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ strokeDash: 'dotted' })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('stroke-dasharray')).toBe('2 2')
+  })
+
+  it('applies none for solid', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ strokeDash: 'solid' })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('stroke-dasharray')).toBe('none')
+  })
+})

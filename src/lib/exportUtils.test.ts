@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { exportToJSON, isSafeImageSrc } from './exportUtils'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { exportToJSON, isSafeImageSrc, exportPageToPng, exportReportToPdf } from './exportUtils'
 import { importFromJSON } from './migration'
 import type { ReportDefinition } from '@/types'
 
@@ -201,5 +201,108 @@ describe('isSafeImageSrc', () => {
   it('rejects data: URIs larger than 2MB', () => {
     const large = 'data:image/png;base64,' + 'A'.repeat(2 * 1024 * 1024 + 1)
     expect(isSafeImageSrc(large)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// exportPageToPng
+// ---------------------------------------------------------------------------
+
+vi.mock('html2canvas', () => ({
+  default: vi.fn(),
+}))
+
+// jsPDF is default-exported as a constructor
+const mockSave = vi.fn()
+const mockAddImage = vi.fn()
+const mockAddPage = vi.fn()
+
+vi.mock('jspdf', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    save: mockSave,
+    addImage: mockAddImage,
+    addPage: mockAddPage,
+  })),
+}))
+
+import html2canvas from 'html2canvas'
+
+const mockHtml2canvas = vi.mocked(html2canvas)
+
+function makeCanvasMock(width = 210, height = 297) {
+  return {
+    width,
+    height,
+    toDataURL: vi.fn().mockReturnValue('data:image/png;base64,abc'),
+  }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Re-apply default mock implementations after clearAllMocks
+  mockSave.mockReset()
+  mockAddImage.mockReset()
+  mockAddPage.mockReset()
+})
+
+describe('exportPageToPng', () => {
+  it('calls html2canvas with the provided element', async () => {
+    const canvasMock = makeCanvasMock()
+    mockHtml2canvas.mockResolvedValue(canvasMock as unknown as HTMLCanvasElement)
+
+    const el = document.createElement('div')
+    // PNG export creates an anchor and calls click() — just verify it doesn't throw
+    await exportPageToPng(el, 'test.png')
+
+    expect(mockHtml2canvas).toHaveBeenCalledWith(el, expect.objectContaining({ useCORS: true }))
+  })
+
+  it('throws error when html2canvas fails', async () => {
+    mockHtml2canvas.mockRejectedValue(new Error('canvas error'))
+
+    const el = document.createElement('div')
+    await expect(exportPageToPng(el)).rejects.toThrow('PNG export failed: canvas error')
+  })
+})
+
+describe('exportReportToPdf', () => {
+  it('does nothing when no elements provided', async () => {
+    await exportReportToPdf([])
+    expect(mockHtml2canvas).not.toHaveBeenCalled()
+  })
+
+  it('creates PDF for single page', async () => {
+    const canvasMock = makeCanvasMock(595, 842)
+    mockHtml2canvas.mockResolvedValue(canvasMock as unknown as HTMLCanvasElement)
+
+    const el = document.createElement('div')
+    await exportReportToPdf([el], 'report.pdf')
+
+    expect(mockHtml2canvas).toHaveBeenCalledTimes(1)
+    expect(mockAddImage).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledWith('report.pdf')
+    expect(mockAddPage).not.toHaveBeenCalled()
+  })
+
+  it('adds pages for multi-page export', async () => {
+    const canvasMock = makeCanvasMock(595, 842)
+    mockHtml2canvas.mockResolvedValue(canvasMock as unknown as HTMLCanvasElement)
+
+    const el1 = document.createElement('div')
+    const el2 = document.createElement('div')
+    const el3 = document.createElement('div')
+    await exportReportToPdf([el1, el2, el3], 'multi.pdf')
+
+    expect(mockHtml2canvas).toHaveBeenCalledTimes(3)
+    expect(mockAddPage).toHaveBeenCalledTimes(2) // page 2 and 3
+    expect(mockAddImage).toHaveBeenCalledTimes(3)
+    expect(mockSave).toHaveBeenCalledWith('multi.pdf')
+  })
+
+  it('throws error when html2canvas fails', async () => {
+    mockHtml2canvas.mockRejectedValue(new Error('html2canvas failure'))
+
+    const el = document.createElement('div')
+    await expect(exportReportToPdf([el])).rejects.toThrow('PDF export failed: html2canvas failure')
   })
 })

@@ -1,0 +1,170 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { useReportStore } from '@/store'
+import { SchemaPanel } from './SchemaPanel'
+
+beforeEach(() => {
+  useReportStore.getState().newReport()
+})
+
+describe('SchemaPanel — 初期レンダリング', () => {
+  it('renders add group buttons', () => {
+    render(<SchemaPanel />)
+    expect(screen.getByText(/master グループ/)).toBeInTheDocument()
+    expect(screen.getByText(/detail グループ/)).toBeInTheDocument()
+  })
+
+  it('shows empty schema message when no groups exist', () => {
+    render(<SchemaPanel />)
+    expect(screen.getByText(/スキーマ未定義/)).toBeInTheDocument()
+  })
+})
+
+describe('SchemaPanel — グループ追加', () => {
+  it('adds a master group when master button is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+
+    const state = useReportStore.getState()
+    const groups = state.definition.schema?.groups ?? []
+    expect(groups).toHaveLength(1)
+    expect(groups[0].role).toBe('master')
+  })
+
+  it('adds a detail group when detail button is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/detail グループ/))
+
+    const state = useReportStore.getState()
+    const groups = state.definition.schema?.groups ?? []
+    expect(groups).toHaveLength(1)
+    expect(groups[0].role).toBe('detail')
+  })
+
+  it('renders group section after adding', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    // Should see the role badge
+    expect(screen.getByText('master')).toBeInTheDocument()
+  })
+
+  it('shows field count after adding a group', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    // 0 fields defined
+    expect(screen.getByText(/0 フィールド定義/)).toBeInTheDocument()
+  })
+})
+
+describe('SchemaPanel — フィールド追加', () => {
+  it('adds a field when フィールド追加 is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText('フィールド追加'))
+
+    const state = useReportStore.getState()
+    const groups = state.definition.schema?.groups ?? []
+    expect(groups[0].fields).toHaveLength(1)
+  })
+
+  it('renders field inputs after adding a field', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText('フィールド追加'))
+
+    expect(screen.getByRole('textbox', { name: 'フィールドキー' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'フィールドラベル' })).toBeInTheDocument()
+  })
+
+  it('renders field type selector', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText('フィールド追加'))
+
+    expect(screen.getByRole('combobox', { name: 'フィールド型' })).toBeInTheDocument()
+  })
+})
+
+describe('SchemaPanel — グループ削除', () => {
+  it('removes a group when delete button is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+
+    // Click delete button for the group
+    const deleteBtn = screen.getByRole('button', { name: 'グループを削除' })
+    fireEvent.click(deleteBtn)
+
+    const state = useReportStore.getState()
+    const groups = state.definition.schema?.groups ?? []
+    expect(groups).toHaveLength(0)
+  })
+})
+
+describe('SchemaPanel — フィールド削除', () => {
+  it('removes a field when field delete button is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText('フィールド追加'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'フィールドを削除' }))
+
+    const state = useReportStore.getState()
+    const groups = state.definition.schema?.groups ?? []
+    expect(groups[0].fields).toHaveLength(0)
+  })
+})
+
+describe('SchemaPanel — グループ折り畳み', () => {
+  it('collapses group when collapse button is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText('フィールド追加'))
+
+    // Collapse the group
+    const collapseBtn = screen.getByRole('button', { name: 'グループを折り畳む' })
+    fireEvent.click(collapseBtn)
+
+    // Field inputs should no longer be visible
+    expect(screen.queryByRole('textbox', { name: 'フィールドキー' })).not.toBeInTheDocument()
+  })
+})
+
+describe('SchemaPanel — detail グループの dataKey', () => {
+  it('shows dataKey input for detail group', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/detail グループ/))
+
+    expect(screen.getByRole('textbox', { name: /データキー/ })).toBeInTheDocument()
+  })
+
+  it('does not show dataKey input for master group', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+
+    expect(screen.queryByRole('textbox', { name: /データキー/ })).not.toBeInTheDocument()
+  })
+
+  it('updates group label on blur when changed', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+
+    const labelInput = screen.getByRole('textbox', { name: 'グループ名' })
+    fireEvent.change(labelInput, { target: { value: '新しいグループ名' } })
+    fireEvent.blur(labelInput)
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    expect(groups[0].label).toBe('新しいグループ名')
+  })
+
+  it('updates dataKey on blur for detail group', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/detail グループ/))
+
+    const dataKeyInput = screen.getByRole('textbox', { name: /データキー/ })
+    fireEvent.change(dataKeyInput, { target: { value: 'orders' } })
+    fireEvent.blur(dataKeyInput)
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    expect(groups[0].dataKey).toBe('orders')
+  })
+})

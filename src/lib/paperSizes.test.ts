@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getPageDimensions, PAPER_SIZES } from './paperSizes'
+import { getPageDimensions, PAPER_SIZES, mmToPx, pxToMm } from './paperSizes'
 
 describe('getPageDimensions', () => {
   it('returns portrait A4 dimensions', () => {
@@ -21,5 +21,42 @@ describe('getPageDimensions', () => {
   it('swaps custom dimensions for landscape', () => {
     const dims = getPageDimensions('custom', 'landscape', 500, 700)
     expect(dims).toEqual({ width: 700, height: 500 })
+  })
+
+  it('uses default custom dimensions when not provided', () => {
+    const dims = getPageDimensions('custom', 'portrait')
+    expect(dims).toEqual({ width: 210, height: 297 })
+  })
+})
+
+describe('mmToPx', () => {
+  it('converts mm to px at default 96 DPI', () => {
+    const result = mmToPx(25.4)
+    expect(result).toBeCloseTo(96, 0)
+  })
+
+  it('converts mm to px at custom DPI', () => {
+    const result = mmToPx(25.4, 72)
+    expect(result).toBeCloseTo(72, 0)
+  })
+
+  it('converts zero correctly', () => {
+    expect(mmToPx(0)).toBe(0)
+  })
+})
+
+describe('pxToMm', () => {
+  it('converts px to mm at default 96 DPI', () => {
+    const result = pxToMm(96)
+    expect(result).toBeCloseTo(25.4, 1)
+  })
+
+  it('converts px to mm at custom DPI', () => {
+    const result = pxToMm(72, 72)
+    expect(result).toBeCloseTo(25.4, 1)
+  })
+
+  it('converts zero correctly', () => {
+    expect(pxToMm(0)).toBe(0)
   })
 })

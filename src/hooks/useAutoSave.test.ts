@@ -126,4 +126,37 @@ describe('useAutoSave', () => {
 
     expect(removeSpy).toHaveBeenCalledWith('pagehide', expect.any(Function))
   })
+
+  it('handles ApiError (sets error state)', async () => {
+    // Import and create an ApiError-like error with status property
+    const { saveReport: mockSave } = await import('@/api/reportApi')
+    const apiErr = Object.assign(new Error('401 Unauthorized'), { status: 401, message: 'Unauthorized' })
+    vi.mocked(mockSave).mockRejectedValueOnce(apiErr)
+
+    renderHook(() => useAutoSave())
+
+    act(() => { useReportStore.getState().setReportName('API Error Save') })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    expect(useReportStore.getState().saveState).toBe('error')
+  })
+
+  it('sendBeacon called on pagehide when pending changes exist', async () => {
+    const beaconMock = vi.fn().mockReturnValue(true)
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beaconMock })
+
+    renderHook(() => useAutoSave())
+
+    // Make a change to create a pending snapshot
+    act(() => { useReportStore.getState().setReportName('Pending on Close') })
+
+    // Trigger pagehide before the debounce fires
+    window.dispatchEvent(new Event('pagehide'))
+
+    expect(beaconMock).toHaveBeenCalledWith(
+      '/api/v2/templates/template-1',
+      expect.stringContaining('Pending on Close'),
+    )
+  })
 })

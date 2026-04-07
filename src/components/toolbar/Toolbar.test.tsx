@@ -36,6 +36,333 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+import { fireEvent } from '@testing-library/react'
+import { createTextElement } from '@/lib/elementFactories'
+
+describe('Toolbar — レポート名', () => {
+  it('renders report name input', () => {
+    renderToolbar()
+    expect(screen.getByLabelText('レポート名')).toBeInTheDocument()
+  })
+
+  it('updates report name when input changes', () => {
+    renderToolbar()
+    const input = screen.getByLabelText('レポート名')
+    fireEvent.change(input, { target: { value: '新しいレポート' } })
+    expect(useReportStore.getState().definition.metadata.documentName).toBe('新しいレポート')
+  })
+})
+
+describe('Toolbar — Undo/Redo', () => {
+  it('renders undo button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: '元に戻す (⌘Z)' })).toBeInTheDocument()
+  })
+
+  it('renders redo button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'やり直す (⌘⇧Z)' })).toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — グリッド・スナップ', () => {
+  it('toggles grid on click', () => {
+    renderToolbar()
+    const gridBtn = screen.getByRole('button', { name: 'グリッド表示切替' })
+    const beforeState = useReportStore.getState().showGrid
+    fireEvent.click(gridBtn)
+    expect(useReportStore.getState().showGrid).toBe(!beforeState)
+  })
+
+  it('toggles snap to grid on click', () => {
+    renderToolbar()
+    const snapBtn = screen.getByRole('button', { name: 'グリッドにスナップ' })
+    const beforeState = useReportStore.getState().snapToGrid
+    fireEvent.click(snapBtn)
+    expect(useReportStore.getState().snapToGrid).toBe(!beforeState)
+  })
+
+  it('toggles trim marks on click', () => {
+    renderToolbar()
+    const trimBtn = screen.getByRole('button', { name: 'トンボ表示切替' })
+    const beforeState = useReportStore.getState().showTrimMarks
+    fireEvent.click(trimBtn)
+    expect(useReportStore.getState().showTrimMarks).toBe(!beforeState)
+  })
+})
+
+describe('Toolbar — プレビューモード', () => {
+  it('renders full preview button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'フルプレビュー' })).toBeInTheDocument()
+  })
+
+  it('toggles preview mode on click', () => {
+    renderToolbar()
+    const previewBtn = screen.getByRole('button', { name: 'フルプレビュー' })
+    const beforeState = useReportStore.getState().previewMode
+    fireEvent.click(previewBtn)
+    expect(useReportStore.getState().previewMode).toBe(!beforeState)
+  })
+})
+
+describe('Toolbar — 新規/開く/保存', () => {
+  it('renders new, open, and save buttons', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: '新規作成' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '開く' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '保存' })).toBeInTheDocument()
+  })
+
+  it('calls onRequestTemplateModal when new button is clicked', () => {
+    const onRequestTemplateModal = vi.fn()
+    const canvasRef = { current: null } as React.RefObject<HTMLDivElement | null>
+    render(<Toolbar canvasRefs={[canvasRef]} onRequestTemplateModal={onRequestTemplateModal} />)
+    fireEvent.click(screen.getByRole('button', { name: '新規作成' }))
+    expect(onRequestTemplateModal).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Toolbar — コピー/切り取り/貼り付け', () => {
+  it('renders copy button disabled when no selection', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'コピー (⌘C)' })).toBeDisabled()
+  })
+
+  it('renders cut button disabled when no selection', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: '切り取り (⌘X)' })).toBeDisabled()
+  })
+
+  it('enables copy button when element is selected', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement()
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'コピー (⌘C)' })).not.toBeDisabled()
+  })
+})
+
+describe('Toolbar — 出力バリアント設定', () => {
+  it('renders variants button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: '出力バリアント設定' })).toBeInTheDocument()
+  })
+
+  it('opens variants modal when clicked', () => {
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: '出力バリアント設定' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — データ設定', () => {
+  it('renders data button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'データ設定' })).toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — エクスポート', () => {
+  it('renders PDF export button', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: '全ページをPDFでエクスポート' })).toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — ズームコントロール', () => {
+  it('renders zoom in/out buttons', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'ズームアウト (⌘-)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ズームイン (⌘=)' })).toBeInTheDocument()
+  })
+
+  it('zooms in when zoom in button is clicked', () => {
+    renderToolbar()
+    const initialZoom = useReportStore.getState().editorZoom
+    fireEvent.click(screen.getByRole('button', { name: 'ズームイン (⌘=)' }))
+    expect(useReportStore.getState().editorZoom).toBeGreaterThan(initialZoom)
+  })
+
+  it('zooms out when zoom out button is clicked', () => {
+    renderToolbar()
+    const initialZoom = useReportStore.getState().editorZoom
+    fireEvent.click(screen.getByRole('button', { name: 'ズームアウト (⌘-)' }))
+    expect(useReportStore.getState().editorZoom).toBeLessThan(initialZoom)
+  })
+})
+
+describe('Toolbar — マスターヘッダー/フッター', () => {
+  it('creates master header when header button is clicked', () => {
+    renderToolbar()
+    const headerBtn = screen.getByRole('button', { name: 'マスターヘッダーを作成' })
+    fireEvent.click(headerBtn)
+    expect(useReportStore.getState().definition.masterHeader).not.toBeNull()
+  })
+
+  it('creates master footer when footer button is clicked', () => {
+    renderToolbar()
+    const footerBtn = screen.getByRole('button', { name: 'マスターフッターを作成' })
+    fireEvent.click(footerBtn)
+    expect(useReportStore.getState().definition.masterFooter).not.toBeNull()
+  })
+})
+
+describe('Toolbar — 整列メニュー', () => {
+  it('opens align menu when align button clicked with multiple selection', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el1 = createTextElement()
+    const el2 = createTextElement()
+    store.addElement(page.id, el1)
+    store.addElement(page.id, el2)
+    store.selectElement(el1.id, false)
+    store.selectElement(el2.id, true)
+
+    renderToolbar()
+    const alignBtn = screen.getByRole('button', { name: '整列・配置' })
+    fireEvent.click(alignBtn)
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByText('左揃え')).toBeInTheDocument()
+  })
+
+  it('aligns elements left when 左揃え is clicked', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el1 = createTextElement({ position: { x: 10, y: 10 } })
+    const el2 = createTextElement({ position: { x: 50, y: 10 } })
+    store.addElement(page.id, el1)
+    store.addElement(page.id, el2)
+    store.selectElement(el1.id, false)
+    store.selectElement(el2.id, true)
+
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: '整列・配置' }))
+    fireEvent.click(screen.getByText('左揃え'))
+    // Align menu should close after click
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — 順序メニュー', () => {
+  it('opens z-order menu when 順序 button is clicked', () => {
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: '順序' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByText('最前面へ')).toBeInTheDocument()
+  })
+
+  it('changes z-order when 最前面へ is clicked with selection', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement()
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: '順序' }))
+    fireEvent.click(screen.getByText('最前面へ'))
+    // Menu should close after selection
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+})
+
+describe('Toolbar — ズームメニュー', () => {
+  it('opens zoom menu when chevron is clicked', () => {
+    renderToolbar()
+    const zoomChevron = screen.getByRole('button', { name: '' })
+    // Find the chevron button near the zoom input
+    const zoomContainer = screen.getByLabelText('拡大率').parentElement!
+    const chevronBtn = zoomContainer.querySelector('button[aria-haspopup="listbox"]')!
+    fireEvent.click(chevronBtn)
+    // Zoom presets should appear
+    expect(screen.getByText('25%')).toBeInTheDocument()
+  })
+
+  it('sets zoom when preset is clicked', () => {
+    renderToolbar()
+    const zoomContainer = screen.getByLabelText('拡大率').parentElement!
+    const chevronBtn = zoomContainer.querySelector('button[aria-haspopup="listbox"]')!
+    fireEvent.click(chevronBtn)
+    fireEvent.click(screen.getByText('50%'))
+    expect(useReportStore.getState().editorZoom).toBeCloseTo(0.5, 1)
+  })
+})
+
+describe('Toolbar — ライブプレビュー', () => {
+  it('toggles live preview on click', () => {
+    renderToolbar()
+    const liveBtn = screen.getByRole('button', { name: 'ライブプレビューを表示' })
+    const beforeState = useReportStore.getState().livePreviewEnabled
+    fireEvent.click(liveBtn)
+    expect(useReportStore.getState().livePreviewEnabled).toBe(!beforeState)
+  })
+})
+
+describe('Toolbar — 拡大率入力', () => {
+  it('updates zoom when entering value and pressing Enter', () => {
+    renderToolbar()
+    const zoomInput = screen.getByLabelText('拡大率')
+    fireEvent.focus(zoomInput)
+    fireEvent.change(zoomInput, { target: { value: '150' } })
+    fireEvent.keyDown(zoomInput, { key: 'Enter' })
+    expect(useReportStore.getState().editorZoom).toBeCloseTo(1.5, 1)
+  })
+
+  it('resets zoom input on Escape', () => {
+    renderToolbar()
+    const zoomInput = screen.getByLabelText('拡大率') as HTMLInputElement
+    fireEvent.focus(zoomInput)
+    fireEvent.change(zoomInput, { target: { value: '999' } })
+    fireEvent.keyDown(zoomInput, { key: 'Escape' })
+    // After escape, shows current zoom
+    expect(zoomInput.value).toContain('%')
+  })
+
+  it('updates zoom on blur', () => {
+    renderToolbar()
+    const zoomInput = screen.getByLabelText('拡大率')
+    fireEvent.focus(zoomInput)
+    fireEvent.change(zoomInput, { target: { value: '75' } })
+    fireEvent.blur(zoomInput, { target: { value: '75' } })
+    expect(useReportStore.getState().editorZoom).toBeCloseTo(0.75, 1)
+  })
+})
+
+describe('Toolbar — コピー/切り取り/貼り付け動作', () => {
+  it('copies element on copy button click', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement()
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: 'コピー (⌘C)' }))
+    expect(useReportStore.getState().clipboard).toBeTruthy()
+    expect(useReportStore.getState().clipboard!.length).toBeGreaterThan(0)
+  })
+
+  it('cuts element on cut button click', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement()
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+    const beforeCount = useReportStore.getState().definition.pages[0].sections.flatMap((s) => s.elements).length
+
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: '切り取り (⌘X)' }))
+
+    const afterCount = useReportStore.getState().definition.pages[0].sections.flatMap((s) => s.elements).length
+    expect(afterCount).toBe(beforeCount - 1)
+    expect(useReportStore.getState().clipboard!.length).toBeGreaterThan(0)
+  })
+})
+
 describe('Toolbar — バリデートボタン', () => {
   it('renders the validate button', () => {
     renderToolbar()

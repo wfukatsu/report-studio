@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth } from './reportApi'
 
 // Minimal valid ReportDefinition payload
 function makeDefinition(id: string) {
@@ -281,5 +281,154 @@ describe('restoreVersion — history reset', () => {
     expect(state.history).toHaveLength(1)
     expect(state.historyIndex).toBe(0)
     expect(state.definition.id).toBe('tpl-restored')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Template CRUD
+// ---------------------------------------------------------------------------
+
+describe('listReports', () => {
+  it('returns template list items', async () => {
+    const items = [{ id: 'tpl-1', name: 'Template 1' }]
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ items, total: 1 }),
+    }))
+
+    const result = await listReports()
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0].id).toBe('tpl-1')
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates')
+  })
+})
+
+describe('getReport', () => {
+  it('fetches and returns report definition', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve(makeDefinition('report-123')),
+    }))
+
+    const result = await getReport('report-123')
+    expect(result.id).toBe('report-123')
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/report-123')
+  })
+})
+
+describe('createReport', () => {
+  it('sends POST to /templates with name', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ id: 'new-tpl', name: '新しいテンプレート' }),
+    }))
+
+    const result = await createReport('新しいテンプレート')
+    expect(result.id).toBe('new-tpl')
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates')
+    expect((init as RequestInit).method).toBe('POST')
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.name).toBe('新しいテンプレート')
+  })
+})
+
+describe('saveReport', () => {
+  it('sends PUT to /templates/:id with definition', async () => {
+    const def = makeDefinition('save-tpl')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve(def),
+    }))
+
+    const result = await saveReport('save-tpl', def as any)
+    expect(result.id).toBe('save-tpl')
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/save-tpl')
+    expect((init as RequestInit).method).toBe('PUT')
+  })
+})
+
+describe('deleteReport', () => {
+  it('sends DELETE to /templates/:id', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 204,
+      json: () => Promise.resolve(undefined),
+    }))
+
+    await deleteReport('del-tpl')
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/del-tpl')
+    expect((init as RequestInit).method).toBe('DELETE')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+describe('getMe', () => {
+  it('returns current user', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ id: 'user-1', email: 'test@example.com' }),
+    }))
+
+    const result = await getMe()
+    expect(result.id).toBe('user-1')
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v1/auth/me')
+  })
+})
+
+describe('login', () => {
+  it('sends POST with email and password', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ id: 'user-1', email: 'user@test.com' }),
+    }))
+
+    const result = await login('user@test.com', 'password123')
+    expect(result.email).toBe('user@test.com')
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v1/auth/login')
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.email).toBe('user@test.com')
+    expect(body.password).toBe('password123')
+  })
+})
+
+describe('logout', () => {
+  it('sends POST to /logout', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 204,
+      json: () => Promise.resolve(undefined),
+    }))
+
+    await logout()
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v1/auth/logout')
+    expect((init as RequestInit).method).toBe('POST')
+  })
+})
+
+describe('checkHealth', () => {
+  it('returns true when backend is healthy', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve(undefined),
+    }))
+
+    const result = await checkHealth()
+    expect(result).toBe(true)
+  })
+
+  it('returns false when fetch fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network error')))
+
+    const result = await checkHealth()
+    expect(result).toBe(false)
   })
 })
