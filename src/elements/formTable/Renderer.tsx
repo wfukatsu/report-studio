@@ -57,7 +57,7 @@ function CellContent({
   // dataField
   if (record && cell.fieldKey) {
     const value = resolveField(record, cell.fieldKey)
-    return <span>{value != null ? String(value) : (cell.fallbackText ?? '')}</span>
+    return <span>{value !== '' ? value : (cell.fallbackText ?? '')}</span>
   }
 
   // design preview for dataField

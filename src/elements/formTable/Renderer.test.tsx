@@ -88,6 +88,59 @@ describe('FormTableRenderer — デザインプレビュー (records=undefined)'
   })
 })
 
+describe('FormTableRenderer — フッター行', () => {
+  it('デザインプレビューでフッター行のテキストが描画される', () => {
+    const element = makeElement({
+      rows: [
+        {
+          id: 'r1',
+          role: 'footer' as const,
+          height: 8,
+          cells: [{ id: 'c1', type: 'label' as const, text: '合計' }],
+        },
+      ],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTableRenderer element={element} />)
+    expect(screen.getByText('合計')).toBeInTheDocument()
+  })
+
+  it('ライブレンダラーでフッター行が表示される', () => {
+    const element = makeElement({
+      rows: [
+        {
+          id: 'r1',
+          role: 'footer' as const,
+          height: 8,
+          cells: [{ id: 'c1', type: 'label' as const, text: '合計行' }],
+        },
+      ],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTableRenderer element={element} records={[]} />)
+    expect(screen.getByText('合計行')).toBeInTheDocument()
+  })
+})
+
+describe('FormTableRenderer — dataField fallbackText', () => {
+  it('fieldKey が解決できない場合は fallbackText を表示する', () => {
+    const element = makeElement({
+      rows: [
+        {
+          id: 'r1',
+          role: 'body' as const,
+          height: 8,
+          cells: [{ id: 'c1', type: 'dataField' as const, fieldKey: 'missing', fallbackText: 'N/A' }],
+        },
+      ],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    const records = [{ other: 'value' }]
+    render(<FormTableRenderer element={element} records={records} />)
+    expect(screen.getByText('N/A')).toBeInTheDocument()
+  })
+})
+
 describe('FormTableRenderer — ライブレンダラー (records provided)', () => {
   it('renders live records without error', () => {
     const element = makeElement({ dataSource: 'items' })
@@ -145,5 +198,39 @@ describe('FormTableRenderer — ライブレンダラー (records provided)', ()
     render(<FormTableRenderer element={element} records={records} />)
     expect(screen.getByText('商品A')).toBeInTheDocument()
     expect(screen.queryByText('商品B')).not.toBeInTheDocument()
+  })
+
+  it('evenRowColor が偶数インデックス行（rowIdx=1）に適用される（クラッシュしない）', () => {
+    const element = makeElement({
+      dataSource: 'items',
+      evenRowColor: '#eeeeff',
+      rows: [
+        { id: 'r1', role: 'body' as const, height: 8, cells: [{ id: 'c1', type: 'dataField' as const, fieldKey: 'name' }] },
+      ],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    // 3 records: rowIdx 0 = odd, rowIdx 1 = even (evenRowColor), rowIdx 2 = odd
+    const records = [{ name: 'A' }, { name: 'B' }, { name: 'C' }]
+    render(<FormTableRenderer element={element} records={records} />)
+    expect(screen.getByText('B')).toBeInTheDocument()
+  })
+
+  it('oddRowColor / evenRowColor が body 行に適用される（クラッシュしない）', () => {
+    const element = makeElement({
+      dataSource: 'items',
+      oddRowColor: '#ffeeee',
+      evenRowColor: '#eeeeff',
+      rows: makeElement().rows.map((r: FormTableRow) =>
+        r.role === 'body'
+          ? { ...r, cells: [{ id: 'c1', type: 'dataField' as const, fieldKey: 'name' }] }
+          : r,
+      ),
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    const records = [{ name: '商品A' }, { name: '商品B' }]
+    render(<FormTableRenderer element={element} records={records} />)
+    // 両レコードが描画される
+    expect(screen.getByText('商品A')).toBeInTheDocument()
+    expect(screen.getByText('商品B')).toBeInTheDocument()
   })
 })
