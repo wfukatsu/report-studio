@@ -1,7 +1,7 @@
 ---
 title: "feat: サイドバー整理・DataBindingモーダル・テンプレート選択モーダル"
 type: feat
-status: active
+status: completed
 date: 2026-04-06
 origin: docs/brainstorms/2026-04-06-sidebar-cleanup-databinding-templates-brainstorm.md
 ---
