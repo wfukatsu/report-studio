@@ -410,7 +410,7 @@ ToolbarButton click
 - [x] `ViolationsSection` — WCAG 2.1 AA: `role="list"`, `aria-label`, `aria-hidden` 対応
 - [x] `ValidateResponseSchema` — `ruleKey.max(100)`, `message.max(500)`, `elementId.max(100)`, `violations.max(200)` 追加
 - [x] `newReport()` に `get().invalidateComputed()` 追加
-- [ ] `importReportJSON` / `loadReport` パスに `invalidateComputed()` 追加（loadFromBackend では既に呼ばれている; ローカルファイル読み込みパスは許容範囲）
+- [x] `importReportJSON` / `loadReport` パスに `invalidateComputed()` 追加（loadFromBackend では既に呼ばれている; ローカルファイル読み込みパスは許容範囲）
 - [x] `encodeURIComponent(templateId)` を `/validate` URL に適用
 - [x] テスト: `Toolbar.tsx` — handleValidate の loading状態、成功、エラー、abort、null templateId
 - [x] テスト: `evaluateValidate signal 転送` (`reportApi.test.ts` 更新)
@@ -455,7 +455,7 @@ validate 開始時に violations をクリアし、エラー時は `validateErro
 ### Store 修正（Architecture Fix）
 
 - [x] `src/store/layoutSlice.ts` — `newReport()` の末尾に `get().invalidateComputed()` 追加
-- [ ] `src/store/layoutSlice.ts` または `importReportJSON` 呼び出しパス — `invalidateComputed()` 追加（loadFromBackend では既に呼ばれている; ローカルファイル読み込みパスは許容範囲）
+- [x] `src/store/layoutSlice.ts` または `importReportJSON` 呼び出しパス — `invalidateComputed()` 追加（loadFromBackend では既に呼ばれている; ローカルファイル読み込みパスは許容範囲）
 
 ### UI 実装
 
