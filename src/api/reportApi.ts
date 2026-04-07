@@ -350,3 +350,12 @@ export async function importTemplate(fileContent: string): Promise<{ id: string;
     },
   )
 }
+
+// ---------------------------------------------------------------------------
+// Template thumbnail
+// ---------------------------------------------------------------------------
+
+/** Returns the thumbnail URL for a template — can be used directly in <img src>. */
+export function getTemplateThumbnailUrl(id: string): string {
+  return `/api/v2/templates/${encodeURIComponent(id)}/thumbnail`
+}

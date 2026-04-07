@@ -12,6 +12,7 @@ vi.mock('@/api/reportApi', () => ({
   duplicateReport: vi.fn(),
   exportTemplate: vi.fn(),
   importTemplate: vi.fn(),
+  getTemplateThumbnailUrl: vi.fn((id: string) => `/api/v2/templates/${id}/thumbnail`),
 }))
 vi.mock('@/api/client', () => ({
   downloadBlob: vi.fn(),

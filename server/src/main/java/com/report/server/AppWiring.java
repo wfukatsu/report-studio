@@ -44,6 +44,7 @@ public final class AppWiring {
     final V2ResponsePdfController v2ResponsePdfCtrl;
     final V2PdfController v2PdfCtrl;
     final V2TemplateExportController v2ExportCtrl;
+    final V2ThumbnailController v2ThumbnailCtrl;
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
@@ -137,6 +138,7 @@ public final class AppWiring {
         v2ResponsePdfCtrl = new V2ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
         v2PdfCtrl = new V2PdfController(v2DefinitionsRepo, pdfExecutor);
         v2ExportCtrl = new V2TemplateExportController(v2DefinitionsRepo, new RateLimiter(10, 60_000L));
+        v2ThumbnailCtrl = new V2ThumbnailController(v2DefinitionsRepo, pdfExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);
