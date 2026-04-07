@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate } from './reportApi'
 import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
@@ -431,5 +431,70 @@ describe('checkHealth', () => {
 
     const result = await checkHealth()
     expect(result).toBe(false)
+  })
+})
+
+describe('exportTemplate', () => {
+  it('sends GET to /export and returns blob with filename', async () => {
+    const mockBlob = new Blob(['{}'], { type: 'application/json' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        // Fetch Headers.get() is case-insensitive; match any case
+        get: (_name: string) => 'attachment; filename="my-template.rds2.json"',
+      },
+      blob: () => Promise.resolve(mockBlob),
+    }))
+
+    const result = await exportTemplate('tpl-1')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl-1/export')
+    expect(result.blob).toBe(mockBlob)
+    expect(result.filename).toBe('my-template.rds2.json')
+  })
+
+  it('encodes templateId in URL', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      headers: { get: () => null },
+      blob: () => Promise.resolve(new Blob()),
+    }))
+
+    await exportTemplate('tpl/with spaces')
+
+    const [url] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/tpl%2Fwith%20spaces/export')
+  })
+})
+
+describe('importTemplate', () => {
+  it('sends POST to /import with raw JSON body', async () => {
+    const fileContent = JSON.stringify({ formatVersion: 2, definition: { id: 'orig' } })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve({ id: 'new-id', name: 'テンプレートA (インポート)' }),
+    }))
+
+    const result = await importTemplate(fileContent)
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/templates/import')
+    expect((init as RequestInit).method).toBe('POST')
+    expect((init as RequestInit).body).toBe(fileContent)
+    expect(result.id).toBe('new-id')
+    expect(result.name).toBe('テンプレートA (インポート)')
+  })
+
+  it('throws when server returns error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'Unsupported format version: 99' }),
+    }))
+
+    await expect(importTemplate('bad json')).rejects.toThrow()
   })
 })
