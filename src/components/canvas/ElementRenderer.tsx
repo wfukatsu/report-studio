@@ -44,7 +44,12 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
   // Merge computedValues into data so calculated fields are available to all renderers.
   // useShallow: re-render only when computedValues keys or values actually change.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
-  const mergedData: Record<string, unknown> = { ...data, ...computedValues }
+  // Memoize merged data so the object reference is stable across renders when
+  // neither data nor computedValues have changed (prevents useMemo churn below).
+  const mergedData = useMemo<Record<string, unknown>>(
+    () => ({ ...data, ...computedValues }),
+    [data, computedValues],
+  )
 
   // Evaluate structured visibility conditions (memoized — re-runs only when cd or data changes)
   const isConditionVisible = useMemo(() => {

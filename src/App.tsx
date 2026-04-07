@@ -93,13 +93,14 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [historyIndex, definition])
 
-  // Check for restore on mount
+  // Check for restore on mount — intentionally runs once; historyIndex is a
+  // mount-time check only, not a reactive dependency.
   useEffect(() => {
     const saved = localStorage.getItem('rds-autosave')
     if (saved && historyIndex === 0) {
       setShowRestorePrompt(true)
     }
-  }, []) // run once on mount
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warn before closing with unsaved changes
   useEffect(() => {

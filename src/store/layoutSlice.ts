@@ -193,6 +193,7 @@ export const createLayoutSlice: StateCreator<
       s.historyIndex = 0
       s.testData = mergePreviewData(migratedDefinition.dataSources)
     })
+    get().invalidateComputed()
   },
 
   loadLegacyReport: (report) => {
