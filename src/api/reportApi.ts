@@ -359,3 +359,73 @@ export async function importTemplate(fileContent: string): Promise<{ id: string;
 export function getTemplateThumbnailUrl(id: string): string {
   return `/api/v2/templates/${encodeURIComponent(id)}/thumbnail`
 }
+
+// ---------------------------------------------------------------------------
+// Async PDF jobs
+// ---------------------------------------------------------------------------
+
+const PdfJobStatusSchema = z.object({
+  jobId: z.string(),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  error: z.string().optional(),
+  statusUrl: z.string().optional(),
+  resultUrl: z.string().optional(),
+})
+
+export type PdfJobStatus = z.infer<typeof PdfJobStatusSchema>
+
+/**
+ * Submit an async PDF generation job.
+ * Returns immediately with jobId — poll getAsyncPdfJobStatus for completion.
+ */
+export async function submitAsyncPdfJob(
+  templateId: string,
+  testData?: Record<string, unknown>,
+  variantId?: string,
+): Promise<PdfJobStatus> {
+  const body: Record<string, unknown> = { templateId }
+  if (testData) body.testData = testData
+  if (variantId) body.variantId = variantId
+  return apiFetch('/api/v2/pdf-jobs', PdfJobStatusSchema, jsonBody(body))
+}
+
+/** Poll a job's status. */
+export async function getAsyncPdfJobStatus(jobId: string): Promise<PdfJobStatus> {
+  return apiFetch(`/api/v2/pdf-jobs/${encodeURIComponent(jobId)}`, PdfJobStatusSchema)
+}
+
+/** Download the completed PDF result. */
+export async function downloadAsyncPdfResult(jobId: string): Promise<Blob> {
+  const { blob } = await apiFetchBlobWithFilename(`/api/v2/pdf-jobs/${encodeURIComponent(jobId)}/result`)
+  return blob
+}
+
+// ---------------------------------------------------------------------------
+// Schema inference
+// ---------------------------------------------------------------------------
+
+import type { SchemaDefinition } from '@/types'
+
+const SchemaDefinitionResponseSchema = z.object({
+  groups: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    role: z.enum(['master', 'detail']),
+    dataKey: z.string(),
+    fields: z.array(z.object({
+      id: z.string(),
+      key: z.string(),
+      label: z.string(),
+      type: z.string(),
+    })),
+  })),
+})
+
+/**
+ * Ask the backend to infer a SchemaDefinition from a JSON sample.
+ * Useful for auto-generating schema from existing data.
+ */
+export async function inferSchema(sample: Record<string, unknown>): Promise<SchemaDefinition> {
+  const result = await apiFetch('/api/v2/schemas/infer', SchemaDefinitionResponseSchema, jsonBody({ sample }))
+  return result as unknown as SchemaDefinition
+}

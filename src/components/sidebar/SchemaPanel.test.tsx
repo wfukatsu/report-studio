@@ -168,3 +168,87 @@ describe('SchemaPanel — detail グループの dataKey', () => {
     expect(groups[0].dataKey).toBe('orders')
   })
 })
+
+describe('SchemaPanel — JSON から推測', () => {
+  it('renders "JSON から推測" toggle button', () => {
+    render(<SchemaPanel />)
+    expect(screen.getByText(/JSON から推測/)).toBeInTheDocument()
+  })
+
+  it('expands textarea when toggle is clicked', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+    expect(screen.getByLabelText('スキーマ推測用JSONサンプル')).toBeInTheDocument()
+  })
+
+  it('infer button is disabled when textarea is empty', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+    expect(screen.getByText('推測して適用')).toBeDisabled()
+  })
+
+  it('shows error for invalid JSON', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+
+    const textarea = screen.getByLabelText('スキーマ推測用JSONサンプル')
+    fireEvent.change(textarea, { target: { value: 'not-json' } })
+    fireEvent.click(screen.getByText('推測して適用'))
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
+
+  it('shows error for non-object JSON', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+
+    const textarea = screen.getByLabelText('スキーマ推測用JSONサンプル')
+    fireEvent.change(textarea, { target: { value: '["array"]' } })
+    fireEvent.click(screen.getByText('推測して適用'))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('JSONオブジェクトを入力してください')
+  })
+
+  it('infers master group from flat JSON and loads into store', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+
+    const textarea = screen.getByLabelText('スキーマ推測用JSONサンプル')
+    fireEvent.change(textarea, { target: { value: '{"name":"Alice","age":30}' } })
+    fireEvent.click(screen.getByText('推測して適用'))
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    expect(groups).toHaveLength(1)
+    expect(groups[0].role).toBe('master')
+    expect(groups[0].fields).toHaveLength(2)
+    const keys = groups[0].fields.map((f) => f.key)
+    expect(keys).toContain('name')
+    expect(keys).toContain('age')
+  })
+
+  it('infers detail group for array-of-objects field', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+
+    const textarea = screen.getByLabelText('スキーマ推測用JSONサンプル')
+    fireEvent.change(textarea, { target: { value: '{"items":[{"qty":1,"price":9.99}]}' } })
+    fireEvent.click(screen.getByText('推測して適用'))
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    expect(groups).toHaveLength(1)
+    expect(groups[0].role).toBe('detail')
+    expect(groups[0].dataKey).toBe('items')
+  })
+
+  it('collapses and clears textarea after successful infer', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/JSON から推測/))
+
+    const textarea = screen.getByLabelText('スキーマ推測用JSONサンプル')
+    fireEvent.change(textarea, { target: { value: '{"x":1}' } })
+    fireEvent.click(screen.getByText('推測して適用'))
+
+    // Panel should collapse
+    expect(screen.queryByLabelText('スキーマ推測用JSONサンプル')).not.toBeInTheDocument()
+  })
+})

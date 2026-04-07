@@ -15,6 +15,7 @@ export type SchemaSlice = Pick<StoreState,
   | 'addSchemaField'
   | 'removeSchemaField'
   | 'updateSchemaField'
+  | 'setSchema'
 >
 
 export const createSchemaSlice: StateCreator<
@@ -66,5 +67,9 @@ export const createSchemaSlice: StateCreator<
     const field = group?.fields.find((f) => f.id === fieldId)
     if (!field) return
     Object.assign(field, patch)
+  }),
+
+  setSchema: (schema) => set((s) => {
+    s.definition.schema = schema
   }),
 })

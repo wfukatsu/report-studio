@@ -213,5 +213,13 @@ public final class ApiRoutes {
 
         // V2 template PDF generation
         app.post("/api/v2/templates/{id}/pdf", w.v2PdfCtrl::generate);
+
+        // V2 schema inference
+        app.post("/api/v2/schemas/infer", w.v2SchemaInferCtrl::infer);
+
+        // V2 async PDF jobs
+        app.post("/api/v2/pdf-jobs", w.v2PdfJobCtrl::submit);
+        app.get("/api/v2/pdf-jobs/{jobId}", w.v2PdfJobCtrl::getStatus);
+        app.get("/api/v2/pdf-jobs/{jobId}/result", w.v2PdfJobCtrl::getResult);
     }
 }
