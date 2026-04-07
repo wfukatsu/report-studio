@@ -29,3 +29,9 @@ Thumbs.db
 # Test
 coverage/
 .gstack/
+
+# Backend (Java/Gradle)
+server/build/
+server/.gradle/
+server/data/
+server/scalardb.properties

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Stub XSD for SalaryIncomeTaxWithholdingSlip (源泉徴収票).
+
+  This schema matches the element structure produced by WithholdingTaxXmlBuilder.
+  Replace with the official NTA XSD when available:
+    https://www.e-tax.nta.go.jp/shiyo/shiyo-withholding3.htm
+
+  Version identifier: stub-1.0
+  To add the official NTA schema:
+    1. Download the .cab from the NTA e-Tax portal for the relevant tax year.
+    2. Extract the XSD (e.g. PGE2025-231.xsd).
+    3. Save to: server/src/main/resources/schemas/e-tax/withholding-tax-2025.xsd
+    4. Register the mapping in EtaxXmlValidator.SCHEMA_VERSIONS.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="SalaryIncomeTaxWithholdingSlip">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Payer"   type="PayerType"/>
+        <xs:element name="Payee"   type="PayeeType"/>
+        <xs:element name="Amounts" type="AmountsType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="PayerType">
+    <xs:sequence>
+      <xs:element name="PayerName"    type="xs:string"/>
+      <xs:element name="PayerAddress" type="xs:string"/>
+      <xs:element name="PayerPhone"   type="xs:string"/>
+      <xs:element name="PayerNumber"  type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PayeeType">
+    <xs:sequence>
+      <xs:element name="PayeeName"     type="xs:string"/>
+      <xs:element name="PayeeAddress"  type="xs:string"/>
+      <xs:element name="PayeeMyNumber" type="xs:string"/>
+      <xs:element name="PayeeCategory" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AmountsType">
+    <xs:sequence>
+      <xs:element name="SalaryAmount"          type="xs:string"/>
+      <xs:element name="WithholdingTax"         type="xs:string"/>
+      <xs:element name="SocialInsurance"        type="xs:string"/>
+      <xs:element name="LifeInsurance"          type="xs:string"/>
+      <xs:element name="EarthquakeInsurance"    type="xs:string"/>
+      <xs:element name="Dependents"             type="xs:string"/>
+      <xs:element name="PaymentYear"            type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+### Frontend
 ```bash
 npm run dev          # Start dev server (http://localhost:5173)
 npm run build        # Type-check + build to dist/
@@ -18,9 +19,34 @@ Run a single test file:
 npx vitest run src/lib/dataBinding.test.ts
 ```
 
+### Backend (Java/Javalin)
+```bash
+# Initial setup (only once)
+cp server/scalardb.properties.example server/scalardb.properties
+
+# Start backend (http://localhost:8080)
+npm run dev:backend
+
+# Start frontend + backend together
+npm run dev:full
+
+# Run backend tests
+npm run test:backend
+
+# Build backend fat-jar
+npm run build:backend
+```
+
+### Backend architecture
+- **Framework**: Javalin 6 (Java 21)
+- **DB**: ScalarDB 3.14 + SQLite (dev) / any JDBC (prod)
+- **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
+- **API routes**: `/api/v2/*` (templates, evaluate, validate, versions), `/api/v1/auth/*`
+- **Key engines**: `ExpressionEngine` (JEXL sandbox), `CalculationEngine`, `ValidationEngine`
+
 ## Architecture
 
-**Vite + React + TypeScript** SPA — no backend, all state is in-memory.
+**Vite + React + TypeScript** SPA + **Java/Javalin** backend.
 
 ### State management (`src/store/reportStore.ts`)
 
