@@ -213,5 +213,8 @@ public final class ApiRoutes {
 
         // V2 template PDF generation
         app.post("/api/v2/templates/{id}/pdf", w.v2PdfCtrl::generate);
+
+        // V2 schema inference
+        app.post("/api/v2/schemas/infer", w.v2SchemaInferCtrl::infer);
     }
 }

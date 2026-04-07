@@ -174,3 +174,26 @@ describe('updateSchemaField', () => {
     expect(getGroups()[0].fields[0].label).toBe('名前')
   })
 })
+
+describe('setSchema', () => {
+  it('replaces entire schema definition', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    useReportStore.getState().setSchema({
+      groups: [
+        { id: 'g1', label: 'New', role: 'master', dataKey: '', fields: [
+          { id: 'f1', key: 'x', label: 'X', type: 'number' },
+        ]},
+      ],
+    })
+    const groups = getGroups()
+    expect(groups).toHaveLength(1)
+    expect(groups[0].id).toBe('g1')
+    expect(groups[0].fields[0].key).toBe('x')
+  })
+
+  it('replaces existing groups with inferred groups', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    useReportStore.getState().setSchema({ groups: [] })
+    expect(getGroups()).toHaveLength(0)
+  })
+})

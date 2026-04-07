@@ -14,6 +14,7 @@ import type {
   LayerGroup,
   SchemaGroup,
   SchemaField,
+  SchemaDefinition,
   OutputVariant,
   MaskingRule,
 } from '@/types'
@@ -220,6 +221,8 @@ export interface StoreState {
   addSchemaField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
   removeSchemaField: (groupId: string, fieldId: string) => void
   updateSchemaField: (groupId: string, fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void
+  /** Replace the entire schema definition (used by schema inference). */
+  setSchema: (schema: SchemaDefinition) => void
 
   // ── Computed slice actions ────────────────────────────────────────────────
   setComputedResults: (payload: {

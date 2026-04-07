@@ -359,3 +359,33 @@ export async function importTemplate(fileContent: string): Promise<{ id: string;
 export function getTemplateThumbnailUrl(id: string): string {
   return `/api/v2/templates/${encodeURIComponent(id)}/thumbnail`
 }
+
+// ---------------------------------------------------------------------------
+// Schema inference
+// ---------------------------------------------------------------------------
+
+import type { SchemaDefinition } from '@/types'
+
+const SchemaDefinitionResponseSchema = z.object({
+  groups: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    role: z.enum(['master', 'detail']),
+    dataKey: z.string(),
+    fields: z.array(z.object({
+      id: z.string(),
+      key: z.string(),
+      label: z.string(),
+      type: z.string(),
+    })),
+  })),
+})
+
+/**
+ * Ask the backend to infer a SchemaDefinition from a JSON sample.
+ * Useful for auto-generating schema from existing data.
+ */
+export async function inferSchema(sample: Record<string, unknown>): Promise<SchemaDefinition> {
+  const result = await apiFetch('/api/v2/schemas/infer', SchemaDefinitionResponseSchema, jsonBody({ sample }))
+  return result as unknown as SchemaDefinition
+}

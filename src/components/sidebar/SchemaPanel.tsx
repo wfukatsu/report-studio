@@ -2,13 +2,15 @@
  * SchemaPanel — left sidebar tab for managing the data schema.
  * Groups: master (single record) / detail (array rows).
  * Fields: key, label, type — edited inline, committed on blur.
+ * "JSONから推測" — infers schema groups/fields from a pasted JSON sample.
  */
 
 import { memo, useState } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store'
-import type { SchemaField, SchemaFieldType, SchemaGroup } from '@/types'
+import type { SchemaField, SchemaFieldType, SchemaGroup, SchemaDefinition } from '@/types'
+import { v4 as uuidv4 } from 'uuid'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -201,6 +203,115 @@ const GroupSection = memo(function GroupSection({
 })
 
 // ---------------------------------------------------------------------------
+// Schema inference — pure client-side, mirrors V2SchemaInferController logic
+// ---------------------------------------------------------------------------
+
+function inferFieldType(value: unknown): SchemaFieldType {
+  if (typeof value === 'number') return 'number'
+  if (typeof value === 'boolean') return 'boolean'
+  if (Array.isArray(value)) return 'array'
+  return 'string'
+}
+
+function inferSchemaFromSample(sample: Record<string, unknown>): SchemaDefinition {
+  const masterFields: SchemaField[] = []
+  const detailGroups: SchemaGroup[] = []
+
+  for (const [key, value] of Object.entries(sample)) {
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      // Detail group — array of objects
+      const seenKeys: Map<string, unknown> = new Map()
+      for (const row of (value as Record<string, unknown>[]).slice(0, 5)) {
+        for (const [k, v] of Object.entries(row)) {
+          if (!seenKeys.has(k)) seenKeys.set(k, v)
+        }
+      }
+      const fields: SchemaField[] = Array.from(seenKeys.entries()).map(([k, v]) => ({
+        id: uuidv4(), key: k, label: k, type: inferFieldType(v),
+      }))
+      detailGroups.push({ id: uuidv4(), label: key, role: 'detail', dataKey: key, fields })
+    } else {
+      masterFields.push({ id: uuidv4(), key, label: key, type: inferFieldType(value) })
+    }
+  }
+
+  const groups: SchemaGroup[] = []
+  if (masterFields.length > 0) {
+    groups.push({ id: uuidv4(), label: 'マスター', role: 'master', dataKey: '', fields: masterFields })
+  }
+  groups.push(...detailGroups)
+  return { groups }
+}
+
+// ---------------------------------------------------------------------------
+// InferPanel — collapsible JSON input for schema inference
+// ---------------------------------------------------------------------------
+
+const InferPanel = memo(function InferPanel({
+  onInferred,
+}: {
+  onInferred: (schema: SchemaDefinition) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [jsonText, setJsonText] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const handleInfer = () => {
+    setError(null)
+    try {
+      const parsed = JSON.parse(jsonText)
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        setError('JSONオブジェクトを入力してください')
+        return
+      }
+      onInferred(inferSchemaFromSample(parsed as Record<string, unknown>))
+      setOpen(false)
+      setJsonText('')
+    } catch {
+      setError('JSONの解析に失敗しました')
+    }
+  }
+
+  return (
+    <div className="border rounded mb-2 text-xs">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 w-full px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors text-left"
+        aria-expanded={open}
+      >
+        <Wand2 className="w-3 h-3 shrink-0" />
+        <span>JSON から推測</span>
+        {open ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+      </button>
+      {open && (
+        <div className="px-2 pb-2 space-y-1">
+          <p className="text-[10px] text-muted-foreground">サンプルJSONを貼り付けてください。配列フィールドは detail グループになります。</p>
+          <textarea
+            className="w-full border rounded px-1.5 py-1 text-xs font-mono bg-background resize-none h-24"
+            placeholder='{"name": "Alice", "items": [{"qty": 1}]}'
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+            aria-label="スキーマ推測用JSONサンプル"
+          />
+          {error && (
+            <p role="alert" className="text-[10px] text-destructive">{error}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleInfer}
+            disabled={!jsonText.trim()}
+            className="px-2 py-1 rounded bg-primary text-primary-foreground text-[10px] hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            推測して適用
+          </button>
+        </div>
+      )}
+    </div>
+  )
+})
+
+// ---------------------------------------------------------------------------
 // SchemaPanel — main component
 // ---------------------------------------------------------------------------
 
@@ -215,10 +326,12 @@ export const SchemaPanel = memo(function SchemaPanel() {
     addSchemaField,
     removeSchemaField,
     updateSchemaField,
+    setSchema,
   } = useReportStore()
 
   return (
     <div className="p-3 space-y-2">
+      <InferPanel onInferred={setSchema} />
       <div className="flex gap-1">
         <button
           type="button"
