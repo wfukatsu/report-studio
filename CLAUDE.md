@@ -93,3 +93,28 @@ Static array of `Template` objects. `TemplateGallery` loads them into the store 
 - Element mutations always go through the store — never mutate `element` objects directly in components.
 - `pushHistory` is called at the end of any store action that structurally changes elements (add, update, remove, duplicate). Move and resize do not push history (too noisy during drag).
 - `JSON.parse(JSON.stringify(...))` is used for deep cloning inside immer drafts (immer proxies cannot be `structuredClone`d).
+
+## テンプレート作成規約
+
+### 要素の格納先
+
+- 要素は必ず `page.sections[N].elements` に格納する
+- `Page.elements`（トップレベル）は `@deprecated` であり **使用禁止**。レンダラーに無視される
+- `PageDef` 型には `elements` フィールドが存在しない
+
+### テンプレートページの正しい構造
+
+```ts
+// ✅ 正しい
+{
+  id: uuidv4(), name: 'ページ 1', background: '#ffffff',
+  width: A4_W, height: A4_H,
+  sections: [{ id: uuidv4(), sectionType: 'body', height: A4_H, elements: [...] }],
+}
+
+// ❌ 誤り（page.elements は無視される）
+{
+  id: uuidv4(), elements: [...],  // ← ここに書いても画面に表示されない
+  sections: [],
+}
+```
