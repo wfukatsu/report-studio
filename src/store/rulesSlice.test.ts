@@ -18,30 +18,36 @@ function getValRules(): ValidationRule[] {
 // CalculationRule
 // ---------------------------------------------------------------------------
 
+const BASE_RULE: CalculationRule = { id: 'id-1', key: 'total', expression: 'a + b', label: '合計', resultType: 'number', onError: 'zero' }
+
 describe('addCalculationRule', () => {
   it('ルールを追加できる', () => {
-    const rule: CalculationRule = { key: 'total', expression: 'a + b', label: '合計', outputType: 'number' }
-    useReportStore.getState().addCalculationRule(rule)
+    useReportStore.getState().addCalculationRule(BASE_RULE)
     expect(getCalcRules()).toHaveLength(1)
     expect(getCalcRules()[0].key).toBe('total')
   })
 
   it('複数追加できる', () => {
-    useReportStore.getState().addCalculationRule({ key: 'r1', expression: '1', label: '', outputType: 'number' })
-    useReportStore.getState().addCalculationRule({ key: 'r2', expression: '2', label: '', outputType: 'number' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, id: 'id-1', key: 'r1', expression: '1' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, id: 'id-2', key: 'r2', expression: '2' })
     expect(getCalcRules()).toHaveLength(2)
+  })
+
+  it('id フィールドが保持される', () => {
+    useReportStore.getState().addCalculationRule(BASE_RULE)
+    expect(getCalcRules()[0].id).toBe('id-1')
   })
 })
 
 describe('updateCalculationRule', () => {
   it('key が一致するルールを更新する', () => {
-    useReportStore.getState().addCalculationRule({ key: 'total', expression: 'a', label: '', outputType: 'number' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, expression: 'a' })
     useReportStore.getState().updateCalculationRule('total', { expression: 'a + b' })
     expect(getCalcRules()[0].expression).toBe('a + b')
   })
 
   it('存在しない key は無視する', () => {
-    useReportStore.getState().addCalculationRule({ key: 'total', expression: 'a', label: '', outputType: 'number' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, expression: 'a' })
     useReportStore.getState().updateCalculationRule('nonexistent', { expression: 'x' })
     expect(getCalcRules()[0].expression).toBe('a')
   })
@@ -49,15 +55,15 @@ describe('updateCalculationRule', () => {
 
 describe('removeCalculationRule', () => {
   it('key が一致するルールを削除する', () => {
-    useReportStore.getState().addCalculationRule({ key: 'r1', expression: '1', label: '', outputType: 'number' })
-    useReportStore.getState().addCalculationRule({ key: 'r2', expression: '2', label: '', outputType: 'number' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, id: 'id-1', key: 'r1', expression: '1' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, id: 'id-2', key: 'r2', expression: '2' })
     useReportStore.getState().removeCalculationRule('r1')
     expect(getCalcRules()).toHaveLength(1)
     expect(getCalcRules()[0].key).toBe('r2')
   })
 
   it('存在しない key は無視する', () => {
-    useReportStore.getState().addCalculationRule({ key: 'r1', expression: '1', label: '', outputType: 'number' })
+    useReportStore.getState().addCalculationRule({ ...BASE_RULE, id: 'id-1', key: 'r1', expression: '1' })
     useReportStore.getState().removeCalculationRule('nonexistent')
     expect(getCalcRules()).toHaveLength(1)
   })

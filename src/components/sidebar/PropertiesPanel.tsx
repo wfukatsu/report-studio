@@ -23,6 +23,7 @@ import { ApprovalStampRowPropertiesPanel } from '@/elements/approvalStampRow/Pro
 import { RevenueStampPropertiesPanel } from '@/elements/revenueStamp/PropertiesPanel'
 import { RepeatingBandPropertiesPanel } from '@/elements/repeatingBand/PropertiesPanel'
 import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/PropertiesPanel'
+import { FormTablePropertiesPanel } from '@/elements/formTable/PropertiesPanel'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 
 // ---------------------------------------------------------------------------
@@ -196,6 +197,7 @@ export function PropertiesPanel() {
       {el.type === 'revenueStamp' && <RevenueStampPropertiesPanel el={el} onChange={update} />}
       {el.type === 'repeatingBand' && <RepeatingBandPropertiesPanel el={el} onChange={update} />}
       {el.type === 'repeatingList' && <RepeatingListPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'formTable' && <FormTablePropertiesPanel el={el} onChange={update} />}
 
       <ElementCommonSection el={el} onChange={update} />
 

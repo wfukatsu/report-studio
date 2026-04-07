@@ -4,10 +4,11 @@
  * Wraps @pawel-up/jexl with:
  * - V1-compatible custom functions: sum(), count(), round()
  * - 500ms evaluation timeout (mirrors V1 backend behavior)
+ * - Prototype-escape keyword guard (blocks constructor/__proto__/prototype)
  *
  * Note: jexl.eval() is the JEXL library's own sandboxed expression evaluator,
- * not JavaScript's eval(). It parses and executes expressions in an isolated
- * context with no access to the JS runtime.
+ * not JavaScript's native eval(). It parses expressions into an AST and walks it
+ * in an isolated context with no access to the JS runtime.
  */
 
 import { Jexl } from '@pawel-up/jexl'
@@ -40,6 +41,31 @@ jexl.addFunction('round', (value: unknown, places: unknown) => {
 })
 
 // ---------------------------------------------------------------------------
+// Built-in function registry (single source of truth for UI and agents)
+// ---------------------------------------------------------------------------
+
+/**
+ * All functions registered in the JEXL sandbox.
+ * Import this in CalculationTab and any agent context that needs to enumerate
+ * available functions.
+ */
+export const JEXL_BUILTINS = [
+  { name: 'sum',   signature: 'sum(array)',            description: '配列の合計値' },
+  { name: 'count', signature: 'count(array)',           description: '配列の要素数' },
+  { name: 'round', signature: 'round(value, places?)', description: '小数の丸め' },
+] as const
+
+// ---------------------------------------------------------------------------
+// Security: prototype-escape keyword guard
+// ---------------------------------------------------------------------------
+
+/**
+ * Keywords that can escape the JEXL sandbox via prototype chain traversal.
+ * Blocked before the expression reaches the library.
+ */
+const JEXL_FORBIDDEN = /\b(constructor|__proto__|prototype)\b/
+
+// ---------------------------------------------------------------------------
 // Evaluation with timeout
 // ---------------------------------------------------------------------------
 
@@ -63,13 +89,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 /**
  * Evaluate a JEXL expression against the given context.
- * Throws on parse error, runtime error, or timeout.
+ * Throws on forbidden keywords, parse error, runtime error, or timeout.
  */
 export async function evaluateExpression(
   expression: string,
   context: Record<string, unknown>,
 ): Promise<unknown> {
-  // jexl.eval() is JEXL library's sandboxed evaluator, not JS eval()
+  if (expression.length > 500) {
+    throw new Error('式が長すぎます (最大500文字)')
+  }
+  if (JEXL_FORBIDDEN.test(expression)) {
+    throw new Error('式に禁止されているキーワードが含まれています')
+  }
+  // jexl.eval() is JEXL library's sandboxed evaluator, not JS native eval()
   return withTimeout(jexl.eval(expression, context), TIMEOUT_MS)
 }
 

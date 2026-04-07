@@ -76,6 +76,8 @@ export type CalculationResultType = 'number' | 'string' | 'boolean'
 export type OnErrorBehavior = 'zero' | 'empty' | 'error_text'
 
 export interface CalculationRule {
+  /** Stable UUID — never changes, used as React list key. */
+  id: string
   key: string
   label: string
   description?: string
@@ -117,6 +119,8 @@ export type ElementType =
   | 'hanko'
   | 'approvalStampRow'
   | 'revenueStamp'
+  // 帳票専用テーブル
+  | 'formTable'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -442,6 +446,81 @@ export interface RepeatingListElement extends ElementBase {
 }
 
 // ---------------------------------------------------------------------------
+// FormTableElement — 帳票専用テーブル (固定レイアウト + データバインド両対応)
+// ---------------------------------------------------------------------------
+
+export type FormTableCellType = 'label' | 'input' | 'dataField'
+
+export interface FormTableCell {
+  /** UUID — 変更不可。行複製時は新 UUID を生成する */
+  id: string
+  type: FormTableCellType
+  /** type='label' | 'input' で使用 */
+  text?: string
+  placeholder?: string
+  /** type='dataField' で使用 */
+  fieldKey?: string
+  format?: CalculationFormat
+  /** fieldKey が未解決・null 時のフォールバック表示テキスト */
+  fallbackText?: string
+  /**
+   * セルレベルスタイル。
+   * 優先順位（高→低）: cell.style > column.style > row-role style (headerStyle/bodyStyle)
+   */
+  style?: TextStyle
+}
+
+export type FormTableRowRole = 'header' | 'body' | 'footer'
+
+export interface FormTableRow {
+  /** UUID */
+  id: string
+  role: FormTableRowRole
+  /** 行高さ (mm) */
+  height: number
+  /**
+   * セル配列。cells.length は必ず columns.length と等しくなければならない。
+   * 不一致時は描画エンジンが末尾を空セルで補完、または余剰を無視する。
+   */
+  cells: FormTableCell[]
+}
+
+export interface FormTableColumn {
+  /** UUID */
+  id: string
+  /** 列幅 (mm, 絶対値) — 最小値 3mm */
+  width: number
+  align?: 'left' | 'center' | 'right'
+  /** 列レベルスタイル。cell.style より低優先度 */
+  style?: TextStyle
+}
+
+export interface FormTableElement extends ElementBase {
+  type: 'formTable'
+  columns: FormTableColumn[]
+  rows: FormTableRow[]
+  /** データバインドモード: body 行をこの配列で展開 */
+  dataSource?: string
+  /**
+   * 最大展開件数。0 = 無制限（既存 RepeatingBandElement と同一セマンティクス）。
+   * undefined は 0 と等価。
+   */
+  maxItems?: number
+  /** 枠線色 */
+  borderColor: string
+  /** 枠線幅 (mm) */
+  borderWidth: number
+  /** header 行スタイル（column.style / cell.style より低優先度）*/
+  headerStyle?: TextStyle
+  /** body / footer 行スタイル（column.style / cell.style より低優先度）*/
+  bodyStyle?: TextStyle
+  /** body 行奇数行背景色（cell/column スタイルの backgroundColor が優先）*/
+  oddRowColor?: string
+  /** body 行偶数行背景色（同上）*/
+  evenRowColor?: string
+}
+
+// ---------------------------------------------------------------------------
 // ReportElement union
 // ---------------------------------------------------------------------------
 
@@ -460,6 +539,7 @@ export type ReportElement =
   | RevenueStampElement
   | RepeatingBandElement
   | RepeatingListElement
+  | FormTableElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, RepeatingBandField, RepeatingListField } from '@/types'
+import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow } from '@/types'
 
 /**
  * Factory functions for creating new elements with sensible defaults.
@@ -286,6 +286,56 @@ const DEFAULT_LIST_FIELDS: RepeatingListField[] = [
   { key: 'title', label: '役職',  x: 2, y: 8,  width: 36, height: 4, style: { fontSize: 3, color: '#6b7280' } },
   { key: 'dept',  label: '部署',  x: 2, y: 13, width: 36, height: 4, style: { fontSize: 3, color: '#6b7280' } },
 ]
+
+const DEFAULT_FORM_TABLE_COLUMNS: FormTableColumn[] = [
+  { id: 'col-default-1', width: 40, align: 'left' },
+  { id: 'col-default-2', width: 40, align: 'left' },
+  { id: 'col-default-3', width: 40, align: 'left' },
+]
+
+const DEFAULT_FORM_TABLE_ROWS: FormTableRow[] = [
+  {
+    id: 'row-default-header',
+    role: 'header',
+    height: 8,
+    cells: [
+      { id: 'cell-h1', type: 'label', text: '項目 1' },
+      { id: 'cell-h2', type: 'label', text: '項目 2' },
+      { id: 'cell-h3', type: 'label', text: '項目 3' },
+    ],
+  },
+  {
+    id: 'row-default-body',
+    role: 'body',
+    height: 8,
+    cells: [
+      { id: 'cell-b1', type: 'input', placeholder: '' },
+      { id: 'cell-b2', type: 'input', placeholder: '' },
+      { id: 'cell-b3', type: 'input', placeholder: '' },
+    ],
+  },
+]
+
+export function createFormTableElement(overrides?: Partial<ReportElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'formTable',
+    position: { x: 13, y: 13 },
+    size: { width: 120, height: 24 },
+    zIndex: 1,
+    locked: false,
+    visible: true,
+    columns: DEFAULT_FORM_TABLE_COLUMNS.map(c => ({ ...c, id: uuidv4() })),
+    rows: DEFAULT_FORM_TABLE_ROWS.map(r => ({
+      ...r,
+      id: uuidv4(),
+      cells: r.cells.map(c => ({ ...c, id: uuidv4() })),
+    })),
+    borderColor: '#000000',
+    borderWidth: 0.3,
+    ...overrides,
+  } as ReportElement
+}
 
 export function createRepeatingListElement(overrides?: Partial<ReportElement>): ReportElement {
   return {

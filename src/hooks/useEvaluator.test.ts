@@ -12,7 +12,7 @@ import { evaluateCalculations } from '@/api/reportApi'
 const mockEval = vi.mocked(evaluateCalculations)
 
 function makeRule() {
-  return { key: 'total', label: 'Total', expression: 'qty * price', resultType: 'number' as const, onError: 'zero' as const }
+  return { id: 'rule-1', key: 'total', label: 'Total', expression: 'qty * price', resultType: 'number' as const, onError: 'zero' as const }
 }
 
 beforeEach(() => {

@@ -32,6 +32,7 @@ import { ApprovalStampRowRenderer } from '@/elements/approvalStampRow/Renderer'
 import { RevenueStampRenderer } from '@/elements/revenueStamp/Renderer'
 import { RepeatingBandRenderer } from '@/elements/repeatingBand/Renderer'
 import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
+import { FormTableRenderer } from '@/elements/formTable/Renderer'
 
 interface Props {
   element: ReportElement
@@ -83,6 +84,12 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
         ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
         : undefined
       return <RepeatingListRenderer element={element} records={listRecords} />
+    }
+    case 'formTable': {
+      const tableRecords = element.dataSource
+        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
+        : undefined
+      return <FormTableRenderer element={element} records={tableRecords} />
     }
     default:                return assertNever(element)
   }
