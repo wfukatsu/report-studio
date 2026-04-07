@@ -39,6 +39,14 @@ function lbl(
   }
 }
 
+function vlbl(
+  text: string,
+  x: number, y: number, w: number, h: number,
+  fontSize = 2.8,
+): ReportElement {
+  return lbl(text, x, y, w, h, { writingMode: 'vertical-rl', fontSize })
+}
+
 function rect(
   x: number, y: number, w: number, h: number,
   opts?: { fill?: string; stroke?: string; strokeWidth?: number },
@@ -335,9 +343,8 @@ elements.push(
 const MAIN_ROWS_H = (Y.rowA - CH_Y - CH_H) + ROW_H.rowA + ROW_H.rowB * 4 + ROW_H.rowC + ROW_H.rowD
 elements.push(
   rect(ML, CH_Y + CH_H, COL.leftBand.w, MAIN_ROWS_H, { fill: '#f5f5f5' }),
-  lbl('主\nた\nる\n給\n与\nか\nら\n控\n除\nを\n受\nけ\nる',
-    ML, CH_Y + CH_H, COL.leftBand.w, MAIN_ROWS_H,
-    { fontSize: 2.5, writingMode: 'vertical-rl' }),
+  vlbl('主たる給与から控除を受ける',
+    ML, CH_Y + CH_H, COL.leftBand.w, MAIN_ROWS_H, 2.5),
 )
 
 // ════════════════════════════════════════════════════════

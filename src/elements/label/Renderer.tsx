@@ -7,6 +7,7 @@ interface Props {
 
 export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props) {
   const style = el.style
+  const isVertical = style.writingMode === 'vertical-rl'
   return (
     <div
       style={{
@@ -22,6 +23,7 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
         writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
         whiteSpace: 'pre-wrap',
         overflow: 'hidden',
+        wordBreak: isVertical ? ('break-all' as const) : undefined,
         userSelect: 'none',
       }}
     >

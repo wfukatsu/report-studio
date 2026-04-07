@@ -52,4 +52,27 @@ describe('LabelRenderer', () => {
     const div = container.firstChild as HTMLElement
     expect(div.style.textAlign).toBe('right')
   })
+
+  it('applies wordBreak:break-all when writingMode is vertical-rl', () => {
+    const { container } = render(
+      <LabelRenderer element={makeElement({ style: { fontSize: 2.5, fontWeight: 'normal', color: '#000', textAlign: 'center', writingMode: 'vertical-rl' } })} />,
+    )
+    const div = container.firstChild as HTMLElement
+    expect(div.style.wordBreak).toBe('break-all')
+  })
+
+  it('does not set wordBreak when writingMode is horizontal-tb', () => {
+    const { container } = render(
+      <LabelRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'normal', color: '#000', textAlign: 'left' } })} />,
+    )
+    const div = container.firstChild as HTMLElement
+    expect(div.style.wordBreak).toBe('')
+  })
+
+  it('renders vertical text without \\n correctly', () => {
+    render(
+      <LabelRenderer element={makeElement({ text: '主たる給与から控除を受ける', style: { fontSize: 2.5, fontWeight: 'normal', color: '#000', textAlign: 'center', writingMode: 'vertical-rl' } })} />,
+    )
+    expect(screen.getByText('主たる給与から控除を受ける')).toBeInTheDocument()
+  })
 })
