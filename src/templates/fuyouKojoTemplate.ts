@@ -652,7 +652,6 @@ export const FUYOU_KOJO_TEMPLATE: Template = {
     {
       id: uuidv4(),
       name: '申告書',
-      elements,
       background: '#ffffff',
       width: A4_W,
       height: A4_H,
