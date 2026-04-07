@@ -35,9 +35,13 @@ public final class AppWiring {
 
     // ── V2 repositories and controllers ───────────────────────────────────────
     final JsonBlobRepository v2DefinitionsRepo;
+    final JsonBlobRepository v2ResponseRepo;
     final V2TemplateController v2TemplateCtrl;
     final V2EvaluateController v2EvalCtrl;
     final V2VersionController v2VersionCtrl;
+    final V2FormResponseController v2FormResponseCtrl;
+    final V2ResponseExportController v2ResponseExportCtrl;
+    final V2ResponsePdfController v2ResponsePdfCtrl;
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
@@ -96,6 +100,9 @@ public final class AppWiring {
         v2DefinitionsRepo = new JsonBlobRepository(factory, NAMESPACE, "v2_definitions");
         v2DefinitionsRepo.ensureTable();
 
+        v2ResponseRepo = new JsonBlobRepository(factory, NAMESPACE, "v2_form_responses");
+        v2ResponseRepo.ensureTable();
+
         // Executor pools
         jobExecutor = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
@@ -123,6 +130,9 @@ public final class AppWiring {
         v2EvalCtrl = new V2EvaluateController();
         v2VersionCtrl = new V2VersionController(factory, v2DefinitionsRepo);
         v2VersionCtrl.ensureTable();
+        v2FormResponseCtrl = new V2FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
+        v2ResponseExportCtrl = new V2ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
+        v2ResponsePdfCtrl = new V2ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

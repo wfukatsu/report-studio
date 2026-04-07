@@ -46,6 +46,9 @@ dependencies {
     // Apache Commons JEXL 3.x — sandboxed expression engine for CalculationRule / ValidationRule conditions
     implementation("org.apache.commons:commons-jexl3:3.4.0")
 
+    // Apache POI — Excel export (SXSSF streaming workbook)
+    implementation("org.apache.poi:poi-ooxml:5.3.0")
+
     // Logging
     implementation("org.slf4j:slf4j-simple:2.0.16")
 

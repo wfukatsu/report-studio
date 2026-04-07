@@ -196,5 +196,13 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}/versions", w.v2VersionCtrl::list);
         app.post("/api/v2/templates/{id}/versions", w.v2VersionCtrl::create);
         app.post("/api/v2/templates/{id}/versions/{vid}/restore", w.v2VersionCtrl::restore);
+
+        // V2 form responses
+        app.post("/api/v2/templates/{id}/responses", w.v2FormResponseCtrl::submit);
+        app.get("/api/v2/templates/{id}/responses", w.v2FormResponseCtrl::list);
+        app.get("/api/v2/templates/{id}/responses/export", w.v2ResponseExportCtrl::export);
+        app.get("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::get);
+        app.delete("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::delete);
+        app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.v2ResponsePdfCtrl::generatePdf);
     }
 }
