@@ -62,6 +62,28 @@ describe('ShapeRenderer — line', () => {
     )
     expect(container.querySelector('line')).toBeInTheDocument()
   })
+
+  it('renders horizontal line when width > height', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'line', size: { width: 53, height: 0.1 } })} />,
+    )
+    const line = container.querySelector('line')!
+    expect(line.getAttribute('x1')).toBe('0')
+    expect(line.getAttribute('x2')).toBe('100%')
+    expect(line.getAttribute('y1')).toBe('50%')
+    expect(line.getAttribute('y2')).toBe('50%')
+  })
+
+  it('renders vertical line when height > width', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'line', size: { width: 0.1, height: 30 } })} />,
+    )
+    const line = container.querySelector('line')!
+    expect(line.getAttribute('x1')).toBe('50%')
+    expect(line.getAttribute('x2')).toBe('50%')
+    expect(line.getAttribute('y1')).toBe('0')
+    expect(line.getAttribute('y2')).toBe('100%')
+  })
 })
 
 describe('ShapeRenderer — dash styles', () => {

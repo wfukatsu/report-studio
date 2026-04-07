@@ -10,9 +10,13 @@ interface Props {
 export const ShapeRenderer = memo(function ShapeRenderer({ element: el }: Props) {
   const dash = DASH_MAP[el.strokeDash ?? 'solid'] ?? 'none'
   if (el.shape === 'line') {
+    const isVertical = el.size.height > el.size.width
     return (
       <svg width="100%" height="100%" style={{ display: 'block', overflow: 'visible' }}>
-        <line x1="0" y1="50%" x2="100%" y2="50%" stroke={el.stroke ?? '#000000'} strokeWidth={el.strokeWidth ?? 0.3} strokeDasharray={dash} />
+        {isVertical
+          ? <line x1="50%" y1="0" x2="50%" y2="100%" stroke={el.stroke ?? '#000000'} strokeWidth={el.strokeWidth ?? 0.3} strokeDasharray={dash} />
+          : <line x1="0" y1="50%" x2="100%" y2="50%" stroke={el.stroke ?? '#000000'} strokeWidth={el.strokeWidth ?? 0.3} strokeDasharray={dash} />
+        }
       </svg>
     )
   }
