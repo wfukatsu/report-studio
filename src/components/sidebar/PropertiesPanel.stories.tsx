@@ -76,26 +76,28 @@ export const ShapeElementSelected: Story = {
   ),
 }
 
+function MultipleSelectedSetup() {
+  useEffect(() => {
+    const el1 = createTextElement({ id: 'multi-1' })
+    const el2 = createShapeElement({ id: 'multi-2' })
+    useReportStore.setState((s) => {
+      const elements = [el1, el2]
+      return {
+        definition: {
+          ...s.definition,
+          pages: s.definition.pages.map((p, i) =>
+            i === 0
+              ? { ...p, sections: [{ ...p.sections[0], elements }] }
+              : p,
+          ),
+        },
+        selection: { ...s.selection, selectedElementIds: ['multi-1', 'multi-2'] },
+      }
+    })
+  }, [])
+  return <PropertiesPanel />
+}
+
 export const MultipleSelected: Story = {
-  render: () => {
-    useEffect(() => {
-      const el1 = createTextElement({ id: 'multi-1' })
-      const el2 = createShapeElement({ id: 'multi-2' })
-      useReportStore.setState((s) => {
-        const elements = [el1, el2]
-        return {
-          definition: {
-            ...s.definition,
-            pages: s.definition.pages.map((p, i) =>
-              i === 0
-                ? { ...p, sections: [{ ...p.sections[0], elements }] }
-                : p,
-            ),
-          },
-          selection: { ...s.selection, selectedElementIds: ['multi-1', 'multi-2'] },
-        }
-      })
-    }, [])
-    return <PropertiesPanel />
-  },
+  render: () => <MultipleSelectedSetup />,
 }

@@ -4,11 +4,10 @@
  */
 
 import { useState } from 'react'
-import { Plus, Trash2, X, Eye, EyeOff, Pencil, Check } from 'lucide-react'
+import { Plus, Trash2, X, Eye, EyeOff, Pencil } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { useShallow } from 'zustand/shallow'
 import type { OutputVariant, MaskingRule } from '@/types'
-import { v4 as uuidv4 } from 'uuid'
 
 interface Props {
   open: boolean

@@ -6,7 +6,6 @@ import {
   createTextElement,
   createShapeElement,
   createImageElement,
-  createLabelElement,
 } from '@/lib/elementFactories'
 
 beforeEach(() => {
@@ -82,7 +81,7 @@ describe('PropertiesPanel — 要素名・表示設定', () => {
 
 describe('PropertiesPanel — 複製と削除', () => {
   it('duplicates element when 複製 is clicked', () => {
-    const el = addAndSelectElement(createTextElement)
+    addAndSelectElement(createTextElement)
     render(<PropertiesPanel />)
     const page = useReportStore.getState().definition.pages[0]
     const beforeCount = page.sections.flatMap((s) => s.elements).length
@@ -95,7 +94,7 @@ describe('PropertiesPanel — 複製と削除', () => {
   })
 
   it('removes element when 削除 is clicked', () => {
-    const el = addAndSelectElement(createTextElement)
+    addAndSelectElement(createTextElement)
     render(<PropertiesPanel />)
     const page = useReportStore.getState().definition.pages[0]
     const beforeCount = page.sections.flatMap((s) => s.elements).length
@@ -223,7 +222,7 @@ describe('PropertiesPanel — ElementCommonSection interactions', () => {
   it('shows variant checkbox when variants exist', () => {
     // Add a variant first
     useReportStore.getState().addVariant('テストバリアント')
-    const el = addAndSelectElement(createTextElement)
+    addAndSelectElement(createTextElement)
     render(<PropertiesPanel />)
     expect(screen.getByText('バリアント非表示')).toBeInTheDocument()
     expect(screen.getByText('テストバリアント')).toBeInTheDocument()
@@ -232,8 +231,6 @@ describe('PropertiesPanel — ElementCommonSection interactions', () => {
   it('toggles element hidden in variant when checkbox changes', () => {
     useReportStore.getState().addVariant('バリアントX')
     const el = addAndSelectElement(createTextElement)
-    const variantId = useReportStore.getState().definition.outputVariants[0].id
-
     render(<PropertiesPanel />)
     const variantCheckbox = screen.getByRole('checkbox', { name: 'バリアントX' })
     fireEvent.click(variantCheckbox)

@@ -130,7 +130,6 @@ describe('ConditionalDisplayEditor — 条件削除', () => {
 
 describe('ConditionalDisplayEditor — カスタム fieldOptions', () => {
   it('renders field select when fieldOptions provided', () => {
-    const options = [{ value: 'name', label: '名前' }]
     renderEditor(
       { logic: 'and', conditions: [{ id: 'c1', fieldPath: '', operator: 'equals', value: '' }] },
       vi.fn(),

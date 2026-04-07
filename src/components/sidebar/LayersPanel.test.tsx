@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { LayersPanel } from './LayersPanel'
-import { createTextElement, createShapeElement, createLabelElement } from '@/lib/elementFactories'
+import { createTextElement, createShapeElement } from '@/lib/elementFactories'
 
 beforeEach(() => {
   useReportStore.getState().newReport()

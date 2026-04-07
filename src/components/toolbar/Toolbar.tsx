@@ -70,7 +70,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const activePage = useReportStore(selectActivePage)
   // When both panels have the same zoom, show it; otherwise indicate mismatch
   const zoomsMatch = editorZoom === previewZoom
-  const displayZoom = zoomsMatch ? editorZoom : null
   const [inputZoom, setInputZoom] = useState<string | null>(null)
   const showGrid = useReportStore((s) => s.showGrid)
   const toggleGrid = useReportStore((s) => s.toggleGrid)

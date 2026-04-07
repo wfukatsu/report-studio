@@ -63,7 +63,6 @@ describe('PagePanel', () => {
   it('renames a page when the page name input changes', () => {
     render(<PagePanel />)
     const state = useReportStore.getState()
-    const firstPageId = state.definition.pages[0].id
 
     const input = screen.getByDisplayValue(state.definition.pages[0].name)
     fireEvent.change(input, { target: { value: '新しいページ名' } })
