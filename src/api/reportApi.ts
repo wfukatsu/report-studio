@@ -168,8 +168,8 @@ export async function evaluateCalculations(
 }
 
 /**
- * Validate the report against validation rules (P2 stub — not called in P1).
- * Wire up in P2 when the "Validate" UI action is implemented.
+ * Validate the report against validation rules.
+ * Called by Toolbar.handleValidate() when the user clicks the Validate button.
  */
 export async function evaluateValidate(
   templateId: string,
