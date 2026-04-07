@@ -1,7 +1,7 @@
 ---
 title: "feat: V1バックエンド × V2フロントエンド統合"
 type: feat
-status: active
+status: completed
 date: 2026-04-06
 origin: docs/brainstorms/2026-04-06-v1-backend-integration-brainstorm.md
 deepened: 2026-04-06
@@ -535,15 +535,15 @@ export function isSafeImageSrc(src: string): boolean {
 - [x] `src/components/common/SaveStatusIndicator.tsx` — 保存状態インジケーター
 
 **V1 Java Backend:**
-- [ ] V1 `ExpressionEngine.java` — `JexlSandbox` + `JexlPermissions.RESTRICTED` 設定（**CRITICAL C-2**）。`calculationRules[*].expression` と `elements[*].visibilityRule` の両パスに適用されること
-- [ ] V1 `ApiV2Routes.java` 追加（既存 ApiRoutes と同一クラスに追加 or 新 Route クラス）
-- [ ] V1 DB: `templates` テーブルに `v2_definition_json TEXT`, `v2_updated_at INTEGER` カラム追加
-- [ ] V1 DB: `template_versions_v2` テーブル作成
-- [ ] V1 `TemplateV2Controller.java` (or 既存に追加) — CRUD 5エンドポイント、payload 最大 16MB 制限
-- [ ] V1 `GET /api/v2/health` — 204レスポンス（DB接続確認込み）
-- [ ] V1 グローバル例外ハンドラー — stack trace を返さない `{ code, message }` のみ
-- [ ] V1 CORS — production ドメインを環境変数で設定
-- [ ] V1 `/api/v2/evaluate/calculations` の rate limit（10req/10s per session）
+- [x] V1 `ExpressionEngine.java` — `JexlSandbox` + `JexlPermissions.RESTRICTED` 設定（**CRITICAL C-2**）。`calculationRules[*].expression` と `elements[*].visibilityRule` の両パスに適用されること
+- [x] V1 `ApiV2Routes.java` 追加（既存 ApiRoutes と同一クラスに追加 or 新 Route クラス）
+- [x] V1 DB: `templates` テーブルに `v2_definition_json TEXT`, `v2_updated_at INTEGER` カラム追加
+- [x] V1 DB: `template_versions_v2` テーブル作成
+- [x] V1 `TemplateV2Controller.java` (or 既存に追加) — CRUD 5エンドポイント、payload 最大 16MB 制限
+- [x] V1 `GET /api/v2/health` — 204レスポンス（DB接続確認込み）
+- [x] V1 グローバル例外ハンドラー — stack trace を返さない `{ code, message }` のみ
+- [x] V1 CORS — production ドメインを環境変数で設定
+- [x] V1 `/api/v2/evaluate/calculations` の rate limit（10req/10s per session）
 
 **Tests:**
 - [x] `src/lib/exportUtils.test.ts` — `isSafeImageSrc` の `http://` / SVG / `''` が `false` を返すことを確認
@@ -587,19 +587,19 @@ export function isSafeImageSrc(src: string): boolean {
 - [x] `src/store/layoutSlice.ts` — `newReport()` に `invalidateComputed()` 追加
 
 **V1 Java Backend:**
-- [ ] V1 `EvaluateV2Controller.java` — `POST /api/v2/evaluate/calculations` 実装
+- [x] V1 `EvaluateV2Controller.java` — `POST /api/v2/evaluate/calculations` 実装
   - `CalculationEngine.java` を V2 `CalculationRule[]` 入力に対応
   - payload 制限: rules max 50, expression max 500 chars, data depth max 5
   - JEXL timeout: `Future.get(500, MILLISECONDS)`（設定フラグでなくJVMレベルで強制）
   - 循環参照検出 → HTTP 422
-- [ ] V1 `EvaluateV2Controller.java` — `POST /api/v2/evaluate/validate`
-- [ ] V1 `visibilityRule` expression の character allowlist 検証
+- [x] V1 `EvaluateV2Controller.java` — `POST /api/v2/evaluate/validate`
+- [x] V1 `visibilityRule` expression の character allowlist 検証
 
 **Tests:**
 - [x] `src/hooks/useEvaluator.test.ts`（concurrent 評価の out-of-order 防止、main store への結果反映、unmount cleanup）
 - [x] `src/store/computedSlice.test.ts`（invalidation、ComputedValue の null 許容確認）
 - [x] `src/lib/dataBinding.test.ts`（computed値統合）
-- [ ] V1 Java: JEXL injection テスト（class.forName 等が拒否されること）
+- [x] V1 Java: JEXL injection テスト（class.forName 等が拒否されること）
 
 **成功基準:**
 - `{{sum(items, 'price')}}` が プレビューで正しく集計される
@@ -623,7 +623,7 @@ export function isSafeImageSrc(src: string): boolean {
 - [x] App.tsx LEFT_TABS に「バージョン」タブを追加して `VersionHistoryPanel` をレンダリング
 
 **V1 Java Backend:**
-- [ ] V1 `VersionV2Controller.java` — GET/POST/POST-restore エンドポイント
+- [x] V1 `VersionV2Controller.java` — GET/POST/POST-restore エンドポイント
   - スナップショットはフルコピー（diff 不可）
   - version_number はatomic counter（templates行の counter カラムをトランザクションで更新）
 
@@ -709,33 +709,33 @@ calculationRules or testData 変更
 ### Functional Requirements
 
 **P0:**
-- [ ] テンプレートを保存するとデータがV1 ScalarDBに永続化される
-- [ ] ページリロード後、同じテンプレートIDで前回の状態が復元される
-- [ ] V1バックエンド未起動時に「オフライン」バッジが表示され、SPA動作が継続する
-- [ ] 認証なしでアクセス時に `/login` へリダイレクトされる
-- [ ] ゴーストセーブが発生しない（concurrent load + debounce テスト）
+- [x] テンプレートを保存するとデータがV1 ScalarDBに永続化される
+- [x] ページリロード後、同じテンプレートIDで前回の状態が復元される
+- [x] V1バックエンド未起動時に「オフライン」バッジが表示され、SPA動作が継続する
+- [x] 認証なしでアクセス時に `/login` へリダイレクトされる
+- [x] ゴーストセーブが発生しない（concurrent load + debounce テスト）
 
 **P1:**
-- [ ] `{{sum(items, 'price')}}` が プレビューで正しく集計される
-- [ ] CalculationRule の依存関係順に評価される
-- [ ] ValidationRule の違反がプロパティパネルに表示される
-- [ ] バックエンド評価の間は「計算中...」インジケーターが表示される
-- [ ] JEXL injection テストが拒否される
+- [x] `{{sum(items, 'price')}}` が プレビューで正しく集計される
+- [x] CalculationRule の依存関係順に評価される
+- [x] ValidationRule の違反がプロパティパネルに表示される
+- [x] バックエンド評価の間は「計算中...」インジケーターが表示される
+- [x] JEXL injection テストが拒否される
 
 **P2:**
-- [ ] テンプレート編集ごとにバージョンが作成できる
-- [ ] 任意バージョンに復元できる
-- [ ] 復元後にundo/redo履歴がリセットされる
+- [x] テンプレート編集ごとにバージョンが作成できる
+- [x] 任意バージョンに復元できる
+- [x] 復元後にundo/redo履歴がリセットされる
 
 ### Non-Functional Requirements
-- [ ] 自動保存が2秒以内に開始される（デバウンス後）
-- [ ] 自動保存は full PUT（JSON Patch なし、`fast-json-patch` 依存なし）
-- [ ] 計算評価のUI応答が800ms以内（デバウンス後）
-- [ ] API通信のテストカバレッジ 80% 以上（ブランチ・行・関数・ステートメント）
-- [ ] `src/api/` の全関数で Zod スキーマ検証が通ること
-- [ ] JEXL evaluation endpoint に rate limit (10req/10s per session)
-- [ ] セッション Cookie に `HttpOnly; Secure; SameSite=Lax` が設定されていること
-- [ ] `isSafeImageSrc` がSVG data URIを拒否すること
+- [x] 自動保存が2秒以内に開始される（デバウンス後）
+- [x] 自動保存は full PUT（JSON Patch なし、`fast-json-patch` 依存なし）
+- [x] 計算評価のUI応答が800ms以内（デバウンス後）
+- [x] API通信のテストカバレッジ 80% 以上（ブランチ・行・関数・ステートメント）
+- [x] `src/api/` の全関数で Zod スキーマ検証が通ること
+- [x] JEXL evaluation endpoint に rate limit (10req/10s per session)
+- [x] セッション Cookie に `HttpOnly; Secure; SameSite=Lax` が設定されていること
+- [x] `isSafeImageSrc` がSVG data URIを拒否すること
 
 ---
 
@@ -758,16 +758,16 @@ PRAGMA table_info(templates);
 
 | # | 基準 | 確認 |
 |---|------|------|
-| G1 | SQLite baseline row count 保存済み | [ ] |
-| G2 | `v2_definition_json` カラム migration 前に存在しない | [ ] |
-| G3 | WAL ファイルなし | [ ] |
-| G4 | `/api/v1/` 全エンドポイント 2xx 確認 | [ ] |
-| G5 | `/api/v2/` が migration 前 404 であること | [ ] |
-| G6 | CORS preflight が V2 production origin に対して正しいヘッダーを返す | [ ] |
-| G7 | Port 8080 以外に競合なし | [ ] |
-| G8 | JEXL sandbox が設定されていること（`JexlPermissions.RESTRICTED`） | [ ] |
-| G9 | `isSafeImageSrc` SVG 拒否テスト合格 | [ ] |
-| G10 | staging で3サービス連携 end-to-end 合格 | [ ] |
+| G1 | SQLite baseline row count 保存済み | [x] |
+| G2 | `v2_definition_json` カラム migration 前に存在しない | [x] |
+| G3 | WAL ファイルなし | [x] |
+| G4 | `/api/v1/` 全エンドポイント 2xx 確認 | [x] |
+| G5 | `/api/v2/` が migration 前 404 であること | [x] |
+| G6 | CORS preflight が V2 production origin に対して正しいヘッダーを返す | [x] |
+| G7 | Port 8080 以外に競合なし | [x] |
+| G8 | JEXL sandbox が設定されていること（`JexlPermissions.RESTRICTED`） | [x] |
+| G9 | `isSafeImageSrc` SVG 拒否テスト合格 | [x] |
+| G10 | staging で3サービス連携 end-to-end 合格 | [x] |
 
 **いずれか NO = デプロイ中止**
 

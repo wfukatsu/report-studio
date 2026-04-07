@@ -1,7 +1,7 @@
 ---
 title: "feat: Phase 1 帳票デザインスタジオ — 全面実装"
 type: feat
-status: active
+status: completed
 date: 2026-04-05
 origin: docs/brainstorms/2026-04-05-report-definition-studio-architecture-brainstorm.md
 ---
@@ -844,41 +844,41 @@ TemplateSettingsDialog.saveCalculationRule
 
 ### 機能要件
 
-- [ ] 12 種類の Element をパレットからキャンバスに追加できる
-- [ ] 全 Element をキャンバス上でドラッグ移動・リサイズできる
-- [ ] Section が視覚的なコンテナ帯として表示される（ヘッダー・ボーダー・ラベル）
-- [ ] Section の順序をドラッグ&ドロップで変更できる
-- [ ] Section 高さをリサイズハンドルで変更できる
-- [ ] TextElement をダブルクリックしてインライン編集できる
-- [ ] `@` で始まるメンションにより変数候補ピッカーが表示される
-- [ ] `{{key}}` トークンがプレビュー時にデータ値で置換される
-- [ ] TemplateSettingsDialog でテンプレート変数と計算式を編集できる
-- [ ] Layer Panel で全要素の階層ツリーが表示される
-- [ ] Layer Panel で visible/locked トグル、名前変更ができる
-- [ ] DataSource Panel に JSON を貼り付けるとフィールドツリーが更新される
-- [ ] Properties Panel で BasicPropsTab / StylePropertiesTab が機能する
-- [ ] StylePropertiesTab で CSS inherit モデルが正しく動作する（undefined = デフォルト継承）
-- [ ] Undo/Redo が layout + rules の変更を atomic に復元する
-- [ ] 帳票が localStorage に自動保存され、リロード後に復元される
-- [ ] JSON エクスポートで `ReportDefinition` 形式のファイルが出力される
-- [ ] PDF エクスポートで mm 座標が正しく pt に変換される
+- [x] 12 種類の Element をパレットからキャンバスに追加できる
+- [x] 全 Element をキャンバス上でドラッグ移動・リサイズできる
+- [x] Section が視覚的なコンテナ帯として表示される（ヘッダー・ボーダー・ラベル）
+- [x] Section の順序をドラッグ&ドロップで変更できる
+- [x] Section 高さをリサイズハンドルで変更できる
+- [x] TextElement をダブルクリックしてインライン編集できる
+- [x] `@` で始まるメンションにより変数候補ピッカーが表示される
+- [x] `{{key}}` トークンがプレビュー時にデータ値で置換される
+- [x] TemplateSettingsDialog でテンプレート変数と計算式を編集できる
+- [x] Layer Panel で全要素の階層ツリーが表示される
+- [x] Layer Panel で visible/locked トグル、名前変更ができる
+- [x] DataSource Panel に JSON を貼り付けるとフィールドツリーが更新される
+- [x] Properties Panel で BasicPropsTab / StylePropertiesTab が機能する
+- [x] StylePropertiesTab で CSS inherit モデルが正しく動作する（undefined = デフォルト継承）
+- [x] Undo/Redo が layout + rules の変更を atomic に復元する
+- [x] 帳票が localStorage に自動保存され、リロード後に復元される
+- [x] JSON エクスポートで `ReportDefinition` 形式のファイルが出力される
+- [x] PDF エクスポートで mm 座標が正しく pt に変換される
 
 ### 日本語固有要件
 
-- [ ] DataFieldElement で `format: 'wareki_full'` が令和年号で表示される
-- [ ] TextElement で `writingMode: 'vertical-rl'` が縦書き表示される
-- [ ] HankoElement が SVG で円形二重枠として表示される
-- [ ] ApprovalStampRowElement が多段印鑑欄として表示される（5段デフォルト）
-- [ ] RevenueStampElement が「収入印紙」ラベル付きの枠として表示される
-- [ ] BarcodeElement（QR）が `qrcode.react` で正しく表示される
-- [ ] `toKanjiNumeral(1000000)` → `"金百万円也"` が正確
+- [x] DataFieldElement で `format: 'wareki_full'` が令和年号で表示される
+- [x] TextElement で `writingMode: 'vertical-rl'` が縦書き表示される
+- [x] HankoElement が SVG で円形二重枠として表示される
+- [x] ApprovalStampRowElement が多段印鑑欄として表示される（5段デフォルト）
+- [x] RevenueStampElement が「収入印紙」ラベル付きの枠として表示される
+- [x] BarcodeElement（QR）が `qrcode.react` で正しく表示される
+- [x] `toKanjiNumeral(1000000)` → `"金百万円也"` が正確
 
 ### 非機能要件
 
-- [ ] `npm run build` が型エラーゼロで通る
-- [ ] テストカバレッジが 80% 以上（lib/ を中心に）
-- [ ] 100 要素のキャンバスで 60fps を維持（不要な re-render がない）
-- [ ] Storybook が全 stories エラーなし
+- [x] `npm run build` が型エラーゼロで通る
+- [x] テストカバレッジが 80% 以上（lib/ を中心に）
+- [x] 100 要素のキャンバスで 60fps を維持（不要な re-render がない）
+- [x] Storybook が全 stories エラーなし
 
 ---
 
@@ -923,50 +923,50 @@ npm install -D @types/react-router-dom
 
 ### 新規作成ファイル
 
-- [ ] `src/lib/textStyleUtils.ts`
-- [ ] `src/lib/textStyleUtils.test.ts`
-- [ ] `src/lib/tokenParser.ts`
-- [ ] `src/lib/tokenParser.test.ts`
-- [ ] `src/lib/calculationEngine.ts`
-- [ ] `src/lib/calculationEngine.test.ts`
-- [ ] `src/store/types.ts`
-- [ ] `src/store/layoutSlice.ts`
-- [ ] `src/store/layoutSlice.test.ts`
-- [ ] `src/store/rulesSlice.ts`
-- [ ] `src/store/rulesSlice.test.ts`
-- [ ] `src/store/historySlice.ts`
-- [ ] `src/store/historySlice.test.ts`
-- [ ] `src/store/store.ts`
-- [ ] `src/store/selectors.ts`
-- [ ] `src/store/index.ts`
-- [ ] `src/hooks/useInlineEdit.ts`
-- [ ] `src/hooks/useLocalStoragePersistence.ts`
-- [ ] `src/components/canvas/SectionContainer.tsx`
-- [ ] `src/components/canvas/TextInlineEditor.tsx`
-- [ ] `src/components/canvas/MentionPicker.tsx`
-- [ ] `src/components/sidebar/LayerPanel.tsx`
-- [ ] `src/components/sidebar/tabs/BasicPropsTab.tsx`
-- [ ] `src/components/sidebar/tabs/StylePropertiesTab.tsx`
-- [ ] `src/components/sidebar/tabs/BindingPropertiesTab.tsx`
-- [ ] `src/components/sidebar/tabs/VisibilityRuleTab.tsx`
-- [ ] `src/components/dialogs/TemplateSettingsDialog.tsx`
-- [ ] `src/pages/EditorPage.tsx`
-- [ ] `src/pages/TemplateGalleryPage.tsx`
+- [x] `src/lib/textStyleUtils.ts`
+- [x] `src/lib/textStyleUtils.test.ts`
+- [x] `src/lib/tokenParser.ts`
+- [x] `src/lib/tokenParser.test.ts`
+- [x] `src/lib/calculationEngine.ts`
+- [x] `src/lib/calculationEngine.test.ts`
+- [x] `src/store/types.ts`
+- [x] `src/store/layoutSlice.ts`
+- [x] `src/store/layoutSlice.test.ts`
+- [x] `src/store/rulesSlice.ts`
+- [x] `src/store/rulesSlice.test.ts`
+- [x] `src/store/historySlice.ts`
+- [x] `src/store/historySlice.test.ts`
+- [x] `src/store/store.ts`
+- [x] `src/store/selectors.ts`
+- [x] `src/store/index.ts`
+- [x] `src/hooks/useInlineEdit.ts`
+- [x] `src/hooks/useLocalStoragePersistence.ts`
+- [x] `src/components/canvas/SectionContainer.tsx`
+- [x] `src/components/canvas/TextInlineEditor.tsx`
+- [x] `src/components/canvas/MentionPicker.tsx`
+- [x] `src/components/sidebar/LayerPanel.tsx`
+- [x] `src/components/sidebar/tabs/BasicPropsTab.tsx`
+- [x] `src/components/sidebar/tabs/StylePropertiesTab.tsx`
+- [x] `src/components/sidebar/tabs/BindingPropertiesTab.tsx`
+- [x] `src/components/sidebar/tabs/VisibilityRuleTab.tsx`
+- [x] `src/components/dialogs/TemplateSettingsDialog.tsx`
+- [x] `src/pages/EditorPage.tsx`
+- [x] `src/pages/TemplateGalleryPage.tsx`
 
 ### 更新ファイル
 
-- [ ] `src/store/reportStore.ts` → 削除 or deprecated stub のみ残す
-- [ ] `src/components/canvas/ReportCanvas.tsx` — Section 対応
-- [ ] `src/components/canvas/CanvasElement.tsx` — inline edit DblClick、mm 座標
-- [ ] `src/components/canvas/ElementRenderer.tsx` — scale/defaultTextStyle 対応
-- [ ] `src/components/sidebar/PropertiesPanel.tsx` — タブ切り替えロジック
-- [ ] `src/components/sidebar/DataSourcePanel.tsx` — 実装
-- [ ] `src/components/sidebar/PagePanel.tsx` — layoutSlice 接続
-- [ ] `src/components/toolbar/Toolbar.tsx` — historyStore 接続
-- [ ] `src/App.tsx` — Router 設定
-- [ ] `src/templates/builtinTemplates.ts` — ReportDefinition 形式に更新
-- [ ] `src/lib/exportUtils.ts` — mm → pt PDF 変換
-- [ ] Storybook stories（4ファイル）
+- [x] `src/store/reportStore.ts` → 削除 or deprecated stub のみ残す
+- [x] `src/components/canvas/ReportCanvas.tsx` — Section 対応
+- [x] `src/components/canvas/CanvasElement.tsx` — inline edit DblClick、mm 座標
+- [x] `src/components/canvas/ElementRenderer.tsx` — scale/defaultTextStyle 対応
+- [x] `src/components/sidebar/PropertiesPanel.tsx` — タブ切り替えロジック
+- [x] `src/components/sidebar/DataSourcePanel.tsx` — 実装
+- [x] `src/components/sidebar/PagePanel.tsx` — layoutSlice 接続
+- [x] `src/components/toolbar/Toolbar.tsx` — historyStore 接続
+- [x] `src/App.tsx` — Router 設定
+- [x] `src/templates/builtinTemplates.ts` — ReportDefinition 形式に更新
+- [x] `src/lib/exportUtils.ts` — mm → pt PDF 変換
+- [x] Storybook stories（4ファイル）
 
 ---
 
