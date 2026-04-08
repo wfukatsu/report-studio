@@ -1,10 +1,10 @@
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   Bold, Italic, Underline, Strikethrough,
 } from 'lucide-react'
 import type { TextElement } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput, IconToggle } from '@/elements/_base/sharedUI'
+import { TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon } from '@/elements/_base/TextVerticalAlignIcons'
 import { TokenInput } from '@/components/common/TokenInput'
 
 const FONT_FAMILIES = [
@@ -66,9 +66,9 @@ export function TextPropertiesPanel({ el, onChange }: Props) {
           <div className="flex gap-1 mt-1">
             {(['top', 'middle', 'bottom'] as const).map((va) => (
               <IconToggle key={va} active={style.verticalAlign === va} onClick={() => onStyle({ verticalAlign: va })} title={va}>
-                {va === 'top' && <AlignStartVertical className="w-3.5 h-3.5" />}
-                {va === 'middle' && <AlignCenterVertical className="w-3.5 h-3.5" />}
-                {va === 'bottom' && <AlignEndVertical className="w-3.5 h-3.5" />}
+                {va === 'top' && <TextAlignTopIcon className="w-3.5 h-3.5" />}
+                {va === 'middle' && <TextAlignMiddleIcon className="w-3.5 h-3.5" />}
+                {va === 'bottom' && <TextAlignBottomIcon className="w-3.5 h-3.5" />}
               </IconToggle>
             ))}
           </div>
