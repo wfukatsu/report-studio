@@ -54,7 +54,6 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
           textAlign: innerTextAlign as React.CSSProperties['textAlign'],
-          textAlignLast: !isVertical && style.textAlign === 'justify' ? 'justify' : undefined,
           letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
           lineHeight: style.lineHeight ?? 1.4,
           paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,

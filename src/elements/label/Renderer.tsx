@@ -54,7 +54,6 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
           textAlign: innerTextAlign as React.CSSProperties['textAlign'],
-          textAlignLast: !isVertical && style.textAlign === 'justify' ? 'justify' : undefined,
           whiteSpace: 'pre-wrap',
           wordBreak: isVertical ? ('break-all' as const) : 'break-word',
           width: isVertical ? undefined : '100%',

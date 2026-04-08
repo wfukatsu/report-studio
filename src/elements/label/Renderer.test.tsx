@@ -68,13 +68,14 @@ describe('LabelRenderer — 横書きモード アライメント', () => {
     expect(inner.style.textAlign).toBe(expected)
   })
 
-  // 横揃え justify → text-align-last: justify
-  it('横揃え justify → text-align-last: justify', () => {
+  // 横揃え justify → inner div が width:100%（ブロック全幅でjustifyが効く）
+  it('横揃え justify → inner width: 100%', () => {
     const { container } = render(
       <LabelRenderer element={makeElement({ style: s({ textAlign: 'justify' }) })} />,
     )
     const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.textAlignLast).toBe('justify')
+    expect(inner.style.width).toBe('100%')
+    expect(inner.style.textAlign).toBe('justify')
   })
 
   // 縦揃え → outer の flex justify-content（flex-direction: column）
