@@ -27,7 +27,6 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
     displayValue = String(raw)
   }
 
-  const hAlign = toFlexAlign(style.textAlign, 'flex-start')
   const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
 
   return (
@@ -36,20 +35,21 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
         width: '100%',
         height: '100%',
         display: 'flex',
-        justifyContent: hAlign,
-        alignItems: vAlign,
+        flexDirection: 'column',
+        justifyContent: vAlign,
         overflow: 'hidden',
       }}
     >
-      <span
+      <div
         style={{
           writingMode: isVertical ? 'vertical-rl' : undefined,
           fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
           fontWeight: style.fontWeight ?? 'normal',
           color: style.color ?? '#000000',
           fontFamily: style.fontFamily,
-          maxWidth: '100%',
-          maxHeight: '100%',
+          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          width: isVertical ? undefined : '100%',
+          height: isVertical ? '100%' : undefined,
         }}
       >
         {displayValue || (
@@ -57,7 +57,7 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
             {el.label ?? el.fieldKey}
           </span>
         )}
-      </span>
+      </div>
     </div>
   )
 })

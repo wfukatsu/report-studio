@@ -17,8 +17,6 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
   const content = interpolate(el.content, data)
   const style = el.style
   const isVertical = style.writingMode === 'vertical-rl'
-  const isJustify = style.textAlign === 'justify'
-  const hAlign = toFlexAlign(style.textAlign, 'flex-start')
   const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
 
   return (
@@ -27,12 +25,12 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
         width: '100%',
         height: '100%',
         display: 'flex',
-        justifyContent: isJustify ? 'flex-start' : hAlign,
-        alignItems: vAlign,
+        flexDirection: 'column',
+        justifyContent: vAlign,
         overflow: 'hidden',
       }}
     >
-      <span
+      <div
         style={{
           writingMode: isVertical ? 'vertical-rl' : undefined,
           fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
@@ -43,6 +41,7 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
           textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
           lineHeight: style.lineHeight ?? 1.4,
           paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,
@@ -51,9 +50,8 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           paddingLeft: style.paddingLeft != null ? `${style.paddingLeft}mm` : undefined,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          width: isJustify ? '100%' : undefined,
-          maxWidth: '100%',
-          maxHeight: '100%',
+          width: isVertical ? undefined : '100%',
+          height: isVertical ? '100%' : undefined,
         }}
       >
         {el.furigana ? (
@@ -64,7 +62,7 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
         ) : (
           content
         )}
-      </span>
+      </div>
     </div>
   )
 })

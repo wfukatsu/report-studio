@@ -14,9 +14,6 @@ function toFlexAlign(value: string | undefined, fallback: string): string {
 export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props) {
   const style = el.style
   const isVertical = style.writingMode === 'vertical-rl'
-  const isJustify = style.textAlign === 'justify'
-
-  const hAlign = toFlexAlign(style.textAlign, 'flex-start')
   const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
 
   return (
@@ -25,13 +22,13 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
         width: '100%',
         height: '100%',
         display: 'flex',
-        justifyContent: isJustify ? 'flex-start' : hAlign,
-        alignItems: vAlign,
+        flexDirection: 'column',
+        justifyContent: vAlign,
         overflow: 'hidden',
         userSelect: 'none',
       }}
     >
-      <span
+      <div
         style={{
           writingMode: isVertical ? 'vertical-rl' : undefined,
           fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
@@ -41,15 +38,15 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
           textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           whiteSpace: 'pre-wrap',
-          wordBreak: isVertical ? ('break-all' as const) : undefined,
-          width: isJustify ? '100%' : undefined,
-          maxWidth: '100%',
-          maxHeight: '100%',
+          wordBreak: isVertical ? ('break-all' as const) : 'break-word',
+          width: isVertical ? undefined : '100%',
+          height: isVertical ? '100%' : undefined,
         }}
       >
         {el.text}
-      </span>
+      </div>
     </div>
   )
 })
