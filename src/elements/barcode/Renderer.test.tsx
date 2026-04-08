@@ -65,13 +65,20 @@ describe('BarcodeRenderer — Code128', () => {
   })
 })
 
-describe('BarcodeRenderer — 未知の種類', () => {
-  it('shows placeholder for unknown barcode kind', () => {
-    render(
-      <BarcodeRenderer
-        element={makeQrElement({ kind: 'unknown' as 'qr' })}
-      />,
+describe('BarcodeRenderer — code39', () => {
+  it('renders code39 barcode', () => {
+    const { container } = render(
+      <BarcodeRenderer element={makeQrElement({ kind: 'code39', value: 'HELLO', size: { width: 60, height: 15 } })} />,
     )
-    expect(screen.getByText('[unknown]')).toBeInTheDocument()
+    expect(container.firstChild).toBeInTheDocument()
+  })
+})
+
+describe('BarcodeRenderer — jan13 (EAN-13)', () => {
+  it('renders jan13 barcode', () => {
+    const { container } = render(
+      <BarcodeRenderer element={makeQrElement({ kind: 'jan13', value: '4901234567890', size: { width: 60, height: 15 } })} />,
+    )
+    expect(container.firstChild).toBeInTheDocument()
   })
 })

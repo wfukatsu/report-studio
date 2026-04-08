@@ -295,6 +295,16 @@ export interface ChartElement extends ElementBase {
   chartType: 'bar' | 'line' | 'pie' | 'donut'
   dataBinding?: string
   title?: string
+  /** X軸に使うデータキー (default: 'name') */
+  xAxisKey?: string
+  /** Y軸に使うデータキー (複数系列対応) */
+  yAxisKeys?: string[]
+  /** カスタムカラーパレット */
+  colors?: string[]
+  /** 凡例表示 (default: true) */
+  showLegend?: boolean
+  /** グリッド表示 (default: true) */
+  showGrid?: boolean
 }
 
 export interface DataFieldElement extends ElementBase {

@@ -78,7 +78,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'shape':           return <ShapeRenderer element={element} />
     // table → formTable migration: render as placeholder until manually converted
     case 'table':           return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef3c7', border: '1px solid #f59e0b', fontSize: '2.5mm', color: '#92400e' }}>旧テーブル要素 — formTable に変換してください</div>
-    case 'chart':           return <ChartRenderer element={element} />
+    case 'chart':           return <ChartRenderer element={element} data={mergedData} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
     case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
     case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
