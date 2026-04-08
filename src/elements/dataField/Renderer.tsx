@@ -2,16 +2,11 @@ import { memo } from 'react'
 import type { DataFieldElement } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { applyFormat } from '@/lib/numberFormatter'
+import { toFlexAlign } from '@/elements/_base/styleUtils'
 
 interface Props {
   element: DataFieldElement
   data?: Record<string, unknown>
-}
-
-function toFlexAlign(value: string | undefined): string {
-  if (value === 'center' || value === 'middle') return 'center'
-  if (value === 'right' || value === 'bottom' || value === 'end') return 'flex-end'
-  return 'flex-start'
 }
 
 export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, data = {} }: Props) {
@@ -43,10 +38,13 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
         style={{
           fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
           fontWeight: style.fontWeight ?? 'normal',
+          fontStyle: style.fontStyle ?? 'normal',
           color: style.color ?? '#000000',
           fontFamily: style.fontFamily,
-          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlign: style.textAlign ?? 'left',
           textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
+          whiteSpace: 'pre-wrap',
+          wordBreak: isVertical ? 'break-all' : 'break-word',
           alignSelf: 'stretch',
         }}
       >

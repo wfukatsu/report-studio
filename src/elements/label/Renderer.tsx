@@ -1,14 +1,9 @@
 import { memo } from 'react'
 import type { LabelElement } from '@/types'
+import { toFlexAlign } from '@/elements/_base/styleUtils'
 
 interface Props {
   element: LabelElement
-}
-
-function toFlexAlign(value: string | undefined): string {
-  if (value === 'center' || value === 'middle') return 'center'
-  if (value === 'right' || value === 'bottom' || value === 'end') return 'flex-end'
-  return 'flex-start'
 }
 
 export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props) {
@@ -40,10 +35,10 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
           color: style.color ?? '#000000',
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
-          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlign: style.textAlign ?? 'left',
           textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           whiteSpace: 'pre-wrap',
-          wordBreak: isVertical ? ('break-all' as const) : 'break-word',
+          wordBreak: isVertical ? 'break-all' : 'break-word',
           alignSelf: 'stretch',
         }}
       >

@@ -1,8 +1,7 @@
 import { memo } from 'react'
 import type { EraSelectElement } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
-
-const DEFAULT_ERAS = ['明', '大', '昭', '平', '令']
+import { DEFAULT_ERAS } from './constants'
 
 interface Props {
   element: EraSelectElement
@@ -13,7 +12,7 @@ export const EraSelectRenderer = memo(function EraSelectRenderer({ element: el, 
   const selected = el.dataSource ? resolveField(data, el.dataSource) : ''
   const eras = el.eras ?? DEFAULT_ERAS
   const layout = el.layout ?? 'column'
-  const count = eras.length
+  const count = Math.max(eras.length, 1)
 
   // フォントサイズ: レイアウトと元号数に応じて自動計算
   const rawFontSize = layout === 'row'

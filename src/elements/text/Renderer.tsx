@@ -1,16 +1,11 @@
 import { memo } from 'react'
 import type { TextElement } from '@/types'
 import { interpolate } from '@/lib/dataBinding'
+import { toFlexAlign } from '@/elements/_base/styleUtils'
 
 interface Props {
   element: TextElement
   data?: Record<string, unknown>
-}
-
-function toFlexAlign(value: string | undefined): string {
-  if (value === 'center' || value === 'middle') return 'center'
-  if (value === 'right' || value === 'bottom' || value === 'end') return 'flex-end'
-  return 'flex-start'
 }
 
 export const TextRenderer = memo(function TextRenderer({ element: el, data = {} }: Props) {
@@ -39,7 +34,7 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           color: style.color ?? '#000000',
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
-          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlign: style.textAlign ?? 'left',
           textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
           lineHeight: style.lineHeight ?? 1.4,
@@ -48,7 +43,7 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           paddingBottom: style.paddingBottom != null ? `${style.paddingBottom}mm` : undefined,
           paddingLeft: style.paddingLeft != null ? `${style.paddingLeft}mm` : undefined,
           whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
+          wordBreak: isVertical ? 'break-all' : 'break-word',
           alignSelf: 'stretch',
         }}
       >

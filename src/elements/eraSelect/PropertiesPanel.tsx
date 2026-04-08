@@ -1,8 +1,7 @@
 import { Rows3, Columns3, LayoutGrid } from 'lucide-react'
 import type { EraSelectElement, EraSelectLayout } from '@/types'
 import { PropSection, PropRow, IconToggle } from '@/elements/_base/sharedUI'
-
-const ALL_ERAS = ['明', '大', '昭', '平', '令']
+import { DEFAULT_ERAS } from './constants'
 
 interface Props {
   el: EraSelectElement
@@ -10,7 +9,7 @@ interface Props {
 }
 
 export function EraSelectPropertiesPanel({ el, onChange }: Props) {
-  const currentEras = el.eras ?? ALL_ERAS
+  const currentEras = el.eras ?? DEFAULT_ERAS
   const layout = el.layout ?? 'column'
 
   const toggleEra = (era: string) => {
@@ -18,16 +17,15 @@ export function EraSelectPropertiesPanel({ el, onChange }: Props) {
     if (isActive && currentEras.length <= 1) return // 最低1つ必須
     const next = isActive
       ? currentEras.filter((e) => e !== era)
-      : [...currentEras, era].sort((a, b) => ALL_ERAS.indexOf(a) - ALL_ERAS.indexOf(b))
+      : [...currentEras, era].sort((a, b) => DEFAULT_ERAS.indexOf(a) - DEFAULT_ERAS.indexOf(b))
     onChange({ eras: next })
   }
 
   const setLayout = (l: EraSelectLayout) => onChange({ layout: l })
 
   return (
-    <>
-      <PropSection title="元号選択">
-        <PropRow label="データバインド">
+    <PropSection title="元号選択">
+      <PropRow label="データバインド">
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
@@ -53,7 +51,7 @@ export function EraSelectPropertiesPanel({ el, onChange }: Props) {
         <div>
           <span className="text-[10px] text-muted-foreground">表示元号</span>
           <div className="flex gap-1 mt-1 flex-wrap">
-            {ALL_ERAS.map((era) => (
+            {DEFAULT_ERAS.map((era) => (
               <button
                 key={era}
                 onClick={() => toggleEra(era)}
@@ -68,7 +66,6 @@ export function EraSelectPropertiesPanel({ el, onChange }: Props) {
             ))}
           </div>
         </div>
-      </PropSection>
-    </>
+    </PropSection>
   )
 }
