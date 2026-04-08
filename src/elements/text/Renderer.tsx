@@ -48,6 +48,7 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           paddingLeft: style.paddingLeft != null ? `${style.paddingLeft}mm` : undefined,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
+          alignSelf: 'stretch',
         }}
       >
         {el.furigana ? (

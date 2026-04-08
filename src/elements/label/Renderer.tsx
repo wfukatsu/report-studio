@@ -43,6 +43,7 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
           textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
           whiteSpace: 'pre-wrap',
           wordBreak: isVertical ? ('break-all' as const) : 'break-word',
+          alignSelf: 'stretch',
         }}
       >
         {el.text}
