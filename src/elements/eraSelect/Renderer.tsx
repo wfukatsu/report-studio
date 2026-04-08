@@ -2,7 +2,6 @@ import { memo } from 'react'
 import type { EraSelectElement } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { DEFAULT_ERAS } from './constants'
-import { MM_TO_PX } from '@/elements/_blocks/constants'
 
 interface Props {
   element: EraSelectElement

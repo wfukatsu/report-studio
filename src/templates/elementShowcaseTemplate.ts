@@ -109,7 +109,7 @@ const page1Elements: ReportElement[] = [
   // 13. barcode (JAN13/EAN-13)
   el('barcode', 155, 150, 50, 15, {
     kind: 'jan13',
-    value: '4901234567890',
+    value: '4902778913406',
     showText: true,
   }),
 ]

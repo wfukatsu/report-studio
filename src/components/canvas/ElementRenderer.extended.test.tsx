@@ -138,7 +138,7 @@ describe('ElementRenderer — barcode', () => {
   })
 
   it('renders jan13 (EAN-13) barcode', () => {
-    const el = createBarcodeElement({ id: 'barcode-3', kind: 'jan13' as never, value: '4901234567890' })
+    const el = createBarcodeElement({ id: 'barcode-3', kind: 'jan13' as never, value: '4902778913406' })
     const { container } = render(<ElementRenderer element={el} data={{}} />)
     expect(container.firstChild).not.toBeNull()
   })
