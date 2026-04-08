@@ -1,6 +1,8 @@
 import { memo } from 'react'
 import type { ManualEntryField } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
+import { GridLines } from '@/elements/_blocks/renderers/GridLines'
+import { DEFAULT_FONT_SIZE, DEFAULT_BORDER_WIDTH } from '@/elements/_blocks/constants'
 
 interface Props {
   element: ManualEntryField
@@ -8,44 +10,24 @@ interface Props {
 }
 
 function InputArea({ el }: { el: ManualEntryField }) {
+  const borderStr = `${DEFAULT_BORDER_WIDTH}mm solid ${el.lineColor}`
+
   return (
     <div
       style={{
         flex: 1,
         position: 'relative',
-        borderBottom: el.displayMode === 'line' ? `0.3mm solid ${el.lineColor}` : undefined,
-        border: el.displayMode === 'box' ? `0.3mm solid ${el.lineColor}` : undefined,
+        borderBottom: el.displayMode === 'line' ? borderStr : undefined,
+        border: el.displayMode === 'box' ? borderStr : undefined,
         overflow: 'hidden',
       }}
     >
       {el.displayMode === 'grid' && (el.gridCount ?? 0) > 0 && (
-        <svg
-          width="100%"
-          height="100%"
-          style={{ position: 'absolute', top: 0, left: 0 }}
-          preserveAspectRatio="none"
-        >
-          <rect
-            x="0.15mm"
-            y="0.15mm"
-            width="calc(100% - 0.3mm)"
-            height="calc(100% - 0.3mm)"
-            fill="none"
-            stroke={el.lineColor}
-            strokeWidth="0.3mm"
-          />
-          {Array.from({ length: (el.gridCount ?? 1) - 1 }, (_, i) => (
-            <line
-              key={i}
-              x1={`${((i + 1) / (el.gridCount ?? 1)) * 100}%`}
-              y1="0"
-              x2={`${((i + 1) / (el.gridCount ?? 1)) * 100}%`}
-              y2="100%"
-              stroke={el.lineColor}
-              strokeWidth="0.3mm"
-            />
-          ))}
-        </svg>
+        <GridLines
+          count={el.gridCount ?? 1}
+          lineColor={el.lineColor}
+          lineWidth={DEFAULT_BORDER_WIDTH}
+        />
       )}
       {el.placeholder && (
         <span
@@ -54,7 +36,7 @@ function InputArea({ el }: { el: ManualEntryField }) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: el.style.fontSize ? `${el.style.fontSize}mm` : '3.5mm',
+            fontSize: el.style.fontSize ? `${el.style.fontSize}mm` : `${DEFAULT_FONT_SIZE}mm`,
             color: el.style.color ?? '#000000',
             opacity: 0.4,
             whiteSpace: 'nowrap',
@@ -84,7 +66,7 @@ export const ManualEntryRenderer = memo(function ManualEntryRenderer({ element: 
             style={{
               flex: 1,
               position: 'relative',
-              borderBottom: `0.3mm solid ${el.lineColor}`,
+              borderBottom: `${DEFAULT_BORDER_WIDTH}mm solid ${el.lineColor}`,
               overflow: 'hidden',
             }}
           >

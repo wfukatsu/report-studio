@@ -45,11 +45,13 @@ describe('ManualEntryRenderer', () => {
     expect(container.firstChild).toBeInTheDocument()
   })
 
-  it('renders grid SVG when displayMode is grid and gridCount set', () => {
+  it('renders grid lines when displayMode is grid and gridCount set', () => {
     const { container } = render(
       <ManualEntryRenderer element={makeElement({ displayMode: 'grid', gridCount: 5 })} />,
     )
-    expect(container.querySelector('svg')).toBeInTheDocument()
+    // GridLines renders CSS border-based divs instead of SVG
+    const gridContainer = container.querySelector('[style*="position: absolute"]')
+    expect(gridContainer).toBeInTheDocument()
   })
 
   it('renders without border or grid when displayMode is none', () => {

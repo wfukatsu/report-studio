@@ -323,8 +323,13 @@ describe('DataFieldPropertiesPanel', () => {
     const el = createDataFieldElement() as DataFieldElement
     const onChange = vi.fn()
     render(<DataFieldPropertiesPanel el={el} onChange={onChange} />)
-    const formatSelect = screen.getByRole('combobox')
-    fireEvent.change(formatSelect, { target: { value: 'currency_jpy' } })
+    // Multiple comboboxes: find the format select by its 'なし' option
+    const selects = screen.getAllByRole('combobox')
+    const formatSelect = selects.find((s) =>
+      Array.from(s.querySelectorAll('option')).some((o) => o.textContent === 'なし'),
+    )
+    expect(formatSelect).toBeDefined()
+    fireEvent.change(formatSelect!, { target: { value: 'currency_jpy' } })
     expect(onChange).toHaveBeenCalled()
   })
 })

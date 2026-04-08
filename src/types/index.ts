@@ -341,6 +341,8 @@ export interface HankoElement extends ElementBase {
 
 export type CheckmarkStyle = '✓' | '×' | '●'
 
+export type CheckboxLabelPosition = 'left' | 'right' | 'top' | 'bottom'
+
 export interface CheckboxElement extends ElementBase {
   type: 'checkbox'
   /** 静的 checked 状態（デザインプレビュー用） */
@@ -349,6 +351,8 @@ export interface CheckboxElement extends ElementBase {
   checkmark: CheckmarkStyle
   /** ラベルテキスト（空文字なら非表示） */
   label: string
+  /** ラベル位置 (default: 'right') */
+  labelPosition?: CheckboxLabelPosition
   /** データバインドモード: resolveField(data, dataSource) !== '' なら checked */
   dataSource?: string
   style?: TextStyle
