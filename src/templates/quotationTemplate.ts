@@ -302,19 +302,19 @@ elements.push({
   objectFit: 'contain',
 } as ReportElement)
 
-// 社名 + 印鑑（ロゴ下段）
+// 社名（ロゴ下段・全幅）
 elements.push(
-  df('quotation.sender.name', RIGHT_X, Y_SENDER_LOGO + 13, RIGHT_W - 18, 8,
+  df('quotation.sender.name', RIGHT_X, Y_SENDER_LOGO + 13, RIGHT_W, 8,
     { fontSize: 4.0, fontWeight: 'bold' },
     undefined, '株式会社●●●'),
 )
 
-// 印鑑（社名右）
+// DIFF-Q08: 印鑑（社名テキストに重ねて配置）
 elements.push({
   id: uuidv4(),
   type: 'hanko',
-  position: { x: TABLE_R - 16, y: Y_SENDER_LOGO + 12 },
-  size: { width: 13, height: 13 },
+  position: { x: TABLE_R - 15, y: Y_SENDER_LOGO + 14 },
+  size: { width: 12, height: 12 },
   zIndex: 5,
   locked: false,
   visible: true,
