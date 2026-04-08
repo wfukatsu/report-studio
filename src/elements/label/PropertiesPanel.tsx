@@ -1,5 +1,6 @@
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   Bold, Italic, Underline, Strikethrough,
 } from 'lucide-react'
 import type { LabelElement } from '@/types'
@@ -50,6 +51,18 @@ export function LabelPropertiesPanel({ el, onChange }: Props) {
                 {a === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
                 {a === 'right' && <AlignRight className="w-3.5 h-3.5" />}
                 {a === 'justify' && <AlignJustify className="w-3.5 h-3.5" />}
+              </IconToggle>
+            ))}
+          </div>
+        </div>
+        <div>
+          <span className="text-[10px] text-muted-foreground">縦揃え</span>
+          <div className="flex gap-1 mt-1">
+            {(['top', 'middle', 'bottom'] as const).map((va) => (
+              <IconToggle key={va} active={style.verticalAlign === va} onClick={() => onStyle({ verticalAlign: va })} title={va}>
+                {va === 'top' && <AlignStartVertical className="w-3.5 h-3.5" />}
+                {va === 'middle' && <AlignCenterVertical className="w-3.5 h-3.5" />}
+                {va === 'bottom' && <AlignEndVertical className="w-3.5 h-3.5" />}
               </IconToggle>
             ))}
           </div>
