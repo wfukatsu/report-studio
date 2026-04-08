@@ -1,7 +1,7 @@
 ---
 title: "refactor: 要素システム Clean-slate リビルド"
 type: refactor
-status: active
+status: completed
 date: 2026-04-08
 origin: docs/brainstorms/2026-04-08-element-system-redesign-brainstorm.md
 ---
