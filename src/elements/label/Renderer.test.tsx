@@ -45,12 +45,12 @@ describe('LabelRenderer', () => {
     expect(div.style.color).toBe('rgb(0, 0, 255)')
   })
 
-  it('applies text alignment', () => {
+  it('applies text alignment via flexbox justify-content', () => {
     const { container } = render(
       <LabelRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'normal', color: '#000', textAlign: 'right' } })} />,
     )
     const div = container.firstChild as HTMLElement
-    expect(div.style.textAlign).toBe('right')
+    expect(div.style.justifyContent).toBe('flex-end')
   })
 
   it('applies wordBreak:break-all when writingMode is vertical-rl', () => {

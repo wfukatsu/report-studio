@@ -8,8 +8,15 @@ interface Props {
   data?: Record<string, unknown>
 }
 
+function toFlexAlign(value: string | undefined, fallback: string): string {
+  if (value === 'center' || value === 'middle') return 'center'
+  if (value === 'right' || value === 'bottom' || value === 'end') return 'flex-end'
+  return fallback
+}
+
 export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, data = {} }: Props) {
   const style = el.style
+  const isVertical = style.writingMode === 'vertical-rl'
   const raw = resolveField(data, el.fieldKey)
   let displayValue: string
   if (raw === undefined || raw === null) {
@@ -19,17 +26,23 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
   } else {
     displayValue = String(raw)
   }
+
+  const hAlign = toFlexAlign(style.textAlign, 'flex-start')
+  const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
+
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
+        display: 'flex',
+        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
+        justifyContent: isVertical ? vAlign : hAlign,
+        alignItems: isVertical ? hAlign : vAlign,
         fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
         fontWeight: style.fontWeight ?? 'normal',
         color: style.color ?? '#000000',
-        textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
         fontFamily: style.fontFamily,
-        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
         overflow: 'hidden',
       }}
     >
