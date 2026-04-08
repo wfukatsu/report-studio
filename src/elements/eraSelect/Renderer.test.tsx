@@ -114,3 +114,55 @@ describe('EraSelectRenderer — 最小フォントサイズ', () => {
     expect((eraRow as HTMLElement).style.fontSize).toBe('3mm')
   })
 })
+
+describe('EraSelectRenderer — レイアウト', () => {
+  it('layout=column（デフォルト）→ flex-direction: column', () => {
+    const { container } = render(<EraSelectRenderer element={makeElement()} />)
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.flexDirection).toBe('column')
+  })
+
+  it('layout=row → flex-direction: row', () => {
+    const { container } = render(<EraSelectRenderer element={makeElement({ layout: 'row' })} />)
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.flexDirection).toBe('row')
+  })
+
+  it('layout=grid-2col → display: grid + gridTemplateColumns', () => {
+    const { container } = render(<EraSelectRenderer element={makeElement({ layout: 'grid-2col' })} />)
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.display).toBe('grid')
+    expect(outer.style.gridTemplateColumns).toBe('1fr 1fr')
+  })
+})
+
+describe('EraSelectRenderer — カスタム eras', () => {
+  it('eras 指定時はその元号のみ表示', () => {
+    render(<EraSelectRenderer element={makeElement({ eras: ['昭', '平', '令'] })} />)
+    expect(screen.getByText(/昭/)).toBeInTheDocument()
+    expect(screen.getByText(/平/)).toBeInTheDocument()
+    expect(screen.getByText(/令/)).toBeInTheDocument()
+    expect(screen.queryByText(/明/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/大/)).not.toBeInTheDocument()
+  })
+
+  it('eras=4元号 + layout=row → 4つ横並び', () => {
+    const { container } = render(
+      <EraSelectRenderer element={makeElement({ eras: ['大', '昭', '平', '令'], layout: 'row' })} />,
+    )
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.flexDirection).toBe('row')
+    expect(outer.children).toHaveLength(4)
+  })
+
+  it('eras=4元号 + dataSource で ● が正しく表示', () => {
+    render(
+      <EraSelectRenderer
+        element={makeElement({ eras: ['大', '昭', '平', '令'], dataSource: 'era' })}
+        data={{ era: '令' }}
+      />,
+    )
+    expect(screen.getByText('●')).toBeInTheDocument()
+    expect(screen.getAllByText('○')).toHaveLength(3)
+  })
+})

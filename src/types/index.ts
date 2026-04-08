@@ -323,10 +323,16 @@ export interface CheckboxElement extends ElementBase {
   style?: TextStyle
 }
 
+export type EraSelectLayout = 'column' | 'row' | 'grid-2col'
+
 export interface EraSelectElement extends ElementBase {
   type: 'eraSelect'
   /** 選択中の元号 — resolveField で解決。空文字/未設定なら未選択（全て ○） */
   dataSource?: string
+  /** レイアウト: column（縦1列）、row（横1行）、grid-2col（2列グリッド） */
+  layout?: EraSelectLayout
+  /** 表示する元号リスト。未設定時は ['明','大','昭','平','令'] */
+  eras?: string[]
 }
 
 export type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'

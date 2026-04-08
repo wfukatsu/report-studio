@@ -389,6 +389,8 @@ export function createEraSelectElement(overrides?: Partial<EraSelectElement>): R
     zIndex: 1,
     visible: true,
     locked: false,
+    layout: 'column',
+    eras: ['明', '大', '昭', '平', '令'],
     ...overrides,
   } as ReportElement
 }
