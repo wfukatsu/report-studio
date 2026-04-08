@@ -14,8 +14,8 @@ function toFlexAlign(value: string | undefined, fallback: string): string {
 export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props) {
   const style = el.style
   const isVertical = style.writingMode === 'vertical-rl'
+  const isJustify = style.textAlign === 'justify'
 
-  // 横揃え = 常に横方向、縦揃え = 常に縦方向（writing-mode によるスワップなし）
   const hAlign = toFlexAlign(style.textAlign, 'flex-start')
   const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
 
@@ -25,7 +25,7 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
         width: '100%',
         height: '100%',
         display: 'flex',
-        justifyContent: hAlign,
+        justifyContent: isJustify ? 'flex-start' : hAlign,
         alignItems: vAlign,
         overflow: 'hidden',
         userSelect: 'none',
@@ -40,8 +40,10 @@ export const LabelRenderer = memo(function LabelRenderer({ element: el }: Props)
           color: style.color ?? '#000000',
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
+          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
           whiteSpace: 'pre-wrap',
           wordBreak: isVertical ? ('break-all' as const) : undefined,
+          width: isJustify ? '100%' : undefined,
           maxWidth: '100%',
           maxHeight: '100%',
         }}
