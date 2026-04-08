@@ -7,25 +7,37 @@ interface Props {
   data?: Record<string, unknown>
 }
 
+function toFlexAlign(value: string | undefined, fallback: string): string {
+  if (value === 'center' || value === 'middle') return 'center'
+  if (value === 'right' || value === 'bottom' || value === 'end') return 'flex-end'
+  return fallback
+}
+
 export const TextRenderer = memo(function TextRenderer({ element: el, data = {} }: Props) {
   const content = interpolate(el.content, data)
   const style = el.style
+  const isVertical = style.writingMode === 'vertical-rl'
+  const hAlign = toFlexAlign(style.textAlign, 'flex-start')
+  const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
+
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
+        display: 'flex',
+        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
+        justifyContent: isVertical ? vAlign : hAlign,
+        alignItems: isVertical ? hAlign : vAlign,
         fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
         fontWeight: style.fontWeight ?? 'normal',
         fontStyle: style.fontStyle ?? 'normal',
         textDecoration: style.textDecoration ?? 'none',
         color: style.color ?? '#000000',
         backgroundColor: style.backgroundColor ?? 'transparent',
-        textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
         fontFamily: style.fontFamily,
         letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
         lineHeight: style.lineHeight ?? 1.4,
-        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
         paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,
         paddingRight: style.paddingRight != null ? `${style.paddingRight}mm` : undefined,
         paddingBottom: style.paddingBottom != null ? `${style.paddingBottom}mm` : undefined,

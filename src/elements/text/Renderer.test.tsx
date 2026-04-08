@@ -68,12 +68,12 @@ describe('TextRenderer', () => {
     expect(screen.getByText('かんじ')).toBeInTheDocument()
   })
 
-  it('applies text alignment', () => {
+  it('applies text alignment via flexbox', () => {
     const { container } = render(
       <TextRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'normal', color: '#000', textAlign: 'center' } })} />,
     )
     const div = container.firstChild as HTMLElement
-    expect(div.style.textAlign).toBe('center')
+    expect(div.style.justifyContent).toBe('center')
   })
 
   it('applies color', () => {
