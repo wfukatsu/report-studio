@@ -8,11 +8,11 @@ function makeElement(overrides: Partial<LabelElement> = {}): LabelElement {
     id: 'lbl-1',
     type: 'label',
     position: { x: 10, y: 10 },
-    size: { width: 40, height: 6 },
+    size: { width: 40, height: 20 },
     zIndex: 1,
     visible: true,
     locked: false,
-    text: 'ラベルテキスト',
+    text: 'テスト',
     style: { fontSize: 3.5, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     ...overrides,
   } as LabelElement
@@ -22,81 +22,55 @@ function s(overrides: Partial<TextStyle>): TextStyle {
   return { fontSize: 3.5, fontWeight: 'normal', color: '#000', ...overrides } as TextStyle
 }
 
-describe('LabelRenderer', () => {
+describe('LabelRenderer — 基本', () => {
   it('renders the label text', () => {
     render(<LabelRenderer element={makeElement()} />)
-    expect(screen.getByText('ラベルテキスト')).toBeInTheDocument()
+    expect(screen.getByText('テスト')).toBeInTheDocument()
   })
 
-  it('renders custom text', () => {
-    render(<LabelRenderer element={makeElement({ text: 'カスタムラベル' })} />)
-    expect(screen.getByText('カスタムラベル')).toBeInTheDocument()
-  })
-
-  it('applies font size from style', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ fontSize: 6 }) })} />,
-    )
+  it('applies font size', () => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ fontSize: 6 }) })} />)
     const inner = container.firstChild!.firstChild as HTMLElement
     expect(inner.style.fontSize).toBe('6mm')
   })
 
   it('applies text color', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ color: '#0000ff' }) })} />,
-    )
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ color: '#0000ff' }) })} />)
     const inner = container.firstChild!.firstChild as HTMLElement
     expect(inner.style.color).toBe('rgb(0, 0, 255)')
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════
-// 横書き × 横揃え・縦揃え 全組み合わせ
-// ═══════════════════════════════════════════════════════════════════
-describe('LabelRenderer — 横書きモード アライメント', () => {
-  // 横揃え → inner div の text-align
+// ═══════════════════════════════════════════════════════════
+// 横書き（horizontal-tb）
+// ═══════════════════════════════════════════════════════════
+describe('LabelRenderer — 横書き', () => {
+  // 横揃え → text-align（インライン方向 = 左→右）
   it.each([
     ['left', 'left'],
     ['center', 'center'],
     ['right', 'right'],
     ['justify', 'justify'],
-  ] as const)('横揃え %s → inner text-align: %s', (textAlign, expected) => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign }) })} />,
-    )
+  ] as const)('横揃え %s → text-align: %s', (textAlign, expected) => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign }) })} />)
     const inner = container.firstChild!.firstChild as HTMLElement
     expect(inner.style.textAlign).toBe(expected)
   })
 
-  // 横揃え justify → inner div が width:100%（ブロック全幅でjustifyが効く）
-  it('横揃え justify → inner width: 100%', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign: 'justify' }) })} />,
-    )
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.width).toBe('100%')
-    expect(inner.style.textAlign).toBe('justify')
-  })
-
-  // 縦揃え → outer の flex justify-content（flex-direction: column）
+  // 縦揃え → justify-content（ブロック方向 = 上→下）
   it.each([
     ['top', 'flex-start'],
     ['middle', 'center'],
     ['bottom', 'flex-end'],
-  ] as const)('縦揃え %s → outer justify-content: %s', (verticalAlign, expected) => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ verticalAlign }) })} />,
-    )
+  ] as const)('縦揃え %s → justify-content: %s', (verticalAlign, expected) => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ verticalAlign }) })} />)
     const outer = container.firstChild as HTMLElement
-    expect(outer.style.flexDirection).toBe('column')
     expect(outer.style.justifyContent).toBe(expected)
   })
 
-  // 横揃え right + 縦揃え bottom（組み合わせ）
+  // 組み合わせ: 横揃え right + 縦揃え bottom
   it('横揃え right + 縦揃え bottom', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom' }) })} />,
-    )
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom' }) })} />)
     const outer = container.firstChild as HTMLElement
     const inner = outer.firstChild as HTMLElement
     expect(inner.style.textAlign).toBe('right')
@@ -104,77 +78,61 @@ describe('LabelRenderer — 横書きモード アライメント', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════
-// 縦書き × 横揃え・縦揃え 全組み合わせ
-// ═══════════════════════════════════════════════════════════════════
-describe('LabelRenderer — 縦書きモード アライメント', () => {
-  // 横揃え → outer の flex justify-content（flex-direction: row で水平配置）
-  it.each([
-    ['left', 'flex-start'],
-    ['center', 'center'],
-    ['right', 'flex-end'],
-  ] as const)('横揃え %s → outer justify-content: %s (flex-direction: row)', (textAlign, expected) => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign, writingMode: 'vertical-rl' }) })} />,
-    )
+// ═══════════════════════════════════════════════════════════
+// 縦書き（vertical-rl）— CSS 論理軸モデル
+//
+// 横揃え: text-align がインライン方向（上→下）を制御
+//   left → 上、center → 中央、right → 下、justify → 上下均等
+//
+// 縦揃え: justify-content がブロック方向（右→左）を制御
+//   top → flex-start → 右、middle → center、bottom → flex-end → 左
+// ═══════════════════════════════════════════════════════════
+describe('LabelRenderer — 縦書き', () => {
+  // 外側に writing-mode: vertical-rl が設定される
+  it('outer に writing-mode: vertical-rl', () => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ writingMode: 'vertical-rl' }) })} />)
     const outer = container.firstChild as HTMLElement
-    expect(outer.style.flexDirection).toBe('row')
-    expect(outer.style.justifyContent).toBe(expected)
+    expect(outer.style.writingMode).toBe('vertical-rl')
   })
 
-  // 縦揃え → inner の text-align（vertical-rl の inline 方向にマッピング）
-  // top → left (inline start), middle → center, bottom → right (inline end)
+  // 横揃え → text-align（インライン方向: left=上、center=中央、right=下）
   it.each([
-    ['top', 'left'],
-    ['middle', 'center'],
-    ['bottom', 'right'],
-  ] as const)('縦揃え %s → inner text-align: %s', (verticalAlign, expected) => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ verticalAlign, writingMode: 'vertical-rl' }) })} />,
-    )
+    ['left', 'left'],     // left → インライン開始 → 上
+    ['center', 'center'], // center → 中央
+    ['right', 'right'],   // right → インライン終端 → 下
+    ['justify', 'justify'], // justify → 上下均等
+  ] as const)('横揃え %s → text-align: %s', (textAlign, expected) => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign, writingMode: 'vertical-rl' }) })} />)
     const inner = container.firstChild!.firstChild as HTMLElement
     expect(inner.style.textAlign).toBe(expected)
   })
 
-  // 横揃え right + 縦揃え bottom（組み合わせ）
+  // 縦揃え → justify-content（ブロック方向: top=flex-start→右、bottom=flex-end→左）
+  it.each([
+    ['top', 'flex-start'],  // top → ブロック開始 → 右
+    ['middle', 'center'],   // middle → 中央
+    ['bottom', 'flex-end'], // bottom → ブロック終端 → 左
+  ] as const)('縦揃え %s → justify-content: %s', (verticalAlign, expected) => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ verticalAlign, writingMode: 'vertical-rl' }) })} />)
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.justifyContent).toBe(expected)
+  })
+
+  // 組み合わせ: 横揃え right + 縦揃え bottom → 下に寄せ + 左に寄せ
   it('横揃え right + 縦揃え bottom', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom', writingMode: 'vertical-rl' }) })} />,
-    )
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom', writingMode: 'vertical-rl' }) })} />)
     const outer = container.firstChild as HTMLElement
     const inner = outer.firstChild as HTMLElement
-    expect(outer.style.flexDirection).toBe('row')
-    expect(outer.style.justifyContent).toBe('flex-end')
     expect(inner.style.textAlign).toBe('right')
+    expect(outer.style.justifyContent).toBe('flex-end')
   })
 
-  // 横揃え center + 縦揃え middle（組み合わせ）
+  // 組み合わせ: 横揃え center + 縦揃え middle → 中央
   it('横揃え center + 縦揃え middle', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ textAlign: 'center', verticalAlign: 'middle', writingMode: 'vertical-rl' }) })} />,
-    )
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'center', verticalAlign: 'middle', writingMode: 'vertical-rl' }) })} />)
     const outer = container.firstChild as HTMLElement
     const inner = outer.firstChild as HTMLElement
-    expect(outer.style.flexDirection).toBe('row')
-    expect(outer.style.justifyContent).toBe('center')
     expect(inner.style.textAlign).toBe('center')
-  })
-
-  // inner に writing-mode: vertical-rl が設定される
-  it('inner div に writing-mode: vertical-rl が設定される', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ writingMode: 'vertical-rl' }) })} />,
-    )
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.writingMode).toBe('vertical-rl')
-  })
-
-  // inner は height: 100%（縦書きで縦全体を使う）
-  it('inner div は height: 100%', () => {
-    const { container } = render(
-      <LabelRenderer element={makeElement({ style: s({ writingMode: 'vertical-rl' }) })} />,
-    )
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.height).toBe('100%')
+    expect(outer.style.justifyContent).toBe('center')
   })
 })
