@@ -33,6 +33,8 @@ import { RevenueStampRenderer } from '@/elements/revenueStamp/Renderer'
 import { RepeatingBandRenderer } from '@/elements/repeatingBand/Renderer'
 import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
 import { FormTableRenderer } from '@/elements/formTable/Renderer'
+import { CheckboxRenderer } from '@/elements/checkbox/Renderer'
+import { EraSelectRenderer } from '@/elements/eraSelect/Renderer'
 
 interface Props {
   element: ReportElement
@@ -69,7 +71,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'table':           return <TableRenderer element={element} data={mergedData} />
     case 'chart':           return <ChartRenderer element={element} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
-    case 'manualEntry':     return <ManualEntryRenderer element={element} />
+    case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
     case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
     case 'approvalStampRow': return <ApprovalStampRowRenderer element={element} />
     case 'revenueStamp':    return <RevenueStampRenderer element={element} />
@@ -91,6 +93,8 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
         : undefined
       return <FormTableRenderer element={element} records={tableRecords} />
     }
+    case 'checkbox':        return <CheckboxRenderer element={element} data={mergedData} />
+    case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
     default:                return assertNever(element)
   }
 })

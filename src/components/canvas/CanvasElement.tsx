@@ -47,6 +47,22 @@ export const CanvasElement = memo(function CanvasElement({
     disabled: element.locked || readonly,
   })
 
+  // UI-03: Track Ctrl/Meta key for locked element click-through
+  const [modifierHeld, setModifierHeld] = useState(false)
+  useEffect(() => {
+    if (!element.locked || readonly) return
+    const onKeyDown = (e: KeyboardEvent) => { if (e.ctrlKey || e.metaKey) setModifierHeld(true) }
+    const onKeyUp = () => setModifierHeld(false)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onKeyUp)
+    }
+  }, [element.locked, readonly])
+
   const [resizing, setResizing] = useState<ResizeHandle | null>(null)
   const resizeStart = useRef<{
     mouseX: number
@@ -164,6 +180,7 @@ export const CanvasElement = memo(function CanvasElement({
         zIndex: element.zIndex,
         opacity: isDragging ? 0.6 : 1,
         cursor: element.locked || readonly ? 'default' : 'move',
+        pointerEvents: element.locked && modifierHeld ? 'none' : undefined,
         userSelect: 'none',
       }}
       onClick={(e) => {

@@ -9,7 +9,7 @@ import {
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
-import { evaluateValidate, generateTemplatePdf } from '@/api/reportApi'
+import { evaluateValidate, generateTemplatePdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { Section, OutputVariant } from '@/types'
@@ -17,6 +17,7 @@ import { useReportStore, selectActivePageId, selectActivePage } from '@/store/re
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
 import { VariantsModal } from '@/components/modals/VariantsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
+import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
@@ -109,6 +110,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [isSavingNew, setIsSavingNew] = useState(false)
+  const [showSaveMenu, setShowSaveMenu] = useState(false)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
@@ -116,6 +120,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showVariantsModal, setShowVariantsModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const saveMenuRef = useRef<HTMLDivElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
   const zOrderMenuRef = useRef<HTMLDivElement>(null)
@@ -124,10 +129,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const hasMultiSelection = selectedIds.length >= 2
   const singleId = selectedIds[0]
 
+  const closeSaveMenu = useCallback(() => setShowSaveMenu(false), [])
   const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
   const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
   const closeZOrderMenu = useCallback(() => setShowZOrderMenu(false), [])
 
+  useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
   useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
   useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
   useDropdownDismiss(zOrderMenuRef, showZOrderMenu, closeZOrderMenu)
@@ -331,7 +338,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     }
   }
 
-  const handleSave = () => {
+  const handleDownloadJson = () => {
     try {
       const definition = useReportStore.getState().definition
       const json = JSON.stringify(definition, null, 2)
@@ -343,7 +350,50 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'ダウンロードに失敗しました')
+    }
+    setShowSaveMenu(false)
+  }
+
+  const handleSave = async () => {
+    const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
+
+    if (!backendConnected) {
+      handleDownloadJson()
+      return
+    }
+
+    if (currentTemplateId) {
+      // Existing template → overwrite save
+      try {
+        setSaveState('saving')
+        await saveReport(currentTemplateId, definition)
+        setSaveState('saved')
+      } catch (err) {
+        setSaveState('error')
+        setExportError(err instanceof Error ? err.message : '保存に失敗しました')
+      }
+    } else {
+      // New template → show name dialog
+      setShowSaveDialog(true)
+    }
+  }
+
+  const handleSaveNew = async (name: string) => {
+    const { definition, setCurrentTemplateId, setSaveState } = useReportStore.getState()
+    setIsSavingNew(true)
+    try {
+      setSaveState('saving')
+      const created = await createReport(name)
+      await saveReport(created.id, definition)
+      setCurrentTemplateId(created.id)
+      setShowSaveDialog(false)
+      setSaveState('saved')
+    } catch (err) {
+      setSaveState('error')
       setExportError(err instanceof Error ? err.message : '保存に失敗しました')
+    } finally {
+      setIsSavingNew(false)
     }
   }
 
@@ -395,9 +445,35 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={handleOpen} title="開く">
           <FolderOpen className="w-4 h-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
-          <Save className="w-4 h-4" />
-        </ToolbarButton>
+        <div className="relative flex items-center" ref={saveMenuRef}>
+          <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
+            <Save className="w-4 h-4" />
+          </ToolbarButton>
+          <button
+            onClick={() => setShowSaveMenu((v) => !v)}
+            className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
+            aria-expanded={showSaveMenu}
+            aria-label="保存メニュー"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {showSaveMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                onClick={() => { void handleSave(); setShowSaveMenu(false) }}
+              >
+                サーバーに保存
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                onClick={handleDownloadJson}
+              >
+                JSON ファイルとしてダウンロード
+              </button>
+            </div>
+          )}
+        </div>
 
         <Divider />
 
@@ -757,6 +833,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     <VariantsModal
       open={showVariantsModal}
       onClose={() => setShowVariantsModal(false)}
+    />
+
+    {/* Save template dialog */}
+    <SaveTemplateDialog
+      open={showSaveDialog}
+      onSave={handleSaveNew}
+      onCancel={() => setShowSaveDialog(false)}
+      defaultName={reportName}
+      saving={isSavingNew}
     />
 
     {/* Export variant selector */}

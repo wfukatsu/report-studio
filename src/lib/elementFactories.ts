@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow } from '@/types'
+import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement } from '@/types'
 
 /**
  * Factory functions for creating new elements with sensible defaults.
@@ -275,6 +275,7 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
     borderColor: '#000000',
     borderWidth: 0.3,
     sortOrder: 'asc',
+    showEmptyRowLines: false,
     style: { fontSize: 3.5, color: '#000000' },
     headerStyle: { fontSize: 3.5, fontWeight: 'bold', color: '#374151', backgroundColor: '#f3f4f6' },
     ...overrides,
@@ -359,6 +360,35 @@ export function createRepeatingListElement(overrides?: Partial<ReportElement>): 
     itemBackground: '#ffffff',
     borderRadius: 1,
     pageBreak: 'none',
+    ...overrides,
+  } as ReportElement
+}
+
+export function createCheckboxElement(overrides?: Partial<ReportElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'checkbox',
+    position: { x: 13, y: 13 },
+    size: { width: 5, height: 5 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    checked: false,
+    checkmark: '✓' as CheckmarkStyle,
+    label: '',
+    ...overrides,
+  } as ReportElement
+}
+
+export function createEraSelectElement(overrides?: Partial<EraSelectElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'eraSelect',
+    position: { x: 13, y: 13 },
+    size: { width: 7, height: 12 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
     ...overrides,
   } as ReportElement
 }

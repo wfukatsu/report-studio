@@ -121,6 +121,10 @@ export type ElementType =
   | 'revenueStamp'
   // 帳票専用テーブル
   | 'formTable'
+  // チェックボックス
+  | 'checkbox'
+  // 和暦元号選択
+  | 'eraSelect'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -282,6 +286,12 @@ export interface ManualEntryField extends ElementBase {
   gridCount?: number
   placeholder?: string
   style: TextStyle
+  /** フリガナゾーンを表示する (デフォルト: false) */
+  furiganaEnabled?: boolean
+  /** フリガナのデータプレビュー値 — resolveField で解決するキー */
+  furiganaDataSource?: string
+  /** フリガナ行の高さ割合 0〜1 (デフォルト: 0.35) */
+  furiganaRatio?: number
 }
 
 export interface HankoElement extends ElementBase {
@@ -296,6 +306,27 @@ export interface HankoElement extends ElementBase {
   doubleBorder: boolean
   /** データソースフィールドからテキストを自動入力 */
   binding?: string
+}
+
+export type CheckmarkStyle = '✓' | '×' | '●'
+
+export interface CheckboxElement extends ElementBase {
+  type: 'checkbox'
+  /** 静的 checked 状態（デザインプレビュー用） */
+  checked: boolean
+  /** チェックマーク記号 */
+  checkmark: CheckmarkStyle
+  /** ラベルテキスト（空文字なら非表示） */
+  label: string
+  /** データバインドモード: resolveField(data, dataSource) !== '' なら checked */
+  dataSource?: string
+  style?: TextStyle
+}
+
+export interface EraSelectElement extends ElementBase {
+  type: 'eraSelect'
+  /** 選択中の元号 — resolveField で解決。空文字/未設定なら未選択（全て ○） */
+  dataSource?: string
 }
 
 export type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
@@ -392,6 +423,8 @@ export interface RepeatingBandElement extends ElementBase {
   sortOrder?: 'asc' | 'desc'
   /** グループ化フィールドキー */
   groupBy?: string
+  /** データ行数が maxItems 未満のとき空行罫線を描画する */
+  showEmptyRowLines?: boolean
   /** テキストスタイル（ボディ行） */
   style?: TextStyle
   /** ヘッダーテキストスタイル */
@@ -540,6 +573,8 @@ export type ReportElement =
   | RepeatingBandElement
   | RepeatingListElement
   | FormTableElement
+  | CheckboxElement
+  | EraSelectElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)
