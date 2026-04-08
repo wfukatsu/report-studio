@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement } from '@/types'
+import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
 
 /**
  * Factory functions for creating new elements with sensible defaults.
@@ -390,7 +391,7 @@ export function createEraSelectElement(overrides?: Partial<EraSelectElement>): R
     visible: true,
     locked: false,
     layout: 'column',
-    eras: ['明', '大', '昭', '平', '令'],
+    eras: [...DEFAULT_ERAS],
     ...overrides,
   } as ReportElement
 }
