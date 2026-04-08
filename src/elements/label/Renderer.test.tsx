@@ -57,6 +57,20 @@ describe('LabelRenderer — 横書き', () => {
     expect(inner.style.textAlign).toBe(expected)
   })
 
+  // 均等寄せ → text-align:justify + text-align-last:justify（Word型: 1行でも均等配置）
+  it('横揃え justify → text-align-last: justify（1行テキストでも均等配置）', () => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'justify' }) })} />)
+    const inner = container.firstChild!.firstChild as HTMLElement
+    expect(inner.style.textAlign).toBe('justify')
+    expect(inner.style.textAlignLast).toBe('justify')
+  })
+
+  it('横揃え left → text-align-last は未設定', () => {
+    const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'left' }) })} />)
+    const inner = container.firstChild!.firstChild as HTMLElement
+    expect(inner.style.textAlignLast).toBe('')
+  })
+
   // 縦揃え → justify-content（ブロック方向 = 上→下）
   it.each([
     ['top', 'flex-start'],

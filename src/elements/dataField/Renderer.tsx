@@ -46,6 +46,7 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
           color: style.color ?? '#000000',
           fontFamily: style.fontFamily,
           textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           alignSelf: 'stretch',
         }}
       >
