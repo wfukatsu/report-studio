@@ -112,13 +112,13 @@ function lbl(
 ): ReportElement {
   return {
     id: uuidv4(),
-    type: 'label',
+    type: 'text',
     position: { x, y },
     size: { width: w, height: h },
     zIndex: 3,
     locked: true,
     visible: true,
-    text,
+    content: text,
     style: {
       fontSize: 3.0,
       textAlign: 'left',
