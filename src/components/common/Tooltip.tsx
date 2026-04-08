@@ -9,7 +9,8 @@
  *   </Tooltip>
  */
 
-import { useRef, useState, useCallback, type ReactNode } from 'react'
+import { useRef, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
 interface TooltipProps {
@@ -25,26 +26,46 @@ interface TooltipProps {
 
 export function Tooltip({ content, children, placement = 'bottom', className, delay = 400 }: TooltipProps) {
   const [visible, setVisible] = useState(false)
-  const [actualPlacement, setActualPlacement] = useState(placement)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapperRef = useRef<HTMLSpanElement>(null)
+  const tooltipRef = useRef<HTMLSpanElement>(null)
 
   const show = useCallback(() => {
     timerRef.current = setTimeout(() => {
-      // Flip to 'top' if too close to viewport bottom
-      if (wrapperRef.current) {
-        const rect = wrapperRef.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        setActualPlacement(placement === 'bottom' && spaceBelow < 60 ? 'top' : placement)
-      }
       setVisible(true)
     }, delay)
-  }, [placement, delay])
+  }, [delay])
 
   const hide = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     setVisible(false)
+    setPos(null)
   }, [])
+
+  // Position the tooltip after it renders via portal
+  useEffect(() => {
+    if (!visible || !wrapperRef.current || !tooltipRef.current) return
+    const triggerRect = wrapperRef.current.getBoundingClientRect()
+    const tipEl = tooltipRef.current
+    const tipW = tipEl.offsetWidth
+    const tipH = tipEl.offsetHeight
+
+    const spaceBelow = window.innerHeight - triggerRect.bottom
+    const placeAbove = placement === 'top' || (placement === 'bottom' && spaceBelow < tipH + 12)
+
+    let top = placeAbove
+      ? triggerRect.top - tipH - 6
+      : triggerRect.bottom + 6
+    let left = triggerRect.left + triggerRect.width / 2 - tipW / 2
+
+    // Clamp horizontal: keep within viewport with 8px margin
+    left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8))
+    // Clamp vertical
+    top = Math.max(4, Math.min(top, window.innerHeight - tipH - 4))
+
+    setPos({ top, left })
+  }, [visible, placement])
 
   if (!content) return <>{children}</>
 
@@ -58,21 +79,27 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
       onBlur={hide}
     >
       {children}
-      {visible && (
+      {visible && createPortal(
         <span
+          ref={tooltipRef}
           role="tooltip"
           className={cn(
-            'pointer-events-none absolute z-[9999] whitespace-nowrap',
+            'pointer-events-none fixed',
             'rounded bg-popover border border-border text-popover-foreground shadow-md',
             'px-2 py-1 text-xs leading-snug',
-            'left-1/2 -translate-x-1/2',
-            actualPlacement === 'bottom'
-              ? 'top-full mt-1.5'
-              : 'bottom-full mb-1.5',
           )}
+          style={{
+            zIndex: 99999,
+            maxWidth: 'min(320px, calc(100vw - 16px))',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            top: pos?.top ?? -9999,
+            left: pos?.left ?? -9999,
+          }}
         >
           {content}
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   )

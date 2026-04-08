@@ -164,21 +164,21 @@ const COL = {
   //   区分等
   kubun:     { x: ML + 5,  w: 14 },
   //   フリガナ/氏名
-  name:      { x: ML + 19, w: 24 },
+  name:      { x: ML + 19, w: 22 },   // DIFF-10: 24→22 (-2mm)
   //   続柄
-  kankei:    { x: ML + 43, w: 8  },
+  kankei:    { x: ML + 41, w: 8  },   // cascade -2mm
   //   個人番号
-  myNumber:  { x: ML + 51, w: 22 },
+  myNumber:  { x: ML + 49, w: 22 },   // cascade -2mm
   //   生年月日
-  birthday:  { x: ML + 73, w: 17 },
+  birthday:  { x: ML + 71, w: 17 },   // cascade -2mm
   //   特定扶養年月日（H15.1.2〜H19.1.1生）
-  tokutei:   { x: ML + 90, w: 9  },
+  tokutei:   { x: ML + 88, w: 9  },   // cascade -2mm
   //   令和7年中の所得の見積額
-  income:    { x: ML + 99, w: 14 },
+  income:    { x: ML + 97, w: 14 },   // cascade -2mm
   //   非居住者チェック+住所欄
-  nonRes:    { x: ML + 113, w: 21 },
+  nonRes:    { x: ML + 111, w: 21 },  // cascade -2mm
   //   住所又は居所
-  address:   { x: ML + 134, w: 28 },
+  address:   { x: ML + 132, w: 30 },  // cascade -2mm, DIFF-10: 28→30 (+2mm)
   //   生計を一にする事実
   seikei:    { x: ML + 162, w: 18 },
   //   異動月日及び事由
@@ -202,11 +202,11 @@ const Y = {
   rowC:     MT + 127,    // 130
   rowD:     MT + 149,    // 152
   note1:    MT + 169,    // 172
-  juminHdr: MT + 183,    // 186
-  jumin1:   MT + 189,    // 192
-  jumin2:   MT + 203,    // 206
-  taishoku: MT + 217,    // 220
-  bottom:   MT + 234,    // 237
+  juminHdr: MT + 189,    // 192 (+6mm: note1拡張)
+  jumin1:   MT + 195,    // 198 (+6mm)
+  jumin2:   MT + 209,    // 212 (+6mm)
+  taishoku: MT + 223,    // 226 (+6mm)
+  bottom:   MT + 240,    // 243 (+6mm)
 }
 
 // 行高さ
@@ -219,7 +219,7 @@ const ROW_H = {
   rowB:    16,
   rowC:    22,
   rowD:    20,
-  note1:   14,
+  note1:   20,
   jumin:   14,
   taishoku:14,
 }
@@ -245,6 +245,11 @@ elements.push(
   lbl('従たる給与についての\n扶養控除等申告書の提出\n（副から分けている場合のみ\n○をつけてください）',
     ML + TABLE_W - 14, Y.title + 14, 14, 16, { fontSize: 1.6, textAlign: 'center' }),
   lbl('○', ML + TABLE_W - 9, Y.title + 30, 4, 4, { fontSize: 3.5, textAlign: 'center' }),
+  // DIFF-04: 右端縦書き帳票説明文（DIFF-03チェックエリア下部）
+  vlbl(
+    '○この申告書は、あなたの給与について扶養控除等を受けるために提出するものです。○パートやアルバイトの人についても、この申告書を提出する必要があります。○この申告書は、あなたの給与の支払者を経由して、提出先の各長に提出してください。なお、記載に当たっては、裏面の「2 記載についてのご注意」をお読みください。',
+    ML + TABLE_W - 14, Y.title + 34, 14, Y.bottom - (Y.title + 34), 1.6,
+  ),
 )
 
 // ════════════════════════════════════════════════════════
@@ -453,6 +458,14 @@ elements.push(
   ...buildPersonRow(Y.rowA, ROW_H.rowA),
 )
 
+// DIFF-09: Section A「生計を一にする事実」欄の注記テキスト
+elements.push(
+  lbl('（該当する場合は□を\n付けてください）',
+    COL.seikei.x + 1, Y.rowA + ROW_H.rowA - 7,
+    COL.seikei.w - 2, 6,
+    { fontSize: 1.6, textAlign: 'left', verticalAlign: 'bottom' }),
+)
+
 // ════════════════════════════════════════════════════════
 // 7. セクション B — 控除対象扶養親族（16歳以上）
 // ════════════════════════════════════════════════════════
@@ -508,6 +521,12 @@ elements.push(
     COL.kubun.x, CY, COL.kubun.w, CH2,
     { fontSize: 2.2, fontWeight: 'bold' }),
   lbl('C', COL.leftBand.x, CY, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
+)
+
+// C行 — DIFF-08: 「区分」列ラベル
+elements.push(
+  lbl('区分', COL.kubun.x, CY, COL.kubun.w, 5,
+    { fontSize: 2.2, fontWeight: 'bold', verticalAlign: 'top' }),
 )
 
 // C行 — 障害者区分
@@ -592,7 +611,11 @@ elements.push(
   rect(ML, Y.note1, TABLE_W, ROW_H.note1),
   lbl(
     '（注1）源泉控除対象配偶者とは、所得者（令和7年中の所得の見積額が900万円以下の人に限ります。）と生計を一にする配偶者（青色事業専従者として給与の支払を受ける人及び白色事業専従者を除きます。）で、令和7年中の所得の見積額が95万円以下（給与所得だけの場合は、給与の収入金額が150万円以下）の人をいいます。',
-    ML + 1, Y.note1 + 1, TABLE_W - 2, ROW_H.note1 - 2,
+    ML + 1, Y.note1 + 1, TABLE_W - 2, ROW_H.note1 / 2 - 1,
+    { fontSize: 2.2, textAlign: 'left', verticalAlign: 'top' }),
+  lbl(
+    '（注2）同一生計配偶者とは、所得者と生計を一にする配偶者（青色事業専従者として給与の支払を受ける人及び白色事業専従者を除きます。）で、令和7年中の所得の見積額が48万円以下の人をいいます。',
+    ML + 1, Y.note1 + ROW_H.note1 / 2 + 1, TABLE_W - 2, ROW_H.note1 / 2 - 2,
     { fontSize: 2.2, textAlign: 'left', verticalAlign: 'top' }),
 )
 

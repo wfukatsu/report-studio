@@ -95,3 +95,22 @@ describe('EraSelectRenderer — dataSource バインド', () => {
     expect(screen.queryByText('●')).not.toBeInTheDocument()
   })
 })
+
+describe('EraSelectRenderer — 最小フォントサイズ', () => {
+  it('5mm 高要素でもフォントサイズが 2.0mm を下回らない', () => {
+    const { container } = render(<EraSelectRenderer element={makeElement({ size: { width: 7, height: 5 } })} />)
+    // 計算: (5/5)*0.75 = 0.75mm → Math.max(0.75, 2.0) = 2.0mm
+    // fontSize は各元号行の div に設定される
+    const eraRow = container.querySelector('div > div > div')
+    expect(eraRow).toBeTruthy()
+    expect((eraRow as HTMLElement).style.fontSize).toBe('2mm')
+  })
+
+  it('20mm 高要素では通常計算のフォントサイズが使われる', () => {
+    const { container } = render(<EraSelectRenderer element={makeElement({ size: { width: 7, height: 20 } })} />)
+    // 計算: (20/5)*0.75 = 3.0mm → Math.max(3.0, 2.0) = 3.0mm
+    const eraRow = container.querySelector('div > div > div')
+    expect(eraRow).toBeTruthy()
+    expect((eraRow as HTMLElement).style.fontSize).toBe('3mm')
+  })
+})

@@ -1,7 +1,7 @@
 ---
 title: "fix: テンプレート残件 + 横断改善 + UI改善の統合実装"
 type: fix
-status: active
+status: completed
 date: 2026-04-08
 origin: docs/brainstorms/2026-04-08-all-remaining-issues-brainstorm.md
 ---
@@ -249,24 +249,24 @@ disabled: element.locked || readonly,
 
 ### Phase 1: テンプレート微調整
 
-- [ ] DIFF-11: `ROW_H.note1` 14→20, Y座標カスケード+6mm, （注2）テキスト追加
-- [ ] DIFF-10: COL定数 name.w-2/address.w+2 + cascade
-- [ ] DIFF-08: Section C `lbl('区分', ...)` 追加
-- [ ] DIFF-09: Section A 注記テキスト追加
-- [ ] DIFF-04: 右端縦書き説明文 `vlbl()` 追加
-- [ ] DIFF-Q08: 見積書印鑑位置調整
-- [ ] ビルド・テスト通過
+- [x] DIFF-11: `ROW_H.note1` 14→20, Y座標カスケード+6mm, （注2）テキスト追加
+- [x] DIFF-10: COL定数 name.w-2/address.w+2 + cascade
+- [x] DIFF-08: Section C `lbl('区分', ...)` 追加
+- [x] DIFF-09: Section A 注記テキスト追加
+- [x] DIFF-04: 右端縦書き説明文 `vlbl()` 追加
+- [x] DIFF-Q08: 見積書印鑑位置調整
+- [x] ビルド・テスト通過
 
 ### Phase 2: 新規テンプレート
 
-- [ ] `quotationDiscountTemplate.ts` 作成（値引列+値引合計行）
-- [ ] `quotationEnglishTemplate.ts` 作成（英語レイアウト）
-- [ ] `builtinTemplates.ts` に2テンプレート追加
-- [ ] ビルド・テスト・目視確認
+- [x] `quotationDiscountTemplate.ts` 作成（値引列+値引合計行）
+- [x] `quotationEnglishTemplate.ts` 作成（英語レイアウト）
+- [x] `builtinTemplates.ts` に2テンプレート追加
+- [x] ビルド・テスト・目視確認
 
 ### Phase 3: 横断改善
 
-- [ ] `RepeatingBandElement` に `showEmptyRowLines` 追加（型定義）
+- [x] `RepeatingBandElement` に `showEmptyRowLines` 追加（型定義）
 - [ ] `RepeatingBandRenderer` で空行罫線描画実装
 - [ ] repeatingBand テスト追加（3ケース以上）
 - [ ] `elementFactories.ts` にデフォルト追加

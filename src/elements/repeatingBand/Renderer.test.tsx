@@ -57,3 +57,32 @@ describe('RepeatingBandRenderer — ライブレンダラー (records provided)'
     expect(container.firstChild).toBeInTheDocument()
   })
 })
+
+describe('RepeatingBandRenderer — showEmptyRowLines', () => {
+  it('renders empty row dividers when showEmptyRowLines=true and data is empty', () => {
+    const el = makeElement({ maxItems: 5, showEmptyRowLines: true, showHeader: false, showFooter: false })
+    const { container } = render(<RepeatingBandRenderer element={el} records={[]} />)
+    // Should render 5 empty row slots (dividers between them)
+    const emptyRows = container.querySelectorAll('[data-testid="empty-row-line"]')
+    expect(emptyRows.length).toBe(5)
+  })
+
+  it('renders remaining empty row dividers when data rows < maxItems', () => {
+    const records = [
+      { no: '1', name: 'A', quantity: 1, unit: '個', unitPrice: 100, amount: 100 },
+      { no: '2', name: 'B', quantity: 2, unit: '個', unitPrice: 200, amount: 400 },
+    ]
+    const el = makeElement({ maxItems: 5, showEmptyRowLines: true, showHeader: false, showFooter: false })
+    const { container } = render(<RepeatingBandRenderer element={el} records={records} />)
+    // 5 total slots - 2 data rows = 3 empty rows
+    const emptyRows = container.querySelectorAll('[data-testid="empty-row-line"]')
+    expect(emptyRows.length).toBe(3)
+  })
+
+  it('does not render empty row dividers when showEmptyRowLines is false', () => {
+    const el = makeElement({ maxItems: 5, showEmptyRowLines: false, showHeader: false, showFooter: false })
+    const { container } = render(<RepeatingBandRenderer element={el} records={[]} />)
+    const emptyRows = container.querySelectorAll('[data-testid="empty-row-line"]')
+    expect(emptyRows.length).toBe(0)
+  })
+})
