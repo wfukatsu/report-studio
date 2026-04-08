@@ -36,21 +36,28 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
         width: '100%',
         height: '100%',
         display: 'flex',
-        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
-        justifyContent: isVertical ? vAlign : hAlign,
-        alignItems: isVertical ? hAlign : vAlign,
-        fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
-        fontWeight: style.fontWeight ?? 'normal',
-        color: style.color ?? '#000000',
-        fontFamily: style.fontFamily,
+        justifyContent: hAlign,
+        alignItems: vAlign,
         overflow: 'hidden',
       }}
     >
-      {displayValue || (
-        <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
-          {el.label ?? el.fieldKey}
-        </span>
-      )}
+      <span
+        style={{
+          writingMode: isVertical ? 'vertical-rl' : undefined,
+          fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
+          fontWeight: style.fontWeight ?? 'normal',
+          color: style.color ?? '#000000',
+          fontFamily: style.fontFamily,
+          maxWidth: '100%',
+          maxHeight: '100%',
+        }}
+      >
+        {displayValue || (
+          <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+            {el.label ?? el.fieldKey}
+          </span>
+        )}
+      </span>
     </div>
   )
 })

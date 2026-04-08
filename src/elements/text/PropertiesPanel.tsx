@@ -3,8 +3,8 @@ import {
   Bold, Italic, Underline, Strikethrough,
 } from 'lucide-react'
 import type { TextElement } from '@/types'
-import { PropSection, PropRow, NumInput, ColorInput, SelectInput, IconToggle } from '@/elements/_base/sharedUI'
-import { TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon } from '@/elements/_base/TextVerticalAlignIcons'
+import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
+import { TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon, WritingHorizontalIcon, WritingVerticalIcon } from '@/elements/_base/TextVerticalAlignIcons'
 import { TokenInput } from '@/components/common/TokenInput'
 
 const FONT_FAMILIES = [
@@ -75,9 +75,13 @@ export function TextPropertiesPanel({ el, onChange }: Props) {
         </div>
         <PropRow label="行間"><NumInput value={style.lineHeight ?? 1.4} onChange={(v) => onStyle({ lineHeight: v })} min={0.5} max={5} step={0.1} /></PropRow>
         <PropRow label="文字間隔"><NumInput value={style.letterSpacing ?? 0} onChange={(v) => onStyle({ letterSpacing: v })} min={-0.2} max={2} step={0.05} unit="em" /></PropRow>
-        <PropRow label="文字方向">
-          <SelectInput value={style.writingMode ?? 'horizontal-tb'} onChange={(v) => onStyle({ writingMode: v as typeof style.writingMode })} options={[{ value: 'horizontal-tb', label: '横書き' }, { value: 'vertical-rl', label: '縦書き' }]} />
-        </PropRow>
+        <div>
+          <span className="text-[10px] text-muted-foreground">文字方向</span>
+          <div className="flex gap-1 mt-1">
+            <IconToggle active={style.writingMode !== 'vertical-rl'} onClick={() => onStyle({ writingMode: 'horizontal-tb' })} title="横書き"><WritingHorizontalIcon className="w-3.5 h-3.5" /></IconToggle>
+            <IconToggle active={style.writingMode === 'vertical-rl'} onClick={() => onStyle({ writingMode: 'vertical-rl' })} title="縦書き"><WritingVerticalIcon className="w-3.5 h-3.5" /></IconToggle>
+          </div>
+        </div>
       </PropSection>
       <PropSection title="コンテンツ">
         <TokenInput

@@ -33,16 +33,16 @@ describe('LabelRenderer', () => {
     const { container } = render(
       <LabelRenderer element={makeElement({ style: { fontSize: 6, fontWeight: 'normal', color: '#000', textAlign: 'left' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.fontSize).toBe('6mm')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.fontSize).toBe('6mm')
   })
 
   it('applies text color', () => {
     const { container } = render(
       <LabelRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'normal', color: '#0000ff', textAlign: 'left' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.color).toBe('rgb(0, 0, 255)')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.color).toBe('rgb(0, 0, 255)')
   })
 
   it('applies text alignment via flexbox justify-content', () => {
@@ -57,8 +57,8 @@ describe('LabelRenderer', () => {
     const { container } = render(
       <LabelRenderer element={makeElement({ style: { fontSize: 2.5, fontWeight: 'normal', color: '#000', textAlign: 'center', writingMode: 'vertical-rl' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.wordBreak).toBe('break-all')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.wordBreak).toBe('break-all')
   })
 
   it('does not set wordBreak when writingMode is horizontal-tb', () => {

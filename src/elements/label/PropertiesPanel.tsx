@@ -3,8 +3,8 @@ import {
   Bold, Italic, Underline, Strikethrough,
 } from 'lucide-react'
 import type { LabelElement } from '@/types'
-import { PropSection, PropRow, NumInput, ColorInput, SelectInput, IconToggle } from '@/elements/_base/sharedUI'
-import { TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon } from '@/elements/_base/TextVerticalAlignIcons'
+import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
+import { TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon, WritingHorizontalIcon, WritingVerticalIcon } from '@/elements/_base/TextVerticalAlignIcons'
 
 const FONT_FAMILIES = [
   'sans-serif', 'serif', 'monospace',
@@ -67,9 +67,13 @@ export function LabelPropertiesPanel({ el, onChange }: Props) {
             ))}
           </div>
         </div>
-        <PropRow label="文字方向">
-          <SelectInput value={style.writingMode ?? 'horizontal-tb'} onChange={(v) => onStyle({ writingMode: v as typeof style.writingMode })} options={[{ value: 'horizontal-tb', label: '横書き' }, { value: 'vertical-rl', label: '縦書き' }]} />
-        </PropRow>
+        <div>
+          <span className="text-[10px] text-muted-foreground">文字方向</span>
+          <div className="flex gap-1 mt-1">
+            <IconToggle active={style.writingMode !== 'vertical-rl'} onClick={() => onStyle({ writingMode: 'horizontal-tb' })} title="横書き"><WritingHorizontalIcon className="w-3.5 h-3.5" /></IconToggle>
+            <IconToggle active={style.writingMode === 'vertical-rl'} onClick={() => onStyle({ writingMode: 'vertical-rl' })} title="縦書き"><WritingVerticalIcon className="w-3.5 h-3.5" /></IconToggle>
+          </div>
+        </div>
       </PropSection>
       <PropSection title="コンテンツ">
         <PropRow label="テキスト">

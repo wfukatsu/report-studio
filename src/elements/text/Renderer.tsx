@@ -26,35 +26,42 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
         width: '100%',
         height: '100%',
         display: 'flex',
-        writingMode: (style.writingMode ?? 'horizontal-tb') as React.CSSProperties['writingMode'],
-        justifyContent: isVertical ? vAlign : hAlign,
-        alignItems: isVertical ? hAlign : vAlign,
-        fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
-        fontWeight: style.fontWeight ?? 'normal',
-        fontStyle: style.fontStyle ?? 'normal',
-        textDecoration: style.textDecoration ?? 'none',
-        color: style.color ?? '#000000',
-        backgroundColor: style.backgroundColor ?? 'transparent',
-        fontFamily: style.fontFamily,
-        letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
-        lineHeight: style.lineHeight ?? 1.4,
-        paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,
-        paddingRight: style.paddingRight != null ? `${style.paddingRight}mm` : undefined,
-        paddingBottom: style.paddingBottom != null ? `${style.paddingBottom}mm` : undefined,
-        paddingLeft: style.paddingLeft != null ? `${style.paddingLeft}mm` : undefined,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
+        justifyContent: hAlign,
+        alignItems: vAlign,
         overflow: 'hidden',
       }}
     >
-      {el.furigana ? (
-        <ruby>
-          {content}
-          <rt style={{ fontSize: `${(el.furiganaScale ?? 0.5) * 100}%` }}>{el.furigana}</rt>
-        </ruby>
-      ) : (
-        content
-      )}
+      <span
+        style={{
+          writingMode: isVertical ? 'vertical-rl' : undefined,
+          fontSize: style.fontSize ? `${style.fontSize}mm` : '3.5mm',
+          fontWeight: style.fontWeight ?? 'normal',
+          fontStyle: style.fontStyle ?? 'normal',
+          textDecoration: style.textDecoration ?? 'none',
+          color: style.color ?? '#000000',
+          backgroundColor: style.backgroundColor ?? 'transparent',
+          fontFamily: style.fontFamily,
+          letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
+          lineHeight: style.lineHeight ?? 1.4,
+          paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,
+          paddingRight: style.paddingRight != null ? `${style.paddingRight}mm` : undefined,
+          paddingBottom: style.paddingBottom != null ? `${style.paddingBottom}mm` : undefined,
+          paddingLeft: style.paddingLeft != null ? `${style.paddingLeft}mm` : undefined,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          maxWidth: '100%',
+          maxHeight: '100%',
+        }}
+      >
+        {el.furigana ? (
+          <ruby>
+            {content}
+            <rt style={{ fontSize: `${(el.furiganaScale ?? 0.5) * 100}%` }}>{el.furigana}</rt>
+          </ruby>
+        ) : (
+          content
+        )}
+      </span>
     </div>
   )
 })

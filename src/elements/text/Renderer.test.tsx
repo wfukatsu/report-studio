@@ -49,16 +49,16 @@ describe('TextRenderer', () => {
     const { container } = render(
       <TextRenderer element={makeElement({ style: { fontSize: 5, fontWeight: 'bold', color: '#ff0000', textAlign: 'center' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.fontSize).toBe('5mm')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.fontSize).toBe('5mm')
   })
 
   it('applies font weight', () => {
     const { container } = render(
       <TextRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'bold', color: '#000000', textAlign: 'left' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.fontWeight).toBe('bold')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.fontWeight).toBe('bold')
   })
 
   it('renders furigana when furigana prop set', () => {
@@ -80,7 +80,7 @@ describe('TextRenderer', () => {
     const { container } = render(
       <TextRenderer element={makeElement({ style: { fontSize: 3.5, fontWeight: 'normal', color: '#ff0000', textAlign: 'left' } })} />,
     )
-    const div = container.firstChild as HTMLElement
-    expect(div.style.color).toBe('rgb(255, 0, 0)')
+    const span = container.firstChild!.firstChild as HTMLElement
+    expect(span.style.color).toBe('rgb(255, 0, 0)')
   })
 })

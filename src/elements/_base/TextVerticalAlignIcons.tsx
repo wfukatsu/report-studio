@@ -1,4 +1,7 @@
 /**
+ * Custom SVG icons for text alignment and writing direction.
+ *
+ * == Text Vertical Alignment ==
  * Custom SVG icons for text vertical alignment within a bounding box.
  *
  * These differ from Lucide's AlignStartVertical/AlignCenterVertical/AlignEndVertical,
@@ -42,6 +45,30 @@ export function TextAlignBottomIcon({ className }: IconProps) {
       <rect x="1" y="1" width="12" height="12" rx="1" strokeWidth="1" />
       <line x1="3" y1="7.5" x2="11" y2="7.5" />
       <line x1="3" y1="10" x2="9" y2="10" />
+    </svg>
+  )
+}
+
+// == Writing Direction Icons ==
+
+/** Horizontal text direction (横書き): "A" with horizontal arrow */
+export function WritingHorizontalIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <text x="3" y="8" fontSize="7" fill="currentColor" stroke="none" fontFamily="sans-serif" fontWeight="bold">A</text>
+      <line x1="2" y1="11.5" x2="12" y2="11.5" />
+      <polyline points="10,10 12,11.5 10,13" strokeWidth="1" />
+    </svg>
+  )
+}
+
+/** Vertical text direction (縦書き): "A" with downward arrow */
+export function WritingVerticalIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      <text x="3" y="7" fontSize="7" fill="currentColor" stroke="none" fontFamily="sans-serif" fontWeight="bold">A</text>
+      <line x1="11.5" y1="2" x2="11.5" y2="12" />
+      <polyline points="10,10 11.5,12 13,10" strokeWidth="1" />
     </svg>
   )
 }

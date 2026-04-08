@@ -165,8 +165,7 @@ describe('TextPropertiesPanel', () => {
     const el = createTextElement() as TextElement
     const onChange = vi.fn()
     render(<TextPropertiesPanel el={el} onChange={onChange} />)
-    const writingModeSelect = screen.getAllByRole('combobox')[1]
-    fireEvent.change(writingModeSelect, { target: { value: 'vertical-rl' } })
+    fireEvent.click(screen.getByTitle('縦書き'))
     expect(onChange).toHaveBeenCalled()
   })
 
@@ -285,8 +284,7 @@ describe('LabelPropertiesPanel', () => {
     const el = createLabelElement() as LabelElement
     const onChange = vi.fn()
     render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    const writingModeSelect = screen.getAllByRole('combobox')[1]
-    fireEvent.change(writingModeSelect, { target: { value: 'vertical-rl' } })
+    fireEvent.click(screen.getByTitle('縦書き'))
     expect(onChange).toHaveBeenCalled()
   })
 })
