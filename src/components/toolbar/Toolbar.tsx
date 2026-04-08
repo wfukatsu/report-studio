@@ -9,7 +9,7 @@ import {
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
-import { evaluateValidate, generateTemplatePdf } from '@/api/reportApi'
+import { evaluateValidate, generateTemplatePdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { Section, OutputVariant } from '@/types'
@@ -17,6 +17,7 @@ import { useReportStore, selectActivePageId, selectActivePage } from '@/store/re
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
 import { VariantsModal } from '@/components/modals/VariantsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
+import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
@@ -109,6 +110,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [isSavingNew, setIsSavingNew] = useState(false)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
@@ -331,19 +334,57 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
+
+    if (!backendConnected) {
+      // Fallback: JSON file download when backend is not available
+      try {
+        const json = JSON.stringify(definition, null, 2)
+        const blob = new Blob([json], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${reportName}.rds.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : '保存に失敗しました')
+      }
+      return
+    }
+
+    if (currentTemplateId) {
+      // Existing template → overwrite save
+      try {
+        setSaveState('saving')
+        await saveReport(currentTemplateId, definition)
+        setSaveState('saved')
+      } catch (err) {
+        setSaveState('error')
+        setExportError(err instanceof Error ? err.message : '保存に失敗しました')
+      }
+    } else {
+      // New template → show name dialog
+      setShowSaveDialog(true)
+    }
+  }
+
+  const handleSaveNew = async (name: string) => {
+    const { definition, setCurrentTemplateId, setSaveState } = useReportStore.getState()
+    setIsSavingNew(true)
     try {
-      const definition = useReportStore.getState().definition
-      const json = JSON.stringify(definition, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${reportName}.rds.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      setSaveState('saving')
+      const created = await createReport(name)
+      await saveReport(created.id, definition)
+      setCurrentTemplateId(created.id)
+      setShowSaveDialog(false)
+      setSaveState('saved')
     } catch (err) {
+      setSaveState('error')
       setExportError(err instanceof Error ? err.message : '保存に失敗しました')
+    } finally {
+      setIsSavingNew(false)
     }
   }
 
@@ -757,6 +798,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     <VariantsModal
       open={showVariantsModal}
       onClose={() => setShowVariantsModal(false)}
+    />
+
+    {/* Save template dialog */}
+    <SaveTemplateDialog
+      open={showSaveDialog}
+      onSave={handleSaveNew}
+      onCancel={() => setShowSaveDialog(false)}
+      defaultName={reportName}
+      saving={isSavingNew}
     />
 
     {/* Export variant selector */}
