@@ -14,6 +14,12 @@ function toFlexAlign(value: string | undefined, fallback: string): string {
   return fallback
 }
 
+function vAlignToTextAlign(va: string | undefined): string {
+  if (va === 'middle') return 'center'
+  if (va === 'bottom') return 'right'
+  return 'left'
+}
+
 export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, data = {} }: Props) {
   const style = el.style
   const isVertical = style.writingMode === 'vertical-rl'
@@ -27,7 +33,13 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
     displayValue = String(raw)
   }
 
-  const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
+  const outerJustify = isVertical
+    ? toFlexAlign(style.textAlign, 'flex-start')
+    : toFlexAlign(style.verticalAlign, 'flex-start')
+
+  const innerTextAlign = isVertical
+    ? vAlignToTextAlign(style.verticalAlign)
+    : (style.textAlign ?? 'left')
 
   return (
     <div
@@ -35,8 +47,8 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
         width: '100%',
         height: '100%',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: vAlign,
+        flexDirection: isVertical ? 'row' : 'column',
+        justifyContent: outerJustify,
         overflow: 'hidden',
       }}
     >
@@ -47,7 +59,7 @@ export const DataFieldRenderer = memo(function DataFieldRenderer({ element: el, 
           fontWeight: style.fontWeight ?? 'normal',
           color: style.color ?? '#000000',
           fontFamily: style.fontFamily,
-          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
+          textAlign: innerTextAlign as React.CSSProperties['textAlign'],
           width: isVertical ? undefined : '100%',
           height: isVertical ? '100%' : undefined,
         }}

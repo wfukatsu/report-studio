@@ -13,11 +13,24 @@ function toFlexAlign(value: string | undefined, fallback: string): string {
   return fallback
 }
 
+function vAlignToTextAlign(va: string | undefined): string {
+  if (va === 'middle') return 'center'
+  if (va === 'bottom') return 'right'
+  return 'left'
+}
+
 export const TextRenderer = memo(function TextRenderer({ element: el, data = {} }: Props) {
   const content = interpolate(el.content, data)
   const style = el.style
   const isVertical = style.writingMode === 'vertical-rl'
-  const vAlign = toFlexAlign(style.verticalAlign, 'flex-start')
+
+  const outerJustify = isVertical
+    ? toFlexAlign(style.textAlign, 'flex-start')
+    : toFlexAlign(style.verticalAlign, 'flex-start')
+
+  const innerTextAlign = isVertical
+    ? vAlignToTextAlign(style.verticalAlign)
+    : (style.textAlign ?? 'left')
 
   return (
     <div
@@ -25,8 +38,8 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
         width: '100%',
         height: '100%',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: vAlign,
+        flexDirection: isVertical ? 'row' : 'column',
+        justifyContent: outerJustify,
         overflow: 'hidden',
       }}
     >
@@ -40,8 +53,8 @@ export const TextRenderer = memo(function TextRenderer({ element: el, data = {} 
           color: style.color ?? '#000000',
           backgroundColor: style.backgroundColor ?? 'transparent',
           fontFamily: style.fontFamily,
-          textAlign: (style.textAlign ?? 'left') as React.CSSProperties['textAlign'],
-          textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
+          textAlign: innerTextAlign as React.CSSProperties['textAlign'],
+          textAlignLast: !isVertical && style.textAlign === 'justify' ? 'justify' : undefined,
           letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
           lineHeight: style.lineHeight ?? 1.4,
           paddingTop: style.paddingTop != null ? `${style.paddingTop}mm` : undefined,
