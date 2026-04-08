@@ -112,6 +112,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isSavingNew, setIsSavingNew] = useState(false)
+  const [showSaveMenu, setShowSaveMenu] = useState(false)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
@@ -119,6 +120,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showVariantsModal, setShowVariantsModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const saveMenuRef = useRef<HTMLDivElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
   const zOrderMenuRef = useRef<HTMLDivElement>(null)
@@ -127,10 +129,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const hasMultiSelection = selectedIds.length >= 2
   const singleId = selectedIds[0]
 
+  const closeSaveMenu = useCallback(() => setShowSaveMenu(false), [])
   const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
   const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
   const closeZOrderMenu = useCallback(() => setShowZOrderMenu(false), [])
 
+  useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
   useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
   useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
   useDropdownDismiss(zOrderMenuRef, showZOrderMenu, closeZOrderMenu)
@@ -334,23 +338,28 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     }
   }
 
+  const handleDownloadJson = () => {
+    try {
+      const definition = useReportStore.getState().definition
+      const json = JSON.stringify(definition, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${reportName}.rds.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'ダウンロードに失敗しました')
+    }
+    setShowSaveMenu(false)
+  }
+
   const handleSave = async () => {
     const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
 
     if (!backendConnected) {
-      // Fallback: JSON file download when backend is not available
-      try {
-        const json = JSON.stringify(definition, null, 2)
-        const blob = new Blob([json], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${reportName}.rds.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      } catch (err) {
-        setExportError(err instanceof Error ? err.message : '保存に失敗しました')
-      }
+      handleDownloadJson()
       return
     }
 
@@ -436,9 +445,35 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={handleOpen} title="開く">
           <FolderOpen className="w-4 h-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
-          <Save className="w-4 h-4" />
-        </ToolbarButton>
+        <div className="relative flex items-center" ref={saveMenuRef}>
+          <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
+            <Save className="w-4 h-4" />
+          </ToolbarButton>
+          <button
+            onClick={() => setShowSaveMenu((v) => !v)}
+            className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
+            aria-expanded={showSaveMenu}
+            aria-label="保存メニュー"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {showSaveMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                onClick={() => { void handleSave(); setShowSaveMenu(false) }}
+              >
+                サーバーに保存
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                onClick={handleDownloadJson}
+              >
+                JSON ファイルとしてダウンロード
+              </button>
+            </div>
+          )}
+        </div>
 
         <Divider />
 
