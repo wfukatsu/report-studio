@@ -1,4 +1,4 @@
-import type { CheckboxElement, CheckmarkStyle } from '@/types'
+import type { CheckboxElement, CheckmarkStyle, CheckboxLabelPosition } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
 
 interface Props {
@@ -36,6 +36,18 @@ export function CheckboxPropertiesPanel({ el, onChange }: Props) {
           value={el.label}
           placeholder="ラベルテキスト"
           onChange={(e) => onChange({ label: e.target.value })}
+        />
+      </PropRow>
+      <PropRow label="ラベル位置">
+        <SelectInput
+          value={el.labelPosition ?? 'right'}
+          onChange={(v) => onChange({ labelPosition: v as CheckboxLabelPosition })}
+          options={[
+            { value: 'right', label: '右' },
+            { value: 'left', label: '左' },
+            { value: 'top', label: '上' },
+            { value: 'bottom', label: '下' },
+          ]}
         />
       </PropRow>
       <PropRow label="データバインド">
