@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { BarcodeRenderer } from './Renderer'
 import type { BarcodeElement } from '@/types'
 
@@ -77,7 +77,7 @@ describe('BarcodeRenderer — code39', () => {
 describe('BarcodeRenderer — jan13 (EAN-13)', () => {
   it('renders jan13 barcode', () => {
     const { container } = render(
-      <BarcodeRenderer element={makeQrElement({ kind: 'jan13', value: '4901234567890', size: { width: 60, height: 15 } })} />,
+      <BarcodeRenderer element={makeQrElement({ kind: 'jan13', value: '4902778913406', size: { width: 60, height: 15 } })} />,
     )
     expect(container.firstChild).toBeInTheDocument()
   })

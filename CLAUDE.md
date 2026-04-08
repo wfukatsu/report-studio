@@ -78,11 +78,44 @@ Data binding uses `{{fieldKey}}` tokens in text content and dot-notation field k
 
 ### Types (`src/types/index.ts`)
 
-`ReportElement` is a discriminated union on `type`. Add a new element type by:
-1. Defining the interface extending `ElementBase`
+`ReportElement` is a discriminated union on `type` (15 active types). Add a new element type by:
+1. Defining the interface extending `ElementBase` in `src/types/index.ts`
 2. Adding to the `ReportElement` union
-3. Handling the new `type` in `ElementRenderer.tsx`
-4. Adding a palette item in `ElementPalette.tsx`
+3. Creating `src/elements/{type}/Renderer.tsx` — **compose from `_blocks/` building blocks** (TextContent, ElementFrame, GridLines, useDataResolver 等)
+4. Creating `src/elements/{type}/PropertiesPanel.tsx` — **compose from `_blocks/panels/`** (TextStyleSection, BorderSection, DataBindingSection, FormatSection 等)
+5. Adding the `type` case in `ElementRenderer.tsx` and `PropertiesPanel.tsx` (sidebar)
+6. Creating a factory in `elementFactories.ts`
+7. Adding a palette item in `ElementPalette.tsx`
+
+### Composition ブロック (`src/elements/_blocks/`)
+
+共通ビルディングブロックで要素を構成するパターン:
+
+```
+_blocks/
+├── renderers/        ← Renderer 用ブロック
+│   ├── ElementFrame     ボーダー/背景/パディング
+│   ├── TextContent      テキスト描画（縦書き、ふりがなCSS方式）
+│   ├── GridLines        CSS border ベースのグリッド線
+│   ├── ChartContent     Recharts wrapper (bar/line/pie/donut)
+│   ├── BarcodeContent   QR/CODE128/CODE39/EAN13
+│   └── ElementErrorBoundary  要素単位エラーキャッチ
+├── hooks/
+│   └── useDataResolver  フィールド解決 + フォーマット適用
+├── panels/           ← PropertiesPanel 用ブロック
+│   ├── TextStyleSection    フォント/サイズ/太字/色/配置/縦書き
+│   ├── BorderSection       ボーダー色/幅/スタイル/角丸
+│   ├── DataBindingSection  フィールドキー入力
+│   ├── FormatSection       書式設定（小数桁数/カスタムパターン）
+│   ├── FuriganaSection     ふりがな設定
+│   └── ColorSection        色設定
+└── constants.ts       MM_TO_PX, DEFAULT_FONT_SIZE 等
+```
+
+### 廃止要素
+
+- `label` → `text` に統合済み（ElementRenderer で自動変換）
+- `table` → `formTable` に統合済み（旧データは警告表示）
 
 ### Templates (`src/templates/builtinTemplates.ts`)
 

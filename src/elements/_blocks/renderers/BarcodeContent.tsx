@@ -17,7 +17,7 @@ const DEFAULT_VALUES: Record<BarcodeKind, string> = {
   qr: 'https://example.com',
   code128: '0000000000',
   code39: 'HELLO',
-  jan13: '4901234567890',
+  jan13: '4902778913406',
 }
 
 interface BarcodeContentProps {
