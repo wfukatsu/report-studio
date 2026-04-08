@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { ChartRenderer } from './Renderer'
 import type { ChartElement } from '@/types'
 
@@ -13,8 +13,8 @@ function makeElement(overrides: Partial<ChartElement> = {}): ChartElement {
     visible: true,
     locked: false,
     chartType: 'bar',
-    labels: ['A', 'B', 'C'],
-    datasets: [{ label: 'データ', data: [1, 2, 3], color: '#3b82f6' }],
+    xAxisKey: 'name',
+    yAxisKeys: ['value'],
     ...overrides,
   } as ChartElement
 }
@@ -25,18 +25,32 @@ describe('ChartRenderer', () => {
     expect(container.firstChild).toBeInTheDocument()
   })
 
-  it('shows chart type in placeholder', () => {
-    render(<ChartRenderer element={makeElement({ chartType: 'bar' })} />)
-    expect(screen.getByText('[bar chart]')).toBeInTheDocument()
+  it('renders bar chart with sample data', () => {
+    const { container } = render(<ChartRenderer element={makeElement({ chartType: 'bar' })} />)
+    // Recharts renders SVG-based charts via ResponsiveContainer
+    expect(container.firstChild).toBeInTheDocument()
   })
 
-  it('shows different chart types', () => {
-    render(<ChartRenderer element={makeElement({ chartType: 'line' })} />)
-    expect(screen.getByText('[line chart]')).toBeInTheDocument()
+  it('renders line chart', () => {
+    const { container } = render(<ChartRenderer element={makeElement({ chartType: 'line' })} />)
+    expect(container.firstChild).toBeInTheDocument()
   })
 
-  it('renders pie chart type', () => {
-    render(<ChartRenderer element={makeElement({ chartType: 'pie' })} />)
-    expect(screen.getByText('[pie chart]')).toBeInTheDocument()
+  it('renders pie chart', () => {
+    const { container } = render(<ChartRenderer element={makeElement({ chartType: 'pie' })} />)
+    expect(container.firstChild).toBeInTheDocument()
+  })
+
+  it('renders with data binding', () => {
+    const data = { sales: [{ name: 'Jan', value: 100 }, { name: 'Feb', value: 200 }] }
+    const { container } = render(
+      <ChartRenderer element={makeElement({ dataBinding: 'sales' })} data={data} />,
+    )
+    expect(container.firstChild).toBeInTheDocument()
+  })
+
+  it('shows title when set', () => {
+    const { container } = render(<ChartRenderer element={makeElement({ title: '売上' })} />)
+    expect(container.textContent).toContain('売上')
   })
 })

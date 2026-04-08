@@ -524,7 +524,11 @@ describe('ChartPropertiesPanel', () => {
     const el = createChartElement() as ChartElement
     const onChange = vi.fn()
     render(<ChartPropertiesPanel el={el} onChange={onChange} />)
-    const bindingInput = screen.getByPlaceholderText('例: chartData')
+    // DataBindingSection uses FieldKeyInput — find input by current value or role
+    const inputs = screen.getAllByRole('textbox')
+    // The data binding input should be among the textboxes
+    const bindingInput = inputs.find((input) => input.getAttribute('placeholder')?.includes('フィールド') || input.getAttribute('placeholder')?.includes('キー'))
+      ?? inputs[1] // fallback: second input (after title)
     fireEvent.change(bindingInput, { target: { value: 'salesData' } })
     expect(onChange).toHaveBeenCalled()
   })

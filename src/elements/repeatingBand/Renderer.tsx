@@ -102,24 +102,61 @@ function RepeatingBandLiveRenderer({
   // Apply maxItems limit
   const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
 
-  // Apply sort — capture sortKey before closure to avoid non-null assertion
+  // Apply sort with smart numeric comparison
   const sortKey = el.sortBy
   const sorted = sortKey
     ? [...limited].sort((a, b) => {
         const va = resolveField(a, sortKey)
         const vb = resolveField(b, sortKey)
-        return el.sortOrder === 'desc'
-          ? String(vb).localeCompare(String(va))
-          : String(va).localeCompare(String(vb))
+        const numA = Number(va)
+        const numB = Number(vb)
+        // Both valid numbers → numeric sort; otherwise string sort
+        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+          ? numA - numB
+          : String(va ?? '').localeCompare(String(vb ?? ''))
+        return el.sortOrder === 'desc' ? -cmp : cmp
       })
     : limited
+
+  // Apply groupBy — group records by field value
+  const groupByKey = el.groupBy
+  const groups = groupByKey
+    ? (() => {
+        const map = new Map<string, Record<string, unknown>[]>()
+        for (const record of sorted) {
+          const key = String(resolveField(record, groupByKey) ?? '')
+          const group = map.get(key) ?? []
+          group.push(record)
+          map.set(key, group)
+        }
+        return Array.from(map, ([label, recs]) => ({ label, records: recs }))
+      })()
+    : [{ label: '', records: sorted }]
 
   const hasFooter = el.showFooter && el.totals.length > 0
   const HEADER_H = el.showHeader ? el.itemHeight : 0
   const FOOTER_H = hasFooter ? el.itemHeight : 0
 
+  // Flatten grouped rows for rendering
+  const flatRows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
+  let globalRowIdx = 0
+  for (const group of groups) {
+    if (groupByKey && group.label) {
+      flatRows.push({ type: 'group-header', groupLabel: group.label, rowIdx: globalRowIdx })
+    }
+    for (const record of group.records) {
+      flatRows.push({ type: 'data', record, rowIdx: globalRowIdx })
+      globalRowIdx++
+    }
+  }
+
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+    <div style={{
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+      border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden',
+      breakBefore: el.pageBreak === 'before' ? 'page' : undefined,
+      breakAfter: el.pageBreak === 'after' ? 'page' : undefined,
+    }}>
       {/* Header row */}
       {el.showHeader && (
         <div style={{ display: 'flex', height: `${HEADER_H}mm`, flexShrink: 0, borderBottom: bs }}>
@@ -131,21 +168,30 @@ function RepeatingBandLiveRenderer({
         </div>
       )}
 
-      {/* Data rows */}
-      {sorted.length === 0 && !el.showEmptyRowLines ? (
+      {/* Data rows (with optional group headers) */}
+      {flatRows.length === 0 && !el.showEmptyRowLines ? (
         <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '2.8mm', borderBottom: hasFooter ? bs : undefined }}>
           データなし
         </div>
       ) : (
-        sorted.map((record, rowIdx) => (
-          <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
-            {el.fields.map((f, i) => (
-              <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
-                {resolveField(record, f.key)}
+        flatRows.map((row, idx) => {
+          if (row.type === 'group-header') {
+            return (
+              <div key={`gh-${idx}`} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: '#e5e7eb', borderBottom: bs, alignItems: 'center', paddingLeft: '1mm', fontSize: '2.8mm', fontWeight: 'bold' }}>
+                {row.groupLabel}
               </div>
-            ))}
-          </div>
-        ))
+            )
+          }
+          return (
+            <div key={idx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: row.rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
+              {el.fields.map((f, i) => (
+                <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
+                  {resolveField(row.record!, f.key)}
+                </div>
+              ))}
+            </div>
+          )
+        })
       )}
 
       {/* Empty row lines (showEmptyRowLines) */}

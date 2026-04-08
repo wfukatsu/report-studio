@@ -137,10 +137,10 @@ describe('ElementRenderer — barcode', () => {
     expect(container.firstChild).not.toBeNull()
   })
 
-  it('renders fallback for unsupported barcode kind', () => {
-    const el = createBarcodeElement({ id: 'barcode-3', kind: 'jan13' as never })
-    render(<ElementRenderer element={el} data={{}} />)
-    expect(screen.getByText('[jan13]')).toBeInTheDocument()
+  it('renders jan13 (EAN-13) barcode', () => {
+    const el = createBarcodeElement({ id: 'barcode-3', kind: 'jan13' as never, value: '4901234567890' })
+    const { container } = render(<ElementRenderer element={el} data={{}} />)
+    expect(container.firstChild).not.toBeNull()
   })
 })
 
