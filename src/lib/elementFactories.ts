@@ -275,6 +275,7 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
     borderColor: '#000000',
     borderWidth: 0.3,
     sortOrder: 'asc',
+    showEmptyRowLines: false,
     style: { fontSize: 3.5, color: '#000000' },
     headerStyle: { fontSize: 3.5, fontWeight: 'bold', color: '#374151', backgroundColor: '#f3f4f6' },
     ...overrides,

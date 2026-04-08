@@ -423,6 +423,8 @@ export interface RepeatingBandElement extends ElementBase {
   sortOrder?: 'asc' | 'desc'
   /** グループ化フィールドキー */
   groupBy?: string
+  /** データ行数が maxItems 未満のとき空行罫線を描画する */
+  showEmptyRowLines?: boolean
   /** テキストスタイル（ボディ行） */
   style?: TextStyle
   /** ヘッダーテキストスタイル */

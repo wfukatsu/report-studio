@@ -256,12 +256,7 @@ elements.push(
   lbl('金額（税抜）', COL_AMOUNT_X + 1,   Y_TABLE, COL_AMOUNT_W - 2,   TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
 )
 
-// 空行罫線
-for (let i = 1; i <= TABLE_ROWS; i++) {
-  elements.push(hline(ML, Y_BODY + i * TABLE_ROW_H, CONTENT_W))
-}
-
-// 繰り返しバンド（5フィールド）
+// 繰り返しバンド（5フィールド + 空行罫線）
 elements.push({
   id: uuidv4(), type: 'repeatingBand',
   position: { x: ML, y: Y_BODY },
@@ -269,7 +264,7 @@ elements.push({
   zIndex: 3, locked: false, visible: true,
   dataSource: 'items', itemHeight: TABLE_ROW_H,
   showHeader: false, showFooter: false, totals: [],
-  pageBreak: 'none', maxItems: TABLE_ROWS,
+  pageBreak: 'none', maxItems: TABLE_ROWS, showEmptyRowLines: true,
   oddRowColor: '#ffffff', evenRowColor: '#f9f9f9',
   borderColor: '#cccccc', borderWidth: 0.25,
   fields: [

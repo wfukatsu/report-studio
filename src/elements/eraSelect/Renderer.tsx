@@ -11,7 +11,7 @@ interface Props {
 
 export const EraSelectRenderer = memo(function EraSelectRenderer({ element: el, data = {} }: Props) {
   const selected = el.dataSource ? resolveField(data, el.dataSource) : ''
-  const fontSize = `${(el.size.height / 5) * 0.75}mm`
+  const fontSize = `${Math.max((el.size.height / 5) * 0.75, 2.0)}mm`
 
   return (
     <div

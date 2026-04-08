@@ -212,12 +212,7 @@ elements.push(
   lbl('AMOUNT',     COL_AMT_X + 1,   Y_TABLE, COL_AMT_W - 2,   TABLE_HDR_H, { fontSize: 2.8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
 )
 
-// Empty row lines
-for (let i = 1; i <= TABLE_ROWS; i++) {
-  elements.push(hline(ML, Y_BODY + i * TABLE_ROW_H, CONTENT_W))
-}
-
-// Repeating band
+// Repeating band (with empty row lines)
 elements.push({
   id: uuidv4(), type: 'repeatingBand',
   position: { x: ML, y: Y_BODY },
@@ -225,7 +220,7 @@ elements.push({
   zIndex: 3, locked: false, visible: true,
   dataSource: 'items', itemHeight: TABLE_ROW_H,
   showHeader: false, showFooter: false, totals: [],
-  pageBreak: 'none', maxItems: TABLE_ROWS,
+  pageBreak: 'none', maxItems: TABLE_ROWS, showEmptyRowLines: true,
   oddRowColor: '#ffffff', evenRowColor: '#f5f5f5',
   borderColor: '#cccccc', borderWidth: 0.25,
   fields: [

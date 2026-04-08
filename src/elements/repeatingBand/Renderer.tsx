@@ -132,7 +132,7 @@ function RepeatingBandLiveRenderer({
       )}
 
       {/* Data rows */}
-      {sorted.length === 0 ? (
+      {sorted.length === 0 && !el.showEmptyRowLines ? (
         <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '2.8mm', borderBottom: hasFooter ? bs : undefined }}>
           データなし
         </div>
@@ -147,6 +147,14 @@ function RepeatingBandLiveRenderer({
           </div>
         ))
       )}
+
+      {/* Empty row lines (showEmptyRowLines) */}
+      {el.showEmptyRowLines && el.maxItems > 0 && (() => {
+        const emptyCount = Math.max(0, el.maxItems - sorted.length)
+        return Array.from({ length: emptyCount }, (_, i) => (
+          <div key={`empty-${i}`} data-testid="empty-row-line" style={{ height: `${el.itemHeight}mm`, flexShrink: 0, borderBottom: bs }} />
+        ))
+      })()}
 
       {/* Footer totals row */}
       {hasFooter && (
