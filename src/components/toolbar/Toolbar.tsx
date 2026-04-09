@@ -4,7 +4,7 @@ import {
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
-  Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine,
+  Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, Shuffle,
@@ -75,7 +75,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const showGrid = useReportStore((s) => s.showGrid)
   const toggleGrid = useReportStore((s) => s.toggleGrid)
   const showTrimMarks = useReportStore((s) => s.showTrimMarks)
+  const showMarginGuide = useReportStore((s) => s.showMarginGuide)
   const toggleTrimMarks = useReportStore((s) => s.toggleTrimMarks)
+  const toggleMarginGuide = useReportStore((s) => s.toggleMarginGuide)
   const snapToGrid = useReportStore((s) => s.snapToGrid)
   const toggleSnapToGrid = useReportStore((s) => s.toggleSnapToGrid)
   const headerEditMode = useReportStore((s) => s.headerEditMode)
@@ -602,6 +604,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         </ToolbarButton>
         <ToolbarButton onClick={toggleTrimMarks} active={showTrimMarks} title="トンボ表示切替">
           <Crosshair className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={toggleMarginGuide} active={showMarginGuide} title="余白ガイド表示切替">
+          <ScanLine className="w-4 h-4" />
         </ToolbarButton>
         {(masterHeader || masterFooter) && (
           <ToolbarButton

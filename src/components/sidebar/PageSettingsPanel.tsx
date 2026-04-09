@@ -71,6 +71,27 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
 
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground">余白 (mm)</label>
+        <div className="flex gap-1 mb-1">
+          {([
+            ['標準', 20],
+            ['狭い', 10],
+            ['最小', 5],
+            ['なし', 0],
+          ] as const).map(([label, v]) => (
+            <button
+              key={label}
+              className={`px-2 py-0.5 text-xs rounded border transition-colors ${
+                pageSettings.margins.top === v && pageSettings.margins.right === v &&
+                pageSettings.margins.bottom === v && pageSettings.margins.left === v
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background hover:bg-accent border-border'
+              }`}
+              onClick={() => updateSettings({ margins: { top: v, right: v, bottom: v, left: v } })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 gap-1">
           {([
             ['top', '上'],
