@@ -32,7 +32,7 @@ export function DividerPropertiesPanel({ el, onChange }: Props) {
         <ColorInput value={el.color} onChange={(v) => onChange({ color: v })} />
       </PropRow>
       <PropRow label="太さ">
-        <NumInput value={el.thickness} onChange={(v) => onChange({ thickness: v })} min={0.1} max={5} step={0.1} unit="mm" />
+        <NumInput value={el.thickness} onChange={(v) => onChange({ thickness: Math.max(0.1, Math.min(5, v)) })} min={0.1} max={5} step={0.1} unit="mm" />
       </PropRow>
       <PropRow label="線種">
         <select
