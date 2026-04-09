@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef } from 'react'
-import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload } from 'lucide-react'
+import { useState, useCallback, useRef, useMemo } from 'react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
+import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, getTemplateThumbnailUrl } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
@@ -40,7 +41,34 @@ export function TemplateSelectionModal({
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
 
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Compute categories and tags from all templates
+  const allCategories = useMemo(
+    () => collectCategories([...BUILTIN_TEMPLATES, ...backendTemplates]),
+    [backendTemplates],
+  )
+  const allTags = useMemo(
+    () => collectTags([...BUILTIN_TEMPLATES, ...backendTemplates]),
+    [backendTemplates],
+  )
+
+  // Filter builtin templates
+  const filteredBuiltins = useMemo(
+    () => filterTemplates(BUILTIN_TEMPLATES, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
+    [searchQuery, selectedCategory, selectedFilterTags],
+  )
+
+  // Filter backend templates
+  const filteredBackend = useMemo(
+    () => filterTemplates(backendTemplates, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
+    [backendTemplates, searchQuery, selectedCategory, selectedFilterTags],
+  )
 
   const handleFetchBackend = useCallback(async () => {
     setBackendLoadState('loading')
@@ -143,6 +171,9 @@ export function TemplateSelectionModal({
   const handleClose = () => {
     setSelectedBuiltinId(null)
     setSelectedDefinition(null)
+    setSearchQuery('')
+    setSelectedCategory(null)
+    setSelectedFilterTags([])
     onClose()
   }
 
@@ -161,6 +192,90 @@ export function TemplateSelectionModal({
           >
             ✕
           </button>
+        </div>
+
+        {/* Filter bar */}
+        <div className="px-5 pt-4 pb-2 space-y-2 border-b shrink-0">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              className="w-full pl-7 pr-7 py-1.5 text-xs border rounded bg-background"
+              placeholder="テンプレートを検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                aria-label="検索をクリア"
+              >
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+          {/* Category chips */}
+          {allCategories.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
+                  selectedCategory === null
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background hover:bg-accent border-border'
+                }`}
+              >
+                すべて
+              </button>
+              {allCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  className={`px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
+                    selectedCategory === cat
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background hover:bg-accent border-border'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Tag chips */}
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-[10px] text-muted-foreground mr-0.5">タグ:</span>
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() =>
+                    setSelectedFilterTags((prev) =>
+                      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+                    )
+                  }
+                  className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
+                    selectedFilterTags.includes(tag)
+                      ? 'bg-primary/10 text-primary border-primary/30'
+                      : 'bg-background hover:bg-accent border-border'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+              {selectedFilterTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedFilterTags([])}
+                  className="text-[10px] text-muted-foreground hover:text-foreground ml-1"
+                  aria-label="タグフィルタをクリア"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -185,7 +300,7 @@ export function TemplateSelectionModal({
                 <span className="text-[10px] text-muted-foreground">白紙から作成</span>
               </button>
 
-              {BUILTIN_TEMPLATES.map((t) => (
+              {filteredBuiltins.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => handleSelectBuiltin(t.id)}
@@ -265,9 +380,9 @@ export function TemplateSelectionModal({
                 </div>
               )}
 
-              {backendTemplates.length > 0 && (
+              {filteredBackend.length > 0 && (
                 <div className="grid grid-cols-3 gap-3">
-                  {backendTemplates.map((t) => (
+                  {filteredBackend.map((t) => (
                     <div key={t.id} className="relative group">
                       <button
                         onClick={() => handleLoadBackend(t.id)}
