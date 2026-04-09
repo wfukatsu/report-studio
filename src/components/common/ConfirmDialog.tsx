@@ -31,8 +31,10 @@ export function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      tabIndex={-1}
+      ref={(el) => el?.focus()}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
-      onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onCancel() } }}
     >
       <div className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">

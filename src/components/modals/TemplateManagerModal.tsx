@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2, Trash2, Pencil, FolderOpen, AlertCircle, Eye, EyeOff, RotateCcw } from 'lucide-react'
 import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
@@ -111,13 +112,16 @@ export function TemplateManagerModal({ open, onClose }: Props) {
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
       role="dialog"
       aria-modal="true"
       aria-label="テンプレート管理"
+      tabIndex={-1}
+      ref={(el) => el?.focus()}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}
     >
       <div className="bg-background border border-border rounded-lg shadow-xl w-[700px] max-h-[80vh] flex flex-col mx-4">
         {/* Header */}
@@ -156,7 +160,11 @@ export function TemplateManagerModal({ open, onClose }: Props) {
 
                     {/* Category (editable) */}
                     {editingBuiltinCatId === t.id ? (
-                      <div className="w-28">
+                      <div className="w-28" onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setEditingBuiltinCatId(null)
+                        }
+                      }}>
                         <CategoryCombobox
                           value={effectiveCategory}
                           options={categoryOptions}
@@ -178,13 +186,15 @@ export function TemplateManagerModal({ open, onClose }: Props) {
 
                     {/* Tags (editable) */}
                     {editingBuiltinTagsId === t.id ? (
-                      <div className="flex-1">
+                      <div className="flex-1" onBlur={(e) => {
+                        // Close tag editor when focus leaves this container
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setEditingBuiltinTagsId(null)
+                        }
+                      }}>
                         <TagInput
                           value={effectiveTags}
-                          onChange={(tags) => {
-                            setOverride(t.id, { tags })
-                            setEditingBuiltinTagsId(null)
-                          }}
+                          onChange={(tags) => setOverride(t.id, { tags })}
                         />
                       </div>
                     ) : (
@@ -279,11 +289,18 @@ export function TemplateManagerModal({ open, onClose }: Props) {
 
                     {/* Category */}
                     {editingCategoryId === t.id ? (
-                      <div className="w-28">
+                      <div className="w-28" onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setEditingCategoryId(null)
+                        }
+                      }}>
                         <CategoryCombobox
                           value={t.category}
                           options={categoryOptions}
-                          onChange={(v) => handleUpdateMetadata(t.id, { category: v })}
+                          onChange={(v) => {
+                            handleUpdateMetadata(t.id, { category: v })
+                            setEditingCategoryId(null)
+                          }}
                         />
                       </div>
                     ) : (
@@ -298,7 +315,11 @@ export function TemplateManagerModal({ open, onClose }: Props) {
 
                     {/* Tags */}
                     {editingTagsId === t.id ? (
-                      <div className="flex-1">
+                      <div className="flex-1" onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setEditingTagsId(null)
+                        }
+                      }}>
                         <TagInput
                           value={t.tags ?? []}
                           onChange={(tags) => handleUpdateMetadata(t.id, { tags })}
@@ -368,6 +389,7 @@ export function TemplateManagerModal({ open, onClose }: Props) {
         onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
         onCancel={() => setDeleteConfirmId(null)}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }
