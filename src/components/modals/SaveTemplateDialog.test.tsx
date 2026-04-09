@@ -32,7 +32,7 @@ describe('SaveTemplateDialog', () => {
     const onSave = vi.fn()
     render(<SaveTemplateDialog open={true} onSave={onSave} onCancel={vi.fn()} defaultName="テスト" />)
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
-    expect(onSave).toHaveBeenCalledWith('テスト')
+    expect(onSave).toHaveBeenCalledWith('テスト', undefined, undefined)
   })
 
   it('calls onCancel when cancel button clicked', () => {
@@ -46,7 +46,7 @@ describe('SaveTemplateDialog', () => {
     const onSave = vi.fn()
     render(<SaveTemplateDialog open={true} onSave={onSave} onCancel={vi.fn()} defaultName="テスト" />)
     fireEvent.keyDown(screen.getByLabelText('テンプレート名'), { key: 'Enter' })
-    expect(onSave).toHaveBeenCalledWith('テスト')
+    expect(onSave).toHaveBeenCalledWith('テスト', undefined, undefined)
   })
 
   it('shows saving state when saving is true', () => {

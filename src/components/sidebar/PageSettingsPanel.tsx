@@ -1,5 +1,8 @@
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
+import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { CategoryCombobox } from '@/components/common/CategoryCombobox'
+import { TagInput } from '@/components/common/TagInput'
 import type { PaperSize, Section } from '@/types'
 
 interface PageSettingsPanelProps {
@@ -12,6 +15,8 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const updatePageBackground = useReportStore((s) => s.updatePageBackground)
   const pageSettings = useReportStore((s) => s.definition.pageSettings)
   const updateSettings = useReportStore((s) => s.updateSettings)
+  const metadata = useReportStore((s) => s.definition.metadata)
+  const updateMetadata = useReportStore((s) => s.updateMetadata)
   const masterHeader = useReportStore((s) => s.definition.masterHeader) as Section | undefined
   const masterFooter = useReportStore((s) => s.definition.masterFooter) as Section | undefined
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
@@ -211,6 +216,23 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           />
           <span className="text-xs text-muted-foreground">{activePage.background ?? '#ffffff'}</span>
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">カテゴリ</label>
+        <CategoryCombobox
+          value={metadata.category}
+          options={[...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]}
+          onChange={(v) => updateMetadata({ category: v })}
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">タグ</label>
+        <TagInput
+          value={metadata.tags ?? []}
+          onChange={(tags) => updateMetadata({ tags })}
+        />
       </div>
 
       {onTemplateChange && (

@@ -4,34 +4,45 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
+import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { CategoryCombobox } from '@/components/common/CategoryCombobox'
+import { TagInput } from '@/components/common/TagInput'
 
 interface Props {
   open: boolean
-  onSave: (name: string) => void
+  onSave: (name: string, category?: string, tags?: string[]) => void
   onCancel: () => void
   defaultName?: string
+  defaultCategory?: string
+  defaultTags?: string[]
   saving?: boolean
 }
 
-export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', saving = false }: Props) {
+export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', defaultCategory, defaultTags = [], saving = false }: Props) {
   const [name, setName] = useState(defaultName)
+  const [category, setCategory] = useState<string | undefined>(defaultCategory)
+  const [tags, setTags] = useState<string[]>(defaultTags)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (open) {
       setName(defaultName)
+      setCategory(defaultCategory)
+      setTags(defaultTags)
       // Focus input after dialog opens
       requestAnimationFrame(() => inputRef.current?.select())
     }
-  }, [open, defaultName])
+  }, [open, defaultName, defaultCategory, defaultTags])
 
   if (!open) return null
 
   const canSave = name.trim().length > 0 && !saving
 
   const handleSave = () => {
-    if (canSave) onSave(name.trim())
+    if (canSave) onSave(name.trim(), category, tags.length > 0 ? tags : undefined)
   }
+
+  const categoryOptions = [...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]
 
   return (
     <div
@@ -72,6 +83,20 @@ export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', s
             placeholder="テンプレート名を入力"
             autoFocus
           />
+
+          <label className="block text-xs font-medium text-muted-foreground mt-3" htmlFor="template-category">
+            カテゴリ
+          </label>
+          <CategoryCombobox
+            value={category}
+            options={categoryOptions}
+            onChange={setCategory}
+          />
+
+          <label className="block text-xs font-medium text-muted-foreground mt-3">
+            タグ
+          </label>
+          <TagInput value={tags} onChange={setTags} />
         </div>
 
         <footer className="flex justify-end gap-2 px-4 py-3 border-t">
