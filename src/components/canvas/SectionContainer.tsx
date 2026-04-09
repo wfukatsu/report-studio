@@ -88,13 +88,16 @@ export const SectionContainer = memo(function SectionContainer({
     e.stopPropagation()
   }, [readonly, onResizeSection, section.height])
 
+  const isFooter = section.sectionType === 'footer'
+
   const handleResizePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!resizeStartRef.current || !onResizeSection) return
     const deltaY = e.clientY - resizeStartRef.current.mouseY
     const deltaMm = pxToMm(deltaY / zoom)
-    const newHeight = Math.max(minHeightMm, resizeStartRef.current.startHeightMm + deltaMm)
+    // Footer resizes from the top edge: dragging up (negative delta) increases height
+    const newHeight = Math.max(minHeightMm, resizeStartRef.current.startHeightMm + (isFooter ? -deltaMm : deltaMm))
     onResizeSection(section.id, newHeight)
-  }, [onResizeSection, section.id, zoom, minHeightMm])
+  }, [onResizeSection, section.id, zoom, minHeightMm, isFooter])
 
   const handleResizePointerUp = useCallback(() => {
     resizeStartRef.current = null
@@ -177,12 +180,12 @@ export const SectionContainer = memo(function SectionContainer({
         )
       })}
 
-      {/* Resize handle at bottom */}
+      {/* Resize handle: top for footer, bottom for header */}
       {!readonly && onResizeSection && (
         <div
           style={{
             position: 'absolute',
-            bottom: 0,
+            ...(isFooter ? { top: 0 } : { bottom: 0 }),
             left: 0,
             right: 0,
             height: '4px',
