@@ -125,6 +125,11 @@ export type ElementType =
   | 'checkbox'
   // 和暦元号選択
   | 'eraSelect'
+  // 自動フィールド系
+  | 'pageNumber'
+  | 'currentDate'
+  // 区切り線
+  | 'divider'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -574,6 +579,63 @@ export interface FormTableElement extends ElementBase {
 }
 
 // ---------------------------------------------------------------------------
+// PageNumberElement — auto page number
+// ---------------------------------------------------------------------------
+
+export type PageNumberFormat =
+  | '{{page}}'               // 1
+  | '{{page}} / {{pages}}'   // 1 / 3
+  | '{{page}}/{{pages}}'     // 1/3
+  | 'Page {{page}} of {{pages}}'  // Page 1 of 3
+  | '{{page}}ページ'          // 1ページ
+  | 'custom'
+
+export interface PageNumberElement extends ElementBase {
+  type: 'pageNumber'
+  /** Display format — {{page}} = current, {{pages}} = total */
+  format: PageNumberFormat
+  /** Custom format string (used when format === 'custom') */
+  customFormat?: string
+  style: TextStyle
+}
+
+// ---------------------------------------------------------------------------
+// CurrentDateElement — auto current date
+// ---------------------------------------------------------------------------
+
+export type CurrentDateFormat =
+  | 'yyyy/MM/dd'
+  | 'yyyy年MM月dd日'
+  | 'yyyy-MM-dd'
+  | 'MM/dd/yyyy'
+  | 'wareki_full'       // 令和8年4月10日
+  | 'wareki_short'      // R8.04.10
+  | 'yyyy年MM月dd日 (ddd)' // 2026年04月10日 (木)
+  | 'custom'
+
+export interface CurrentDateElement extends ElementBase {
+  type: 'currentDate'
+  format: CurrentDateFormat
+  /** Custom format string (used when format === 'custom') */
+  customFormat?: string
+  style: TextStyle
+}
+
+// ---------------------------------------------------------------------------
+// DividerElement — horizontal/vertical rule
+// ---------------------------------------------------------------------------
+
+export type DividerDirection = 'horizontal' | 'vertical'
+
+export interface DividerElement extends ElementBase {
+  type: 'divider'
+  direction: DividerDirection
+  color: string
+  thickness: number       // mm
+  dashStyle: 'solid' | 'dashed' | 'dotted'
+}
+
+// ---------------------------------------------------------------------------
 // ReportElement union
 // ---------------------------------------------------------------------------
 
@@ -595,6 +657,9 @@ export type ReportElement =
   | FormTableElement
   | CheckboxElement
   | EraSelectElement
+  | PageNumberElement
+  | CurrentDateElement
+  | DividerElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)

@@ -26,6 +26,9 @@ import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/Propertie
 import { FormTablePropertiesPanel } from '@/elements/formTable/PropertiesPanel'
 import { CheckboxPropertiesPanel } from '@/elements/checkbox/PropertiesPanel'
 import { EraSelectPropertiesPanel } from '@/elements/eraSelect/PropertiesPanel'
+import { PageNumberPropertiesPanel } from '@/elements/pageNumber/PropertiesPanel'
+import { CurrentDatePropertiesPanel } from '@/elements/currentDate/PropertiesPanel'
+import { DividerPropertiesPanel } from '@/elements/divider/PropertiesPanel'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 
 // ---------------------------------------------------------------------------
@@ -202,6 +205,9 @@ export function PropertiesPanel() {
       {el.type === 'formTable' && <FormTablePropertiesPanel el={el} onChange={update} />}
       {el.type === 'checkbox' && <CheckboxPropertiesPanel el={el} onChange={update} />}
       {el.type === 'eraSelect' && <EraSelectPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'pageNumber' && <PageNumberPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'currentDate' && <CurrentDatePropertiesPanel el={el} onChange={update} />}
+      {el.type === 'divider' && <DividerPropertiesPanel el={el} onChange={update} />}
 
       <ElementCommonSection el={el} onChange={update} />
 

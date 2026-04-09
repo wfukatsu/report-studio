@@ -18,6 +18,9 @@ import {
   TableProperties,
   SquareCheck,
   Calendar,
+  Hash,
+  CalendarDays,
+  SeparatorHorizontal,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
@@ -39,6 +42,9 @@ import {
   createFormTableElement,
   createCheckboxElement,
   createEraSelectElement,
+  createPageNumberElement,
+  createCurrentDateElement,
+  createDividerElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
@@ -59,6 +65,15 @@ interface PaletteCategory {
 }
 
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
+  {
+    category: 'common',
+    label: '帳票共通',
+    items: [
+      { label: 'ページ番号', icon: <Hash className="w-4 h-4" />,              createElement: createPageNumberElement, description: 'ページ番号を自動表示（書式選択可能）' },
+      { label: '現在日付',   icon: <CalendarDays className="w-4 h-4" />,      createElement: createCurrentDateElement, description: '帳票出力日を自動表示（和暦対応）' },
+      { label: '区切り線',   icon: <SeparatorHorizontal className="w-4 h-4" />, createElement: createDividerElement, description: 'セクション区切り用の罫線' },
+    ],
+  },
   {
     category: 'text',
     label: 'テキスト系',

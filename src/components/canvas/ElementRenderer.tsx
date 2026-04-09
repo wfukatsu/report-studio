@@ -35,15 +35,20 @@ import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
 import { FormTableRenderer } from '@/elements/formTable/Renderer'
 import { CheckboxRenderer } from '@/elements/checkbox/Renderer'
 import { EraSelectRenderer } from '@/elements/eraSelect/Renderer'
+import { PageNumberRenderer } from '@/elements/pageNumber/Renderer'
+import { CurrentDateRenderer } from '@/elements/currentDate/Renderer'
+import { DividerRenderer } from '@/elements/divider/Renderer'
 
 interface Props {
   element: ReportElement
   data?: Record<string, unknown>
   /** Row index for detail-row conditional display evaluation */
   rowIndex?: number
+  /** When true (preview/export), auto-fields resolve actual values */
+  readonly?: boolean
 }
 
-export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex }: Props) {
+export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex, readonly = false }: Props) {
   // Merge computedValues into data so calculated fields are available to all renderers.
   // useShallow: re-render only when computedValues keys or values actually change.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
@@ -95,6 +100,9 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     }
     case 'checkbox':        return <CheckboxRenderer element={element} data={mergedData} />
     case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
+    case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} />
+    case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
+    case 'divider':         return <DividerRenderer element={element} />
     default:                return assertNever(element)
   }
 })

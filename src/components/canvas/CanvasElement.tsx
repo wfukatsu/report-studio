@@ -215,7 +215,7 @@ export const CanvasElement = memo(function CanvasElement({
       aria-pressed={isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
-        <ElementRenderer element={element} data={data} />
+        <ElementRenderer element={element} data={data} readonly={readonly} />
       </ElementErrorBoundary>
 
       {isSelected && !readonly && (
