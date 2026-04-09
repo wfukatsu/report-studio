@@ -162,7 +162,7 @@ const MarginsSchema = z.object({
 })
 
 const PageSettingsSchema = z.object({
-  paperSize: z.enum(['A4', 'A3', 'Letter', 'Legal', 'custom']),
+  paperSize: z.enum(['A3', 'A4', 'A5', 'A6', 'B4', 'B5', 'JIS-B4', 'JIS-B5', 'Letter', 'Legal', 'Tabloid', 'Hagaki', 'custom']),
   orientation: z.enum(['portrait', 'landscape']),
   margins: MarginsSchema,
   unit: z.literal('mm'),

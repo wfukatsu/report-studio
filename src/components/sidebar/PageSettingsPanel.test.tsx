@@ -61,7 +61,7 @@ describe('PageSettingsPanel — 用紙サイズ変更', () => {
   it('shows page dimensions', () => {
     render(<PageSettingsPanel />)
     // A4 portrait: 210x297mm
-    expect(screen.getByText(/210.*297mm/)).toBeInTheDocument()
+    expect(screen.getAllByText(/210×297mm/).length).toBeGreaterThanOrEqual(1)
   })
 })
 
