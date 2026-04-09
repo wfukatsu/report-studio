@@ -31,8 +31,8 @@ export function exportToJSON(definition: ReportDefinition): string {
   return JSON.stringify(exportable, null, 2)
 }
 
-/** Allowed data: URI prefixes — SVG excluded (can embed <script>) */
-const SAFE_DATA_PREFIXES = [
+/** Allowed raster data: URI prefixes */
+const SAFE_RASTER_PREFIXES = [
   'data:image/png',
   'data:image/jpeg',
   'data:image/gif',
@@ -40,18 +40,62 @@ const SAFE_DATA_PREFIXES = [
 ]
 
 /**
+ * Dangerous SVG elements/attributes that can execute scripts.
+ * Matched case-insensitively against decoded SVG content.
+ */
+const SVG_DANGEROUS_PATTERNS = [
+  /<script[\s>]/i,
+  /\bon\w+\s*=/i,            // onclick=, onload=, onerror=, etc.
+  /javascript\s*:/i,
+  /<iframe[\s>]/i,
+  /<embed[\s>]/i,
+  /<object[\s>]/i,
+  /<foreignObject[\s>]/i,
+]
+
+/**
+ * Check whether a data:image/svg+xml URI contains only safe SVG content.
+ * Decodes both base64 and URL-encoded payloads, then rejects if any
+ * script-capable element or attribute is found.
+ */
+function isSafeSvgDataUri(src: string): boolean {
+  const lower = src.toLowerCase().trim()
+  if (!lower.startsWith('data:image/svg+xml')) return false
+  if (src.length > 512 * 1024) return false  // 512 KB limit for SVG
+
+  try {
+    const commaIdx = src.indexOf(',')
+    if (commaIdx === -1) return false
+    const header = src.slice(0, commaIdx).toLowerCase()
+    const payload = src.slice(commaIdx + 1)
+
+    const decoded = header.includes('base64')
+      ? atob(payload)
+      : decodeURIComponent(payload)
+
+    return !SVG_DANGEROUS_PATTERNS.some((p) => p.test(decoded))
+  } catch {
+    return false
+  }
+}
+
+/**
  * Return true only for safe image src values.
  * - Empty string → false (prevents self-requests)
- * - data: URIs → only png/jpeg/gif/webp, max 2 MB (SVG blocked: XSS via <script>)
+ * - data: URIs → raster formats (png/jpeg/gif/webp) up to 2 MB
+ * - data:image/svg+xml → allowed only if content passes script-free check
  * - URLs → https:// only (http:// blocked: mixed-content + privacy)
  */
 export function isSafeImageSrc(src: string): boolean {
   if (!src) return false
   const lower = src.toLowerCase().trim()
+  if (lower.startsWith('data:image/svg+xml')) {
+    return isSafeSvgDataUri(src)
+  }
   if (lower.startsWith('data:')) {
     return (
       src.length <= 2 * 1024 * 1024 &&
-      SAFE_DATA_PREFIXES.some((p) => lower.startsWith(p))
+      SAFE_RASTER_PREFIXES.some((p) => lower.startsWith(p))
     )
   }
   return lower.startsWith('https://')

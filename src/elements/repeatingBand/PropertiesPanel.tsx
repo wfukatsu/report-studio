@@ -69,6 +69,14 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         <PropRow label="ソート順">
           <SelectInput value={el.sortOrder ?? 'asc'} onChange={(v) => onChange({ sortOrder: v as 'asc' | 'desc' })} options={[{ value: 'asc', label: '昇順 (A→Z)' }, { value: 'desc', label: '降順 (Z→A)' }]} />
         </PropRow>
+        <PropRow label="グループ化フィールドキー">
+          <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background font-mono" value={el.groupBy ?? ''} placeholder="例: category, system_name" onChange={(e) => onChange({ groupBy: e.target.value || undefined })} />
+        </PropRow>
+        {el.groupBy && (
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <input type="checkbox" checked={el.showGroupSubtotals ?? false} onChange={(e) => onChange({ showGroupSubtotals: e.target.checked })} className="rounded" />グループ小計行を表示
+          </label>
+        )}
       </PropSection>
 
       <PropSection title="繰り返しバンド — 外観">

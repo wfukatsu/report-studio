@@ -434,6 +434,10 @@ export interface RepeatingBandElement extends ElementBase {
   sortOrder?: 'asc' | 'desc'
   /** グループ化フィールドキー */
   groupBy?: string
+  /** グループ小計行を表示するか (default: false) */
+  showGroupSubtotals?: boolean
+  /** グループ小計行のスタイル */
+  groupStyle?: TextStyle
   /** データ行数が maxItems 未満のとき空行罫線を描画する */
   showEmptyRowLines?: boolean
   /** テキストスタイル（ボディ行） */
@@ -838,6 +842,10 @@ export interface Template {
   tags?: string[]
   pages: Page[]
   settings: ReportSettings
+  /** Optional data schema carried through to the ReportDefinition */
+  schema?: SchemaDefinition
+  /** Optional sample data sources carried through to the ReportDefinition */
+  dataSources?: DataSourceDefinition[]
 }
 
 /** @deprecated Use ReportDefinition instead */
