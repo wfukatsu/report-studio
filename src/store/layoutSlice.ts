@@ -25,6 +25,20 @@ import { cloneSectionForPage } from '@/lib/sectionUtils'
 // Factory helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Recalculate the body section height so that the total of all sections
+ * equals page.height. Header and footer keep their own heights; the body
+ * section absorbs the remainder.  Minimum body height is 50mm.
+ */
+function fitBodyToPage(page: PageDef): void {
+  const body = page.sections.find((s) => s.sectionType === 'body')
+  if (!body) return
+  const nonBodyHeight = page.sections
+    .filter((s) => s.sectionType !== 'body')
+    .reduce((sum, s) => sum + s.height, 0)
+  body.height = Math.max(50, page.height - nonBodyHeight)
+}
+
 function createDefaultSection(elements: ReportElement[] = [], height?: number): Section {
   return {
     id: uuidv4(),
@@ -246,6 +260,7 @@ export const createLayoutSlice: StateCreator<
         page.sections.push(cloned)
       }
     }
+    fitBodyToPage(page)
     s.definition.pages.push(page)
     s.selection.activePageId = page.id
   }),
@@ -285,6 +300,8 @@ export const createLayoutSlice: StateCreator<
     }
     const min = MIN_HEIGHT[section.sectionType] ?? 10
     section.height = Math.max(min, heightMm)
+    // If a non-body section was resized, adjust body to fit page
+    if (section.sectionType !== 'body') fitBodyToPage(page)
   }),
 
   updateTestData: (dataSourceId, fieldKey, value) => set((s) => {
@@ -442,11 +459,12 @@ export const createLayoutSlice: StateCreator<
           } else {
             page.sections.unshift(cloneSectionForPage(section as Section))
           }
+          fitBodyToPage(page)
         })
       } else {
-        // HF-04: 全ページからヘッダーセクションを削除
         s.definition.pages.forEach((page) => {
           page.sections = page.sections.filter((sec) => sec.sectionType !== 'header')
+          fitBodyToPage(page)
         })
       }
     })
@@ -465,11 +483,12 @@ export const createLayoutSlice: StateCreator<
           } else {
             page.sections.push(cloneSectionForPage(section as Section))
           }
+          fitBodyToPage(page)
         })
       } else {
-        // HF-04: 全ページからフッターセクションを削除
         s.definition.pages.forEach((page) => {
           page.sections = page.sections.filter((sec) => sec.sectionType !== 'footer')
+          fitBodyToPage(page)
         })
       }
     })
