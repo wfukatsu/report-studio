@@ -335,6 +335,8 @@ export const QUOTATION_DISCOUNT_TEMPLATE: Template = {
   id: 'quotation-discount-invoice',
   name: '見積書（値引対応・インボイス対応）',
   description: '値引列付きの見積書。品目ごとの値引額と値引合計を表示。インボイス制度対応。',
+  category: '請求・見積',
+  tags: ['A4'],
   pages: [
     {
       id: uuidv4(),
