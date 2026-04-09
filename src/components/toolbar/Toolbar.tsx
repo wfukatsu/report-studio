@@ -9,7 +9,7 @@ import {
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
-import { evaluateValidate, generateTemplatePdf, createReport, saveReport } from '@/api/reportApi'
+import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { Section, OutputVariant } from '@/types'
@@ -172,7 +172,22 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const doExportPdf = async (variant: OutputVariant | null) => {
     setIsExporting(true)
     setExportError(null)
-    // Temporarily hide variant elements in DOM before html2canvas capture
+    const { definition, testData } = useReportStore.getState()
+    const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
+
+    // Try server-side PDF first (higher quality, vector text)
+    try {
+      const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
+      const dataJson = (testData ?? {}) as Record<string, unknown>
+      const blob = await generateStatelessPdf(defJson, dataJson)
+      downloadBlob(blob, filename)
+      return
+    } catch {
+      // Server-side failed — fall back to client-side html2canvas
+      console.warn('Server-side PDF failed, falling back to client-side rendering')
+    }
+
+    // Client-side fallback (degraded quality)
     const hiddenNodes: HTMLElement[] = []
     if (variant && variant.hiddenElementIds.length > 0) {
       for (const id of variant.hiddenElementIds) {
@@ -182,14 +197,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     }
     try {
       const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-      const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
       await exportReportToPdf(els, filename)
+      setExportError('ローカル生成（品質低下）でエクスポートしました')
+      setTimeout(() => setExportError(null), 5000)
     } catch (_err) {
       const msg = 'エクスポートに失敗しました。もう一度お試しください。'
       setExportError(msg)
       setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
     } finally {
-      // Restore hidden nodes regardless of success/failure
       for (const node of hiddenNodes) { node.style.visibility = '' }
       setIsExporting(false)
     }
