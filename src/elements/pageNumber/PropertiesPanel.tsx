@@ -1,4 +1,4 @@
-import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react'
+import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import type { PageNumberElement, PageNumberFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
 
@@ -62,6 +62,13 @@ export function PageNumberPropertiesPanel({ el, onChange }: Props) {
         <PropRow label="サイズ">
           <NumInput value={style.fontSize ?? 3} onChange={(v) => onStyle({ fontSize: v })} min={1} step={0.5} unit="mm" />
         </PropRow>
+        <div>
+          <span className="text-[10px] text-muted-foreground">スタイル</span>
+          <div className="flex gap-1 mt-1">
+            <IconToggle active={style.fontWeight === 'bold'} onClick={() => onStyle({ fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' })} title="太字"><Bold className="w-3.5 h-3.5" /></IconToggle>
+            <IconToggle active={style.fontStyle === 'italic'} onClick={() => onStyle({ fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' })} title="斜体"><Italic className="w-3.5 h-3.5" /></IconToggle>
+          </div>
+        </div>
         <PropRow label="文字色">
           <ColorInput value={style.color ?? '#666666'} onChange={(v) => onStyle({ color: v })} />
         </PropRow>

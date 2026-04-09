@@ -53,6 +53,10 @@ interface Props {
   data?: Record<string, unknown>
   readonly?: boolean
   zoom?: number
+  /** 1-based page index (for pageNumber elements) */
+  pageIndex?: number
+  /** Total page count (for pageNumber elements) */
+  totalPages?: number
 }
 
 export const SectionContainer = memo(function SectionContainer({
@@ -67,6 +71,8 @@ export const SectionContainer = memo(function SectionContainer({
   data = {},
   readonly = false,
   zoom = 1,
+  pageIndex,
+  totalPages,
 }: Props) {
   const heightPx = mmToPx(section.height)
   const minHeightMm = MIN_HEIGHT_MM[section.sectionType] ?? 10
@@ -179,6 +185,8 @@ export const SectionContainer = memo(function SectionContainer({
             onContextMenu={onContextMenu}
             data={data}
             readonly={readonly}
+            pageIndex={pageIndex}
+            totalPages={totalPages}
           />
         )
       })}

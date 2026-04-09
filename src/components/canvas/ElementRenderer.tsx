@@ -46,9 +46,13 @@ interface Props {
   rowIndex?: number
   /** When true (preview/export), auto-fields resolve actual values */
   readonly?: boolean
+  /** 1-based page index (for pageNumber elements) */
+  pageIndex?: number
+  /** Total page count (for pageNumber elements) */
+  totalPages?: number
 }
 
-export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex, readonly = false }: Props) {
+export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex, readonly = false, pageIndex, totalPages }: Props) {
   // Merge computedValues into data so calculated fields are available to all renderers.
   // useShallow: re-render only when computedValues keys or values actually change.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
@@ -100,7 +104,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     }
     case 'checkbox':        return <CheckboxRenderer element={element} data={mergedData} />
     case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
-    case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} />
+    case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} pageIndex={pageIndex} totalPages={totalPages} />
     case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
     case 'divider':         return <DividerRenderer element={element} />
     default:                return assertNever(element)
