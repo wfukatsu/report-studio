@@ -5,6 +5,7 @@ import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
+import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl } from '@/api/reportApi'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { TemplateManagerModal } from './TemplateManagerModal'
@@ -31,6 +32,7 @@ export function TemplateSelectionModal({
   confirmLabel = '作成',
 }: TemplateSelectionModalProps) {
   const backendConnected = useReportStore((s) => s.backendConnected)
+  const { prefs } = useBuiltinPrefs()
   const [selectedBuiltinId, setSelectedBuiltinId] = useState<string | null>(null)
   const [selectedDefinition, setSelectedDefinition] = useState<ReportDefinition | null>(null)
 
@@ -62,20 +64,32 @@ export function TemplateSelectionModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Apply overrides and filter hidden builtins
+  const visibleBuiltins = useMemo(
+    () => BUILTIN_TEMPLATES
+      .filter((t) => !prefs.hidden.includes(t.id))
+      .map((t) => {
+        const override = prefs.overrides[t.id]
+        if (!override) return t
+        return { ...t, category: override.category ?? t.category, tags: override.tags ?? t.tags }
+      }),
+    [prefs],
+  )
+
   // Compute categories and tags from all templates
   const allCategories = useMemo(
-    () => collectCategories([...BUILTIN_TEMPLATES, ...backendTemplates]),
-    [backendTemplates],
+    () => collectCategories([...visibleBuiltins, ...backendTemplates]),
+    [visibleBuiltins, backendTemplates],
   )
   const allTags = useMemo(
-    () => collectTags([...BUILTIN_TEMPLATES, ...backendTemplates]),
-    [backendTemplates],
+    () => collectTags([...visibleBuiltins, ...backendTemplates]),
+    [visibleBuiltins, backendTemplates],
   )
 
   // Filter builtin templates
   const filteredBuiltins = useMemo(
-    () => filterTemplates(BUILTIN_TEMPLATES, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
-    [searchQuery, selectedCategory, selectedFilterTags],
+    () => filterTemplates(visibleBuiltins, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
+    [visibleBuiltins, searchQuery, selectedCategory, selectedFilterTags],
   )
 
   // Filter backend templates
