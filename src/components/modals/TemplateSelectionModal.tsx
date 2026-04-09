@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X } from 'lucide-react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
 import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
-import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, getTemplateThumbnailUrl } from '@/api/reportApi'
+import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl } from '@/api/reportApi'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { TemplateManagerModal } from './TemplateManagerModal'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
@@ -40,6 +42,18 @@ export function TemplateSelectionModal({
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+
+  // Delete state
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  // Rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameSaving, setRenameSaving] = useState(false)
+
+  // Manager modal
+  const [managerOpen, setManagerOpen] = useState(false)
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
@@ -151,6 +165,43 @@ export function TemplateSelectionModal({
     }
   }
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    setBackendLoadError(null)
+    try {
+      await deleteReport(id)
+      await handleFetchBackend()
+    } catch {
+      setBackendLoadError('テンプレートの削除に失敗しました')
+    } finally {
+      setDeletingId(null)
+      setDeleteConfirmId(null)
+    }
+  }
+
+  const handleStartRename = (id: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRenamingId(id)
+    setRenameValue(currentName)
+  }
+
+  const handleCommitRename = async (id: string) => {
+    const trimmed = renameValue.trim()
+    if (!trimmed || renameSaving) return
+    setRenameSaving(true)
+    setBackendLoadError(null)
+    try {
+      const def = await getReport(id)
+      await saveReport(id, { ...def, metadata: { ...def.metadata, documentName: trimmed } })
+      await handleFetchBackend()
+    } catch {
+      setBackendLoadError('テンプレート名の変更に失敗しました')
+    } finally {
+      setRenameSaving(false)
+      setRenamingId(null)
+    }
+  }
+
   const handleSelectBuiltin = (id: string | null) => {
     setSelectedBuiltinId(id)
     if (id === null) {
@@ -174,6 +225,9 @@ export function TemplateSelectionModal({
     setSearchQuery('')
     setSelectedCategory(null)
     setSelectedFilterTags([])
+    setDeleteConfirmId(null)
+    setRenamingId(null)
+    setManagerOpen(false)
     onClose()
   }
 
@@ -410,10 +464,35 @@ export function TemplateSelectionModal({
                           )}
                         </div>
                         {/* Name */}
-                        <p className="px-2 py-1.5 font-medium text-xs truncate">{t.name}</p>
+                        {renamingId === t.id ? (
+                          <input
+                            className="px-2 py-1.5 font-medium text-xs w-full bg-background border-t focus:outline-none focus:ring-1 focus:ring-primary"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCommitRename(t.id)
+                              if (e.key === 'Escape') setRenamingId(null)
+                            }}
+                            onBlur={() => handleCommitRename(t.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            disabled={renameSaving}
+                          />
+                        ) : (
+                          <p className="px-2 py-1.5 font-medium text-xs truncate">{t.name}</p>
+                        )}
                       </button>
                       {/* Action buttons — appear on hover */}
                       <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => handleStartRename(t.id, t.name, e)}
+                          disabled={renameSaving}
+                          title="名前変更"
+                          aria-label={`${t.name} の名前を変更`}
+                          className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
                         <button
                           onClick={(e) => handleExport(t.id, e)}
                           disabled={exportingId !== null || loadingId !== null}
@@ -438,6 +517,18 @@ export function TemplateSelectionModal({
                             : <Copy className="w-3 h-3" />
                           }
                         </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id) }}
+                          disabled={deletingId !== null}
+                          title="削除"
+                          aria-label={`${t.name} を削除`}
+                          className="p-1 rounded bg-background/90 border border-destructive/30 hover:bg-destructive/10 transition-colors disabled:opacity-50 shadow-sm text-destructive"
+                        >
+                          {deletingId === t.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Trash2 className="w-3 h-3" />
+                          }
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -448,22 +539,45 @@ export function TemplateSelectionModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-t shrink-0">
           <button
-            onClick={handleClose}
-            className="px-4 py-1.5 text-xs rounded border border-border bg-background hover:bg-accent transition-colors"
+            onClick={() => setManagerOpen(true)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            キャンセル
+            <Settings className="w-3 h-3" />
+            テンプレートを管理
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={selectedDefinition === null}
-            className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {confirmLabel}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClose}
+              className="px-4 py-1.5 text-xs rounded border border-border bg-background hover:bg-accent transition-colors"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={selectedDefinition === null}
+              className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {confirmLabel}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Template manager modal */}
+      <TemplateManagerModal open={managerOpen} onClose={() => setManagerOpen(false)} />
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={deleteConfirmId !== null}
+        title="テンプレートを削除"
+        message={`「${backendTemplates.find((t) => t.id === deleteConfirmId)?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </div>
   )
 }
