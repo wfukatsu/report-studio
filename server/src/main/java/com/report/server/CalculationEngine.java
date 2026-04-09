@@ -71,6 +71,11 @@ public final class CalculationEngine {
             JsonNode calcRules = tmpl.path("calculationRules");
             if (!calcRules.isArray()) continue;
             for (JsonNode r : calcRules) {
+                if (rules.size() >= ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE) {
+                    log.warn("Expression count exceeds limit ({}), truncating",
+                            ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE);
+                    break;
+                }
                 String id = r.path("id").asText("");
                 String targetField = r.path("targetField").asText(null);
                 String expression = r.path("expression").asText(null);

@@ -33,6 +33,12 @@ public final class ExpressionEngine {
     private static final Logger log = LoggerFactory.getLogger(ExpressionEngine.class);
     private static final long TIMEOUT_MS = 500;
 
+    /** Maximum allowed expression length (chars). */
+    public static final int MAX_EXPRESSION_LENGTH = 500;
+
+    /** Maximum number of expressions per template evaluation. */
+    public static final int MAX_EXPRESSIONS_PER_TEMPLATE = 50;
+
     /** Shared, thread-safe JEXL engine instance. */
     private static final JexlEngine JEXL = buildEngine();
 
@@ -52,6 +58,11 @@ public final class ExpressionEngine {
      */
     public static boolean evaluate(String expression, Map<String, Object> context, int rowIndex) {
         if (expression == null || expression.isBlank()) return true;
+        if (expression.length() > MAX_EXPRESSION_LENGTH) {
+            log.warn("Expression exceeds max length ({} > {}): {}...",
+                    expression.length(), MAX_EXPRESSION_LENGTH, expression.substring(0, 50));
+            return false;
+        }
         try {
             JexlContext ctx = toJexlContext(context);
             ctx.set("_row", rowIndex);
@@ -80,6 +91,10 @@ public final class ExpressionEngine {
      * @throws JexlException              on syntax / sandbox violation
      */
     public static Object calculate(String expression, Map<String, Object> context) {
+        if (expression != null && expression.length() > MAX_EXPRESSION_LENGTH) {
+            throw new IllegalArgumentException("Expression exceeds max length ("
+                    + expression.length() + " > " + MAX_EXPRESSION_LENGTH + ")");
+        }
         JexlContext ctx = toJexlContext(context);
         // strict=true for calculate — surface typos as errors rather than silently returning null
         JexlExpression expr = JEXL.createExpression(expression);

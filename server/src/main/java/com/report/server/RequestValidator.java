@@ -195,6 +195,123 @@ public final class RequestValidator {
     private static final int MAX_RESPONSE_FIELDS = 1000;
     private static final int MAX_DETAIL_ROWS = 100;
 
+    // ── PDF generate request validation ──────────────────────────────────────
+
+    private static final int MAX_JSON_DEPTH = 50;
+    private static final int MAX_OBJECT_COUNT = 5000;
+    private static final Set<String> KNOWN_ELEMENT_KINDS = Set.of(
+            "text", "shape", "line", "barcode", "qrcode", "image",
+            "check_mark", "checkbox", "radio_mark",
+            "seal_box", "signature_line",
+            "table", "form_grid", "text_cell", "row_block",
+            "formTable", "formGrid",
+            "revenueStamp", "repeatingBand", "repeatingList",
+            "eraSelect"
+    );
+
+    /**
+     * Validate a stateless PDF generation request body.
+     * Checks: required fields, JSON depth, object count, known element kinds.
+     *
+     * @param root the parsed request JSON root node
+     * @return error message string, or null if valid
+     */
+    public static String validatePdfGenerateRequest(JsonNode root) {
+        if (!root.isObject()) {
+            return "Request body must be a JSON object";
+        }
+        if (!root.has("template")) {
+            return "Missing required field: template";
+        }
+        JsonNode template = root.get("template");
+        if (!template.isObject()) {
+            return "template must be a JSON object";
+        }
+        if (!template.has("pages") || !template.get("pages").isArray()) {
+            return "template must contain a pages array";
+        }
+
+        // Validate pages have sections
+        for (JsonNode page : template.get("pages")) {
+            if (!page.has("sections") || !page.get("sections").isArray()) {
+                return "Each page must contain a sections array";
+            }
+        }
+
+        // Depth and object count check
+        int[] counts = {0}; // mutable counter for object count
+        int maxDepth = measureDepthAndCount(root, 0, counts);
+        if (maxDepth > MAX_JSON_DEPTH) {
+            return "JSON structure too deep (max " + MAX_JSON_DEPTH + " levels)";
+        }
+        if (counts[0] > MAX_OBJECT_COUNT) {
+            return "Too many objects in request (max " + MAX_OBJECT_COUNT + ")";
+        }
+
+        // Check for unknown element kinds
+        String unknownKind = findUnknownElementKind(template);
+        if (unknownKind != null) {
+            return "Unknown element type: " + unknownKind;
+        }
+
+        return null;
+    }
+
+    /**
+     * Recursively measure JSON depth and count objects/arrays.
+     * Returns max depth reached. Increments counts[0] for each object/array node.
+     */
+    private static int measureDepthAndCount(JsonNode node, int currentDepth, int[] counts) {
+        if (counts[0] > MAX_OBJECT_COUNT) return currentDepth; // early exit
+        int maxDepth = currentDepth;
+        if (node.isObject()) {
+            counts[0]++;
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                int childDepth = measureDepthAndCount(fields.next().getValue(), currentDepth + 1, counts);
+                if (childDepth > maxDepth) maxDepth = childDepth;
+            }
+        } else if (node.isArray()) {
+            counts[0]++;
+            for (JsonNode child : node) {
+                int childDepth = measureDepthAndCount(child, currentDepth + 1, counts);
+                if (childDepth > maxDepth) maxDepth = childDepth;
+            }
+        }
+        return maxDepth;
+    }
+
+    /**
+     * Walk template pages/sections/elements and check for unknown element types/kinds.
+     *
+     * @return the first unknown kind found, or null if all are known
+     */
+    private static String findUnknownElementKind(JsonNode template) {
+        JsonNode pages = template.get("pages");
+        if (pages == null || !pages.isArray()) return null;
+        for (JsonNode page : pages) {
+            JsonNode sections = page.get("sections");
+            if (sections == null || !sections.isArray()) continue;
+            for (JsonNode section : sections) {
+                JsonNode elements = section.get("elements");
+                if (elements == null || !elements.isArray()) continue;
+                for (JsonNode el : elements) {
+                    // V1 uses "kind", V2 uses "type"
+                    String kind = el.has("kind") ? el.get("kind").asText("") : "";
+                    if (kind.isEmpty()) {
+                        kind = el.has("type") ? el.get("type").asText("") : "";
+                    }
+                    if (!kind.isEmpty() && !KNOWN_ELEMENT_KINDS.contains(kind)) {
+                        // Sanitize for safe error message
+                        String safe = kind.length() > 50 ? kind.substring(0, 50) : kind;
+                        return safe.replaceAll("[^a-zA-Z0-9_-]", "?");
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Validate that an inputPattern string is a valid RE2J-compatible regex.
      * Used when saving FieldConstraints with inputPattern to prevent ReDoS.
