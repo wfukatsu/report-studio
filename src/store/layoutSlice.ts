@@ -158,8 +158,8 @@ export const createLayoutSlice: StateCreator<
 
   updateSettings: (settings) => set((s) => {
     Object.assign(s.definition.pageSettings, settings)
-    const { paperSize, orientation } = s.definition.pageSettings
-    const dims = getPageDimensions(paperSize, orientation)
+    const { paperSize, orientation, customWidth, customHeight } = s.definition.pageSettings
+    const dims = getPageDimensions(paperSize, orientation, customWidth, customHeight)
     for (const page of s.definition.pages) {
       page.width = dims.width
       page.height = dims.height

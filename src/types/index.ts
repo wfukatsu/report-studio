@@ -660,6 +660,10 @@ export interface PageSettings {
   orientation: 'portrait' | 'landscape'
   margins: Margins
   unit: 'mm'
+  /** paperSize='custom' 時の幅 (mm) */
+  customWidth?: number
+  /** paperSize='custom' 時の高さ (mm) */
+  customHeight?: number
 }
 
 export interface Metadata {

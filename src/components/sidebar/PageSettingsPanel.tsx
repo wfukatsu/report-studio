@@ -48,6 +48,37 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             {activePage.width}×{activePage.height}mm
           </span>
         </div>
+        {pageSettings.paperSize === 'custom' && (
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-muted-foreground w-4">幅</span>
+            <input
+              type="number"
+              min={10}
+              max={1000}
+              step={1}
+              className="w-16 border rounded px-1.5 py-1 text-xs bg-background"
+              value={activePage.width}
+              onChange={(e) => {
+                const w = Number(e.target.value)
+                if (w > 0) updateSettings({ customWidth: w })
+              }}
+            />
+            <span className="text-xs text-muted-foreground w-4">高</span>
+            <input
+              type="number"
+              min={10}
+              max={1000}
+              step={1}
+              className="w-16 border rounded px-1.5 py-1 text-xs bg-background"
+              value={activePage.height}
+              onChange={(e) => {
+                const h = Number(e.target.value)
+                if (h > 0) updateSettings({ customHeight: h })
+              }}
+            />
+            <span className="text-xs text-muted-foreground">mm</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-1">

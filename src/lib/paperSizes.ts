@@ -30,6 +30,7 @@ export const PAPER_SIZE_ORDER: PaperSize[] = [
   'JIS-B4', 'JIS-B5',
   'Letter', 'Legal', 'Tabloid',
   'Hagaki',
+  'custom',
 ]
 
 /**
