@@ -13,7 +13,16 @@ export function DividerPropertiesPanel({ el, onChange }: Props) {
         <select
           className="border rounded px-2 py-1 text-xs w-full bg-background"
           value={el.direction}
-          onChange={(e) => onChange({ direction: e.target.value as DividerDirection })}
+          onChange={(e) => {
+            const next = e.target.value as DividerDirection
+            if (next !== el.direction) {
+              // Swap width and height when direction changes
+              onChange({
+                direction: next,
+                size: { width: el.size.height, height: el.size.width },
+              })
+            }
+          }}
         >
           <option value="horizontal">水平</option>
           <option value="vertical">垂直</option>
