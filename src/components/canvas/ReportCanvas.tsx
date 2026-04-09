@@ -183,16 +183,31 @@ export function ReportCanvas({
       const xMm = pxToMm((e.clientX - rect.left) / zoom)
       const yMm = pxToMm((e.clientY - rect.top) / zoom)
 
-      // Clamp within page bounds
+      // Determine which section the drop landed in based on Y coordinate
+      let sectionId: string | undefined
+      let sectionOffsetY = 0
+      for (const sec of page.sections) {
+        if (yMm < sectionOffsetY + sec.height) {
+          sectionId = sec.id
+          break
+        }
+        sectionOffsetY += sec.height
+      }
+      // Position relative to the target section
+      const relativeY = yMm - sectionOffsetY
+
+      // Clamp within section bounds
+      const targetSection = page.sections.find((s) => s.id === sectionId)
+      const sectionH = targetSection?.height ?? page.height
       const clampedX = Math.max(0, Math.min(xMm, page.width))
-      const clampedY = Math.max(0, Math.min(yMm, page.height))
+      const clampedY = Math.max(0, Math.min(relativeY, sectionH))
 
       // Apply snap-to-grid
       const finalX = snap(clampedX)
       const finalY = snap(clampedY)
 
       const el = createElement()
-      addElement(page.id, { ...el, position: { x: finalX, y: finalY } })
+      addElement(page.id, { ...el, position: { x: finalX, y: finalY } }, sectionId)
     },
     [page, zoom, snap, addElement, ref],
   )

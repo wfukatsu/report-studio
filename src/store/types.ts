@@ -135,7 +135,7 @@ export interface StoreState {
 
   updateSectionHeight: (pageId: string, sectionId: string, heightMm: number) => void
   updateTestData: (dataSourceId: string, fieldKey: string, value: unknown) => void
-  addElement: (pageId: string, element: ReportElement) => void
+  addElement: (pageId: string, element: ReportElement, sectionId?: string) => void
   updateElement: (pageId: string, elementId: string, patch: Partial<ReportElement>) => void
   removeElement: (pageId: string, elementId: string) => void
   moveElement: (pageId: string, elementId: string, position: { x: number; y: number }) => void
