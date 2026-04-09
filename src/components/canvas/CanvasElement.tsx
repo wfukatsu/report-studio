@@ -18,6 +18,8 @@ interface Props {
   onContextMenu?: (state: ContextMenuState) => void
   data?: Record<string, unknown>
   readonly?: boolean
+  pageIndex?: number
+  totalPages?: number
 }
 
 type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w'
@@ -31,6 +33,8 @@ export const CanvasElement = memo(function CanvasElement({
   onContextMenu,
   data = {},
   readonly = false,
+  pageIndex,
+  totalPages,
 }: Props) {
   const removeElement = useReportStore((s) => s.removeElement)
   const activePageId = useReportStore(selectActivePageId)
@@ -215,7 +219,7 @@ export const CanvasElement = memo(function CanvasElement({
       aria-pressed={isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
-        <ElementRenderer element={element} data={data} readonly={readonly} />
+        <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} />
       </ElementErrorBoundary>
 
       {isSelected && !readonly && (
