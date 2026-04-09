@@ -26,8 +26,8 @@ const MIN_HEIGHT_MM: Record<string, number> = {
 }
 
 const SECTION_COLORS: Record<string, string> = {
-  header: 'rgba(59, 130, 246, 0.04)',  // light blue tint
-  footer: 'rgba(107, 114, 128, 0.04)', // light gray tint
+  header: 'rgba(59, 130, 246, 0.08)',  // blue tint
+  footer: 'rgba(107, 114, 128, 0.08)', // gray tint
   body: 'transparent',
   custom: 'transparent',
 }
@@ -124,14 +124,33 @@ export const SectionContainer = memo(function SectionContainer({
             position: 'absolute',
             top: 2,
             left: 4,
-            fontSize: '8px',
-            color: '#9ca3af',
+            fontSize: '10px',
+            color: '#6b7280',
             userSelect: 'none',
             pointerEvents: 'none',
             zIndex: 1000,
           }}
         >
           {SECTION_LABELS[section.sectionType]}
+        </div>
+      )}
+      {/* Empty section guide text */}
+      {section.elements.length === 0 && !readonly && SECTION_LABELS[section.sectionType] && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '11px',
+            color: '#9ca3af',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            zIndex: 999,
+          }}
+        >
+          要素をドロップして{SECTION_LABELS[section.sectionType]}を作成
         </div>
       )}
 

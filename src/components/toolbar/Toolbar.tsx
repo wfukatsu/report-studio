@@ -608,23 +608,22 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={toggleMarginGuide} active={showMarginGuide} title="余白ガイド表示切替">
           <ScanLine className="w-4 h-4" />
         </ToolbarButton>
-        {(masterHeader || masterFooter) && (
-          <ToolbarButton
-            onClick={toggleHeaderEditMode}
-            active={headerEditMode}
-            title="ヘッダー/フッター編集モード (セクション高さ変更)"
-          >
-            <PanelTop className="w-4 h-4" />
-            <span className="text-xs ml-1">H/F編集</span>
-          </ToolbarButton>
-        )}
+        <ToolbarButton
+          onClick={toggleHeaderEditMode}
+          active={headerEditMode}
+          disabled={!masterHeader && !masterFooter}
+          title="ヘッダー/フッター編集モード (セクション高さ変更)"
+        >
+          <PanelTop className="w-4 h-4" />
+          <span className="text-xs ml-1">H/F編集</span>
+        </ToolbarButton>
         <ToolbarButton
           onClick={handleToggleMasterHeader}
           active={!!masterHeader}
           title={masterHeader ? 'マスターヘッダーを削除' : 'マスターヘッダーを作成'}
         >
           <ArrowUpToLine className="w-4 h-4" />
-          <span className="text-xs ml-1">H</span>
+          <span className="text-xs ml-1">ヘッダー</span>
         </ToolbarButton>
         <ToolbarButton
           onClick={handleToggleMasterFooter}
@@ -632,7 +631,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           title={masterFooter ? 'マスターフッターを削除' : 'マスターフッターを作成'}
         >
           <ArrowDownToLine className="w-4 h-4" />
-          <span className="text-xs ml-1">F</span>
+          <span className="text-xs ml-1">フッター</span>
         </ToolbarButton>
 
         <div className="flex-1" />

@@ -1,6 +1,6 @@
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { PAPER_SIZES, PAPER_SIZE_ORDER } from '@/lib/paperSizes'
-import type { PaperSize } from '@/types'
+import type { PaperSize, Section } from '@/types'
 
 interface PageSettingsPanelProps {
   onTemplateChange?: () => void
@@ -12,6 +12,10 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const updatePageBackground = useReportStore((s) => s.updatePageBackground)
   const pageSettings = useReportStore((s) => s.definition.pageSettings)
   const updateSettings = useReportStore((s) => s.updateSettings)
+  const masterHeader = useReportStore((s) => s.definition.masterHeader) as Section | undefined
+  const masterFooter = useReportStore((s) => s.definition.masterFooter) as Section | undefined
+  const setMasterHeader = useReportStore((s) => s.setMasterHeader)
+  const setMasterFooter = useReportStore((s) => s.setMasterFooter)
 
   if (!activePage) {
     return <div className="p-4 text-xs text-muted-foreground">ページがありません。</div>
@@ -148,6 +152,48 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           ))}
         </div>
       </div>
+
+      {(masterHeader || masterFooter) && (
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">ヘッダー/フッター高さ (mm)</label>
+          <div className="grid grid-cols-2 gap-1">
+            {masterHeader && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground w-10">ヘッダー</span>
+                <input
+                  type="number"
+                  min={10}
+                  max={100}
+                  step={1}
+                  className="w-14 border rounded px-1.5 py-1 text-xs bg-background"
+                  value={masterHeader.height}
+                  onChange={(e) => {
+                    const h = Number(e.target.value)
+                    if (h >= 10) setMasterHeader({ ...masterHeader, height: h })
+                  }}
+                />
+              </div>
+            )}
+            {masterFooter && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground w-10">フッター</span>
+                <input
+                  type="number"
+                  min={10}
+                  max={100}
+                  step={1}
+                  className="w-14 border rounded px-1.5 py-1 text-xs bg-background"
+                  value={masterFooter.height}
+                  onChange={(e) => {
+                    const h = Number(e.target.value)
+                    if (h >= 10) setMasterFooter({ ...masterFooter, height: h })
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground">背景色</label>
