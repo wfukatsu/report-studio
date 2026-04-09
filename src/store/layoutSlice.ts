@@ -314,7 +314,7 @@ export const createLayoutSlice: StateCreator<
     // Not pushed to history — test data changes are not undo-able
   }),
 
-  addElement: (pageId, element) => {
+  addElement: (pageId, element, sectionId?) => {
     if (_historyTimer !== null) { clearTimeout(_historyTimer); _historyTimer = null }
     set((s) => {
       const page = s.definition.pages.find((p) => p.id === pageId)
@@ -322,12 +322,15 @@ export const createLayoutSlice: StateCreator<
       const allElements = flattenPageElements(page as PageDef)
       const maxZ = allElements.reduce((m, e) => Math.max(m, e.zIndex), 0)
       const newEl = { ...element, zIndex: maxZ + 1 }
-      const bodyIdx = page.sections.findIndex((sec) => sec.sectionType === 'body')
-      const targetIdx = bodyIdx !== -1 ? bodyIdx : 0
       if (!page.sections || page.sections.length === 0) {
         page.sections = [createDefaultSection([newEl], page.height)]
       } else {
-        page.sections[targetIdx].elements.push(newEl)
+        // If sectionId is given, add to that section; otherwise fall back to body
+        const targetIdx = sectionId
+          ? page.sections.findIndex((sec) => sec.id === sectionId)
+          : page.sections.findIndex((sec) => sec.sectionType === 'body')
+        const idx = targetIdx !== -1 ? targetIdx : 0
+        page.sections[idx].elements.push(newEl)
       }
       s.selection.selectedElementIds = [element.id]
     })
