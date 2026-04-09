@@ -319,6 +319,25 @@ export async function generateTemplatePdf(
   return blob
 }
 
+/**
+ * Stateless PDF generation — sends the full template definition inline.
+ * No server-side template storage required.
+ */
+export async function generateStatelessPdf(
+  template: Record<string, unknown>,
+  data: Record<string, unknown>,
+): Promise<Blob> {
+  const { blob } = await apiFetchBlobWithFilename(
+    '/api/v2/pdf/generate',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template, data }),
+    },
+  )
+  return blob
+}
+
 // ---------------------------------------------------------------------------
 // Template duplication
 // ---------------------------------------------------------------------------

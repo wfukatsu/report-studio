@@ -95,7 +95,7 @@ public final class SectionRenderHelper {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            if ("row_block".equals(PdfUtils.textOf(el, "kind", ""))) continue;
+            if ("row_block".equals(resolveKind(el))) continue;
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
@@ -128,7 +128,7 @@ public final class SectionRenderHelper {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            if (!"row_block".equals(PdfUtils.textOf(el, "kind", ""))) continue;
+            if (!"row_block".equals(resolveKind(el))) continue;
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
@@ -142,13 +142,31 @@ public final class SectionRenderHelper {
     /** Render a single element via the ElementPdfRendererRegistry. */
     public static void renderElement(PageContext ctx, JsonNode el) {
         try {
-            String kind = PdfUtils.textOf(el, "kind", "");
+            // V1 uses "kind"; V2 uses "type" — resolveKind falls back to "type"
+            String kind = resolveKind(el);
+
+            // V1 uses "frame" { x, y, width, height }; V2 uses "position" + "size"
+            float xMm, yMm, wMm, hMm;
             JsonNode frame = el.get("frame");
-            if (frame == null) return;
-            float x = PdfUtils.floatOf(frame, "x") * MM_TO_PT;
-            float y = ctx.pageHeight() - (PdfUtils.floatOf(frame, "y") * MM_TO_PT);
-            float w = Math.min(PdfUtils.floatOf(frame, "width") * MM_TO_PT, MAX_DIMENSION_PT);
-            float h = Math.min(PdfUtils.floatOf(frame, "height") * MM_TO_PT, MAX_DIMENSION_PT);
+            if (frame != null) {
+                xMm = PdfUtils.floatOf(frame, "x");
+                yMm = PdfUtils.floatOf(frame, "y");
+                wMm = PdfUtils.floatOf(frame, "width");
+                hMm = PdfUtils.floatOf(frame, "height");
+            } else {
+                JsonNode position = el.get("position");
+                JsonNode size = el.get("size");
+                if (position == null || size == null) return;
+                xMm = PdfUtils.floatOf(position, "x");
+                yMm = PdfUtils.floatOf(position, "y");
+                wMm = PdfUtils.floatOf(size, "width");
+                hMm = PdfUtils.floatOf(size, "height");
+            }
+
+            float x = xMm * MM_TO_PT;
+            float y = ctx.pageHeight() - (yMm * MM_TO_PT);
+            float w = Math.min(wMm * MM_TO_PT, MAX_DIMENSION_PT);
+            float h = Math.min(hMm * MM_TO_PT, MAX_DIMENSION_PT);
             ELEMENT_REGISTRY.get(kind)
                     .orElse(ELEMENT_FALLBACK)
                     .render(ctx.contentStream(), el, x, y, w, h,
@@ -223,7 +241,7 @@ public final class SectionRenderHelper {
             ObjectNode props = copy.has("props") && copy.get("props").isObject()
                     ? (ObjectNode) copy.get("props")
                     : MAPPER.createObjectNode();
-            String kind = PdfUtils.textOf(el, "kind", "");
+            String kind = resolveKind(el);
             String propKey = propKeyFor(kind);
             applyValue(props, propKey, value);
             copy.set("props", props);
@@ -241,7 +259,7 @@ public final class SectionRenderHelper {
             ObjectNode props = copy.has("props") && copy.get("props").isObject()
                     ? (ObjectNode) copy.get("props")
                     : MAPPER.createObjectNode();
-            String kind = PdfUtils.textOf(el, "kind", "");
+            String kind = resolveKind(el);
             String propKey = propKeyFor(kind);
             applyValue(props, propKey, value);
             copy.set("props", props);
@@ -249,6 +267,11 @@ public final class SectionRenderHelper {
         } catch (Exception e) {
             return el;
         }
+    }
+
+    private static String resolveKind(JsonNode el) {
+        String kind = PdfUtils.textOf(el, "kind", "");
+        return kind.isEmpty() ? PdfUtils.textOf(el, "type", "") : kind;
     }
 
     private static String propKeyFor(String kind) {
@@ -274,7 +297,7 @@ public final class SectionRenderHelper {
     private static JsonNode applyMaskingToElement(JsonNode el, VariantContext variantCtx) {
         String elId = PdfUtils.textOf(el, "id", "");
         if (elId.isBlank()) return el;
-        String kind = PdfUtils.textOf(el, "kind", "");
+        String kind = resolveKind(el);
         String propKey = propKeyFor(kind);
         JsonNode props = el.get("props");
         if (props == null || !props.isObject()) return el;

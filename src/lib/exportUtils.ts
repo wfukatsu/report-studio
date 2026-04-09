@@ -1,6 +1,8 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import type { ReportDefinition } from '@/types'
+import { generateStatelessPdf } from '@/api/reportApi'
+import { downloadBlob } from '@/api/client'
 
 const EXPORT_SCALE = 2
 
@@ -66,6 +68,21 @@ export async function exportPageToPng(
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`PNG export failed: ${message}`)
   }
+}
+
+/**
+ * Export via server-side PDF generation (high quality, vector text).
+ * Falls back to client-side html2canvas if the backend is unavailable.
+ */
+export async function exportToServerPdf(
+  definition: ReportDefinition,
+  testData: Record<string, unknown> | null,
+  filename = 'report.pdf',
+): Promise<void> {
+  const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
+  const dataJson = (testData ?? {}) as Record<string, unknown>
+  const blob = await generateStatelessPdf(defJson, dataJson)
+  downloadBlob(blob, filename)
 }
 
 export async function exportReportToPdf(

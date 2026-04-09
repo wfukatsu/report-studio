@@ -47,6 +47,7 @@ public final class AppWiring {
     final V2ThumbnailController v2ThumbnailCtrl;
     final V2SchemaInferController v2SchemaInferCtrl;
     final V2PdfJobController v2PdfJobCtrl;
+    final V2StatelessPdfController v2StatelessPdfCtrl;
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
@@ -143,6 +144,7 @@ public final class AppWiring {
         v2ThumbnailCtrl = new V2ThumbnailController(v2DefinitionsRepo, pdfExecutor);
         v2SchemaInferCtrl = new V2SchemaInferController();
         v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, pdfExecutor);
+        v2StatelessPdfCtrl = new V2StatelessPdfController(pdfExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

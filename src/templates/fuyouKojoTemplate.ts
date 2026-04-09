@@ -3,9 +3,16 @@
  *
  * 国税庁公定様式に基づいて作成。
  * 実際の帳票との差異は docs/issues/fuyou-kojo-template-issues.md に記録。
+ *
+ * メインテーブル（列ヘッダー + A/B/D 行）および住民税テーブルは
+ * FormTableElement を使用。セクション C（障害者マトリクス）およびヘッダーは
+ * 複雑なレイアウトのため従来の shape/label/input 要素を維持。
  */
 import { v4 as uuidv4 } from 'uuid'
-import type { Template, ReportElement, TextStyle } from '@/types'
+import type {
+  Template, ReportElement, TextStyle,
+  FormTableElement, FormTableColumn, FormTableRow, FormTableCell,
+} from '@/types'
 
 // ─── 寸法定数 ───────────────────────────────────────────
 const A4_W = 210
@@ -13,7 +20,7 @@ const A4_H = 297
 const ML = 3  // left margin
 const MT = 3  // top margin
 
-// ─── ヘルパー関数 ────────────────────────────────────────
+// ─── ヘルパー関数（非テーブル部分用） ─────────────────────────
 
 function lbl(
   text: string,
@@ -156,6 +163,68 @@ function eraSelect(
   }
 }
 
+// ─── FormTable ヘルパー ──────────────────────────────────
+
+function col(width: number, align?: 'left' | 'center' | 'right', style?: TextStyle): FormTableColumn {
+  return { id: uuidv4(), width, align, style }
+}
+
+function cell(
+  type: FormTableCell['type'],
+  text?: string,
+  style?: TextStyle,
+  extra?: Partial<FormTableCell>,
+): FormTableCell {
+  return { id: uuidv4(), type, text, style, ...extra }
+}
+
+function labelCell(text: string, style?: TextStyle): FormTableCell {
+  return cell('label', text, style)
+}
+
+function inputCell(placeholder?: string, style?: TextStyle): FormTableCell {
+  return cell('input', undefined, style, { placeholder })
+}
+
+function checkboxCell(text?: string, style?: TextStyle): FormTableCell {
+  return cell('checkbox', text, style, { checked: false, checkmark: '✓' })
+}
+
+function eraCell(style?: TextStyle, layout?: FormTableCell['eraLayout']): FormTableCell {
+  return cell('eraSelect', undefined, style, { eraLayout: layout ?? 'column' })
+}
+
+function headerRow(height: number, cells: FormTableCell[]): FormTableRow {
+  return { id: uuidv4(), role: 'header', height, cells }
+}
+
+function bodyRow(height: number, cells: FormTableCell[]): FormTableRow {
+  return { id: uuidv4(), role: 'body', height, cells }
+}
+
+function formTable(
+  x: number, y: number, w: number, h: number,
+  columns: FormTableColumn[],
+  rows: FormTableRow[],
+  opts?: { borderColor?: string; borderWidth?: number; headerStyle?: TextStyle; bodyStyle?: TextStyle; zIndex?: number },
+): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'formTable',
+    position: { x, y },
+    size: { width: w, height: h },
+    zIndex: opts?.zIndex ?? 2,
+    locked: true,
+    visible: true,
+    columns,
+    rows,
+    borderColor: opts?.borderColor ?? '#000000',
+    borderWidth: opts?.borderWidth ?? 0.25,
+    headerStyle: opts?.headerStyle,
+    bodyStyle: opts?.bodyStyle,
+  } as FormTableElement
+}
+
 // ─── レイアウト定数 ──────────────────────────────────────
 // 列 X 座標 (mm, 左端 ML=3 から)
 const COL = {
@@ -253,7 +322,7 @@ elements.push(
 )
 
 // ════════════════════════════════════════════════════════
-// 2. ヘッダーブロック
+// 2. ヘッダーブロック（shape/label/input — 複雑なため従来方式を維持）
 // ════════════════════════════════════════════════════════
 const HY = Y.header
 const HH = ROW_H.header  // 27mm (3 rows × 9mm)
@@ -333,129 +402,105 @@ elements.push(
 )
 
 // ════════════════════════════════════════════════════════
-// 4. メインテーブル（列ヘッダー）
+// 4. メインテーブル（列ヘッダー + A + B1〜B4 + D）— FormTable
 // ════════════════════════════════════════════════════════
-const CH_Y = Y.colHead
-const CH_H = ROW_H.colHead
 
-// 外枠
-elements.push(rect(ML, CH_Y, TABLE_W, CH_H))
-
-// 縦仕切り（列ヘッダー）
-const colBoundaries = [
-  COL.kubun.x + COL.kubun.w,
-  COL.name.x + COL.name.w,
-  COL.kankei.x + COL.kankei.w,
-  COL.myNumber.x + COL.myNumber.w,
-  COL.birthday.x + COL.birthday.w,
-  COL.tokutei.x + COL.tokutei.w,
-  COL.income.x + COL.income.w,
-  COL.nonRes.x + COL.nonRes.w,
-  COL.address.x + COL.address.w,
-  COL.seikei.x + COL.seikei.w,
+// --- メインテーブル列定義（区分列から開始、leftBand は別要素） ---
+const mainCols: FormTableColumn[] = [
+  col(COL.kubun.w, 'center'),                          // 0: 区分等
+  col(COL.name.w, 'left'),                             // 1: フリガナ/氏名
+  col(COL.kankei.w, 'center'),                         // 2: 続柄
+  col(COL.myNumber.w, 'center'),                       // 3: 個人番号
+  col(COL.birthday.w, 'center'),                       // 4: 生年月日
+  col(COL.tokutei.w, 'center'),                        // 5: 特定扶養
+  col(COL.income.w, 'center'),                         // 6: 所得見積額
+  col(COL.nonRes.w, 'center'),                         // 7: 非居住者
+  col(COL.address.w, 'left'),                          // 8: 住所
+  col(COL.seikei.w, 'center'),                         // 9: 生計を一にする事実
+  col(COL.ido.w, 'left'),                              // 10: 異動月日及び事由
 ]
-for (const bx of colBoundaries) {
-  elements.push(line(bx, CH_Y, CH_H, { vertical: true }))
+
+const SMALL = { fontSize: 2.2 } as TextStyle
+const SMALL_LEFT = { fontSize: 2.2, textAlign: 'left' as const } as TextStyle
+const XSMALL = { fontSize: 1.8 } as TextStyle
+const BOLD_SMALL = { fontSize: 2.5, fontWeight: 'bold' as const } as TextStyle
+
+// --- 列ヘッダー行 ---
+const colHeaderRow = headerRow(ROW_H.colHead, [
+  labelCell('区\n分\n等', { fontSize: 2.8, textAlign: 'center' }),
+  labelCell('（フリガナ）\n氏　　　名', { fontSize: 2.5, textAlign: 'center' }),
+  labelCell('あなたとの\n続柄', { fontSize: 2.5, textAlign: 'center' }),
+  labelCell('個　人　番　号', SMALL),
+  labelCell('生　年　月　日\n（明11.1.1〜）', SMALL),
+  labelCell('特定扶養親族等\n（平15.1.2〜\n平19.1.1生）', XSMALL),
+  labelCell('令和7年中の\n所得の見積額', SMALL),
+  labelCell('非居住者で\nある親族', SMALL),
+  labelCell('住　所　又　は　居　所', { fontSize: 2.5, textAlign: 'center' }),
+  labelCell('生計を一に\nする事実', SMALL),
+  labelCell('異動月日及び事由', SMALL),
+])
+
+// --- person row 生成ヘルパー ---
+function buildPersonRowCells(sectionLabel: string): FormTableCell[] {
+  return [
+    labelCell(sectionLabel, BOLD_SMALL),      // 区分
+    inputCell(undefined, { fontSize: 2.8 }),  // 氏名
+    inputCell(undefined, { fontSize: 3.0 }),  // 続柄
+    inputCell(undefined, { fontSize: 2.5 }),  // 個人番号
+    inputCell(undefined, { fontSize: 2.5 }),  // 生年月日
+    inputCell(),                               // 特定扶養
+    inputCell(undefined, { fontSize: 3.0 }),  // 所得見積額
+    inputCell(),                               // 非居住者
+    inputCell(undefined, { fontSize: 2.8 }),  // 住所
+    inputCell(undefined, { fontSize: 2.8 }),  // 生計
+    inputCell(undefined, { fontSize: 2.8 }),  // 異動
+  ]
 }
 
-// 列ヘッダーラベル
+// Section A row
+const rowA = bodyRow(ROW_H.rowA, buildPersonRowCells('源泉控除\n対象配偶者\n（注1）'))
+
+// Section B rows (4 rows)
+const rowsB = [1, 2, 3, 4].map((num) =>
+  bodyRow(ROW_H.rowB, buildPersonRowCells(String(num)))
+)
+
+// メインテーブル高さの計算
+const mainTableY = Y.colHead
+const mainTableH = ROW_H.colHead + ROW_H.rowA + ROW_H.rowB * 4
+const mainTableW = TABLE_W - COL.leftBand.w
+
 elements.push(
-  lbl('区\n分\n等', COL.kubun.x, CH_Y, COL.kubun.w, CH_H, { fontSize: 2.8 }),
-  lbl('（フリガナ）\n氏　　　名', COL.name.x, CH_Y, COL.name.w, CH_H, { fontSize: 2.5 }),
-  lbl('あなたとの\n続柄', COL.kankei.x, CH_Y, COL.kankei.w, CH_H, { fontSize: 2.5 }),
-  lbl('個　人　番　号', COL.myNumber.x, CH_Y, COL.myNumber.w, CH_H, { fontSize: 2.2 }),
-  lbl('生　年　月　日\n（明11.1.1〜）', COL.birthday.x, CH_Y, COL.birthday.w, CH_H, { fontSize: 2.2 }),
-  lbl('特定扶養親族等\n（平15.1.2〜\n平19.1.1生）', COL.tokutei.x, CH_Y, COL.tokutei.w, CH_H, { fontSize: 1.8 }),
-  lbl('令和7年中の\n所得の見積額', COL.income.x, CH_Y, COL.income.w, CH_H, { fontSize: 2.2 }),
-  lbl('非居住者で\nある親族', COL.nonRes.x, CH_Y, COL.nonRes.w, CH_H, { fontSize: 2.2 }),
-  lbl('住　所　又　は　居　所', COL.address.x, CH_Y, COL.address.w, CH_H, { fontSize: 2.5 }),
-  lbl('生計を一に\nする事実', COL.seikei.x, CH_Y, COL.seikei.w, CH_H, { fontSize: 2.2 }),
-  lbl('異動月日及び事由', COL.ido.x, CH_Y, COL.ido.w, CH_H, { fontSize: 2.2 }),
+  formTable(
+    COL.kubun.x, mainTableY, mainTableW, mainTableH,
+    mainCols,
+    [colHeaderRow, rowA, ...rowsB],
+    {
+      headerStyle: {
+        backgroundColor: '#f3f4f6',
+        fontWeight: 'bold',
+        textAlign: 'center',
+      },
+      bodyStyle: { fontSize: 2.8 },
+    },
+  ),
 )
 
 // ════════════════════════════════════════════════════════
 // 5. 左の垂直ラベル帯「主たる給与から控除を受ける」
 // ════════════════════════════════════════════════════════
-const MAIN_ROWS_H = (Y.rowA - CH_Y - CH_H) + ROW_H.rowA + ROW_H.rowB * 4 + ROW_H.rowC + ROW_H.rowD
+const MAIN_ROWS_H = (Y.rowA - Y.colHead - ROW_H.colHead) + ROW_H.rowA + ROW_H.rowB * 4 + ROW_H.rowC + ROW_H.rowD
 elements.push(
-  rect(ML, CH_Y + CH_H, COL.leftBand.w, MAIN_ROWS_H, { fill: '#f5f5f5' }),
+  rect(ML, Y.colHead + ROW_H.colHead, COL.leftBand.w, MAIN_ROWS_H, { fill: '#f5f5f5' }),
   vlbl('主たる給与から控除を受ける',
-    ML, CH_Y + CH_H, COL.leftBand.w, MAIN_ROWS_H, 2.5),
+    ML, Y.colHead + ROW_H.colHead, COL.leftBand.w, MAIN_ROWS_H, 2.5),
 )
 
 // ════════════════════════════════════════════════════════
-// ヘルパー: 各行のセル入力欄を生成
-// ════════════════════════════════════════════════════════
-function buildPersonRow(rowY: number, rowH: number): ReportElement[] {
-  const els: ReportElement[] = []
-  // 外枠
-  els.push(rect(COL.kubun.x, rowY, TABLE_W - COL.kubun.x + ML, rowH))
-
-  // 縦仕切り
-  for (const bx of colBoundaries) {
-    els.push(line(bx, rowY, rowH, { vertical: true }))
-  }
-
-  // フリガナ行 (上半分)
-  const halfH = rowH / 2
-  els.push(
-    lbl('フリガナ', COL.name.x + 1, rowY + 1, COL.name.w - 2, 3.5, { fontSize: 2.2, textAlign: 'left' }),
-    input(COL.name.x + 8, rowY + 1, COL.name.w - 9, 3.5, { fontSize: 2.8 }),
-    lbl('氏名', COL.name.x + 1, rowY + halfH, COL.name.w - 2, halfH, { fontSize: 2.8, textAlign: 'left', verticalAlign: 'middle' }),
-    input(COL.name.x + 8, rowY + halfH + 1, COL.name.w - 9, halfH - 2, { fontSize: 3.5 }),
-  )
-
-  // 続柄
-  els.push(input(COL.kankei.x + 1, rowY + 1, COL.kankei.w - 2, rowH - 2, { fontSize: 3.0 }))
-
-  // 個人番号 (12桁)
-  els.push(input(COL.myNumber.x + 1, rowY + 1, COL.myNumber.w - 2, rowH - 2, { gridCount: 12, displayMode: 'grid', fontSize: 3.0 }))
-
-  // 生年月日
-  els.push(
-    eraSelect(COL.birthday.x + 1, rowY + 1, 7, rowH - 2),
-    input(COL.birthday.x + 8, rowY + 1, 8, 5, { label: '年', fontSize: 3.0 }),
-    lbl('年', COL.birthday.x + 16, rowY + 2, 3, 4, { fontSize: 2.5 }),
-    input(COL.birthday.x + 8, rowY + 6, 4, 5, { label: '月', fontSize: 3.0 }),
-    lbl('月', COL.birthday.x + 12, rowY + 7, 3, 4, { fontSize: 2.5 }),
-    input(COL.birthday.x + 14, rowY + 6, 4, 5, { label: '日', fontSize: 3.0 }),
-    lbl('日', COL.birthday.x + 18, rowY + 7, 3, 4, { fontSize: 2.5 }),
-  )
-
-  // 令和7年中所得の見積額
-  els.push(
-    input(COL.income.x + 1, rowY + 1, COL.income.w - 2, rowH - 6, { fontSize: 3.0 }),
-    lbl('円', COL.income.x + COL.income.w - 4, rowY + rowH - 6, 4, 5, { fontSize: 2.5 }),
-  )
-
-  // 非居住者チェック
-  els.push(
-    checkbox(COL.nonRes.x + 1, rowY + 2, 3.5),
-    lbl('非居住者\nである親族', COL.nonRes.x + 5, rowY + 1, COL.nonRes.w - 6, rowH - 2, { fontSize: 2.2 }),
-  )
-
-  // 住所又は居所
-  els.push(input(COL.address.x + 1, rowY + 1, COL.address.w - 2, rowH - 2, { fontSize: 2.8 }))
-
-  // 生計を一にする事実
-  els.push(input(COL.seikei.x + 1, rowY + 1, COL.seikei.w - 2, rowH - 2, { fontSize: 2.8 }))
-
-  // 異動月日及び事由
-  els.push(input(COL.ido.x + 1, rowY + 1, COL.ido.w - 2, rowH - 2, { fontSize: 2.8 }))
-
-  return els
-}
-
-// ════════════════════════════════════════════════════════
-// 6. セクション A — 源泉控除対象配偶者（注1）
+// 6. セクション A 区分ラベルオーバーレイ + 特記
 // ════════════════════════════════════════════════════════
 elements.push(
-  rect(COL.kubun.x, Y.rowA - 4, COL.kubun.w, ROW_H.rowA + 4, { fill: '#f9f9f9' }),
-  lbl('源泉控除\n対象配偶者\n（注1）',
-    COL.kubun.x, Y.rowA - 4, COL.kubun.w, ROW_H.rowA + 4,
-    { fontSize: 2.5, fontWeight: 'bold' }),
   lbl('A', COL.leftBand.x, Y.rowA - 2, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
-  ...buildPersonRow(Y.rowA, ROW_H.rowA),
 )
 
 // DIFF-09: Section A「生計を一にする事実」欄の注記テキスト
@@ -467,25 +512,17 @@ elements.push(
 )
 
 // ════════════════════════════════════════════════════════
-// 7. セクション B — 控除対象扶養親族（16歳以上）
+// 7. セクション B — 区分ラベルオーバーレイ
 // ════════════════════════════════════════════════════════
-const B_LABEL_Y = Y.rowB1
-const B_LABEL_H = ROW_H.rowB * 4
 elements.push(
-  rect(COL.kubun.x, B_LABEL_Y, COL.kubun.w, B_LABEL_H, { fill: '#f9f9f9' }),
-  lbl('控除対象\n扶養親族\n（16歳以上）\n（平22.1.1以前生）',
-    COL.kubun.x, B_LABEL_Y, COL.kubun.w, B_LABEL_H,
-    { fontSize: 2.2, fontWeight: 'bold' }),
-  lbl('B', COL.leftBand.x, B_LABEL_Y, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
+  lbl('B', COL.leftBand.x, Y.rowB1, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
 )
 
+// B 行チェックボックスオーバーレイ（特定扶養/非居住者列は FormTable セルでは
+// 表現しきれない複雑なレイアウトのため、従来の checkbox/label 要素を上に重ねる）
 const B_ROWS = [Y.rowB1, Y.rowB2, Y.rowB3, Y.rowB4]
-B_ROWS.forEach((rowY, idx) => {
-  elements.push(
-    lbl(String(idx + 1), COL.kubun.x + 1, rowY + 1, 4, ROW_H.rowB - 2, { fontSize: 3.0, fontWeight: 'bold' }),
-    ...buildPersonRow(rowY, ROW_H.rowB),
-  )
-  // B 行専用チェックボックス
+B_ROWS.forEach((rowY) => {
+  // 特定扶養チェック
   const cbX = COL.tokutei.x + 1
   elements.push(
     checkbox(cbX, rowY + 1, 3.5),
@@ -511,6 +548,7 @@ B_ROWS.forEach((rowY, idx) => {
 
 // ════════════════════════════════════════════════════════
 // 8. セクション C — 障害者、寡婦、ひとり親又は勤労学生
+//    （複雑なマトリクスのため従来方式を維持）
 // ════════════════════════════════════════════════════════
 const CY = Y.rowC
 const CH2 = ROW_H.rowC
@@ -539,7 +577,7 @@ C_COLS.forEach((ctype, ci) => {
   const cx = COL.name.x + ci * (C_COL_W + 2)
   elements.push(
     rect(cx, CY, C_COL_W + 2, CH2),
-    lbl(ctype, cx, CY, C_COL_W + 2, 5, { fontSize: 2.5, fontWeight: 'bold', fill: '#eeeeee' } as any),
+    lbl(ctype, cx, CY, C_COL_W + 2, 5, { fontSize: 2.5, fontWeight: 'bold' }),
   )
   C_ROLES.forEach((role, ri) => {
     const ry = CY + 5 + ri * C_ROW_H
@@ -570,39 +608,42 @@ elements.push(
 )
 
 // ════════════════════════════════════════════════════════
-// 9. セクション D — 他の所得者が控除を受ける扶養親族等
+// 9. セクション D — 他の所得者が控除を受ける扶養親族等 — FormTable
 // ════════════════════════════════════════════════════════
 const DY = Y.rowD
 const DH = ROW_H.rowD
-elements.push(
-  rect(ML, DY, TABLE_W, DH),
-  rect(COL.kubun.x, DY, COL.kubun.w + COL.name.w, DH / 2, { fill: '#f9f9f9' }),
-  lbl('D', COL.leftBand.x, DY, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
-  lbl('他の所得者が\n控除を受ける\n扶養親族等',
-    COL.kubun.x, DY, COL.kubun.w, DH, { fontSize: 2.2, fontWeight: 'bold' }),
+
+const dCols: FormTableColumn[] = [
+  col(COL.kubun.w, 'center'),                                     // 0: 区分
+  col(COL.name.w, 'left'),                                        // 1: 氏名
+  col(COL.kankei.w, 'center'),                                    // 2: 続柄
+  col(COL.myNumber.w + COL.birthday.w + COL.tokutei.w, 'left'),   // 3: 生年月日（3列分結合）
+  col(COL.income.w + COL.nonRes.w, 'left'),                       // 4: 控除を受ける他の所得者氏名
+  col(COL.address.w, 'left'),                                     // 5: 続柄
+  col(COL.seikei.w + COL.ido.w, 'left'),                          // 6: 異動月日及び事由
+]
+
+const dRows: FormTableRow[] = [0, 1].map((di) =>
+  bodyRow(DH / 2, [
+    labelCell(di === 0 ? '他の所得者が\n控除を受ける\n扶養親族等' : '', { fontSize: 2.2, fontWeight: 'bold' }),
+    inputCell(undefined, { fontSize: 3.0 }),       // 氏名
+    inputCell(undefined, { fontSize: 3.0 }),       // 続柄
+    inputCell(undefined, { fontSize: 2.5 }),       // 生年月日
+    inputCell(undefined, { fontSize: 3.0 }),       // 控除を受ける他の所得者
+    inputCell(undefined, { fontSize: 3.0 }),       // 続柄
+    inputCell(undefined, { fontSize: 3.0 }),       // 異動月日及び事由
+  ])
 )
 
-// D行 2件
-for (let di = 0; di < 2; di++) {
-  const dRowY = DY + di * (DH / 2)
-  elements.push(
-    lbl('氏名', COL.name.x, dRowY, 6, DH / 2, { fontSize: 2.5, textAlign: 'left', paddingLeft: 1 }),
-    input(COL.name.x + 6, dRowY + 1, COL.name.w - 7, DH / 2 - 2, { fontSize: 3.0 }),
-    lbl('あなたとの\n続柄', COL.kankei.x, dRowY, COL.kankei.w, DH / 2, { fontSize: 2.2 }),
-    input(COL.kankei.x + 1, dRowY + 1, COL.kankei.w - 2, DH / 2 - 2, { fontSize: 3.0 }),
-    lbl('生年月日', COL.myNumber.x, dRowY, COL.myNumber.w, 4, { fontSize: 2.2, textAlign: 'left', paddingLeft: 1 }),
-    eraSelect(COL.myNumber.x + 1, dRowY + 4, 7, DH / 2 - 5),
-    input(COL.myNumber.x + 9, dRowY + 4, COL.myNumber.w - 10, DH / 2 - 5, { fontSize: 2.5 }),
-    lbl('住所又は居所', COL.birthday.x, dRowY, COL.birthday.w + COL.tokutei.w, 4, { fontSize: 2.2, textAlign: 'left', paddingLeft: 1 }),
-    input(COL.birthday.x + 1, dRowY + 4, COL.birthday.w + COL.tokutei.w - 2, DH / 2 - 5, { fontSize: 3.0 }),
-    lbl('控除を受ける他の所得者\n氏名', COL.income.x, dRowY, COL.income.w + COL.nonRes.w, DH / 2, { fontSize: 2.2 }),
-    input(COL.income.x + 1, dRowY + 1, COL.income.w + COL.nonRes.w - 2, DH / 2 - 2, { fontSize: 3.0 }),
-    lbl('続柄', COL.address.x, dRowY, COL.address.w / 3, DH / 2, { fontSize: 2.2 }),
-    input(COL.address.x + COL.address.w / 3, dRowY + 1, COL.address.w - COL.address.w / 3 - 1, DH / 2 - 2, { fontSize: 3.0 }),
-    lbl('異動月日及び事由', COL.seikei.x, dRowY, COL.seikei.w + COL.ido.w, 4, { fontSize: 2.2, textAlign: 'left', paddingLeft: 1 }),
-    input(COL.seikei.x + 1, dRowY + 4, COL.seikei.w + COL.ido.w - 2, DH / 2 - 5, { fontSize: 3.0 }),
-  )
-}
+elements.push(
+  lbl('D', COL.leftBand.x, DY, COL.leftBand.w, 5, { fontSize: 3.5, fontWeight: 'bold' }),
+  formTable(
+    COL.kubun.x, DY, mainTableW, DH,
+    dCols,
+    dRows,
+    { bodyStyle: { fontSize: 2.8 } },
+  ),
+)
 
 // ════════════════════════════════════════════════════════
 // 10. 注1 (脚注ボックス)
@@ -630,83 +671,101 @@ elements.push(
     { fontSize: 2.2, textAlign: 'left' }),
 )
 
-// ─── 住民税: 16歳未満の扶養親族 ──────────────────────────
-const JH = ROW_H.jumin
+// ─── 住民税: 16歳未満の扶養親族 — FormTable ──────────────
+
 const J_COL_W = [16, 22, 8, 8, 20, 35, 22, 14, 20]  // 各列幅
-const J_COL_LABELS = ['（フリガナ）\n氏名', '個人番号', 'あなたとの\n続柄', '生\n年\n月\n日', '住所又は居所', '控除対象外国外扶養親族', '令和7年中の\n所得の見積額', '障害者\n区分', '異動月日\n及び事由']
-const jLabels_y = Y.jumin1 - 8
-elements.push(
-  rect(ML, jLabels_y, TABLE_W, 8, { fill: '#f0f0f0' }),
-  rect(ML, jLabels_y, 16, 8, { fill: '#f0f0f0' }),
-  lbl('16歳未満の\n扶養親族\n（平22.1.2以後生）',
-    ML, jLabels_y, 16, 8, { fontSize: 2.2, fontWeight: 'bold' }),
-)
-
-let jX = ML + 16
-for (let ci = 0; ci < J_COL_W.length; ci++) {
-  elements.push(
-    line(jX, jLabels_y, 8, { vertical: true }),
-    lbl(J_COL_LABELS[ci], jX, jLabels_y, J_COL_W[ci], 8, { fontSize: 2.0 }),
-  )
-  jX += J_COL_W[ci]
-}
-
-// 2行
-const J_BIRTHDAY_CI = 3  // 生年月日列のインデックス
-for (let ji = 0; ji < 2; ji++) {
-  const jRowY = Y.jumin1 + ji * JH
-  elements.push(
-    rect(ML, jRowY, TABLE_W, JH),
-    lbl(String(ji + 1), ML + 1, jRowY, 14, JH, { fontSize: 3.0, fontWeight: 'bold' }),
-  )
-  let jix = ML + 16
-  for (let ci = 0; ci < J_COL_W.length; ci++) {
-    elements.push(line(jix, jRowY, JH, { vertical: true }))
-    if (ci === J_BIRTHDAY_CI) {
-      // 生年月日: 「平」固定プレフィックス + 年月日入力
-      elements.push(
-        lbl('平', jix + 1, jRowY + 1, 3, JH - 2, { fontSize: 2.0, textAlign: 'left', verticalAlign: 'top' }),
-        input(jix + 4, jRowY + 1, J_COL_W[ci] - 5, JH - 2, { fontSize: 2.5 }),
-      )
-    } else {
-      elements.push(input(jix + 1, jRowY + 1, J_COL_W[ci] - 2, JH - 2, { fontSize: 2.8 }))
-    }
-    jix += J_COL_W[ci]
-  }
-}
-
-// ─── 住民税: 退職手当等を有する配偶者・扶養親族 ─────────────
-const TY = Y.taishoku
-elements.push(
-  rect(ML, TY, TABLE_W, ROW_H.taishoku),
-  rect(ML, TY, 16, ROW_H.taishoku, { fill: '#f0f0f0' }),
-  lbl('退職手当等を有する\n配偶者・扶養親族',
-    ML, TY, 16, ROW_H.taishoku, { fontSize: 2.2, fontWeight: 'bold' }),
-)
-
-const T_BIRTHDAY_LABEL = '生年月日'
-const T_COLS: [string, number][] = [
-  ['（フリガナ）\n氏名', 16], ['個人番号', 22], ['あなたとの続柄', 10],
-  [T_BIRTHDAY_LABEL, 10], ['住所又は居所', 25], ['非居住者', 12],
-  ['令和7年中の所得（退職所得を除く）', 28], ['障害者区分', 10], ['異動月日及び事由', 18],
+const J_COL_LABELS = [
+  '（フリガナ）\n氏名', '個人番号', 'あなたとの\n続柄', '生\n年\n月\n日',
+  '住所又は居所', '控除対象外国外扶養親族', '令和7年中の\n所得の見積額',
+  '障害者\n区分', '異動月日\n及び事由',
 ]
-let tX = ML + 16
-for (const [tLabel, tW] of T_COLS) {
-  elements.push(
-    line(tX, TY, ROW_H.taishoku, { vertical: true }),
-    lbl(tLabel, tX, TY, tW, 5, { fontSize: 2.0 }),
-  )
-  if (tLabel === T_BIRTHDAY_LABEL) {
-    // 生年月日: 元号選択 + 年月日入力
-    elements.push(
-      eraSelect(tX + 1, TY + 5, 6, ROW_H.taishoku - 6),
-      input(tX + 7, TY + 5, tW - 8, ROW_H.taishoku - 6, { fontSize: 2.5 }),
-    )
-  } else {
-    elements.push(input(tX + 1, TY + 5, tW - 2, ROW_H.taishoku - 6, { fontSize: 2.8 }))
-  }
-  tX += tW
-}
+
+const juminCols: FormTableColumn[] = [
+  col(16, 'center'),  // 左ラベル列
+  ...J_COL_W.map((w) => col(w, 'center')),
+]
+
+const juminHeaderRow = headerRow(8, [
+  labelCell('16歳未満の\n扶養親族\n（平22.1.2以後生）', { fontSize: 2.2, fontWeight: 'bold', backgroundColor: '#f0f0f0' }),
+  ...J_COL_LABELS.map((label) => labelCell(label, { fontSize: 2.0 })),
+])
+
+const juminBodyRows: FormTableRow[] = [1, 2].map((num) =>
+  bodyRow(ROW_H.jumin, [
+    labelCell(String(num), { fontSize: 3.0, fontWeight: 'bold' }),
+    ...J_COL_W.map(() => inputCell(undefined, { fontSize: 2.8 })),
+  ])
+)
+
+const juminTableY = Y.jumin1 - 8  // header starts above jumin1
+const juminTableH = 8 + ROW_H.jumin * 2
+
+elements.push(
+  formTable(
+    ML, juminTableY, TABLE_W, juminTableH,
+    juminCols,
+    [juminHeaderRow, ...juminBodyRows],
+    {
+      headerStyle: { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+      bodyStyle: { fontSize: 2.8 },
+    },
+  ),
+)
+
+// ─── 住民税: 退職手当等を有する配偶者・扶養親族 — FormTable ────
+
+const TY = Y.taishoku
+
+const T_COL_W = [16, 16, 22, 10, 10, 25, 12, 28, 10, 18]
+const T_COL_LABELS = [
+  '退職手当等を有する\n配偶者・扶養親族',
+  '（フリガナ）\n氏名', '個人番号', 'あなたとの続柄',
+  '生年月日', '住所又は居所', '非居住者',
+  '令和7年中の所得（退職所得を除く）', '障害者区分', '異動月日及び事由',
+]
+
+const tCols: FormTableColumn[] = T_COL_W.map((w) => col(w, 'center'))
+
+const tHeaderRow = headerRow(5, T_COL_LABELS.map((label, i) =>
+  labelCell(label, {
+    fontSize: 2.0,
+    fontWeight: i === 0 ? 'bold' : undefined,
+    backgroundColor: i === 0 ? '#f0f0f0' : undefined,
+  })
+))
+
+const tBodyRow = bodyRow(ROW_H.taishoku - 5, [
+  labelCell('', { backgroundColor: '#f0f0f0' }),  // 左ラベル（ヘッダーと結合的）
+  inputCell(undefined, { fontSize: 2.8 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+  eraCell({ fontSize: 2.0 }),                       // 生年月日 era
+  inputCell(undefined, { fontSize: 3.0 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+  inputCell(undefined, { fontSize: 2.8 }),
+])
+
+elements.push(
+  formTable(
+    ML, TY, TABLE_W, ROW_H.taishoku,
+    tCols,
+    [tHeaderRow, tBodyRow],
+    {
+      headerStyle: { fontWeight: 'bold' },
+      bodyStyle: { fontSize: 2.8 },
+    },
+  ),
+)
+
+// 寡婦・ひとり親チェック（退職欄右端 — オーバーレイ）
+elements.push(
+  checkbox(ML + TABLE_W - 40, TY + 2, 4),
+  lbl('寡婦', ML + TABLE_W - 35, TY + 2, 10, 5, { fontSize: 2.5, textAlign: 'left' }),
+  checkbox(ML + TABLE_W - 40, TY + 8, 4),
+  lbl('ひとり親', ML + TABLE_W - 35, TY + 8, 12, 5, { fontSize: 2.5, textAlign: 'left' }),
+)
 
 // ════════════════════════════════════════════════════════
 // 12. 下部脚注エリア
@@ -716,11 +775,6 @@ elements.push(
   lbl('（注）退職手当等（源泉徴収をされるものに限ります。）の支払を受ける配偶者又は扶養親族がいる場合に記載してください。なお、退職所得の金額の計算については、給与の支払者にお尋ねください。',
     ML + 1, Y.bottom + 1, TABLE_W - 2, 8,
     { fontSize: 2.2, textAlign: 'left', verticalAlign: 'top' }),
-  // 寡婦・ひとり親チェック（退職欄右端）
-  checkbox(ML + TABLE_W - 40, TY + 2, 4),
-  lbl('寡婦', ML + TABLE_W - 35, TY + 2, 10, 5, { fontSize: 2.5, textAlign: 'left' }),
-  checkbox(ML + TABLE_W - 40, TY + 8, 4),
-  lbl('ひとり親', ML + TABLE_W - 35, TY + 8, 12, 5, { fontSize: 2.5, textAlign: 'left' }),
 )
 
 // ─── テンプレート定義 ────────────────────────────────────

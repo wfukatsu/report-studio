@@ -120,7 +120,7 @@ public final class PdfRenderer {
 
         for (JsonNode section : sections) {
             orderedSections.add(section);
-            String sectionType = PdfUtils.textOf(section, "type", "page_base");
+            String sectionType = resolveSectionType(section);
             SectionPdfRenderer renderer = SECTION_REGISTRY.getOrFallback(sectionType);
             if (paginatingSection == null && renderer.isPaginating()) {
                 paginatingSection = section;
@@ -141,7 +141,7 @@ public final class PdfRenderer {
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();
                 for (JsonNode section : orderedSections) {
-                    String sectionType = PdfUtils.textOf(section, "type", "page_base");
+                    String sectionType = resolveSectionType(section);
                     SectionPdfRenderer renderer = SECTION_REGISTRY.getOrFallback(sectionType);
                     renderer.renderPage(ctx, section, formData, null,
                             pageIdx, rowsPerPage, totalRows);
@@ -161,6 +161,17 @@ public final class PdfRenderer {
                            Map<String, PDFont> fontCache) throws IOException {
             PdfUtils.renderBorder(cs, x, y, w, h);
         }
+    }
+
+    // ── Section type resolution ────────────────────────────────────────
+    /** V1 uses "type"; V2 uses "sectionType" — fall back accordingly. */
+    private static String resolveSectionType(JsonNode section) {
+        String type = PdfUtils.textOf(section, "type", "");
+        if (!type.isEmpty()) return type;
+        String sectionType = PdfUtils.textOf(section, "sectionType", "");
+        // V2 "body" sections render all elements like V1 "page_base"
+        if ("body".equals(sectionType)) return "page_base";
+        return sectionType.isEmpty() ? "page_base" : sectionType;
     }
 
     // ── Page size resolution ─────────────────────────────────────────

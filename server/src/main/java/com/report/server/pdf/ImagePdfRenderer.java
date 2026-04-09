@@ -159,19 +159,48 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
         cs.drawImage(image, drawX, drawY, drawW, drawH);
     }
 
-    /** SSRF protection: block URLs resolving to private/internal network addresses. */
-    private static boolean isSafeUrl(String url) {
+    /** SSRF protection: block dangerous schemes and private/internal network addresses. */
+    static boolean isSafeUrl(String url) {
         try {
             URI uri = URI.create(url);
+
+            // Block dangerous schemes
+            String scheme = uri.getScheme();
+            if (scheme == null) return false;
+            if (!"http".equals(scheme) && !"https".equals(scheme)) {
+                return false; // blocks file://, gopher://, ftp://, jar://, etc.
+            }
+
             String host = uri.getHost();
-            if (host == null) return false;
+            if (host == null || host.isBlank()) return false;
+
+            // Block cloud metadata endpoint (check before DNS resolution)
+            if ("169.254.169.254".equals(host) || host.endsWith(".internal")) {
+                return false;
+            }
+
             InetAddress addr = InetAddress.getByName(host);
             if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
                     || addr.isSiteLocalAddress() || addr.isMulticastAddress()) {
                 return false;
             }
-            // Block cloud metadata endpoint
-            return !host.equals("169.254.169.254") && !host.endsWith(".internal");
+
+            // Double-check private IP ranges after resolution
+            byte[] addrBytes = addr.getAddress();
+            if (addrBytes.length == 4) {
+                int b0 = addrBytes[0] & 0xFF;
+                int b1 = addrBytes[1] & 0xFF;
+                // 10.0.0.0/8
+                if (b0 == 10) return false;
+                // 172.16.0.0/12
+                if (b0 == 172 && b1 >= 16 && b1 <= 31) return false;
+                // 192.168.0.0/16
+                if (b0 == 192 && b1 == 168) return false;
+                // 169.254.0.0/16 (link-local, includes metadata endpoint)
+                if (b0 == 169 && b1 == 254) return false;
+            }
+
+            return true;
         } catch (Exception e) {
             return false;
         }

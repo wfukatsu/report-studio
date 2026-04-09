@@ -44,6 +44,7 @@ public final class ElementPdfRendererRegistry {
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());
+        registry.register(new FormTablePdfRenderer());
         registry.register(new TextCellPdfRenderer());
         // row_block: no-op — grid lines drawn by table/form_grid, text by text_cell
         registry.register(new ElementPdfRenderer() {

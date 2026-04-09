@@ -1,6 +1,7 @@
 import { memo } from 'react'
-import type { FormTableElement, FormTableRow, FormTableCell } from '@/types'
+import type { FormTableElement, FormTableRow, FormTableCell, EraSelectLayout } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
+import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
 
 // ---------------------------------------------------------------------------
 // Style helpers
@@ -51,6 +52,48 @@ function CellContent({
       <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
         {cell.placeholder ?? ''}
       </span>
+    )
+  }
+
+  if (cell.type === 'checkbox') {
+    const isChecked = cell.checkboxDataSource && record
+      ? resolveField(record, cell.checkboxDataSource) !== ''
+      : cell.checked ?? false
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5mm' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: '3mm', height: '3mm', border: '0.25mm solid #000', fontSize: '2.2mm',
+          lineHeight: 1, flexShrink: 0,
+        }}>
+          {isChecked ? (cell.checkmark ?? '✓') : ''}
+        </span>
+        {cell.text && <span>{cell.text}</span>}
+      </span>
+    )
+  }
+
+  if (cell.type === 'eraSelect') {
+    const selected = cell.eraDataSource && record
+      ? resolveField(record, cell.eraDataSource)
+      : ''
+    const eras = DEFAULT_ERAS
+    const layout: EraSelectLayout = cell.eraLayout ?? 'column'
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: layout === 'row' ? 'row' : 'column',
+        justifyContent: 'space-around',
+        alignItems: layout === 'row' ? 'center' : undefined,
+        height: '100%', fontSize: '2mm', lineHeight: 1,
+      }}>
+        {eras.map((era) => (
+          <span key={era} style={{ display: 'flex', alignItems: 'center', gap: '0.2mm' }}>
+            <span>{selected === era ? '●' : '○'}</span>
+            <span>{era}</span>
+          </span>
+        ))}
+      </div>
     )
   }
 
