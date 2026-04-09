@@ -155,7 +155,9 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
 
       {(masterHeader || masterFooter) && (
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">ヘッダー/フッター高さ (mm)</label>
+          <label className="text-xs text-muted-foreground">
+            {masterHeader && masterFooter ? 'ヘッダー/フッター' : masterHeader ? 'ヘッダー' : 'フッター'}高さ (mm)
+          </label>
           <div className="grid grid-cols-2 gap-1">
             {masterHeader && (
               <div className="flex items-center gap-1">

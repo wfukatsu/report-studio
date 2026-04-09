@@ -150,7 +150,7 @@ export const SectionContainer = memo(function SectionContainer({
             zIndex: 999,
           }}
         >
-          要素をドロップして{SECTION_LABELS[section.sectionType]}を作成
+          {SECTION_LABELS[section.sectionType]}に要素をドロップ
         </div>
       )}
 

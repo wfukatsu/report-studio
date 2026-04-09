@@ -352,6 +352,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     } else {
       setMasterFooter(createMasterSection('footer'))
       if (!headerEditMode) toggleHeaderEditMode()
+      // フッター作成時にキャンバスを最下部にスクロール
+      requestAnimationFrame(() => {
+        containerRef?.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })
+      })
     }
   }
 
