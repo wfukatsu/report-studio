@@ -4,7 +4,7 @@ import { getPageDimensions, PAPER_SIZES, mmToPx, pxToMm } from './paperSizes'
 describe('getPageDimensions', () => {
   it('returns portrait A4 dimensions', () => {
     const dims = getPageDimensions('A4', 'portrait')
-    expect(dims).toEqual(PAPER_SIZES.A4)
+    expect(dims).toEqual({ width: 210, height: 297 })
   })
 
   it('returns landscape A4 as swapped dimensions', () => {

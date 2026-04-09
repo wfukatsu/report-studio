@@ -1,5 +1,5 @@
 import { useReportStore, selectActivePage } from '@/store/reportStore'
-import { PAPER_SIZES } from '@/lib/paperSizes'
+import { PAPER_SIZES, PAPER_SIZE_ORDER } from '@/lib/paperSizes'
 import type { PaperSize } from '@/types'
 
 interface PageSettingsPanelProps {
@@ -40,8 +40,8 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             value={pageSettings.paperSize}
             onChange={(e) => updateSettings({ paperSize: e.target.value as PaperSize })}
           >
-            {Object.keys(PAPER_SIZES).filter((k) => k !== 'custom').map((size) => (
-              <option key={size} value={size}>{size}</option>
+            {PAPER_SIZE_ORDER.map((size) => (
+              <option key={size} value={size}>{PAPER_SIZES[size].label}</option>
             ))}
           </select>
           <span className="text-xs text-muted-foreground whitespace-nowrap">

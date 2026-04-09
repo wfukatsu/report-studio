@@ -634,7 +634,19 @@ export interface PageDef {
   groups?: LayerGroup[]
 }
 
-export type PaperSize = 'A4' | 'A3' | 'Letter' | 'Legal' | 'custom'
+export type PaperSize =
+  // ISO A 系列
+  | 'A3' | 'A4' | 'A5' | 'A6'
+  // ISO B 系列
+  | 'B4' | 'B5'
+  // JIS B 系列（日本固有）
+  | 'JIS-B4' | 'JIS-B5'
+  // 北米
+  | 'Letter' | 'Legal' | 'Tabloid'
+  // 日本固有
+  | 'Hagaki'
+  // カスタム
+  | 'custom'
 
 export interface Margins {
   top: number
