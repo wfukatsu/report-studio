@@ -18,7 +18,12 @@ export function applyTemplate(template: Template): ReportDefinition {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
-  return migrateReport(legacyReport)
+  const definition = migrateReport(legacyReport)
+  return {
+    ...definition,
+    ...(template.schema ? { schema: template.schema } : {}),
+    ...(template.dataSources ? { dataSources: template.dataSources } : {}),
+  }
 }
 
 /**
