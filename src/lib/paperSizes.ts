@@ -49,6 +49,37 @@ export function pxToMm(px: number, dpi = 96): number {
   return (px / dpi) * 25.4
 }
 
+/**
+ * Paper-size-specific margin presets (in mm).
+ *
+ * Values are based on:
+ * - JIS X 4051 / ISO 216 standard document margins
+ * - Microsoft Word / Google Docs defaults per paper size
+ * - Typical laser/inkjet printer minimum printable area (~3-5mm)
+ * - Japanese business document conventions
+ * - Japanese postcard (hagaki) postal standards
+ */
+export const MARGIN_PRESETS: Record<PaperSize, { standard: number; narrow: number; minimum: number }> = {
+  A3:       { standard: 25, narrow: 15, minimum: 6 },
+  A4:       { standard: 20, narrow: 13, minimum: 5 },
+  A5:       { standard: 15, narrow: 10, minimum: 5 },
+  A6:       { standard: 10, narrow:  7, minimum: 3 },
+  B4:       { standard: 25, narrow: 15, minimum: 6 },
+  B5:       { standard: 18, narrow: 10, minimum: 5 },
+  'JIS-B4': { standard: 25, narrow: 15, minimum: 6 },
+  'JIS-B5': { standard: 20, narrow: 10, minimum: 5 },
+  Letter:   { standard: 25, narrow: 13, minimum: 6 },
+  Legal:    { standard: 25, narrow: 13, minimum: 6 },
+  Tabloid:  { standard: 25, narrow: 15, minimum: 6 },
+  Hagaki:   { standard:  8, narrow:  5, minimum: 3 },
+  custom:   { standard: 20, narrow: 13, minimum: 5 },
+}
+
+/** Get margin presets for a paper size. Returns { standard, narrow, minimum } in mm. */
+export function getMarginPresets(paperSize: PaperSize): { standard: number; narrow: number; minimum: number } {
+  return MARGIN_PRESETS[paperSize]
+}
+
 export function getPageDimensions(
   paperSize: PaperSize,
   orientation: 'portrait' | 'landscape',
