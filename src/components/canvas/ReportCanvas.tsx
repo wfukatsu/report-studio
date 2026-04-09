@@ -313,7 +313,7 @@ export function ReportCanvas({
             onSelectElement={selectElement}
             onMoveElement={handleMove}
             onResizeElement={handleResize}
-            onResizeSection={!readonly && headerEditMode ? handleResizeSection : undefined}
+            onResizeSection={!readonly && headerEditMode && section.sectionType !== 'body' ? handleResizeSection : undefined}
             onContextMenu={setContextMenu}
             data={data}
             readonly={readonly}
