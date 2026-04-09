@@ -1,0 +1,292 @@
+/**
+ * TemplateManagerModal — full template management UI.
+ * Lists builtin + backend templates with inline editing of name, category, tags.
+ * Backend templates can be deleted and renamed.
+ */
+
+import { useState, useCallback } from 'react'
+import { X, Loader2, Trash2, Pencil, FolderOpen, AlertCircle } from 'lucide-react'
+import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { listReports, getReport, saveReport, deleteReport } from '@/api/reportApi'
+import type { TemplateListItem } from '@/api/reportApi'
+import type { ReportDefinition } from '@/types'
+import { CategoryCombobox } from '@/components/common/CategoryCombobox'
+import { TagInput } from '@/components/common/TagInput'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { collectCategories } from '@/lib/templateFilter'
+
+interface Props {
+  open: boolean
+  onClose: () => void
+}
+
+export function TemplateManagerModal({ open, onClose }: Props) {
+  const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  // Inline edit states
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Category editing
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
+
+  const categoryOptions = collectCategories([...BUILTIN_TEMPLATES, ...backendTemplates])
+
+  const handleFetch = useCallback(async () => {
+    setLoadState('loading')
+    setError(null)
+    try {
+      const result = await listReports()
+      setBackendTemplates(result.items)
+      setLoadState('idle')
+    } catch {
+      setLoadState('error')
+      setError('テンプレート一覧の取得に失敗しました')
+    }
+  }, [])
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    setError(null)
+    try {
+      await deleteReport(id)
+      await handleFetch()
+    } catch {
+      setError('テンプレートの削除に失敗しました')
+    } finally {
+      setDeletingId(null)
+      setDeleteConfirmId(null)
+    }
+  }
+
+  const handleRename = async (id: string) => {
+    const trimmed = renameValue.trim()
+    if (!trimmed) return
+    setSavingId(id)
+    setError(null)
+    try {
+      const def = await getReport(id)
+      await saveReport(id, { ...def, metadata: { ...def.metadata, documentName: trimmed } })
+      await handleFetch()
+    } catch {
+      setError('名前の変更に失敗しました')
+    } finally {
+      setSavingId(null)
+      setRenamingId(null)
+    }
+  }
+
+  const handleUpdateMetadata = async (id: string, patch: Partial<ReportDefinition['metadata']>) => {
+    setSavingId(id)
+    setError(null)
+    try {
+      const def = await getReport(id)
+      await saveReport(id, { ...def, metadata: { ...def.metadata, ...patch } })
+      await handleFetch()
+    } catch {
+      setError('メタデータの更新に失敗しました')
+    } finally {
+      setSavingId(null)
+      setEditingCategoryId(null)
+      setEditingTagsId(null)
+    }
+  }
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="テンプレート管理"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-background border border-border rounded-lg shadow-xl w-[700px] max-h-[80vh] flex flex-col mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+          <h2 className="text-sm font-semibold">テンプレート管理</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs" aria-label="閉じる">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {error && (
+            <div role="alert" className="flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="w-3 h-3 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Builtin templates */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              ビルトインテンプレート
+            </p>
+            <div className="border rounded divide-y">
+              {BUILTIN_TEMPLATES.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 px-3 py-2 text-xs">
+                  <span className="font-medium flex-shrink-0 w-40 truncate">{t.name}</span>
+                  <span className="text-muted-foreground w-20 truncate">{t.category ?? '—'}</span>
+                  <div className="flex-1 flex gap-1 flex-wrap">
+                    {(t.tags ?? []).map((tag) => (
+                      <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px]">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Backend templates */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                バックエンドテンプレート
+              </p>
+              <button
+                onClick={handleFetch}
+                disabled={loadState === 'loading'}
+                className="text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                {loadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin inline" /> : '一覧を取得'}
+              </button>
+            </div>
+
+            {loadState === 'idle' && backendTemplates.length === 0 && (
+              <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+                <FolderOpen className="w-5 h-5 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">「一覧を取得」でテンプレートを読み込めます。</p>
+              </div>
+            )}
+
+            {backendTemplates.length > 0 && (
+              <div className="border rounded divide-y">
+                {backendTemplates.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2 px-3 py-2 text-xs group">
+                    {/* Name */}
+                    {renamingId === t.id ? (
+                      <input
+                        className="font-medium w-40 border rounded px-1.5 py-0.5 text-xs bg-background"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRename(t.id)
+                          if (e.key === 'Escape') setRenamingId(null)
+                        }}
+                        onBlur={() => handleRename(t.id)}
+                        autoFocus
+                        disabled={savingId === t.id}
+                      />
+                    ) : (
+                      <span
+                        className="font-medium w-40 truncate cursor-pointer hover:text-primary"
+                        onClick={() => { setRenamingId(t.id); setRenameValue(t.name) }}
+                        title="クリックして名前を変更"
+                      >
+                        {t.name}
+                      </span>
+                    )}
+
+                    {/* Category */}
+                    {editingCategoryId === t.id ? (
+                      <div className="w-28">
+                        <CategoryCombobox
+                          value={t.category}
+                          options={categoryOptions}
+                          onChange={(v) => handleUpdateMetadata(t.id, { category: v })}
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        className="text-muted-foreground w-28 truncate cursor-pointer hover:text-primary"
+                        onClick={() => setEditingCategoryId(t.id)}
+                        title="クリックしてカテゴリを変更"
+                      >
+                        {t.category ?? '—'}
+                      </span>
+                    )}
+
+                    {/* Tags */}
+                    {editingTagsId === t.id ? (
+                      <div className="flex-1">
+                        <TagInput
+                          value={t.tags ?? []}
+                          onChange={(tags) => handleUpdateMetadata(t.id, { tags })}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex-1 flex gap-1 flex-wrap cursor-pointer min-h-[20px]"
+                        onClick={() => setEditingTagsId(t.id)}
+                        title="クリックしてタグを編集"
+                      >
+                        {(t.tags ?? []).length > 0
+                          ? (t.tags ?? []).map((tag) => (
+                              <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px]">{tag}</span>
+                            ))
+                          : <span className="text-muted-foreground">—</span>
+                        }
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setRenamingId(t.id); setRenameValue(t.name) }}
+                        title="名前変更"
+                        className="p-1 rounded hover:bg-accent"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmId(t.id)}
+                        disabled={deletingId !== null}
+                        title="削除"
+                        className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                      >
+                        {deletingId === t.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Trash2 className="w-3 h-3" />
+                        }
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end px-5 py-3 border-t shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-xs rounded border border-border bg-background hover:bg-accent transition-colors"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={deleteConfirmId !== null}
+        title="テンプレートを削除"
+        message={`「${backendTemplates.find((t) => t.id === deleteConfirmId)?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
+    </div>
+  )
+}
