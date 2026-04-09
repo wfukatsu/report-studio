@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import type { FormTableElement } from '@/types'
 import { ContextMenu, type ContextMenuItemDef } from '@/components/canvas/ContextMenu'
 import {
@@ -112,13 +113,20 @@ export function TableContextMenu({
 
   if (!menu || !cellCoord) return null
 
-  // Reuse existing ContextMenu with items prop (generic mode)
-  return (
+  // Clamp menu position to stay within viewport
+  const menuWidth = 180
+  const menuHeight = 320
+  const clampedX = Math.min(menu.x, window.innerWidth - menuWidth)
+  const clampedY = Math.min(menu.y, window.innerHeight - menuHeight)
+
+  // Portal to document.body to escape stacking context of FormTableEditor
+  return createPortal(
     <ContextMenu
-      menu={{ x: menu.x, y: menu.y, elementId: '', isLocked: false, isVisible: true }}
+      menu={{ x: Math.max(0, clampedX), y: Math.max(0, clampedY), elementId: '', isLocked: false, isVisible: true }}
       pageId={undefined}
       onClose={onClose}
       items={items}
-    />
+    />,
+    document.body,
   )
 }

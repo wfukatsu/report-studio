@@ -70,10 +70,6 @@ export const CellPopover = memo(function CellPopover({
     <div
       ref={ref}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: '100%',
-        marginLeft: 8,
         background: 'white',
         border: '1px solid #e5e7eb',
         borderRadius: 6,

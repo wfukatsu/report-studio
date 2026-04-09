@@ -1,6 +1,7 @@
 import { memo, useReducer, useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { FormTableElement } from '@/types'
-import { FormTableRenderer, gridTemplateColumns } from './Renderer'
+import { FormTableRenderer } from './Renderer'
 import { CellPopover } from './CellPopover'
 import { TableContextMenu } from './TableContextMenu'
 import { TableToolbar } from './TableToolbar'
@@ -345,9 +346,9 @@ export const FormTableEditor = memo(function FormTableEditor({
       {/* Selection overlay */}
       {isEditing && state.selectedCells.size > 0 && (
         <SelectionOverlay
-          element={el}
           selectedCells={state.selectedCells}
           activeCell={state.activeCell}
+          containerRef={containerRef}
         />
       )}
 
@@ -360,11 +361,12 @@ export const FormTableEditor = memo(function FormTableEditor({
         />
       )}
 
-      {/* Cell editing popover */}
+      {/* Cell editing popover — portaled to body to escape stacking context */}
       {state.mode === 'editing' && state.activeCell && (
-        <CellPopover
+        <PortaledCellPopover
           element={el}
           cellId={state.activeCell}
+          containerRef={containerRef}
           onChange={onChange}
           onClose={() => dispatch({ type: 'STOP_EDITING' })}
         />
@@ -383,73 +385,73 @@ export const FormTableEditor = memo(function FormTableEditor({
 })
 
 // ---------------------------------------------------------------------------
-// Selection overlay — highlights selected cells
+// Selection overlay — highlights selected cells using DOM positions
 // ---------------------------------------------------------------------------
 
 function SelectionOverlay({
-  element: el,
   selectedCells,
   activeCell,
+  containerRef,
 }: {
-  element: FormTableElement
   selectedCells: Set<string>
   activeCell: string | null
+  containerRef: React.RefObject<HTMLDivElement | null>
 }) {
-  // Collect selected cell positions from data attributes in the DOM
-  // We use a lightweight approach: overlay absolute-positioned highlights
-  // keyed by cell ID, rendered by scanning element data
-  const highlights: React.ReactElement[] = []
+  // Read actual cell positions from DOM data-cell-id elements
+  const [highlights, setHighlights] = useState<
+    { id: string; top: number; left: number; width: number; height: number; isActive: boolean }[]
+  >([])
 
-  el.rows.forEach((row, rowIdx) => {
-    row.cells.forEach((cell, colIdx) => {
-      if (!selectedCells.has(cell.id)) return
-      if (cell.mergedInto) return
+  useEffect(() => {
+    if (!containerRef.current || selectedCells.size === 0) {
+      setHighlights([])
+      return
+    }
 
-      const isActive = cell.id === activeCell
+    const container = containerRef.current
+    const containerRect = container.getBoundingClientRect()
+    const result: typeof highlights = []
 
-      highlights.push(
-        <div
-          key={cell.id}
-          style={{
-            position: 'absolute',
-            // Position will be calculated via CSS Grid overlay approach
-            // For now, use data-driven positioning
-            gridColumn: `${colIdx + 1} / span ${cell.colspan ?? 1}`,
-            gridRow: `${rowIdx + 1} / span ${cell.rowspan ?? 1}`,
-            background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
-            border: isActive ? '2px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.3)',
-            pointerEvents: 'none',
-            boxSizing: 'border-box',
-            borderRadius: 1,
-          }}
-        />,
-      )
+    selectedCells.forEach((cellId) => {
+      const cellEl = container.querySelector(`[data-cell-id="${cellId}"]`)
+      if (!cellEl) return
+      const cellRect = cellEl.getBoundingClientRect()
+      result.push({
+        id: cellId,
+        top: cellRect.top - containerRect.top,
+        left: cellRect.left - containerRect.left,
+        width: cellRect.width,
+        height: cellRect.height,
+        isActive: cellId === activeCell,
+      })
     })
-  })
+
+    setHighlights(result)
+  }, [selectedCells, activeCell, containerRef])
 
   if (highlights.length === 0) return null
 
-  // Render overlay grid that matches the table layout
-  const allRows = el.rows
-  const gridRows = allRows.map((r) => `${r.height}mm`).join(' ')
-
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'grid',
-        gridTemplateColumns: gridTemplateColumns(el),
-        gridTemplateRows: gridRows,
-        pointerEvents: 'none',
-        zIndex: 50,
-        // Account for outer border
-        border: `${el.borderWidth ?? 0.3}mm solid transparent`,
-        boxSizing: 'border-box',
-      }}
-    >
-      {highlights}
-    </div>
+    <>
+      {highlights.map((h) => (
+        <div
+          key={h.id}
+          style={{
+            position: 'absolute',
+            top: h.top,
+            left: h.left,
+            width: h.width,
+            height: h.height,
+            background: h.isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
+            border: h.isActive ? '2px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.3)',
+            pointerEvents: 'none',
+            boxSizing: 'border-box',
+            borderRadius: 1,
+            zIndex: 50,
+          }}
+        />
+      ))}
+    </>
   )
 }
 
@@ -545,5 +547,57 @@ function ResizeHandles({
       {colHandles}
       {rowHandles}
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Portaled CellPopover — positions popover relative to active cell via portal
+// ---------------------------------------------------------------------------
+
+function PortaledCellPopover({
+  element,
+  cellId,
+  containerRef,
+  onChange,
+  onClose,
+}: {
+  element: FormTableElement
+  cellId: string
+  containerRef: React.RefObject<HTMLDivElement | null>
+  onChange: (patch: Partial<FormTableElement>) => void
+  onClose: () => void
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const cellEl = containerRef.current.querySelector(`[data-cell-id="${cellId}"]`)
+    if (!cellEl) return
+    const rect = cellEl.getBoundingClientRect()
+
+    // Position to the right of the cell, or left if no room
+    const popoverWidth = 240
+    let left = rect.right + 8
+    if (left + popoverWidth > window.innerWidth) {
+      left = rect.left - popoverWidth - 8
+    }
+    // Clamp vertical
+    const top = Math.max(8, Math.min(rect.top, window.innerHeight - 350))
+
+    setPos({ top, left: Math.max(8, left) })
+  }, [cellId, containerRef])
+
+  if (!pos) return null
+
+  return createPortal(
+    <div style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 99998 }}>
+      <CellPopover
+        element={element}
+        cellId={cellId}
+        onChange={onChange}
+        onClose={onClose}
+      />
+    </div>,
+    document.body,
   )
 }

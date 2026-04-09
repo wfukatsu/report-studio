@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useRef, useState, useEffect } from 'react'
 import type { FormTableElement } from '@/types'
 import { canMerge, mergeCells, splitCell } from './tableMerge'
 import { addRow, addColumn } from './tableOperations'
@@ -34,11 +34,23 @@ export const TableToolbar = memo(function TableToolbar({
     return false
   }, [el, activeCell])
 
+  // Determine if toolbar should appear below instead of above
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  const [showBelow, setShowBelow] = useState(false)
+
+  useEffect(() => {
+    if (!toolbarRef.current) return
+    const rect = toolbarRef.current.getBoundingClientRect()
+    // If toolbar is above the viewport top, flip to below
+    setShowBelow(rect.top < 0)
+  })
+
   return (
     <div
+      ref={toolbarRef}
       style={{
         position: 'absolute',
-        top: -32,
+        ...(showBelow ? { bottom: -32 } : { top: -32 }),
         left: 0,
         display: 'flex',
         gap: 4,
