@@ -488,7 +488,7 @@ export interface RepeatingListElement extends ElementBase {
 // FormTableElement — 帳票専用テーブル (固定レイアウト + データバインド両対応)
 // ---------------------------------------------------------------------------
 
-export type FormTableCellType = 'label' | 'input' | 'dataField'
+export type FormTableCellType = 'label' | 'input' | 'dataField' | 'checkbox' | 'eraSelect'
 
 export interface FormTableCell {
   /** UUID — 変更不可。行複製時は新 UUID を生成する */
@@ -507,6 +507,20 @@ export interface FormTableCell {
    * 優先順位（高→低）: cell.style > column.style > row-role style (headerStyle/bodyStyle)
    */
   style?: TextStyle
+  /** type='checkbox' で使用: チェック状態 */
+  checked?: boolean
+  /** type='checkbox' で使用: チェックマーク記号 */
+  checkmark?: CheckmarkStyle
+  /** type='checkbox' で使用: データバインド（resolveField !== '' なら checked） */
+  checkboxDataSource?: string
+  /** type='eraSelect' で使用: 選択中の元号データソース */
+  eraDataSource?: string
+  /** type='eraSelect' で使用: レイアウト */
+  eraLayout?: EraSelectLayout
+  /** セル内フリガナ（type='input' で使用） */
+  furiganaEnabled?: boolean
+  /** フリガナのデータソース */
+  furiganaDataSource?: string
 }
 
 export type FormTableRowRole = 'header' | 'body' | 'footer'

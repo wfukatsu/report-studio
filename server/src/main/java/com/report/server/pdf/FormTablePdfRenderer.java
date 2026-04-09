@@ -303,6 +303,34 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             }
             return "";
         }
+        if ("checkbox".equals(cellType)) {
+            boolean checked = cell.path("checked").asBoolean(false);
+            // Data binding: if checkboxDataSource resolves to non-empty, checked
+            String ds = textOf(cell, "checkboxDataSource", "");
+            if (!ds.isEmpty() && formData != null) {
+                JsonNode val = formData.get(ds);
+                checked = val != null && !val.isNull() && !val.asText("").isEmpty();
+            }
+            String mark = textOf(cell, "checkmark", "✓");
+            String label = textOf(cell, "text", "");
+            return checked ? (mark + (label.isEmpty() ? "" : " " + label))
+                           : (label.isEmpty() ? "" : "□ " + label);
+        }
+        if ("eraSelect".equals(cellType)) {
+            String ds = textOf(cell, "eraDataSource", "");
+            String selected = "";
+            if (!ds.isEmpty() && formData != null) {
+                JsonNode val = formData.get(ds);
+                if (val != null) selected = val.asText("");
+            }
+            String[] eras = {"明", "大", "昭", "平", "令"};
+            StringBuilder sb = new StringBuilder();
+            for (String era : eras) {
+                if (sb.length() > 0) sb.append(" ");
+                sb.append(era.equals(selected) ? "●" : "○").append(era);
+            }
+            return sb.toString();
+        }
         // label or input: use text content
         return textOf(cell, "text", "");
     }
