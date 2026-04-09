@@ -216,21 +216,33 @@ export function ElementPalette() {
     let posX: number
     let posY: number
 
+    // Element-specific size adjustments
+    let size = el.size
+    if (el.type === 'divider') {
+      // Fit divider width to content area (page width minus margins)
+      const contentWidth = pageWidth - margins.left - margins.right
+      size = { ...size, width: contentWidth }
+    }
+
     if (el.type === 'pageNumber') {
       // Page number: bottom center (footer area)
-      posX = (pageWidth - el.size.width) / 2
-      posY = pageHeight - margins.bottom - el.size.height
+      posX = (pageWidth - size.width) / 2
+      posY = pageHeight - margins.bottom - size.height
     } else if (el.type === 'currentDate') {
       // Current date: top right (header area)
-      posX = pageWidth - margins.right - el.size.width
+      posX = pageWidth - margins.right - size.width
       posY = margins.top
+    } else if (el.type === 'divider') {
+      // Divider: left margin, 1/3 down
+      posX = margins.left
+      posY = Math.max(5, (pageHeight / 3) + offset)
     } else {
       // Default: near center of page
       posX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
       posY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top
     }
 
-    const positioned = { ...el, position: { x: posX, y: posY } }
+    const positioned = { ...el, position: { x: posX, y: posY }, size }
     addElement(activePageId, positioned)
   }
 
