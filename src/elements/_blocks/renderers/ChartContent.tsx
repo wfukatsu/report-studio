@@ -24,7 +24,7 @@ export const ChartContent = memo(function ChartContent({
   data,
   xAxisKey = 'name',
   yAxisKeys = ['value'],
-  colors = DEFAULT_CHART_COLORS as unknown as string[],
+  colors = [...DEFAULT_CHART_COLORS],
   showLegend = true,
   showGrid = true,
 }: ChartContentProps) {

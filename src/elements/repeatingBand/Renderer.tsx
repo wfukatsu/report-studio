@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import type { RepeatingBandElement } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
@@ -99,56 +99,59 @@ function RepeatingBandLiveRenderer({
   const totalWidth = el.fields.reduce((s, f) => s + f.width, 0)
   const colPcts = el.fields.map((f) => `${(f.width / totalWidth) * 100}%`)
 
-  // Apply maxItems limit
-  const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
+  // Apply maxItems, sort, groupBy — memoized to avoid recomputation on every render
+  const { flatRows, sorted } = useMemo(() => {
+    const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
 
-  // Apply sort with smart numeric comparison
-  const sortKey = el.sortBy
-  const sorted = sortKey
-    ? [...limited].sort((a, b) => {
-        const va = resolveField(a, sortKey)
-        const vb = resolveField(b, sortKey)
-        const numA = Number(va)
-        const numB = Number(vb)
-        // Both valid numbers → numeric sort; otherwise string sort
-        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
-          ? numA - numB
-          : String(va ?? '').localeCompare(String(vb ?? ''))
-        return el.sortOrder === 'desc' ? -cmp : cmp
-      })
-    : limited
+    // Sort with smart numeric comparison
+    const sortKey = el.sortBy
+    const sortedRecords = sortKey
+      ? [...limited].sort((a, b) => {
+          const va = resolveField(a, sortKey)
+          const vb = resolveField(b, sortKey)
+          const numA = Number(va)
+          const numB = Number(vb)
+          const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+            ? numA - numB
+            : String(va ?? '').localeCompare(String(vb ?? ''))
+          return el.sortOrder === 'desc' ? -cmp : cmp
+        })
+      : limited
 
-  // Apply groupBy — group records by field value
-  const groupByKey = el.groupBy
-  const groups = groupByKey
-    ? (() => {
-        const map = new Map<string, Record<string, unknown>[]>()
-        for (const record of sorted) {
-          const key = String(resolveField(record, groupByKey) ?? '')
-          const group = map.get(key) ?? []
-          group.push(record)
-          map.set(key, group)
-        }
-        return Array.from(map, ([label, recs]) => ({ label, records: recs }))
-      })()
-    : [{ label: '', records: sorted }]
+    // GroupBy
+    const groupByKey = el.groupBy
+    const groups = groupByKey
+      ? (() => {
+          const map = new Map<string, Record<string, unknown>[]>()
+          for (const record of sortedRecords) {
+            const key = String(resolveField(record, groupByKey) ?? '')
+            const group = map.get(key) ?? []
+            group.push(record)
+            map.set(key, group)
+          }
+          return Array.from(map, ([label, recs]) => ({ label, records: recs }))
+        })()
+      : [{ label: '', records: sortedRecords }]
+
+    // Flatten grouped rows
+    const rows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
+    let globalRowIdx = 0
+    for (const group of groups) {
+      if (groupByKey && group.label) {
+        rows.push({ type: 'group-header', groupLabel: group.label, rowIdx: globalRowIdx })
+      }
+      for (const record of group.records) {
+        rows.push({ type: 'data', record, rowIdx: globalRowIdx })
+        globalRowIdx++
+      }
+    }
+
+    return { flatRows: rows, sorted: sortedRecords }
+  }, [records, el.maxItems, el.sortBy, el.sortOrder, el.groupBy])
 
   const hasFooter = el.showFooter && el.totals.length > 0
   const HEADER_H = el.showHeader ? el.itemHeight : 0
   const FOOTER_H = hasFooter ? el.itemHeight : 0
-
-  // Flatten grouped rows for rendering
-  const flatRows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
-  let globalRowIdx = 0
-  for (const group of groups) {
-    if (groupByKey && group.label) {
-      flatRows.push({ type: 'group-header', groupLabel: group.label, rowIdx: globalRowIdx })
-    }
-    for (const record of group.records) {
-      flatRows.push({ type: 'data', record, rowIdx: globalRowIdx })
-      globalRowIdx++
-    }
-  }
 
   return (
     <div style={{

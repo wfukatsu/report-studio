@@ -27,6 +27,9 @@ export function useDataResolver(
   options: DataResolverOptions = {},
 ): DataResolverResult {
   const { format, fallbackText } = options
+  // Serialize format to a stable string key so useMemo doesn't re-run
+  // when the parent passes a new object reference with the same content.
+  const formatKey = format ? JSON.stringify(format) : ''
 
   return useMemo(() => {
     if (!fieldKey) {
@@ -48,5 +51,6 @@ export function useDataResolver(
         error: e instanceof Error ? e : new Error(String(e)),
       }
     }
-  }, [fieldKey, data, format, fallbackText])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldKey, data, formatKey, fallbackText])
 }
