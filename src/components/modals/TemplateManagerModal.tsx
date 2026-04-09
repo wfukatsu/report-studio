@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback } from 'react'
-import { X, Loader2, Trash2, Pencil, FolderOpen, AlertCircle } from 'lucide-react'
+import { X, Loader2, Trash2, Pencil, FolderOpen, AlertCircle, Eye, EyeOff, RotateCcw } from 'lucide-react'
+import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { listReports, getReport, saveReport, deleteReport } from '@/api/reportApi'
 import type { TemplateListItem } from '@/api/reportApi'
@@ -21,9 +22,14 @@ interface Props {
 }
 
 export function TemplateManagerModal({ open, onClose }: Props) {
+  const { prefs, toggleHidden, isHidden, setOverride, clearOverride, getOverride } = useBuiltinPrefs()
   const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
+
+  // Builtin edit states
+  const [editingBuiltinCatId, setEditingBuiltinCatId] = useState<string | null>(null)
+  const [editingBuiltinTagsId, setEditingBuiltinTagsId] = useState<string | null>(null)
 
   // Inline edit states
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -36,7 +42,12 @@ export function TemplateManagerModal({ open, onClose }: Props) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
 
-  const categoryOptions = collectCategories([...BUILTIN_TEMPLATES, ...backendTemplates])
+  // Include override categories in the options
+  const overrideCategories = Object.values(prefs.overrides).map((o) => o.category).filter(Boolean) as string[]
+  const categoryOptions = [...new Set([
+    ...collectCategories([...BUILTIN_TEMPLATES, ...backendTemplates]),
+    ...overrideCategories,
+  ])]
 
   const handleFetch = useCallback(async () => {
     setLoadState('loading')
@@ -132,17 +143,87 @@ export function TemplateManagerModal({ open, onClose }: Props) {
               ビルトインテンプレート
             </p>
             <div className="border rounded divide-y">
-              {BUILTIN_TEMPLATES.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 px-3 py-2 text-xs">
-                  <span className="font-medium flex-shrink-0 w-40 truncate">{t.name}</span>
-                  <span className="text-muted-foreground w-20 truncate">{t.category ?? '—'}</span>
-                  <div className="flex-1 flex gap-1 flex-wrap">
-                    {(t.tags ?? []).map((tag) => (
-                      <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px]">{tag}</span>
-                    ))}
+              {BUILTIN_TEMPLATES.map((t) => {
+                const override = getOverride(t.id)
+                const effectiveCategory = override?.category ?? t.category
+                const effectiveTags = override?.tags ?? t.tags ?? []
+                const hidden = isHidden(t.id)
+
+                return (
+                  <div key={t.id} className={`flex items-center gap-2 px-3 py-2 text-xs group ${hidden ? 'opacity-40' : ''}`}>
+                    {/* Name (read-only for builtins) */}
+                    <span className="font-medium flex-shrink-0 w-36 truncate">{t.name}</span>
+
+                    {/* Category (editable) */}
+                    {editingBuiltinCatId === t.id ? (
+                      <div className="w-28">
+                        <CategoryCombobox
+                          value={effectiveCategory}
+                          options={categoryOptions}
+                          onChange={(v) => {
+                            setOverride(t.id, { category: v })
+                            setEditingBuiltinCatId(null)
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        className="text-muted-foreground w-28 truncate cursor-pointer hover:text-primary"
+                        onClick={() => setEditingBuiltinCatId(t.id)}
+                        title="クリックしてカテゴリを変更"
+                      >
+                        {effectiveCategory ?? '—'}
+                      </span>
+                    )}
+
+                    {/* Tags (editable) */}
+                    {editingBuiltinTagsId === t.id ? (
+                      <div className="flex-1">
+                        <TagInput
+                          value={effectiveTags}
+                          onChange={(tags) => {
+                            setOverride(t.id, { tags })
+                            setEditingBuiltinTagsId(null)
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex-1 flex gap-1 flex-wrap cursor-pointer min-h-[20px]"
+                        onClick={() => setEditingBuiltinTagsId(t.id)}
+                        title="クリックしてタグを編集"
+                      >
+                        {effectiveTags.length > 0
+                          ? effectiveTags.map((tag) => (
+                              <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px]">{tag}</span>
+                            ))
+                          : <span className="text-muted-foreground">—</span>
+                        }
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {override && (
+                        <button
+                          onClick={() => clearOverride(t.id)}
+                          title="カスタマイズをリセット"
+                          className="p-1 rounded hover:bg-accent"
+                        >
+                          <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => toggleHidden(t.id)}
+                        title={hidden ? '表示する' : '非表示にする'}
+                        className="p-1 rounded hover:bg-accent"
+                      >
+                        {hidden ? <EyeOff className="w-3 h-3 text-muted-foreground" /> : <Eye className="w-3 h-3" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
