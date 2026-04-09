@@ -439,7 +439,14 @@ export const createLayoutSlice: StateCreator<
           const idx = page.sections.findIndex((sec) => sec.sectionType === 'header')
           if (idx !== -1) {
             page.sections[idx] = cloneSectionForPage(section as Section)
+          } else {
+            page.sections.unshift(cloneSectionForPage(section as Section))
           }
+        })
+      } else {
+        // HF-04: 全ページからヘッダーセクションを削除
+        s.definition.pages.forEach((page) => {
+          page.sections = page.sections.filter((sec) => sec.sectionType !== 'header')
         })
       }
     })
@@ -455,7 +462,14 @@ export const createLayoutSlice: StateCreator<
           const idx = page.sections.findIndex((sec) => sec.sectionType === 'footer')
           if (idx !== -1) {
             page.sections[idx] = cloneSectionForPage(section as Section)
+          } else {
+            page.sections.push(cloneSectionForPage(section as Section))
           }
+        })
+      } else {
+        // HF-04: 全ページからフッターセクションを削除
+        s.definition.pages.forEach((page) => {
+          page.sections = page.sections.filter((sec) => sec.sectionType !== 'footer')
         })
       }
     })
