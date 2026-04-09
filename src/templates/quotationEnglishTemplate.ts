@@ -274,6 +274,8 @@ export const QUOTATION_ENGLISH_TEMPLATE: Template = {
   id: 'quotation-english',
   name: 'Quotation (English)',
   description: 'English-layout quotation template. Invoice-compatible with tax breakdown (10%/8%).',
+  category: '請求・見積',
+  tags: ['A4', '英語'],
   pages: [
     {
       id: uuidv4(),

@@ -180,6 +180,8 @@ const MetadataSchema = z.object({
   effectiveFrom: z.string().optional(),
   effectiveTo: z.string().optional(),
   description: z.string().optional(),
+  category: z.string().max(50).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
 }).passthrough()
 
 // ---------------------------------------------------------------------------

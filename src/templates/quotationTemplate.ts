@@ -486,6 +486,8 @@ export const QUOTATION_TEMPLATE: Template = {
   id: 'quotation-basic-invoice',
   name: '見積書（インボイス対応）',
   description: '標準的な日本語見積書。インボイス制度（適格請求書）対応。消費税10%/8%内訳・品目繰り返し行・備考欄付き。',
+  category: '請求・見積',
+  tags: ['A4'],
   pages: [
     {
       id: uuidv4(),

@@ -782,6 +782,8 @@ export const FUYOU_KOJO_TEMPLATE: Template = {
   id: 'fuyou-kojo-r7',
   name: '扶養控除等申告書（令和7年分）',
   description: '令和7年分 給与所得者の扶養控除等（異動）申告書（国税庁様式）',
+  category: '税務',
+  tags: ['A4'],
   pages: [
     {
       id: uuidv4(),
