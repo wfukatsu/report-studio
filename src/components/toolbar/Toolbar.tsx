@@ -86,6 +86,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)
   const toggleLivePreview = useReportStore((s) => s.toggleLivePreview)
 
+  const pages = useReportStore(useShallow((s) => s.definition.pages))
   const activePageId = useReportStore(selectActivePageId)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
   const alignElements = useReportStore((s) => s.alignElements)
@@ -240,7 +241,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setExportError(null)
     try {
       const el = canvasRefs[0]?.current
-      if (el) await exportPageToPng(el, `${reportName}.png`)
+      if (el) {
+        const pageIdx = activePage ? pages.findIndex((p) => p.id === activePage.id) + 1 : 1
+        await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length)
+      }
     } catch (_err) {
       const msg = 'エクスポートに失敗しました。もう一度お試しください。'
       setExportError(msg)

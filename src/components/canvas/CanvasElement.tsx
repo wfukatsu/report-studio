@@ -175,6 +175,7 @@ export const CanvasElement = memo(function CanvasElement({
       ref={setNodeRef}
       data-canvas-element="true"
       data-element-id={element.id}
+      data-element-type={element.type}
       style={{
         position: 'absolute',
         left: xPx,

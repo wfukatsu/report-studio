@@ -202,6 +202,7 @@ export function ElementPalette() {
   const activePageId = useReportStore(selectActivePageId)
   const activePage = useReportStore(selectActivePage)
   const addElement = useReportStore((s) => s.addElement)
+  const margins = useReportStore((s) => s.definition.pageSettings.margins)
 
   const handleAdd = (createElement: () => ReportElement) => {
     if (!activePageId) return
@@ -209,13 +210,27 @@ export function ElementPalette() {
     const offset = (placementOffset % 8) * 5 - 17.5 // -17.5 to +17.5 range
     placementOffset++
 
-    // Place near center of page, accounting for element size
     const pageWidth = activePage?.width ?? 210
     const pageHeight = activePage?.height ?? 297
-    const centerX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
-    const centerY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top (not dead center)
 
-    const positioned = { ...el, position: { x: centerX, y: centerY } }
+    let posX: number
+    let posY: number
+
+    if (el.type === 'pageNumber') {
+      // Page number: bottom center (footer area)
+      posX = (pageWidth - el.size.width) / 2
+      posY = pageHeight - margins.bottom - el.size.height
+    } else if (el.type === 'currentDate') {
+      // Current date: top right (header area)
+      posX = pageWidth - margins.right - el.size.width
+      posY = margins.top
+    } else {
+      // Default: near center of page
+      posX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
+      posY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top
+    }
+
+    const positioned = { ...el, position: { x: posX, y: posY } }
     addElement(activePageId, positioned)
   }
 
