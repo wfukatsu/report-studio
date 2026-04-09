@@ -112,6 +112,23 @@ _blocks/
 └── constants.ts       MM_TO_PX, DEFAULT_FONT_SIZE 等
 ```
 
+### FormTable インタラクティブ編集 (`src/elements/formTable/`)
+
+テーブル要素はキャンバス上で Excel 風の直接操作をサポート:
+
+- **テーブル編集モード**: ダブルクリックで進入、Esc/外クリックで解除
+- **セル選択**: クリック/Shift+クリック/矢印キー/Tab で選択・移動
+- **インライン編集**: セルダブルクリック/Enter でポップオーバー表示（タイプ・テキスト・スタイル）
+- **行列操作**: 右クリックメニューで挿入/削除/移動
+- **セル結合**: `FormTableCell.colspan`/`rowspan`/`mergedInto` で CSS Grid span を実現
+- **リサイズ**: 列/行境界ドラッグで幅・高さ変更（最小 3mm）
+- **コピペ**: Ctrl+C/V/X（内部 + Excel TSV 対応）
+- **Undo**: テーブル専用 undo stack（モード離脱時に store-level で 1 エントリに統合）
+
+Renderer は CSS Grid ベース（`grid-template-columns`/`grid-template-rows`）。
+
+共有ロジックは `tableOperations.ts`（PropertiesPanel と Editor で共用）。
+
 ### 廃止要素
 
 - `label` → `text` に統合済み（ElementRenderer で自動変換）

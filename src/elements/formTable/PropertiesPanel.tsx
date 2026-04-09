@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type {
   FormTableElement,
   FormTableColumn,
@@ -7,109 +6,25 @@ import type {
   FormTableCellType,
 } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import {
+  addColumn,
+  removeColumn,
+  updateColumn,
+  addRow,
+  removeRow,
+  updateCell,
+  updateRow,
+  CELL_TYPE_OPTIONS,
+  ROW_ROLE_OPTIONS,
+  ALIGN_OPTIONS,
+} from './tableOperations'
 
 interface Props {
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }
 
-// ---------------------------------------------------------------------------
-// Helpers — column/row sync (column list is the authority)
-// ---------------------------------------------------------------------------
-
-/** Add a new column and append a matching cell to every existing row. */
-function addColumn(el: FormTableElement): Partial<FormTableElement> {
-  const newCol: FormTableColumn = { id: uuidv4(), width: 20, align: 'left' }
-  const newCell = (): FormTableCell => ({ id: uuidv4(), type: 'input', placeholder: '' })
-  return {
-    columns: [...el.columns, newCol],
-    rows: el.rows.map((r) => ({ ...r, cells: [...r.cells, newCell()] })),
-  }
-}
-
-/** Remove a column by index and remove the matching cell from every row. */
-function removeColumn(el: FormTableElement, colIdx: number): Partial<FormTableElement> {
-  return {
-    columns: el.columns.filter((_, i) => i !== colIdx),
-    rows: el.rows.map((r) => ({ ...r, cells: r.cells.filter((_, i) => i !== colIdx) })),
-  }
-}
-
-/** Patch a single column; replace the columns array entirely (immutable). */
-function updateColumn(
-  el: FormTableElement,
-  colIdx: number,
-  patch: Partial<FormTableColumn>,
-): Partial<FormTableElement> {
-  return {
-    columns: el.columns.map((c, i): FormTableColumn => (i === colIdx ? { ...c, ...patch } : c)),
-  }
-}
-
-/** Add a new body row with cells matching the current column count. */
-function addRow(el: FormTableElement): Partial<FormTableElement> {
-  const newRow: FormTableRow = {
-    id: uuidv4(),
-    role: 'body',
-    height: 8,
-    cells: el.columns.map(() => ({ id: uuidv4(), type: 'input' as const, placeholder: '' })),
-  }
-  return { rows: [...el.rows, newRow] }
-}
-
-/** Remove a row by index. */
-function removeRow(el: FormTableElement, rowIdx: number): Partial<FormTableElement> {
-  return { rows: el.rows.filter((_, i) => i !== rowIdx) }
-}
-
-/** Patch a cell within a row. */
-function updateCell(
-  el: FormTableElement,
-  rowIdx: number,
-  colIdx: number,
-  patch: Partial<FormTableCell>,
-): Partial<FormTableElement> {
-  return {
-    rows: el.rows.map((r, ri): FormTableRow =>
-      ri === rowIdx
-        ? { ...r, cells: r.cells.map((c, ci): FormTableCell => (ci === colIdx ? { ...c, ...patch } : c)) }
-        : r,
-    ),
-  }
-}
-
-/** Patch a row's non-cell fields. */
-function updateRow(
-  el: FormTableElement,
-  rowIdx: number,
-  patch: Omit<Partial<FormTableRow>, 'cells'>,
-): Partial<FormTableElement> {
-  return {
-    rows: el.rows.map((r, i): FormTableRow => (i === rowIdx ? { ...r, ...patch } : r)),
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Cell type label helper
-// ---------------------------------------------------------------------------
-
-const CELL_TYPE_OPTIONS = [
-  { value: 'label', label: 'ラベル（固定テキスト）' },
-  { value: 'input', label: '記入欄（手入力）' },
-  { value: 'dataField', label: 'データフィールド' },
-]
-
-const ROW_ROLE_OPTIONS = [
-  { value: 'header', label: 'ヘッダー' },
-  { value: 'body', label: 'ボディ（繰り返し）' },
-  { value: 'footer', label: 'フッター' },
-]
-
-const ALIGN_OPTIONS = [
-  { value: 'left', label: '左' },
-  { value: 'center', label: '中央' },
-  { value: 'right', label: '右' },
-]
+// Constants imported from tableOperations
 
 // ---------------------------------------------------------------------------
 // Column editor

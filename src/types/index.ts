@@ -521,6 +521,12 @@ export interface FormTableCell {
    * 優先順位（高→低）: cell.style > column.style > row-role style (headerStyle/bodyStyle)
    */
   style?: TextStyle
+  /** セル結合 — 横方向に結合するセル数（デフォルト 1） */
+  colspan?: number
+  /** セル結合 — 縦方向に結合するセル数（デフォルト 1） */
+  rowspan?: number
+  /** 結合先セルの id。設定されたセルは描画時にスキップされる */
+  mergedInto?: string
 }
 
 export type FormTableRowRole = 'header' | 'body' | 'footer'

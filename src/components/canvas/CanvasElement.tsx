@@ -5,7 +5,8 @@ import { ElementRenderer } from './ElementRenderer'
 import { ElementErrorBoundary } from './ElementErrorBoundary'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
-import type { ReportElement } from '@/types'
+import type { ReportElement, FormTableElement } from '@/types'
+import { FormTableEditor } from '@/elements/formTable/FormTableEditor'
 
 import type { ContextMenuState } from './ContextMenu'
 
@@ -33,7 +34,11 @@ export const CanvasElement = memo(function CanvasElement({
   readonly = false,
 }: Props) {
   const removeElement = useReportStore((s) => s.removeElement)
+  const updateElement = useReportStore((s) => s.updateElement)
   const activePageId = useReportStore(selectActivePageId)
+
+  // Table edit mode state
+  const [tableEditMode, setTableEditMode] = useState(false)
 
   const handleDeleteElement = useCallback(
     (id: string) => {
@@ -44,8 +49,36 @@ export const CanvasElement = memo(function CanvasElement({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
-    disabled: element.locked || readonly,
+    disabled: element.locked || readonly || tableEditMode,
   })
+
+  // Exit table edit mode when element is deselected
+  useEffect(() => {
+    if (!isSelected && tableEditMode) setTableEditMode(false)
+  }, [isSelected, tableEditMode])
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (readonly || element.locked) return
+      if (element.type === 'formTable') {
+        e.stopPropagation()
+        e.preventDefault()
+        setTableEditMode(true)
+      }
+    },
+    [readonly, element.locked, element.type],
+  )
+
+  const handleTableChange = useCallback(
+    (patch: Partial<FormTableElement>) => {
+      if (activePageId) updateElement(activePageId, element.id, patch)
+    },
+    [activePageId, element.id, updateElement],
+  )
+
+  const handleExitTableEdit = useCallback(() => {
+    setTableEditMode(false)
+  }, [])
 
   // UI-03: Track Ctrl/Meta key for locked element click-through
   const [modifierHeld, setModifierHeld] = useState(false)
@@ -187,6 +220,7 @@ export const CanvasElement = memo(function CanvasElement({
         e.stopPropagation()
         if (!readonly) onSelect(element.id, e.metaKey || e.ctrlKey || e.shiftKey)
       }}
+      onDoubleClick={handleDoubleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -215,7 +249,15 @@ export const CanvasElement = memo(function CanvasElement({
       aria-pressed={isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
-        <ElementRenderer element={element} data={data} />
+        {tableEditMode && element.type === 'formTable' ? (
+          <FormTableEditor
+            element={element as FormTableElement}
+            onChange={handleTableChange}
+            onExitEditMode={handleExitTableEdit}
+          />
+        ) : (
+          <ElementRenderer element={element} data={data} />
+        )}
       </ElementErrorBoundary>
 
       {isSelected && !readonly && (
