@@ -93,6 +93,7 @@ export interface StoreState {
   showGrid: boolean
   snapToGrid: boolean
   showTrimMarks: boolean
+  showMarginGuide: boolean
   gridSize: number
   clipboard: ReportElement[] | null
   headerEditMode: boolean
@@ -193,6 +194,7 @@ export interface StoreState {
   toggleGrid: () => void
   toggleSnapToGrid: () => void
   toggleTrimMarks: () => void
+  toggleMarginGuide: () => void
   toggleHeaderEditMode: () => void
   toggleLivePreview: () => void
   setHeaderEditMode: (enabled: boolean) => void

@@ -58,6 +58,8 @@ export function ReportCanvas({
   const zoom = useReportStore((s) => readonly ? s.previewZoom : s.editorZoom)
   const showGrid = useReportStore((s) => s.showGrid)
   const showTrimMarks = useReportStore((s) => s.showTrimMarks)
+  const showMarginGuide = useReportStore((s) => s.showMarginGuide)
+  const margins = useReportStore((s) => s.definition.pageSettings.margins)
   const snapToGrid = useReportStore((s) => s.snapToGrid)
   const gridSize = useReportStore((s) => s.gridSize)
   const headerEditMode = useReportStore((s) => s.headerEditMode)
@@ -288,6 +290,18 @@ export function ReportCanvas({
             {gridLinePxV.map((y) => (
               <line key={`v${y}`} x1={0} y1={y} x2={canvasWidthPx} y2={y} stroke="#e5e7eb" strokeWidth={0.5} />
             ))}
+          </svg>
+        )}
+        {/* Margin guide overlay */}
+        {showMarginGuide && margins && (margins.top > 0 || margins.right > 0 || margins.bottom > 0 || margins.left > 0) && (
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}
+          >
+            <path
+              d={`M0,0 H${canvasWidthPx} V${canvasHeightPx} H0 Z M${mmToPx(margins.left)},${mmToPx(margins.top)} V${canvasHeightPx - mmToPx(margins.bottom)} H${canvasWidthPx - mmToPx(margins.right)} V${mmToPx(margins.top)} Z`}
+              fill="rgba(0,0,0,0.06)"
+              fillRule="evenodd"
+            />
           </svg>
         )}
         {page.sections.map((section) => (

@@ -14,6 +14,7 @@ export type UISlice = Pick<StoreState,
   | 'showGrid'
   | 'snapToGrid'
   | 'showTrimMarks'
+  | 'showMarginGuide'
   | 'gridSize'
   | 'clipboard'
   | 'headerEditMode'
@@ -31,6 +32,7 @@ export type UISlice = Pick<StoreState,
   | 'toggleGrid'
   | 'toggleSnapToGrid'
   | 'toggleTrimMarks'
+  | 'toggleMarginGuide'
   | 'toggleHeaderEditMode'
   | 'toggleLivePreview'
   | 'setHeaderEditMode'
@@ -56,6 +58,7 @@ export const createUISlice: StateCreator<
   showGrid: false,
   snapToGrid: false,
   showTrimMarks: false,
+  showMarginGuide: true,
   gridSize: 5,
   clipboard: null as ReportElement[] | null,
   headerEditMode: false,
@@ -87,6 +90,7 @@ export const createUISlice: StateCreator<
   toggleSnapToGrid: () => set((s) => { s.snapToGrid = !s.snapToGrid }),
 
   toggleTrimMarks: () => set((s) => { s.showTrimMarks = !s.showTrimMarks }),
+  toggleMarginGuide: () => set((s) => { s.showMarginGuide = !s.showMarginGuide }),
 
   toggleHeaderEditMode: () => set((s) => { s.headerEditMode = !s.headerEditMode }),
 
