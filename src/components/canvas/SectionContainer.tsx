@@ -26,11 +26,13 @@ const MIN_HEIGHT_MM: Record<string, number> = {
 }
 
 const SECTION_COLORS: Record<string, string> = {
-  header: 'rgba(59, 130, 246, 0.08)',  // blue tint
-  footer: 'rgba(107, 114, 128, 0.08)', // gray tint
+  header: 'transparent',
+  footer: 'transparent',
   body: 'transparent',
   custom: 'transparent',
 }
+
+const SECTION_BORDER = '1px dashed rgba(96, 165, 250, 0.45)' // light blue dotted
 
 const SECTION_LABELS: Record<string, string> = {
   header: 'ヘッダー',
@@ -116,8 +118,9 @@ export const SectionContainer = memo(function SectionContainer({
         height: heightPx,
         backgroundColor: SECTION_COLORS[section.sectionType] ?? 'transparent',
         boxSizing: 'border-box',
-        borderBottom: section.sectionType !== 'body' ? '1px dashed #d1d5db' : undefined,
-        borderTop: section.sectionType === 'footer' ? '1px dashed #d1d5db' : undefined,
+        ...(section.sectionType === 'header' ? { border: SECTION_BORDER, borderTop: 'none' } :
+            section.sectionType === 'footer' ? { border: SECTION_BORDER, borderBottom: 'none' } :
+            {}),
       }}
     >
       {/* Section type label */}
@@ -128,7 +131,7 @@ export const SectionContainer = memo(function SectionContainer({
             top: 2,
             left: 4,
             fontSize: '10px',
-            color: '#6b7280',
+            color: 'rgba(96, 165, 250, 0.7)',
             userSelect: 'none',
             pointerEvents: 'none',
             zIndex: 1000,
@@ -147,7 +150,7 @@ export const SectionContainer = memo(function SectionContainer({
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '11px',
-            color: '#9ca3af',
+            color: 'rgba(96, 165, 250, 0.5)',
             userSelect: 'none',
             pointerEvents: 'none',
             zIndex: 999,
