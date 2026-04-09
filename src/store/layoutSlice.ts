@@ -103,6 +103,7 @@ export type LayoutSlice = Pick<StoreState,
   | 'selection'
   | 'testData'
   | 'setReportName'
+  | 'updateMetadata'
   | 'updateSettings'
   | 'setDataSource'
   | 'loadReport'
@@ -168,6 +169,10 @@ export const createLayoutSlice: StateCreator<
 
   setReportName: (name) => set((s) => {
     s.definition.metadata.documentName = name
+  }),
+
+  updateMetadata: (patch) => set((s) => {
+    Object.assign(s.definition.metadata, patch)
   }),
 
   updateSettings: (settings) => set((s) => {

@@ -739,6 +739,8 @@ export interface Metadata {
   effectiveFrom?: string
   effectiveTo?: string
   description?: string
+  category?: string
+  tags?: string[]
 }
 
 export interface DataSourceDefinition {
@@ -832,6 +834,8 @@ export interface Template {
   name: string
   description?: string
   thumbnail?: string
+  category?: string
+  tags?: string[]
   pages: Page[]
   settings: ReportSettings
 }

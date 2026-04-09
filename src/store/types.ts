@@ -119,6 +119,7 @@ export interface StoreState {
 
   // ── Layout actions ───────────────────────────────────────────────────────
   setReportName: (name: string) => void
+  updateMetadata: (patch: Partial<ReportDefinition['metadata']>) => void
   updateSettings: (settings: Partial<ReportDefinition['pageSettings']>) => void
   setDataSource: (dataSource: DataSourceDefinition | null) => void
   loadReport: (report: ReportDefinition) => void

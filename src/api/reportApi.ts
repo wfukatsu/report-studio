@@ -38,6 +38,8 @@ const TemplateListItemSchema = z.object({
   name: z.string(),
   updatedAt: z.string().optional(),
   createdAt: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 }).passthrough()
 
 const TemplateListSchema = z.object({
