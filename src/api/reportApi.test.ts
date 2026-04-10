@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl, fetchScalarDbCatalog } from './reportApi'
+import { ApiError, NetworkError } from './client'
 import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
@@ -691,5 +692,141 @@ describe('getTemplateThumbnailUrl', () => {
 
   it('encodes special characters in id', () => {
     expect(getTemplateThumbnailUrl('tpl/1 2')).toBe('/api/v2/templates/tpl%2F1%202/thumbnail')
+  })
+})
+
+describe('fetchScalarDbCatalog', () => {
+  /** Minimal well-formed catalog response matching the Zod schema. */
+  const validCatalog = {
+    namespaces: [
+      {
+        name: 'app',
+        tables: [
+          {
+            name: 'users',
+            columns: [
+              { name: 'id', type: 'BIGINT', keyType: 'partition' },
+              { name: 'email', type: 'TEXT', keyType: 'index' },
+              { name: 'age', type: 'INT' }, // plain column — no keyType
+            ],
+          },
+        ],
+      },
+    ],
+  }
+
+  it('sends GET to /api/v2/scalardb/catalog and returns the parsed catalog', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(validCatalog),
+    }))
+
+    const result = await fetchScalarDbCatalog()
+
+    expect(result.namespaces).toHaveLength(1)
+    expect(result.namespaces[0].name).toBe('app')
+    expect(result.namespaces[0].tables[0].columns[2].keyType).toBeUndefined()
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/scalardb/catalog')
+    // Default method (no explicit method → GET via fetch default)
+    expect((init as RequestInit | undefined)?.method).toBeUndefined()
+  })
+
+  it('forwards AbortSignal to fetch', async () => {
+    const controller = new AbortController()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ namespaces: [] }),
+    }))
+
+    await fetchScalarDbCatalog(controller.signal)
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    expect((init as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('rejects with ZodError when the response has an unknown DataType', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          tables: [{
+            name: 'users',
+            columns: [{ name: 'foo', type: 'JSONB' }], // JSONB is not a ScalarDB DataType
+          }],
+        }],
+      }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toThrow(/JSONB|type/i)
+  })
+
+  it('rejects with ZodError when keyType is the legacy "column" sentinel', async () => {
+    // Phase 1 intentionally removed 'column' from the key-type union —
+    // a regular column is encoded as an absent keyType, not a sentinel.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          tables: [{
+            name: 'users',
+            columns: [{ name: 'foo', type: 'INT', keyType: 'column' }],
+          }],
+        }],
+      }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toThrow()
+  })
+
+  it('strips unknown fields (default .strip() behaviour)', async () => {
+    // The new schemas intentionally DO NOT use .passthrough() — any extra
+    // fields in the backend response should not leak into typed store state.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          extra: 'should-be-stripped',
+          tables: [{
+            name: 'users',
+            mysteryField: 42,
+            columns: [{ name: 'id', type: 'BIGINT', keyType: 'partition' }],
+          }],
+        }],
+      }),
+    }))
+
+    const result = await fetchScalarDbCatalog()
+    // Extra fields must not appear on the returned object.
+    expect((result.namespaces[0] as unknown as Record<string, unknown>).extra)
+      .toBeUndefined()
+    expect((result.namespaces[0].tables[0] as unknown as Record<string, unknown>).mysteryField)
+      .toBeUndefined()
+  })
+
+  it('surfaces ApiError when backend returns 503', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      json: () => Promise.resolve({ error: 'ScalarDb unreachable' }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('surfaces NetworkError when fetch itself fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    await expect(fetchScalarDbCatalog()).rejects.toBeInstanceOf(NetworkError)
   })
 })

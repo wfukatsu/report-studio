@@ -15,6 +15,7 @@ export type SchemaSlice = Pick<StoreState,
   | 'addSchemaField'
   | 'removeSchemaField'
   | 'updateSchemaField'
+  | 'bindGroupToTable'
   | 'setSchema'
 >
 
@@ -67,6 +68,34 @@ export const createSchemaSlice: StateCreator<
     const field = group?.fields.find((f) => f.id === fieldId)
     if (!field) return
     Object.assign(field, patch)
+  }),
+
+  bindGroupToTable: (groupId, tableMeta) => set((s) => {
+    const group = s.definition.schema?.groups.find((g) => g.id === groupId)
+    if (!group) return
+
+    if (tableMeta === undefined) {
+      // Unbind ("解除") — drop tableMeta AND clear dbColumnName on every field.
+      // The entire binding unit is the domain event; callers can never leak
+      // orphaned dbColumnName hints that point at a table the group no longer
+      // references.
+      delete group.tableMeta
+      group.fields.forEach((f) => { delete f.dbColumnName })
+      return
+    }
+
+    // Rebind to a DIFFERENT (namespace, tableName) → clear all field column
+    // hints because none of them can refer to the new table. Prevents the
+    // hostile UX where every row would immediately show "(列が存在しません)"
+    // after the rebind. Same-table rebind (or first bind) preserves hints.
+    const prev = group.tableMeta
+    const isRebindToDifferentTable =
+      prev !== undefined &&
+      (prev.namespace !== tableMeta.namespace || prev.tableName !== tableMeta.tableName)
+    if (isRebindToDifferentTable) {
+      group.fields.forEach((f) => { delete f.dbColumnName })
+    }
+    group.tableMeta = { namespace: tableMeta.namespace, tableName: tableMeta.tableName }
   }),
 
   setSchema: (schema) => set((s) => {

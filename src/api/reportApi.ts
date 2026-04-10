@@ -13,6 +13,7 @@ import { apiFetch, apiFetchBlobWithFilename, downloadBlob, isNetworkError } from
 import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinition } from '@/types'
+import { ScalarDbColumnTypeSchema, ScalarDbKeyTypeSchema } from '@/types/scalardb'
 import {
   EvaluateResponseSchema,
   ValidateResponseSchema,
@@ -449,4 +450,52 @@ const SchemaDefinitionResponseSchema = z.object({
 export async function inferSchema(sample: Record<string, unknown>): Promise<SchemaDefinition> {
   const result = await apiFetch('/api/v2/schemas/infer', SchemaDefinitionResponseSchema, jsonBody({ sample }))
   return result as unknown as SchemaDefinition
+}
+
+// ---------------------------------------------------------------------------
+// ScalarDB catalog — Phase 1 schema binding
+// ---------------------------------------------------------------------------
+//
+// Intentional divergence from sibling schemas in this file: the new schemas
+// use the Zod default (`.strip()`), NOT `.passthrough()`. These flow into
+// typed store state where untyped drift is dangerous; see the Phase 1 plan's
+// Technical Considerations for rationale.
+
+const ScalarDbColumnRespSchema = z.object({
+  name: z.string(),
+  type: ScalarDbColumnTypeSchema,
+  keyType: ScalarDbKeyTypeSchema.optional(), // undefined = regular column
+})
+
+const ScalarDbTableEntrySchema = z.object({
+  name: z.string(),
+  columns: z.array(ScalarDbColumnRespSchema),
+})
+
+const ScalarDbNamespaceEntrySchema = z.object({
+  name: z.string(),
+  tables: z.array(ScalarDbTableEntrySchema),
+})
+
+export const ScalarDbCatalogSchema = z.object({
+  namespaces: z.array(ScalarDbNamespaceEntrySchema),
+})
+
+export type ScalarDbCatalog = z.infer<typeof ScalarDbCatalogSchema>
+export type ScalarDbCatalogColumn = z.infer<typeof ScalarDbColumnRespSchema>
+export type ScalarDbCatalogTable = z.infer<typeof ScalarDbTableEntrySchema>
+export type ScalarDbCatalogNamespace = z.infer<typeof ScalarDbNamespaceEntrySchema>
+
+/**
+ * Fetch the full ScalarDB catalog (namespaces → tables → columns) in one round-trip.
+ *
+ * Returns data that is immediately safe to render into `<select>` options —
+ * every field is strictly validated against the Zod schema before reaching the
+ * caller. Failures during the fetch will throw `ApiError` (HTTP 503 when
+ * ScalarDB is unreachable) or `NetworkError` (when the fetch itself fails).
+ *
+ * @param signal - optional AbortSignal propagated to `fetch` for clean cancellation
+ */
+export async function fetchScalarDbCatalog(signal?: AbortSignal): Promise<ScalarDbCatalog> {
+  return apiFetch('/api/v2/scalardb/catalog', ScalarDbCatalogSchema, { signal })
 }

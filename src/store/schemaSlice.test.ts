@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useReportStore } from './index'
-import type { SchemaGroup, SchemaField } from '@/types'
+import type { SchemaGroup, SchemaField, ScalarDbTableMeta } from '@/types'
 
 beforeEach(() => {
   useReportStore.getState().newReport()
@@ -195,5 +195,157 @@ describe('setSchema', () => {
     useReportStore.getState().addSchemaGroup('master')
     useReportStore.getState().setSchema({ groups: [] })
     expect(getGroups()).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// bindGroupToTable — Phase 1 ScalarDB binding (atomic tableMeta + fields)
+// ---------------------------------------------------------------------------
+
+describe('bindGroupToTable', () => {
+  /**
+   * Seed a master group with two fields, each pre-bound to a column name,
+   * and return its id. Mimics the state after a user has already bound a
+   * group once.
+   */
+  function seedBoundGroup(tableMeta?: ScalarDbTableMeta): string {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = getGroups()[0].id
+    useReportStore.getState().addSchemaField(
+      groupId,
+      { key: 'name', label: '氏名', type: 'string' } as SchemaField,
+    )
+    useReportStore.getState().addSchemaField(
+      groupId,
+      { key: 'age', label: '年齢', type: 'number' } as SchemaField,
+    )
+
+    if (tableMeta) {
+      // First bind
+      useReportStore.getState().bindGroupToTable(groupId, tableMeta)
+      // Pre-populate per-field column hints
+      const fields = getGroups()[0].fields
+      useReportStore.getState().updateSchemaField(
+        groupId, fields[0].id, { dbColumnName: 'full_name' },
+      )
+      useReportStore.getState().updateSchemaField(
+        groupId, fields[1].id, { dbColumnName: 'age' },
+      )
+    }
+    return groupId
+  }
+
+  it('first bind sets tableMeta and leaves fields untouched', () => {
+    const groupId = seedBoundGroup() // no prior bind
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app',
+      tableName: 'users',
+    })
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    // Fields have no dbColumnName yet — unchanged.
+    expect(group.fields[0].dbColumnName).toBeUndefined()
+    expect(group.fields[1].dbColumnName).toBeUndefined()
+  })
+
+  it('rebind to SAME table preserves every field dbColumnName', () => {
+    const groupId = seedBoundGroup({ namespace: 'app', tableName: 'users' })
+
+    // Rebind to the exact same table.
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app',
+      tableName: 'users',
+    })
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    // Field hints preserved — rebind to same table is a no-op for fields.
+    expect(group.fields[0].dbColumnName).toBe('full_name')
+    expect(group.fields[1].dbColumnName).toBe('age')
+  })
+
+  it('rebind to DIFFERENT tableName clears all field dbColumnName values', () => {
+    const groupId = seedBoundGroup({ namespace: 'app', tableName: 'users' })
+
+    // Rebind to a different table in the same namespace.
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app',
+      tableName: 'customers',
+    })
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'customers' })
+    // Field hints MUST be cleared — none of them refer to the new table.
+    expect(group.fields[0].dbColumnName).toBeUndefined()
+    expect(group.fields[1].dbColumnName).toBeUndefined()
+  })
+
+  it('rebind to DIFFERENT namespace clears all field dbColumnName values', () => {
+    const groupId = seedBoundGroup({ namespace: 'app', tableName: 'users' })
+
+    // Rebind to the same tableName but in a different namespace.
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'audit',
+      tableName: 'users',
+    })
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'audit', tableName: 'users' })
+    expect(group.fields[0].dbColumnName).toBeUndefined()
+    expect(group.fields[1].dbColumnName).toBeUndefined()
+  })
+
+  it('unbind (undefined) atomically clears tableMeta AND all field dbColumnName', () => {
+    const groupId = seedBoundGroup({ namespace: 'app', tableName: 'users' })
+
+    useReportStore.getState().bindGroupToTable(groupId, undefined)
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toBeUndefined()
+    expect(group.fields[0].dbColumnName).toBeUndefined()
+    expect(group.fields[1].dbColumnName).toBeUndefined()
+  })
+
+  it('unbind on an already-unbound group is a no-op', () => {
+    const groupId = seedBoundGroup() // never bound
+    expect(() =>
+      useReportStore.getState().bindGroupToTable(groupId, undefined),
+    ).not.toThrow()
+    expect(getGroups()[0].tableMeta).toBeUndefined()
+  })
+
+  it('does not touch other groups', () => {
+    // Two groups, both bound to different tables with field hints.
+    const id1 = seedBoundGroup({ namespace: 'app', tableName: 'users' })
+    useReportStore.getState().addSchemaGroup('detail')
+    const id2 = getGroups()[1].id
+    useReportStore.getState().addSchemaField(
+      id2, { key: 'line', label: 'Line', type: 'string' } as SchemaField,
+    )
+    useReportStore.getState().bindGroupToTable(id2, {
+      namespace: 'app', tableName: 'line_items',
+    })
+    const lineFieldId = getGroups()[1].fields[0].id
+    useReportStore.getState().updateSchemaField(
+      id2, lineFieldId, { dbColumnName: 'line_no' },
+    )
+
+    // Unbind group 1 — group 2 must be untouched.
+    useReportStore.getState().bindGroupToTable(id1, undefined)
+
+    const g1 = getGroups().find((g) => g.id === id1)!
+    const g2 = getGroups().find((g) => g.id === id2)!
+    expect(g1.tableMeta).toBeUndefined()
+    expect(g2.tableMeta).toEqual({ namespace: 'app', tableName: 'line_items' })
+    expect(g2.fields[0].dbColumnName).toBe('line_no')
+  })
+
+  it('ignores nonexistent groupId', () => {
+    expect(() =>
+      useReportStore.getState().bindGroupToTable('nonexistent', {
+        namespace: 'app', tableName: 'users',
+      }),
+    ).not.toThrow()
   })
 })
