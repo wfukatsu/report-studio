@@ -10,6 +10,11 @@ vi.mock('@/components/sidebar/DataSourcePanel', () => ({
 vi.mock('@/components/sidebar/BindingPanel', () => ({
   BindingPanel: () => <div data-testid="binding-panel">BindingPanel</div>,
 }))
+// DbConnectionTab fires a real catalog fetch on mount; mock it out so these
+// DataBindingModal tests don't depend on network / Zod schema plumbing.
+vi.mock('@/components/modals/DbConnectionTab', () => ({
+  DbConnectionTab: () => <div data-testid="dbconnection-tab">DbConnectionTab</div>,
+}))
 
 beforeEach(() => {
   useReportStore.getState().newReport()
@@ -59,6 +64,12 @@ describe('DataBindingModal — タブ切り替え', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'データソース' }))
     expect(screen.getByTestId('datasource-panel')).toBeInTheDocument()
   })
+
+  it('switches to DB接続 tab on click', () => {
+    render(<DataBindingModal open={true} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'DB接続' }))
+    expect(screen.getByTestId('dbconnection-tab')).toBeInTheDocument()
+  })
 })
 
 describe('DataBindingModal — タブキーボード操作', () => {
@@ -70,11 +81,11 @@ describe('DataBindingModal — タブキーボード操作', () => {
     expect(screen.getByText('計算ルール')).toBeInTheDocument()
   })
 
-  it('navigates to previous tab on ArrowLeft (wraps)', () => {
+  it('navigates to previous tab on ArrowLeft (wraps to last tab)', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     const tablist = screen.getByRole('tablist')
     fireEvent.keyDown(tablist, { key: 'ArrowLeft' })
-    // From datasource, ArrowLeft wraps to last tab (validation)
-    expect(screen.getByText('バリデーションルール')).toBeInTheDocument()
+    // From datasource, ArrowLeft wraps to the last tab (DB接続).
+    expect(screen.getByTestId('dbconnection-tab')).toBeInTheDocument()
   })
 })
