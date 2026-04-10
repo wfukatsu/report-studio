@@ -199,6 +199,120 @@ describe('DbConnectionTab — happy path binding flow', () => {
   })
 })
 
+describe('DbConnectionTab — non-destructive namespace browsing', () => {
+  beforeEach(() => {
+    fetchScalarDbCatalogMock.mockResolvedValue(usersCatalog)
+  })
+
+  it('switching the namespace dropdown alone does NOT touch the bound group (no store write)', async () => {
+    const { groupId } = seedMasterGroupWithFields()
+    // Pre-bind to app.users with field hints.
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app', tableName: 'users',
+    })
+    const fields = getGroup(groupId).fields
+    useReportStore.getState().updateSchemaField(groupId, fields[0].id, {
+      dbColumnName: 'full_name',
+    })
+
+    render(<DbConnectionTab />)
+    const nsSelect = await screen.findByLabelText(/ネームスペース/)
+
+    // User browses a different namespace, but hasn't picked a table yet.
+    fireEvent.change(nsSelect, { target: { value: 'audit' } })
+
+    // The store binding must be preserved — no destructive unbind happened.
+    const group = getGroup(groupId)
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    expect(group.fields[0].dbColumnName).toBe('full_name')
+
+    // But the table select should now show the audit namespace's tables.
+    const tableSelect = screen.getByLabelText(/テーブル/)
+    // Audit has one table "events" — which should now be selectable.
+    expect(
+      Array.from((tableSelect as HTMLSelectElement).options).map((o) => o.value),
+    ).toContain('events')
+  })
+
+  it('only writes to the store when a table is actually picked', async () => {
+    const { groupId } = seedMasterGroupWithFields()
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app', tableName: 'users',
+    })
+
+    render(<DbConnectionTab />)
+    const nsSelect = await screen.findByLabelText(/ネームスペース/)
+
+    // Browse audit…
+    fireEvent.change(nsSelect, { target: { value: 'audit' } })
+    expect(getGroup(groupId).tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+
+    // …then pick its table. NOW the store is written.
+    fireEvent.change(screen.getByLabelText(/テーブル/), {
+      target: { value: 'events' },
+    })
+    await waitFor(() => {
+      expect(getGroup(groupId).tableMeta).toEqual({
+        namespace: 'audit', tableName: 'events',
+      })
+    })
+  })
+})
+
+describe('DbConnectionTab — stale binding preservation', () => {
+  it('renders a synthetic disabled option when the bound namespace is not in the catalog', async () => {
+    // Catalog without the bound namespace.
+    fetchScalarDbCatalogMock.mockResolvedValue({
+      namespaces: [{ name: 'other', tables: [{ name: 't1', columns: [] }] }],
+    })
+
+    const { groupId } = seedMasterGroupWithFields()
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'deleted_ns', tableName: 'archived',
+    })
+
+    render(<DbConnectionTab />)
+    const nsSelect = await screen.findByLabelText(/ネームスペース/)
+
+    const options = Array.from((nsSelect as HTMLSelectElement).options)
+    const stale = options.find((o) => o.value === 'deleted_ns')
+    expect(stale).toBeDefined()
+    expect(stale!.disabled).toBe(true)
+    expect(stale!.textContent).toMatch(/ネームスペースが存在しません/)
+    // Store still holds the stale binding — nothing was destructively cleared.
+    expect(getGroup(groupId).tableMeta).toEqual({
+      namespace: 'deleted_ns', tableName: 'archived',
+    })
+  })
+
+  it('renders a synthetic disabled option when the bound tableName is missing from the catalog', async () => {
+    // Catalog contains the bound namespace but NOT the bound table.
+    fetchScalarDbCatalogMock.mockResolvedValue({
+      namespaces: [{
+        name: 'app',
+        tables: [{ name: 'something_else', columns: [] }],
+      }],
+    })
+
+    const { groupId } = seedMasterGroupWithFields()
+    useReportStore.getState().bindGroupToTable(groupId, {
+      namespace: 'app', tableName: 'renamed_away',
+    })
+
+    render(<DbConnectionTab />)
+    await screen.findByLabelText(/ネームスペース/)
+
+    const tableSelect = screen.getByLabelText(/テーブル/) as HTMLSelectElement
+    const stale = Array.from(tableSelect.options).find((o) => o.value === 'renamed_away')
+    expect(stale).toBeDefined()
+    expect(stale!.disabled).toBe(true)
+    expect(stale!.textContent).toMatch(/テーブルが存在しません/)
+    expect(getGroup(groupId).tableMeta).toEqual({
+      namespace: 'app', tableName: 'renamed_away',
+    })
+  })
+})
+
 describe('DbConnectionTab — rebind semantics', () => {
   beforeEach(() => {
     fetchScalarDbCatalogMock.mockResolvedValue(usersCatalog)

@@ -176,72 +176,86 @@ function GroupBindingSection({ group, catalog, autoFocusRef }: GroupBindingSecti
   const bindGroupToTable = useReportStore((s) => s.bindGroupToTable)
   const updateSchemaField = useReportStore((s) => s.updateSchemaField)
 
-  const selectedNamespace = group.tableMeta?.namespace ?? ''
-  const selectedTableName = group.tableMeta?.tableName ?? ''
+  const boundNamespace = group.tableMeta?.namespace ?? ''
+  const boundTableName = group.tableMeta?.tableName ?? ''
 
-  const namespace: ScalarDbCatalogNamespace | undefined = catalog.namespaces.find(
-    (n) => n.name === selectedNamespace,
-  )
-  const table: ScalarDbCatalogTable | undefined = namespace?.tables.find(
-    (t) => t.name === selectedTableName,
-  )
+  // Local UI state for the namespace dropdown. This is the single source of
+  // truth for the namespace `<select>`; the store is only written when the
+  // user actually picks a table. This deliberately lets users *browse* the
+  // namespace list without clearing their existing binding — a namespace
+  // change on its own is non-destructive.
+  const [pendingNamespace, setPendingNamespace] = useState<string>(boundNamespace)
+
+  // Re-sync when the store's binding changes externally (e.g. 解除 pressed,
+  // or another edit dispatched a bindGroupToTable via a different code path).
+  useEffect(() => {
+    setPendingNamespace(boundNamespace)
+  }, [boundNamespace])
+
+  // The table-select is populated from the *pending* namespace. If the user
+  // is browsing a different namespace than the current binding, the table
+  // list reflects the new namespace — but we don't write anything yet.
+  const pendingNamespaceEntry: ScalarDbCatalogNamespace | undefined =
+    pendingNamespace
+      ? catalog.namespaces.find((n) => n.name === pendingNamespace)
+      : undefined
+
+  // The table-select's controlled value: only show the bound table name when
+  // the user is looking at the namespace that table lives in. Otherwise the
+  // select falls back to the empty placeholder, preventing a React
+  // "value not in options" warning without destroying the store state.
+  const effectiveTableValue =
+    pendingNamespace === boundNamespace ? boundTableName : ''
+
+  // The currently-showing table metadata (for populating the field column
+  // list). Only defined when what the user is looking at matches a real
+  // binding in the fetched catalog.
+  const currentTable: ScalarDbCatalogTable | undefined =
+    effectiveTableValue
+      ? pendingNamespaceEntry?.tables.find((t) => t.name === effectiveTableValue)
+      : undefined
+
+  // Stale detection — the bound namespace/table no longer exists in the
+  // fetched catalog. We surface this symmetrically to the field-column
+  // case via a synthetic disabled <option>, so the controlled select never
+  // silently resets and the bound state is visible to the user.
+  const staleNamespace =
+    boundNamespace !== '' &&
+    !catalog.namespaces.some((n) => n.name === boundNamespace)
+  const staleTableName =
+    boundNamespace !== '' &&
+    boundTableName !== '' &&
+    !staleNamespace &&
+    pendingNamespace === boundNamespace &&
+    pendingNamespaceEntry !== undefined &&
+    !pendingNamespaceEntry.tables.some((t) => t.name === boundTableName)
 
   const handleNamespaceChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextNamespace = e.target.value
-      if (nextNamespace === '') {
-        // Switching to placeholder = unbind.
-        bindGroupToTable(group.id, undefined)
-        return
-      }
-      // Changing namespace alone without a table is a no-op for the store
-      // (tableMeta requires both); we defer the write until the table is picked.
-      // But if there was an existing tableMeta, we need to unbind first so the
-      // stale tableName isn't still shown.
-      if (group.tableMeta && group.tableMeta.namespace !== nextNamespace) {
-        bindGroupToTable(group.id, undefined)
-      }
-      // Tell the component-level state that namespace changed by re-binding
-      // to an empty table: but since bindGroupToTable requires {ns, tableName},
-      // we hold the namespace in a temporary local slot. Use a quick workaround:
-      // update the group through a synthetic meta with an empty tableName is
-      // NOT allowed. Instead, we stash the chosen namespace locally via React.
-      // This is handled via the `pendingNamespace` state below.
-      setPendingNamespace(nextNamespace)
+      // Namespace change is UI-only — it does NOT write to the store.
+      // The store is updated once the user picks a table, at which point
+      // bindGroupToTable handles the "rebind to different table" semantics
+      // (clearing per-field dbColumnName hints as needed).
+      setPendingNamespace(e.target.value)
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [group.id, group.tableMeta?.namespace, bindGroupToTable],
+    [],
   )
-
-  const [pendingNamespace, setPendingNamespace] = useState<string>(selectedNamespace)
-
-  // Keep pendingNamespace in sync if the store resets the binding.
-  useEffect(() => {
-    setPendingNamespace(selectedNamespace)
-  }, [selectedNamespace])
-
-  const effectiveNamespace = pendingNamespace || selectedNamespace
-
-  const effectiveNamespaceEntry: ScalarDbCatalogNamespace | undefined =
-    effectiveNamespace
-      ? catalog.namespaces.find((n) => n.name === effectiveNamespace)
-      : undefined
 
   const handleTableChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const nextTableName = e.target.value
-      if (nextTableName === '') {
+      if (nextTableName === '' || pendingNamespace === '') {
+        // Explicit "(未選択)" on the table select unbinds the group.
         bindGroupToTable(group.id, undefined)
         return
       }
-      if (!effectiveNamespace) return
       const meta: ScalarDbTableMeta = {
-        namespace: effectiveNamespace,
+        namespace: pendingNamespace,
         tableName: nextTableName,
       }
       bindGroupToTable(group.id, meta)
     },
-    [bindGroupToTable, group.id, effectiveNamespace],
+    [bindGroupToTable, group.id, pendingNamespace],
   )
 
   const handleUnbind = useCallback(() => {
@@ -297,7 +311,7 @@ function GroupBindingSection({ group, catalog, autoFocusRef }: GroupBindingSecti
           <select
             id={nsSelectId}
             ref={autoFocusRef}
-            value={effectiveNamespace}
+            value={pendingNamespace}
             onChange={handleNamespaceChange}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background"
           >
@@ -307,6 +321,13 @@ function GroupBindingSection({ group, catalog, autoFocusRef }: GroupBindingSecti
                 {ns.name}
               </option>
             ))}
+            {/* Synthetic disabled option for a stale bound namespace —
+                preserves the controlled value without a React warning. */}
+            {staleNamespace && (
+              <option value={boundNamespace} disabled>
+                {boundNamespace} (ネームスペースが存在しません)
+              </option>
+            )}
           </select>
         </div>
 
@@ -316,27 +337,32 @@ function GroupBindingSection({ group, catalog, autoFocusRef }: GroupBindingSecti
           </label>
           <select
             id={tableSelectId}
-            value={selectedTableName}
+            value={effectiveTableValue}
             onChange={handleTableChange}
-            disabled={!effectiveNamespace}
+            disabled={!pendingNamespace}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">(未選択)</option>
-            {effectiveNamespaceEntry?.tables.map((t) => (
+            {pendingNamespaceEntry?.tables.map((t) => (
               <option key={t.name} value={t.name}>
                 {t.name}
               </option>
             ))}
+            {staleTableName && (
+              <option value={boundTableName} disabled>
+                {boundTableName} (テーブルが存在しません)
+              </option>
+            )}
           </select>
         </div>
       </div>
 
       {/* Field → column mapping table */}
-      {table && (
+      {currentTable && (
         <FieldColumnMap
           groupId={group.id}
           fields={group.fields}
-          table={table}
+          table={currentTable}
           onColumnChange={handleColumnChange}
         />
       )}
