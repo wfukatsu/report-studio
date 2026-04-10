@@ -1,7 +1,8 @@
 import { memo } from 'react'
-import type { RepeatingBandElement, TextStyle } from '@/types'
+import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
+import { applyFormat } from '@/lib/numberFormatter'
 import { groupRecords, applyGroupedMaxItems, countGroupedRows } from '@/lib/grouping'
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,19 @@ function applyTextStyle(base: React.CSSProperties, ts?: TextStyle): React.CSSPro
   if (ts.backgroundColor) result.backgroundColor = ts.backgroundColor
   if (ts.textAlign) result.textAlign = ts.textAlign
   return result
+}
+
+/** Resolve field value and apply format if specified */
+function resolveAndFormat(record: Record<string, unknown>, field: RepeatingBandField): string {
+  const raw = resolveField(record, field.key)
+  if (raw === '' || !field.format) return raw
+  return applyFormat(raw, field.format)
+}
+
+/** Format an aggregated numeric value using the field's format */
+function formatAggregateValue(value: number, field: RepeatingBandField): string {
+  if (field.format) return applyFormat(value, field.format)
+  return String(Math.round(value * 100) / 100)
 }
 
 // Default group subtotal style
@@ -212,7 +226,7 @@ function RepeatingBandLiveRenderer({
           <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
             {el.fields.map((f, i) => (
               <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
-                {resolveField(record, f.key)}
+                {resolveAndFormat(record, f)}
               </div>
             ))}
           </div>
@@ -235,7 +249,7 @@ function RepeatingBandLiveRenderer({
             const value = total ? aggregateField(sorted, f.key, total.formula) : null
             return (
               <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start', borderBottom: 'none' }}>
-                {value !== null ? String(Math.round(value * 100) / 100) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
+                {value !== null ? formatAggregateValue(value, f) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
               </div>
             )
           })}
@@ -358,7 +372,7 @@ function GroupedBandRenderer({
             >
               {el.fields.map((f, i) => (
                 <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
-                  {groupByFieldIndices.includes(i) ? '' : resolveField(record, f.key)}
+                  {groupByFieldIndices.includes(i) ? '' : resolveAndFormat(record, f)}
                 </div>
               ))}
             </div>
@@ -399,7 +413,7 @@ function GroupedBandRenderer({
                     }}
                   >
                     {value !== null
-                      ? String(Math.round(value * 100) / 100)
+                      ? formatAggregateValue(value, f)
                       : (i === 0 ? '小計' : '')}
                   </div>
                 )
@@ -422,7 +436,7 @@ function GroupedBandRenderer({
             const value = total ? aggregateField(allRecords, f.key, total.formula) : null
             return (
               <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start', borderBottom: 'none' }}>
-                {value !== null ? String(Math.round(value * 100) / 100) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
+                {value !== null ? formatAggregateValue(value, f) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
               </div>
             )
           })}

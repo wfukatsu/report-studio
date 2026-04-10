@@ -59,7 +59,6 @@ const INFO_ROW = 5.5
 const Y_CUSTOMER = MT + 14
 const Y_CONTRACT = MT + 60              // 見積金額下線(62) + 3mm ブレスルーム
 const Y_TABLE = MT + 76                 // 挨拶文終了(79) + 2mm
-const Y_TABLE_BODY = Y_TABLE + TABLE_HDR_H
 const Y_SUMM = Y_TABLE + TABLE_H + 3    // テーブル下端 + 3mm
 const Y_NOTES = Y_SUMM + SUMM_ROW_H * 6 + 4
 
@@ -262,48 +261,17 @@ elements.push(
 )
 
 // =====================================================================
-// 7. 品目テーブル
+// 7. 品目テーブル（繰り返しバンドのヘッダー行を使用）
 // =====================================================================
-elements.push(
-  rect(ML, Y_TABLE, CONTENT_W, TABLE_H),
-  rect(ML, Y_TABLE, CONTENT_W, TABLE_HDR_H, { fill: SECTION_HDR_FILL, stroke: SECTION_HDR_FILL }),
-)
 
-// ヘッダーテキスト
-const COL_X_SYSTEM  = ML
-const COL_X_PRODUCT = COL_X_SYSTEM + COL_SYSTEM_W
-const COL_X_PODS    = COL_X_PRODUCT + COL_PRODUCT_W
-const COL_X_MONTHS  = COL_X_PODS + COL_PODS_W
-const COL_X_UNIT    = COL_X_MONTHS + COL_MONTHS_W
-const COL_X_SUB     = COL_X_UNIT + COL_UNIT_W
-
-elements.push(
-  lbl('対象システム', COL_X_SYSTEM + 1, Y_TABLE, COL_SYSTEM_W - 2, TABLE_HDR_H, SECTION_HDR),
-
-  vline(COL_X_PRODUCT, Y_TABLE, TABLE_H),
-  lbl('製品名', COL_X_PRODUCT + 1, Y_TABLE, COL_PRODUCT_W - 2, TABLE_HDR_H, SECTION_HDR),
-
-  vline(COL_X_PODS, Y_TABLE, TABLE_H),
-  lbl('Pod数', COL_X_PODS + 1, Y_TABLE, COL_PODS_W - 2, TABLE_HDR_H, SECTION_HDR),
-
-  vline(COL_X_MONTHS, Y_TABLE, TABLE_H),
-  lbl('期間(月)', COL_X_MONTHS + 1, Y_TABLE, COL_MONTHS_W - 2, TABLE_HDR_H, SECTION_HDR),
-
-  vline(COL_X_UNIT, Y_TABLE, TABLE_H),
-  lbl('単価(月額)', COL_X_UNIT + 1, Y_TABLE, COL_UNIT_W - 2, TABLE_HDR_H, SECTION_HDR),
-
-  vline(COL_X_SUB, Y_TABLE, TABLE_H),
-  lbl('小計', COL_X_SUB + 1, Y_TABLE, COL_SUBTOTAL_W - 2, TABLE_HDR_H, SECTION_HDR),
-)
-
-// 繰り返しバンド（明細行）
+// 繰り返しバンド（ヘッダー行 + 明細行）
 elements.push({
   id: uuidv4(), type: 'repeatingBand',
-  position: { x: ML, y: Y_TABLE_BODY },
-  size: { width: CONTENT_W, height: TABLE_ROWS * TABLE_ROW_H },
+  position: { x: ML, y: Y_TABLE },
+  size: { width: CONTENT_W, height: TABLE_H },
   zIndex: nextZ(), locked: false, visible: true,
   dataSource: 'items', itemHeight: TABLE_ROW_H,
-  showHeader: false, showFooter: false,
+  showHeader: true, showFooter: false,
   totals: [
     { fieldKey: 'line_subtotal', formula: 'sum', label: '小計' },
   ],
@@ -322,7 +290,7 @@ elements.push({
     { key: 'line_subtotal', label: '小計', width: COL_SUBTOTAL_W, align: 'right', format: JPY_FMT },
   ],
   style: { fontSize: 2.8, color: '#1a1a1a' },
-  headerStyle: { fontSize: 2.8, fontWeight: 'bold', color: '#ffffff' },
+  headerStyle: { fontSize: 2.8, fontWeight: 'bold', color: '#ffffff', backgroundColor: SECTION_HDR_FILL },
 } as ReportElement)
 
 // =====================================================================
