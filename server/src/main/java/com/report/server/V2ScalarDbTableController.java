@@ -126,7 +126,7 @@ public final class V2ScalarDbTableController {
         }
         if (namespace.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
             ctx.status(400).json(Map.of("error",
-                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + namespace.substring(0, 20) + "...'"));
+                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + namespace.substring(0, Math.min(namespace.length(), 20)) + "...'"));
             return;
         }
         if (!IDENTIFIER.matcher(namespace).matches()) {
@@ -135,7 +135,7 @@ public final class V2ScalarDbTableController {
         }
         if (tableName.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
             ctx.status(400).json(Map.of("error",
-                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + tableName.substring(0, 20) + "...'"));
+                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + tableName.substring(0, Math.min(tableName.length(), 20)) + "...'"));
             return;
         }
         if (!IDENTIFIER.matcher(tableName).matches()) {
@@ -168,7 +168,7 @@ public final class V2ScalarDbTableController {
             }
             if (name.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
                 ctx.status(400).json(Map.of("error",
-                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + name.substring(0, 20) + "...'"));
+                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + name.substring(0, Math.min(name.length(), 20)) + "...'"));
                 return;
             }
             if (!IDENTIFIER.matcher(name).matches()) {
@@ -390,7 +390,7 @@ public final class V2ScalarDbTableController {
         for (String k : keys) {
             if (k.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
                 ctx.status(400).json(Map.of("error",
-                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + k.substring(0, 20) + "...'"));
+                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + k.substring(0, Math.min(k.length(), 20)) + "...'"));
                 return true;
             }
             if (!IDENTIFIER.matcher(k).matches()) {
