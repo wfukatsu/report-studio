@@ -500,7 +500,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
 
     if (!backendConnected) {
-      handleDownloadJson()
+      setExportError('バックエンドに接続されていません。「npm run dev:backend」でバックエンドを起動してから再試行してください。')
       return
     }
 
