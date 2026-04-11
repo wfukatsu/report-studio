@@ -5,6 +5,7 @@ import { ElementRenderer } from './ElementRenderer'
 import { ElementErrorBoundary } from './ElementErrorBoundary'
 import { TextInlineEditor } from '@/elements/text/InlineEditor'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
+import { constrainAspectRatio } from '@/lib/aspectRatioConstraint'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
 import type { ReportElement } from '@/types'
 
@@ -24,6 +25,8 @@ interface Props {
 }
 
 type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w'
+
+const CORNER_HANDLES = new Set<ResizeHandle>(['se', 'sw', 'ne', 'nw'])
 
 export const CanvasElement = memo(function CanvasElement({
   element,
@@ -117,7 +120,7 @@ export const CanvasElement = memo(function CanvasElement({
         heightMm: el.size.height,
         xMm: el.position.x,
         yMm: el.position.y,
-        ratio: el.size.width / el.size.height,
+        ratio: el.size.height > 0 ? el.size.width / el.size.height : 1,
       }
 
       const onPointerMove = (ev: PointerEvent) => {
@@ -146,21 +149,15 @@ export const CanvasElement = memo(function CanvasElement({
         }
 
         // Shift+corner: maintain aspect ratio
-        const isCorner = handle === 'se' || handle === 'sw' || handle === 'ne' || handle === 'nw'
-        if (ev.shiftKey && isCorner) {
+        if (ev.shiftKey && CORNER_HANDLES.has(handle)) {
           const { ratio } = resizeStart.current
-          const widthChange = Math.abs(newWidthMm - resizeStart.current.widthMm)
-          const heightChange = Math.abs(newHeightMm - resizeStart.current.heightMm)
-          if (widthChange >= heightChange) {
-            // Width is dominant — derive height from width
-            newHeightMm = Math.max(MIN_MM, newWidthMm / ratio)
-            // If height hit MIN_MM, re-derive width to keep ratio honest
-            if (newHeightMm === MIN_MM) newWidthMm = Math.max(MIN_MM, MIN_MM * ratio)
-          } else {
-            // Height is dominant — derive width from height
-            newWidthMm = Math.max(MIN_MM, newHeightMm * ratio)
-            if (newWidthMm === MIN_MM) newHeightMm = Math.max(MIN_MM, MIN_MM / ratio)
-          }
+          const constrained = constrainAspectRatio(
+            newWidthMm, newHeightMm,
+            resizeStart.current.widthMm, resizeStart.current.heightMm,
+            ratio,
+          )
+          newWidthMm = constrained.width
+          newHeightMm = constrained.height
           // Recompute anchor coords for n/w handles after ratio adjustment
           if (handle.includes('w')) newXMm = resizeStart.current.xMm + resizeStart.current.widthMm - newWidthMm
           if (handle.includes('n')) newYMm = resizeStart.current.yMm + resizeStart.current.heightMm - newHeightMm
@@ -351,6 +348,7 @@ const ResizeHandleEl = memo(function ResizeHandleEl({
         zIndex: 9999,
         ...RESIZE_HANDLE_STYLES[handle],
       }}
+      data-resize-handle={handle}
       onPointerDown={onPointerDown}
     />
   )

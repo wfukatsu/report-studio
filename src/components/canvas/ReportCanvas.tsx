@@ -122,10 +122,6 @@ export function ReportCanvas({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
-  const handleDragSelectIds = useCallback((ids: string[]) => {
-    setSelectionIds(ids)
-  }, [setSelectionIds])
-
   const {
     marquee,
     onPointerDown: onMarqueePointerDown,
@@ -136,7 +132,8 @@ export function ReportCanvas({
     sections: page?.sections ?? [],
     zoom,
     readonly,
-    onSelectIds: handleDragSelectIds,
+    // setSelectionIds is a stable Zustand reference — no wrapper needed
+    onSelectIds: setSelectionIds,
     currentSelectedIds: selectedIds,
   })
 
@@ -198,7 +195,8 @@ export function ReportCanvas({
       const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
       moveElement(page.id, el.id, { x: snappedX, y: snappedY })
     },
-    [page, moveElement, zoom, snapToGrid, gridSize, margins, shiftRef],
+    // shiftRef is a stable useRef object — excluded from deps intentionally
+    [page, moveElement, zoom, snapToGrid, gridSize, margins],
   )
 
   const handleResize = useCallback(

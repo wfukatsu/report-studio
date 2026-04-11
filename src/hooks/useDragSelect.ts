@@ -32,7 +32,7 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSe
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null)
 
   // Refs to avoid stale closure issues in pointer callbacks
-  const startRef = useRef<{ x: number; y: number; shiftKey: boolean } | null>(null)
+  const startRef = useRef<{ x: number; y: number; shiftKey: boolean; selectedIds: string[] } | null>(null)
   const marqueeRef = useRef<MarqueeRect | null>(null)
   // Cached container rect from onPointerDown — container doesn't move during drag (#126)
   const containerRectRef = useRef<DOMRect | null>(null)
@@ -53,6 +53,9 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSe
       x: (e.clientX - containerRect.left) / zoom,
       y: (e.clientY - containerRect.top) / zoom,
       shiftKey: e.shiftKey,
+      // Snapshot the selection at drag-start so onPointerUp always merges
+      // against the state at the moment the user began the marquee.
+      selectedIds: currentSelectedIds,
     }
     marqueeRef.current = null
     didDragSelectRef.current = false
@@ -84,8 +87,10 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSe
 
   const onPointerUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
     const m = marqueeRef.current
-    // Capture shiftKey before nulling startRef
+    // Capture start state before nulling startRef
     const additive = startRef.current?.shiftKey ?? false
+    // Use the selection snapshot from drag-start so we merge against a consistent baseline
+    const startSelectedIds = startRef.current?.selectedIds ?? []
     startRef.current = null
     marqueeRef.current = null
     setMarquee(null)
@@ -117,12 +122,14 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSe
 
     if (toSelect.length > 0) {
       const finalIds = additive
-        ? Array.from(new Set([...currentSelectedIds, ...toSelect]))
+        ? Array.from(new Set([...startSelectedIds, ...toSelect]))
         : toSelect
       onSelectIds(finalIds)
       didDragSelectRef.current = true
     }
-  }, [sections, onSelectIds, currentSelectedIds])
+  // currentSelectedIds is intentionally excluded: the snapshot is taken at drag-start
+  // and stored in startRef.current.selectedIds to avoid stale-closure issues.
+  }, [sections, onSelectIds])
 
   /**
    * Call this at the start of the canvas onClick handler.

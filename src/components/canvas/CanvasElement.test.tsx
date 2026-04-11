@@ -66,14 +66,8 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
     )
   }
 
-  function getSEHandle(container: HTMLElement) {
-    // The SE handle is positioned at bottom-right
-    const handles = container.querySelectorAll('[style*="se-resize"]')
-    if (handles.length > 0) return handles[0] as HTMLElement
-    // Fallback: find by cursor style
-    return Array.from(container.querySelectorAll('div')).find(
-      (el) => (el as HTMLElement).style.cursor === 'se-resize',
-    ) as HTMLElement | undefined
+  function getHandle(container: HTMLElement, handle: string) {
+    return container.querySelector(`[data-resize-handle="${handle}"]`) as HTMLElement | null
   }
 
   function dispatchWindowPointerMove(clientX: number, clientY: number, shiftKey = false) {
@@ -87,7 +81,7 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
   it('SE ハンドルで Shift なし: 幅が増加し高さは不変', () => {
     const el = makeTextElement({ size: { width: 100, height: 50 } }) // ratio=2
     const { container } = renderElement(el)
-    const seHandle = getSEHandle(container as HTMLElement)
+    const seHandle = getHandle(container as HTMLElement, 'se')
     if (!seHandle) return // handle not rendered — skip
 
     fireEvent.pointerDown(seHandle, { clientX: 0, clientY: 0, pointerId: 1 })
@@ -104,7 +98,7 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
   it('SE ハンドルで Shift+ドラッグ: アスペクト比 (2:1) が維持される', () => {
     const el = makeTextElement({ size: { width: 100, height: 50 } }) // ratio=2
     const { container } = renderElement(el)
-    const seHandle = getSEHandle(container as HTMLElement)
+    const seHandle = getHandle(container as HTMLElement, 'se')
     if (!seHandle) return
 
     fireEvent.pointerDown(seHandle, { clientX: 0, clientY: 0, pointerId: 1 })
@@ -121,9 +115,7 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
   it('辺ハンドル (E) で Shift+ドラッグ: アスペクト比は維持しない', () => {
     const el = makeTextElement({ size: { width: 100, height: 50 } })
     const { container } = renderElement(el)
-    const eHandle = Array.from(container.querySelectorAll('div')).find(
-      (d) => (d as HTMLElement).style.cursor === 'e-resize',
-    ) as HTMLElement | undefined
+    const eHandle = getHandle(container as HTMLElement, 'e')
     if (!eHandle) return
 
     fireEvent.pointerDown(eHandle, { clientX: 0, clientY: 0, pointerId: 1 })
@@ -142,9 +134,7 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
       size: { width: 100, height: 50 },
     })
     const { container } = renderElement(el)
-    const nwHandle = Array.from(container.querySelectorAll('div')).find(
-      (d) => (d as HTMLElement).style.cursor === 'nw-resize',
-    ) as HTMLElement | undefined
+    const nwHandle = getHandle(container as HTMLElement, 'nw')
     if (!nwHandle) return
 
     fireEvent.pointerDown(nwHandle, { clientX: 0, clientY: 0, pointerId: 1 })

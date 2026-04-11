@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Tracks whether the Shift key is currently held.
- * Returns a ref whose `.current` is updated synchronously on keydown/keyup/blur.
+ * Returns a read-only ref whose `.current` is updated synchronously on keydown/keyup/blur.
  * Using a ref (not state) avoids re-renders on every key event.
+ * The return type is Readonly to prevent callers from writing to the ref.
  */
-export function useShiftKeyTracker(): React.MutableRefObject<boolean> {
+export function useShiftKeyTracker(): Readonly<React.MutableRefObject<boolean>> {
   const shiftRef = useRef(false)
 
   useEffect(() => {
