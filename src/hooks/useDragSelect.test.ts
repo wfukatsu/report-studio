@@ -30,6 +30,7 @@ function makePointerEvent(
   x: number,
   y: number,
   target: HTMLElement = document.createElement('div'),
+  shiftKey = false,
 ): React.PointerEvent<HTMLDivElement> {
   const containerEl = document.createElement('div')
   // Mock getBoundingClientRect to return a fixed container position
@@ -43,6 +44,7 @@ function makePointerEvent(
     pointerId: 1,
     clientX: x,
     clientY: y,
+    shiftKey,
     target,
     currentTarget: containerEl,
     preventDefault: vi.fn(),
@@ -223,6 +225,96 @@ describe('useDragSelect — consumeClickIfDragSelected', () => {
 
     expect(onSelectIds).not.toHaveBeenCalled()
     expect(result.current.consumeClickIfDragSelected()).toBe(false)
+  })
+})
+
+describe('useDragSelect — Shift+マーキー 追加選択', () => {
+  it('merges new elements into currentSelectedIds when shiftKey is true', () => {
+    const onSelectIds = vi.fn()
+    const sections = [makeSection([
+      { id: 'existing-1', x: 5, y: 5, w: 20, h: 10 },
+      { id: 'new-1', x: 30, y: 30, w: 20, h: 10 },
+    ])]
+
+    const { result } = renderHook(() => useDragSelect({
+      sections,
+      zoom: 1,
+      readonly: false,
+      onSelectIds,
+      currentSelectedIds: ['existing-1'],
+    }))
+
+    // Shift+drag that covers only new-1 (around x=30, y=30 in mm → ~113px)
+    act(() => result.current.onPointerDown(makePointerEvent('pointerdown', 100, 100, document.createElement('div'), true)))
+    act(() => result.current.onPointerMove(makePointerEvent('pointermove', 200, 200)))
+    act(() => result.current.onPointerUp(makePointerEvent('pointerup', 200, 200)))
+
+    expect(onSelectIds).toHaveBeenCalledOnce()
+    const called = onSelectIds.mock.calls[0][0] as string[]
+    expect(called).toContain('existing-1')
+    expect(called).toContain('new-1')
+  })
+
+  it('deduplicates when existing and new selections overlap', () => {
+    const onSelectIds = vi.fn()
+    const sections = [makeSection([
+      { id: 'el-1', x: 5, y: 5, w: 20, h: 10 },
+    ])]
+
+    const { result } = renderHook(() => useDragSelect({
+      sections,
+      zoom: 1,
+      readonly: false,
+      onSelectIds,
+      currentSelectedIds: ['el-1'],
+    }))
+
+    act(() => result.current.onPointerDown(makePointerEvent('pointerdown', 0, 0, document.createElement('div'), true)))
+    act(() => result.current.onPointerMove(makePointerEvent('pointermove', 200, 200)))
+    act(() => result.current.onPointerUp(makePointerEvent('pointerup', 200, 200)))
+
+    const called = onSelectIds.mock.calls[0][0] as string[]
+    expect(called.filter((id) => id === 'el-1').length).toBe(1)
+  })
+
+  it('replaces selection (no merge) when shiftKey is false', () => {
+    const onSelectIds = vi.fn()
+    const sections = [makeSection([
+      { id: 'el-1', x: 5, y: 5, w: 20, h: 10 },
+    ])]
+
+    const { result } = renderHook(() => useDragSelect({
+      sections,
+      zoom: 1,
+      readonly: false,
+      onSelectIds,
+      currentSelectedIds: ['other-existing'],
+    }))
+
+    act(() => result.current.onPointerDown(makePointerEvent('pointerdown', 0, 0, document.createElement('div'), false)))
+    act(() => result.current.onPointerMove(makePointerEvent('pointermove', 200, 200)))
+    act(() => result.current.onPointerUp(makePointerEvent('pointerup', 200, 200)))
+
+    const called = onSelectIds.mock.calls[0][0] as string[]
+    expect(called).toEqual(['el-1'])
+    expect(called).not.toContain('other-existing')
+  })
+
+  it('does not call onSelectIds when tiny Shift+drag hits no elements', () => {
+    const onSelectIds = vi.fn()
+    const { result } = renderHook(() => useDragSelect({
+      sections: [],
+      zoom: 1,
+      readonly: false,
+      onSelectIds,
+      currentSelectedIds: ['existing-1'],
+    }))
+
+    act(() => result.current.onPointerDown(makePointerEvent('pointerdown', 10, 10, document.createElement('div'), true)))
+    act(() => result.current.onPointerMove(makePointerEvent('pointermove', 12, 12)))
+    act(() => result.current.onPointerUp(makePointerEvent('pointerup', 12, 12)))
+
+    expect(onSelectIds).not.toHaveBeenCalled()
   })
 })
 

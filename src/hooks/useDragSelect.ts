@@ -14,6 +14,7 @@ interface Options {
   zoom: number
   readonly: boolean
   onSelectIds: (ids: string[]) => void
+  currentSelectedIds?: string[]
 }
 
 /**
@@ -27,11 +28,11 @@ interface Options {
  * In the onClick handler, call consumeClickIfDragSelected() and skip clearSelection if it returns true.
  * Render <MarqueeOverlay rect={marquee} /> inside the paper div.
  */
-export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options) {
+export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSelectedIds = [] }: Options) {
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null)
 
   // Refs to avoid stale closure issues in pointer callbacks
-  const startRef = useRef<{ x: number; y: number } | null>(null)
+  const startRef = useRef<{ x: number; y: number; shiftKey: boolean; selectedIds: string[] } | null>(null)
   const marqueeRef = useRef<MarqueeRect | null>(null)
   // Cached container rect from onPointerDown — container doesn't move during drag (#126)
   const containerRectRef = useRef<DOMRect | null>(null)
@@ -51,6 +52,10 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
     startRef.current = {
       x: (e.clientX - containerRect.left) / zoom,
       y: (e.clientY - containerRect.top) / zoom,
+      shiftKey: e.shiftKey,
+      // Snapshot the selection at drag-start so onPointerUp always merges
+      // against the state at the moment the user began the marquee.
+      selectedIds: currentSelectedIds,
     }
     marqueeRef.current = null
     didDragSelectRef.current = false
@@ -82,6 +87,10 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
 
   const onPointerUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
     const m = marqueeRef.current
+    // Capture start state before nulling startRef
+    const additive = startRef.current?.shiftKey ?? false
+    // Use the selection snapshot from drag-start so we merge against a consistent baseline
+    const startSelectedIds = startRef.current?.selectedIds ?? []
     startRef.current = null
     marqueeRef.current = null
     setMarquee(null)
@@ -112,9 +121,14 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
     }
 
     if (toSelect.length > 0) {
-      onSelectIds(toSelect)
+      const finalIds = additive
+        ? Array.from(new Set([...startSelectedIds, ...toSelect]))
+        : toSelect
+      onSelectIds(finalIds)
       didDragSelectRef.current = true
     }
+  // currentSelectedIds is intentionally excluded: the snapshot is taken at drag-start
+  // and stored in startRef.current.selectedIds to avoid stale-closure issues.
   }, [sections, onSelectIds])
 
   /**

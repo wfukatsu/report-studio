@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { PanelTop } from 'lucide-react'
 import { useDragSelect } from '@/hooks/useDragSelect'
+import { useShiftKeyTracker } from '@/hooks/useShiftKeyTracker'
+import { constrainDelta } from '@/lib/axisConstraint'
 import {
   DndContext,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type Modifier,
 } from '@dnd-kit/core'
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
@@ -116,11 +119,23 @@ export function ReportCanvas({
   const internalRef = useRef<HTMLDivElement>(null)
   const ref = canvasRef ?? internalRef
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const shiftRef = useShiftKeyTracker()
 
-  const handleDragSelectIds = useCallback((ids: string[]) => {
-    setSelectionIds(ids)
-  }, [setSelectionIds])
+  // Modifier applied to DndContext to constrain the drag ghost in real time when
+  // Shift is held. event.delta in handleDragEnd is the raw (pre-modifier) delta,
+  // so constrainDelta is still called there for the final position calculation.
+  const axisConstraintModifier = useCallback<Modifier>(
+    ({ transform }) => {
+      if (!shiftRef.current) return transform
+      if (Math.abs(transform.x) >= Math.abs(transform.y)) {
+        return { ...transform, y: 0 }
+      }
+      return { ...transform, x: 0 }
+    },
+    [],
+  )
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   const {
     marquee,
@@ -132,7 +147,9 @@ export function ReportCanvas({
     sections: page?.sections ?? [],
     zoom,
     readonly,
-    onSelectIds: handleDragSelectIds,
+    // setSelectionIds is a stable Zustand reference — no wrapper needed
+    onSelectIds: setSelectionIds,
+    currentSelectedIds: selectedIds,
   })
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -185,12 +202,15 @@ export function ReportCanvas({
       if (!page || !event.delta) return
       const el = flattenPageElements(page).find((e) => e.id === event.active.id)
       if (!el) return
-      const newX = el.position.x + pxToMm(event.delta.x / zoom)
-      const newY = el.position.y + pxToMm(event.delta.y / zoom)
+      // Shift+drag: constrain movement to the dominant axis
+      const constrained = constrainDelta(event.delta, shiftRef.current)
+      const newX = el.position.x + pxToMm(constrained.x / zoom)
+      const newY = el.position.y + pxToMm(constrained.y / zoom)
       const snappedX = snapAxis(newX, el.size.width, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
       const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
       moveElement(page.id, el.id, { x: snappedX, y: snappedY })
     },
+    // shiftRef is a stable useRef object — excluded from deps intentionally
     [page, moveElement, zoom, snapToGrid, gridSize, margins],
   )
 
@@ -358,7 +378,7 @@ export function ReportCanvas({
   const paperEl = (
     <DndContext
       sensors={sensors}
-      modifiers={readonly ? [] : [restrictToParentElement]}
+      modifiers={readonly ? [] : [restrictToParentElement, axisConstraintModifier]}
       onDragEnd={handleDragEnd}
     >
       <div
