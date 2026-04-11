@@ -436,3 +436,96 @@ describe('bindGroupToTableWithColumns', () => {
     expect(group.fields[1].dbColumnName).toBeUndefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Phase 2: setElementSchemaBinding
+// ---------------------------------------------------------------------------
+
+function makeDataFieldEl(id: string): import('@/types').ReportElement {
+  return {
+    id,
+    type: 'dataField',
+    position: { x: 0, y: 0 },
+    size: { width: 50, height: 10 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    fieldKey: '',
+    style: {},
+  } as unknown as import('@/types').ReportElement
+}
+
+describe('setElementSchemaBinding', () => {
+  it('要素に schemaBinding を設定できる', () => {
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, makeDataFieldEl('el-sb-1'))
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-sb-1', 'field-uuid-1')
+    const el = useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-sb-1')!
+    expect(el.schemaBinding).toEqual({ fieldId: 'field-uuid-1' })
+  })
+
+  it('undefined を渡すと schemaBinding を削除できる', () => {
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, makeDataFieldEl('el-sb-2'))
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-sb-2', 'field-uuid-1')
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-sb-2', undefined)
+    const el = useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-sb-2')!
+    expect(el.schemaBinding).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Phase 2: removeSchemaField cleanup — schemaBinding cascade
+// ---------------------------------------------------------------------------
+
+describe('removeSchemaField schemaBinding cleanup', () => {
+  it('フィールド削除時に要素の schemaBinding が同一 set() 内でクリアされる', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: '名前', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, makeDataFieldEl('el-cleanup-1'))
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-cleanup-1', fieldId)
+
+    expect(useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-cleanup-1')!
+      .schemaBinding?.fieldId).toBe(fieldId)
+
+    useReportStore.getState().removeSchemaField(groupId, fieldId)
+
+    expect(useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-cleanup-1')!
+      .schemaBinding).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Phase 2: removeSchemaGroup cleanup — schemaBinding cascade
+// ---------------------------------------------------------------------------
+
+describe('removeSchemaGroup schemaBinding cleanup', () => {
+  it('グループ削除時に要素の schemaBinding がクリアされる', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: '名前', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, makeDataFieldEl('el-grp-cleanup'))
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-grp-cleanup', fieldId)
+
+    expect(useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-grp-cleanup')!
+      .schemaBinding?.fieldId).toBe(fieldId)
+
+    useReportStore.getState().removeSchemaGroup(groupId)
+
+    expect(useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-grp-cleanup')!
+      .schemaBinding).toBeUndefined()
+  })
+})

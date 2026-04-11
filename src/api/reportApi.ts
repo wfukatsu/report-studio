@@ -546,3 +546,67 @@ export async function createScalarDbTable(
 export async function fetchScalarDbCatalog(signal?: AbortSignal): Promise<ScalarDbCatalog> {
   return apiFetch('/api/v2/scalardb/catalog', ScalarDbCatalogSchema, { signal })
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: resolve-bindings — fetch actual ScalarDB row data
+// ---------------------------------------------------------------------------
+
+/**
+ * Response from POST /api/v2/templates/{id}/resolve-bindings.
+ * HTTP 207 (partial success): resolved contains per-group field values,
+ * errors contains per-group error messages (null = no error for that group).
+ */
+export interface ResolveBindingsResponse {
+  resolved: Record<string, Record<string, import('@/store/types').ComputedValue>>
+  errors: Record<string, string>
+  requestId?: string
+}
+
+const ResolveBindingsResponseSchema = z.object({
+  resolved: z.record(z.string(), z.record(
+    z.string(),
+    z.union([z.string(), z.number(), z.boolean(), z.null()]),
+  )),
+  errors: z.record(z.string(), z.string()),
+  requestId: z.string().optional(),
+}) satisfies z.ZodType<ResolveBindingsResponse>
+
+export interface ResolveBindingsRequest {
+  schema: {
+    groups: Array<{
+      id: string
+      role: string
+      tableMeta?: { namespace: string; tableName: string }
+      fields: Array<{ id: string; key: string; dbColumnName?: string }>
+    }>
+  }
+  /** Partition key values per group: { groupId → { columnName → value } } */
+  partitionKeys: Record<string, Record<string, string>>
+}
+
+/**
+ * POST /api/v2/templates/{id}/resolve-bindings
+ *
+ * Fetches actual row data from ScalarDB for schema groups that have tableMeta bound.
+ * Returns HTTP 207 (partial success): groups that fail appear in `errors`.
+ *
+ * @param templateId - the template ID (for ownership verification)
+ * @param request    - schema groups + partition key values to look up
+ * @param signal     - optional AbortSignal for cancellation
+ */
+export async function resolveBindings(
+  templateId: string,
+  request: ResolveBindingsRequest,
+  signal?: AbortSignal,
+): Promise<ResolveBindingsResponse> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/resolve-bindings`,
+    ResolveBindingsResponseSchema,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal,
+    },
+  )
+}

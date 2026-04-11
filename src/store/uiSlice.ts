@@ -43,6 +43,8 @@ export type UISlice = Pick<StoreState,
   | 'setSaveState'
   | 'incrementLoadGeneration'
   | 'setLayerSearchQuery'
+  | 'livePreviewData'
+  | 'setLivePreviewData'
 >
 
 export const createUISlice: StateCreator<
@@ -111,4 +113,8 @@ export const createUISlice: StateCreator<
   incrementLoadGeneration: () => set((s) => { s.loadGeneration += 1 }),
 
   setLayerSearchQuery: (query) => set((s) => { s.layerSearchQuery = query }),
+
+  // ── Phase 2: live preview data (ScalarDB resolved values) ────────────────
+  livePreviewData: null,
+  setLivePreviewData: (data) => set((s) => { s.livePreviewData = data }),
 })

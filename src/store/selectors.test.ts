@@ -180,3 +180,33 @@ describe('selectSelectedElements', () => {
     expect(selectSelectedElements(fakeState)).toEqual([])
   })
 })
+
+
+// ---------------------------------------------------------------------------
+// Phase 2: selectSchemaFieldKeyById
+// ---------------------------------------------------------------------------
+
+import { selectSchemaFieldKeyById } from './selectors'
+
+describe('selectSchemaFieldKeyById', () => {
+  it('存在するフィールドIDからキーを返す', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'customer_name', label: '顧客名', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+
+    const result = selectSchemaFieldKeyById(fieldId)(useReportStore.getState())
+    expect(result).toBe('customer_name')
+  })
+
+  it('存在しないフィールドIDは undefined を返す', () => {
+    const result = selectSchemaFieldKeyById('non-existent-id')(useReportStore.getState())
+    expect(result).toBeUndefined()
+  })
+
+  it('スキーマが未定義の場合は undefined を返す', () => {
+    expect(useReportStore.getState().definition.schema).toBeUndefined()
+    const result = selectSchemaFieldKeyById('any-id')(useReportStore.getState())
+    expect(result).toBeUndefined()
+  })
+})

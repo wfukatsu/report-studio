@@ -34,6 +34,20 @@ export const selectActivePage = (s: StoreState): PageDef | null =>
 
 const EMPTY_ELEMENTS: ReportElement[] = []
 
+/**
+ * Phase 2: look up a SchemaField's `key` string by its `id` UUID.
+ * Returns undefined when the field is not found in the current schema.
+ *
+ * Usage:
+ *   const fieldKey = useReportStore(useCallback(selectSchemaFieldKeyById(element.schemaBinding?.fieldId ?? ''), [...]))
+ */
+export const selectSchemaFieldKeyById =
+  (fieldId: string) =>
+  (s: StoreState): string | undefined =>
+    s.definition.schema?.groups
+      .flatMap((g) => g.fields)
+      .find((f) => f.id === fieldId)?.key
+
 export const selectSelectedElements = (s: StoreState): ReportElement[] => {
   const page = selectActivePage(s)
   if (!page) return EMPTY_ELEMENTS

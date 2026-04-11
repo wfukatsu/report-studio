@@ -18,6 +18,7 @@ export type SchemaSlice = Pick<StoreState,
   | 'bindGroupToTable'
   | 'bindGroupToTableWithColumns'
   | 'setSchema'
+  | 'setElementSchemaBinding'
 >
 
 export const createSchemaSlice: StateCreator<
@@ -42,7 +43,23 @@ export const createSchemaSlice: StateCreator<
 
   removeSchemaGroup: (groupId) => set((s) => {
     if (!s.definition.schema) return
+    const group = s.definition.schema.groups.find((g) => g.id === groupId)
+    if (!group) return
+    // Collect field IDs before removing the group (immer-safe: build Set outside draft ops)
+    const removedFieldIds = new Set(group.fields.map((f) => f.id))
     s.definition.schema.groups = s.definition.schema.groups.filter((g) => g.id !== groupId)
+    // Clear schemaBinding on elements that referenced any field in this group
+    for (const page of s.definition.pages) {
+      for (const section of page.sections ?? []) {
+        for (const el of section.elements) {
+          if (el.schemaBinding && removedFieldIds.has(el.schemaBinding.fieldId)) {
+            el.schemaBinding = undefined
+          }
+        }
+      }
+    }
+    // Invalidate live preview data — schema changed
+    s.livePreviewData = null
   }),
 
   updateSchemaGroup: (groupId, patch) => set((s) => {
@@ -62,6 +79,19 @@ export const createSchemaSlice: StateCreator<
     const group = s.definition.schema?.groups.find((g) => g.id === groupId)
     if (!group) return
     group.fields = group.fields.filter((f) => f.id !== fieldId)
+    // Clear schemaBinding on elements that referenced this field (atomic in same set())
+    const targetFieldId = fieldId
+    for (const page of s.definition.pages) {
+      for (const section of page.sections ?? []) {
+        for (const el of section.elements) {
+          if (el.schemaBinding?.fieldId === targetFieldId) {
+            el.schemaBinding = undefined
+          }
+        }
+      }
+    }
+    // Invalidate live preview data — schema changed
+    s.livePreviewData = null
   }),
 
   updateSchemaField: (groupId, fieldId, patch) => set((s) => {
@@ -77,18 +107,13 @@ export const createSchemaSlice: StateCreator<
 
     if (tableMeta === undefined) {
       // Unbind ("解除") — drop tableMeta AND clear dbColumnName on every field.
-      // The entire binding unit is the domain event; callers can never leak
-      // orphaned dbColumnName hints that point at a table the group no longer
-      // references.
       delete group.tableMeta
       group.fields.forEach((f) => { delete f.dbColumnName })
+      s.livePreviewData = null
       return
     }
 
-    // Rebind to a DIFFERENT (namespace, tableName) → clear all field column
-    // hints because none of them can refer to the new table. Prevents the
-    // hostile UX where every row would immediately show "(列が存在しません)"
-    // after the rebind. Same-table rebind (or first bind) preserves hints.
+    // Rebind to a DIFFERENT (namespace, tableName) → clear all field column hints
     const prev = group.tableMeta
     const isRebindToDifferentTable =
       prev !== undefined &&
@@ -97,6 +122,7 @@ export const createSchemaSlice: StateCreator<
       group.fields.forEach((f) => { delete f.dbColumnName })
     }
     group.tableMeta = { namespace: tableMeta.namespace, tableName: tableMeta.tableName }
+    s.livePreviewData = null
   }),
 
   bindGroupToTableWithColumns: (groupId, tableMeta, fieldColumns) => set((s) => {
@@ -110,11 +136,29 @@ export const createSchemaSlice: StateCreator<
       if (!field) continue
       field.dbColumnName = dbColumnName
     }
+    s.livePreviewData = null
     // Does NOT call pushHistory — matches the existing bindGroupToTable convention.
-    // The schema slice is outside the history system in Phase 1.
   }),
 
   setSchema: (schema) => set((s) => {
     s.definition.schema = schema
+    s.livePreviewData = null
+  }),
+
+  /**
+   * Phase 2: bind an element to a schema field by fieldId.
+   * Pass undefined to remove the binding.
+   */
+  setElementSchemaBinding: (pageId, elementId, fieldId) => set((s) => {
+    for (const page of s.definition.pages) {
+      if (page.id !== pageId) continue
+      for (const section of page.sections ?? []) {
+        for (const el of section.elements) {
+          if (el.id !== elementId) continue
+          el.schemaBinding = fieldId !== undefined ? { fieldId } : undefined
+          return
+        }
+      }
+    }
   }),
 })

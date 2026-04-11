@@ -14,6 +14,8 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePage, flattenPageElements } from '@/store/reportStore'
+import { usePreviewData } from '@/hooks/usePreviewData'
+import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
 import { SectionContainer } from './SectionContainer'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
@@ -82,7 +84,13 @@ export function ReportCanvas({
 }: Props) {
   const activePage = useReportStore(selectActivePage)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
-  const dataSource = useReportStore((s) => s.definition.dataSources[0] ?? null)
+  // Phase 2: live preview data from ScalarDB (resolve-bindings)
+  const livePreviewData = useReportStore((s) => s.livePreviewData)
+  const schema = useReportStore((s) => s.definition.schema)
+  const stableLiveData = useMemo(
+    () => livePreviewData ? buildFlatDataFromResolved(livePreviewData, schema) : null,
+    [livePreviewData, schema],
+  )
   const selectElement = useReportStore((s) => s.selectElement)
   const clearSelection = useReportStore((s) => s.clearSelection)
   const setSelectionIds = useReportStore((s) => s.setSelectionIds)
@@ -111,8 +119,11 @@ export function ReportCanvas({
   const setHeaderEditMode = useReportStore((s) => s.setHeaderEditMode)
   const updateSectionHeight = useReportStore((s) => s.updateSectionHeight)
 
+  // Sample data from the first DataSource (existing flow)
+  const mergedSampleData = usePreviewData()
   const page = pageOverride ?? activePage
-  const data = dataOverride ?? (dataSource?.fields as Record<string, unknown> | undefined) ?? EMPTY_DATA
+  // Priority: external dataOverride > live ScalarDB data > sample JSON data
+  const data = dataOverride ?? stableLiveData ?? mergedSampleData ?? EMPTY_DATA
   const totalPages = pages.length
   const pageIndex = page ? pages.findIndex((p) => p.id === page.id) + 1 : 1
 
