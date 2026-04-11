@@ -186,9 +186,9 @@ elements.push(
 // 3. 顧客情報（左側）
 // =====================================================================
 elements.push(
-  df('customer_name', ML, Y_CUSTOMER, LEFT_BLOCK_W - 16, 10,
+  df('customer_name', ML, Y_CUSTOMER, 60, 10,
     { fontSize: 5.0, fontWeight: 'bold' }, undefined, '株式会社サンプル'),
-  lbl('御中', ML + LEFT_BLOCK_W - 16, Y_CUSTOMER, 16, 10,
+  lbl('御中', ML + 60, Y_CUSTOMER, 12, 10,
     { fontSize: 5.0, fontWeight: 'bold' }),
   hline(ML, Y_CUSTOMER + 11, LEFT_BLOCK_W, { strokeWidth: 0.4 }),
 

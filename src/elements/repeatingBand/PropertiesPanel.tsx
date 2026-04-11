@@ -80,6 +80,12 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
       </PropSection>
 
       <PropSection title="繰り返しバンド — 外観">
+        {el.showHeader && (
+          <>
+            <PropRow label="ヘッダー背景色"><ColorInput value={el.headerStyle?.backgroundColor ?? '#f3f4f6'} onChange={(v) => onChange({ headerStyle: { ...el.headerStyle, backgroundColor: v } })} /></PropRow>
+            <PropRow label="ヘッダー文字色"><ColorInput value={el.headerStyle?.color ?? '#1a1a1a'} onChange={(v) => onChange({ headerStyle: { ...el.headerStyle, color: v } })} /></PropRow>
+          </>
+        )}
         <PropRow label="奇数行の背景色"><ColorInput value={el.oddRowColor} onChange={(v) => onChange({ oddRowColor: v })} /></PropRow>
         <PropRow label="偶数行の背景色（縞模様）"><ColorInput value={el.evenRowColor} onChange={(v) => onChange({ evenRowColor: v })} /></PropRow>
         <PropRow label="枠線色"><ColorInput value={el.borderColor} onChange={(v) => onChange({ borderColor: v })} /></PropRow>

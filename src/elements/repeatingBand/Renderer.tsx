@@ -9,6 +9,12 @@ import { groupRecords, applyGroupedMaxItems, countGroupedRows } from '@/lib/grou
 // Shared style helpers
 // ---------------------------------------------------------------------------
 
+function alignToJustify(align?: string): React.CSSProperties['justifyContent'] {
+  if (align === 'right') return 'flex-end'
+  if (align === 'center') return 'center'
+  return 'flex-start'
+}
+
 function cellStyle(
   align?: string,
   bg?: string,
@@ -19,6 +25,7 @@ function cellStyle(
     padding: '0.5mm 1mm',
     fontSize: '2.8mm',
     textAlign: (align ?? 'left') as React.CSSProperties['textAlign'],
+    justifyContent: alignToJustify(align),
     backgroundColor: bg,
     fontWeight: fw as React.CSSProperties['fontWeight'],
     overflow: 'hidden',
@@ -78,18 +85,18 @@ function RepeatingBandDesignPreview({ element: el }: { element: RepeatingBandEle
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, right: 0, background: '#3b82f6', color: '#ffffff', fontSize: '2mm', padding: '0.5mm 1.5mm', borderBottomLeftRadius: '1mm', zIndex: 10, fontWeight: 'bold', letterSpacing: '0.05em' }}>
-        繰り返しバンド · {el.dataSource}{isGrouped ? ` (${el.groupBy}でグループ化)` : ''}
-      </div>
       {el.showHeader && (
         <div style={{ display: 'flex', height: `${HEADER_H}mm`, flexShrink: 0, borderBottom: bs }}>
           {el.fields.map((f, i) => (
-            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: 'none' }}>
+            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none', color: el.headerStyle?.color }}>
               {f.label}
             </div>
           ))}
         </div>
       )}
+      <div style={{ position: 'absolute', top: el.showHeader ? `${HEADER_H}mm` : 0, right: 0, background: '#3b82f6', color: '#ffffff', fontSize: '2mm', padding: '0.5mm 1.5mm', borderBottomLeftRadius: '1mm', zIndex: 10, fontWeight: 'bold', letterSpacing: '0.05em' }}>
+        繰り返しバンド · {el.dataSource}{isGrouped ? ` (${el.groupBy}でグループ化)` : ''}
+      </div>
 
       {/* Grouped preview */}
       {isGrouped ? (
@@ -140,7 +147,7 @@ function RepeatingBandDesignPreview({ element: el }: { element: RepeatingBandEle
           {el.fields.map((f, i) => {
             const total = el.totals.find((t) => t.fieldKey === f.key)
             return (
-              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start', borderBottom: 'none' }}>
+              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none' }}>
                 {total ? <span>{total.label ?? total.fieldKey} ({total.formula})</span> : i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null}
               </div>
             )
@@ -209,7 +216,7 @@ function RepeatingBandLiveRenderer({
       {el.showHeader && (
         <div style={{ display: 'flex', height: `${HEADER_H}mm`, flexShrink: 0, borderBottom: bs }}>
           {el.fields.map((f, i) => (
-            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: 'none' }}>
+            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none', color: el.headerStyle?.color }}>
               {f.label}
             </div>
           ))}
@@ -248,7 +255,7 @@ function RepeatingBandLiveRenderer({
             const total = el.totals.find((t) => t.fieldKey === f.key)
             const value = total ? aggregateField(sorted, f.key, total.formula) : null
             return (
-              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start', borderBottom: 'none' }}>
+              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none' }}>
                 {value !== null ? formatAggregateValue(value, f) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
               </div>
             )
@@ -272,7 +279,7 @@ function GroupedBandRenderer({
   headerH,
   footerH,
 }: {
-  el: RepeatingBandElement
+  el: RepeatingBandElement & { groupBy: string }
   records: Record<string, unknown>[]
   bs: string
   colPcts: string[]
@@ -280,7 +287,7 @@ function GroupedBandRenderer({
   headerH: number
   footerH: number
 }) {
-  const groupByField = el.groupBy!
+  const groupByField = el.groupBy
   const hasSubtotals = !!el.showGroupSubtotals && el.totals.length > 0
   const groupStyle = el.groupStyle ?? DEFAULT_GROUP_STYLE
 
@@ -327,7 +334,7 @@ function GroupedBandRenderer({
       {el.showHeader && (
         <div style={{ display: 'flex', height: `${headerH}mm`, flexShrink: 0, borderBottom: bs }}>
           {el.fields.map((f, i) => (
-            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: 'none' }}>
+            <div key={i} style={{ ...cellStyle('center', el.headerStyle?.backgroundColor ?? '#f3f4f6', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none', color: el.headerStyle?.color }}>
               {f.label}
             </div>
           ))}
@@ -407,7 +414,6 @@ function GroupedBandRenderer({
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start',
                       borderBottom: 'none',
                       color: groupStyle.color,
                     }}
@@ -435,7 +441,7 @@ function GroupedBandRenderer({
             const total = el.totals.find((t) => t.fieldKey === f.key)
             const value = total ? aggregateField(allRecords, f.key, total.formula) : null
             return (
-              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: f.align === 'right' ? 'flex-end' : f.align === 'center' ? 'center' : 'flex-start', borderBottom: 'none' }}>
+              <div key={i} style={{ ...cellStyle(f.align, '#f9fafb', 'bold', i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: 'none' }}>
                 {value !== null ? formatAggregateValue(value, f) : (i === 0 ? <span style={{ color: '#6b7280' }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
               </div>
             )
