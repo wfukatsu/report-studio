@@ -176,6 +176,42 @@ class V2TemplateControllerTest {
         verify(repo, never()).get(anyString());
     }
 
+    @Test
+    void get_returns404ForNonOwner() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        String envelope = MAPPER.createObjectNode()
+                .put("id", "t1")
+                .put("created_by", "owner-user")
+                .set("definition", MAPPER.createObjectNode().put("id", "t1")).toString();
+        when(repo.get("t1")).thenReturn(Optional.of(envelope));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("other-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.get(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(ctx, never()).result(anyString());
+    }
+
+    @Test
+    void get_allowsOwnerAccess() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        String envelope = MAPPER.createObjectNode()
+                .put("id", "t1")
+                .put("created_by", "owner-user")
+                .set("definition", MAPPER.createObjectNode().put("id", "t1")).toString();
+        when(repo.get("t1")).thenReturn(Optional.of(envelope));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("owner-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.get(ctx);
+
+        verify(ctx).contentType("application/json");
+        verify(ctx).result(anyString());
+    }
+
     // ── put ───────────────────────────────────────────────────────────────────
 
     @Test
@@ -217,6 +253,25 @@ class V2TemplateControllerTest {
     }
 
     @Test
+    void put_returns404ForNonOwner() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        String oldEnvelope = MAPPER.createObjectNode()
+                .put("id", "t1")
+                .put("created_by", "owner-user")
+                .set("definition", MAPPER.createObjectNode()).toString();
+        when(repo.get("t1")).thenReturn(Optional.of(oldEnvelope));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("other-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+        when(ctx.body()).thenReturn("{\"id\":\"t1\"}");
+
+        controller.put(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(repo, never()).put(anyString(), anyString());
+    }
+
+    @Test
     void put_preservesCreatedAt() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
         long originalCreatedAt = 999_000L;
@@ -248,11 +303,35 @@ class V2TemplateControllerTest {
     @Test
     void delete_callsRepoDeleteAndReturns204() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
+        // Legacy template without created_by — ownership check passes for any caller
+        String envelope = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "t1")
+                .put("name", "テスト")
+                .set("definition", MAPPER.createObjectNode()));
+        when(repo.get("t1")).thenReturn(Optional.of(envelope));
 
         controller.delete(ctx);
 
         verify(repo).delete("t1");
         verify(ctx).status(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void delete_returns404ForNonOwner() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        String envelope = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "t1")
+                .put("created_by", "owner-user")
+                .set("definition", MAPPER.createObjectNode()));
+        when(repo.get("t1")).thenReturn(Optional.of(envelope));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("other-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.delete(ctx);
+
+        verify(repo, never()).delete(anyString());
+        verify(ctx).status(HttpStatus.NOT_FOUND);
     }
 
     @Test

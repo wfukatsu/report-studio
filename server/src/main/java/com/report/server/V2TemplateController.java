@@ -97,6 +97,10 @@ public final class V2TemplateController {
     /**
      * GET /api/v2/templates/{id}
      * Returns the stored ReportDefinition JSON.
+     *
+     * <p>Ownership check: if the template has a {@code created_by} field, only that user
+     * (or an unauthenticated caller in dev mode) may read it. Returns 404 for both missing
+     * and forbidden cases to prevent template ID enumeration.
      */
     public void get(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -104,6 +108,13 @@ public final class V2TemplateController {
 
         var stored = definitionsRepo.get(id);
         if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
+        // Ownership check — return 404 (not 403) to prevent template ID enumeration
+        if (!isOwner(ctx, stored.get())) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
             return;
@@ -145,11 +156,17 @@ public final class V2TemplateController {
             return;
         }
 
-        // Preserve created_at and created_by from existing envelope
+        // Preserve created_at and created_by from existing envelope, and verify ownership
         long createdAt = System.currentTimeMillis();
         String createdBy = null;
         var stored = definitionsRepo.get(id);
         if (stored.isPresent()) {
+            // Ownership check — return 404 (not 403) to prevent template ID enumeration
+            if (!isOwner(ctx, stored.get())) {
+                ctx.status(HttpStatus.NOT_FOUND);
+                ctx.json(Map.of("error", "Template not found"));
+                return;
+            }
             try {
                 JsonNode existingEnvelope = MAPPER.readTree(stored.get());
                 createdAt = existingEnvelope.path("created_at").asLong(createdAt);
@@ -198,11 +215,11 @@ public final class V2TemplateController {
             return;
         }
 
-        // Ownership check: only the creator can duplicate (or legacy templates without createdBy)
-        String owner = original.path("created_by").asText("");
-        if (!owner.isEmpty() && !owner.equals(principal.userId())) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+        // Ownership check: only the creator can duplicate (or legacy templates without createdBy).
+        // Returns 404 (not 403) to prevent template ID enumeration — consistent with get/put.
+        if (!isOwner(ctx, stored.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
             return;
         }
 
@@ -233,15 +250,49 @@ public final class V2TemplateController {
      * DELETE /api/v2/templates/{id}
      * Returns 204.
      */
-    public void delete(Context ctx) {
+    public void delete(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
         if (id == null) return;
+
+        var stored = definitionsRepo.get(id);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NO_CONTENT);  // idempotent delete
+            return;
+        }
+        if (!isOwner(ctx, stored.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
 
         definitionsRepo.delete(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if the calling principal owns the stored template, or if ownership cannot be
+     * determined (unauthenticated caller / legacy template without {@code created_by}).
+     *
+     * <p>Returning true for legacy templates (empty {@code created_by}) preserves backwards
+     * compatibility with single-user deployments created before authentication was introduced.
+     *
+     * <p>Callers should return HTTP 404 (not 403) on {@code false} to prevent template ID
+     * enumeration attacks.
+     */
+    private static boolean isOwner(Context ctx, String storedEnvelopeJson) {
+        Principal principal = ctx.attribute("principal");
+        if (principal == null) return true;  // unauthenticated / dev mode — allow all
+        try {
+            JsonNode envelope = MAPPER.readTree(storedEnvelopeJson);
+            String owner = envelope.path("created_by").asText("");
+            if (owner.isEmpty()) return true;  // legacy template without created_by — allow all
+            return owner.equals(principal.userId());
+        } catch (Exception ignored) {
+            return true;  // malformed envelope — fail open to avoid blocking legitimate access
+        }
+    }
 
     /**
      * Extract and validate name from request body.

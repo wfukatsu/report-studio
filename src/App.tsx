@@ -11,6 +11,7 @@ import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionMod
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
 import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
 import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
+import { DataBindingOverviewPanel } from '@/components/sidebar/DataBindingOverviewPanel'
 import { VersionHistoryPanel } from '@/components/sidebar/VersionHistoryPanel'
 import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
@@ -19,7 +20,7 @@ import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-type LeftTab = 'elements' | 'pages' | 'layers' | 'schema' | 'responses'
+type LeftTab = 'elements' | 'pages' | 'layers' | 'schema' | 'responses' | 'data'
 type RightTab = 'properties' | 'versions' | 'page'
 
 const LEFT_TABS: { id: LeftTab; label: string }[] = [
@@ -28,6 +29,7 @@ const LEFT_TABS: { id: LeftTab; label: string }[] = [
   { id: 'layers', label: 'レイヤー' },
   { id: 'pages', label: 'ページ' },
   { id: 'responses', label: '回答' },
+  { id: 'data', label: 'データ' },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
@@ -318,6 +320,7 @@ export default function App() {
                 {leftTab === 'pages' && <PagePanel />}
                 {leftTab === 'schema' && <SchemaPanel />}
                 {leftTab === 'responses' && <ResponsesPanel />}
+                {leftTab === 'data' && <DataBindingOverviewPanel />}
               </div>
             )}
           </aside>
