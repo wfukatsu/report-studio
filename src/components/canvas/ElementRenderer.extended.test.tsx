@@ -288,3 +288,73 @@ describe('ElementRenderer — visibility', () => {
     expect(screen.getByText('表示中')).toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Preview mode: hide empty-data elements when readonly=true
+// ---------------------------------------------------------------------------
+
+describe('ElementRenderer — preview mode (readonly=true): hide empty data elements', () => {
+  it('hides dataField element when field resolves to empty (readonly=true)', () => {
+    const el = createDataFieldElement({ id: 'df-empty', fieldKey: 'missing_field' })
+    const { container } = render(<ElementRenderer element={el} data={{}} readonly={true} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows dataField element when field has data (readonly=true)', () => {
+    const el = createDataFieldElement({ id: 'df-filled', fieldKey: 'customer_name' })
+    render(<ElementRenderer element={el} data={{ customer_name: '田中太郎' }} readonly={true} />)
+    // DataFieldRenderer renders the value
+    expect(screen.getByText('田中太郎')).toBeInTheDocument()
+  })
+
+  it('shows dataField element when readonly=false even if field is empty', () => {
+    const el = createDataFieldElement({ id: 'df-editor', fieldKey: 'missing_field' })
+    const { container } = render(<ElementRenderer element={el} data={{}} readonly={false} />)
+    // In editor mode, the fallback placeholder is shown
+    expect(container.firstChild).not.toBeNull()
+  })
+
+  it('hides text element with {{}} when data resolves to empty (readonly=true)', () => {
+    const el = createTextElement({ id: 'text-empty', content: '{{customer_name}}' })
+    const { container } = render(<ElementRenderer element={el} data={{}} readonly={true} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows text element with {{}} when data is present (readonly=true)', () => {
+    const el = createTextElement({ id: 'text-filled', content: '{{customer_name}}' })
+    render(<ElementRenderer element={el} data={{ customer_name: '田中' }} readonly={true} />)
+    expect(screen.getByText('田中')).toBeInTheDocument()
+  })
+
+  it('shows static text element without {{}} regardless of data (readonly=true)', () => {
+    const el = createTextElement({ id: 'text-static', content: '固定テキスト' })
+    render(<ElementRenderer element={el} data={{}} readonly={true} />)
+    expect(screen.getByText('固定テキスト')).toBeInTheDocument()
+  })
+
+  it('hides repeatingBand when data array is empty (readonly=true)', () => {
+    const el = createRepeatingBandElement({ id: 'band-empty', dataSource: 'items' })
+    const { container } = render(<ElementRenderer element={el} data={{ items: [] }} readonly={true} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows repeatingBand when data array has items (readonly=true)', () => {
+    const el = createRepeatingBandElement({ id: 'band-filled', dataSource: 'items' })
+    const { container } = render(
+      <ElementRenderer element={el} data={{ items: [{ id: 1, name: 'A', amount: 100 }] }} readonly={true} />,
+    )
+    expect(container.firstChild).not.toBeNull()
+  })
+
+  it('hides chart when dataBinding array is empty (readonly=true)', () => {
+    const el = createChartElement({ id: 'chart-empty', dataBinding: 'chartData' })
+    const { container } = render(<ElementRenderer element={el} data={{ chartData: [] }} readonly={true} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('shows shape element regardless of data (readonly=true, static element)', () => {
+    const el = createShapeElement({ id: 'shape-1' })
+    const { container } = render(<ElementRenderer element={el} data={{}} readonly={true} />)
+    expect(container.firstChild).not.toBeNull()
+  })
+})
