@@ -85,10 +85,10 @@ describe('useBindingAnalysis — no DataSource', () => {
     expect(result.current.hasDataSource).toBe(false)
   })
 
-  it('returns empty fieldMappings and errorElements when no datasource', () => {
+  it('returns empty fieldMappings and missingInSampleElements when no datasource', () => {
     addEl(makeDataField('df1', 'customer.name'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements).toHaveLength(0)
+    expect(result.current.missingInSampleElements).toHaveLength(0)
     // fieldMappings still lists bound elements even without datasource
     expect(result.current.fieldMappings).toHaveLength(1)
   })
@@ -192,14 +192,14 @@ describe('useBindingAnalysis — error detection with DataSource', () => {
   it('does not flag element with valid fieldKey as error', () => {
     addEl(makeDataField('df5', 'price'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements).toHaveLength(0)
+    expect(result.current.missingInSampleElements).toHaveLength(0)
   })
 
   it('flags element with unknown fieldKey as error', () => {
     addEl(makeDataField('df6', 'nonexistent.field'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements).toHaveLength(1)
-    expect(result.current.errorElements[0].elementId).toBe('df6')
+    expect(result.current.missingInSampleElements).toHaveLength(1)
+    expect(result.current.missingInSampleElements[0].elementId).toBe('df6')
   })
 
   it('does not flag fieldKey with empty-string value as error', () => {
@@ -210,19 +210,19 @@ describe('useBindingAnalysis — error detection with DataSource', () => {
     })
     addEl(makeDataField('df7', 'emptyField'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements).toHaveLength(0)
+    expect(result.current.missingInSampleElements).toHaveLength(0)
   })
 
   it('flags text token that does not exist in datasource as error', () => {
     addEl(makeText('t5', '{{missingKey}}'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements.map((e) => e.fieldKey)).toContain('missingKey')
+    expect(result.current.missingInSampleElements.map((e) => e.fieldKey)).toContain('missingKey')
   })
 
   it('does not error on valid nested key in text', () => {
     addEl(makeText('t6', '{{customer.name}}'))
     const { result } = renderHook(() => useBindingAnalysis())
-    expect(result.current.errorElements).toHaveLength(0)
+    expect(result.current.missingInSampleElements).toHaveLength(0)
   })
 })
 
@@ -240,7 +240,7 @@ describe('useBindingAnalysis — all bound and correct', () => {
     addEl(makeEraSelect('era3', 'era'))
     const { result } = renderHook(() => useBindingAnalysis())
     expect(result.current.unboundElements).toHaveLength(0)
-    expect(result.current.errorElements).toHaveLength(0)
+    expect(result.current.missingInSampleElements).toHaveLength(0)
     expect(result.current.fieldMappings).toHaveLength(2)
   })
 })

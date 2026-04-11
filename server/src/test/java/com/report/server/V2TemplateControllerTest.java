@@ -80,6 +80,47 @@ class V2TemplateControllerTest {
         assertEquals(0, resp.path("total").asInt());
     }
 
+    @Test
+    void list_filtersOutOtherUsersTemplates() throws Exception {
+        String mine = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "t1").put("name", "自分の").put("created_by", "me"));
+        String others = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "t2").put("name", "他人の").put("created_by", "other-user"));
+        String legacy = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "t3").put("name", "レガシー"));
+        when(repo.list()).thenReturn(List.of(mine, others, legacy));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("me");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.list(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        // only "t1" (own) and "t3" (legacy) — "t2" filtered out
+        assertEquals(2, resp.path("total").asInt());
+        var ids = new java.util.HashSet<String>();
+        resp.path("items").forEach(item -> ids.add(item.path("id").asText()));
+        assertTrue(ids.contains("t1"));
+        assertFalse(ids.contains("t2"));
+        assertTrue(ids.contains("t3"));
+    }
+
+    @Test
+    void isOwner_returnsFalseOnMalformedEnvelope() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        // Malformed JSON — should return false (fail closed), causing 404
+        when(repo.get("t1")).thenReturn(Optional.of("not-valid-json"));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("any-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.get(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+    }
+
     // ── create ────────────────────────────────────────────────────────────────
 
     @Test

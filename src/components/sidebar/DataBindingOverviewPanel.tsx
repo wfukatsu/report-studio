@@ -109,7 +109,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: Collapsibl
 export function DataBindingOverviewPanel() {
   const selectElement = useReportStore((s) => s.selectElement)
   const setActivePage = useReportStore((s) => s.setActivePage)
-  const { hasDataSource, unboundElements, fieldMappings, errorElements } = useBindingAnalysis()
+  const { hasDataSource, unboundElements, fieldMappings, missingInSampleElements } = useBindingAnalysis()
 
   function handleSelect(elementId: string, pageId: string) {
     setActivePage(pageId)
@@ -155,15 +155,15 @@ export function DataBindingOverviewPanel() {
             </Section>
           )}
 
-          {/* Binding errors — hidden when 0 */}
-          {errorElements.length > 0 && (
-            <Section title="バインディングエラー" count={errorElements.length} icon="✖">
-              {errorElements.map((b) => (
+          {/* Fields bound but not present in sample data — hidden when 0 */}
+          {missingInSampleElements.length > 0 && (
+            <Section title="サンプル値なし" count={missingInSampleElements.length} icon="⚠">
+              {missingInSampleElements.map((b) => (
                 <ElementRow
-                  key={b.elementId}
+                  key={`${b.elementId}_${b.fieldKey}`}
                   binding={b}
                   onSelect={handleSelect}
-                  suffix="不明"
+                  suffix="未設定"
                 />
               ))}
             </Section>

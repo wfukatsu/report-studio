@@ -14,7 +14,7 @@ function mockAnalysis(partial: Partial<BindingAnalysis>) {
     hasDataSource: true,
     unboundElements: [],
     fieldMappings: [],
-    errorElements: [],
+    missingInSampleElements: [],
     ...partial,
   })
 }
@@ -91,17 +91,17 @@ describe('DataBindingOverviewPanel — フィールドマッピング', () => {
 describe('DataBindingOverviewPanel — エラーセクション', () => {
   it('shows error section when there are error elements', () => {
     mockAnalysis({
-      errorElements: [
+      missingInSampleElements: [
         { elementId: 'el3', elementLabel: '単価テキスト', pageId: 'p1', fieldKey: 'price' },
       ],
     })
     render(<DataBindingOverviewPanel />)
-    expect(screen.getByText(/エラー/)).toBeInTheDocument()
+    expect(screen.getByText(/サンプル値なし/)).toBeInTheDocument()
     expect(screen.getByText('単価テキスト')).toBeInTheDocument()
   })
 
   it('hides error section when there are no error elements', () => {
-    mockAnalysis({ errorElements: [] })
+    mockAnalysis({ missingInSampleElements: [] })
     render(<DataBindingOverviewPanel />)
     expect(screen.queryByText(/エラー/)).not.toBeInTheDocument()
   })
@@ -132,7 +132,7 @@ describe('DataBindingOverviewPanel — クリックで要素選択', () => {
     const setActivePage = vi.spyOn(useReportStore.getState(), 'setActivePage')
 
     mockAnalysis({
-      errorElements: [
+      missingInSampleElements: [
         { elementId: 'el-err', elementLabel: 'エラー要素', pageId: 'page-xyz', fieldKey: 'bad.key' },
       ],
     })

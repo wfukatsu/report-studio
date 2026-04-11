@@ -222,6 +222,11 @@ export async function exportReportToPdf(
 /**
  * Same as exportReportToPdf but returns a Blob instead of triggering a download.
  * Useful for opening the PDF in a new browser tab.
+ *
+ * Pages are rendered sequentially (not with Promise.all) to avoid allocating
+ * O(n × pageSize) canvas memory simultaneously. For a 20-page A4 report at
+ * scale=2 that would be ~280 MB; sequential rendering keeps peak usage at
+ * ~14 MB (one page at a time) at the cost of slightly longer wall-clock time.
  */
 export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blob> {
   if (pageEls.length === 0) throw new Error('No pages to export')
@@ -229,12 +234,10 @@ export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blo
   const totalPages = pageEls.length
   const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, i + 1, totalPages))
   try {
-    const canvases = await Promise.all(
-      pageEls.map((el) => html2canvas(el, { useCORS: true, scale: EXPORT_SCALE })),
-    )
-
-    const pdfWidth = canvases[0].width / EXPORT_SCALE
-    const pdfHeight = canvases[0].height / EXPORT_SCALE
+    // Render first page to obtain PDF dimensions
+    const firstCanvas = await html2canvas(pageEls[0], { useCORS: true, scale: EXPORT_SCALE })
+    const pdfWidth = firstCanvas.width / EXPORT_SCALE
+    const pdfHeight = firstCanvas.height / EXPORT_SCALE
 
     const pdf = new jsPDF({
       orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
@@ -242,10 +245,17 @@ export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blo
       format: [pdfWidth, pdfHeight],
     })
 
-    for (let i = 0; i < canvases.length; i++) {
+    // Process pages one at a time and release each canvas immediately after use
+    for (let i = 0; i < pageEls.length; i++) {
       if (i > 0) pdf.addPage()
-      const imgData = canvases[i].toDataURL('image/png')
+      const canvas = i === 0
+        ? firstCanvas
+        : await html2canvas(pageEls[i], { useCORS: true, scale: EXPORT_SCALE })
+      const imgData = canvas.toDataURL('image/png')
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      // Release GPU memory immediately after the page is added to the PDF
+      canvas.width = 0
+      canvas.height = 0
     }
 
     return pdf.output('blob')

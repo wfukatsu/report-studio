@@ -237,26 +237,44 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setIsPreviewingPdf(true)
     setExportError(null)
     const { definition, testData } = useReportStore.getState()
+
+    /** Open a blob URL in a new tab, checking for popup blockers */
+    const openBlobUrl = (blob: Blob): boolean => {
+      const url = URL.createObjectURL(blob)
+      const newTab = window.open(url, '_blank')
+      if (!newTab) {
+        URL.revokeObjectURL(url)
+        const msg = 'ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。'
+        setExportError(msg)
+        setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
+        return false
+      }
+      // Modern browsers capture the blob reference immediately on window.open;
+      // revoke after 1 second is sufficient and avoids accumulating multiple blobs in memory.
+      setTimeout(() => URL.revokeObjectURL(url), 1_000)
+      return true
+    }
+
     try {
       const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
       const dataJson = (testData ?? {}) as Record<string, unknown>
       const blob = await generateStatelessPdf(defJson, dataJson)
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
-      // Revoke after a short delay to give the new tab time to load
-      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+      openBlobUrl(blob)
     } catch {
-      // Server-side failed — fall back to client-side rendering
+      // Server-side failed — fall back to client-side rendering with user notification
       try {
         const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
         const blob = await exportReportToPdfBlob(els)
-        const url = URL.createObjectURL(blob)
-        window.open(url, '_blank')
-        setTimeout(() => URL.revokeObjectURL(url), 30_000)
+        if (openBlobUrl(blob)) {
+          // Inform the user that the fallback (lower-quality) renderer was used
+          const msg = 'クライアントレンダリングでプレビューを生成しました（品質が低下している場合があります）'
+          setExportError(msg)
+          setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
+        }
       } catch (_err) {
         const msg = 'PDFプレビューの生成に失敗しました'
         setExportError(msg)
-        setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
+        setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
       }
     } finally {
       setIsPreviewingPdf(false)

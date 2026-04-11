@@ -8,7 +8,7 @@ import { fieldExists } from '@/lib/dataBinding'
 // ---------------------------------------------------------------------------
 
 export interface ElementBinding {
-  /** Element ID (for formTable cells: `${elementId}_${cellId}`) */
+  /** Element ID. For formTable elements this is the formTable element ID (not a cell ID). */
   elementId: string
   /** Human-readable display label */
   elementLabel: string
@@ -25,8 +25,11 @@ export interface BindingAnalysis {
   unboundElements: ElementBinding[]
   /** Bound elements: fieldKey → element label */
   fieldMappings: ElementBinding[]
-  /** Bound elements whose fieldKey is not found in the DataSource */
-  errorElements: ElementBinding[]
+  /**
+   * Bound elements whose fieldKey is not found in the current sample DataSource.
+   * Note: this reflects sample-data absence, not schema invalidity.
+   */
+  missingInSampleElements: ElementBinding[]
 }
 
 // ---------------------------------------------------------------------------
@@ -38,28 +41,82 @@ function labelFor(el: { name?: string; type: string }): string {
   return el.name?.trim() || el.type
 }
 
+/**
+ * Compute a stable fingerprint string from the binding-relevant parts of the pages array.
+ * This changes only when element types, field keys, or content tokens change —
+ * NOT when elements are dragged/resized. Used as the useMemo dependency instead of
+ * the raw pages reference to prevent re-running analysis on every drag event.
+ */
+function bindingFingerprint(
+  pages: Parameters<typeof flattenPageElements>[0][],
+): string {
+  const parts: string[] = []
+  for (const page of pages) {
+    const elements = flattenPageElements(page)
+    for (const el of elements) {
+      switch (el.type) {
+        case 'text':
+          parts.push(`${el.id}:t:${el.content ?? ''}`)
+          break
+        case 'dataField':
+          parts.push(`${el.id}:df:${el.fieldKey ?? ''}`)
+          break
+        case 'checkbox':
+        case 'eraSelect':
+          parts.push(`${el.id}:${el.type}:${el.dataSource ?? ''}`)
+          break
+        case 'formTable': {
+          const cellParts = el.rows
+            .flatMap((r) => r.cells.map((c) => `${c.id}:${c.fieldKey ?? ''}`))
+            .join(',')
+          parts.push(`${el.id}:ft:${cellParts}`)
+          break
+        }
+        default:
+          parts.push(`${el.id}:${el.type}`)
+      }
+    }
+  }
+  return parts.join('|')
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
 export function useBindingAnalysis(): BindingAnalysis {
+  // Subscribe to a stable fingerprint rather than the full pages reference.
+  // This prevents re-running the analysis on every drag/resize operation,
+  // which would otherwise cause ~60 re-computations per second during editing.
+  const pageFingerprint = useReportStore((s) => bindingFingerprint(s.definition.pages))
+
+  // Subscribe only to whether a DataSource exists and which field keys are present.
+  // Field *values* changing does not affect the analysis, so we use a key-set fingerprint.
+  const hasDataSource = useReportStore((s) => s.definition.dataSources.length > 0)
+  const fieldKeyFingerprint = useReportStore((s) => {
+    const fields = s.definition.dataSources[0]?.fields ?? {}
+    return Object.keys(fields as Record<string, unknown>).sort().join(',')
+  })
+
+  // We still need the raw pages for the actual traversal inside useMemo.
+  // Using a stable selector so Zustand only re-subscribes when the reference changes.
   const pages = useReportStore((s) => s.definition.pages)
   const dataSources = useReportStore((s) => s.definition.dataSources)
 
   return useMemo(() => {
     const dataSource = dataSources[0] ?? null
-    const hasDataSource = !!dataSource
     const fields = (dataSource?.fields ?? {}) as Record<string, unknown>
 
     const unboundElements: ElementBinding[] = []
     const fieldMappings: ElementBinding[] = []
-    const errorElements: ElementBinding[] = []
+    const missingInSampleElements: ElementBinding[] = []
 
     /** Register a bound field key for an element */
     function registerBound(base: Omit<ElementBinding, 'fieldKey'>, fk: string) {
-      fieldMappings.push({ ...base, fieldKey: fk })
+      const binding: ElementBinding = { ...base, fieldKey: fk }
+      fieldMappings.push(binding)
       if (hasDataSource && !fieldExists(fields, fk)) {
-        errorElements.push({ ...base, fieldKey: fk })
+        missingInSampleElements.push(binding)
       }
     }
 
@@ -100,16 +157,8 @@ export function useBindingAnalysis(): BindingAnalysis {
             break
           }
 
-          case 'checkbox': {
-            const ds = el.dataSource?.trim() ?? ''
-            if (!ds) {
-              unboundElements.push(base)
-            } else {
-              registerBound(base, ds)
-            }
-            break
-          }
-
+          // checkbox and eraSelect both bind via dataSource — identical handling
+          case 'checkbox':
           case 'eraSelect': {
             const ds = el.dataSource?.trim() ?? ''
             if (!ds) {
@@ -124,9 +173,11 @@ export function useBindingAnalysis(): BindingAnalysis {
             for (const row of el.rows) {
               for (const cell of row.cells) {
                 if (cell.type === 'dataField') {
+                  // Use the parent formTable element ID so clicking the row selects
+                  // the formTable element (cell IDs are not addressable via selectElement)
                   const cellBase: Omit<ElementBinding, 'fieldKey'> = {
-                    elementId: `${el.id}_${cell.id}`,
-                    elementLabel: `${labelFor(el)} (セル)`,
+                    elementId: el.id,
+                    elementLabel: `${labelFor(el)} > ${cell.label?.trim() || cell.id}`,
                     pageId: page.id,
                   }
                   const fk = cell.fieldKey?.trim() ?? ''
@@ -148,6 +199,8 @@ export function useBindingAnalysis(): BindingAnalysis {
       }
     }
 
-    return { hasDataSource, unboundElements, fieldMappings, errorElements }
-  }, [pages, dataSources])
+    return { hasDataSource, unboundElements, fieldMappings, missingInSampleElements }
+    // Use fingerprints as deps so drag/resize and field-value edits don't trigger re-analysis
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageFingerprint, fieldKeyFingerprint, hasDataSource, pages, dataSources])
 }
