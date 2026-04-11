@@ -16,6 +16,7 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
 // Mock export utilities so render doesn't fail on missing canvas refs
 vi.mock('@/lib/exportUtils', () => ({
   exportReportToPdf: vi.fn(),
+  exportReportToPdfBlob: vi.fn().mockResolvedValue(new Blob(['pdf'])),
   exportPageToPng: vi.fn(),
   exportToJSON: vi.fn(() => '{}'),
 }))
@@ -31,8 +32,10 @@ function renderToolbar() {
 beforeEach(() => {
   useReportStore.getState().newReport()
   useReportStore.getState().invalidateComputed()
-  // newReport() doesn't reset currentTemplateId (uiSlice) — reset it explicitly
+  // newReport() doesn't reset currentTemplateId or UI state — reset them explicitly
   useReportStore.getState().setCurrentTemplateId(null)
+  useReportStore.getState().setLivePreviewEnabled(false)
+  useReportStore.getState().setPreviewMode(false)
   vi.clearAllMocks()
 })
 
@@ -92,17 +95,24 @@ describe('Toolbar — グリッド・スナップ', () => {
 })
 
 describe('Toolbar — プレビューモード', () => {
-  it('renders full preview button', () => {
+  it('renders preview button and dropdown toggle', () => {
     renderToolbar()
-    expect(screen.getByRole('button', { name: 'フルプレビュー' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'プレビューを表示' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'プレビューメニュー' })).toBeInTheDocument()
   })
 
-  it('toggles preview mode on click', () => {
+  it('opens dropdown when chevron is clicked and shows フルプレビュー option', () => {
     renderToolbar()
-    const previewBtn = screen.getByRole('button', { name: 'フルプレビュー' })
-    const beforeState = useReportStore.getState().previewMode
+    fireEvent.click(screen.getByRole('button', { name: 'プレビューメニュー' }))
+    expect(screen.getByText('フルプレビュー（PDF）')).toBeInTheDocument()
+  })
+
+  it('toggles live preview on プレビュー button click', () => {
+    renderToolbar()
+    const previewBtn = screen.getByRole('button', { name: 'プレビューを表示' })
+    const beforeState = useReportStore.getState().livePreviewEnabled
     fireEvent.click(previewBtn)
-    expect(useReportStore.getState().previewMode).toBe(!beforeState)
+    expect(useReportStore.getState().livePreviewEnabled).toBe(!beforeState)
   })
 })
 
@@ -294,7 +304,7 @@ describe('Toolbar — ズームメニュー', () => {
 describe('Toolbar — ライブプレビュー', () => {
   it('toggles live preview on click', () => {
     renderToolbar()
-    const liveBtn = screen.getByRole('button', { name: 'ライブプレビューを表示' })
+    const liveBtn = screen.getByRole('button', { name: 'プレビューを表示' })
     const beforeState = useReportStore.getState().livePreviewEnabled
     fireEvent.click(liveBtn)
     expect(useReportStore.getState().livePreviewEnabled).toBe(!beforeState)

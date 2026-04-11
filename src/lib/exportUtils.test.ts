@@ -263,12 +263,14 @@ vi.mock('html2canvas', () => ({
 
 // jsPDF is default-exported as a constructor
 const mockSave = vi.fn()
+const mockOutput = vi.fn().mockReturnValue(new Blob(['fake-pdf'], { type: 'application/pdf' }))
 const mockAddImage = vi.fn()
 const mockAddPage = vi.fn()
 
 vi.mock('jspdf', () => ({
   default: vi.fn().mockImplementation(() => ({
     save: mockSave,
+    output: mockOutput,
     addImage: mockAddImage,
     addPage: mockAddPage,
   })),
@@ -286,12 +288,32 @@ function makeCanvasMock(width = 210, height = 297) {
   }
 }
 
+// Mock URL.createObjectURL and anchor click used by exportReportToPdf
+const mockCreateObjectURL = vi.fn().mockReturnValue('blob:fake-url')
+const mockRevokeObjectURL = vi.fn()
+const mockAnchorClick = vi.fn()
+
 beforeEach(() => {
   vi.clearAllMocks()
-  // Re-apply default mock implementations after clearAllMocks
   mockSave.mockReset()
+  mockOutput.mockReturnValue(new Blob(['fake-pdf'], { type: 'application/pdf' }))
   mockAddImage.mockReset()
   mockAddPage.mockReset()
+
+  Object.defineProperty(window, 'URL', {
+    value: { createObjectURL: mockCreateObjectURL, revokeObjectURL: mockRevokeObjectURL },
+    writable: true,
+    configurable: true,
+  })
+  const originalCreate = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((tag: string, ...args) => {
+    if (tag === 'a') {
+      const a = originalCreate('a') as HTMLAnchorElement
+      a.click = mockAnchorClick
+      return a
+    }
+    return originalCreate(tag, ...args)
+  })
 })
 
 describe('exportPageToPng', () => {
@@ -315,12 +337,12 @@ describe('exportPageToPng', () => {
 })
 
 describe('exportReportToPdf', () => {
-  it('does nothing when no elements provided', async () => {
-    await exportReportToPdf([])
+  it('throws when no elements provided', async () => {
+    await expect(exportReportToPdf([])).rejects.toThrow('No pages to export')
     expect(mockHtml2canvas).not.toHaveBeenCalled()
   })
 
-  it('creates PDF for single page', async () => {
+  it('creates PDF for single page and triggers download', async () => {
     const canvasMock = makeCanvasMock(595, 842)
     mockHtml2canvas.mockResolvedValue(canvasMock as unknown as HTMLCanvasElement)
 
@@ -329,7 +351,9 @@ describe('exportReportToPdf', () => {
 
     expect(mockHtml2canvas).toHaveBeenCalledTimes(1)
     expect(mockAddImage).toHaveBeenCalledTimes(1)
-    expect(mockSave).toHaveBeenCalledWith('report.pdf')
+    expect(mockOutput).toHaveBeenCalledWith('blob')
+    expect(mockCreateObjectURL).toHaveBeenCalled()
+    expect(mockAnchorClick).toHaveBeenCalled()
     expect(mockAddPage).not.toHaveBeenCalled()
   })
 
@@ -345,7 +369,7 @@ describe('exportReportToPdf', () => {
     expect(mockHtml2canvas).toHaveBeenCalledTimes(3)
     expect(mockAddPage).toHaveBeenCalledTimes(2) // page 2 and 3
     expect(mockAddImage).toHaveBeenCalledTimes(3)
-    expect(mockSave).toHaveBeenCalledWith('multi.pdf')
+    expect(mockOutput).toHaveBeenCalledWith('blob')
   })
 
   it('throws error when html2canvas fails', async () => {

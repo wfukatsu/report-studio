@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Undo2, Redo2, Eye, EyeOff, FileImage, FileText, AlertCircle,
+  Undo2, Redo2, Eye, FileImage, FileText, AlertCircle,
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
@@ -22,7 +22,7 @@ import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { loadBuiltinTemplate } from '@/lib/templateUtils'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
-import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
+import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
@@ -67,8 +67,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const redo = useReportStore((s) => s.redo)
   const historyIndex = useReportStore((s) => s.historyIndex)
   const historyLength = useReportStore((s) => s.history.length)
-  const previewMode = useReportStore((s) => s.previewMode)
-  const setPreviewMode = useReportStore((s) => s.setPreviewMode)
+
   const editorZoom = useReportStore((s) => s.editorZoom)
   const previewZoom = useReportStore((s) => s.previewZoom)
   const setZoom = useReportStore((s) => s.setZoom)
@@ -131,6 +130,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
+  const [showPreviewMenu, setShowPreviewMenu] = useState(false)
+  const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
   const [showVariantsModal, setShowVariantsModal] = useState(false)
   const [showManagerModal, setShowManagerModal] = useState(false)
@@ -141,6 +142,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
   const zOrderMenuRef = useRef<HTMLDivElement>(null)
+  const previewMenuRef = useRef<HTMLDivElement>(null)
 
   const hasSelection = selectedIds.length > 0
   const hasMultiSelection = selectedIds.length >= 2
@@ -150,11 +152,13 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
   const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
   const closeZOrderMenu = useCallback(() => setShowZOrderMenu(false), [])
+  const closePreviewMenu = useCallback(() => setShowPreviewMenu(false), [])
 
   useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
   useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
   useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
   useDropdownDismiss(zOrderMenuRef, showZOrderMenu, closeZOrderMenu)
+  useDropdownDismiss(previewMenuRef, showPreviewMenu, closePreviewMenu)
 
   const runPreflight = async (): Promise<boolean> => {
     const { definition, testData } = useReportStore.getState()
@@ -224,6 +228,38 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     } finally {
       for (const node of hiddenNodes) { node.style.visibility = '' }
       setIsExporting(false)
+    }
+  }
+
+  /** Generate PDF and open in a new browser tab (full preview as PDF). */
+  const handleFullPreviewPdf = async () => {
+    if (isPreviewingPdf) return
+    setIsPreviewingPdf(true)
+    setExportError(null)
+    const { definition, testData } = useReportStore.getState()
+    try {
+      const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
+      const dataJson = (testData ?? {}) as Record<string, unknown>
+      const blob = await generateStatelessPdf(defJson, dataJson)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      // Revoke after a short delay to give the new tab time to load
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    } catch {
+      // Server-side failed — fall back to client-side rendering
+      try {
+        const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
+        const blob = await exportReportToPdfBlob(els)
+        const url = URL.createObjectURL(blob)
+        window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 30_000)
+      } catch (_err) {
+        const msg = 'PDFプレビューの生成に失敗しました'
+        setExportError(msg)
+        setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
+      }
+    } finally {
+      setIsPreviewingPdf(false)
     }
   }
 
@@ -863,23 +899,46 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
         <Divider />
 
-        <ToolbarButton
-          onClick={toggleLivePreview}
-          title={livePreviewEnabled ? 'ライブプレビューを閉じる' : 'ライブプレビューを表示'}
-          active={livePreviewEnabled}
-        >
-          <Eye className="w-4 h-4" />
-          <span className="text-xs ml-1">プレビュー</span>
-        </ToolbarButton>
-
-        <ToolbarButton
-          onClick={() => setPreviewMode(!previewMode)}
-          title={previewMode ? 'プレビュー終了' : 'フルプレビュー'}
-          active={previewMode}
-        >
-          {previewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          <span className="text-xs ml-1">{previewMode ? '編集' : 'フルプレビュー'}</span>
-        </ToolbarButton>
+        {/* Preview dropdown — default: live preview panel / option: full PDF preview */}
+        <div className="relative flex items-center" ref={previewMenuRef}>
+          <ToolbarButton
+            onClick={toggleLivePreview}
+            title={livePreviewEnabled ? 'プレビューを閉じる' : 'プレビューを表示'}
+            active={livePreviewEnabled}
+          >
+            <Eye className="w-4 h-4" />
+            <span className="text-xs ml-1">プレビュー</span>
+          </ToolbarButton>
+          <button
+            onClick={() => setShowPreviewMenu((v) => !v)}
+            className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
+            aria-expanded={showPreviewMenu}
+            aria-haspopup="menu"
+            aria-label="プレビューメニュー"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {showPreviewMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[180px] py-1">
+              <button
+                className={cn('w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex items-center gap-2', livePreviewEnabled && 'text-primary font-medium')}
+                onClick={() => { toggleLivePreview(); setShowPreviewMenu(false) }}
+              >
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+                プレビュー
+                {livePreviewEnabled && <span className="ml-auto text-[10px]">✓</span>}
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50"
+                onClick={() => { void handleFullPreviewPdf(); setShowPreviewMenu(false) }}
+                disabled={isPreviewingPdf}
+              >
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+                {isPreviewingPdf ? 'PDF生成中...' : 'フルプレビュー（PDF）'}
+              </button>
+            </div>
+          )}
+        </div>
 
         <ToolbarButton
           onClick={handleValidate}

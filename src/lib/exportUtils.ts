@@ -210,12 +210,25 @@ export async function exportReportToPdf(
   pageEls: HTMLElement[],
   fileName = 'report.pdf',
 ): Promise<void> {
-  if (pageEls.length === 0) return
+  const blob = await exportReportToPdfBlob(pageEls)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Same as exportReportToPdf but returns a Blob instead of triggering a download.
+ * Useful for opening the PDF in a new browser tab.
+ */
+export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blob> {
+  if (pageEls.length === 0) throw new Error('No pages to export')
 
   const totalPages = pageEls.length
   const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, i + 1, totalPages))
   try {
-    // Render all pages in parallel — avoids double-rendering page 0 and speeds up multi-page export
     const canvases = await Promise.all(
       pageEls.map((el) => html2canvas(el, { useCORS: true, scale: EXPORT_SCALE })),
     )
@@ -235,7 +248,7 @@ export async function exportReportToPdf(
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
     }
 
-    pdf.save(fileName)
+    return pdf.output('blob')
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`PDF export failed: ${message}`)
