@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { TextStyleSection } from './TextStyleSection'
 import type { TextStyle } from '@/types'
 
+vi.mock('@/elements/_base/sharedUI', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/elements/_base/sharedUI')>()
+  return {
+    ...mod,
+    ColorInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+    ),
+  }
+})
+
 function renderSection(
   style: TextStyle = {},
   onStyleChange = vi.fn(),

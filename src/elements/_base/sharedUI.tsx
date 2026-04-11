@@ -3,8 +3,10 @@
  * These small components are used by all element type PropertiesPanel components.
  */
 
-import { X } from 'lucide-react'
+import { useRef, useState, useCallback } from 'react'
+import { X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ColorPickerPopover } from './ColorPickerPopover'
 
 export function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -66,31 +68,74 @@ export function NumInput({ value, onChange, min, max, step, unit, inherited, onR
   )
 }
 
+// Unique ID counter for exclusive popover management
+let _colorInputIdCounter = 0
+
 export function ColorInput({ value, onChange, label, inherited, onReset }: {
   value: string; onChange: (v: string) => void; label?: string
   inherited?: boolean
   onReset?: () => void
 }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  // Stable id for broadcasting open state to other instances
+  const idRef = useRef(++_colorInputIdCounter)
+
+  // Close this popover when another ColorInput opens
+  const handleOpen = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('color-input-open', { detail: idRef.current }))
+    setOpen(true)
+  }, [])
+
+  const handleClose = useCallback(() => setOpen(false), [])
+
+  // Listen for other instances opening
+  useState(() => {
+    const listener = (e: Event) => {
+      const evt = e as CustomEvent<number>
+      if (evt.detail !== idRef.current) setOpen(false)
+    }
+    window.addEventListener('color-input-open', listener)
+    return () => window.removeEventListener('color-input-open', listener)
+  })
+
+  const handleChange = useCallback(
+    (hex: string) => {
+      onChange(hex)
+      setOpen(false)
+    },
+    [onChange],
+  )
+
   return (
     <div className="flex items-center gap-2 group">
-      <input
-        type="color"
-        className="w-8 h-7 rounded border cursor-pointer shrink-0"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <input
-        type="text"
-        className={cn(
-          'border rounded px-2 py-1 text-xs flex-1 font-mono',
-          inherited
-            ? 'bg-muted text-muted-foreground border-dashed'
-            : 'bg-background',
+      <div ref={containerRef} className="relative">
+        <button
+          type="button"
+          className={cn(
+            'flex items-center gap-1 border rounded px-1.5 py-1 h-7 text-xs bg-background hover:bg-accent transition-colors',
+            inherited && 'bg-muted border-dashed',
+          )}
+          onClick={open ? handleClose : handleOpen}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label="カラーピッカーを開く"
+        >
+          <span
+            className="w-4 h-4 rounded border border-border shrink-0"
+            style={{ backgroundColor: value }}
+          />
+          <span className="font-mono text-muted-foreground">{value}</span>
+          <ChevronDown className={cn('w-3 h-3 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        </button>
+        {open && (
+          <ColorPickerPopover
+            value={value}
+            onChange={handleChange}
+            onClose={handleClose}
+          />
         )}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={7}
-      />
+      </div>
       {label && <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>}
       <button
         style={{ visibility: inherited || !onReset ? 'hidden' : 'visible' }}

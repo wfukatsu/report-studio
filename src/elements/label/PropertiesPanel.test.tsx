@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { LabelPropertiesPanel } from './PropertiesPanel'
 import type { LabelElement } from '@/types'
 
+vi.mock('@/elements/_base/sharedUI', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/elements/_base/sharedUI')>()
+  return {
+    ...mod,
+    ColorInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+    ),
+  }
+})
+
 function makeEl(overrides?: Partial<LabelElement>): LabelElement {
   return {
     id: 'lbl-1', type: 'label',
