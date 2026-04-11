@@ -195,6 +195,11 @@ export interface SchemaGroup {
    * `undefined` means "unlinked". No status enum.
    */
   tableMeta?: ScalarDbTableMeta
+  /**
+   * Phase 3.5: links this detail group to a master group for automatic FK resolution.
+   * When set, the detail group's partition key values are copied from the linked master group.
+   */
+  linkedMasterGroupId?: string
 }
 
 export interface SchemaDefinition {

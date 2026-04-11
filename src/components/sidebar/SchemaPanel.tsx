@@ -136,6 +136,7 @@ const FieldRow = memo(function FieldRow({
 
 const GroupSection = memo(function GroupSection({
   group,
+  masterGroups,
   onUpdateGroup,
   onRemoveGroup,
   onAddField,
@@ -143,7 +144,8 @@ const GroupSection = memo(function GroupSection({
   onRemoveField,
 }: {
   group: SchemaGroup
-  onUpdateGroup: (patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey'>>) => void
+  masterGroups: SchemaGroup[]
+  onUpdateGroup: (patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>) => void
   onRemoveGroup: () => void
   onAddField: () => void
   onUpdateField: (fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void
@@ -216,6 +218,24 @@ const GroupSection = memo(function GroupSection({
                 placeholder="例: items"
                 aria-label="データキー（バインディングパスで使用）"
               />
+            </div>
+          )}
+
+          {/* Phase 3.5: parent master group linker (for detail groups) */}
+          {group.role === 'detail' && masterGroups.length > 0 && (
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-[10px] text-muted-foreground shrink-0">親グループ:</span>
+              <select
+                className="border rounded px-1 py-0.5 text-[10px] bg-background flex-1"
+                value={group.linkedMasterGroupId ?? ''}
+                onChange={(e) => onUpdateGroup({ linkedMasterGroupId: e.target.value || undefined })}
+                aria-label="親グループ"
+              >
+                <option value="">（手動入力）</option>
+                {masterGroups.map((mg) => (
+                  <option key={mg.id} value={mg.id}>{mg.label || mg.id}</option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -360,6 +380,7 @@ const InferPanel = memo(function InferPanel({
 export const SchemaPanel = memo(function SchemaPanel() {
   const schema = useReportStore((s) => s.definition.schema)
   const groups = useReportStore(useShallow((s) => s.definition.schema?.groups ?? []))
+  const masterGroups = groups.filter((g) => g.role === 'master')
 
   const {
     addSchemaGroup,
@@ -403,6 +424,7 @@ export const SchemaPanel = memo(function SchemaPanel() {
         <GroupSection
           key={g.id}
           group={g}
+          masterGroups={masterGroups}
           onUpdateGroup={(patch) => updateSchemaGroup(g.id, patch)}
           onRemoveGroup={() => removeSchemaGroup(g.id)}
           onAddField={() => addSchemaField(g.id, { key: '', label: '', type: 'string' })}

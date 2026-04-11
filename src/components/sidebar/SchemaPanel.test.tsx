@@ -169,6 +169,61 @@ describe('SchemaPanel — detail グループの dataKey', () => {
   })
 })
 
+describe('SchemaPanel — Phase 3.5: 親グループリンク', () => {
+  it('master グループが存在する場合、detail グループに親グループセレクタが表示される', () => {
+    render(<SchemaPanel />)
+    // Add master group first
+    fireEvent.click(screen.getByText(/master グループ/))
+    // Set master group label
+    const labelInput = screen.getByRole('textbox', { name: 'グループ名' })
+    fireEvent.change(labelInput, { target: { value: '顧客' } })
+    fireEvent.blur(labelInput)
+    // Add detail group
+    fireEvent.click(screen.getByText(/detail グループ/))
+    // The detail group should show parent group selector
+    expect(screen.getByLabelText('親グループ')).toBeInTheDocument()
+  })
+
+  it('master グループが存在しない場合、detail グループに親グループセレクタが表示されない', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/detail グループ/))
+    expect(screen.queryByLabelText('親グループ')).not.toBeInTheDocument()
+  })
+
+  it('親グループを選択すると linkedMasterGroupId がストアに保存される', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText(/detail グループ/))
+
+    const masterGroupId = useReportStore.getState().definition.schema!.groups[0].id
+    const detailGroupId = useReportStore.getState().definition.schema!.groups[1].id
+
+    const select = screen.getByLabelText('親グループ')
+    fireEvent.change(select, { target: { value: masterGroupId } })
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    const detail = groups.find((g) => g.id === detailGroupId)!
+    expect(detail.linkedMasterGroupId).toBe(masterGroupId)
+  })
+
+  it('（手動入力）を選択すると linkedMasterGroupId がクリアされる', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByText(/detail グループ/))
+
+    const masterGroupId = useReportStore.getState().definition.schema!.groups[0].id
+    const detailGroupId = useReportStore.getState().definition.schema!.groups[1].id
+
+    const select = screen.getByLabelText('親グループ')
+    fireEvent.change(select, { target: { value: masterGroupId } })
+    fireEvent.change(select, { target: { value: '' } })
+
+    const groups = useReportStore.getState().definition.schema?.groups ?? []
+    const detail = groups.find((g) => g.id === detailGroupId)!
+    expect(detail.linkedMasterGroupId).toBeUndefined()
+  })
+})
+
 describe('SchemaPanel — JSON から推測', () => {
   it('renders "JSON から推測" toggle button', () => {
     render(<SchemaPanel />)

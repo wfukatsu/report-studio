@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import * as bindingAnalysis from '@/hooks/useBindingAnalysis'
+import * as reportApi from '@/api/reportApi'
 import { DataBindingOverviewPanel } from './DataBindingOverviewPanel'
 import type { BindingAnalysis } from '@/hooks/useBindingAnalysis'
 
@@ -110,6 +111,78 @@ describe('DataBindingOverviewPanel — エラーセクション', () => {
 // ---------------------------------------------------------------------------
 // Click interaction
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Phase 3.5: LivePreviewSection with linkedMasterGroupId
+// ---------------------------------------------------------------------------
+
+describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動入力', () => {
+  function setupLinkedGroups() {
+    mockAnalysis({ hasDataSource: true })
+    useReportStore.getState().setCurrentTemplateId('tmpl-1')
+
+    // Add master group with tableMeta
+    useReportStore.getState().addSchemaGroup('master')
+    const masterGroupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(masterGroupId, { key: 'customerId', label: '顧客ID', type: 'string', dbColumnName: 'customer_id' } as import('@/types').SchemaField)
+    useReportStore.getState().bindGroupToTable(masterGroupId, { namespace: 'app', tableName: 'customers' })
+
+    // Add detail group with tableMeta and linked to master
+    useReportStore.getState().addSchemaGroup('detail')
+    const detailGroupId = useReportStore.getState().definition.schema!.groups[1].id
+    useReportStore.getState().addSchemaField(detailGroupId, { key: 'orderId', label: '注文ID', type: 'string', dbColumnName: 'customer_id' } as import('@/types').SchemaField)
+    useReportStore.getState().bindGroupToTable(detailGroupId, { namespace: 'app', tableName: 'orders' })
+    useReportStore.getState().updateSchemaGroup(detailGroupId, { label: '注文', linkedMasterGroupId: masterGroupId })
+
+    return { masterGroupId, detailGroupId }
+  }
+
+  it('linkedMasterGroupId が設定された detail グループに "(自動: ...)" ラベルが表示される', () => {
+    setupLinkedGroups()
+    render(<DataBindingOverviewPanel />)
+
+    expect(screen.getByText(/自動: マスター/)).toBeInTheDocument()
+  })
+
+  it('linked detail グループの手動入力フィールドが非表示になる', () => {
+    setupLinkedGroups()
+    render(<DataBindingOverviewPanel />)
+
+    // The detail group's key field input should NOT be present
+    const inputs = screen.queryAllByPlaceholderText('値を入力...')
+    // Only master group input should remain, not detail group's
+    expect(inputs).toHaveLength(1)
+  })
+
+  it('resolveBindings 呼び出し時に detail グループへ master のキー値が自動コピーされる', async () => {
+    const { detailGroupId, masterGroupId } = setupLinkedGroups()
+    const mockResolveBindings = vi.spyOn(reportApi, 'resolveBindings').mockResolvedValue({
+      resolved: [],
+      errors: [],
+    })
+
+    render(<DataBindingOverviewPanel />)
+
+    // Enter partition key value for master group
+    const input = screen.getByPlaceholderText('値を入力...')
+    fireEvent.change(input, { target: { value: 'C001' } })
+
+    // Trigger preview refresh
+    const refreshBtn = screen.getByText('プレビュー更新')
+    fireEvent.click(refreshBtn)
+
+    await vi.waitFor(() => {
+      expect(mockResolveBindings).toHaveBeenCalledTimes(1)
+    })
+
+    const callArgs = mockResolveBindings.mock.calls[0]
+    const request = callArgs[1] as import('@/api/reportApi').ResolveBindingsRequest
+    // Master group partition key should be present
+    expect(request.partitionKeys[masterGroupId]).toEqual({ customer_id: 'C001' })
+    // Detail group should have auto-filled values from master
+    expect(request.partitionKeys[detailGroupId]).toEqual({ customer_id: 'C001' })
+  })
+})
 
 describe('DataBindingOverviewPanel — クリックで要素選択', () => {
   it('calls selectElement and setActivePage when unbound element row is clicked', () => {
