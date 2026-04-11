@@ -26,7 +26,8 @@ import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
-import { clampZoom, computeFitZoom, FitWidthIcon, FitPageIcon } from '@/components/common/zoomUtils'
+import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
+import { FitWidthIcon, FitPageIcon } from '@/components/common/zoomUtils'
 import { Tooltip } from '@/components/common/Tooltip'
 
 interface Props {
