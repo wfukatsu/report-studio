@@ -16,7 +16,7 @@
  * button that expands a CreateTableForm. After creation + binding the form
  * collapses and the catalog is re-fetched automatically.
  */
-import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { fetchScalarDbCatalog } from '@/api/reportApi'
 import type { ScalarDbCatalog } from '@/api/reportApi'
@@ -78,6 +78,19 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
     setFetchTick((n) => n + 1)
   }, [])
 
+  // Stable callbacks for the create form so GroupBindingSection memo isn't broken
+  const handleCreateSuccess = useCallback(() => {
+    setCreateFormGroupId(null)
+    handleRefetch()
+  }, [handleRefetch])
+  const handleCreateCancel = useCallback(() => setCreateFormGroupId(null), [])
+
+  // Memoize namespace name list — avoids allocating a new array per group per render
+  const namespaceNames = useMemo(
+    () => catalog?.namespaces.map((n) => n.name) ?? [],
+    [catalog],
+  )
+
   // Empty: no schema groups at all — nothing to bind.
   if (groups.length === 0) {
     return (
@@ -137,29 +150,34 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
 
       {!isLoading && !fetchError && catalog && catalog.namespaces.length > 0 && (
         <div className="flex flex-col gap-5">
-          {groups.map((group, idx) => (
-            <GroupBindingSection
-              key={group.id}
-              group={group}
-              catalog={catalog}
-              autoFocusRef={idx === 0 ? firstSelectRef : undefined}
-              onShowCreate={() => setCreateFormGroupId(group.id)}
-              showCreateForm={createFormGroupId === group.id}
-              createFormSlot={
-                <Suspense fallback={<p className="text-[11px] text-muted-foreground">読み込み中...</p>}>
-                  <CreateTableForm
-                    group={group}
-                    namespaces={catalog.namespaces.map((n) => n.name)}
-                    onSuccess={() => {
-                      setCreateFormGroupId(null)
-                      handleRefetch()
-                    }}
-                    onCancel={() => setCreateFormGroupId(null)}
-                  />
-                </Suspense>
-              }
-            />
-          ))}
+          {groups.map((group, idx) => {
+            const isActive = createFormGroupId === group.id
+            return (
+              <GroupBindingSection
+                key={group.id}
+                group={group}
+                catalog={catalog}
+                autoFocusRef={idx === 0 ? firstSelectRef : undefined}
+                onShowCreate={() => setCreateFormGroupId(group.id)}
+                showCreateForm={isActive}
+                createFormSlot={
+                  // Only instantiate Suspense + CreateTableForm for the active group.
+                  // Gating behind isActive restores the React.lazy benefit — the chunk
+                  // is not fetched until the user first clicks "このスキーマからテーブルを作成".
+                  isActive ? (
+                    <Suspense fallback={<p className="text-[11px] text-muted-foreground">読み込み中...</p>}>
+                      <CreateTableForm
+                        group={group}
+                        namespaces={namespaceNames}
+                        onSuccess={handleCreateSuccess}
+                        onCancel={handleCreateCancel}
+                      />
+                    </Suspense>
+                  ) : null
+                }
+              />
+            )
+          })}
         </div>
       )}
     </div>

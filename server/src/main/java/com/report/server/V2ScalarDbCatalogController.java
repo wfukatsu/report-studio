@@ -91,9 +91,9 @@ public final class V2ScalarDbCatalogController {
             ctx.json(Map.of("namespaces", namespaces));
             log.debug("ScalarDb catalog served: {} namespace(s)", namespaces.size());
         } catch (Exception e) {
-            log.warn("ScalarDb catalog listing failed", e);
-            throw new ServiceUnavailableResponse(
-                    "ScalarDb unreachable: " + e.getMessage());
+            String correlationId = CorrelationId.generate();
+            log.warn("ScalarDb catalog listing failed correlationId={}", correlationId, e);
+            throw new ServiceUnavailableResponse("ScalarDb unreachable");
         }
     }
 

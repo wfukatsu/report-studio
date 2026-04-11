@@ -167,6 +167,50 @@ describe('CreateTableForm — submit happy path', () => {
       expect(onSuccess).toHaveBeenCalled()
     })
   })
+
+  it('matches field→column by name not by index (server may return columns in different order)', async () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+
+    const group = makeMasterGroup({
+      id: groupId,
+      fields: [
+        { id: 'f1', key: 'id', label: 'ID', type: 'number' },
+        { id: 'f2', key: 'name', label: '名前', type: 'string' },
+      ],
+    })
+
+    // Server returns columns in REVERSED order vs submitted
+    const fakeTable = {
+      name: 'users',
+      columns: [
+        { name: 'name', type: 'TEXT' as const },   // was submitted second
+        { name: 'id',   type: 'BIGINT' as const, keyType: 'partition' as const }, // was submitted first
+      ],
+    }
+    vi.spyOn(reportApi, 'createScalarDbTable').mockResolvedValue(fakeTable)
+
+    const bindSpy = vi.spyOn(useReportStore.getState(), 'bindGroupToTableWithColumns')
+
+    const { onSuccess } = renderForm(group)
+
+    fireEvent.change(screen.getByRole('combobox', { name: /ネームスペース/i }), {
+      target: { value: 'app' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /テーブル名/i }), {
+      target: { value: 'users' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /作成/i }))
+
+    await waitFor(() => { expect(onSuccess).toHaveBeenCalled() })
+
+    // fieldColumns must be matched by name: f2→name, f1→id
+    const fieldColumns = bindSpy.mock.calls[0][2]
+    const nameEntry = fieldColumns.find((fc) => fc.dbColumnName === 'name')
+    const idEntry   = fieldColumns.find((fc) => fc.dbColumnName === 'id')
+    expect(nameEntry?.fieldId).toBe('f2')  // field 'name' → f2
+    expect(idEntry?.fieldId).toBe('f1')    // field 'id'   → f1
+  })
 })
 
 describe('CreateTableForm — submit button disabled during in-flight', () => {

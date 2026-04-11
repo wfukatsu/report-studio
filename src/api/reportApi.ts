@@ -14,6 +14,7 @@ import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinition } from '@/types'
 import { ScalarDbColumnTypeSchema, ScalarDbKeyTypeSchema } from '@/types/scalardb'
+import type { ScalarDbColumnType } from '@/types/scalardb'
 import {
   EvaluateResponseSchema,
   ValidateResponseSchema,
@@ -501,8 +502,7 @@ export interface CreateScalarDbTableRequest {
   tableName: string
   columns: Array<{
     name: string
-    /** One of the 7 ScalarDB DataType values. */
-    type: 'BOOLEAN' | 'INT' | 'BIGINT' | 'FLOAT' | 'DOUBLE' | 'TEXT' | 'BLOB'
+    type: ScalarDbColumnType
   }>
   partitionKeys: string[]
   clusteringKeys: string[]

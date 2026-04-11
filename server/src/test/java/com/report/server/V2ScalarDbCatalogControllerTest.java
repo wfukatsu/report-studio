@@ -178,6 +178,28 @@ class V2ScalarDbCatalogControllerTest {
     }
 
     @Test
+    void serviceUnavailable_doesNotLeakDriverDetails() throws Exception {
+        // Security: the 503 message must NOT contain raw driver exception text
+        // (which can include hostnames, JDBC URLs, or credentials).
+        when(admin.getNamespaceNames())
+                .thenThrow(new ExecutionException(
+                        "Connection refused: jdbc:mysql://internal-host:3306/prod?user=admin&password=secret"));
+
+        ServiceUnavailableResponse ex = assertThrows(ServiceUnavailableResponse.class,
+                () -> controller.getCatalog(ctx));
+
+        // The exception message passed to ServiceUnavailableResponse must be
+        // the generic string only — no JDBC URL, no hostname, no credentials.
+        assertFalse(ex.getMessage().contains("jdbc"),
+                "503 response must not leak JDBC connection details");
+        assertFalse(ex.getMessage().contains("internal-host"),
+                "503 response must not leak internal hostnames");
+        assertFalse(ex.getMessage().contains("password"),
+                "503 response must not leak credential strings");
+        assertEquals("ScalarDb unreachable", ex.getMessage());
+    }
+
+    @Test
     void adminIsClosedViaTryWithResources() throws Exception {
         when(admin.getNamespaceNames()).thenReturn(new LinkedHashSet<>());
 

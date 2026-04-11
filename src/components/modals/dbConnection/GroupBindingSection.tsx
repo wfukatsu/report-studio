@@ -21,7 +21,7 @@ export interface GroupBindingSectionProps {
   catalog: ScalarDbCatalog
   autoFocusRef?: React.MutableRefObject<HTMLSelectElement | null>
   /** Called when the "このスキーマからテーブルを作成" button is clicked. */
-  onShowCreate?: () => void
+  onShowCreate: () => void
   /** Whether the inline creation form is currently open. */
   showCreateForm?: boolean
   /** Slot for rendering the creation form inline. */

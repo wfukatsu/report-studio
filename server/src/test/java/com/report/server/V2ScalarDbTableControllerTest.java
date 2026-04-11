@@ -415,4 +415,69 @@ class V2ScalarDbTableControllerTest {
         verify(admin, never()).createNamespace(anyString());
         verify(ctx).status(201);
     }
+
+    // ── Key-list identifier validation ───────────────────────────────────────
+
+    @Test
+    void invalidIdentifier_inPartitionKey_400() throws Exception {
+        setBody("""
+                {
+                  "namespace": "app",
+                  "tableName": "users",
+                  "columns": [{ "name": "id", "type": "BIGINT" }],
+                  "partitionKeys": ["9invalid"],
+                  "clusteringKeys": [],
+                  "secondaryIndexes": []
+                }
+                """);
+
+        controller.createTable(ctx);
+
+        verify(ctx).status(400);
+        assertTrue(body().get("error").asText().contains("Invalid identifier"));
+    }
+
+    @Test
+    void invalidIdentifier_inClusteringKey_400() throws Exception {
+        setBody("""
+                {
+                  "namespace": "app",
+                  "tableName": "users",
+                  "columns": [
+                    { "name": "id", "type": "BIGINT" },
+                    { "name": "ts", "type": "BIGINT" }
+                  ],
+                  "partitionKeys": ["id"],
+                  "clusteringKeys": ["has-hyphen"],
+                  "secondaryIndexes": []
+                }
+                """);
+
+        controller.createTable(ctx);
+
+        verify(ctx).status(400);
+        assertTrue(body().get("error").asText().contains("Invalid identifier"));
+    }
+
+    @Test
+    void invalidIdentifier_inSecondaryIndex_400() throws Exception {
+        setBody("""
+                {
+                  "namespace": "app",
+                  "tableName": "users",
+                  "columns": [
+                    { "name": "id", "type": "BIGINT" },
+                    { "name": "email", "type": "TEXT" }
+                  ],
+                  "partitionKeys": ["id"],
+                  "clusteringKeys": [],
+                  "secondaryIndexes": ["テーブル"]
+                }
+                """);
+
+        controller.createTable(ctx);
+
+        verify(ctx).status(400);
+        assertTrue(body().get("error").asText().contains("Invalid identifier"));
+    }
 }

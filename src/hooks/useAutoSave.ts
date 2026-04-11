@@ -21,6 +21,7 @@ export function useAutoSave(): void {
   const pages      = useReportStore((s) => s.definition.pages)
   const rules      = useReportStore((s) => s.definition.calculationRules)
   const meta       = useReportStore((s) => s.definition.metadata)
+  const schema     = useReportStore((s) => s.definition.schema)
   const id         = useReportStore((s) => s.currentTemplateId)
   const setSave    = useReportStore((s) => s.setSaveState)
   const definition = useReportStore((s) => s.definition)
@@ -58,7 +59,7 @@ export function useAutoSave(): void {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages, rules, meta, id])  // structural deps only — not selection/ui state
+  }, [pages, rules, meta, schema, id])  // structural deps only — not selection/ui state
 
   // Tab close: sendBeacon is the only guaranteed delivery mechanism on pagehide
   useEffect(() => {

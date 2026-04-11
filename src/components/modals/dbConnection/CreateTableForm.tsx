@@ -12,7 +12,7 @@
  * Status machine is local component state (not persisted to SchemaGroup).
  * See Technical Considerations in the Phase 1.5 plan.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { createScalarDbTable } from '@/api/reportApi'
 import type { SchemaGroup, SchemaFieldType } from '@/types'
@@ -94,6 +94,10 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 
   const effectiveNamespace = isNewNamespace ? newNamespaceName : namespace
 
+  // AbortController for the in-flight POST — aborted on cancel or unmount
+  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => { abortRef.current?.abort() }, [])
+
   const updateColumn = useCallback(
     (idx: number, patch: Partial<ColumnRow>) => {
       setColumns((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
@@ -102,8 +106,6 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
   )
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) return
-
     // Client-side validation
     if (!effectiveNamespace) {
       setErrorMessage('ネームスペースを選択または入力してください')
@@ -167,6 +169,11 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     setShowRecovery(false)
     setShowRetry(false)
 
+    // Abort any previous in-flight request and create a fresh controller
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const result = await createScalarDbTable({
         namespace: effectiveNamespace,
@@ -175,16 +182,19 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
         partitionKeys,
         clusteringKeys,
         secondaryIndexes,
-      })
+      }, controller.signal)
 
-      // Atomic bind: tableMeta + all field→column mappings in one store action
+      // Atomic bind: tableMeta + all field→column mappings in one store action.
+      // Match by column name (not by index) — ScalarDB does not guarantee that
+      // getColumnNames() returns columns in insertion order, so positional
+      // alignment would silently produce wrong field→column bindings.
+      const localByName = new Map(columns.map((c) => [c.name, c.fieldId]))
       bindGroupToTableWithColumns(
         group.id,
         { namespace: effectiveNamespace, tableName },
-        result.columns.map((col, idx) => ({
-          fieldId: columns[idx]?.fieldId ?? '',
-          dbColumnName: col.name,
-        })).filter((fc) => fc.fieldId !== ''),
+        result.columns
+          .map((col) => ({ fieldId: localByName.get(col.name) ?? '', dbColumnName: col.name }))
+          .filter((fc) => fc.fieldId !== ''),
       )
 
       onSuccess()
@@ -198,7 +208,6 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       setIsSubmitting(false)
     }
   }, [
-    isSubmitting,
     effectiveNamespace,
     tableName,
     columns,
@@ -207,16 +216,12 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     onSuccess,
   ])
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') handleSubmit()
-      if (e.key === 'Escape') onCancel()
-    },
-    [handleSubmit, onCancel],
-  )
-
   return (
-    <div className="flex flex-col gap-3 p-2 bg-muted/30 rounded border border-border" onKeyDown={handleKeyDown}>
+    <form
+      onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}
+      className="flex flex-col gap-3 p-2 bg-muted/30 rounded border border-border"
+    >
       <h5 className="text-[11px] font-semibold">テーブルを新規作成</h5>
 
       {/* Namespace */}
@@ -364,15 +369,14 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           </button>
         )}
         <button
-          type="button"
-          onClick={handleSubmit}
+          type="submit"
           disabled={isSubmitting}
           className="text-[11px] px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           {isSubmitting ? '作成中...' : 'テーブルを作成'}
         </button>
       </div>
-    </div>
+    </form>
   )
 }
 

@@ -8,6 +8,7 @@ import com.scalar.db.exception.storage.ExecutionException;
 import com.scalar.db.exception.storage.RetriableExecutionException;
 import com.scalar.db.io.DataType;
 import com.scalar.db.service.TransactionFactory;
+import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.InternalServerErrorResponse;
@@ -193,49 +194,31 @@ public final class V2ScalarDbTableController {
             return;
         }
 
+        // Validate key list items as SQL identifiers + no duplicates + exist in column set
+        if (rejectInvalidIdentifiers(partitionKeys, ctx)) return;
+        if (rejectInvalidIdentifiers(clusteringKeys, ctx)) return;
+        if (rejectInvalidIdentifiers(secondaryIndexes, ctx)) return;
+
         // At least one partition key
         if (partitionKeys.isEmpty()) {
             ctx.status(400).json(Map.of("error", "At least one partition key is required"));
             return;
         }
 
-        // Duplicate checks in key lists
-        if (hasDuplicates(partitionKeys)) {
-            ctx.status(400).json(Map.of("error", "Duplicate key column: '" + findFirstDuplicate(partitionKeys) + "'"));
-            return;
-        }
-        if (hasDuplicates(clusteringKeys)) {
-            ctx.status(400).json(Map.of("error", "Duplicate key column: '" + findFirstDuplicate(clusteringKeys) + "'"));
-            return;
-        }
-        if (hasDuplicates(secondaryIndexes)) {
-            ctx.status(400).json(Map.of("error", "Duplicate key column: '" + findFirstDuplicate(secondaryIndexes) + "'"));
-            return;
-        }
+        if (rejectDuplicateKeys(partitionKeys, ctx)) return;
+        if (rejectDuplicateKeys(clusteringKeys, ctx)) return;
+        if (rejectDuplicateKeys(secondaryIndexes, ctx)) return;
 
-        // Key columns must exist in the columns list
-        for (String pk : partitionKeys) {
-            if (!columnNameSet.contains(pk)) {
-                ctx.status(400).json(Map.of("error", "Key column '" + pk + "' not found in columns list"));
-                return;
-            }
-        }
-        for (String ck : clusteringKeys) {
-            if (!columnNameSet.contains(ck)) {
-                ctx.status(400).json(Map.of("error", "Key column '" + ck + "' not found in columns list"));
-                return;
-            }
-        }
-        for (String idx : secondaryIndexes) {
-            if (!columnNameSet.contains(idx)) {
-                ctx.status(400).json(Map.of("error", "Key column '" + idx + "' not found in columns list"));
-                return;
-            }
-        }
+        if (rejectUnknownKeys(partitionKeys, columnNameSet, ctx)) return;
+        if (rejectUnknownKeys(clusteringKeys, columnNameSet, ctx)) return;
+        if (rejectUnknownKeys(secondaryIndexes, columnNameSet, ctx)) return;
 
         // ── Create the table ──────────────────────────────────────────────────
         String correlationId = CorrelationId.generate();
-        String userId = "unknown"; // Authorization deferred to Phase 2
+        // Extract identity for audit logging. Authorization policy is deferred to Phase 2
+        // (any authenticated principal may create tables for now), but we record who did it.
+        Principal principal = ctx.attribute("principal");
+        String userId = (principal != null) ? principal.userId() : "unknown";
 
         try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
             // Idempotency guard — return 409 instead of letting ScalarDB throw
@@ -277,23 +260,25 @@ public final class V2ScalarDbTableController {
             ctx.status(201).json(response);
 
         } catch (RetriableExecutionException e) {
-            log.warn("AUDIT op=create_table user={} ns={} table={} outcome=unreachable correlationId={} error={}",
-                userId, namespace, tableName, correlationId, e.getMessage());
+            AuditLog.op("create_table", userId, namespace, tableName, "unreachable", correlationId);
+            log.warn("ScalarDb unreachable correlationId={}", correlationId, e);
             throw new ServiceUnavailableResponse("ScalarDb unreachable");
 
         } catch (ExecutionException e) {
             if (e.isAuthenticationError()) {
-                log.warn("AUDIT op=create_table user={} ns={} table={} outcome=auth_failed correlationId={} error={}",
-                    userId, namespace, tableName, correlationId, e.getMessage());
+                AuditLog.op("create_table", userId, namespace, tableName, "auth_failed", correlationId);
+                log.warn("ScalarDb auth failed correlationId={}", correlationId, e);
                 throw new UnauthorizedResponse("ScalarDb authentication failed");
             }
             if (e.isAuthorizationError() || e.isSuperuserRequired()) {
-                log.warn("AUDIT op=create_table user={} ns={} table={} outcome=authz_denied correlationId={} error={}",
-                    userId, namespace, tableName, correlationId, e.getMessage());
+                AuditLog.op("create_table", userId, namespace, tableName, "authz_denied", correlationId);
+                log.warn("ScalarDb authz denied correlationId={}", correlationId, e);
                 throw new ForbiddenResponse("ScalarDb permission denied");
             }
 
-            // TOCTOU recovery: concurrent create may have won the race
+            // TOCTOU recovery: Java try-with-resources closes `admin` before any catch block
+            // runs, so a new admin connection is required here. The inner catch handles the
+            // edge case where the re-check itself fails (resource exhaustion etc.).
             try (DistributedTransactionAdmin adminCheck = factory.getTransactionAdmin()) {
                 if (adminCheck.tableExists(namespace, tableName)) {
                     AuditLog.op("create_table", userId, namespace, tableName, "conflict", correlationId);
@@ -305,8 +290,8 @@ public final class V2ScalarDbTableController {
                 log.warn("TOCTOU re-check failed correlationId={}", correlationId, checkEx);
             }
 
-            log.warn("AUDIT op=create_table user={} ns={} table={} outcome=ddl_rejected correlationId={} error={}",
-                userId, namespace, tableName, correlationId, e.getMessage());
+            AuditLog.op("create_table", userId, namespace, tableName, "ddl_rejected", correlationId);
+            log.warn("ScalarDb DDL rejected correlationId={}", correlationId, e);
             throw new InternalServerErrorResponse("ScalarDb DDL rejected");
         }
     }
@@ -357,6 +342,37 @@ public final class V2ScalarDbTableController {
             list.add(item.asText());
         }
         return list;
+    }
+
+    /** Returns true and writes a 400 response if any entry fails the IDENTIFIER regex. */
+    private static boolean rejectInvalidIdentifiers(List<String> keys, Context ctx) {
+        for (String k : keys) {
+            if (!IDENTIFIER.matcher(k).matches()) {
+                ctx.status(400).json(Map.of("error", "Invalid identifier: '" + k + "'"));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Returns true and writes a 400 response if the list contains duplicate entries. */
+    private static boolean rejectDuplicateKeys(List<String> keys, Context ctx) {
+        if (hasDuplicates(keys)) {
+            ctx.status(400).json(Map.of("error", "Duplicate key column: '" + findFirstDuplicate(keys) + "'"));
+            return true;
+        }
+        return false;
+    }
+
+    /** Returns true and writes a 400 response if any entry is not in the column set. */
+    private static boolean rejectUnknownKeys(List<String> keys, Set<String> columns, Context ctx) {
+        for (String k : keys) {
+            if (!columns.contains(k)) {
+                ctx.status(400).json(Map.of("error", "Key column '" + k + "' not found in columns list"));
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasDuplicates(List<String> list) {
