@@ -64,6 +64,17 @@ export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 /** null included: Java null deserializes to JS null */
 export type ComputedValue = number | string | boolean | null
 
+/**
+ * Phase 2/2.5: resolved ScalarDB data from resolve-bindings endpoint.
+ * - master groups → single flat row: Record<fieldKey, value>
+ * - detail groups (Phase 2.5) → array of rows: Array<Record<fieldKey, value>>
+ * Stored in uiSlice so the export flow can access it.
+ */
+export type LivePreviewData = Record<
+  string,
+  Record<string, ComputedValue> | Array<Record<string, ComputedValue>>
+>
+
 export interface ValidationViolation {
   ruleKey: string
   message: string
@@ -111,6 +122,14 @@ export interface StoreState {
   saveState: SaveState
   /** Monotonically increasing counter to detect concurrent loads (stored in store, not module scope) */
   loadGeneration: number
+
+  /**
+   * Phase 2: resolved ScalarDB data (from resolve-bindings endpoint).
+   * null when no live preview has been fetched or schema changed.
+   * Not in undo/redo history — transient UI state.
+   */
+  livePreviewData: LivePreviewData | null
+  setLivePreviewData: (data: LivePreviewData | null) => void
 
   // ── Computed slice (expression evaluation — not in undo/redo history) ─────
   computedValues: Record<string, ComputedValue>
@@ -253,6 +272,11 @@ export interface StoreState {
   ) => void
   /** Replace the entire schema definition (used by schema inference). */
   setSchema: (schema: SchemaDefinition) => void
+  /**
+   * Phase 2: bind an element to a schema field by fieldId, or remove the binding.
+   * @param fieldId pass `undefined` to remove the binding
+   */
+  setElementSchemaBinding: (pageId: string, elementId: string, fieldId: string | undefined) => void
 
   // ── Computed slice actions ────────────────────────────────────────────────
   setComputedResults: (payload: {

@@ -546,3 +546,88 @@ export async function createScalarDbTable(
 export async function fetchScalarDbCatalog(signal?: AbortSignal): Promise<ScalarDbCatalog> {
   return apiFetch('/api/v2/scalardb/catalog', ScalarDbCatalogSchema, { signal })
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: resolve-bindings — fetch actual ScalarDB row data
+// ---------------------------------------------------------------------------
+
+/**
+ * Response from POST /api/v2/templates/{id}/resolve-bindings.
+ * HTTP 207 (partial success): resolved contains per-group field values,
+ * errors contains per-group error messages (null = no error for that group).
+ */
+type ComputedValueUnion = string | number | boolean | null
+
+/**
+ * A single group value in the resolve-bindings response.
+ * - master groups → flat object: Record<fieldKey, value>
+ * - detail groups (Phase 2.5) → array: Array<Record<fieldKey, value>>
+ */
+type ResolvedGroupValue =
+  | Record<string, ComputedValueUnion>
+  | Array<Record<string, ComputedValueUnion>>
+
+export interface ResolveBindingsResponse {
+  /**
+   * master groups: single flat row { fieldKey → value }
+   * detail groups: array of rows [ { fieldKey → value }, ... ]
+   */
+  resolved: Record<string, ResolvedGroupValue>
+  errors: Record<string, string>
+  requestId?: string
+}
+
+const ComputedValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
+const ResolvedFlatRowSchema = z.record(z.string(), ComputedValueSchema)
+
+/** Per-group value: either a single flat row (master) or an array of rows (detail). */
+const ResolvedGroupValueSchema = z.union([
+  ResolvedFlatRowSchema,
+  z.array(ResolvedFlatRowSchema),
+])
+
+const ResolveBindingsResponseSchema = z.object({
+  resolved: z.record(z.string(), ResolvedGroupValueSchema),
+  errors: z.record(z.string(), z.string()),
+  requestId: z.string().optional(),
+}) satisfies z.ZodType<ResolveBindingsResponse>
+
+export interface ResolveBindingsRequest {
+  schema: {
+    groups: Array<{
+      id: string
+      role: string
+      tableMeta?: { namespace: string; tableName: string }
+      fields: Array<{ id: string; key: string; dbColumnName?: string }>
+    }>
+  }
+  /** Partition key values per group: { groupId → { columnName → value } } */
+  partitionKeys: Record<string, Record<string, string>>
+}
+
+/**
+ * POST /api/v2/templates/{id}/resolve-bindings
+ *
+ * Fetches actual row data from ScalarDB for schema groups that have tableMeta bound.
+ * Returns HTTP 207 (partial success): groups that fail appear in `errors`.
+ *
+ * @param templateId - the template ID (for ownership verification)
+ * @param request    - schema groups + partition key values to look up
+ * @param signal     - optional AbortSignal for cancellation
+ */
+export async function resolveBindings(
+  templateId: string,
+  request: ResolveBindingsRequest,
+  signal?: AbortSignal,
+): Promise<ResolveBindingsResponse> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/resolve-bindings`,
+    ResolveBindingsResponseSchema,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal,
+    },
+  )
+}

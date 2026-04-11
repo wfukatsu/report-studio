@@ -222,6 +222,12 @@ export interface ConditionalDisplay {
 // ElementBase
 // ---------------------------------------------------------------------------
 
+/** Phase 2: スキーマフィールドとのバインド（SchemaField.id を参照） */
+export interface ElementSchemaBinding {
+  /** SchemaGroup.fields[x].id を指す UUID */
+  fieldId: string
+}
+
 export interface ElementBase {
   id: string
   type: ElementType
@@ -238,6 +244,12 @@ export interface ElementBase {
   conditionalDisplay?: ConditionalDisplay
   /** 印刷対象か (default: true) */
   printable?: boolean
+  /**
+   * Phase 2: ScalarDB スキーマフィールドへのバインド。
+   * NOTE: `dataBinding?: string` (TableElement/ChartElement の raw データキー) とは別フィールド。
+   * このフィールドは SchemaField.id (UUID) を指す。
+   */
+  schemaBinding?: ElementSchemaBinding
 }
 
 // ---------------------------------------------------------------------------

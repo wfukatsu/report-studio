@@ -229,5 +229,7 @@ public final class ApiRoutes {
         app.get("/api/v2/scalardb/catalog", w.v2ScalarDbCatalogCtrl::getCatalog);
         // V2 ScalarDB table creation (Phase 1.5)
         app.post("/api/v2/scalardb/tables", w.v2ScalarDbTableCtrl::createTable);
+        // Phase 2: resolve actual ScalarDB row data for live preview
+        app.post("/api/v2/templates/{id}/resolve-bindings", w.v2BindingResolveCtrl::resolve);
     }
 }
