@@ -93,6 +93,23 @@ describe('updateSchemaGroup', () => {
     expect(() => useReportStore.getState().updateSchemaGroup('nonexistent', { label: 'X' })).not.toThrow()
     expect(getGroups()[0].label).toBe('マスター')
   })
+
+  it('Phase 3.5: linkedMasterGroupId を設定できる', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    useReportStore.getState().addSchemaGroup('detail')
+    const [masterGroup, detailGroup] = getGroups()
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id })
+    expect(getGroups()[1].linkedMasterGroupId).toBe(masterGroup.id)
+  })
+
+  it('Phase 3.5: linkedMasterGroupId を undefined にクリアできる', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    useReportStore.getState().addSchemaGroup('detail')
+    const [masterGroup, detailGroup] = getGroups()
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id })
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: undefined })
+    expect(getGroups()[1].linkedMasterGroupId).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------

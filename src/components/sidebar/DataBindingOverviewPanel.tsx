@@ -127,7 +127,12 @@ function LivePreviewSection() {
     (g) => g.role === 'master' && g.tableMeta && g.fields.some((f) => f.dbColumnName),
   ) ?? []
 
-  if (!currentTemplateId || boundMasterGroups.length === 0) {
+  // Phase 3.5: detail groups with tableMeta bound (for display)
+  const boundDetailGroups = schema?.groups.filter(
+    (g) => g.role === 'detail' && g.tableMeta && g.fields.some((f) => f.dbColumnName),
+  ) ?? []
+
+  if (!currentTemplateId || (boundMasterGroups.length === 0 && boundDetailGroups.length === 0)) {
     return null
   }
 
@@ -146,6 +151,17 @@ function LivePreviewSection() {
     setPreviewState({ status: 'loading' })
 
     try {
+      // Phase 3.5: auto-fill detail group partition keys from linked master group values
+      const autoFilledPartitionKeys = { ...partitionKeys }
+      for (const group of schema.groups) {
+        if (group.role === 'detail' && group.linkedMasterGroupId) {
+          const masterPk = partitionKeys[group.linkedMasterGroupId]
+          if (masterPk) {
+            autoFilledPartitionKeys[group.id] = { ...masterPk, ...autoFilledPartitionKeys[group.id] }
+          }
+        }
+      }
+
       const response = await resolveBindings(
         currentTemplateId,
         {
@@ -157,7 +173,7 @@ function LivePreviewSection() {
               fields: g.fields.map((f) => ({ id: f.id, key: f.key, dbColumnName: f.dbColumnName })),
             })),
           },
-          partitionKeys,
+          partitionKeys: autoFilledPartitionKeys,
         },
         controller.signal,
       )
@@ -201,6 +217,46 @@ function LivePreviewSection() {
                 )}
               </div>
               {keyFields.map((field) => (
+                <div key={field.id} className="flex items-center gap-1.5">
+                  <label className="text-[10px] text-muted-foreground w-24 truncate shrink-0" title={field.dbColumnName}>
+                    {field.dbColumnName}
+                  </label>
+                  <input
+                    type="text"
+                    className="flex-1 text-[10px] border rounded px-1.5 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="値を入力..."
+                    value={partitionKeys[group.id]?.[field.dbColumnName!] ?? ''}
+                    onChange={(e) => handleKeyChange(group.id, field.dbColumnName!, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          )
+        })}
+
+        {/* Phase 3.5: detail groups — show "(自動: masterLabel)" when linked to a master group */}
+        {boundDetailGroups.map((group) => {
+          const keyFields = group.fields.filter((f) => f.dbColumnName)
+          if (keyFields.length === 0) return null
+          const linkedMaster = group.linkedMasterGroupId
+            ? schema?.groups.find((g) => g.id === group.linkedMasterGroupId)
+            : null
+          return (
+            <div key={group.id} className="space-y-1">
+              <div className="text-[10px] font-medium text-foreground">
+                {group.label || group.id}
+                {group.tableMeta && (
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    ({group.tableMeta.namespace}.{group.tableMeta.tableName})
+                  </span>
+                )}
+                {linkedMaster && (
+                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label="自動入力">
+                    (自動: {linkedMaster.label || linkedMaster.id})
+                  </span>
+                )}
+              </div>
+              {!linkedMaster && keyFields.map((field) => (
                 <div key={field.id} className="flex items-center gap-1.5">
                   <label className="text-[10px] text-muted-foreground w-24 truncate shrink-0" title={field.dbColumnName}>
                     {field.dbColumnName}
