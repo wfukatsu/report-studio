@@ -15,6 +15,12 @@ const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: f }))
 interface TextStyleSectionProps {
   style: TextStyle
   onStyleChange: (patch: Partial<TextStyle>) => void
+  /**
+   * Template-level default style (from report.defaultTextStyle).
+   * When provided, inputs for properties where style[prop] === undefined
+   * will show an "inherited" visual state with a reset (✕) button.
+   */
+  defaultStyle?: TextStyle
   /** Show furigana input (default: false) */
   showFurigana?: boolean
   furigana?: string
@@ -24,27 +30,40 @@ interface TextStyleSectionProps {
 export function TextStyleSection({
   style,
   onStyleChange,
+  defaultStyle,
   showFurigana = false,
   furigana,
   onFuriganaChange,
 }: TextStyleSectionProps) {
+  // Helper: is the given property inherited from defaultStyle?
+  const inh = <K extends keyof TextStyle>(key: K): boolean =>
+    style[key] === undefined
+
+  // Helper: reset a property back to "inherited" (undefined)
+  const rst = <K extends keyof TextStyle>(key: K) =>
+    defaultStyle ? () => onStyleChange({ [key]: undefined } as Partial<TextStyle>) : undefined
+
   return (
     <PropSection title="テキストスタイル">
       <PropRow label="フォント">
         <SelectInput
-          value={style.fontFamily ?? 'sans-serif'}
+          value={style.fontFamily ?? defaultStyle?.fontFamily ?? 'sans-serif'}
           onChange={(v) => onStyleChange({ fontFamily: v })}
           options={fontFamilyOptions}
+          inherited={defaultStyle ? inh('fontFamily') : undefined}
+          onReset={rst('fontFamily')}
         />
       </PropRow>
 
       <PropRow label="フォントサイズ">
         <NumInput
-          value={style.fontSize ?? DEFAULT_FONT_SIZE}
+          value={style.fontSize ?? defaultStyle?.fontSize ?? DEFAULT_FONT_SIZE}
           onChange={(v) => onStyleChange({ fontSize: v })}
           min={1}
           step={0.5}
           unit="mm"
+          inherited={defaultStyle ? inh('fontSize') : undefined}
+          onReset={rst('fontSize')}
         />
       </PropRow>
 
@@ -83,11 +102,21 @@ export function TextStyleSection({
       </div>
 
       <PropRow label="文字色">
-        <ColorInput value={style.color ?? '#000000'} onChange={(v) => onStyleChange({ color: v })} />
+        <ColorInput
+          value={style.color ?? defaultStyle?.color ?? '#000000'}
+          onChange={(v) => onStyleChange({ color: v })}
+          inherited={defaultStyle ? inh('color') : undefined}
+          onReset={rst('color')}
+        />
       </PropRow>
 
       <PropRow label="背景色">
-        <ColorInput value={style.backgroundColor ?? '#ffffff'} onChange={(v) => onStyleChange({ backgroundColor: v })} />
+        <ColorInput
+          value={style.backgroundColor ?? defaultStyle?.backgroundColor ?? '#ffffff'}
+          onChange={(v) => onStyleChange({ backgroundColor: v })}
+          inherited={defaultStyle ? inh('backgroundColor') : undefined}
+          onReset={rst('backgroundColor')}
+        />
       </PropRow>
 
       <div>
@@ -119,22 +148,26 @@ export function TextStyleSection({
 
       <PropRow label="行間">
         <NumInput
-          value={style.lineHeight ?? DEFAULT_LINE_HEIGHT}
+          value={style.lineHeight ?? defaultStyle?.lineHeight ?? DEFAULT_LINE_HEIGHT}
           onChange={(v) => onStyleChange({ lineHeight: v })}
           min={0.5}
           max={5}
           step={0.1}
+          inherited={defaultStyle ? inh('lineHeight') : undefined}
+          onReset={rst('lineHeight')}
         />
       </PropRow>
 
       <PropRow label="文字間隔">
         <NumInput
-          value={style.letterSpacing ?? 0}
+          value={style.letterSpacing ?? defaultStyle?.letterSpacing ?? 0}
           onChange={(v) => onStyleChange({ letterSpacing: v })}
           min={-0.2}
           max={2}
           step={0.05}
           unit="em"
+          inherited={defaultStyle ? inh('letterSpacing') : undefined}
+          onReset={rst('letterSpacing')}
         />
       </PropRow>
 
