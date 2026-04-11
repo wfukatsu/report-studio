@@ -376,30 +376,32 @@ describe('getMe', () => {
   it('returns current user', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200,
-      json: () => Promise.resolve({ id: 'user-1', email: 'test@example.com' }),
+      json: () => Promise.resolve({ userId: 'admin', displayName: '管理者', roles: ['admin', 'user'], anonymous: false }),
     }))
 
     const result = await getMe()
-    expect(result.id).toBe('user-1')
+    expect(result.userId).toBe('admin')
+    expect(result.displayName).toBe('管理者')
     const [url] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/v1/auth/me')
   })
 })
 
 describe('login', () => {
-  it('sends POST with email and password', async () => {
+  it('sends POST with userId and password (not email)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200,
-      json: () => Promise.resolve({ id: 'user-1', email: 'user@test.com' }),
+      json: () => Promise.resolve({ userId: 'admin', displayName: '管理者', roles: ['admin'], anonymous: false }),
     }))
 
-    const result = await login('user@test.com', 'password123')
-    expect(result.email).toBe('user@test.com')
+    const result = await login('admin', 'changeme')
+    expect(result.userId).toBe('admin')
     const [url, init] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/v1/auth/login')
     const body = JSON.parse((init as RequestInit).body as string)
-    expect(body.email).toBe('user@test.com')
-    expect(body.password).toBe('password123')
+    expect(body.userId).toBe('admin')   // was email — now userId
+    expect(body.password).toBe('changeme')
+    expect(body.email).toBeUndefined()  // email field must NOT be sent
   })
 })
 

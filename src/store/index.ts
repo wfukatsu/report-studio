@@ -7,6 +7,7 @@
 
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import type { StateCreator } from 'zustand'
 import type { StoreState } from './types'
 import { createLayoutSlice } from './layoutSlice'
 import { createRulesSlice } from './rulesSlice'
@@ -16,11 +17,14 @@ import { createComputedSlice } from './computedSlice'
 import { createSchemaSlice } from './schemaSlice'
 import { createVariantsSlice } from './variantsSlice'
 import { createResponsesSlice } from './responsesSlice'
+import { createAuthSlice } from './authSlice'
 import { createDefaultDefinition } from './layoutSlice'
+
+type ImmerStateCreator = StateCreator<StoreState, [['zustand/immer', never]]>
 
 // Build the combined store
 export const useReportStore = create<StoreState>()(
-  immer((...a) => {
+  immer(((...a: Parameters<ImmerStateCreator>) => {
     const layout = createLayoutSlice(...a)
     const rules = createRulesSlice(...a)
     const history = createHistorySlice(...a)
@@ -29,6 +33,7 @@ export const useReportStore = create<StoreState>()(
     const schema = createSchemaSlice(...a)
     const variants = createVariantsSlice(...a)
     const responses = createResponsesSlice(...a)
+    const auth = createAuthSlice(...a)
 
     // Initialize history with the default definition's initial pages
     const initialHistory = [snapshotPages(createDefaultDefinition().pages)]
@@ -42,11 +47,12 @@ export const useReportStore = create<StoreState>()(
       ...schema,
       ...variants,
       ...responses,
+      ...auth,
       // Override initial history state with populated snapshot
       history: initialHistory,
       historyIndex: 0,
     }
-  }),
+  }) as ImmerStateCreator),
 )
 
 // Re-export selectors and types for convenience

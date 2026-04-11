@@ -125,10 +125,11 @@ export async function restoreVersion(templateId: string, versionId: string): Pro
 // ---------------------------------------------------------------------------
 
 const MeSchema = z.object({
-  id: z.string(),
-  email: z.string().optional(),
-  name: z.string().optional(),
-}).passthrough()
+  userId: z.string(),
+  displayName: z.string(),
+  roles: z.array(z.string()),
+  anonymous: z.boolean(),
+})
 
 export type Me = z.infer<typeof MeSchema>
 
@@ -136,12 +137,94 @@ export async function getMe(): Promise<Me> {
   return apiFetch('/api/v1/auth/me', MeSchema)
 }
 
-export async function login(email: string, password: string): Promise<Me> {
-  return apiFetch('/api/v1/auth/login', MeSchema, jsonBody({ email, password }))
+/** Fixed: was sending `email` — backend expects `userId` */
+export async function login(userId: string, password: string): Promise<Me> {
+  return apiFetch('/api/v1/auth/login', MeSchema, jsonBody({ userId, password }))
 }
 
 export async function logout(): Promise<void> {
   return apiFetch('/api/v1/auth/logout', z.undefined(), { method: 'POST' })
+}
+
+export async function changeProfile(patch: {
+  displayName?: string
+  currentPassword?: string
+  newPassword?: string
+}): Promise<Me> {
+  return apiFetch('/api/v1/auth/change-profile', MeSchema, jsonBody(patch))
+}
+
+// ---------------------------------------------------------------------------
+// Admin user management
+// ---------------------------------------------------------------------------
+
+const UserSummarySchema = z.object({
+  userId: z.string(),
+  displayName: z.string(),
+  roles: z.array(z.string()),
+})
+export type UserSummary = z.infer<typeof UserSummarySchema>
+
+const UserListSchema = z.object({ users: z.array(UserSummarySchema) })
+
+export async function listUsers(): Promise<UserSummary[]> {
+  const res = await apiFetch('/api/v1/admin/users', UserListSchema)
+  return res.users
+}
+
+export async function createUser(user: {
+  userId: string
+  displayName?: string
+  password: string
+  roles?: string[]
+}): Promise<UserSummary> {
+  return apiFetch('/api/v1/admin/users', UserSummarySchema, jsonBody(user))
+}
+
+export async function updateUser(
+  userId: string,
+  patch: { displayName?: string; password?: string; roles?: string[] },
+): Promise<UserSummary> {
+  return apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}`, UserSummarySchema, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  return apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}`, z.undefined(), {
+    method: 'DELETE',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Admin server config
+// ---------------------------------------------------------------------------
+
+const ServerConfigSchema = z.record(z.string(), z.string())
+export type ServerConfig = z.infer<typeof ServerConfigSchema>
+
+export async function getServerConfig(): Promise<ServerConfig> {
+  return apiFetch('/api/v1/admin/server-config', ServerConfigSchema)
+}
+
+export async function putServerConfig(config: ServerConfig): Promise<{ message: string }> {
+  return apiFetch('/api/v1/admin/server-config', z.object({ message: z.string() }), jsonBody(config))
+}
+
+export async function testServerConfig(config: ServerConfig): Promise<{ success: boolean; message: string }> {
+  return apiFetch(
+    '/api/v1/admin/server-config/test',
+    z.object({ success: z.boolean(), message: z.string() }),
+    jsonBody(config),
+  )
+}
+
+export async function restartServer(): Promise<{ message: string }> {
+  return apiFetch('/api/v1/admin/server/restart', z.object({ message: z.string() }), {
+    method: 'POST',
+  })
 }
 
 // ---------------------------------------------------------------------------

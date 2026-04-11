@@ -104,6 +104,29 @@ export default function App() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Authenticate on mount — restores existing session or flags as unauthenticated
+  const checkAuth = useReportStore((s) => s.checkAuth)
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  // Clear current template on logout (prevent data leakage between users)
+  const currentUser = useReportStore((s) => s.currentUser)
+  const authLoading = useReportStore((s) => s.authLoading)
+  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
+  const newReport = useReportStore((s) => s.newReport)
+  const prevUserRef = useRef<string | null>(null)
+  useEffect(() => {
+    const prevUserId = prevUserRef.current
+    const currUserId = currentUser?.userId ?? null
+    prevUserRef.current = currUserId
+    // Only clear if we transitioned from logged-in to logged-out
+    if (prevUserId !== null && currUserId === null) {
+      setCurrentTemplateId(null)
+      newReport()
+    }
+  }, [currentUser, setCurrentTemplateId, newReport])
+
   // Warn before closing with unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
