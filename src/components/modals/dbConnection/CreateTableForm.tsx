@@ -50,10 +50,6 @@ const ALL_COLUMN_TYPES: ScalarDbColumnType[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function defaultColumnType(fieldType: Exclude<SchemaFieldType, 'array'>): ScalarDbColumnType {
-  return SCHEMA_FIELD_TYPE_TO_SCALARDB_COLUMN_TYPE[fieldType]
-}
-
 function buildColumns(group: SchemaGroup): ColumnRow[] {
   const nonArrayFields = group.fields.filter((f) => f.type !== 'array')
 
@@ -66,7 +62,7 @@ function buildColumns(group: SchemaGroup): ColumnRow[] {
     return {
       fieldId: field.id,
       name: field.key,
-      type: defaultColumnType(field.type as Exclude<SchemaFieldType, 'array'>),
+      type: SCHEMA_FIELD_TYPE_TO_SCALARDB_COLUMN_TYPE[field.type as Exclude<SchemaFieldType, 'array'>],
       keyRole,
     }
   })

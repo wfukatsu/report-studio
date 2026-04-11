@@ -375,11 +375,17 @@ public final class V2ScalarDbTableController {
         return false;
     }
 
-    /** Returns true and writes a 400 response if the list contains duplicate entries. */
+    /**
+     * Returns true and writes a 400 response if the list contains duplicate entries.
+     * Single-pass detection — finds the first duplicate inline without a second traversal.
+     */
     private static boolean rejectDuplicateKeys(List<String> keys, Context ctx) {
-        if (hasDuplicates(keys)) {
-            ctx.status(400).json(Map.of("error", "Duplicate key column: '" + findFirstDuplicate(keys) + "'"));
-            return true;
+        Set<String> seen = new HashSet<>();
+        for (String k : keys) {
+            if (!seen.add(k)) {
+                ctx.status(400).json(Map.of("error", "Duplicate key column: '" + k + "'"));
+                return true;
+            }
         }
         return false;
     }
@@ -393,18 +399,6 @@ public final class V2ScalarDbTableController {
             }
         }
         return false;
-    }
-
-    private static boolean hasDuplicates(List<String> list) {
-        return list.size() != new HashSet<>(list).size();
-    }
-
-    private static String findFirstDuplicate(List<String> list) {
-        Set<String> seen = new HashSet<>();
-        for (String item : list) {
-            if (!seen.add(item)) return item;
-        }
-        return "";
     }
 
     private record ColumnDef(String name, DataType type) {}
