@@ -108,3 +108,44 @@ describe('PALETTE_ITEM_MAP', () => {
     }
   })
 })
+
+describe('ElementPalette — handleAdd positioning branches', () => {
+  it('adding ページ番号 uses bottom-center position', () => {
+    render(<ElementPalette />)
+    fireEvent.click(screen.getByText('ページ番号'))
+    const state = useReportStore.getState()
+    const allElements = state.definition.pages[0].sections.flatMap((s) => s.elements)
+    const added = allElements.find((e) => e.type === 'pageNumber')
+    expect(added).toBeDefined()
+    // pageNumber is positioned at bottom of page
+    const page = state.definition.pages[0]
+    expect(added!.position.y).toBeGreaterThan(page.height / 2)
+  })
+
+  it('adding 現在日付 uses top-right position', () => {
+    render(<ElementPalette />)
+    fireEvent.click(screen.getByText('現在日付'))
+    const state = useReportStore.getState()
+    const allElements = state.definition.pages[0].sections.flatMap((s) => s.elements)
+    const added = allElements.find((e) => e.type === 'currentDate')
+    expect(added).toBeDefined()
+    // currentDate is positioned near top
+    expect(added!.position.y).toBeLessThan(30)
+  })
+
+  it('adding 区切り線 uses left-margin position and content width', () => {
+    render(<ElementPalette />)
+    fireEvent.click(screen.getByText('区切り線'))
+    const state = useReportStore.getState()
+    const allElements = state.definition.pages[0].sections.flatMap((s) => s.elements)
+    const added = allElements.find((e) => e.type === 'divider')
+    expect(added).toBeDefined()
+    // divider width should be page width minus margins
+    const page = state.definition.pages[0]
+    const margins = state.definition.pageSettings.margins
+    const expectedWidth = page.width - margins.left - margins.right
+    expect(added!.size.width).toBe(expectedWidth)
+    // position x = margins.left
+    expect(added!.position.x).toBe(margins.left)
+  })
+})

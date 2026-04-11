@@ -78,3 +78,53 @@ describe('LabelPropertiesPanel', () => {
     expect(onChange).toHaveBeenCalled()
   })
 })
+
+describe('LabelPropertiesPanel — toggle off (ternary else branches)', () => {
+  it('clicking 太字 when bold sets fontWeight to normal', () => {
+    const onChange = vi.fn()
+    render(<LabelPropertiesPanel el={makeEl({ style: { fontWeight: 'bold' } })} onChange={onChange} />)
+    fireEvent.click(screen.getByTitle('太字'))
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0]
+    expect(patch.style?.fontWeight).toBe('normal')
+  })
+
+  it('clicking 斜体 when italic sets fontStyle to normal', () => {
+    const onChange = vi.fn()
+    render(<LabelPropertiesPanel el={makeEl({ style: { fontStyle: 'italic' } })} onChange={onChange} />)
+    fireEvent.click(screen.getByTitle('斜体'))
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0]
+    expect(patch.style?.fontStyle).toBe('normal')
+  })
+
+  it('clicking 下線 when underline sets textDecoration to none', () => {
+    const onChange = vi.fn()
+    render(<LabelPropertiesPanel el={makeEl({ style: { textDecoration: 'underline' } })} onChange={onChange} />)
+    fireEvent.click(screen.getByTitle('下線'))
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0]
+    expect(patch.style?.textDecoration).toBe('none')
+  })
+
+  it('clicking 打ち消し線 when line-through sets textDecoration to none', () => {
+    const onChange = vi.fn()
+    render(<LabelPropertiesPanel el={makeEl({ style: { textDecoration: 'line-through' } })} onChange={onChange} />)
+    fireEvent.click(screen.getByTitle('打ち消し線'))
+    expect(onChange).toHaveBeenCalled()
+    const patch = onChange.mock.calls[0][0]
+    expect(patch.style?.textDecoration).toBe('none')
+  })
+
+  it('fontSize ?? fallback uses 3.5 when style.fontSize undefined', () => {
+    render(<LabelPropertiesPanel el={makeEl({ style: {} })} onChange={vi.fn()} />)
+    expect(screen.getByDisplayValue('3.5')).toBeInTheDocument()
+  })
+
+  it('color ?? fallback uses #000000 when style.color undefined', () => {
+    render(<LabelPropertiesPanel el={makeEl({ style: {} })} onChange={vi.fn()} />)
+    // ColorInput should show #000000 as default
+    const colorInputs = screen.getAllByDisplayValue('#000000')
+    expect(colorInputs.length).toBeGreaterThan(0)
+  })
+})
