@@ -307,6 +307,24 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const hasUnsavedChanges = historyIndex > 0
 
+  // Keyboard navigation for dropdown menus (#190) — ArrowDown/Up cycle through menuitem elements
+  const handleMenuKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
+    e.preventDefault()
+    const items = Array.from(
+      (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'),
+    )
+    if (items.length === 0) return
+    const current = document.activeElement as HTMLElement
+    const idx = items.indexOf(current)
+    let next: HTMLElement | undefined
+    if (e.key === 'ArrowDown') next = items[(idx + 1) % items.length]
+    else if (e.key === 'ArrowUp') next = items[(idx - 1 + items.length) % items.length]
+    else if (e.key === 'Home') next = items[0]
+    else if (e.key === 'End') next = items[items.length - 1]
+    next?.focus()
+  }, [])
+
   const handleNew = () => {
     onRequestTemplateModal?.()
   }
@@ -527,6 +545,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             onClick={() => setShowSaveMenu((v) => !v)}
             className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
             aria-expanded={showSaveMenu}
+            aria-haspopup="menu"
             aria-label="保存メニュー"
           >
             <ChevronDown className="w-3 h-3" />
@@ -613,7 +632,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             <ChevronDown className="w-3 h-3 ml-0.5" />
           </ToolbarButton>
           {showAlignMenu && (
-            <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[160px]">
+            <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[160px]" onKeyDown={handleMenuKeyDown}>
               <MenuButton onClick={() => handleAlign('left')} disabled={!hasMultiSelection} icon={<AlignLeft className="w-4 h-4" />} label="左揃え" />
               <MenuButton onClick={() => handleAlign('centerH')} disabled={!hasMultiSelection} icon={<AlignCenter className="w-4 h-4" />} label="水平中央揃え" />
               <MenuButton onClick={() => handleAlign('right')} disabled={!hasMultiSelection} icon={<AlignRight className="w-4 h-4" />} label="右揃え" />
@@ -641,7 +660,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             <ChevronDown className="w-3 h-3 ml-0.5" />
           </ToolbarButton>
           {showZOrderMenu && (
-            <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[140px]">
+            <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[140px]" onKeyDown={handleMenuKeyDown}>
               <MenuButton onClick={() => handleZOrder('front')} disabled={!hasSelection} icon={<BringToFront className="w-4 h-4" />} label="最前面へ" />
               <MenuButton onClick={() => handleZOrder('forward')} disabled={!hasSelection} icon={<ArrowUpToLine className="w-4 h-4" />} label="前面へ" />
               <MenuButton onClick={() => handleZOrder('backward')} disabled={!hasSelection} icon={<ArrowDownToLine className="w-4 h-4" />} label="背面へ" />
@@ -779,10 +798,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             </span>
           )}
           {showZoomMenu && (
-            <div className="absolute right-0 top-9 bg-popover border rounded shadow-lg z-50 py-1 min-w-[120px]">
+            <div role="menu" aria-label="ズームレベル" className="absolute right-0 top-9 bg-popover border rounded shadow-lg z-50 py-1 min-w-[120px]" onKeyDown={handleMenuKeyDown}>
               {ZOOM_PRESETS.map((z) => (
                 <button
                   key={z}
+                  role="menuitem"
+                  aria-pressed={editorZoom === z}
                   className={cn(
                     'w-full text-left px-3 py-1 text-xs hover:bg-accent',
                     editorZoom === z && 'bg-accent font-medium',
@@ -796,6 +817,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 <>
                   <div className="border-t my-1" />
                   <button
+                    role="menuitem"
+                    aria-label="横幅フィット"
                     title="横幅フィット"
                     className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                     onClick={() => {
@@ -806,6 +829,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                     <FitWidthIcon />
                   </button>
                   <button
+                    role="menuitem"
+                    aria-label="ページ全体フィット"
                     title="ページ全体フィット"
                     className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                     onClick={() => {

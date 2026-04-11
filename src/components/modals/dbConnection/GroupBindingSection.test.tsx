@@ -172,14 +172,19 @@ describe('GroupBindingSection — 解除 button', () => {
     expect(screen.getByRole('button', { name: /解除/i })).toBeInTheDocument()
   })
 
-  it('clicking 解除 clears tableMeta in the store and resets namespace dropdown', () => {
+  it('clicking 解除 shows confirm dialog, then clears tableMeta on confirm', async () => {
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
     useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
 
     const group = makeGroup({ id: groupId, tableMeta: { namespace: 'app', tableName: 'users' } })
     renderSection(group)
 
+    // 解除ボタンクリック → 確認ダイアログが表示される
     fireEvent.click(screen.getByRole('button', { name: /解除/i }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    // 「解除する」ボタンで確定
+    fireEvent.click(screen.getByRole('button', { name: /解除する/ }))
 
     // Store must have tableMeta cleared
     const stored = useReportStore.getState().definition.schema!.groups[0].tableMeta

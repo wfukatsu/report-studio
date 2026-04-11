@@ -233,7 +233,25 @@ export function ReportCanvas({
       const finalY = snap(clampedY)
 
       const el = createElement()
-      addElement(page.id, { ...el, position: { x: finalX, y: finalY } }, sectionId)
+
+      // Offset position if it overlaps existing elements in the same section (#188)
+      const sectionElements = (targetSection?.elements ?? [])
+      let posX = finalX
+      let posY = finalY
+      const OFFSET_STEP = 5 // 5mm per step
+      let offset = 0
+      while (sectionElements.some((ex) =>
+        ex.position.x < posX + el.size.width &&
+        ex.position.x + ex.size.width > posX &&
+        ex.position.y < posY + el.size.height &&
+        ex.position.y + ex.size.height > posY,
+      )) {
+        offset += OFFSET_STEP
+        posX = Math.min(finalX + offset, page.width - el.size.width)
+        posY = Math.min(finalY + offset, sectionH - el.size.height)
+      }
+
+      addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
     [page, zoom, snap, addElement, ref],
   )

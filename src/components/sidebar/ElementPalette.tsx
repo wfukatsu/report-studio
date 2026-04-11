@@ -5,6 +5,7 @@ import {
   Square,
   Database,
   QrCode,
+  Barcode,
   PenLine,
   Stamp,
   Rows3,
@@ -118,7 +119,7 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
     items: [
       { label: 'グラフ',     icon: <BarChart2 className="w-4 h-4" />, createElement: createChartElement },
       { label: 'QRコード',   icon: <QrCode className="w-4 h-4" />,   createElement: createBarcodeElement },
-      { label: 'バーコード', icon: <Rows3 className="w-4 h-4" />,    createElement: createBarcodeCode128Element },
+      { label: 'バーコード', icon: <Barcode className="w-4 h-4" />,  createElement: createBarcodeCode128Element },
     ],
   },
   {

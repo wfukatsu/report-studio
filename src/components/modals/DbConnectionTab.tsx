@@ -143,9 +143,14 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
       )}
 
       {!isLoading && !fetchError && catalog && catalog.namespaces.length === 0 && (
-        <p className="text-xs text-muted-foreground border border-border rounded p-3">
-          テーブルを含むネームスペースが見つかりません。ScalarDB にテーブルを作成してから再取得してください。
-        </p>
+        <div className="text-xs text-muted-foreground border border-border rounded p-3 space-y-1">
+          <p className="font-medium">テーブルが見つかりません。</p>
+          <p>以下のいずれかの方法でテーブルを作成してください：</p>
+          <ul className="list-disc list-inside space-y-0.5 mt-1">
+            <li>グループごとの「このスキーマからテーブルを作成」ボタンを使用する</li>
+            <li>ScalarDB 管理ツールでテーブルを作成して「再取得」を押す</li>
+          </ul>
+        </div>
       )}
 
       {!isLoading && !fetchError && catalog && catalog.namespaces.length > 0 && (
