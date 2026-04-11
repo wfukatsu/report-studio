@@ -41,6 +41,84 @@ jexl.addFunction('round', (value: unknown, places: unknown) => {
 })
 
 // ---------------------------------------------------------------------------
+// Phase 3: additional built-in functions for computed schema fields
+// ---------------------------------------------------------------------------
+
+/** avg(array, field?) — average of an array of numbers or array of objects */
+jexl.addFunction('avg', (arr: unknown, field?: unknown) => {
+  if (!Array.isArray(arr) || arr.length === 0) return null
+  const nums = field
+    ? arr.map((v) => (typeof v === 'object' && v !== null ? Number((v as Record<string, unknown>)[field as string]) : NaN))
+    : arr.map((v) => (typeof v === 'number' ? v : Number(v)))
+  const valid = nums.filter(isFinite)
+  if (valid.length === 0) return null
+  return valid.reduce((a, b) => a + b, 0) / valid.length
+})
+
+/** min(array, field?) — minimum value in an array */
+jexl.addFunction('min', (arr: unknown, field?: unknown) => {
+  if (!Array.isArray(arr) || arr.length === 0) return null
+  const nums = field
+    ? arr.map((v) => Number((v as Record<string, unknown>)[field as string]))
+    : arr.map((v) => typeof v === 'number' ? v : Number(v))
+  const valid = nums.filter(isFinite)
+  if (valid.length === 0) return null
+  return Math.min(...valid)
+})
+
+/** max(array, field?) — maximum value in an array */
+jexl.addFunction('max', (arr: unknown, field?: unknown) => {
+  if (!Array.isArray(arr) || arr.length === 0) return null
+  const nums = field
+    ? arr.map((v) => Number((v as Record<string, unknown>)[field as string]))
+    : arr.map((v) => typeof v === 'number' ? v : Number(v))
+  const valid = nums.filter(isFinite)
+  if (valid.length === 0) return null
+  return Math.max(...valid)
+})
+
+/** concat(...strings) — concatenate multiple string values */
+jexl.addFunction('concat', (...args: unknown[]) => {
+  return args.map((a) => (a == null ? '' : String(a))).join('')
+})
+
+/**
+ * ifExpr(condition, thenValue, elseValue) — conditional expression.
+ * Named `ifExpr` because `if` is a reserved keyword in JEXL.
+ */
+jexl.addFunction('ifExpr', (condition: unknown, thenVal: unknown, elseVal: unknown) => {
+  return condition ? thenVal : elseVal
+})
+
+/**
+ * formatNumber(value, pattern?) — format a number as a locale string.
+ * Pattern: 'integer' | 'decimal2' | 'currency' | raw Intl options JSON.
+ */
+jexl.addFunction('formatNumber', (value: unknown, pattern?: unknown) => {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!isFinite(n)) return String(value ?? '')
+  const pat = String(pattern ?? 'integer')
+  if (pat === 'currency') return n.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })
+  if (pat === 'decimal2') return n.toLocaleString('ja-JP', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n.toLocaleString('ja-JP', { maximumFractionDigits: 0 })
+})
+
+/**
+ * formatDate(dateStr, format?) — format a date string.
+ * Format: 'yyyy/MM/dd' | 'yyyy-MM-dd' | 'yyyy年MM月dd日' (default: 'yyyy/MM/dd').
+ */
+jexl.addFunction('formatDate', (dateStr: unknown, format?: unknown) => {
+  if (!dateStr) return ''
+  const d = new Date(String(dateStr))
+  if (isNaN(d.getTime())) return String(dateStr)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const fmt = String(format ?? 'yyyy/MM/dd')
+  return fmt.replace('yyyy', String(y)).replace('MM', m).replace('dd', day)
+})
+
+// ---------------------------------------------------------------------------
 // Built-in function registry (single source of truth for UI and agents)
 // ---------------------------------------------------------------------------
 
@@ -50,9 +128,16 @@ jexl.addFunction('round', (value: unknown, places: unknown) => {
  * available functions.
  */
 export const JEXL_BUILTINS = [
-  { name: 'sum',   signature: 'sum(array)',            description: '配列の合計値' },
-  { name: 'count', signature: 'count(array)',           description: '配列の要素数' },
-  { name: 'round', signature: 'round(value, places?)', description: '小数の丸め' },
+  { name: 'sum',          signature: 'sum(array)',                description: '配列の合計値' },
+  { name: 'count',        signature: 'count(array)',              description: '配列の要素数' },
+  { name: 'round',        signature: 'round(value, places?)',     description: '小数の丸め' },
+  { name: 'avg',          signature: 'avg(array, field?)',        description: '配列の平均値' },
+  { name: 'min',          signature: 'min(array, field?)',        description: '配列の最小値' },
+  { name: 'max',          signature: 'max(array, field?)',        description: '配列の最大値' },
+  { name: 'concat',       signature: 'concat(...strings)',        description: '文字列の連結' },
+  { name: 'ifExpr',       signature: 'ifExpr(cond, then, else)',  description: '条件分岐 (if の代替)' },
+  { name: 'formatNumber', signature: 'formatNumber(value, fmt?)', description: '数値書式化' },
+  { name: 'formatDate',   signature: 'formatDate(date, fmt?)',    description: '日付書式化' },
 ] as const
 
 // ---------------------------------------------------------------------------

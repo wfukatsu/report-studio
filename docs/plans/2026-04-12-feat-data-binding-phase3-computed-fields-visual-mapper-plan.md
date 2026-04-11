@@ -1,7 +1,7 @@
 ---
 title: データバインディング Phase 3 — Computed Fields + Visual Mapper
 type: feat
-status: active
+status: completed
 date: 2026-04-12
 origin: docs/brainstorms/2026-04-10-schema-database-binding-brainstorm.md
 ---

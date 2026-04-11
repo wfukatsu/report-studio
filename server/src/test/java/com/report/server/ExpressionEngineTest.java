@@ -190,4 +190,68 @@ class ExpressionEngineTest {
         assertThrows(Exception.class,
                 () -> ExpressionEngine.calculate("Thread:sleep(1000)", Map.of()));
     }
+
+    // ── Phase 3 built-in functions ────────────────────────────────────────────
+
+    @Test
+    void calculate_avgFunction_returnsAverage() throws Exception {
+        var items = List.of(
+                Map.of("score", 10.0),
+                Map.of("score", 20.0),
+                Map.of("score", 30.0)
+        );
+        Object result = ExpressionEngine.calculate("avg(items, 'score')", Map.of("items", items));
+        assertEquals(20.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_minFunction_returnsMinimum() throws Exception {
+        var items = List.of(Map.of("v", 5.0), Map.of("v", 3.0), Map.of("v", 8.0));
+        Object result = ExpressionEngine.calculate("min(items, 'v')", Map.of("items", items));
+        assertEquals(3.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_maxFunction_returnsMaximum() throws Exception {
+        var items = List.of(Map.of("v", 5.0), Map.of("v", 3.0), Map.of("v", 8.0));
+        Object result = ExpressionEngine.calculate("max(items, 'v')", Map.of("items", items));
+        assertEquals(8.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_concatFunction_concatenatesStrings() throws Exception {
+        Object result = ExpressionEngine.calculate(
+                "concat(firstName, ' ', lastName)",
+                Map.of("firstName", "太郎", "lastName", "山田"));
+        assertEquals("太郎 山田", result);
+    }
+
+    @Test
+    void calculate_ifExprFunction_trueCondition() throws Exception {
+        Object result = ExpressionEngine.calculate(
+                "ifExpr(score >= 60, '合格', '不合格')",
+                Map.of("score", 80));
+        assertEquals("合格", result);
+    }
+
+    @Test
+    void calculate_ifExprFunction_falseCondition() throws Exception {
+        Object result = ExpressionEngine.calculate(
+                "ifExpr(score >= 60, '合格', '不合格')",
+                Map.of("score", 40));
+        assertEquals("不合格", result);
+    }
+
+    @Test
+    void calculate_formatNumberFunction_integer() throws Exception {
+        Object result = ExpressionEngine.calculate("formatNumber(1234567, 'integer')", Map.of());
+        assertTrue(result.toString().contains("1,234,567") || result.toString().contains("1234567"));
+    }
+
+    @Test
+    void calculate_formatDateFunction_formatsDate() throws Exception {
+        Object result = ExpressionEngine.calculate(
+                "formatDate('2026-04-12', 'yyyy年MM月dd日')", Map.of());
+        assertEquals("2026年04月12日", result);
+    }
 }
