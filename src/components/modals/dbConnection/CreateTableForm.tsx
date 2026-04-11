@@ -336,7 +336,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 
       {/* Error display */}
       {errorMessage && (
-        <div className="border border-destructive/40 bg-destructive/5 rounded p-2 text-xs flex flex-col gap-1">
+        <div className="border border-destructive/40 bg-destructive/5 rounded p-2 text-xs flex flex-col gap-1" role="alert" aria-live="assertive" aria-atomic="true">
           <p className="text-destructive">{errorMessage}</p>
           {correlationId && (
             <p className="text-muted-foreground text-[10px]">相関 ID: {correlationId}</p>

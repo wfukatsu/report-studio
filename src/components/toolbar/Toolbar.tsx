@@ -513,7 +513,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               <RefreshCw className="w-4 h-4" />
             </ToolbarButton>
             {refreshError && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-destructive/10 border border-destructive/40 text-destructive text-[10px] rounded px-2 py-1 whitespace-nowrap">
+              <div className="absolute top-full left-0 mt-1 z-50 bg-destructive/10 border border-destructive/40 text-destructive text-[10px] rounded px-2 py-1 whitespace-nowrap" role="alert" aria-live="assertive" aria-atomic="true">
                 {refreshError}
               </div>
             )}
