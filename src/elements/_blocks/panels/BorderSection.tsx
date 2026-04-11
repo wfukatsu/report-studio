@@ -1,6 +1,23 @@
-import type { BorderConfig } from '../renderers/ElementFrame'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 import { DEFAULT_BORDER_WIDTH } from '../constants'
+
+// ---------------------------------------------------------------------------
+// Shared border / padding types (previously in ElementFrame.tsx)
+// ---------------------------------------------------------------------------
+
+export interface BorderConfig {
+  color: string
+  width: number
+  style?: 'solid' | 'dashed' | 'dotted'
+  radius?: number
+}
+
+export interface PaddingConfig {
+  top?: number
+  right?: number
+  bottom?: number
+  left?: number
+}
 
 const STROKE_STYLE_OPTIONS = [
   { value: 'solid', label: '実線' },

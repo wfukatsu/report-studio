@@ -133,8 +133,11 @@ function RepeatingBandLiveRenderer({
         })()
       : [{ label: '', records: sortedRecords }]
 
-    // Flatten grouped rows
-    const rows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
+    // Flatten grouped rows — discriminated union prevents unsafe non-null assertions
+    type FlatRow =
+      | { type: 'group-header'; groupLabel: string; rowIdx: number }
+      | { type: 'data'; record: Record<string, unknown>; rowIdx: number }
+    const rows: FlatRow[] = []
     let globalRowIdx = 0
     for (const group of groups) {
       if (groupByKey && group.label) {
@@ -189,7 +192,7 @@ function RepeatingBandLiveRenderer({
             <div key={idx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: row.rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
               {el.fields.map((f, i) => (
                 <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
-                  {resolveField(row.record!, f.key)}
+                  {resolveField(row.record, f.key)}
                 </div>
               ))}
             </div>

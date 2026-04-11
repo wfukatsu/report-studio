@@ -2,8 +2,7 @@ import { memo } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import ReactBarcode from 'react-barcode'
 import { MM_TO_PX } from '../constants'
-
-type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
+import type { BarcodeKind } from '@/types'
 
 /** JsBarcode format mapping — JAN13 is EAN-13 in Japanese naming */
 const FORMAT_MAP: Record<Exclude<BarcodeKind, 'qr'>, string> = {
@@ -18,6 +17,26 @@ const DEFAULT_VALUES: Record<BarcodeKind, string> = {
   code128: '0000000000',
   code39: 'HELLO',
   jan13: '4902778913406',
+}
+
+/**
+ * CODE39 allows only: A-Z, 0-9, space, and: - . $ / + %
+ * JsBarcode throws a native Error for any other character.
+ * Sanitise by uppercasing and stripping disallowed characters.
+ */
+const CODE39_ALLOWED = /[^A-Z0-9 \-.$\/+%]/g
+function sanitizeCode39(value: string): string {
+  return value.toUpperCase().replace(CODE39_ALLOWED, '')
+}
+
+/**
+ * EAN-13 / JAN-13 requires exactly 12–13 digit characters.
+ * Return the placeholder if the value is clearly invalid.
+ */
+function sanitizeJan13(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length < 12 || digits.length > 13) return DEFAULT_VALUES.jan13
+  return digits.slice(0, 13)
 }
 
 interface BarcodeContentProps {
@@ -41,7 +60,12 @@ export const BarcodeContent = memo(function BarcodeContent({
   lightColor = '#ffffff',
   showText = true,
 }: BarcodeContentProps) {
-  const displayValue = value || DEFAULT_VALUES[kind]
+  // Sanitise the value per barcode format — JsBarcode throws a native Error for
+  // invalid characters, and that error is not catchable by React error boundaries
+  // unless the component is wrapped in one. Sanitising here prevents hard crashes.
+  let displayValue = value || DEFAULT_VALUES[kind]
+  if (kind === 'code39') displayValue = sanitizeCode39(displayValue) || DEFAULT_VALUES.code39
+  if (kind === 'jan13') displayValue = sanitizeJan13(displayValue)
 
   if (kind === 'qr') {
     const size = Math.min(width, height) * MM_TO_PX

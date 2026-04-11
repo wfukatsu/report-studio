@@ -19,7 +19,22 @@ export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {
   const records = useMemo(() => {
     if (el.dataBinding) {
       const bound = data[el.dataBinding]
-      if (Array.isArray(bound)) return bound as Record<string, unknown>[]
+      // Validate that the bound value is an array of plain objects before
+      // passing to Recharts — an array of primitives would produce malformed
+      // data keys and silent rendering errors.
+      if (
+        Array.isArray(bound) &&
+        bound.length > 0 &&
+        typeof bound[0] === 'object' &&
+        bound[0] !== null &&
+        !Array.isArray(bound[0])
+      ) {
+        return bound as Record<string, unknown>[]
+      }
+      // Fall back to sample data if the binding resolves to a non-record array
+      if (Array.isArray(bound) && bound.length === 0) {
+        return bound as Record<string, unknown>[]
+      }
     }
     return SAMPLE_DATA
   }, [el.dataBinding, data])

@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 interface Props {
   elementId: string
@@ -8,25 +8,53 @@ interface Props {
 interface State {
   hasError: boolean
   error: Error | null
+  retryCount: number
 }
+
+/** Maximum retry attempts before disabling the retry button. */
+const MAX_RETRIES = 3
 
 /**
  * Error boundary that wraps individual element renderers.
+ *
  * Prevents a single element's rendering failure from crashing the entire canvas.
+ * Each element boundary is independent — an error in one element does not affect others.
+ *
+ * Retry behaviour: the retry button is disabled after MAX_RETRIES attempts to prevent
+ * infinite loops on deterministic errors (e.g. null-dereference in a renderer). If the
+ * error is transient (e.g. async data not yet resolved), the first retry usually succeeds.
+ *
+ * Errors are logged via componentDidCatch so they appear in the browser console even
+ * when the boundary prevents them from propagating up the tree.
  */
 export class ElementErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null }
+  state: State = { hasError: false, error: null, retryCount: 0 }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error }
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Log so the error appears in the browser console and any external error monitoring.
+    // This is the only production-visible signal that an element failed to render.
+    console.error(
+      `[ElementErrorBoundary] Element "${this.props.elementId}" failed to render:`,
+      error,
+      info.componentStack,
+    )
+  }
+
   handleRetry = () => {
-    this.setState({ hasError: false, error: null })
+    this.setState((prev) => ({
+      hasError: false,
+      error: null,
+      retryCount: prev.retryCount + 1,
+    }))
   }
 
   render() {
     if (this.state.hasError) {
+      const canRetry = this.state.retryCount < MAX_RETRIES
       return (
         <div
           style={{
@@ -47,20 +75,24 @@ export class ElementErrorBoundary extends Component<Props, State> {
           role="alert"
         >
           <span>描画エラー</span>
-          <button
-            onClick={this.handleRetry}
-            style={{
-              fontSize: '9px',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              color: '#991b1b',
-              padding: 0,
-            }}
-          >
-            再試行
-          </button>
+          {canRetry ? (
+            <button
+              onClick={this.handleRetry}
+              style={{
+                fontSize: '9px',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                background: 'none',
+                border: 'none',
+                color: '#991b1b',
+                padding: 0,
+              }}
+            >
+              再試行
+            </button>
+          ) : (
+            <span style={{ fontSize: '9px', color: '#b91c1c' }}>要素が修復不能です</span>
+          )}
         </div>
       )
     }

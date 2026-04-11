@@ -105,5 +105,20 @@ export const ChartContent = memo(function ChartContent({
           </PieChart>
         </ResponsiveContainer>
       )
+
+    default:
+      // Guard against future chartType additions or deserialized unknown values —
+      // returning undefined here would cause React to throw "Objects are not valid
+      // as a React child".
+      return (
+        <div style={{
+          width: '100%', height: '100%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#fef2f2', border: '1px dashed #fca5a5',
+          fontSize: '2.5mm', color: '#ef4444',
+        }}>
+          不明なグラフタイプ
+        </div>
+      )
   }
 })
