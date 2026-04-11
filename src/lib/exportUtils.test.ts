@@ -355,3 +355,30 @@ describe('exportReportToPdf', () => {
     await expect(exportReportToPdf([el])).rejects.toThrow('PDF export failed: html2canvas failure')
   })
 })
+
+describe('isSafeImageSrc — additional edge cases', () => {
+  it('rejects SVG data URI larger than 512KB', () => {
+    // Build a large SVG URI that exceeds the 512KB limit
+    const header = 'data:image/svg+xml;base64,'
+    const bigPayload = 'A'.repeat(512 * 1024 + 1)
+    const src = header + bigPayload
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+
+  it('rejects SVG data URI with no comma separator', () => {
+    // SVG URI without comma (malformed)
+    expect(isSafeImageSrc('data:image/svg+xml;base64')).toBe(false)
+  })
+
+  it('accepts URL-encoded SVG (non-base64 path)', () => {
+    // Simple clean SVG encoded as URL-encoded string (not base64)
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'
+    const src = 'data:image/svg+xml,' + encodeURIComponent(payload)
+    expect(isSafeImageSrc(src)).toBe(true)
+  })
+
+  it('rejects data URI with unsupported MIME type (pdf, text, etc)', () => {
+    expect(isSafeImageSrc('data:application/pdf;base64,abc')).toBe(false)
+    expect(isSafeImageSrc('data:text/html;base64,abc')).toBe(false)
+  })
+})
