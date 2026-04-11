@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.UUID;
  */
 public final class V2TemplateController {
 
+    private static final Logger log = LoggerFactory.getLogger(V2TemplateController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_NAME_LENGTH = 200;
     private static final String DEFAULT_NAME = "新しいテンプレート";
@@ -43,6 +46,7 @@ public final class V2TemplateController {
      * Returns {@code {items: [{id, name, createdAt, updatedAt}], total: N}}
      */
     public void list(Context ctx) throws Exception {
+        Principal principal = ctx.attribute("principal");
         List<String> blobs = definitionsRepo.list();
         ArrayNode items = MAPPER.createArrayNode();
 
@@ -51,6 +55,12 @@ public final class V2TemplateController {
                 JsonNode envelope = MAPPER.readTree(blob);
                 String id = envelope.path("id").asText(null);
                 if (id == null || id.isBlank()) continue;
+
+                // Filter to caller's own templates (and legacy templates without created_by)
+                String owner = envelope.path("created_by").asText("");
+                if (principal != null && !owner.isEmpty() && !owner.equals(principal.userId())) {
+                    continue;
+                }
 
                 ObjectNode item = MAPPER.createObjectNode();
                 item.put("id", id);
@@ -239,7 +249,9 @@ public final class V2TemplateController {
         }
 
         ObjectNode newEnvelope = buildEnvelope(newId, newName, now, now, newDef);
-        newEnvelope.put("created_by", principal.userId());
+        // Guard against null principal (e.g., dev mode without auth middleware)
+        String duplicatedBy = (principal != null) ? principal.userId() : "unknown";
+        newEnvelope.put("created_by", duplicatedBy);
         definitionsRepo.put(newId, MAPPER.writeValueAsString(newEnvelope));
 
         ctx.status(HttpStatus.CREATED);
@@ -278,20 +290,26 @@ public final class V2TemplateController {
      * <p>Returning true for legacy templates (empty {@code created_by}) preserves backwards
      * compatibility with single-user deployments created before authentication was introduced.
      *
+     * <p>On JSON parse failure the envelope is treated as inaccessible (fail-closed) and
+     * {@code false} is returned, preventing malformed envelopes from bypassing ownership.
+     *
      * <p>Callers should return HTTP 404 (not 403) on {@code false} to prevent template ID
      * enumeration attacks.
      */
     private static boolean isOwner(Context ctx, String storedEnvelopeJson) {
         Principal principal = ctx.attribute("principal");
         if (principal == null) return true;  // unauthenticated / dev mode — allow all
+        JsonNode envelope;
         try {
-            JsonNode envelope = MAPPER.readTree(storedEnvelopeJson);
-            String owner = envelope.path("created_by").asText("");
-            if (owner.isEmpty()) return true;  // legacy template without created_by — allow all
-            return owner.equals(principal.userId());
-        } catch (Exception ignored) {
-            return true;  // malformed envelope — fail open to avoid blocking legitimate access
+            envelope = MAPPER.readTree(storedEnvelopeJson);
+        } catch (Exception e) {
+            // Malformed envelope — fail closed to avoid ownership bypass on corrupt data
+            log.warn("Malformed template envelope, denying ownership check: {}", e.getMessage());
+            return false;
         }
+        String owner = envelope.path("created_by").asText("");
+        if (owner.isEmpty()) return true;  // legacy template without created_by — allow all
+        return owner.equals(principal.userId());
     }
 
     /**
