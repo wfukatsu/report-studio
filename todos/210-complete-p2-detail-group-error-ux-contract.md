@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "210"
 tags: [code-review, architecture, ux, data-binding-phase2]
