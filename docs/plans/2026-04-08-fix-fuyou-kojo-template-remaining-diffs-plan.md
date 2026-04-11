@@ -1,7 +1,7 @@
 ---
 title: "fix: 扶養控除等申告書テンプレート PDF 忠実度 — 残件 DIFF-04/08~11 修正"
 type: fix
-status: active
+status: completed
 date: 2026-04-08
 origin: docs/brainstorms/2026-04-08-fuyou-kojo-remaining-diffs-brainstorm.md
 ---

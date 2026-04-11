@@ -1,7 +1,7 @@
 ---
 title: "fix: テキスト横揃え・縦揃えを CSS 論理軸モデルに統一"
 type: fix
-status: active
+status: completed
 date: 2026-04-08
 ---
 

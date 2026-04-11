@@ -27,6 +27,46 @@ interface Props {
 
 const EMPTY_DATA: Record<string, unknown> = {}
 
+// Snap a single axis position to the nearest of: grid point or margin boundary.
+// Used for margin-aware snap-to-grid during drag and drop.
+// threshold: max distance (mm) to trigger margin snap (default 1mm ≈ 2.7px)
+function snapAxis(
+  value: number,        // mm — position of the near edge (left or top)
+  elementSize: number | undefined, // mm — width or height of the element
+  marginNear: number,   // mm — near margin (left or top)
+  marginFar: number,    // mm — far margin (right or bottom)
+  pageSize: number,     // mm — page width or height
+  doSnap: boolean,
+  gridSize: number,
+  threshold = 1,
+): number {
+  // Grid snap (always as baseline when snapToGrid is on)
+  const gridSnapped = doSnap ? Math.round(value / gridSize) * gridSize : value
+  if (!doSnap) return gridSnapped
+
+  let best = gridSnapped
+  let bestDist = Math.abs(value - gridSnapped)
+
+  // Near margin boundary: snap left/top edge
+  const nearBound = marginNear
+  const distNear = Math.abs(value - nearBound)
+  if (distNear < threshold && distNear < bestDist) {
+    best = nearBound
+    bestDist = distNear
+  }
+
+  // Far margin boundary: snap right/bottom edge so far edge aligns with margin
+  if (elementSize !== undefined) {
+    const farBound = pageSize - marginFar
+    const distFar = Math.abs((value + elementSize) - farBound)
+    if (distFar < threshold && distFar < bestDist) {
+      best = farBound - elementSize
+    }
+  }
+
+  return best
+}
+
 // Trim mark dimensions (in mm, scaled by zoom at render time)
 const TRIM_GAP_MM = 3    // gap between paper edge and mark
 const TRIM_LENGTH_MM = 5 // length of each mark line
@@ -140,11 +180,6 @@ export function ReportCanvas({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [readonly, activePage, selectedIds, removeElements])
 
-  const snap = useCallback(
-    (v: number) => snapToGrid ? Math.round(v / gridSize) * gridSize : v,
-    [snapToGrid, gridSize],
-  )
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       if (!page || !event.delta) return
@@ -152,9 +187,11 @@ export function ReportCanvas({
       if (!el) return
       const newX = el.position.x + pxToMm(event.delta.x / zoom)
       const newY = el.position.y + pxToMm(event.delta.y / zoom)
-      moveElement(page.id, el.id, { x: snap(newX), y: snap(newY) })
+      const snappedX = snapAxis(newX, el.size.width, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
+      const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
+      moveElement(page.id, el.id, { x: snappedX, y: snappedY })
     },
-    [page, moveElement, zoom, snap],
+    [page, moveElement, zoom, snapToGrid, gridSize, margins],
   )
 
   const handleResize = useCallback(
@@ -168,9 +205,12 @@ export function ReportCanvas({
   const handleMove = useCallback(
     (elementId: string, position: { x: number; y: number }) => {
       if (!page) return
-      moveElement(page.id, elementId, { x: snap(position.x), y: snap(position.y) })
+      const el = flattenPageElements(page).find((e) => e.id === elementId)
+      const snappedX = snapAxis(position.x, el?.size.width, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
+      const snappedY = snapAxis(position.y, el?.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
+      moveElement(page.id, elementId, { x: snappedX, y: snappedY })
     },
-    [page, moveElement, snap],
+    [page, moveElement, snapToGrid, gridSize, margins],
   )
 
   const handleResizeSection = useCallback(
@@ -228,9 +268,9 @@ export function ReportCanvas({
       const clampedX = Math.max(0, Math.min(xMm, page.width))
       const clampedY = Math.max(0, Math.min(relativeY, sectionH))
 
-      // Apply snap-to-grid
-      const finalX = snap(clampedX)
-      const finalY = snap(clampedY)
+      // Apply snap-to-grid + margin snap (no element size available yet for far-edge snap)
+      const finalX = snapAxis(clampedX, undefined, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
+      const finalY = snapAxis(clampedY, undefined, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
 
       const el = createElement()
 
@@ -257,7 +297,7 @@ export function ReportCanvas({
 
       addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
-    [page, zoom, snap, addElement, ref],
+    [page, zoom, snapToGrid, gridSize, margins, addElement, ref],
   )
 
   const handleContextMenuClose = useCallback(() => setContextMenu(null), [])

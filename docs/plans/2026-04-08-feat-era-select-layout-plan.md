@@ -1,7 +1,7 @@
 ---
 title: "feat: 元号選択レイアウトパターン（column/row/grid-2col）+ 表示元号選択"
 type: feat
-status: active
+status: completed
 date: 2026-04-08
 origin: docs/brainstorms/2026-04-08-era-select-layout-brainstorm.md
 ---

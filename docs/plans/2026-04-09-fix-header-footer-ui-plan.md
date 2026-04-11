@@ -1,7 +1,7 @@
 ---
 title: "fix: ヘッダー/フッター UI の課題 8件修正"
 type: fix
-status: active
+status: completed
 date: 2026-04-09
 ---
 

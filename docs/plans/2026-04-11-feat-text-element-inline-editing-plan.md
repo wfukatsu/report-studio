@@ -1,7 +1,7 @@
 ---
 title: "feat: TextElement インライン編集・defaultTextStyle 継承モデル"
 type: feat
-status: active
+status: completed
 date: 2026-04-11
 deepened: 2026-04-11
 origin: docs/brainstorms/2026-04-05-text-element-brainstorm.md
