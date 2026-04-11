@@ -1,12 +1,15 @@
 /**
- * Phase 3A: Visual Mapper tab for DataBindingModal.
+ * Phase 3A + Phase 4: Visual Mapper tab for DataBindingModal.
  *
- * Provides a click-to-connect UI for setting element.schemaBinding.fieldId.
- * Left panel: schema fields grouped by SchemaGroup.
- * Right panel: bindable elements from all pages.
- * Interaction: click a field chip → select it, then click an element → connect.
+ * Provides two complementary connection modes:
+ * 1. Click-to-connect: click a field chip → click an element row → connect
+ * 2. Drag-to-connect (Phase 4): pointer-drag from field chip → drop on element row
+ *
+ * SVG overlay shows:
+ * - Dashed lines for existing connections
+ * - Rubber-band line while dragging
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { flattenPageElements } from '@/store/selectors'
 import { cn } from '@/lib/utils'
@@ -33,8 +36,88 @@ interface ElementItem {
   boundFieldId?: string
 }
 
+interface DragState {
+  fieldId: string
+  startX: number
+  startY: number
+  currentX: number
+  currentY: number
+}
+
 // Element types that support schemaBinding
 const BINDABLE_TYPES = new Set(['dataField', 'text', 'checkbox', 'eraSelect'])
+
+// ---------------------------------------------------------------------------
+// SVG connection overlay
+// ---------------------------------------------------------------------------
+
+interface ConnectionOverlayProps {
+  connections: { fieldId: string; elementId: string }[]
+  dragState: DragState | null
+  fieldRefs: React.MutableRefObject<Map<string, HTMLButtonElement | null>>
+  elementRefs: React.MutableRefObject<Map<string, HTMLButtonElement | null>>
+  containerRef: React.RefObject<HTMLDivElement | null>
+}
+
+function ConnectionOverlay({
+  connections,
+  dragState,
+  fieldRefs,
+  elementRefs,
+  containerRef,
+}: ConnectionOverlayProps) {
+  const containerRect = containerRef.current?.getBoundingClientRect()
+
+  return (
+    <svg
+      className="absolute inset-0 pointer-events-none overflow-visible"
+      style={{ zIndex: 10 }}
+      aria-hidden="true"
+    >
+      {/* Existing connection lines */}
+      {containerRect && connections.map(({ fieldId, elementId }) => {
+        const fieldEl = fieldRefs.current.get(fieldId)
+        const elementEl = elementRefs.current.get(elementId)
+        if (!fieldEl || !elementEl) return null
+        const fieldRect = fieldEl.getBoundingClientRect()
+        const elementRect = elementEl.getBoundingClientRect()
+        return (
+          <line
+            key={`${fieldId}-${elementId}`}
+            x1={fieldRect.right - containerRect.left}
+            y1={fieldRect.top + fieldRect.height / 2 - containerRect.top}
+            x2={elementRect.left - containerRect.left}
+            y2={elementRect.top + elementRect.height / 2 - containerRect.top}
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
+            opacity={0.6}
+          />
+        )
+      })}
+
+      {/* Drag rubber-band line */}
+      {dragState && containerRect && (() => {
+        const dragFieldEl = fieldRefs.current.get(dragState.fieldId)
+        if (!dragFieldEl) return null
+        const fieldRect = dragFieldEl.getBoundingClientRect()
+        return (
+          <line
+            data-drag="true"
+            x1={fieldRect.right - containerRect.left}
+            y1={fieldRect.top + fieldRect.height / 2 - containerRect.top}
+            x2={dragState.currentX - containerRect.left}
+            y2={dragState.currentY - containerRect.top}
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            strokeDasharray="6 3"
+            opacity={0.8}
+          />
+        )
+      })()}
+    </svg>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -45,18 +128,32 @@ interface FieldChipProps {
   isSelected: boolean
   boundElementCount: number
   onSelect: (fieldId: string) => void
+  onPointerDown: (e: React.PointerEvent, fieldId: string) => void
+  onPointerMove: (e: React.PointerEvent, fieldId: string) => void
+  chipRef: (el: HTMLButtonElement | null) => void
 }
 
-function FieldChip({ field, isSelected, boundElementCount, onSelect }: FieldChipProps) {
+function FieldChip({
+  field,
+  isSelected,
+  boundElementCount,
+  onSelect,
+  onPointerDown,
+  onPointerMove,
+  chipRef,
+}: FieldChipProps) {
   return (
     <button
+      ref={chipRef}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left border-b last:border-b-0 transition-colors',
+        'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left border-b last:border-b-0 transition-colors select-none',
         isSelected
           ? 'bg-primary/10 border-l-2 border-l-primary'
           : 'hover:bg-accent',
       )}
       onClick={() => onSelect(field.fieldId)}
+      onPointerDown={(e) => onPointerDown(e, field.fieldId)}
+      onPointerMove={(e) => onPointerMove(e, field.fieldId)}
       title={field.dbColumnName ? `DB: ${field.dbColumnName}` : undefined}
     >
       <span className="flex-1 truncate font-medium">{field.fieldLabel}</span>
@@ -75,12 +172,24 @@ function FieldChip({ field, isSelected, boundElementCount, onSelect }: FieldChip
 interface ElementRowProps {
   element: ElementItem
   selectedFieldId: string | null
+  isDragging: boolean
   allFields: FieldItem[]
   onConnect: (pageId: string, elementId: string) => void
   onDisconnect: (pageId: string, elementId: string) => void
+  onPointerUp: (pageId: string, elementId: string) => void
+  rowRef: (el: HTMLButtonElement | null) => void
 }
 
-function ElementRow({ element, selectedFieldId, allFields, onConnect, onDisconnect }: ElementRowProps) {
+function ElementRow({
+  element,
+  selectedFieldId,
+  isDragging,
+  allFields,
+  onConnect,
+  onDisconnect,
+  onPointerUp,
+  rowRef,
+}: ElementRowProps) {
   const boundField = element.boundFieldId
     ? allFields.find((f) => f.fieldId === element.boundFieldId)
     : null
@@ -88,30 +197,30 @@ function ElementRow({ element, selectedFieldId, allFields, onConnect, onDisconne
   const isConnectedToSelected = selectedFieldId !== null && element.boundFieldId === selectedFieldId
 
   function handleClick() {
+    if (isDragging) return  // Don't process click during drag
     if (selectedFieldId !== null) {
       if (element.boundFieldId === selectedFieldId) {
-        // Same field clicked → disconnect
         onDisconnect(element.pageId, element.elementId)
       } else {
-        // Different (or no) field → connect to selected
         onConnect(element.pageId, element.elementId)
       }
     } else if (element.boundFieldId) {
-      // No field selected, element has binding → disconnect on click
       onDisconnect(element.pageId, element.elementId)
     }
   }
 
   return (
     <button
+      ref={rowRef}
       className={cn(
         'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left border-b last:border-b-0 transition-colors',
         isConnectedToSelected && 'bg-primary/5',
-        selectedFieldId !== null && 'hover:bg-primary/10 cursor-pointer',
-        selectedFieldId === null && element.boundFieldId && 'hover:bg-destructive/10',
-        selectedFieldId === null && !element.boundFieldId && 'hover:bg-accent opacity-60',
+        (selectedFieldId !== null || isDragging) && 'hover:bg-primary/10 cursor-pointer',
+        selectedFieldId === null && !isDragging && element.boundFieldId && 'hover:bg-destructive/10',
+        selectedFieldId === null && !isDragging && !element.boundFieldId && 'hover:bg-accent opacity-60',
       )}
       onClick={handleClick}
+      onPointerUp={() => onPointerUp(element.pageId, element.elementId)}
     >
       <span className={cn('text-[10px] shrink-0', {
         'text-muted-foreground': element.elementType === 'text',
@@ -125,8 +234,8 @@ function ElementRow({ element, selectedFieldId, allFields, onConnect, onDisconne
         <span className="text-[10px] font-mono text-primary shrink-0 max-w-[40%] truncate">
           ← {boundField.fieldKey}
         </span>
-      ) : selectedFieldId !== null ? (
-        <span className="text-[10px] text-muted-foreground shrink-0">クリックで接続</span>
+      ) : (selectedFieldId !== null || isDragging) ? (
+        <span className="text-[10px] text-muted-foreground shrink-0">ドロップで接続</span>
       ) : null}
     </button>
   )
@@ -144,6 +253,12 @@ export function BindingMapperTab() {
   const selectElement = useReportStore((s) => s.selectElement)
 
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
+  const [dragState, setDragState] = useState<DragState | null>(null)
+
+  // Refs for SVG connection lines
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const fieldRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map())
+  const elementRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map())
 
   // Build flat list of all schema fields
   const allFields: FieldItem[] = (schema?.groups ?? []).flatMap((group) =>
@@ -178,6 +293,15 @@ export function BindingMapperTab() {
     }
   }
 
+  // Build connections list for SVG overlay
+  const connections = allElements
+    .filter((el) => el.boundFieldId)
+    .map((el) => ({ fieldId: el.boundFieldId!, elementId: el.elementId }))
+
+  // ---------------------------------------------------------------------------
+  // Click-connect handlers (Phase 3A — kept as fallback)
+  // ---------------------------------------------------------------------------
+
   const handleFieldSelect = useCallback((fieldId: string) => {
     setSelectedFieldId((prev) => prev === fieldId ? null : fieldId)
   }, [])
@@ -196,6 +320,43 @@ export function BindingMapperTab() {
     selectElement(elementId)
   }, [setActivePage, selectElement])
 
+  // ---------------------------------------------------------------------------
+  // Drag-connect handlers (Phase 4)
+  // ---------------------------------------------------------------------------
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, fieldId: string) => {
+    // setPointerCapture may not be available in all environments (e.g. jsdom)
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* no-op */ }
+    setDragState({
+      fieldId,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+    })
+  }, [])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent, fieldId: string) => {
+    setDragState((prev) => {
+      if (!prev || prev.fieldId !== fieldId) return prev
+      return { ...prev, currentX: e.clientX, currentY: e.clientY }
+    })
+  }, [])
+
+  const handleElementPointerUp = useCallback((pageId: string, elementId: string) => {
+    if (!dragState) return
+    setElementSchemaBinding(pageId, elementId, dragState.fieldId)
+    setDragState(null)
+    setSelectedFieldId(null)
+  }, [dragState, setElementSchemaBinding])
+
+  // Cancel drag on pointerup on container (not on an element)
+  const handleContainerPointerUp = useCallback(() => {
+    if (dragState) {
+      setDragState(null)
+    }
+  }, [dragState])
+
   if (!schema || schema.groups.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-8 text-center">
@@ -206,9 +367,23 @@ export function BindingMapperTab() {
   }
 
   const boundElementCount = allElements.filter((e) => e.boundFieldId).length
+  const isDragging = dragState !== null
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div
+      ref={containerRef}
+      className="flex h-full overflow-hidden relative"
+      onPointerUp={handleContainerPointerUp}
+    >
+      {/* SVG overlay for connection lines */}
+      <ConnectionOverlay
+        connections={connections}
+        dragState={dragState}
+        fieldRefs={fieldRefs}
+        elementRefs={elementRefs}
+        containerRef={containerRef}
+      />
+
       {/* Left panel: Schema fields */}
       <div className="w-1/2 border-r overflow-y-auto flex flex-col">
         <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
@@ -216,7 +391,7 @@ export function BindingMapperTab() {
             スキーマフィールド
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            フィールドをクリックして選択
+            フィールドをクリックまたはドラッグして接続
           </p>
         </div>
 
@@ -247,6 +422,15 @@ export function BindingMapperTab() {
                   isSelected={selectedFieldId === field.id}
                   boundElementCount={fieldBoundCount.get(field.id) ?? 0}
                   onSelect={handleFieldSelect}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  chipRef={(el) => {
+                    if (el) {
+                      fieldRefs.current.set(field.id, el)
+                    } else {
+                      fieldRefs.current.delete(field.id)
+                    }
+                  }}
                 />
               ))
             )}
@@ -261,7 +445,9 @@ export function BindingMapperTab() {
             レポート要素
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            {selectedFieldId
+            {isDragging
+              ? '要素にドロップして接続'
+              : selectedFieldId
               ? '要素をクリックして接続'
               : `${boundElementCount}/${allElements.length} 要素がバインド済み`}
           </p>
@@ -293,9 +479,18 @@ export function BindingMapperTab() {
                     key={el.elementId}
                     element={el}
                     selectedFieldId={selectedFieldId}
+                    isDragging={isDragging}
                     allFields={allFields}
                     onConnect={handleConnect}
                     onDisconnect={handleDisconnect}
+                    onPointerUp={handleElementPointerUp}
+                    rowRef={(btn) => {
+                      if (btn) {
+                        elementRefs.current.set(el.elementId, btn)
+                      } else {
+                        elementRefs.current.delete(el.elementId)
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -305,7 +500,7 @@ export function BindingMapperTab() {
       </div>
 
       {/* Status bar */}
-      {selectedFieldId && (
+      {selectedFieldId && !isDragging && (
         <div className="absolute bottom-0 left-0 right-0 bg-primary/10 border-t px-4 py-2 text-[10px] text-primary flex items-center gap-2">
           <span className="font-medium">
             選択中: {allFields.find((f) => f.fieldId === selectedFieldId)?.fieldKey ?? selectedFieldId}
@@ -317,6 +512,16 @@ export function BindingMapperTab() {
           >
             ✕ 選択解除
           </button>
+        </div>
+      )}
+
+      {/* Drag status indicator */}
+      {isDragging && (
+        <div className="absolute bottom-0 left-0 right-0 bg-primary/10 border-t px-4 py-2 text-[10px] text-primary flex items-center gap-2">
+          <span className="font-medium">
+            ドラッグ中: {allFields.find((f) => f.fieldId === dragState.fieldId)?.fieldKey ?? dragState.fieldId}
+          </span>
+          <span>— 右パネルの要素にドロップして接続</span>
         </div>
       )}
     </div>
