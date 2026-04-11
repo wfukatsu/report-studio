@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "212"
 tags: [code-review, performance, react, canvas, data-binding-phase2]
