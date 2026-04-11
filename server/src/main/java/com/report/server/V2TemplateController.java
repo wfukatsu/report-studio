@@ -44,6 +44,12 @@ public final class V2TemplateController {
     /**
      * GET /api/v2/templates
      * Returns {@code {items: [{id, name, createdAt, updatedAt}], total: N}}
+     *
+     * <p>Ownership filtering: returns only templates owned by the calling principal.
+     * Legacy templates (created before authentication was introduced, {@code created_by} empty)
+     * are returned for every authenticated caller. This is intentional for backwards
+     * compatibility with single-user deployments. To restrict access to legacy templates,
+     * backfill their {@code created_by} field with the owning user's ID.
      */
     public void list(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");
@@ -296,7 +302,8 @@ public final class V2TemplateController {
      * <p>Callers should return HTTP 404 (not 403) on {@code false} to prevent template ID
      * enumeration attacks.
      */
-    private static boolean isOwner(Context ctx, String storedEnvelopeJson) {
+    /** Package-private to allow reuse from sibling controllers (e.g., V2TemplateExportController). */
+    static boolean isOwner(Context ctx, String storedEnvelopeJson) {
         Principal principal = ctx.attribute("principal");
         if (principal == null) return true;  // unauthenticated / dev mode — allow all
         JsonNode envelope;

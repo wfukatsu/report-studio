@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useLayoutEffect } from 'react'
 import { useReportStore } from '@/store'
 import { flattenPageElements } from '@/store/selectors'
 import { fieldExists } from '@/lib/dataBinding'
@@ -85,25 +85,38 @@ function bindingFingerprint(
 // ---------------------------------------------------------------------------
 
 export function useBindingAnalysis(): BindingAnalysis {
-  // Subscribe to a stable fingerprint rather than the full pages reference.
-  // This prevents re-running the analysis on every drag/resize operation,
-  // which would otherwise cause ~60 re-computations per second during editing.
+  // Subscribe to stable fingerprints to control when the analysis re-runs.
+  // Fingerprints change only when binding-relevant data changes, NOT when elements
+  // are dragged or resized — preventing ~60 re-computations per second during editing.
   const pageFingerprint = useReportStore((s) => bindingFingerprint(s.definition.pages))
-
-  // Subscribe only to whether a DataSource exists and which field keys are present.
-  // Field *values* changing does not affect the analysis, so we use a key-set fingerprint.
   const hasDataSource = useReportStore((s) => s.definition.dataSources.length > 0)
   const fieldKeyFingerprint = useReportStore((s) => {
     const fields = s.definition.dataSources[0]?.fields ?? {}
     return Object.keys(fields as Record<string, unknown>).sort().join(',')
   })
 
-  // We still need the raw pages for the actual traversal inside useMemo.
-  // Using a stable selector so Zustand only re-subscribes when the reference changes.
+  // Raw data needed for the traversal inside useMemo.
+  // These are kept in refs so the memo body can always read the current values
+  // without listing them as deps (which would defeat the fingerprint optimization
+  // by triggering the memo on every drag/resize via new immer references).
   const pages = useReportStore((s) => s.definition.pages)
   const dataSources = useReportStore((s) => s.definition.dataSources)
+  const pagesRef = useRef(pages)
+  const dataSourcesRef = useRef(dataSources)
+
+  // Sync refs after every render so the memo always reads the latest values
+  // when it does re-execute (triggered by a fingerprint change).
+  // useLayoutEffect (not useEffect) ensures the refs are updated before any
+  // child layout reads, maintaining consistency within a single render pass.
+  useLayoutEffect(() => {
+    pagesRef.current = pages
+    dataSourcesRef.current = dataSources
+  })
 
   return useMemo(() => {
+    // Read from refs — current at the time this memo executes (fingerprint changed)
+    const pages = pagesRef.current
+    const dataSources = dataSourcesRef.current
     const dataSource = dataSources[0] ?? null
     const fields = (dataSource?.fields ?? {}) as Record<string, unknown>
 
@@ -200,7 +213,10 @@ export function useBindingAnalysis(): BindingAnalysis {
     }
 
     return { hasDataSource, unboundElements, fieldMappings, missingInSampleElements }
-    // Use fingerprints as deps so drag/resize and field-value edits don't trigger re-analysis
+    // Fingerprints are the only deps — NOT the raw pages/dataSources references.
+    // Raw refs are intentionally read via pagesRef/dataSourcesRef (synced in useLayoutEffect)
+    // to avoid triggering re-analysis on every drag/resize (which creates new immer references
+    // but does not change any binding-relevant data).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageFingerprint, fieldKeyFingerprint, hasDataSource, pages, dataSources])
+  }, [pageFingerprint, fieldKeyFingerprint, hasDataSource])
 }

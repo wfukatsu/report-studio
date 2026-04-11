@@ -108,6 +108,42 @@ class V2TemplateControllerTest {
     }
 
     @Test
+    void list_legacyTemplatesWithoutCreatedByAreVisibleToAllUsers() throws Exception {
+        // Legacy template has no created_by field — visible to every authenticated user.
+        // This is intentional backwards-compatibility behaviour documented in the list() Javadoc.
+        String legacy = MAPPER.writeValueAsString(MAPPER.createObjectNode()
+                .put("id", "legacy1").put("name", "レガシー"));
+        when(repo.list()).thenReturn(List.of(legacy));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("any-random-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.list(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        assertEquals(1, resp.path("total").asInt(), "Legacy template should appear for all users");
+    }
+
+    @Test
+    void get_legacyTemplatesWithoutCreatedByAreAccessibleToAllUsers() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("legacy1");
+        String legacy = MAPPER.createObjectNode()
+                .put("id", "legacy1")
+                .set("definition", MAPPER.createObjectNode().put("id", "legacy1")).toString();
+        when(repo.get("legacy1")).thenReturn(Optional.of(legacy));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("any-random-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.get(ctx);
+
+        verify(ctx).contentType("application/json");
+        verify(ctx).result(anyString());
+    }
+
+    @Test
     void isOwner_returnsFalseOnMalformedEnvelope() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
         // Malformed JSON — should return false (fail closed), causing 404
