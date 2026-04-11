@@ -153,3 +153,46 @@ describe('TokenInput', () => {
     vi.useRealTimers()
   })
 })
+
+describe('TokenInput — uncovered branch coverage', () => {
+  beforeEach(() => {
+    useReportStore.getState().newReport()
+  })
+
+  it('hides dropdown when text does not contain {{ trigger', () => {
+    // Seed schema so dropdown CAN appear
+    useReportStore.getState().addSchemaGroup('g1')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: 'Name', type: 'string', required: false })
+
+    const onChange = vi.fn()
+    render(<TokenInput value="" onChange={onChange} />)
+    const textarea = screen.getByRole('textbox')
+
+    // Type {{ to open dropdown
+    fireEvent.change(textarea, { target: { value: '{{' } })
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+
+    // Type something without {{ to close dropdown
+    fireEvent.change(textarea, { target: { value: 'hello' } })
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
+  it('filters options by query after {{ trigger', () => {
+    useReportStore.getState().addSchemaGroup('g1')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'firstName', label: 'First Name', type: 'string', required: false })
+    useReportStore.getState().addSchemaField(groupId, { key: 'lastName', label: 'Last Name', type: 'string', required: false })
+
+    render(<TokenInput value="" onChange={vi.fn()} />)
+    const textarea = screen.getByRole('textbox')
+
+    // Type {{first to filter
+    fireEvent.change(textarea, { target: { value: '{{first' } })
+    // Only firstName should show (filter branch: filter is truthy → filter applied)
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    const items = screen.getAllByRole('option')
+    expect(items.length).toBe(1) // only firstName matches
+    expect(items[0]).toHaveTextContent('firstName')
+  })
+})

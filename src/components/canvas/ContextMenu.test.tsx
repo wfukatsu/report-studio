@@ -352,3 +352,73 @@ describe('ContextMenu accessibility', () => {
     expect((document.activeElement as HTMLButtonElement).disabled).not.toBe(true)
   })
 })
+
+describe('ContextMenu — uncovered branches', () => {
+  it('ArrowDown wraps from last item to first', async () => {
+    const user = userEvent.setup()
+    renderMenu()
+
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(screen.getAllByRole('menuitem')[0])
+    })
+
+    const items = screen.getAllByRole('menuitem')
+    const lastIndex = items.length - 1
+
+    // Navigate to the last item
+    for (let i = 0; i < lastIndex; i++) {
+      await user.keyboard('{ArrowDown}')
+    }
+    expect(document.activeElement).toBe(items[lastIndex])
+
+    // ArrowDown from last item wraps to first
+    await user.keyboard('{ArrowDown}')
+    expect(document.activeElement).toBe(items[0])
+  })
+
+  it('ArrowUp wraps from first item to last', async () => {
+    const user = userEvent.setup()
+    renderMenu()
+
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(screen.getAllByRole('menuitem')[0])
+    })
+
+    const items = screen.getAllByRole('menuitem')
+
+    // ArrowUp from first item → last
+    await user.keyboard('{ArrowUp}')
+    expect(document.activeElement).toBe(items[items.length - 1])
+  })
+
+  it('shows グループ化 item when onGroup is provided', () => {
+    const onGroup = vi.fn()
+    const onClose = vi.fn()
+    render(
+      <ContextMenu
+        menu={menu}
+        pageId="page-1"
+        onClose={onClose}
+        onCopy={vi.fn()}
+        onCut={vi.fn()}
+        onPaste={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleLock={vi.fn()}
+        onToggleVisible={vi.fn()}
+        onZOrder={vi.fn()}
+        onGroup={onGroup}
+        hasPaste={true}
+      />,
+    )
+    expect(screen.getByText('グループ化')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('グループ化'))
+    expect(onGroup).toHaveBeenCalledOnce()
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('does not show グループ化 when onGroup is not provided', () => {
+    renderMenu()
+    expect(screen.queryByText('グループ化')).not.toBeInTheDocument()
+  })
+})
