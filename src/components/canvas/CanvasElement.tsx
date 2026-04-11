@@ -83,6 +83,7 @@ export const CanvasElement = memo(function CanvasElement({
     heightMm: number
     xMm: number
     yMm: number
+    ratio: number
   } | null>(null)
 
   // Keep a ref to element data so the resize closure doesn't capture a stale snapshot.
@@ -116,6 +117,7 @@ export const CanvasElement = memo(function CanvasElement({
         heightMm: el.size.height,
         xMm: el.position.x,
         yMm: el.position.y,
+        ratio: el.size.width / el.size.height,
       }
 
       const onPointerMove = (ev: PointerEvent) => {
@@ -141,6 +143,27 @@ export const CanvasElement = memo(function CanvasElement({
         if (handle.includes('n')) {
           newHeightMm = Math.max(MIN_MM, resizeStart.current.heightMm - dyMm)
           newYMm = resizeStart.current.yMm + resizeStart.current.heightMm - newHeightMm
+        }
+
+        // Shift+corner: maintain aspect ratio
+        const isCorner = handle === 'se' || handle === 'sw' || handle === 'ne' || handle === 'nw'
+        if (ev.shiftKey && isCorner) {
+          const { ratio } = resizeStart.current
+          const widthChange = Math.abs(newWidthMm - resizeStart.current.widthMm)
+          const heightChange = Math.abs(newHeightMm - resizeStart.current.heightMm)
+          if (widthChange >= heightChange) {
+            // Width is dominant — derive height from width
+            newHeightMm = Math.max(MIN_MM, newWidthMm / ratio)
+            // If height hit MIN_MM, re-derive width to keep ratio honest
+            if (newHeightMm === MIN_MM) newWidthMm = Math.max(MIN_MM, MIN_MM * ratio)
+          } else {
+            // Height is dominant — derive width from height
+            newWidthMm = Math.max(MIN_MM, newHeightMm * ratio)
+            if (newWidthMm === MIN_MM) newHeightMm = Math.max(MIN_MM, MIN_MM / ratio)
+          }
+          // Recompute anchor coords for n/w handles after ratio adjustment
+          if (handle.includes('w')) newXMm = resizeStart.current.xMm + resizeStart.current.widthMm - newWidthMm
+          if (handle.includes('n')) newYMm = resizeStart.current.yMm + resizeStart.current.heightMm - newHeightMm
         }
 
         onResize(el.id, { width: newWidthMm, height: newHeightMm })

@@ -14,6 +14,7 @@ interface Options {
   zoom: number
   readonly: boolean
   onSelectIds: (ids: string[]) => void
+  currentSelectedIds?: string[]
 }
 
 /**
@@ -27,11 +28,11 @@ interface Options {
  * In the onClick handler, call consumeClickIfDragSelected() and skip clearSelection if it returns true.
  * Render <MarqueeOverlay rect={marquee} /> inside the paper div.
  */
-export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options) {
+export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSelectedIds = [] }: Options) {
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null)
 
   // Refs to avoid stale closure issues in pointer callbacks
-  const startRef = useRef<{ x: number; y: number } | null>(null)
+  const startRef = useRef<{ x: number; y: number; shiftKey: boolean } | null>(null)
   const marqueeRef = useRef<MarqueeRect | null>(null)
   // Cached container rect from onPointerDown — container doesn't move during drag (#126)
   const containerRectRef = useRef<DOMRect | null>(null)
@@ -51,6 +52,7 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
     startRef.current = {
       x: (e.clientX - containerRect.left) / zoom,
       y: (e.clientY - containerRect.top) / zoom,
+      shiftKey: e.shiftKey,
     }
     marqueeRef.current = null
     didDragSelectRef.current = false
@@ -82,6 +84,8 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
 
   const onPointerUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
     const m = marqueeRef.current
+    // Capture shiftKey before nulling startRef
+    const additive = startRef.current?.shiftKey ?? false
     startRef.current = null
     marqueeRef.current = null
     setMarquee(null)
@@ -112,10 +116,13 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds }: Options
     }
 
     if (toSelect.length > 0) {
-      onSelectIds(toSelect)
+      const finalIds = additive
+        ? Array.from(new Set([...currentSelectedIds, ...toSelect]))
+        : toSelect
+      onSelectIds(finalIds)
       didDragSelectRef.current = true
     }
-  }, [sections, onSelectIds])
+  }, [sections, onSelectIds, currentSelectedIds])
 
   /**
    * Call this at the start of the canvas onClick handler.
