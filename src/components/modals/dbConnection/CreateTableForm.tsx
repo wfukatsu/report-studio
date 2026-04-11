@@ -163,6 +163,14 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       }
     }
 
+    // Check for duplicate column names (server returns a generic 400; catch here
+    // for a more specific message)
+    const colNames = columns.map((c) => c.name)
+    if (new Set(colNames).size !== colNames.length) {
+      setErrorMessage('カラム名が重複しています。各カラム名を一意にしてください。')
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
     setCorrelationId(null)
@@ -199,6 +207,9 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 
       onSuccess()
     } catch (err) {
+      // If the request was deliberately aborted (user cancelled or component
+      // unmounted), skip the error display — the user already took action.
+      if (controller.signal.aborted) return
       const info = classifyCreateTableError(err)
       setShowRetry(info.showRetry)
       setShowRecovery(info.showRecovery)

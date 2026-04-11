@@ -66,9 +66,11 @@ export function useAutoSave(): void {
     const handlePageHide = () => {
       const snap = pendingRef.current
       if (!snap || !id) return
+      // Use Blob to force Content-Type: application/json — sendBeacon with a
+      // plain string sends text/plain which may be rejected by the server.
       navigator.sendBeacon(
         `/api/v2/templates/${id}`,
-        JSON.stringify(snap),
+        new Blob([JSON.stringify(snap)], { type: 'application/json' }),
       )
     }
     window.addEventListener('pagehide', handlePageHide)

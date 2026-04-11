@@ -213,6 +213,33 @@ describe('CreateTableForm — submit happy path', () => {
   })
 })
 
+describe('CreateTableForm — client-side duplicate column name validation', () => {
+  it('shows a specific error message when two columns share the same name', async () => {
+    const group = makeMasterGroup({
+      fields: [
+        { id: 'f1', key: 'id', label: 'ID', type: 'number' },
+        { id: 'f2', key: 'id', label: 'ID copy', type: 'string' }, // duplicate key
+      ],
+    })
+    const createSpy = vi.spyOn(reportApi, 'createScalarDbTable')
+
+    renderForm(group)
+    fireEvent.change(screen.getByRole('combobox', { name: /ネームスペース/i }), {
+      target: { value: 'app' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /テーブル名/i }), {
+      target: { value: 'users' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /作成/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/重複/i)).toBeInTheDocument()
+    })
+    // POST must NOT have been sent
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+})
+
 describe('CreateTableForm — submit button disabled during in-flight', () => {
   it('disables the submit button while the POST is in-flight', async () => {
     let resolvePost: (value: unknown) => void

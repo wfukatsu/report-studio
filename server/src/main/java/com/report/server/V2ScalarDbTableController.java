@@ -77,7 +77,21 @@ public final class V2ScalarDbTableController {
         this.factory = factory;
     }
 
-    /** {@code POST /api/v2/scalardb/tables} */
+    /**
+     * {@code POST /api/v2/scalardb/tables}
+     *
+     * <p><b>Side-effect caveat:</b> If the target namespace does not exist, this method
+     * auto-creates it before calling {@code createTable}. The namespace creation is NOT
+     * atomic with the table creation. If {@code createTable} subsequently fails (DDL
+     * rejection, auth error, etc.), the empty namespace persists on disk. Empty namespaces
+     * are invisible to {@code getNamespaceNames()} (which only lists populated namespaces),
+     * so the user will not see a phantom entry in the catalog, but the namespace exists and
+     * cannot be cleaned up from the designer UI. Operators can remove it via the ScalarDB CLI:
+     * {@code scalardb admin drop-namespace <namespace>}.
+     *
+     * <p>Phase 2 may address this by adding a namespace cleanup step in the exception handler
+     * or by removing the auto-create and requiring the namespace to exist beforehand.
+     */
     public void createTable(Context ctx) {
         // ── Parse body ────────────────────────────────────────────────────────
         String bodyStr = ctx.body();
@@ -194,7 +208,11 @@ public final class V2ScalarDbTableController {
             return;
         }
 
-        // Validate key list items as SQL identifiers + no duplicates + exist in column set
+        // Validate key list items as identifiers. Technically rejectUnknownKeys below
+        // would also catch non-identifier strings (they won't be in columnNameSet), but
+        // calling rejectInvalidIdentifiers first produces a more specific error message:
+        // "Invalid identifier: 'bad-name'" is clearer to the user than
+        // "Key column 'bad-name' not found in columns list".
         if (rejectInvalidIdentifiers(partitionKeys, ctx)) return;
         if (rejectInvalidIdentifiers(clusteringKeys, ctx)) return;
         if (rejectInvalidIdentifiers(secondaryIndexes, ctx)) return;
@@ -217,8 +235,10 @@ public final class V2ScalarDbTableController {
         String correlationId = CorrelationId.generate();
         // Extract identity for audit logging. Authorization policy is deferred to Phase 2
         // (any authenticated principal may create tables for now), but we record who did it.
-        Principal principal = ctx.attribute("principal");
-        String userId = (principal != null) ? principal.userId() : "unknown";
+        // Use instanceof pattern to guard against a wrong-type attribute — if auth middleware
+        // is misconfigured or replaced, this falls through to "unknown" rather than throwing.
+        Object attr = ctx.attribute("principal");
+        String userId = (attr instanceof Principal p) ? p.userId() : "unknown";
 
         try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
             // Idempotency guard — return 409 instead of letting ScalarDB throw
