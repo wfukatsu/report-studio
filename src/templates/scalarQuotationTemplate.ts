@@ -142,10 +142,6 @@ function vline(x: number, y: number, h: number): ReportElement {
   }
 }
 
-// テーブルヘッダー共通スタイル
-const SECTION_HDR: Partial<TextStyle> = {
-  fontSize: 2.8, fontWeight: 'bold', textAlign: 'center', color: '#ffffff',
-}
 const SECTION_HDR_FILL = '#2c3e50'
 
 // ─── 要素構築 ──────────────────────────────────────────────

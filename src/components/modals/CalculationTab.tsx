@@ -450,7 +450,7 @@ export function CalculationTab() {
     const seen = new Set<string>()
     const dupes = new Set<string>()
     for (const k of allKeys) {
-      seen.has(k) ? dupes.add(k) : seen.add(k)
+      if (seen.has(k)) { dupes.add(k) } else { seen.add(k) }
     }
     return dupes
   }, [allKeys])
