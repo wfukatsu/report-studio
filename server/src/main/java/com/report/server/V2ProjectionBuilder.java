@@ -52,6 +52,15 @@ public final class V2ProjectionBuilder {
         pageSetup.put("paperSizeId", ps.path("paperSize").asText("A4"));
         pageSetup.put("orientation", ps.path("orientation").asText("portrait"));
 
+        // Pass margins from V2 pageSettings.margins → pageSetup.margins
+        // PdfRenderer reads these for future clipping support (currently data-only).
+        JsonNode marginsNode = ps.path("margins");
+        ObjectNode margins = pageSetup.putObject("margins");
+        margins.put("top",    marginsNode.path("top").asDouble(20));
+        margins.put("right",  marginsNode.path("right").asDouble(20));
+        margins.put("bottom", marginsNode.path("bottom").asDouble(20));
+        margins.put("left",   marginsNode.path("left").asDouble(20));
+
         // sections: flat-merge from all pages
         ArrayNode sections = tpl.putArray("sections");
         JsonNode pages = definition.path("pages");

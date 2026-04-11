@@ -97,6 +97,20 @@ const CELL_TYPE_OPTIONS = [
   { value: 'label', label: 'ラベル（固定テキスト）' },
   { value: 'input', label: '記入欄（手入力）' },
   { value: 'dataField', label: 'データフィールド' },
+  { value: 'checkbox', label: 'チェックボックス' },
+  { value: 'eraSelect', label: '元号選択' },
+]
+
+const CHECKMARK_OPTIONS = [
+  { value: '✓', label: '✓ チェック' },
+  { value: '×', label: '× バツ' },
+  { value: '●', label: '● 丸' },
+]
+
+const ERA_LAYOUT_OPTIONS = [
+  { value: 'column', label: '縦1列' },
+  { value: 'row', label: '横1行' },
+  { value: 'grid-2col', label: '2列グリッド' },
 ]
 
 const ROW_ROLE_OPTIONS = [
@@ -222,6 +236,42 @@ function CellEditor({
             onChange(updateCell(el, rowIdx, colIdx, { fieldKey: e.target.value }))
           }
         />
+      )}
+      {cell.type === 'checkbox' && (
+        <div className="space-y-1">
+          <SelectInput
+            value={cell.checkmark ?? '✓'}
+            onChange={(v) => onChange(updateCell(el, rowIdx, colIdx, { checkmark: v as '✓' | '×' | '●' }))}
+            options={CHECKMARK_OPTIONS}
+          />
+          <input
+            type="text"
+            className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono w-full"
+            placeholder="dataSource（バインド先フィールドキー）"
+            value={cell.checkboxDataSource ?? ''}
+            onChange={(e) =>
+              onChange(updateCell(el, rowIdx, colIdx, { checkboxDataSource: e.target.value || undefined }))
+            }
+          />
+        </div>
+      )}
+      {cell.type === 'eraSelect' && (
+        <div className="space-y-1">
+          <SelectInput
+            value={cell.eraLayout ?? 'row'}
+            onChange={(v) => onChange(updateCell(el, rowIdx, colIdx, { eraLayout: v as 'column' | 'row' | 'grid-2col' }))}
+            options={ERA_LAYOUT_OPTIONS}
+          />
+          <input
+            type="text"
+            className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono w-full"
+            placeholder="dataSource（元号バインド先フィールドキー）"
+            value={cell.eraDataSource ?? ''}
+            onChange={(e) =>
+              onChange(updateCell(el, rowIdx, colIdx, { eraDataSource: e.target.value || undefined }))
+            }
+          />
+        </div>
       )}
     </div>
   )
