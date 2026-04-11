@@ -42,6 +42,8 @@ import { TenantCompanyNameRenderer } from '@/elements/tenantCompanyName/Renderer
 import { TenantAddressRenderer } from '@/elements/tenantAddress/Renderer'
 import { TenantPhoneRenderer } from '@/elements/tenantPhone/Renderer'
 import { TenantRepresentativeRenderer } from '@/elements/tenantRepresentative/Renderer'
+import { TenantLogoRenderer } from '@/elements/tenantLogo/Renderer'
+import { TenantCustomRenderer } from '@/elements/tenantCustom/Renderer'
 
 interface Props {
   element: ReportElement
@@ -134,10 +136,8 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'tenantAddress':         return <TenantAddressRenderer element={element} resolveValues={readonly} />
     case 'tenantPhone':           return <TenantPhoneRenderer element={element} resolveValues={readonly} />
     case 'tenantRepresentative':  return <TenantRepresentativeRenderer element={element} resolveValues={readonly} />
-    // Phase 5-6: logo and custom — added below after those renderers are created
-    case 'tenantLogo':
-    case 'tenantCustom':
-      return null
+    case 'tenantLogo':    return <TenantLogoRenderer element={element} />
+    case 'tenantCustom':  return <TenantCustomRenderer element={element} resolveValues={readonly} />
     default:                      return assertNever(element)
   }
 })
