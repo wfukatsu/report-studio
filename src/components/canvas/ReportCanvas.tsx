@@ -47,6 +47,7 @@ export function ReportCanvas({
   const resizeElement = useReportStore((s) => s.resizeElement)
   const updateElement = useReportStore((s) => s.updateElement)
   const removeElement = useReportStore((s) => s.removeElement)
+  const removeElements = useReportStore((s) => s.removeElements)
   const duplicateElement = useReportStore((s) => s.duplicateElement)
   const copyElements = useReportStore((s) => s.copyElements)
   const cutElements = useReportStore((s) => s.cutElements)
@@ -116,6 +117,28 @@ export function ReportCanvas({
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [readonly, activePage, groupSelectedElements])
+
+  // Delete / Backspace — remove selected elements (skip when a text input has focus)
+  useEffect(() => {
+    if (readonly) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) return
+      // Use batch removeElements to create a single undo state for multi-element deletes.
+      // Also guard activePage before calling preventDefault to avoid suppressing
+      // browser back-navigation (Backspace) when no page is loaded.
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0 && activePage) {
+        e.preventDefault()
+        removeElements(activePage.id, selectedIds)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [readonly, activePage, selectedIds, removeElements])
 
   const snap = useCallback(
     (v: number) => snapToGrid ? Math.round(v / gridSize) * gridSize : v,

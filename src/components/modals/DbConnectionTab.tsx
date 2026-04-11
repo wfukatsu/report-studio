@@ -134,7 +134,7 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
       )}
 
       {fetchError !== null && !isLoading && (
-        <div className="border border-destructive/40 bg-destructive/5 rounded p-3 text-xs">
+        <div className="border border-destructive/40 bg-destructive/5 rounded p-3 text-xs" role="alert" aria-live="assertive" aria-atomic="true">
           <p className="text-destructive font-medium">{fetchError}</p>
           <p className="text-muted-foreground mt-1">
             既存のバインド情報は保持されています。再試行するには「再取得」を押してください。

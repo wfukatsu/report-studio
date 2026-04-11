@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/shallow'
 import { useReportStore } from '@/store'
 import type { ReportElement } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
+import { isDataEmptyInPreview } from '@/lib/previewUtils'
 
 import { TextRenderer } from '@/elements/text/Renderer'
 import { LabelRenderer } from '@/elements/label/Renderer'
@@ -68,7 +69,18 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     return evaluateConditionalDisplay(element.conditionalDisplay, mergedData, rowIndex)
   }, [element.conditionalDisplay, mergedData, rowIndex])
 
+  // In readonly mode (preview / PDF-PNG export): hide elements whose data binding
+  // resolves to empty so that placeholder displays (grey-italic field names,
+  // empty repeating-band headers, etc.) are suppressed in the final output.
+  // Editor mode (readonly=false) is unaffected — designers need to see placeholders.
+  // Must be declared before any early returns to satisfy React's Rules of Hooks.
+  const isEmptyInPreview = useMemo(() => {
+    if (!readonly) return false
+    return isDataEmptyInPreview(element, mergedData)
+  }, [readonly, element, mergedData])
+
   if (!element.visible || !isConditionVisible) return null
+  if (isEmptyInPreview) return null
 
   switch (element.type) {
     case 'text':            return <TextRenderer element={element} data={mergedData} />

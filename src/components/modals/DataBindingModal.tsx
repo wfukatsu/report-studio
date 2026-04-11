@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel'
 import { BindingPanel } from '@/components/sidebar/BindingPanel'
 import { CalculationTab } from '@/components/modals/CalculationTab'
@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils'
 type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection'
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'datasource', label: 'データソース' },
-  { id: 'calculation', label: '式・計算' },
-  { id: 'validation', label: 'バリデーション' },
-  { id: 'dbconnection', label: 'DB接続' },
+  { id: 'datasource', label: 'テンプレートデータ' },
+  { id: 'calculation', label: '計算フィールド' },
+  { id: 'validation', label: '入力検証' },
+  { id: 'dbconnection', label: 'データ連携' },
 ]
 
 interface DataBindingModalProps {
@@ -22,6 +22,52 @@ interface DataBindingModalProps {
 
 export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
   const [activeTab, setActiveTab] = useState<TabId>('datasource')
+  const modalRef = useRef<HTMLDivElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    // 開いたトリガー要素を記録（閉じた後にフォーカスを戻す）
+    openerRef.current = document.activeElement as HTMLElement
+
+    // 最初のタブボタンにフォーカス（アニメーション完了後）
+    const timer = setTimeout(() => {
+      document.getElementById(`data-tab-${TABS[0].id}`)?.focus()
+    }, 50)
+
+    // フォーカストラップ — Tab/Shift+Tab をモーダル内で循環させる
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const modal = modalRef.current
+      if (!modal) return
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  const handleClose = useCallback(() => {
+    onClose()
+    // モーダルを閉じたらトリガー要素にフォーカスを戻す
+    setTimeout(() => openerRef.current?.focus(), 0)
+  }, [onClose])
 
   const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
     const ids = TABS.map((t) => t.id)
@@ -39,13 +85,19 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[75vw] max-w-5xl h-[80vh] flex flex-col mx-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="data-binding-modal-title"
+      onKeyDown={(e) => { if (e.key === 'Escape') handleClose() }}
+    >
+      <div ref={modalRef} className="bg-background border border-border rounded-lg shadow-xl w-[75vw] max-w-5xl h-[80vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
-          <h2 className="text-sm font-semibold">データ設定</h2>
+          <h2 id="data-binding-modal-title" className="text-sm font-semibold">データ設定</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
             aria-label="閉じる"
           >
@@ -118,4 +170,3 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
     </div>
   )
 }
-
