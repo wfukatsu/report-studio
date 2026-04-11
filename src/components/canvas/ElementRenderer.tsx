@@ -19,6 +19,7 @@ import type { ReportElement } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 
 import { TextRenderer } from '@/elements/text/Renderer'
+import { LabelRenderer } from '@/elements/label/Renderer'
 import { DataFieldRenderer } from '@/elements/dataField/Renderer'
 import { ImageRenderer } from '@/elements/image/Renderer'
 import { ShapeRenderer } from '@/elements/shape/Renderer'
@@ -71,8 +72,10 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
 
   switch (element.type) {
     case 'text':            return <TextRenderer element={element} data={mergedData} />
-    // label → text migration: convert inline and render as TextRenderer
-    case 'label':           return <TextRenderer element={{ ...element, type: 'text', content: element.text }} data={mergedData} />
+    // label → text: migration converts at load time; this branch is a safety net for
+    // any label element that bypasses migration (e.g. via direct store writes).
+    // LabelRenderer uses TextContent which reads el.text — correct for LabelElement.
+    case 'label':           return <LabelRenderer element={element} />
     case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} />
     case 'image':           return <ImageRenderer element={element} />
     case 'shape':           return <ShapeRenderer element={element} />
