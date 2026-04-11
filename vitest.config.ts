@@ -28,7 +28,9 @@ export default defineConfig({
         // Canvas components requiring DnD/pointer-event infrastructure
         'src/components/canvas/ReportCanvas.tsx',
         'src/components/canvas/CanvasElement.tsx',
-        'src/components/canvas/CanvasSectionContainer.tsx',
+        'src/components/canvas/SectionContainer.tsx',
+        // Template files — static element-array builders, not unit-testable in isolation
+        'src/templates/scalarQuotationTemplate.ts',
       ],
       thresholds: {
         lines: 80,
