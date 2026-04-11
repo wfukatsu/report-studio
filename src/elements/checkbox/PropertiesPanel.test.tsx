@@ -39,8 +39,9 @@ describe('CheckboxPropertiesPanel — checkmark セレクタ', () => {
   it('checkmark 変更で onChange を呼ぶ', () => {
     const onChange = vi.fn()
     render(<CheckboxPropertiesPanel el={makeElement()} onChange={onChange} />)
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: '×' } })
+    const selects = screen.getAllByRole('combobox')
+    // First combobox is checkmark, second is labelPosition
+    fireEvent.change(selects[0], { target: { value: '×' } })
     expect(onChange).toHaveBeenCalledWith({ checkmark: '×' })
   })
 })

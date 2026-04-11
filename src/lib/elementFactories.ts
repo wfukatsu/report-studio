@@ -105,6 +105,10 @@ export function createChartElement(overrides?: Partial<ReportElement>): ReportEl
     locked: false,
     chartType: 'bar' as const,
     title: 'グラフ',
+    xAxisKey: 'name',
+    yAxisKeys: ['value'],
+    showLegend: true,
+    showGrid: true,
     ...overrides,
   } as ReportElement
 }

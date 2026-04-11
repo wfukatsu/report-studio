@@ -22,22 +22,44 @@ function s(overrides: Partial<TextStyle>): TextStyle {
   return { fontSize: 3.5, fontWeight: 'normal', color: '#000', ...overrides } as TextStyle
 }
 
+/**
+ * DOM structure after the LabelRenderer → TextContent refactor:
+ *
+ * container
+ *   └─ outerWrap (LabelRenderer's userSelect: none div)
+ *       └─ textContentOuter (TextContent flex container — justifyContent, writingMode)
+ *           └─ textContentInner (text-style div — fontSize, color, textAlign)
+ *               └─ text node
+ */
+function getDomLevels(container: HTMLElement) {
+  const outerWrap = container.firstChild as HTMLElement            // LabelRenderer wrapper
+  const textContentOuter = outerWrap?.firstChild as HTMLElement   // TextContent flex container
+  const textContentInner = textContentOuter?.firstChild as HTMLElement // text-style div
+  return { outerWrap, textContentOuter, textContentInner }
+}
+
 describe('LabelRenderer — 基本', () => {
   it('renders the label text', () => {
     render(<LabelRenderer element={makeElement()} />)
     expect(screen.getByText('テスト')).toBeInTheDocument()
   })
 
+  it('outer wrapper has userSelect: none for canvas drag UX', () => {
+    const { container } = render(<LabelRenderer element={makeElement()} />)
+    const { outerWrap } = getDomLevels(container)
+    expect(outerWrap.style.userSelect).toBe('none')
+  })
+
   it('applies font size', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ fontSize: 6 }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.fontSize).toBe('6mm')
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.fontSize).toBe('6mm')
   })
 
   it('applies text color', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ color: '#0000ff' }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.color).toBe('rgb(0, 0, 255)')
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.color).toBe('rgb(0, 0, 255)')
   })
 })
 
@@ -53,22 +75,22 @@ describe('LabelRenderer — 横書き', () => {
     ['justify', 'justify'],
   ] as const)('横揃え %s → text-align: %s', (textAlign, expected) => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe(expected)
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe(expected)
   })
 
   // 均等寄せ → text-align:justify + text-align-last:justify（Word型: 1行でも均等配置）
   it('横揃え justify → text-align-last: justify（1行テキストでも均等配置）', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'justify' }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe('justify')
-    expect(inner.style.textAlignLast).toBe('justify')
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe('justify')
+    expect(textContentInner.style.textAlignLast).toBe('justify')
   })
 
   it('横揃え left → text-align-last は未設定', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'left' }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.textAlignLast).toBe('')
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlignLast).toBe('')
   })
 
   // 縦揃え → justify-content（ブロック方向 = 上→下）
@@ -78,17 +100,16 @@ describe('LabelRenderer — 横書き', () => {
     ['bottom', 'flex-end'],
   ] as const)('縦揃え %s → justify-content: %s', (verticalAlign, expected) => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ verticalAlign }) })} />)
-    const outer = container.firstChild as HTMLElement
-    expect(outer.style.justifyContent).toBe(expected)
+    const { textContentOuter } = getDomLevels(container)
+    expect(textContentOuter.style.justifyContent).toBe(expected)
   })
 
   // 組み合わせ: 横揃え right + 縦揃え bottom
   it('横揃え right + 縦揃え bottom', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom' }) })} />)
-    const outer = container.firstChild as HTMLElement
-    const inner = outer.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe('right')
-    expect(outer.style.justifyContent).toBe('flex-end')
+    const { textContentOuter, textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe('right')
+    expect(textContentOuter.style.justifyContent).toBe('flex-end')
   })
 })
 
@@ -102,11 +123,11 @@ describe('LabelRenderer — 横書き', () => {
 //   top → flex-start → 右、middle → center、bottom → flex-end → 左
 // ═══════════════════════════════════════════════════════════
 describe('LabelRenderer — 縦書き', () => {
-  // 外側に writing-mode: vertical-rl が設定される
+  // 外側に writing-mode: vertical-rl が設定される（TextContent の flex container）
   it('outer に writing-mode: vertical-rl', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ writingMode: 'vertical-rl' }) })} />)
-    const outer = container.firstChild as HTMLElement
-    expect(outer.style.writingMode).toBe('vertical-rl')
+    const { textContentOuter } = getDomLevels(container)
+    expect(textContentOuter.style.writingMode).toBe('vertical-rl')
   })
 
   // 横揃え → text-align（インライン方向: left=上、center=中央、right=下）
@@ -117,8 +138,8 @@ describe('LabelRenderer — 縦書き', () => {
     ['justify', 'justify'], // justify → 上下均等
   ] as const)('横揃え %s → text-align: %s', (textAlign, expected) => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign, writingMode: 'vertical-rl' }) })} />)
-    const inner = container.firstChild!.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe(expected)
+    const { textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe(expected)
   })
 
   // 縦揃え → justify-content（ブロック方向: top=flex-start→右、bottom=flex-end→左）
@@ -128,25 +149,23 @@ describe('LabelRenderer — 縦書き', () => {
     ['bottom', 'flex-end'], // bottom → ブロック終端 → 左
   ] as const)('縦揃え %s → justify-content: %s', (verticalAlign, expected) => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ verticalAlign, writingMode: 'vertical-rl' }) })} />)
-    const outer = container.firstChild as HTMLElement
-    expect(outer.style.justifyContent).toBe(expected)
+    const { textContentOuter } = getDomLevels(container)
+    expect(textContentOuter.style.justifyContent).toBe(expected)
   })
 
   // 組み合わせ: 横揃え right + 縦揃え bottom → 下に寄せ + 左に寄せ
   it('横揃え right + 縦揃え bottom', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'right', verticalAlign: 'bottom', writingMode: 'vertical-rl' }) })} />)
-    const outer = container.firstChild as HTMLElement
-    const inner = outer.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe('right')
-    expect(outer.style.justifyContent).toBe('flex-end')
+    const { textContentOuter, textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe('right')
+    expect(textContentOuter.style.justifyContent).toBe('flex-end')
   })
 
   // 組み合わせ: 横揃え center + 縦揃え middle → 中央
   it('横揃え center + 縦揃え middle', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ textAlign: 'center', verticalAlign: 'middle', writingMode: 'vertical-rl' }) })} />)
-    const outer = container.firstChild as HTMLElement
-    const inner = outer.firstChild as HTMLElement
-    expect(inner.style.textAlign).toBe('center')
-    expect(outer.style.justifyContent).toBe('center')
+    const { textContentOuter, textContentInner } = getDomLevels(container)
+    expect(textContentInner.style.textAlign).toBe('center')
+    expect(textContentOuter.style.justifyContent).toBe('center')
   })
 })

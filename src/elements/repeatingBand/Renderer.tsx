@@ -204,14 +204,17 @@ function RepeatingBandLiveRenderer({
     ? [...limited].sort((a, b) => {
         const va = resolveField(a, sortKey)
         const vb = resolveField(b, sortKey)
-        return el.sortOrder === 'desc'
-          ? String(vb).localeCompare(String(va))
-          : String(va).localeCompare(String(vb))
+        const numA = Number(va)
+        const numB = Number(vb)
+        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+          ? numA - numB
+          : String(va ?? '').localeCompare(String(vb ?? ''))
+        return el.sortOrder === 'desc' ? -cmp : cmp
       })
     : limited
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', breakBefore: el.pageBreak === 'before' ? 'page' : undefined, breakAfter: el.pageBreak === 'after' ? 'page' : undefined }}>
       {/* Header row */}
       {el.showHeader && (
         <div style={{ display: 'flex', height: `${HEADER_H}mm`, flexShrink: 0, borderBottom: bs }}>
@@ -307,9 +310,12 @@ function GroupedBandRenderer({
       records: [...g.records].sort((a, b) => {
         const va = resolveField(a, sortKey)
         const vb = resolveField(b, sortKey)
-        return el.sortOrder === 'desc'
-          ? String(vb).localeCompare(String(va))
-          : String(va).localeCompare(String(vb))
+        const numA = Number(va)
+        const numB = Number(vb)
+        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+          ? numA - numB
+          : String(va ?? '').localeCompare(String(vb ?? ''))
+        return el.sortOrder === 'desc' ? -cmp : cmp
       }),
     }))
   }

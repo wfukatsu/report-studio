@@ -295,6 +295,16 @@ export interface ChartElement extends ElementBase {
   chartType: 'bar' | 'line' | 'pie' | 'donut'
   dataBinding?: string
   title?: string
+  /** X軸に使うデータキー (default: 'name') */
+  xAxisKey?: string
+  /** Y軸に使うデータキー (複数系列対応) */
+  yAxisKeys?: string[]
+  /** カスタムカラーパレット */
+  colors?: string[]
+  /** 凡例表示 (default: true) */
+  showLegend?: boolean
+  /** グリッド表示 (default: true) */
+  showGrid?: boolean
 }
 
 export interface DataFieldElement extends ElementBase {
@@ -341,6 +351,8 @@ export interface HankoElement extends ElementBase {
 
 export type CheckmarkStyle = '✓' | '×' | '●'
 
+export type CheckboxLabelPosition = 'left' | 'right' | 'top' | 'bottom'
+
 export interface CheckboxElement extends ElementBase {
   type: 'checkbox'
   /** 静的 checked 状態（デザインプレビュー用） */
@@ -349,6 +361,8 @@ export interface CheckboxElement extends ElementBase {
   checkmark: CheckmarkStyle
   /** ラベルテキスト（空文字なら非表示） */
   label: string
+  /** ラベル位置 (default: 'right') */
+  labelPosition?: CheckboxLabelPosition
   /** データバインドモード: resolveField(data, dataSource) !== '' なら checked */
   dataSource?: string
   style?: TextStyle
