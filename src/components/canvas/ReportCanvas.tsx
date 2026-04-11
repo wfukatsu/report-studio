@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type Modifier,
 } from '@dnd-kit/core'
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
@@ -119,6 +120,20 @@ export function ReportCanvas({
   const ref = canvasRef ?? internalRef
 
   const shiftRef = useShiftKeyTracker()
+
+  // Modifier applied to DndContext to constrain the drag ghost in real time when
+  // Shift is held. event.delta in handleDragEnd is the raw (pre-modifier) delta,
+  // so constrainDelta is still called there for the final position calculation.
+  const axisConstraintModifier = useCallback<Modifier>(
+    ({ transform }) => {
+      if (!shiftRef.current) return transform
+      if (Math.abs(transform.x) >= Math.abs(transform.y)) {
+        return { ...transform, y: 0 }
+      }
+      return { ...transform, x: 0 }
+    },
+    [],
+  )
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
@@ -363,7 +378,7 @@ export function ReportCanvas({
   const paperEl = (
     <DndContext
       sensors={sensors}
-      modifiers={readonly ? [] : [restrictToParentElement]}
+      modifiers={readonly ? [] : [restrictToParentElement, axisConstraintModifier]}
       onDragEnd={handleDragEnd}
     >
       <div
