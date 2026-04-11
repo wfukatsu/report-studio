@@ -134,6 +134,12 @@ export default function App() {
     }
   }, [currentUser, setCurrentTemplateId, newReport])
 
+  // Fetch tenant info on mount (best-effort; elements show fallback if unavailable)
+  const fetchTenantInfo = useReportStore((s) => s.fetchTenantInfo)
+  useEffect(() => {
+    fetchTenantInfo()
+  }, [fetchTenantInfo])
+
   // Warn before closing with unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {

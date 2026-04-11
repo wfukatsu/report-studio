@@ -18,6 +18,7 @@ import type {
   ScalarDbTableMeta,
   OutputVariant,
   MaskingRule,
+  TenantInfo,
 } from '@/types'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
 import type { Me } from '@/api/reportApi'
@@ -294,6 +295,12 @@ export interface StoreState {
   setComputedLoading: (loading: boolean) => void
   setComputedViolations: (violations: ValidationViolation[]) => void
   invalidateComputed: () => void
+
+  // ── Tenant slice ──────────────────────────────────────────────────────────
+  tenantInfo: TenantInfo | null
+  tenantLoading: boolean
+  fetchTenantInfo: () => Promise<void>
+  updateTenantInfo: (info: TenantInfo) => Promise<void>
 
   // ── Responses slice ───────────────────────────────────────────────────────
   responses: FormResponseSummary[]

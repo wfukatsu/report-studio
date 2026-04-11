@@ -130,6 +130,13 @@ export type ElementType =
   | 'currentDate'
   // 区切り線
   | 'divider'
+  // テナント情報系
+  | 'tenantCompanyName'
+  | 'tenantAddress'
+  | 'tenantPhone'
+  | 'tenantRepresentative'
+  | 'tenantLogo'
+  | 'tenantCustom'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
@@ -712,6 +719,66 @@ export interface DividerElement extends ElementBase {
 }
 
 // ---------------------------------------------------------------------------
+// TenantInfo — organization-wide shared information
+// ---------------------------------------------------------------------------
+
+export interface TenantInfo {
+  companyName?: string
+  postalCode?: string
+  address?: string
+  phone?: string
+  email?: string
+  representativeName?: string
+  /** Base64 data-URI image (data:image/...) */
+  logoBase64?: string
+  /** Arbitrary custom key/value fields */
+  custom?: Record<string, string>
+}
+
+// ---------------------------------------------------------------------------
+// Tenant elements — resolved from TenantInfo at render time
+// ---------------------------------------------------------------------------
+
+export interface TenantCompanyNameElement extends ElementBase {
+  type: 'tenantCompanyName'
+  style: TextStyle
+  /** Shown when tenant info is not configured */
+  fallback?: string
+}
+
+export interface TenantAddressElement extends ElementBase {
+  type: 'tenantAddress'
+  style: TextStyle
+  fallback?: string
+}
+
+export interface TenantPhoneElement extends ElementBase {
+  type: 'tenantPhone'
+  style: TextStyle
+  fallback?: string
+}
+
+export interface TenantRepresentativeElement extends ElementBase {
+  type: 'tenantRepresentative'
+  style: TextStyle
+  fallback?: string
+}
+
+export interface TenantLogoElement extends ElementBase {
+  type: 'tenantLogo'
+  objectFit: 'contain' | 'cover' | 'fill' | 'none'
+  opacity?: number
+}
+
+export interface TenantCustomElement extends ElementBase {
+  type: 'tenantCustom'
+  /** Key in TenantInfo.custom to display */
+  fieldKey: string
+  style: TextStyle
+  fallback?: string
+}
+
+// ---------------------------------------------------------------------------
 // ReportElement union
 // ---------------------------------------------------------------------------
 
@@ -736,6 +803,12 @@ export type ReportElement =
   | PageNumberElement
   | CurrentDateElement
   | DividerElement
+  | TenantCompanyNameElement
+  | TenantAddressElement
+  | TenantPhoneElement
+  | TenantRepresentativeElement
+  | TenantLogoElement
+  | TenantCustomElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)

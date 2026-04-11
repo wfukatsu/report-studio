@@ -125,8 +125,16 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
     case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} pageIndex={pageIndex} totalPages={totalPages} />
     case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
-    case 'divider':         return <DividerRenderer element={element} />
-    default:                return assertNever(element)
+    case 'divider':               return <DividerRenderer element={element} />
+    // Tenant elements — renderers are added in Phase 4-6
+    case 'tenantCompanyName':
+    case 'tenantAddress':
+    case 'tenantPhone':
+    case 'tenantRepresentative':
+    case 'tenantLogo':
+    case 'tenantCustom':
+      return null
+    default:                      return assertNever(element)
   }
 })
 

@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { apiFetch, apiFetchBlobWithFilename, downloadBlob, isNetworkError } from './client'
 import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
-import type { ReportDefinition } from '@/types'
+import type { ReportDefinition, TenantInfo } from '@/types'
 import { ScalarDbColumnTypeSchema, ScalarDbKeyTypeSchema } from '@/types/scalardb'
 import type { ScalarDbColumnType } from '@/types/scalardb'
 import {
@@ -713,4 +713,33 @@ export async function resolveBindings(
       signal,
     },
   )
+}
+
+// ---------------------------------------------------------------------------
+// Tenant info
+// ---------------------------------------------------------------------------
+
+const TenantInfoSchema = z.object({
+  companyName: z.string().optional(),
+  postalCode: z.string().optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  representativeName: z.string().optional(),
+  logoBase64: z.string().optional(),
+  custom: z.record(z.string(), z.string()).optional(),
+})
+
+/** GET /api/v2/tenant — returns {} when not yet configured */
+export async function getTenantInfo(): Promise<TenantInfo> {
+  return apiFetch('/api/v2/tenant', TenantInfoSchema) as Promise<TenantInfo>
+}
+
+/** PUT /api/v2/tenant — replaces entire tenant info document */
+export async function putTenantInfo(info: TenantInfo): Promise<TenantInfo> {
+  return apiFetch('/api/v2/tenant', TenantInfoSchema, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(info),
+  }) as Promise<TenantInfo>
 }
