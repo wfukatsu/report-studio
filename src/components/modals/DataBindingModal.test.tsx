@@ -58,10 +58,10 @@ describe('DataBindingModal — タブ切り替え', () => {
     expect(screen.getByText('バリデーションルール')).toBeInTheDocument()
   })
 
-  it('switches back to サンプルデータ tab', () => {
+  it('switches back to テンプレートデータ tab', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByRole('tab', { name: '計算フィールド' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'サンプルデータ' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'テンプレートデータ' }))
     expect(screen.getByTestId('datasource-panel')).toBeInTheDocument()
   })
 

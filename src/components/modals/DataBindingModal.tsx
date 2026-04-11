@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection'
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'datasource', label: 'サンプルデータ' },
+  { id: 'datasource', label: 'テンプレートデータ' },
   { id: 'calculation', label: '計算フィールド' },
   { id: 'validation', label: '入力検証' },
   { id: 'dbconnection', label: 'データ連携' },
