@@ -15,6 +15,7 @@ import type {
 import type { SchemaGroup, ScalarDbTableMeta } from '@/types'
 import { cn } from '@/lib/utils'
 import { FieldColumnMap } from './FieldColumnMap'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 export interface GroupBindingSectionProps {
   group: SchemaGroup
@@ -100,9 +101,12 @@ export const GroupBindingSection = memo(function GroupBindingSection({
     [bindGroupToTable, group.id, pendingNamespace],
   )
 
-  const handleUnbind = useCallback(() => {
+  const [showUnbindConfirm, setShowUnbindConfirm] = useState(false)
+
+  const handleUnbindConfirmed = useCallback(() => {
     bindGroupToTable(group.id, undefined)
     setPendingNamespace('')
+    setShowUnbindConfirm(false)
   }, [bindGroupToTable, group.id])
 
   const handleColumnChange = useCallback(
@@ -136,13 +140,23 @@ export const GroupBindingSection = memo(function GroupBindingSection({
         {group.tableMeta && (
           <button
             type="button"
-            onClick={handleUnbind}
+            onClick={() => setShowUnbindConfirm(true)}
             className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
           >
             解除
           </button>
         )}
       </header>
+
+      <ConfirmDialog
+        open={showUnbindConfirm}
+        title="テーブル連携を解除"
+        message={`「${group.label}」のテーブル連携（${group.tableMeta?.tableName ?? ''}）を解除しますか？フィールドのカラムマッピングもすべて失われます。`}
+        confirmLabel="解除する"
+        confirmVariant="danger"
+        onConfirm={handleUnbindConfirmed}
+        onCancel={() => setShowUnbindConfirm(false)}
+      />
 
       {/* Namespace + table selects */}
       <div className="grid grid-cols-2 gap-3">
