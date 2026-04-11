@@ -7,7 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ZoomIn, ZoomOut, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
-import { clampZoom, computeFitZoom, FitWidthIcon, FitPageIcon } from './zoomUtils'
+import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
+import { FitWidthIcon, FitPageIcon } from './zoomUtils'
 import type { PageDef } from '@/types'
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0]

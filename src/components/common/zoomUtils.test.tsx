@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { clampZoom, computeFitZoom, FitWidthIcon, FitPageIcon } from './zoomUtils'
+import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
+import { FitWidthIcon, FitPageIcon } from './zoomUtils'
 import type { PageDef } from '@/types'
 
 const A4_PAGE: PageDef = {

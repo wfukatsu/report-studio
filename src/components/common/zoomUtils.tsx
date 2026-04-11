@@ -1,30 +1,7 @@
 /**
- * Shared zoom icons and fit-zoom computation used by ZoomControl and Toolbar.
+ * Shared zoom icons used by ZoomControl and Toolbar.
+ * Pure zoom math (clampZoom, computeFitZoom) lives in @/lib/zoomMath.
  */
-
-import { mmToPx } from '@/lib/paperSizes'
-import { RULER_SIZE, CANVAS_PADDING, ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
-import type { PageDef } from '@/types'
-
-export function clampZoom(v: number) {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v))
-}
-
-export function computeFitZoom(
-  containerRef: React.RefObject<HTMLElement | null>,
-  page: PageDef,
-): { fitWidth: number; fitPage: number } {
-  const el = containerRef.current
-  if (!el) return { fitWidth: 1, fitPage: 1 }
-  const availW = el.clientWidth - RULER_SIZE - 2 * CANVAS_PADDING
-  const availH = el.clientHeight - RULER_SIZE - 2 * CANVAS_PADDING
-  const paperW = mmToPx(page.width)
-  const paperH = mmToPx(page.height)
-  return {
-    fitWidth: clampZoom(availW / paperW),
-    fitPage: clampZoom(Math.min(availW / paperW, availH / paperH)),
-  }
-}
 
 /** Fit-width: two vertical rails with a double-headed arrow between them. */
 export function FitWidthIcon() {
