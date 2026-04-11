@@ -1,5 +1,47 @@
 import { describe, it, expect } from 'vitest'
-import { resolveField, interpolate } from './dataBinding'
+import { resolveField, interpolate, fieldExists } from './dataBinding'
+
+describe('fieldExists', () => {
+  it('returns true for an existing top-level key', () => {
+    expect(fieldExists({ name: 'Alice' }, 'name')).toBe(true)
+  })
+
+  it('returns true for a nested key with dot notation', () => {
+    expect(fieldExists({ customer: { name: 'Bob' } }, 'customer.name')).toBe(true)
+  })
+
+  it('returns false for a missing key', () => {
+    expect(fieldExists({}, 'missing')).toBe(false)
+  })
+
+  it('returns false for a missing nested key', () => {
+    expect(fieldExists({ customer: {} }, 'customer.name')).toBe(false)
+  })
+
+  it('returns true when field value is empty string', () => {
+    expect(fieldExists({ name: '' }, 'name')).toBe(true)
+  })
+
+  it('returns true when field value is null', () => {
+    expect(fieldExists({ name: null }, 'name')).toBe(true)
+  })
+
+  it('returns true when field value is 0', () => {
+    expect(fieldExists({ count: 0 }, 'count')).toBe(true)
+  })
+
+  it('returns false for null intermediate', () => {
+    expect(fieldExists({ a: null }, 'a.b')).toBe(false)
+  })
+
+  it('blocks __proto__ pollution attempt', () => {
+    expect(fieldExists({}, '__proto__.evil')).toBe(false)
+  })
+
+  it('blocks constructor key', () => {
+    expect(fieldExists({}, 'constructor.name')).toBe(false)
+  })
+})
 
 describe('resolveField', () => {
   it('resolves top-level key', () => {

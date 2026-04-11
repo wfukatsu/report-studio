@@ -35,6 +35,22 @@ function resolveSystemVar(key: string, pageContext: PageContext): string | null 
 }
 
 /**
+ * Checks whether a dot-notation field key exists in a data source record.
+ * Unlike resolveField, this correctly returns true for fields whose value is '' or null.
+ */
+export function fieldExists(data: Record<string, unknown>, fieldKey: string): boolean {
+  const parts = fieldKey.split('.')
+  let current: unknown = data
+  for (const part of parts) {
+    if (FORBIDDEN_KEYS.has(part)) return false
+    if (current == null || typeof current !== 'object') return false
+    if (!Object.prototype.hasOwnProperty.call(current, part)) return false
+    current = (current as Record<string, unknown>)[part]
+  }
+  return true
+}
+
+/**
  * Interpolates {{fieldKey}} tokens in a template string with data values.
  * Supports system variables ($page, $totalPages, $printDate) when pageContext is provided.
  */
