@@ -4,7 +4,7 @@ import { useDropdownDismiss } from '@/hooks/useDropdownDismiss'
 import { useBrandColors, useRecentColors } from '@/hooks/useColorPrefs'
 import { Tooltip } from '@/components/common/Tooltip'
 import { BrandColorManagerModal } from './BrandColorManagerModal'
-import { isValidHex, expandHex } from '@/lib/colorUtils'
+import { isValidHex, expandHex, PRESET_COLOR_COLUMNS } from '@/lib/colorUtils'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,51 @@ function ColorSwatch({ hex, name, isActive, onClick }: ColorSwatchProps) {
     )
   }
   return btn
+}
+
+// ---------------------------------------------------------------------------
+// PresetColorGrid — Google Slides style 10×6 palette
+// ---------------------------------------------------------------------------
+
+interface PresetColorGridProps {
+  activeHex: string
+  onSelect: (hex: string) => void
+}
+
+function PresetColorGrid({ activeHex, onSelect }: PresetColorGridProps) {
+  const numRows = PRESET_COLOR_COLUMNS[0].length
+
+  return (
+    <div>
+      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">
+        標準カラー
+      </span>
+      {/* Render row by row so the grid reads light → dark top to bottom */}
+      <div className="flex flex-col gap-0.5">
+        {Array.from({ length: numRows }, (_, rowIdx) => (
+          <div key={rowIdx} className="flex gap-0.5">
+            {PRESET_COLOR_COLUMNS.map((col, colIdx) => {
+              const hex = col[rowIdx]
+              const isActive = hex.toLowerCase() === activeHex.toLowerCase()
+              return (
+                <button
+                  key={colIdx}
+                  type="button"
+                  style={{ backgroundColor: hex }}
+                  className={cn(
+                    'w-5 h-5 border border-border/50 hover:scale-110 transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary',
+                    isActive && 'ring-2 ring-primary ring-offset-1',
+                  )}
+                  onClick={() => onSelect(hex)}
+                  aria-label={hex}
+                />
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -116,23 +161,33 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
         </div>
       </div>
 
+      <div className="border-t border-border my-1.5" />
+
+      {/* Preset color grid */}
+      <div className="mb-2">
+        <PresetColorGrid activeHex={value} onSelect={handleSelectColor} />
+      </div>
+
       {/* Recent colors — hidden when empty */}
       {recentColors.length > 0 && (
-        <div className="mb-2">
-          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">
-            最近使った色
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {recentColors.map((hex) => (
-              <ColorSwatch
-                key={hex}
-                hex={hex}
-                isActive={hex.toLowerCase() === value.toLowerCase()}
-                onClick={() => handleSelectColor(hex)}
-              />
-            ))}
+        <>
+          <div className="border-t border-border my-1.5" />
+          <div className="mb-2">
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">
+              最近使った色
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {recentColors.map((hex) => (
+                <ColorSwatch
+                  key={hex}
+                  hex={hex}
+                  isActive={hex.toLowerCase() === value.toLowerCase()}
+                  onClick={() => handleSelectColor(hex)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="border-t border-border my-1.5" />
