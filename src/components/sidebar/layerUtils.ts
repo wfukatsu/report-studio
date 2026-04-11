@@ -1,6 +1,7 @@
 import {
   Type, Tag, Square, Image, Table, BarChart2, Database,
   QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties, SquareCheck, Calendar,
+  Hash, CalendarDays, SeparatorHorizontal,
 } from 'lucide-react'
 import { createElement } from 'react'
 import type { ReportElement, Section } from '@/types'
@@ -29,6 +30,9 @@ export function elementIcon(type: ReportElement['type']) {
     case 'formTable':       return createElement(TableProperties, { className: cls })
     case 'checkbox':        return createElement(SquareCheck, { className: cls })
     case 'eraSelect':       return createElement(Calendar, { className: cls })
+    case 'pageNumber':      return createElement(Hash, { className: cls })
+    case 'currentDate':     return createElement(CalendarDays, { className: cls })
+    case 'divider':         return createElement(SeparatorHorizontal, { className: cls })
     default:                return assertNever(type)
   }
 }
@@ -57,6 +61,9 @@ export function defaultName(el: ReportElement): string {
     case 'formTable':       return '帳票テーブル'
     case 'checkbox':        return 'チェックボックス'
     case 'eraSelect':       return '元号選択'
+    case 'pageNumber':      return 'ページ番号'
+    case 'currentDate':     return '現在日付'
+    case 'divider':         return '区切り線'
     default: return assertNever(el)
   }
 }

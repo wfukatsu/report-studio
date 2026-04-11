@@ -3,6 +3,9 @@ import jsPDF from 'jspdf'
 import type { ReportDefinition } from '@/types'
 import { generateStatelessPdf } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
+import { formatPageNumber } from '@/elements/pageNumber/format'
+import { formatCurrentDate } from '@/elements/currentDate/format'
+import type { PageNumberFormat, CurrentDateFormat } from '@/types'
 
 const EXPORT_SCALE = 2
 
@@ -28,8 +31,8 @@ export function exportToJSON(definition: ReportDefinition): string {
   return JSON.stringify(exportable, null, 2)
 }
 
-/** Allowed data: URI prefixes — SVG excluded (can embed <script>) */
-const SAFE_DATA_PREFIXES = [
+/** Allowed raster data: URI prefixes */
+const SAFE_RASTER_PREFIXES = [
   'data:image/png',
   'data:image/jpeg',
   'data:image/gif',
@@ -37,27 +40,131 @@ const SAFE_DATA_PREFIXES = [
 ]
 
 /**
+ * Dangerous SVG elements/attributes that can execute scripts.
+ * Matched case-insensitively against decoded SVG content.
+ */
+const SVG_DANGEROUS_PATTERNS = [
+  /<script[\s>]/i,
+  /\bon\w+\s*=/i,            // onclick=, onload=, onerror=, etc.
+  /javascript\s*:/i,
+  /<iframe[\s>]/i,
+  /<embed[\s>]/i,
+  /<object[\s>]/i,
+  /<foreignObject[\s>]/i,
+]
+
+/**
+ * Check whether a data:image/svg+xml URI contains only safe SVG content.
+ * Decodes both base64 and URL-encoded payloads, then rejects if any
+ * script-capable element or attribute is found.
+ */
+function isSafeSvgDataUri(src: string): boolean {
+  const lower = src.toLowerCase().trim()
+  if (!lower.startsWith('data:image/svg+xml')) return false
+  if (src.length > 512 * 1024) return false  // 512 KB limit for SVG
+
+  try {
+    const commaIdx = src.indexOf(',')
+    if (commaIdx === -1) return false
+    const header = src.slice(0, commaIdx).toLowerCase()
+    const payload = src.slice(commaIdx + 1)
+
+    const decoded = header.includes('base64')
+      ? atob(payload)
+      : decodeURIComponent(payload)
+
+    return !SVG_DANGEROUS_PATTERNS.some((p) => p.test(decoded))
+  } catch {
+    return false
+  }
+}
+
+/**
  * Return true only for safe image src values.
  * - Empty string → false (prevents self-requests)
- * - data: URIs → only png/jpeg/gif/webp, max 2 MB (SVG blocked: XSS via <script>)
+ * - data: URIs → raster formats (png/jpeg/gif/webp) up to 2 MB
+ * - data:image/svg+xml → allowed only if content passes script-free check
  * - URLs → https:// only (http:// blocked: mixed-content + privacy)
  */
 export function isSafeImageSrc(src: string): boolean {
   if (!src) return false
   const lower = src.toLowerCase().trim()
+  if (lower.startsWith('data:image/svg+xml')) {
+    return isSafeSvgDataUri(src)
+  }
   if (lower.startsWith('data:')) {
     return (
       src.length <= 2 * 1024 * 1024 &&
-      SAFE_DATA_PREFIXES.some((p) => lower.startsWith(p))
+      SAFE_RASTER_PREFIXES.some((p) => lower.startsWith(p))
     )
   }
   return lower.startsWith('https://')
 }
 
+// ---------------------------------------------------------------------------
+// Auto-field resolution for export (pageNumber / currentDate)
+// ---------------------------------------------------------------------------
+
+interface AutoFieldSnapshot { node: HTMLElement; original: string }
+
+/**
+ * Resolve auto-field elements (pageNumber, currentDate) within a container
+ * to their actual values. Returns snapshots to restore later.
+ */
+function resolveAutoFields(
+  container: HTMLElement,
+  pageIndex: number,
+  totalPages: number,
+): AutoFieldSnapshot[] {
+  const snapshots: AutoFieldSnapshot[] = []
+
+  // pageNumber elements
+  container.querySelectorAll<HTMLElement>('[data-element-type="pageNumber"]').forEach((el) => {
+    const textNode = el.querySelector('div div') as HTMLElement | null
+    if (!textNode) return
+    snapshots.push({ node: textNode, original: textNode.textContent ?? '' })
+    const template = textNode.textContent ?? ''
+    // Detect format from template content
+    const format = template as PageNumberFormat
+    textNode.textContent = formatPageNumber(format, template, pageIndex, totalPages)
+  })
+
+  // currentDate elements
+  container.querySelectorAll<HTMLElement>('[data-element-type="currentDate"]').forEach((el) => {
+    const textNode = el.querySelector('div div') as HTMLElement | null
+    if (!textNode) return
+    snapshots.push({ node: textNode, original: textNode.textContent ?? '' })
+    const template = textNode.textContent ?? ''
+    // Map placeholder back to format key
+    const formatMap: Record<string, CurrentDateFormat> = {
+      'yyyy/MM/dd': 'yyyy/MM/dd',
+      'yyyy年MM月dd日': 'yyyy年MM月dd日',
+      'yyyy-MM-dd': 'yyyy-MM-dd',
+      'MM/dd/yyyy': 'MM/dd/yyyy',
+      '{{元号}}X年MM月dd日': 'wareki_full',
+      '{{元号}}X.MM.dd': 'wareki_short',
+      'yyyy年MM月dd日 (曜日)': 'yyyy年MM月dd日 (ddd)',
+    }
+    const format = formatMap[template] ?? 'custom'
+    textNode.textContent = formatCurrentDate(format, format === 'custom' ? template : undefined)
+  })
+
+  return snapshots
+}
+
+function restoreAutoFields(snapshots: AutoFieldSnapshot[]): void {
+  for (const s of snapshots) {
+    s.node.textContent = s.original
+  }
+}
+
 export async function exportPageToPng(
   canvasEl: HTMLElement,
   fileName = 'report.png',
+  pageIndex = 1,
+  totalPages = 1,
 ): Promise<void> {
+  const snapshots = resolveAutoFields(canvasEl, pageIndex, totalPages)
   try {
     const canvas = await html2canvas(canvasEl, { useCORS: true, scale: EXPORT_SCALE })
     const link = document.createElement('a')
@@ -67,6 +174,8 @@ export async function exportPageToPng(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`PNG export failed: ${message}`)
+  } finally {
+    restoreAutoFields(snapshots)
   }
 }
 
@@ -91,6 +200,8 @@ export async function exportReportToPdf(
 ): Promise<void> {
   if (pageEls.length === 0) return
 
+  const totalPages = pageEls.length
+  const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, i + 1, totalPages))
   try {
     // Render all pages in parallel — avoids double-rendering page 0 and speeds up multi-page export
     const canvases = await Promise.all(
@@ -116,5 +227,7 @@ export async function exportReportToPdf(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`PDF export failed: ${message}`)
+  } finally {
+    for (const snapshots of allSnapshots) restoreAutoFields(snapshots)
   }
 }

@@ -55,6 +55,7 @@ export function ReportCanvas({
   const clipboard = useReportStore((s) => s.clipboard)
   const addElement = useReportStore((s) => s.addElement)
   const groupSelectedElements = useReportStore((s) => s.groupSelectedElements)
+  const pages = useReportStore(useShallow((s) => s.definition.pages))
   const zoom = useReportStore((s) => readonly ? s.previewZoom : s.editorZoom)
   const showGrid = useReportStore((s) => s.showGrid)
   const showTrimMarks = useReportStore((s) => s.showTrimMarks)
@@ -68,6 +69,8 @@ export function ReportCanvas({
 
   const page = pageOverride ?? activePage
   const data = dataOverride ?? (dataSource?.fields as Record<string, unknown> | undefined) ?? EMPTY_DATA
+  const totalPages = pages.length
+  const pageIndex = page ? pages.findIndex((p) => p.id === page.id) + 1 : 1
 
   const internalRef = useRef<HTMLDivElement>(null)
   const ref = canvasRef ?? internalRef
@@ -333,6 +336,8 @@ export function ReportCanvas({
             data={data}
             readonly={readonly}
             zoom={zoom}
+            pageIndex={pageIndex}
+            totalPages={totalPages}
           />
         ))}
 

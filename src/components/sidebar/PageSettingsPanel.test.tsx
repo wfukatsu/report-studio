@@ -43,8 +43,8 @@ describe('PageSettingsPanel — レンダリング', () => {
   it('renders page name input with current page name', () => {
     render(<PageSettingsPanel />)
     const activePage = useReportStore.getState().definition.pages[0]
-    const nameInput = screen.getByRole('textbox')
-    expect(nameInput).toHaveValue(activePage.name)
+    const nameInput = screen.getByDisplayValue(activePage.name)
+    expect(nameInput).toBeInTheDocument()
   })
 })
 
@@ -87,7 +87,8 @@ describe('PageSettingsPanel — 用紙方向', () => {
 describe('PageSettingsPanel — ページ名変更', () => {
   it('updates page name when input changes', () => {
     render(<PageSettingsPanel />)
-    const nameInput = screen.getByRole('textbox')
+    const activePage = useReportStore.getState().definition.pages[0]
+    const nameInput = screen.getByDisplayValue(activePage.name)
     fireEvent.change(nameInput, { target: { value: '新しいページ' } })
 
     const state = useReportStore.getState()

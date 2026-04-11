@@ -25,7 +25,10 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
 
     // ScalarDB
-    implementation("com.scalar-labs:scalardb:3.14.0")
+    // Pinned to 3.14.4 — contains a JDBC storage connection leak fix that matters
+    // under the catalog-listing workload introduced by V2ScalarDbCatalogController.
+    // See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md (Risks table).
+    implementation("com.scalar-labs:scalardb:3.14.4")
 
     // SQLite JDBC (ScalarDB storage backend)
     implementation("org.xerial:sqlite-jdbc:3.47.2.0")

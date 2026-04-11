@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl, fetchScalarDbCatalog, createScalarDbTable } from './reportApi'
+import type { CreateScalarDbTableRequest } from './reportApi'
+import { ApiError, NetworkError } from './client'
 import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
@@ -691,5 +693,275 @@ describe('getTemplateThumbnailUrl', () => {
 
   it('encodes special characters in id', () => {
     expect(getTemplateThumbnailUrl('tpl/1 2')).toBe('/api/v2/templates/tpl%2F1%202/thumbnail')
+  })
+})
+
+describe('fetchScalarDbCatalog', () => {
+  /** Minimal well-formed catalog response matching the Zod schema. */
+  const validCatalog = {
+    namespaces: [
+      {
+        name: 'app',
+        tables: [
+          {
+            name: 'users',
+            columns: [
+              { name: 'id', type: 'BIGINT', keyType: 'partition' },
+              { name: 'email', type: 'TEXT', keyType: 'index' },
+              { name: 'age', type: 'INT' }, // plain column — no keyType
+            ],
+          },
+        ],
+      },
+    ],
+  }
+
+  it('sends GET to /api/v2/scalardb/catalog and returns the parsed catalog', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(validCatalog),
+    }))
+
+    const result = await fetchScalarDbCatalog()
+
+    expect(result.namespaces).toHaveLength(1)
+    expect(result.namespaces[0].name).toBe('app')
+    expect(result.namespaces[0].tables[0].columns[2].keyType).toBeUndefined()
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/scalardb/catalog')
+    // Default method (no explicit method → GET via fetch default)
+    expect((init as RequestInit | undefined)?.method).toBeUndefined()
+  })
+
+  it('forwards AbortSignal to fetch', async () => {
+    const controller = new AbortController()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ namespaces: [] }),
+    }))
+
+    await fetchScalarDbCatalog(controller.signal)
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    expect((init as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('rejects with ZodError when the response has an unknown DataType', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          tables: [{
+            name: 'users',
+            columns: [{ name: 'foo', type: 'JSONB' }], // JSONB is not a ScalarDB DataType
+          }],
+        }],
+      }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toThrow(/JSONB|type/i)
+  })
+
+  it('rejects with ZodError when keyType is the legacy "column" sentinel', async () => {
+    // Phase 1 intentionally removed 'column' from the key-type union —
+    // a regular column is encoded as an absent keyType, not a sentinel.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          tables: [{
+            name: 'users',
+            columns: [{ name: 'foo', type: 'INT', keyType: 'column' }],
+          }],
+        }],
+      }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toThrow()
+  })
+
+  it('strips unknown fields (default .strip() behaviour)', async () => {
+    // The new schemas intentionally DO NOT use .passthrough() — any extra
+    // fields in the backend response should not leak into typed store state.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        namespaces: [{
+          name: 'app',
+          extra: 'should-be-stripped',
+          tables: [{
+            name: 'users',
+            mysteryField: 42,
+            columns: [{ name: 'id', type: 'BIGINT', keyType: 'partition' }],
+          }],
+        }],
+      }),
+    }))
+
+    const result = await fetchScalarDbCatalog()
+    // Extra fields must not appear on the returned object.
+    expect((result.namespaces[0] as unknown as Record<string, unknown>).extra)
+      .toBeUndefined()
+    expect((result.namespaces[0].tables[0] as unknown as Record<string, unknown>).mysteryField)
+      .toBeUndefined()
+  })
+
+  it('surfaces ApiError when backend returns 503', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      json: () => Promise.resolve({ error: 'ScalarDb unreachable' }),
+    }))
+
+    await expect(fetchScalarDbCatalog()).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('surfaces NetworkError when fetch itself fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    await expect(fetchScalarDbCatalog()).rejects.toBeInstanceOf(NetworkError)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createScalarDbTable — Phase 1.5
+// ---------------------------------------------------------------------------
+
+describe('createScalarDbTable', () => {
+  const validRequest: CreateScalarDbTableRequest = {
+    namespace: 'app',
+    tableName: 'users',
+    columns: [
+      { name: 'id', type: 'BIGINT' },
+      { name: 'email', type: 'TEXT' },
+    ],
+    partitionKeys: ['id'],
+    clusteringKeys: [],
+    secondaryIndexes: [],
+  }
+
+  const validTableResponse = {
+    name: 'users',
+    columns: [
+      { name: 'id', type: 'BIGINT', keyType: 'partition' },
+      { name: 'email', type: 'TEXT' },
+    ],
+  }
+
+  it('sends POST to /api/v2/scalardb/tables with JSON body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve(validTableResponse),
+    }))
+
+    const result = await createScalarDbTable(validRequest)
+
+    expect(result.name).toBe('users')
+    expect(result.columns[0].name).toBe('id')
+    const [url, init] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/v2/scalardb/tables')
+    expect((init as RequestInit).method).toBe('POST')
+    expect(JSON.parse((init as RequestInit).body as string)).toMatchObject(validRequest)
+  })
+
+  it('validates response with ScalarDbTableEntrySchema and returns typed result', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve(validTableResponse),
+    }))
+
+    const result = await createScalarDbTable(validRequest)
+
+    expect(result.columns[1].keyType).toBeUndefined()
+    expect(result.columns[0].keyType).toBe('partition')
+  })
+
+  it('forwards AbortSignal to fetch', async () => {
+    const controller = new AbortController()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve(validTableResponse),
+    }))
+
+    await createScalarDbTable(validRequest, controller.signal)
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    expect((init as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('throws ApiError on 400 validation error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: () => Promise.resolve({ error: 'At least one partition key is required' }),
+    }))
+
+    await expect(createScalarDbTable(validRequest)).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('throws ApiError on 409 conflict (table already exists)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: () => Promise.resolve({ error: 'Table already exists: app.users' }),
+    }))
+
+    await expect(createScalarDbTable(validRequest)).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('throws ApiError on 503 (ScalarDB unreachable) with correlationId in body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      json: () => Promise.resolve({ error: 'ScalarDb unreachable', correlationId: 'abc12345' }),
+    }))
+
+    const err = await createScalarDbTable(validRequest).catch((e) => e)
+    expect(err).toBeInstanceOf(ApiError)
+    expect((err as ApiError).status).toBe(503)
+  })
+
+  it('throws ApiError on 401 authentication error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: 'ScalarDb authentication failed' }),
+    }))
+
+    await expect(createScalarDbTable(validRequest)).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('throws ApiError on 500 DDL rejection with correlationId', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({ error: 'ScalarDb DDL rejected', correlationId: 'deadbeef' }),
+    }))
+
+    const err = await createScalarDbTable(validRequest).catch((e) => e)
+    expect(err).toBeInstanceOf(ApiError)
+  })
+
+  it('throws NetworkError when fetch itself fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    await expect(createScalarDbTable(validRequest)).rejects.toBeInstanceOf(NetworkError)
   })
 })

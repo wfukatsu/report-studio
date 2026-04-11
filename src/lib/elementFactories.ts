@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement } from '@/types'
+import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement, PageNumberElement, CurrentDateElement, DividerElement } from '@/types'
 import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
 
 /**
@@ -277,6 +277,7 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
     borderWidth: 0.3,
     sortOrder: 'asc',
     showEmptyRowLines: false,
+    showGroupSubtotals: false,
     style: { fontSize: 3.5, color: '#000000' },
     headerStyle: { fontSize: 3.5, fontWeight: 'bold', color: '#374151', backgroundColor: '#f3f4f6' },
     ...overrides,
@@ -392,6 +393,53 @@ export function createEraSelectElement(overrides?: Partial<EraSelectElement>): R
     locked: false,
     layout: 'column',
     eras: [...DEFAULT_ERAS],
+    ...overrides,
+  } as ReportElement
+}
+
+export function createPageNumberElement(overrides?: Partial<PageNumberElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'pageNumber',
+    position: { x: 13, y: 13 },
+    size: { width: 30, height: 6 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    format: '{{page}} / {{pages}}',
+    style: { fontSize: 3, color: '#666666', textAlign: 'center' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createCurrentDateElement(overrides?: Partial<CurrentDateElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'currentDate',
+    position: { x: 13, y: 13 },
+    size: { width: 40, height: 6 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    format: 'yyyy年MM月dd日',
+    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createDividerElement(overrides?: Partial<DividerElement>): ReportElement {
+  return {
+    id: uuidv4(),
+    type: 'divider',
+    position: { x: 13, y: 13 },
+    size: { width: 170, height: 0.5 },
+    zIndex: 1,
+    visible: true,
+    locked: false,
+    direction: 'horizontal',
+    color: '#000000',
+    thickness: 0.3,
+    dashStyle: 'solid',
     ...overrides,
   } as ReportElement
 }

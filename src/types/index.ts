@@ -125,10 +125,29 @@ export type ElementType =
   | 'checkbox'
   // 和暦元号選択
   | 'eraSelect'
+  // 自動フィールド系
+  | 'pageNumber'
+  | 'currentDate'
+  // 区切り線
+  | 'divider'
 
 // ---------------------------------------------------------------------------
 // SchemaDefinition — optional data schema (master/detail groups + fields)
 // ---------------------------------------------------------------------------
+
+// Re-export ScalarDB binding primitives so consumers importing from
+// `@/types` keep working without knowing about the subdivision.
+export type {
+  ScalarDbColumnType,
+  ScalarDbKeyType,
+  ScalarDbTableMeta,
+} from './scalardb'
+export {
+  ScalarDbColumnTypeSchema,
+  ScalarDbKeyTypeSchema,
+} from './scalardb'
+
+import type { ScalarDbTableMeta } from './scalardb'
 
 export type SchemaFieldType = 'string' | 'number' | 'date' | 'boolean' | 'array' | 'image'
 
@@ -140,6 +159,13 @@ export interface SchemaField {
   type: SchemaFieldType
   /** Element type for array fields */
   itemType?: SchemaFieldType
+  /**
+   * Phase 1 DB binding hint: the name of the ScalarDB column this field maps
+   * to. Present only when the containing group's `tableMeta` is set.
+   * The column's DataType and key role are NOT stored — they are re-derived
+   * from a fresh catalog fetch at render time (Phase 2).
+   */
+  dbColumnName?: string
 }
 
 export interface SchemaGroup {
@@ -149,6 +175,11 @@ export interface SchemaGroup {
   /** Key in the runtime data object (e.g. "items") — used for detail-row binding paths */
   dataKey: string
   fields: SchemaField[]
+  /**
+   * Phase 1 DB binding: the ScalarDB table this group is bound to.
+   * `undefined` means "unlinked". No status enum.
+   */
+  tableMeta?: ScalarDbTableMeta
 }
 
 export interface SchemaDefinition {
@@ -429,6 +460,10 @@ export interface RepeatingBandElement extends ElementBase {
   sortOrder?: 'asc' | 'desc'
   /** グループ化フィールドキー */
   groupBy?: string
+  /** グループ小計行を表示するか (default: false) */
+  showGroupSubtotals?: boolean
+  /** グループ小計行のスタイル */
+  groupStyle?: TextStyle
   /** データ行数が maxItems 未満のとき空行罫線を描画する */
   showEmptyRowLines?: boolean
   /** テキストスタイル（ボディ行） */
@@ -574,6 +609,63 @@ export interface FormTableElement extends ElementBase {
 }
 
 // ---------------------------------------------------------------------------
+// PageNumberElement — auto page number
+// ---------------------------------------------------------------------------
+
+export type PageNumberFormat =
+  | '{{page}}'               // 1
+  | '{{page}} / {{pages}}'   // 1 / 3
+  | '{{page}}/{{pages}}'     // 1/3
+  | 'Page {{page}} of {{pages}}'  // Page 1 of 3
+  | '{{page}}ページ'          // 1ページ
+  | 'custom'
+
+export interface PageNumberElement extends ElementBase {
+  type: 'pageNumber'
+  /** Display format — {{page}} = current, {{pages}} = total */
+  format: PageNumberFormat
+  /** Custom format string (used when format === 'custom') */
+  customFormat?: string
+  style: TextStyle
+}
+
+// ---------------------------------------------------------------------------
+// CurrentDateElement — auto current date
+// ---------------------------------------------------------------------------
+
+export type CurrentDateFormat =
+  | 'yyyy/MM/dd'
+  | 'yyyy年MM月dd日'
+  | 'yyyy-MM-dd'
+  | 'MM/dd/yyyy'
+  | 'wareki_full'       // 令和8年4月10日
+  | 'wareki_short'      // R8.04.10
+  | 'yyyy年MM月dd日 (ddd)' // 2026年04月10日 (木)
+  | 'custom'
+
+export interface CurrentDateElement extends ElementBase {
+  type: 'currentDate'
+  format: CurrentDateFormat
+  /** Custom format string (used when format === 'custom') */
+  customFormat?: string
+  style: TextStyle
+}
+
+// ---------------------------------------------------------------------------
+// DividerElement — horizontal/vertical rule
+// ---------------------------------------------------------------------------
+
+export type DividerDirection = 'horizontal' | 'vertical'
+
+export interface DividerElement extends ElementBase {
+  type: 'divider'
+  direction: DividerDirection
+  color: string
+  thickness: number       // mm
+  dashStyle: 'solid' | 'dashed' | 'dotted'
+}
+
+// ---------------------------------------------------------------------------
 // ReportElement union
 // ---------------------------------------------------------------------------
 
@@ -595,6 +687,9 @@ export type ReportElement =
   | FormTableElement
   | CheckboxElement
   | EraSelectElement
+  | PageNumberElement
+  | CurrentDateElement
+  | DividerElement
 
 // ---------------------------------------------------------------------------
 // Domain model — ReportDefinition hierarchy (Phase 1)
@@ -674,6 +769,13 @@ export interface Metadata {
   effectiveFrom?: string
   effectiveTo?: string
   description?: string
+  category?: string
+  tags?: string[]
+  /**
+   * ID of the built-in template this report was created from.
+   * When set, the user can refresh the report with the latest built-in template definition.
+   */
+  sourceTemplateId?: string
 }
 
 export interface DataSourceDefinition {
@@ -767,8 +869,14 @@ export interface Template {
   name: string
   description?: string
   thumbnail?: string
+  category?: string
+  tags?: string[]
   pages: Page[]
   settings: ReportSettings
+  /** Optional data schema carried through to the ReportDefinition */
+  schema?: SchemaDefinition
+  /** Optional sample data sources carried through to the ReportDefinition */
+  dataSources?: DataSourceDefinition[]
 }
 
 /** @deprecated Use ReportDefinition instead */

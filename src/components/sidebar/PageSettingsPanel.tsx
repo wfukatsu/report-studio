@@ -1,5 +1,8 @@
 import { useReportStore, selectActivePage } from '@/store/reportStore'
-import { PAPER_SIZES, PAPER_SIZE_ORDER } from '@/lib/paperSizes'
+import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
+import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { CategoryCombobox } from '@/components/common/CategoryCombobox'
+import { TagInput } from '@/components/common/TagInput'
 import type { PaperSize, Section } from '@/types'
 
 interface PageSettingsPanelProps {
@@ -12,6 +15,8 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const updatePageBackground = useReportStore((s) => s.updatePageBackground)
   const pageSettings = useReportStore((s) => s.definition.pageSettings)
   const updateSettings = useReportStore((s) => s.updateSettings)
+  const metadata = useReportStore((s) => s.definition.metadata)
+  const updateMetadata = useReportStore((s) => s.updateMetadata)
   const masterHeader = useReportStore((s) => s.definition.masterHeader) as Section | undefined
   const masterFooter = useReportStore((s) => s.definition.masterFooter) as Section | undefined
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
@@ -107,12 +112,15 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground">余白 (mm)</label>
         <div className="flex gap-1 mb-1">
-          {([
-            ['標準', 20],
-            ['狭い', 10],
-            ['最小', 5],
-            ['なし', 0],
-          ] as const).map(([label, v]) => (
+          {(() => {
+            const presets = getMarginPresets(pageSettings.paperSize)
+            return [
+              ['標準', presets.standard],
+              ['狭い', presets.narrow],
+              ['最小', presets.minimum],
+              ['なし', 0],
+            ] as const
+          })().map(([label, v]) => (
             <button
               key={label}
               className={`px-2 py-0.5 text-xs rounded border transition-colors ${
@@ -208,6 +216,23 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           />
           <span className="text-xs text-muted-foreground">{activePage.background ?? '#ffffff'}</span>
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">カテゴリ</label>
+        <CategoryCombobox
+          value={metadata.category}
+          options={[...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]}
+          onChange={(v) => updateMetadata({ category: v })}
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">タグ</label>
+        <TagInput
+          value={metadata.tags ?? []}
+          onChange={(tags) => updateMetadata({ tags })}
+        />
       </div>
 
       {onTemplateChange && (

@@ -6,7 +6,7 @@ import {
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
-  Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
+  Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
   ShieldCheck, ShieldAlert, Database, Shuffle,
 } from 'lucide-react'
 import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
@@ -18,6 +18,7 @@ import { DataBindingModal } from '@/components/modals/DataBindingModal'
 import { VariantsModal } from '@/components/modals/VariantsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
 import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
+import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
 import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
@@ -86,6 +87,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)
   const toggleLivePreview = useReportStore((s) => s.toggleLivePreview)
 
+  const pages = useReportStore(useShallow((s) => s.definition.pages))
   const activePageId = useReportStore(selectActivePageId)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
   const alignElements = useReportStore((s) => s.alignElements)
@@ -120,6 +122,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showZOrderMenu, setShowZOrderMenu] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
   const [showVariantsModal, setShowVariantsModal] = useState(false)
+  const [showManagerModal, setShowManagerModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveMenuRef = useRef<HTMLDivElement>(null)
@@ -240,7 +243,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setExportError(null)
     try {
       const el = canvasRefs[0]?.current
-      if (el) await exportPageToPng(el, `${reportName}.png`)
+      if (el) {
+        const pageIdx = activePage ? pages.findIndex((p) => p.id === activePage.id) + 1 : 1
+        await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length)
+      }
     } catch (_err) {
       const msg = 'エクスポートに失敗しました。もう一度お試しください。'
       setExportError(msg)
@@ -465,6 +471,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         </ToolbarButton>
         <ToolbarButton onClick={handleOpen} title="開く">
           <FolderOpen className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => setShowManagerModal(true)} title="テンプレート管理">
+          <Settings2 className="w-4 h-4" />
         </ToolbarButton>
         <div className="relative flex items-center" ref={saveMenuRef}>
           <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
@@ -865,6 +874,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       onCancel={() => setShowSaveDialog(false)}
       defaultName={reportName}
       saving={isSavingNew}
+    />
+
+    {/* Template manager */}
+    <TemplateManagerModal
+      open={showManagerModal}
+      onClose={() => setShowManagerModal(false)}
     />
 
     {/* Export variant selector */}

@@ -18,6 +18,9 @@ import {
   TableProperties,
   SquareCheck,
   Calendar,
+  Hash,
+  CalendarDays,
+  SeparatorHorizontal,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
@@ -39,6 +42,9 @@ import {
   createFormTableElement,
   createCheckboxElement,
   createEraSelectElement,
+  createPageNumberElement,
+  createCurrentDateElement,
+  createDividerElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { useState } from 'react'
@@ -59,6 +65,15 @@ interface PaletteCategory {
 }
 
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
+  {
+    category: 'common',
+    label: '帳票共通',
+    items: [
+      { label: 'ページ番号', icon: <Hash className="w-4 h-4" />,              createElement: createPageNumberElement, description: 'ページ番号を自動表示（書式選択可能）' },
+      { label: '現在日付',   icon: <CalendarDays className="w-4 h-4" />,      createElement: createCurrentDateElement, description: '帳票出力日を自動表示（和暦対応）' },
+      { label: '区切り線',   icon: <SeparatorHorizontal className="w-4 h-4" />, createElement: createDividerElement, description: 'セクション区切り用の罫線' },
+    ],
+  },
   {
     category: 'text',
     label: 'テキスト系',
@@ -187,6 +202,7 @@ export function ElementPalette() {
   const activePageId = useReportStore(selectActivePageId)
   const activePage = useReportStore(selectActivePage)
   const addElement = useReportStore((s) => s.addElement)
+  const margins = useReportStore((s) => s.definition.pageSettings.margins)
 
   const handleAdd = (createElement: () => ReportElement) => {
     if (!activePageId) return
@@ -194,13 +210,39 @@ export function ElementPalette() {
     const offset = (placementOffset % 8) * 5 - 17.5 // -17.5 to +17.5 range
     placementOffset++
 
-    // Place near center of page, accounting for element size
     const pageWidth = activePage?.width ?? 210
     const pageHeight = activePage?.height ?? 297
-    const centerX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
-    const centerY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top (not dead center)
 
-    const positioned = { ...el, position: { x: centerX, y: centerY } }
+    let posX: number
+    let posY: number
+
+    // Element-specific size adjustments
+    let size = el.size
+    if (el.type === 'divider') {
+      // Fit divider width to content area (page width minus margins)
+      const contentWidth = pageWidth - margins.left - margins.right
+      size = { ...size, width: contentWidth }
+    }
+
+    if (el.type === 'pageNumber') {
+      // Page number: bottom center (footer area)
+      posX = (pageWidth - size.width) / 2
+      posY = pageHeight - margins.bottom - size.height
+    } else if (el.type === 'currentDate') {
+      // Current date: top right (header area)
+      posX = pageWidth - margins.right - size.width
+      posY = margins.top
+    } else if (el.type === 'divider') {
+      // Divider: left margin, 1/3 down
+      posX = margins.left
+      posY = Math.max(5, (pageHeight / 3) + offset)
+    } else {
+      // Default: near center of page
+      posX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
+      posY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top
+    }
+
+    const positioned = { ...el, position: { x: posX, y: posY }, size }
     addElement(activePageId, positioned)
   }
 
