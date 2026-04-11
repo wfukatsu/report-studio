@@ -135,6 +135,20 @@ export type ElementType =
 // SchemaDefinition — optional data schema (master/detail groups + fields)
 // ---------------------------------------------------------------------------
 
+// Re-export ScalarDB binding primitives so consumers importing from
+// `@/types` keep working without knowing about the subdivision.
+export type {
+  ScalarDbColumnType,
+  ScalarDbKeyType,
+  ScalarDbTableMeta,
+} from './scalardb'
+export {
+  ScalarDbColumnTypeSchema,
+  ScalarDbKeyTypeSchema,
+} from './scalardb'
+
+import type { ScalarDbTableMeta } from './scalardb'
+
 export type SchemaFieldType = 'string' | 'number' | 'date' | 'boolean' | 'array' | 'image'
 
 export interface SchemaField {
@@ -145,6 +159,13 @@ export interface SchemaField {
   type: SchemaFieldType
   /** Element type for array fields */
   itemType?: SchemaFieldType
+  /**
+   * Phase 1 DB binding hint: the name of the ScalarDB column this field maps
+   * to. Present only when the containing group's `tableMeta` is set.
+   * The column's DataType and key role are NOT stored — they are re-derived
+   * from a fresh catalog fetch at render time (Phase 2).
+   */
+  dbColumnName?: string
 }
 
 export interface SchemaGroup {
@@ -154,6 +175,11 @@ export interface SchemaGroup {
   /** Key in the runtime data object (e.g. "items") — used for detail-row binding paths */
   dataKey: string
   fields: SchemaField[]
+  /**
+   * Phase 1 DB binding: the ScalarDB table this group is bound to.
+   * `undefined` means "unlinked". No status enum.
+   */
+  tableMeta?: ScalarDbTableMeta
 }
 
 export interface SchemaDefinition {
@@ -745,6 +771,11 @@ export interface Metadata {
   description?: string
   category?: string
   tags?: string[]
+  /**
+   * ID of the built-in template this report was created from.
+   * When set, the user can refresh the report with the latest built-in template definition.
+   */
+  sourceTemplateId?: string
 }
 
 export interface DataSourceDefinition {

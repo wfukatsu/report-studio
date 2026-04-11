@@ -224,5 +224,10 @@ public final class ApiRoutes {
         app.post("/api/v2/pdf-jobs", w.v2PdfJobCtrl::submit);
         app.get("/api/v2/pdf-jobs/{jobId}", w.v2PdfJobCtrl::getStatus);
         app.get("/api/v2/pdf-jobs/{jobId}/result", w.v2PdfJobCtrl::getResult);
+
+        // V2 ScalarDB catalog (namespaces → tables → columns) for schema binding UI
+        app.get("/api/v2/scalardb/catalog", w.v2ScalarDbCatalogCtrl::getCatalog);
+        // V2 ScalarDB table creation (Phase 1.5)
+        app.post("/api/v2/scalardb/tables", w.v2ScalarDbTableCtrl::createTable);
     }
 }

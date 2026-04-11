@@ -154,9 +154,11 @@ describe('useAutoSave', () => {
     // Trigger pagehide before the debounce fires
     window.dispatchEvent(new Event('pagehide'))
 
-    expect(beaconMock).toHaveBeenCalledWith(
-      '/api/v2/templates/template-1',
-      expect.stringContaining('Pending on Close'),
-    )
+    // sendBeacon now sends a Blob with Content-Type: application/json
+    // (plain string would default to text/plain which Javalin may reject)
+    const [url, body] = beaconMock.mock.calls[0]
+    expect(url).toBe('/api/v2/templates/template-1')
+    expect(body).toBeInstanceOf(Blob)
+    expect((body as Blob).type).toBe('application/json')
   })
 })

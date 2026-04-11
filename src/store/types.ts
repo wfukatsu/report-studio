@@ -15,6 +15,7 @@ import type {
   SchemaGroup,
   SchemaField,
   SchemaDefinition,
+  ScalarDbTableMeta,
   OutputVariant,
   MaskingRule,
 } from '@/types'
@@ -224,6 +225,32 @@ export interface StoreState {
   addSchemaField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
   removeSchemaField: (groupId: string, fieldId: string) => void
   updateSchemaField: (groupId: string, fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void
+  /**
+   * Bind a SchemaGroup to a ScalarDB table, or unbind it (when tableMeta is undefined).
+   *
+   * Unbind (`undefined`) atomically clears `tableMeta` AND every field's
+   * `dbColumnName` in the group — the entire binding unit is the domain event.
+   *
+   * Rebind behaviour:
+   *  - same `{namespace, tableName}` → preserve all field `dbColumnName` values
+   *  - different `{namespace, tableName}` → clear all field `dbColumnName` values,
+   *    because none of them can refer to the new table (prevents hostile UX where
+   *    every row shows "(列が存在しません)" after rebind)
+   */
+  bindGroupToTable: (groupId: string, tableMeta: ScalarDbTableMeta | undefined) => void
+  /**
+   * Phase 1.5 — atomically set `tableMeta` on a group AND assign `dbColumnName`
+   * to each listed field in a single immer draft (no N+1 re-renders).
+   *
+   * `fieldColumns` entries referencing unknown fieldIds are silently ignored.
+   * Unlisted fields are left untouched.
+   * Does NOT call `pushHistory` — matches the existing `bindGroupToTable` convention.
+   */
+  bindGroupToTableWithColumns: (
+    groupId: string,
+    tableMeta: ScalarDbTableMeta,
+    fieldColumns: ReadonlyArray<{ fieldId: string; dbColumnName: string }>,
+  ) => void
   /** Replace the entire schema definition (used by schema inference). */
   setSchema: (schema: SchemaDefinition) => void
 
