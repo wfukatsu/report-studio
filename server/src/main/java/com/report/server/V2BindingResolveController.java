@@ -2,6 +2,7 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
@@ -10,6 +11,7 @@ import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
 import com.scalar.db.api.Result;
+import com.scalar.db.api.Scan;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
@@ -19,8 +21,10 @@ import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -59,6 +63,8 @@ public final class V2BindingResolveController {
     private static final int MAX_GROUPS = 10;
     private static final int MAX_FIELDS_PER_GROUP = 50;
     private static final int MAX_BODY_BYTES = 64 * 1024; // 64 KB
+    /** Maximum rows returned per detail group Scan — prevents accidental large result sets. */
+    private static final int MAX_DETAIL_ROWS = 500;
 
     private final TransactionFactory factory;
     private final JsonBlobRepository definitionsRepo;
@@ -162,12 +168,7 @@ public final class V2BindingResolveController {
                 continue;
             }
 
-            // Phase 2: detail groups are not yet supported
             String role = group.path("role").asText("master");
-            if ("detail".equals(role)) {
-                errors.put(groupId, "detail groups are not supported in Phase 2");
-                continue;
-            }
 
             // Extract and validate table coordinates
             JsonNode tableMeta = group.path("tableMeta");
@@ -219,11 +220,20 @@ public final class V2BindingResolveController {
                 continue;
             }
 
-            // ── ScalarDB resolution ─────────────────────────────────────────
-            resolveGroup(
-                    groupId, namespace, tableName, colToFieldKey, pkNode,
-                    resolved, errors, correlationId, userId
-            );
+            // ── ScalarDB resolution — route by role ─────────────────────────
+            if ("detail".equals(role)) {
+                // Phase 2.5: Scan → array of rows
+                resolveDetailGroup(
+                        groupId, namespace, tableName, colToFieldKey, pkNode,
+                        MAX_DETAIL_ROWS, resolved, errors, correlationId, userId
+                );
+            } else {
+                // Phase 2: Get → single row
+                resolveGroup(
+                        groupId, namespace, tableName, colToFieldKey, pkNode,
+                        resolved, errors, correlationId, userId
+                );
+            }
         }
 
         // ── Build response ───────────────────────────────────────────────────
@@ -240,6 +250,104 @@ public final class V2BindingResolveController {
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Phase 2.5: Scan a detail group table and return an ArrayNode of row objects.
+     *
+     * <p>Unlike the master-group {@link #resolveGroup} which uses {@code Get} and returns
+     * a single {@code ObjectNode}, this method uses {@code Scan} with a partition key and
+     * returns a JSON array. An empty scan result maps to an empty array (not an error).
+     *
+     * <p>Key difference from master Get: {@code tx.scan()} returns {@code List<Result>},
+     * not {@code Optional<Result>}. An empty list means "no rows" — it is not an exception.
+     */
+    private void resolveDetailGroup(
+            String groupId,
+            String namespace,
+            String tableName,
+            Map<String, String> colToFieldKey,
+            JsonNode pkNode,
+            int maxRows,
+            ObjectNode resolved,
+            ObjectNode errors,
+            String correlationId,
+            String userId
+    ) {
+        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransaction tx = null;
+
+        try {
+            // Fetch TableMetadata (Admin, try-with-resources — same as resolveGroup)
+            TableMetadata meta;
+            try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
+                meta = admin.getTableMetadata(namespace, tableName);
+            }
+
+            // TOCTOU guard: table may have been dropped since schema was saved
+            if (meta == null) {
+                errors.put(groupId, "Schema table was removed since binding; please re-bind");
+                log.info("AUDIT op=resolve_bindings user={} groupId={} outcome=schema_removed correlationId={}",
+                        userId, groupId, correlationId);
+                return;
+            }
+
+            // Validate all requested dbColumnNames against actual table schema
+            Set<String> actualColumns = new HashSet<>(meta.getColumnNames());
+            for (String dbCol : colToFieldKey.keySet()) {
+                if (!actualColumns.contains(dbCol)) {
+                    errors.put(groupId, "Column not found in table: " + sanitize(dbCol));
+                    return;
+                }
+            }
+
+            // Build partition key (FK value — reuse same helper as master Get)
+            Key partitionKey = buildPartitionKey(pkNode, meta);
+            if (partitionKey == null) {
+                errors.put(groupId, "Could not build partition key — check column types");
+                return;
+            }
+
+            // ── Scan (not Get) — returns List<Result>, empty list = no rows ──
+            Scan scan = Scan.newBuilder()
+                    .namespace(namespace)
+                    .table(tableName)
+                    .partitionKey(partitionKey)
+                    .limit(maxRows)
+                    .build();
+
+            tx = mgr.start();
+            List<Result> rows = tx.scan(scan);
+            tx.commit();
+
+            // Build JSON array: [{ fieldKey: value, ... }, ...]
+            // Empty scan returns empty array — this is NOT an error.
+            ArrayNode arrayNode = MAPPER.createArrayNode();
+            for (Result row : rows) {
+                ObjectNode rowNode = MAPPER.createObjectNode();
+                for (Map.Entry<String, String> entry : colToFieldKey.entrySet()) {
+                    String colName = entry.getKey();
+                    String fieldKey = entry.getValue();
+                    if (!actualColumns.contains(colName)) continue;
+                    if (row.isNull(colName)) {
+                        rowNode.putNull(fieldKey);
+                    } else {
+                        putTypedValue(rowNode, fieldKey, colName, row, meta);
+                    }
+                }
+                arrayNode.add(rowNode);
+            }
+
+            resolved.set(groupId, arrayNode);
+            errors.putNull(groupId);
+
+        } catch (Exception e) {
+            abortQuietly(tx);
+            // Never include e.getMessage() in response — may contain internal details
+            log.warn("resolve-bindings detail groupId={} correlationId={} failed",
+                    groupId, correlationId, e);
+            errors.put(groupId, "Query failed");
+        }
+    }
 
     private void resolveGroup(
             String groupId,

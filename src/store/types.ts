@@ -65,11 +65,15 @@ export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 export type ComputedValue = number | string | boolean | null
 
 /**
- * Phase 2: resolved ScalarDB data from resolve-bindings endpoint.
- * Structure: { groupId → { fieldKey → value } }
+ * Phase 2/2.5: resolved ScalarDB data from resolve-bindings endpoint.
+ * - master groups → single flat row: Record<fieldKey, value>
+ * - detail groups (Phase 2.5) → array of rows: Array<Record<fieldKey, value>>
  * Stored in uiSlice so the export flow can access it.
  */
-export type LivePreviewData = Record<string, Record<string, ComputedValue>>
+export type LivePreviewData = Record<
+  string,
+  Record<string, ComputedValue> | Array<Record<string, ComputedValue>>
+>
 
 export interface ValidationViolation {
   ruleKey: string

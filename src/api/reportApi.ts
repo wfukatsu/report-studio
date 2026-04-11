@@ -556,17 +556,38 @@ export async function fetchScalarDbCatalog(signal?: AbortSignal): Promise<Scalar
  * HTTP 207 (partial success): resolved contains per-group field values,
  * errors contains per-group error messages (null = no error for that group).
  */
+type ComputedValueUnion = string | number | boolean | null
+
+/**
+ * A single group value in the resolve-bindings response.
+ * - master groups → flat object: Record<fieldKey, value>
+ * - detail groups (Phase 2.5) → array: Array<Record<fieldKey, value>>
+ */
+type ResolvedGroupValue =
+  | Record<string, ComputedValueUnion>
+  | Array<Record<string, ComputedValueUnion>>
+
 export interface ResolveBindingsResponse {
-  resolved: Record<string, Record<string, import('@/store/types').ComputedValue>>
+  /**
+   * master groups: single flat row { fieldKey → value }
+   * detail groups: array of rows [ { fieldKey → value }, ... ]
+   */
+  resolved: Record<string, ResolvedGroupValue>
   errors: Record<string, string>
   requestId?: string
 }
 
+const ComputedValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
+const ResolvedFlatRowSchema = z.record(z.string(), ComputedValueSchema)
+
+/** Per-group value: either a single flat row (master) or an array of rows (detail). */
+const ResolvedGroupValueSchema = z.union([
+  ResolvedFlatRowSchema,
+  z.array(ResolvedFlatRowSchema),
+])
+
 const ResolveBindingsResponseSchema = z.object({
-  resolved: z.record(z.string(), z.record(
-    z.string(),
-    z.union([z.string(), z.number(), z.boolean(), z.null()]),
-  )),
+  resolved: z.record(z.string(), ResolvedGroupValueSchema),
   errors: z.record(z.string(), z.string()),
   requestId: z.string().optional(),
 }) satisfies z.ZodType<ResolveBindingsResponse>

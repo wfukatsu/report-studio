@@ -9,6 +9,7 @@ import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
 import com.scalar.db.api.Result;
+import com.scalar.db.api.Scan;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.io.DataType;
 import com.scalar.db.service.TransactionFactory;
@@ -17,6 +18,7 @@ import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -91,9 +93,21 @@ class V2BindingResolveControllerTest {
     // ── Detail group handling ──────────────────────────────────────────────────
 
     @Test
-    void detailGroups_returnedInErrors_notResolved() throws Exception {
+    void detailGroups_nowResolvedAsArrayInPhase2_5() throws Exception {
+        // Phase 2.5: detail groups are now resolved (no longer return "not supported" error)
         String envelope = makeEnvelope("test-user", "default", "customers");
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata meta = mockTableMetadata("cust_id", DataType.TEXT);
+        when(admin.getTableMetadata("default", "customers")).thenReturn(meta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+        when(mgr.start()).thenReturn(tx);
+        when(tx.scan(any(Scan.class))).thenReturn(List.of()); // empty result is fine
+        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = MAPPER.writeValueAsString(MAPPER.readTree("""
             {
@@ -104,7 +118,7 @@ class V2BindingResolveControllerTest {
                     "fields": [] }
                 ]
               },
-              "partitionKeys": { "grp1": {} }
+              "partitionKeys": { "grp1": {"cust_id": "C001"} }
             }
             """));
         when(ctx.body()).thenReturn(body);
@@ -114,8 +128,11 @@ class V2BindingResolveControllerTest {
         var captor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(ctx).result(captor.capture());
         JsonNode resp = MAPPER.readTree(captor.getValue());
-        assertFalse(resp.path("resolved").has("grp1"));
-        assertTrue(resp.path("errors").path("grp1").asText().contains("Phase 2"));
+        // Phase 2.5: detail group now returns an array (empty in this case), not an error
+        assertTrue(resp.path("resolved").path("grp1").isArray(),
+                "Phase 2.5: detail groups should return an array");
+        assertTrue(resp.path("errors").path("grp1").isNull(),
+                "Phase 2.5: detail groups should not return error when successful");
     }
 
     // ── Table not in schema allowlist ──────────────────────────────────────────
@@ -321,6 +338,202 @@ class V2BindingResolveControllerTest {
 
     private String buildBody(String groupId, String role, String ns, String tbl, String pkCol, String pkVal) throws Exception {
         return buildBody(groupId, role, ns, tbl, pkCol, pkVal, new String[0]);
+    }
+
+    // ── Phase 2.5: detail group (Scan) tests ──────────────────────────────────
+
+    @Test
+    void detailGroup_scanReturnsArrayOfRows() throws Exception {
+        String envelope = makeEnvelope("test-user", "default", "order_items");
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product", DataType.TEXT, "qty", DataType.INT);
+        when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+        when(mgr.start()).thenReturn(tx);
+
+        Result row1 = mock(Result.class);
+        when(row1.isNull(anyString())).thenReturn(false);
+        when(row1.getText("product")).thenReturn("商品A");
+        when(row1.getInt("qty")).thenReturn(3);
+
+        Result row2 = mock(Result.class);
+        when(row2.isNull(anyString())).thenReturn(false);
+        when(row2.getText("product")).thenReturn("商品B");
+        when(row2.getInt("qty")).thenReturn(1);
+
+        when(tx.scan(any(Scan.class))).thenReturn(List.of(row1, row2));
+        when(factory.getTransactionManager()).thenReturn(mgr);
+
+        String body = buildDetailBody("grp1", "default", "order_items", "order_id", "ORD-001",
+                "product", "productName", "qty", "quantity");
+        when(ctx.body()).thenReturn(body);
+
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        JsonNode resolvedGroup = resp.path("resolved").path("grp1");
+        assertTrue(resolvedGroup.isArray(), "detail group should return array");
+        assertEquals(2, resolvedGroup.size());
+        assertEquals("商品A", resolvedGroup.get(0).path("productName").asText());
+        assertEquals(3, resolvedGroup.get(0).path("quantity").asInt());
+        assertEquals("商品B", resolvedGroup.get(1).path("productName").asText());
+        assertTrue(resp.path("errors").path("grp1").isNull());
+        verify(tx).commit();
+    }
+
+    @Test
+    void detailGroup_emptyScanReturnsEmptyArray() throws Exception {
+        String envelope = makeEnvelope("test-user", "default", "order_items");
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product", DataType.TEXT);
+        when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+        when(mgr.start()).thenReturn(tx);
+        when(tx.scan(any(Scan.class))).thenReturn(List.of()); // empty result
+        when(factory.getTransactionManager()).thenReturn(mgr);
+
+        String body = buildDetailBody("grp1", "default", "order_items", "order_id", "NOT-EXIST",
+                "product", "product");
+        when(ctx.body()).thenReturn(body);
+
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        JsonNode resolvedGroup = resp.path("resolved").path("grp1");
+        assertTrue(resolvedGroup.isArray(), "empty scan should return empty array, not error");
+        assertEquals(0, resolvedGroup.size());
+        assertTrue(resp.path("errors").path("grp1").isNull());
+    }
+
+    @Test
+    void detailGroup_scanRespectsColuOrderIndependently() throws Exception {
+        // Validates name-based mapping for detail group — column order must not matter
+        String envelope = makeEnvelope("test-user", "default", "order_items");
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+
+        // Meta with columns in reversed order vs request field order
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "qty", DataType.INT, "product", DataType.TEXT);
+        when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+        Result row = mock(Result.class);
+        when(row.isNull(anyString())).thenReturn(false);
+        when(row.getText("product")).thenReturn("商品X");
+        when(row.getInt("qty")).thenReturn(99);
+        when(tx.scan(any(Scan.class))).thenReturn(List.of(row));
+        when(mgr.start()).thenReturn(tx);
+        when(factory.getTransactionManager()).thenReturn(mgr);
+
+        // Request fields in different order than meta columns
+        String body = buildDetailBody("grp1", "default", "order_items", "order_id", "ORD-1",
+                "product", "name", "qty", "count");
+        when(ctx.body()).thenReturn(body);
+
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        JsonNode row0 = resp.path("resolved").path("grp1").get(0);
+        assertEquals("商品X", row0.path("name").asText());
+        assertEquals(99, row0.path("count").asInt());
+    }
+
+    @Test
+    void mixedMasterAndDetail_bothResolvedCorrectly() throws Exception {
+        // Setup template with both master and detail tables
+        var envNode = MAPPER.createObjectNode().put("id", "tmpl-1").put("created_by", "test-user");
+        var defNode = MAPPER.createObjectNode().put("id", "tmpl-1");
+        var schemaNode = defNode.putObject("schema");
+        var groupsArr = schemaNode.putArray("groups");
+        groupsArr.addObject().put("id", "master").put("role", "master")
+                .putObject("tableMeta").put("namespace", "default").put("tableName", "customers");
+        groupsArr.addObject().put("id", "detail").put("role", "detail")
+                .putObject("tableMeta").put("namespace", "default").put("tableName", "orders");
+        envNode.set("definition", defNode);
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(MAPPER.writeValueAsString(envNode)));
+
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata custMeta = mockTableMetadata("cust_id", DataType.TEXT, "name", DataType.TEXT);
+        TableMetadata ordMeta = mockTableMetadata("cust_id", DataType.TEXT, "product", DataType.TEXT);
+        when(admin.getTableMetadata("default", "customers")).thenReturn(custMeta);
+        when(admin.getTableMetadata("default", "orders")).thenReturn(ordMeta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+
+        Result custRow = mock(Result.class);
+        when(custRow.isNull(anyString())).thenReturn(false);
+        when(custRow.getText("name")).thenReturn("山田");
+        when(tx.get(any(Get.class))).thenReturn(Optional.of(custRow));
+
+        Result ordRow = mock(Result.class);
+        when(ordRow.isNull(anyString())).thenReturn(false);
+        when(ordRow.getText("product")).thenReturn("商品Z");
+        when(tx.scan(any(Scan.class))).thenReturn(List.of(ordRow));
+
+        when(mgr.start()).thenReturn(tx);
+        when(factory.getTransactionManager()).thenReturn(mgr);
+
+        String body = """
+                {"schema":{"groups":[
+                  {"id":"master","role":"master","tableMeta":{"namespace":"default","tableName":"customers"},
+                   "fields":[{"id":"f1","key":"custName","dbColumnName":"name"}]},
+                  {"id":"detail","role":"detail","tableMeta":{"namespace":"default","tableName":"orders"},
+                   "fields":[{"id":"f2","key":"productName","dbColumnName":"product"}]}
+                ]},
+                "partitionKeys":{"master":{"cust_id":"C001"},"detail":{"cust_id":"C001"}}}
+                """.trim();
+        when(ctx.body()).thenReturn(body);
+
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        // master → flat object
+        assertFalse(resp.path("resolved").path("master").isArray(), "master should be flat object");
+        assertEquals("山田", resp.path("resolved").path("master").path("custName").asText());
+        // detail → array
+        assertTrue(resp.path("resolved").path("detail").isArray(), "detail should be array");
+        assertEquals("商品Z", resp.path("resolved").path("detail").get(0).path("productName").asText());
+    }
+
+    // ── Detail body builder ────────────────────────────────────────────────────
+
+    /** Build a resolve-bindings request body with one detail group. */
+    private String buildDetailBody(String groupId, String namespace, String tableName,
+                                   String pkCol, String pkVal, String... fieldPairs) throws Exception {
+        var fieldsArr = new StringBuilder("[");
+        fieldsArr.append("{\"id\":\"f0\",\"key\":\"pk_key\",\"dbColumnName\":\"%s\"}".formatted(pkCol));
+        for (int i = 0; i < fieldPairs.length; i += 2) {
+            String dbCol = fieldPairs[i];
+            String fieldKey = fieldPairs[i + 1];
+            fieldsArr.append(",{\"id\":\"f%d\",\"key\":\"%s\",\"dbColumnName\":\"%s\"}".formatted(i + 1, fieldKey, dbCol));
+        }
+        fieldsArr.append("]");
+        return """
+               {"schema":{"groups":[{"id":"%s","role":"detail","tableMeta":{"namespace":"%s","tableName":"%s"},"fields":%s}]},
+                "partitionKeys":{"%s":{"%s":"%s"}}}
+               """.formatted(groupId, namespace, tableName, fieldsArr, groupId, pkCol, pkVal).trim();
     }
 
     /** Create a mock TableMetadata with alternating (columnName, DataType) varargs. */
