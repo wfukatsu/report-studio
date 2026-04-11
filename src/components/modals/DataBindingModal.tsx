@@ -4,15 +4,17 @@ import { BindingPanel } from '@/components/sidebar/BindingPanel'
 import { CalculationTab } from '@/components/modals/CalculationTab'
 import { ValidationTab } from '@/components/modals/ValidationTab'
 import { DbConnectionTab } from '@/components/modals/DbConnectionTab'
+import { BindingMapperTab } from '@/components/modals/BindingMapperTab'
 import { cn } from '@/lib/utils'
 
-type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection'
+type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'datasource', label: 'テンプレートデータ' },
   { id: 'calculation', label: '計算フィールド' },
   { id: 'validation', label: '入力検証' },
   { id: 'dbconnection', label: 'データ連携' },
+  { id: 'bindingmapper', label: 'バインドマッパー' },
 ]
 
 interface DataBindingModalProps {
@@ -165,6 +167,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
           {activeTab === 'calculation' && <CalculationTab />}
           {activeTab === 'validation' && <ValidationTab />}
           {activeTab === 'dbconnection' && <DbConnectionTab />}
+          {activeTab === 'bindingmapper' && <BindingMapperTab />}
         </div>
       </div>
     </div>
