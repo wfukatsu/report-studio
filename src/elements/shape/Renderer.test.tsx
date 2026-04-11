@@ -111,3 +111,65 @@ describe('ShapeRenderer — dash styles', () => {
     expect(rect.getAttribute('stroke-dasharray')).toBe('none')
   })
 })
+
+describe('ShapeRenderer — default fallbacks (undefined props)', () => {
+  it('uses default stroke #000000 when not set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ stroke: undefined })} />,
+    )
+    expect(container.querySelector('rect')!.getAttribute('stroke')).toBe('#000000')
+  })
+
+  it('uses default strokeWidth 0.3 when not set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ strokeWidth: undefined })} />,
+    )
+    expect(container.querySelector('rect')!.getAttribute('stroke-width')).toBe('0.3')
+  })
+
+  it('uses default fill transparent when not set on circle', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'circle', fill: undefined })} />,
+    )
+    expect(container.querySelector('ellipse')!.getAttribute('fill')).toBe('transparent')
+  })
+
+  it('applies borderRadius on rectangle when set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'rectangle', borderRadius: 3 })} />,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('rx')).toBe('3mm')
+    expect(rect.getAttribute('ry')).toBe('3mm')
+  })
+
+  it('rx/ry is undefined when borderRadius not set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'rectangle', borderRadius: undefined })} />,
+    )
+    const rect = container.querySelector('rect')!
+    // rx/ry should be absent or null
+    expect(rect.getAttribute('rx')).toBeNull()
+  })
+
+  it('uses solid dash fallback when strokeDash is undefined', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ strokeDash: undefined })} />,
+    )
+    expect(container.querySelector('rect')!.getAttribute('stroke-dasharray')).toBe('none')
+  })
+
+  it('uses default stroke on vertical line when stroke not set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'line', size: { width: 0.1, height: 30 }, stroke: undefined })} />,
+    )
+    expect(container.querySelector('line')!.getAttribute('stroke')).toBe('#000000')
+  })
+
+  it('uses default stroke on horizontal line when stroke not set', () => {
+    const { container } = render(
+      <ShapeRenderer element={makeElement({ shape: 'line', size: { width: 50, height: 0.5 }, stroke: undefined })} />,
+    )
+    expect(container.querySelector('line')!.getAttribute('stroke')).toBe('#000000')
+  })
+})
