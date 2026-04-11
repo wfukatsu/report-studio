@@ -320,6 +320,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       setShowUpdateFromBuiltinConfirm(false)
       return
     }
+    setRefreshError(null)
     loadReport(definition)
     // Reset currentTemplateId so the next Save creates a new template rather than
     // silently overwriting the user's previously-saved server record with the

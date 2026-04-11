@@ -229,6 +229,28 @@ describe('isSafeImageSrc', () => {
     const large = 'data:image/png;base64,' + 'A'.repeat(2 * 1024 * 1024 + 1)
     expect(isSafeImageSrc(large)).toBe(false)
   })
+  it('rejects SVG with HTML entity-encoded javascript: (bypass attempt)', () => {
+    // &#106; = 'j', &#97; = 'a', &#118; = 'v' ... encodes "javascript:"
+    // Parsers resolve entities before execution; we must too.
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><image href="&#106;avascript:alert(1)"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('rejects SVG with hex-encoded entity bypass', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><image href="&#x6A;avascript:alert(1)"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('rejects SVG with CSS style url() injection', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><rect style="background:url(javascript:alert(1))"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('accepts SVG with safe inline style (no url())', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:#ff0000;stroke:#000"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------

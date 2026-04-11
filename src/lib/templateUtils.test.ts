@@ -62,6 +62,45 @@ describe('createBlankDefinition', () => {
   })
 })
 
+describe('applyTemplate — sourceTemplateId + deep clone', () => {
+  it('stamps sourceTemplateId in metadata', () => {
+    const template = makeTemplate({ id: 'my-template' })
+    const def = applyTemplate(template)
+    expect(def.metadata.sourceTemplateId).toBe('my-template')
+  })
+
+  it('deep-clones pages so BUILTIN_TEMPLATES is not mutated', () => {
+    if (BUILTIN_TEMPLATES.length === 0) return
+    const original = BUILTIN_TEMPLATES[0]
+    const originalPageId = original.pages[0].id
+
+    const def = applyTemplate(original)
+
+    // New IDs assigned — they must differ from the originals
+    expect(def.pages[0].id).not.toBe(originalPageId)
+    // Original template must be untouched
+    expect(original.pages[0].id).toBe(originalPageId)
+  })
+
+  it('applying the same template twice produces independent page objects', () => {
+    const template = makeTemplate({
+      pages: [
+        { id: 'original-p1', name: 'Page', background: '#fff', width: 210, height: 297, sections: [] },
+      ],
+    })
+    const def1 = applyTemplate(template)
+    const def2 = applyTemplate(template)
+
+    // Both get new IDs
+    expect(def1.pages[0].id).not.toBe('original-p1')
+    expect(def2.pages[0].id).not.toBe('original-p1')
+    // But they get DIFFERENT new IDs (independent clones)
+    expect(def1.pages[0].id).not.toBe(def2.pages[0].id)
+    // Original untouched
+    expect(template.pages[0].id).toBe('original-p1')
+  })
+})
+
 describe('loadBuiltinTemplate', () => {
   it('存在しない id は null を返す', () => {
     expect(loadBuiltinTemplate('nonexistent-id')).toBeNull()
@@ -73,5 +112,12 @@ describe('loadBuiltinTemplate', () => {
     const def = loadBuiltinTemplate(first.id)
     expect(def).not.toBeNull()
     expect(def!.pages).toBeDefined()
+  })
+
+  it('stamps sourceTemplateId from the built-in template', () => {
+    if (BUILTIN_TEMPLATES.length === 0) return
+    const first = BUILTIN_TEMPLATES[0]
+    const def = loadBuiltinTemplate(first.id)
+    expect(def!.metadata.sourceTemplateId).toBe(first.id)
   })
 })

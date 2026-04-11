@@ -45,22 +45,17 @@ const SAFE_RASTER_PREFIXES = [
  */
 const SVG_DANGEROUS_PATTERNS = [
   /<script[\s>]/i,
-  /\bon\w+\s*=/i,            // onclick=, onload=, onerror=, etc.
+  /\bon\w+\s*=/i,                    // onclick=, onload=, onerror=, etc.
   /javascript\s*:/i,
   /<iframe[\s>]/i,
   /<embed[\s>]/i,
   /<object[\s>]/i,
   /<foreignObject[\s>]/i,
-  // Defence-in-depth: <use href> and <image href> to external resources can cause
-  // external data fetches. While browsers sandbox SVG in <img> tags today,
-  // blocking external href values prevents data exfiltration and makes the check
-  // safe for future non-<img> rendering contexts.
-  // Fragment refs (href="#id") are SAFE — they reference elements within the same SVG.
-  // xlink:href always targets external resources in the legacy SVG format.
-  /xlink:href\s*=/i,         // legacy xlink:href used by <use> and <image> (always external in SVG)
-  // href= pointing to external URLs: matches when the value does NOT start with #
-  // (fragment reference). This blocks "//domain", "https://...", "data:..." etc.
-  /href\s*=\s*["'][^"'#]/i,  // href="..." where content is not a fragment ref
+  // Defence-in-depth: block external resource loading and dynamic attribute rewriting
+  /xlink:href\s*=/i,                 // legacy xlink:href (block entirely — fragment refs rare, external common)
+  /href\s*=\s*["'][^"'#]/i,          // href pointing to non-fragment URL (allows href="#id")
+  // CSS style attribute with url() can load external resources or execute javascript:
+  /style\s*=\s*["'][^"']*url\s*\(/i, // style="...url(...)..." — blocks data-fetch vectors
 ]
 
 /**
@@ -79,9 +74,16 @@ function isSafeSvgDataUri(src: string): boolean {
     const header = src.slice(0, commaIdx).toLowerCase()
     const payload = src.slice(commaIdx + 1)
 
-    const decoded = header.includes('base64')
+    const rawDecoded = header.includes('base64')
       ? atob(payload)
       : decodeURIComponent(payload)
+
+    // Decode HTML numeric character references (e.g. &#106; → 'j', &#x6A; → 'j')
+    // before running pattern matching — SVG parsers resolve these before execution
+    // so `&#106;avascript:` must be caught the same as `javascript:`.
+    const decoded = rawDecoded
+      .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
 
     return !SVG_DANGEROUS_PATTERNS.some((p) => p.test(decoded))
   } catch {
