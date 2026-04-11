@@ -198,12 +198,26 @@ public final class V2BindingResolveController {
             }
 
             // Build fieldKey → dbColumnName map (name-based, never positional)
+            // Also collect Phase 3 computed fields: fieldKey → JEXL expression
             Map<String, String> colToFieldKey = new HashMap<>();
+            List<Map.Entry<String, String>> computedFields = new ArrayList<>(); // (fieldKey, expression)
             boolean invalidField = false;
             for (JsonNode field : fieldsNode) {
-                String dbCol = field.path("dbColumnName").asText(null);
                 String fieldKey = field.path("key").asText(null);
-                if (dbCol == null || fieldKey == null) continue;
+                if (fieldKey == null) continue;
+
+                // Phase 3: computed field — skip DB column validation
+                boolean isComputed = field.path("computed").asBoolean(false);
+                if (isComputed) {
+                    String expr = field.path("expression").asText(null);
+                    if (expr != null && !expr.isBlank()) {
+                        computedFields.add(Map.entry(fieldKey, expr));
+                    }
+                    continue;
+                }
+
+                String dbCol = field.path("dbColumnName").asText(null);
+                if (dbCol == null) continue; // non-computed field without dbColumnName — skip
                 if (!isValidIdentifier(dbCol)) {
                     errors.put(groupId, "Invalid dbColumnName: " + sanitize(dbCol));
                     invalidField = true;
@@ -224,13 +238,13 @@ public final class V2BindingResolveController {
             if ("detail".equals(role)) {
                 // Phase 2.5: Scan → array of rows
                 resolveDetailGroup(
-                        groupId, namespace, tableName, colToFieldKey, pkNode,
+                        groupId, namespace, tableName, colToFieldKey, computedFields, pkNode,
                         MAX_DETAIL_ROWS, resolved, errors, correlationId, userId
                 );
             } else {
                 // Phase 2: Get → single row
                 resolveGroup(
-                        groupId, namespace, tableName, colToFieldKey, pkNode,
+                        groupId, namespace, tableName, colToFieldKey, computedFields, pkNode,
                         resolved, errors, correlationId, userId
                 );
             }
@@ -266,6 +280,7 @@ public final class V2BindingResolveController {
             String namespace,
             String tableName,
             Map<String, String> colToFieldKey,
+            List<Map.Entry<String, String>> computedFields,
             JsonNode pkNode,
             int maxRows,
             ObjectNode resolved,
@@ -334,6 +349,8 @@ public final class V2BindingResolveController {
                         putTypedValue(rowNode, fieldKey, colName, row, meta);
                     }
                 }
+                // Phase 3: evaluate computed fields for this row
+                evaluateComputedFields(rowNode, computedFields, correlationId);
                 arrayNode.add(rowNode);
             }
 
@@ -354,6 +371,7 @@ public final class V2BindingResolveController {
             String namespace,
             String tableName,
             Map<String, String> colToFieldKey,
+            List<Map.Entry<String, String>> computedFields,
             JsonNode pkNode,
             ObjectNode resolved,
             ObjectNode errors,
@@ -423,6 +441,8 @@ public final class V2BindingResolveController {
                     putTypedValue(groupData, fieldKey, colName, result, meta);
                 }
             }
+            // Phase 3: evaluate computed fields after DB columns are resolved
+            evaluateComputedFields(groupData, computedFields, correlationId);
             resolved.set(groupId, groupData);
             errors.putNull(groupId); // explicit null = no error for this group
 
@@ -521,6 +541,47 @@ public final class V2BindingResolveController {
             // Malformed envelope — return empty set (caller handles as "no allowed tables")
         }
         return allowed;
+    }
+
+    /**
+     * Phase 3: evaluate computed fields against the resolved DB row data.
+     * Uses the same {@link ExpressionEngine} as the calculation/validation system.
+     * Errors are silently recorded as {@code null} — they do not stop other fields.
+     */
+    private void evaluateComputedFields(
+            ObjectNode rowData,
+            List<Map.Entry<String, String>> computedFields,
+            String correlationId
+    ) {
+        if (computedFields == null || computedFields.isEmpty()) return;
+        // Convert current row data to Map<String, Object> for ExpressionEngine context
+        Map<String, Object> context = CalculationEngine.formDataToMap(rowData);
+
+        for (Map.Entry<String, String> cf : computedFields) {
+            String fieldKey = cf.getKey();
+            String expression = cf.getValue();
+            try {
+                Object result = ExpressionEngine.calculate(expression, context);
+                if (result == null) {
+                    rowData.putNull(fieldKey);
+                    context.put(fieldKey, null);
+                } else if (result instanceof Number n) {
+                    rowData.put(fieldKey, n.doubleValue());
+                    context.put(fieldKey, n.doubleValue());
+                } else if (result instanceof Boolean b) {
+                    rowData.put(fieldKey, b);
+                    context.put(fieldKey, b);
+                } else {
+                    rowData.put(fieldKey, result.toString());
+                    context.put(fieldKey, result.toString());
+                }
+            } catch (Exception e) {
+                log.warn("Computed field evaluation failed fieldKey={} expr={} correlationId={}",
+                        fieldKey, sanitize(expression), correlationId);
+                rowData.putNull(fieldKey);
+                context.put(fieldKey, null);
+            }
+        }
     }
 
     private static boolean isValidIdentifier(String value) {

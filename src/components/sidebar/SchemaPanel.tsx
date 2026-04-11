@@ -41,49 +41,91 @@ const FieldRow = memo(function FieldRow({
   // Local state for in-progress edits — committed to store on blur
   const [localKey, setLocalKey] = useState(field.key)
   const [localLabel, setLocalLabel] = useState(field.label)
+  const [localExpression, setLocalExpression] = useState(field.expression ?? '')
 
   return (
-    <div className="flex items-center gap-1 py-0.5">
-      <input
-        className="border rounded px-1 py-0.5 text-xs bg-background w-20 font-mono"
-        value={localKey}
-        onChange={(e) => setLocalKey(e.target.value)}
-        onBlur={() => {
-          const trimmed = localKey.trim()
-          if (trimmed && trimmed !== field.key) onUpdate({ key: trimmed })
-          else setLocalKey(field.key) // reset if empty or unchanged
-        }}
-        placeholder="key"
-        aria-label="フィールドキー"
-      />
-      <input
-        className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0"
-        value={localLabel}
-        onChange={(e) => setLocalLabel(e.target.value)}
-        onBlur={() => {
-          if (localLabel !== field.label) onUpdate({ label: localLabel })
-        }}
-        placeholder="ラベル"
-        aria-label="フィールドラベル"
-      />
-      <select
-        className="border rounded px-1 py-0.5 text-xs bg-background shrink-0"
-        value={field.type}
-        onChange={(e) => onUpdate({ type: e.target.value as SchemaFieldType })}
-        aria-label="フィールド型"
-      >
-        {FIELD_TYPE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-        aria-label="フィールドを削除"
-      >
-        <Trash2 className="w-3 h-3" />
-      </button>
+    <div className="py-0.5">
+      <div className="flex items-center gap-1">
+        <input
+          className="border rounded px-1 py-0.5 text-xs bg-background w-20 font-mono"
+          value={localKey}
+          onChange={(e) => setLocalKey(e.target.value)}
+          onBlur={() => {
+            const trimmed = localKey.trim()
+            if (trimmed && trimmed !== field.key) onUpdate({ key: trimmed })
+            else setLocalKey(field.key) // reset if empty or unchanged
+          }}
+          placeholder="key"
+          aria-label="フィールドキー"
+        />
+        <input
+          className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0"
+          value={localLabel}
+          onChange={(e) => setLocalLabel(e.target.value)}
+          onBlur={() => {
+            if (localLabel !== field.label) onUpdate({ label: localLabel })
+          }}
+          placeholder="ラベル"
+          aria-label="フィールドラベル"
+        />
+        <select
+          className="border rounded px-1 py-0.5 text-xs bg-background shrink-0"
+          value={field.type}
+          onChange={(e) => onUpdate({ type: e.target.value as SchemaFieldType })}
+          aria-label="フィールド型"
+          disabled={!!field.computed}
+        >
+          {FIELD_TYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        {/* Phase 3: computed field toggle */}
+        <button
+          type="button"
+          title={field.computed ? 'DB カラムに戻す' : '計算フィールドに変更'}
+          onClick={() => {
+            if (field.computed) {
+              onUpdate({ computed: undefined, expression: undefined })
+            } else {
+              onUpdate({ computed: true, expression: '' })
+            }
+          }}
+          className={`shrink-0 text-[10px] px-1 rounded border transition-colors ${
+            field.computed
+              ? 'bg-amber-100 border-amber-400 text-amber-700 hover:bg-amber-200'
+              : 'text-muted-foreground border-transparent hover:border-muted hover:bg-muted/50'
+          }`}
+          aria-label={field.computed ? 'DB フィールドに変更' : '計算フィールドに変更'}
+        >
+          {field.computed ? 'fx' : '≡'}
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+          aria-label="フィールドを削除"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+      {/* Phase 3: expression input for computed fields */}
+      {field.computed && (
+        <div className="mt-0.5 flex items-center gap-1 pl-1">
+          <span className="text-[10px] text-amber-600 font-mono shrink-0">fx =</span>
+          <input
+            className="border border-amber-300 rounded px-1 py-0.5 text-xs bg-background flex-1 font-mono"
+            value={localExpression}
+            onChange={(e) => setLocalExpression(e.target.value)}
+            onBlur={() => {
+              if (localExpression !== (field.expression ?? '')) {
+                onUpdate({ expression: localExpression || undefined })
+              }
+            }}
+            placeholder="例: price * qty * 1.1"
+            aria-label="計算式（JEXL）"
+          />
+        </div>
+      )}
     </div>
   )
 })

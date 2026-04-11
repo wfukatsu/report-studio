@@ -126,3 +126,65 @@ describe('JEXL_BUILTINS', () => {
     }
   })
 })
+
+// ---------------------------------------------------------------------------
+// Phase 3: new built-in functions
+// ---------------------------------------------------------------------------
+
+describe('Phase 3 built-in functions', () => {
+  it('avg — 配列の平均値を返す', async () => {
+    await expect(evaluateExpression('avg([10, 20, 30])', {})).resolves.toBe(20)
+  })
+
+  it('avg — 空配列は null を返す', async () => {
+    await expect(evaluateExpression('avg([])', {})).resolves.toBeNull()
+  })
+
+  it('min — 配列の最小値を返す', async () => {
+    await expect(evaluateExpression('min([5, 3, 8])', {})).resolves.toBe(3)
+  })
+
+  it('max — 配列の最大値を返す', async () => {
+    await expect(evaluateExpression('max([5, 3, 8])', {})).resolves.toBe(8)
+  })
+
+  it('concat — 文字列を連結する', async () => {
+    await expect(
+      evaluateExpression('concat(firstName, " ", lastName)', { firstName: '太郎', lastName: '山田' }),
+    ).resolves.toBe('太郎 山田')
+  })
+
+  it('ifExpr — 条件分岐（true ブランチ）', async () => {
+    await expect(
+      evaluateExpression('ifExpr(score >= 60, "合格", "不合格")', { score: 80 }),
+    ).resolves.toBe('合格')
+  })
+
+  it('ifExpr — 条件分岐（false ブランチ）', async () => {
+    await expect(
+      evaluateExpression('ifExpr(score >= 60, "合格", "不合格")', { score: 40 }),
+    ).resolves.toBe('不合格')
+  })
+
+  it('formatNumber — 整数書式化', async () => {
+    const result = await evaluateExpression('formatNumber(1234567)', {})
+    expect(String(result)).toContain('1,234,567')
+  })
+
+  it('formatDate — 日付書式化', async () => {
+    await expect(
+      evaluateExpression('formatDate("2026-04-12", "yyyy年MM月dd日")', {}),
+    ).resolves.toBe('2026年04月12日')
+  })
+
+  it('JEXL_BUILTINS に Phase 3 関数が登録されている', () => {
+    const names = JEXL_BUILTINS.map((f) => f.name)
+    expect(names).toContain('avg')
+    expect(names).toContain('min')
+    expect(names).toContain('max')
+    expect(names).toContain('concat')
+    expect(names).toContain('ifExpr')
+    expect(names).toContain('formatNumber')
+    expect(names).toContain('formatDate')
+  })
+})

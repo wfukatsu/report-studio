@@ -166,6 +166,21 @@ export interface SchemaField {
    * from a fresh catalog fetch at render time (Phase 2).
    */
   dbColumnName?: string
+  /**
+   * Phase 3: computed field flag.
+   * When true, the field's value is calculated from a JEXL expression
+   * rather than fetched directly from a DB column.
+   * Computed fields do NOT have a dbColumnName.
+   */
+  computed?: true
+  /**
+   * Phase 3: JEXL expression for computed fields.
+   * Available context: all other fields in the same group (by fieldKey),
+   * plus built-in functions: sum, count, avg, min, max, round,
+   * concat, formatDate, formatNumber, ifExpr.
+   * Example: `price * qty * 1.1`
+   */
+  expression?: string
 }
 
 export interface SchemaGroup {
