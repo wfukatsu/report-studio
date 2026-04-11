@@ -131,6 +131,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [isSavingNew, setIsSavingNew] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showServerSettings, setShowServerSettings] = useState(false)
+  const [showOpenMenu, setShowOpenMenu] = useState(false)
   const [showSaveMenu, setShowSaveMenu] = useState(false)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
@@ -144,6 +145,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const openMenuRef = useRef<HTMLDivElement>(null)
   const saveMenuRef = useRef<HTMLDivElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
@@ -155,6 +157,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const singleId = selectedIds[0]
 
   const closeUserMenu = useCallback(() => setShowUserMenu(false), [])
+  const closeOpenMenu = useCallback(() => setShowOpenMenu(false), [])
   const closeSaveMenu = useCallback(() => setShowSaveMenu(false), [])
   const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
   const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
@@ -162,6 +165,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const closePreviewMenu = useCallback(() => setShowPreviewMenu(false), [])
 
   useDropdownDismiss(userMenuRef, showUserMenu, closeUserMenu)
+  useDropdownDismiss(openMenuRef, showOpenMenu, closeOpenMenu)
   useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
   useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
   useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
@@ -414,9 +418,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setShowUpdateFromBuiltinConfirm(false)
   }
 
-  const handleOpen = () => {
+  const handleOpenLocal = () => {
     if (hasUnsavedChanges && !confirm('未保存の変更があります。破棄してファイルを開きますか？')) return
     fileInputRef.current?.click()
+  }
+
+  const handleOpenServer = () => {
+    if (hasUnsavedChanges && !confirm('未保存の変更があります。破棄してテンプレートを開きますか？')) return
+    setShowManagerModal(true)
   }
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -583,9 +592,40 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={handleNew} title="新規作成">
           <FilePlus className="w-4 h-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={handleOpen} title="開く">
-          <FolderOpen className="w-4 h-4" />
-        </ToolbarButton>
+        <div className="relative flex items-center" ref={openMenuRef}>
+          <ToolbarButton onClick={handleOpenLocal} title="開く">
+            <FolderOpen className="w-4 h-4" />
+          </ToolbarButton>
+          <button
+            onClick={() => setShowOpenMenu((v) => !v)}
+            className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
+            aria-expanded={showOpenMenu}
+            aria-haspopup="menu"
+            aria-label="開くメニュー"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {showOpenMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                onClick={() => { handleOpenLocal(); setShowOpenMenu(false) }}
+              >
+                ローカルファイルを開く
+              </button>
+              <button
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-sm',
+                  backendConnected ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed',
+                )}
+                disabled={!backendConnected}
+                onClick={() => { handleOpenServer(); setShowOpenMenu(false) }}
+              >
+                サーバーから開く
+              </button>
+            </div>
+          )}
+        </div>
         <ToolbarButton onClick={() => setShowManagerModal(true)} title="テンプレート管理">
           <Settings2 className="w-4 h-4" />
         </ToolbarButton>
