@@ -246,5 +246,9 @@ public final class ApiRoutes {
         app.post("/api/v2/scalardb/tables", w.v2ScalarDbTableCtrl::createTable);
         // Phase 2: resolve actual ScalarDB row data for live preview
         app.post("/api/v2/templates/{id}/resolve-bindings", w.v2BindingResolveCtrl::resolve);
+
+        // Tenant info — shared organization settings
+        app.get("/api/v2/tenant", w.v2TenantCtrl::get);
+        app.put("/api/v2/tenant", w.v2TenantCtrl::put);
     }
 }
