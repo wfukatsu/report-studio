@@ -83,7 +83,7 @@ describe('CreateTableForm — default pre-population', () => {
   it('maps field types to ScalarDB column types correctly', () => {
     renderForm()
     // number → DOUBLE, string → TEXT, boolean → BOOLEAN, date → BIGINT, image → TEXT
-    const typeSelects = screen.getAllByRole('combobox', { name: /type/i })
+    const typeSelects = screen.getAllByRole('combobox', { name: /データ型/i })
     // Just verify at least one DOUBLE appears for the number field
     const doubles = typeSelects.filter(
       (el) => (el as HTMLSelectElement).value === 'DOUBLE',

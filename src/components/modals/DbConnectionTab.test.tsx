@@ -135,7 +135,7 @@ describe('DbConnectionTab — initial state', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/テーブルを含むネームスペースが見つかりません/),
+        screen.getByText(/テーブルが見つかりません/),
       ).toBeInTheDocument()
     })
   })
@@ -406,7 +406,13 @@ describe('DbConnectionTab — unbind (解除)', () => {
     render(<DbConnectionTab />)
     await screen.findByLabelText(/ネームスペース/)
 
+    // 解除ボタンは確認ダイアログを経由する
     fireEvent.click(screen.getByRole('button', { name: /解除/ }))
+    // 確認ダイアログが表示されるのを待ち、確認ボタンをクリック
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /解除する/ }))
 
     await waitFor(() => {
       const group = getGroup(groupId)

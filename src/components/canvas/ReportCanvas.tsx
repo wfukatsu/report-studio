@@ -233,7 +233,29 @@ export function ReportCanvas({
       const finalY = snap(clampedY)
 
       const el = createElement()
-      addElement(page.id, { ...el, position: { x: finalX, y: finalY } }, sectionId)
+
+      // Offset position if it overlaps existing elements in the same section (#188).
+      // Use a for-loop with a hard limit to prevent infinite loops when the section
+      // corner is completely occupied.
+      const sectionElements = (targetSection?.elements ?? [])
+      let posX = finalX
+      let posY = finalY
+      const OFFSET_STEP = 5 // 5mm per step
+      const MAX_OFFSET_ATTEMPTS = Math.ceil(Math.max(page.width, sectionH) / OFFSET_STEP) + 1
+      for (let attempt = 0; attempt < MAX_OFFSET_ATTEMPTS; attempt++) {
+        const overlaps = sectionElements.some((ex) =>
+          ex.position.x < posX + el.size.width &&
+          ex.position.x + ex.size.width > posX &&
+          ex.position.y < posY + el.size.height &&
+          ex.position.y + ex.size.height > posY,
+        )
+        if (!overlaps) break
+        const nextOffset = (attempt + 1) * OFFSET_STEP
+        posX = Math.min(finalX + nextOffset, page.width - el.size.width)
+        posY = Math.min(finalY + nextOffset, sectionH - el.size.height)
+      }
+
+      addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
     [page, zoom, snap, addElement, ref],
   )

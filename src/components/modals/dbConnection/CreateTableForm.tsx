@@ -83,10 +83,8 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
   const [tableName, setTableName] = useState('')
   const [columns, setColumns] = useState<ColumnRow[]>(() => buildColumns(group))
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [correlationId, setCorrelationId] = useState<string | null>(null)
-  const [showRecovery, setShowRecovery] = useState(false)
-  const [showRetry, setShowRetry] = useState(false)
+  // Consolidated error state (#152) — replaces separate errorMessage / correlationId / showRecovery / showRetry
+  const [errorInfo, setErrorInfo] = useState<{ message: string; correlationId?: string; showRecovery: boolean; showRetry: boolean } | null>(null)
 
   const effectiveNamespace = isNewNamespace ? newNamespaceName : namespace
 
@@ -103,28 +101,30 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 
   const handleSubmit = useCallback(async () => {
     // Client-side validation
+    const setValidationError = (message: string) => setErrorInfo({ message, showRecovery: false, showRetry: false })
+
     if (!effectiveNamespace) {
-      setErrorMessage('ネームスペースを選択または入力してください')
+      setValidationError('ネームスペースを選択または入力してください')
       return
     }
     if (!tableName) {
-      setErrorMessage('テーブル名を入力してください')
+      setValidationError('テーブル名を入力してください')
       return
     }
     const nsValidation = validateScalarDbIdentifier(effectiveNamespace)
     if (!nsValidation.valid) {
-      setErrorMessage(nsValidation.error)
+      setValidationError(nsValidation.error)
       return
     }
     const tableValidation = validateScalarDbIdentifier(tableName)
     if (!tableValidation.valid) {
-      setErrorMessage(tableValidation.error)
+      setValidationError(tableValidation.error)
       return
     }
 
     // Validate column count
     if (columns.length > MAX_COLUMNS_PER_TABLE) {
-      setErrorMessage(`列が多すぎます (最大 ${MAX_COLUMNS_PER_TABLE})`)
+      setValidationError(`列が多すぎます (最大 ${MAX_COLUMNS_PER_TABLE})`)
       return
     }
 
@@ -134,19 +134,19 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     const secondaryIndexes = columns.filter((c) => c.keyRole === 'index').map((c) => c.name)
 
     if (partitionKeys.length === 0) {
-      setErrorMessage('パーティションキーを 1 つ以上選択してください')
+      setValidationError('パーティションキーを 1 つ以上選択してください')
       return
     }
     if (partitionKeys.length > MAX_PARTITION_KEYS) {
-      setErrorMessage(`パーティションキーが多すぎます (最大 ${MAX_PARTITION_KEYS})`)
+      setValidationError(`パーティションキーが多すぎます (最大 ${MAX_PARTITION_KEYS})`)
       return
     }
     if (clusteringKeys.length > MAX_CLUSTERING_KEYS) {
-      setErrorMessage(`クラスタリングキーが多すぎます (最大 ${MAX_CLUSTERING_KEYS})`)
+      setValidationError(`クラスタリングキーが多すぎます (最大 ${MAX_CLUSTERING_KEYS})`)
       return
     }
     if (secondaryIndexes.length > MAX_SECONDARY_INDEXES) {
-      setErrorMessage(`セカンダリインデックスが多すぎます (最大 ${MAX_SECONDARY_INDEXES})`)
+      setValidationError(`セカンダリインデックスが多すぎます (最大 ${MAX_SECONDARY_INDEXES})`)
       return
     }
 
@@ -154,7 +154,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     for (const col of columns) {
       const colValidation = validateScalarDbIdentifier(col.name)
       if (!colValidation.valid) {
-        setErrorMessage(colValidation.error)
+        setValidationError(colValidation.error)
         return
       }
     }
@@ -163,15 +163,12 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     // for a more specific message)
     const colNames = columns.map((c) => c.name)
     if (new Set(colNames).size !== colNames.length) {
-      setErrorMessage('カラム名が重複しています。各カラム名を一意にしてください。')
+      setValidationError('カラム名が重複しています。各カラム名を一意にしてください。')
       return
     }
 
     setIsSubmitting(true)
-    setErrorMessage(null)
-    setCorrelationId(null)
-    setShowRecovery(false)
-    setShowRetry(false)
+    setErrorInfo(null)
 
     // Abort any previous in-flight request and create a fresh controller
     abortRef.current?.abort()
@@ -207,10 +204,12 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       // unmounted), skip the error display — the user already took action.
       if (controller.signal.aborted) return
       const info = classifyCreateTableError(err)
-      setShowRetry(info.showRetry)
-      setShowRecovery(info.showRecovery)
-      if (info.correlationId) setCorrelationId(info.correlationId)
-      setErrorMessage(errorCodeToMessage(info.code))
+      setErrorInfo({
+        message: errorCodeToMessage(info.code),
+        correlationId: info.correlationId,
+        showRecovery: info.showRecovery,
+        showRetry: info.showRetry,
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -278,7 +277,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           type="text"
           value={tableName}
           onChange={(e) => setTableName(e.target.value)}
-          placeholder="table_name"
+          placeholder="例: orders, user_accounts"
           className="text-xs border border-border rounded px-2 py-1.5 bg-background"
         />
       </div>
@@ -304,13 +303,13 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           <div key={col.fieldId} className="grid grid-cols-[1fr_auto_auto] gap-1 items-center">
             <input
               type="text"
-              aria-label={`column-name-${idx}`}
+              aria-label={`${idx + 1}番目のカラム名`}
               value={col.name}
               onChange={(e) => updateColumn(idx, { name: e.target.value })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
             />
             <select
-              aria-label={`type-${idx}`}
+              aria-label={`${idx + 1}番目のカラムのデータ型`}
               value={col.type}
               onChange={(e) => updateColumn(idx, { type: e.target.value as ScalarDbColumnType })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
@@ -320,28 +319,28 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
               ))}
             </select>
             <select
-              aria-label={`キーロール-${idx}`}
+              aria-label={`${idx + 1}番目のカラムのキーロール`}
               value={col.keyRole}
               onChange={(e) => updateColumn(idx, { keyRole: e.target.value as KeyRole })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
             >
-              <option value="none">-</option>
-              <option value="partition">partition</option>
-              <option value="clustering">clustering</option>
-              <option value="index">index</option>
+              <option value="none">-（通常列）</option>
+              <option value="partition">パーティションキー</option>
+              <option value="clustering">クラスタリングキー</option>
+              <option value="index">セカンダリインデックス</option>
             </select>
           </div>
         ))}
       </div>
 
       {/* Error display */}
-      {errorMessage && (
+      {errorInfo && (
         <div className="border border-destructive/40 bg-destructive/5 rounded p-2 text-xs flex flex-col gap-1" role="alert" aria-live="assertive" aria-atomic="true">
-          <p className="text-destructive">{errorMessage}</p>
-          {correlationId && (
-            <p className="text-muted-foreground text-[10px]">相関 ID: {correlationId}</p>
+          <p className="text-destructive">{errorInfo.message}</p>
+          {errorInfo.correlationId && (
+            <p className="text-muted-foreground text-[10px]">相関 ID: {errorInfo.correlationId}</p>
           )}
-          {showRecovery && (
+          {errorInfo.showRecovery && (
             <button
               type="button"
               onClick={() => {
@@ -365,7 +364,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
         >
           キャンセル
         </button>
-        {showRetry && (
+        {errorInfo?.showRetry && (
           <button
             type="button"
             onClick={handleSubmit}
