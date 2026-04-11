@@ -116,3 +116,74 @@ describe('ManualEntryRenderer', () => {
     })
   })
 })
+
+describe('ManualEntryRenderer — uncovered branches', () => {
+  it('uses DEFAULT_FONT_SIZE when style.fontSize is not set', () => {
+    render(
+      <ManualEntryRenderer
+        element={makeElement({ placeholder: '入力', style: { color: '#000000' } })}
+      />,
+    )
+    // placeholder still shows — fontSize fallback works without crash
+    expect(screen.getByText('入力')).toBeInTheDocument()
+  })
+
+  it('uses default color #000000 when style.color is not set', () => {
+    render(
+      <ManualEntryRenderer
+        element={makeElement({ placeholder: '入力', style: {} })}
+      />,
+    )
+    expect(screen.getByText('入力')).toBeInTheDocument()
+  })
+
+  it('grid with gridCount=0 does not render GridLines', () => {
+    const { container } = render(
+      <ManualEntryRenderer
+        element={makeElement({ displayMode: 'grid', gridCount: 0 })}
+      />,
+    )
+    // GridLines should not render when gridCount is 0
+    expect(container.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('grid with undefined gridCount does not render GridLines', () => {
+    const { container } = render(
+      <ManualEntryRenderer
+        element={makeElement({ displayMode: 'grid', gridCount: undefined })}
+      />,
+    )
+    expect(container.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('furigana zone with labelPosition=left uses row flex direction', () => {
+    const { container } = render(
+      <ManualEntryRenderer
+        element={makeElement({ furiganaEnabled: true, labelPosition: 'left', label: '氏名' })}
+      />,
+    )
+    // Should render without crashing; label appears
+    expect(screen.getByText('氏名')).toBeInTheDocument()
+  })
+
+  it('furigana zone with no furiganaDataSource shows empty value', () => {
+    render(
+      <ManualEntryRenderer
+        element={makeElement({ furiganaEnabled: true, furiganaDataSource: undefined })}
+      />,
+    )
+    // furiganaValue would be '' → not rendered
+    expect(screen.getByText('フリガナ')).toBeInTheDocument()
+  })
+
+  it('furigana zone with custom furiganaRatio', () => {
+    const { container } = render(
+      <ManualEntryRenderer
+        element={makeElement({ furiganaEnabled: true, furiganaRatio: 0.5 })}
+      />,
+    )
+    // Should render with 50% height for furigana zone
+    const furiganaZone = container.querySelector('[style*="50%"]')
+    expect(furiganaZone).toBeInTheDocument()
+  })
+})

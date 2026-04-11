@@ -156,3 +156,80 @@ describe('TextInlineEditor', () => {
     expect(onCommit).toHaveBeenCalledWith(expect.stringMatching(/^a{10000}$/))
   })
 })
+
+describe('TextInlineEditor — style fallbacks', () => {
+  it('uses default fontSize 3.5mm when style.fontSize is undefined', () => {
+    render(
+      <TextInlineEditor
+        element={makeElement({ style: {} })}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+    const editor = screen.getByRole('textbox')
+    expect(editor.style.fontSize).toBe('3.5mm')
+  })
+
+  it('uses default fontWeight normal when not set', () => {
+    render(
+      <TextInlineEditor
+        element={makeElement({ style: {} })}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox').style.fontWeight).toBe('normal')
+  })
+
+  it('uses default color #000000 when not set', () => {
+    render(
+      <TextInlineEditor
+        element={makeElement({ style: {} })}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox').style.color).toBe('rgb(0, 0, 0)')
+  })
+
+  it('uses break-all wordBreak for vertical writing mode', () => {
+    render(
+      <TextInlineEditor
+        element={makeElement({ style: { writingMode: 'vertical-rl' } })}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox').style.wordBreak).toBe('break-all')
+  })
+
+  it('uses break-word for horizontal writing mode', () => {
+    render(
+      <TextInlineEditor
+        element={makeElement({ style: { writingMode: 'horizontal-tb' } })}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox').style.wordBreak).toBe('break-word')
+  })
+
+  it('cancelledRef prevents commit on blur after Escape', async () => {
+    const onCommit = vi.fn()
+    const onCancel = vi.fn()
+    render(
+      <TextInlineEditor
+        element={makeElement()}
+        onCommit={onCommit}
+        onCancel={onCancel}
+      />,
+    )
+    const editor = screen.getByRole('textbox')
+    editor.focus()
+    await userEvent.keyboard('{Escape}')
+    // blur after escape should NOT commit
+    fireEvent.blur(editor)
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onCancel).toHaveBeenCalledOnce()
+  })
+})
