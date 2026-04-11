@@ -193,13 +193,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const doExportPdf = async (variant: OutputVariant | null) => {
     setIsExporting(true)
     setExportError(null)
-    const { definition, testData } = useReportStore.getState()
+    const { definition, testData, livePreviewData } = useReportStore.getState()
     const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
 
     // Try server-side PDF first (higher quality, vector text)
+    // Phase 2: use livePreviewData (real DB data) if available, otherwise fall back to testData
     try {
       const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
-      const dataJson = (testData ?? {}) as Record<string, unknown>
+      const exportData = livePreviewData ?? testData
+      const dataJson = (exportData ?? {}) as Record<string, unknown>
       const blob = await generateStatelessPdf(defJson, dataJson)
       downloadBlob(blob, filename)
       return
@@ -236,7 +238,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     if (isPreviewingPdf) return
     setIsPreviewingPdf(true)
     setExportError(null)
-    const { definition, testData } = useReportStore.getState()
+    const { definition, testData, livePreviewData } = useReportStore.getState()
 
     /** Open a blob URL in a new tab, checking for popup blockers */
     const openBlobUrl = (blob: Blob): boolean => {
@@ -257,7 +259,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
     try {
       const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
-      const dataJson = (testData ?? {}) as Record<string, unknown>
+      // Phase 2: prefer livePreviewData (real DB) over testData (sample JSON)
+      const exportData = livePreviewData ?? testData
+      const dataJson = (exportData ?? {}) as Record<string, unknown>
       const blob = await generateStatelessPdf(defJson, dataJson)
       openBlobUrl(blob)
     } catch {
