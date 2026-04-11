@@ -9,10 +9,15 @@ import type { Template, Report, ReportDefinition } from '@/types'
  * and running it through the migration pipeline.
  */
 export function applyTemplate(template: Template): ReportDefinition {
+  // Deep-clone pages before assigning new IDs so that sections/elements do not
+  // share reference identity with the static BUILTIN_TEMPLATES object. Without
+  // this, immer mutations in the store would silently mutate the shared static
+  // reference, causing artifacts if the same built-in template is loaded twice.
+  const clonedPages = JSON.parse(JSON.stringify(template.pages)) as typeof template.pages
   const legacyReport: Report = {
     id: uuidv4(),
     name: template.name,
-    pages: template.pages.map((p) => ({ ...p, id: uuidv4() })),
+    pages: clonedPages.map((p) => ({ ...p, id: uuidv4() })),
     settings: template.settings,
     dataSource: null,
     createdAt: new Date().toISOString(),
@@ -21,6 +26,10 @@ export function applyTemplate(template: Template): ReportDefinition {
   const definition = migrateReport(legacyReport)
   return {
     ...definition,
+    metadata: {
+      ...definition.metadata,
+      sourceTemplateId: template.id,
+    },
     ...(template.schema ? { schema: template.schema } : {}),
     ...(template.dataSources ? { dataSources: template.dataSources } : {}),
   }

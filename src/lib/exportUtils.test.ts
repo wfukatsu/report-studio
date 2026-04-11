@@ -190,7 +190,34 @@ describe('isSafeImageSrc', () => {
     expect(isSafeImageSrc('data:image/webp;base64,abc')).toBe(true)
   })
   it('rejects data:image/svg+xml (XSS via <script>)', () => {
-    expect(isSafeImageSrc('data:image/svg+xml;base64,abc')).toBe(false)
+    // btoa('<svg><script>alert(1)</script></svg>')
+    const xssSvg = 'data:image/svg+xml;base64,PHN2Zz48c2NyaXB0PmFsZXJ0KDEpPC9zY3JpcHQ+PC9zdmc+'
+    expect(isSafeImageSrc(xssSvg)).toBe(false)
+  })
+  it('rejects SVG with <use href> to external resource', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><use href="//attacker.com/evil.svg#x"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('rejects SVG with <image href> to external resource', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://attacker.com/track.png"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('rejects SVG with xlink:href', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="//external.com/defs.svg#shape"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(false)
+  })
+  it('accepts clean SVG without external references', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="50" fill="#0066cc"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(true)
+  })
+  it('accepts SVG with internal fragment use (href="#id" is safe)', () => {
+    const payload = '<svg xmlns="http://www.w3.org/2000/svg"><defs><circle id="c" r="10"/></defs><use href="#c"/></svg>'
+    const src = 'data:image/svg+xml;base64,' + btoa(payload)
+    expect(isSafeImageSrc(src)).toBe(true)
   })
   it('rejects javascript: URLs', () => {
     expect(isSafeImageSrc('javascript:alert(1)')).toBe(false)

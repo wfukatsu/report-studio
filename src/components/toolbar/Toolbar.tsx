@@ -7,7 +7,7 @@ import {
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
-  ShieldCheck, ShieldAlert, Database, Shuffle,
+  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw,
 } from 'lucide-react'
 import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
@@ -19,6 +19,9 @@ import { VariantsModal } from '@/components/modals/VariantsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
 import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { loadBuiltinTemplate } from '@/lib/templateUtils'
+import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { exportReportToPdf, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { useShallow } from 'zustand/shallow'
@@ -103,8 +106,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
 
   const importReportJSON = useReportStore((s) => s.importReportJSON)
+  const loadReport = useReportStore((s) => s.loadReport)
+  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
+  const sourceTemplateId = useReportStore((s) => s.definition.metadata.sourceTemplateId)
+  const sourceTemplate = sourceTemplateId
+    ? BUILTIN_TEMPLATES.find((t) => t.id === sourceTemplateId) ?? null
+    : null
 
   const [exportError, setExportError] = useState<string | null>(null)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [preflightErrors, setPreflightErrors] = useState<string[]>([])
   const [isValidating, setIsValidating] = useState(false)
@@ -124,6 +134,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showVariantsModal, setShowVariantsModal] = useState(false)
   const [showManagerModal, setShowManagerModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
+  const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveMenuRef = useRef<HTMLDivElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
@@ -298,6 +309,23 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const handleNew = () => {
     onRequestTemplateModal?.()
+  }
+
+  const handleUpdateFromBuiltin = () => {
+    if (!sourceTemplateId) return
+    const definition = loadBuiltinTemplate(sourceTemplateId)
+    if (!definition) {
+      // Use a dedicated error state — exportError is cleared by export flows
+      setRefreshError('ビルトインテンプレートが見つかりませんでした')
+      setShowUpdateFromBuiltinConfirm(false)
+      return
+    }
+    loadReport(definition)
+    // Reset currentTemplateId so the next Save creates a new template rather than
+    // silently overwriting the user's previously-saved server record with the
+    // freshly-generated built-in definition.
+    setCurrentTemplateId(null)
+    setShowUpdateFromBuiltinConfirm(false)
   }
 
   const handleOpen = () => {
@@ -475,6 +503,21 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={() => setShowManagerModal(true)} title="テンプレート管理">
           <Settings2 className="w-4 h-4" />
         </ToolbarButton>
+        {sourceTemplate && (
+          <div className="relative">
+            <ToolbarButton
+              onClick={() => { setRefreshError(null); setShowUpdateFromBuiltinConfirm(true) }}
+              title={`ビルトインテンプレート「${sourceTemplate.name}」から最新定義で更新`}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </ToolbarButton>
+            {refreshError && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-destructive/10 border border-destructive/40 text-destructive text-[10px] rounded px-2 py-1 whitespace-nowrap">
+                {refreshError}
+              </div>
+            )}
+          </div>
+        )}
         <div className="relative flex items-center" ref={saveMenuRef}>
           <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
             <Save className="w-4 h-4" />
@@ -880,6 +923,19 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     <TemplateManagerModal
       open={showManagerModal}
       onClose={() => setShowManagerModal(false)}
+    />
+
+    {/* Update from built-in template confirmation */}
+    <ConfirmDialog
+      open={showUpdateFromBuiltinConfirm}
+      title="ビルトインテンプレートから更新"
+      message={sourceTemplate
+        ? `現在のレポートを最新のビルトインテンプレート「${sourceTemplate.name}」の定義で上書きします。これまでの変更は失われます。続行しますか？`
+        : ''}
+      confirmLabel="更新"
+      confirmVariant="danger"
+      onConfirm={handleUpdateFromBuiltin}
+      onCancel={() => setShowUpdateFromBuiltinConfirm(false)}
     />
 
     {/* Export variant selector */}

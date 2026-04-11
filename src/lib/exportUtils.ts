@@ -51,6 +51,16 @@ const SVG_DANGEROUS_PATTERNS = [
   /<embed[\s>]/i,
   /<object[\s>]/i,
   /<foreignObject[\s>]/i,
+  // Defence-in-depth: <use href> and <image href> to external resources can cause
+  // external data fetches. While browsers sandbox SVG in <img> tags today,
+  // blocking external href values prevents data exfiltration and makes the check
+  // safe for future non-<img> rendering contexts.
+  // Fragment refs (href="#id") are SAFE — they reference elements within the same SVG.
+  // xlink:href always targets external resources in the legacy SVG format.
+  /xlink:href\s*=/i,         // legacy xlink:href used by <use> and <image> (always external in SVG)
+  // href= pointing to external URLs: matches when the value does NOT start with #
+  // (fragment reference). This blocks "//domain", "https://...", "data:..." etc.
+  /href\s*=\s*["'][^"'#]/i,  // href="..." where content is not a fragment ref
 ]
 
 /**
