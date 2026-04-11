@@ -15,12 +15,18 @@ export const EraSelectRenderer = memo(function EraSelectRenderer({ element: el, 
   const count = Math.max(eras.length, 1)
 
   // フォントサイズ: レイアウトと元号数に応じて自動計算
+  // 比率: row=0.5, grid=0.6, column=0.75 — 要素サイズに対する比率
+  const ROW_RATIO = 0.5
+  const GRID_RATIO = 0.6
+  const COLUMN_RATIO = 0.75
+  const MIN_FONT_SIZE = 2.0 // mm
+
   const rawFontSize = layout === 'row'
-    ? (el.size.width / count) * 0.5
+    ? (el.size.width / count) * ROW_RATIO
     : layout === 'grid-2col'
-      ? (el.size.height / Math.ceil(count / 2)) * 0.6
-      : (el.size.height / count) * 0.75
-  const fontSize = `${Math.max(rawFontSize, 2.0)}mm`
+      ? (el.size.height / Math.ceil(count / 2)) * GRID_RATIO
+      : (el.size.height / count) * COLUMN_RATIO
+  const fontSize = `${Math.max(rawFontSize, MIN_FONT_SIZE)}mm`
 
   const isGrid = layout === 'grid-2col'
 

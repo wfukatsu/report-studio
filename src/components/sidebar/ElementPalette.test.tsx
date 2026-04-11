@@ -21,7 +21,7 @@ describe('ElementPalette', () => {
   it('renders palette item buttons', () => {
     render(<ElementPalette />)
     expect(screen.getByText('テキスト')).toBeInTheDocument()
-    expect(screen.getByText('ラベル')).toBeInTheDocument()
+    // ラベルは text に統合されたためパレットから削除済み
     expect(screen.getByText('矩形')).toBeInTheDocument()
   })
 

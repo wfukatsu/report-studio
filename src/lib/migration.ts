@@ -155,6 +155,45 @@ export function migrateReport(report: Report): ReportDefinition {
 // SCHEMA_VERSION is imported from ./exportUtils (single source of truth)
 
 /**
+ * Migrate `label` elements to `text` elements at document-load time.
+ *
+ * **Why this is needed (not just a runtime shim in ElementRenderer):**
+ * `variantApplicator.ts` writes OutputVariant masking rules to the `content`
+ * field (the `TextElement` field), but legacy `LabelElement` stores text in
+ * the `text` field. If the runtime shim in `ElementRenderer` is the only
+ * migration path, masked label elements silently drop their masking rule on
+ * PDF export because `variantApplicator` reads the wrong field name.
+ *
+ * Converting at load time (here) means the store always holds `TextElement`
+ * objects and downstream code never needs to special-case `label`.
+ */
+function migrateLabelToText(definition: ReportDefinition): ReportDefinition {
+  const hasLabel = definition.pages.some((page) =>
+    page.sections.some((sec) =>
+      sec.elements.some((el) => el.type === 'label'),
+    ),
+  )
+  if (!hasLabel) return definition
+
+  return {
+    ...definition,
+    pages: definition.pages.map((page) => ({
+      ...page,
+      sections: page.sections.map((sec) => ({
+        ...sec,
+        elements: sec.elements.map((el) => {
+          if (el.type !== 'label') return el
+          // `LabelElement` stores text in `text`; `TextElement` uses `content`.
+          const labelEl = el as unknown as { type: 'label'; text?: string; [key: string]: unknown }
+          const { text: labelText, type: _type, ...rest } = labelEl
+          return { ...rest, type: 'text' as const, content: labelText ?? '' }
+        }),
+      })),
+    })),
+  }
+}
+
+/**
  * Remove legacy visibilityRule from all elements.
  * visibilityRule was never evaluated client-side; conditionalDisplay is the replacement.
  * Old templates simply lose the field (no conversion — it was dead code).
@@ -248,7 +287,7 @@ export function importFromJSON(
         error: `Invalid report-definition/v1: 必須フィールドが不正または不足しています (${path}: ${msg})`,
       }
     }
-    const migrated = stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition))
+    const migrated = migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition)))
     return { ok: true, definition: migrated }
   }
 
@@ -261,6 +300,6 @@ export function importFromJSON(
   if (!obj['id'] || !obj['pages'] || !Array.isArray(obj['pages'])) {
     return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
   }
-  const definition = migrateReport(obj as unknown as Report)
+  const definition = migrateLabelToText(migrateReport(obj as unknown as Report))
   return { ok: true, definition }
 }

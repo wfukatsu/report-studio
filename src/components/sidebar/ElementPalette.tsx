@@ -1,8 +1,6 @@
 import {
   Type,
-  Tag,
   Image,
-  Table,
   BarChart2,
   Square,
   Database,
@@ -25,9 +23,7 @@ import {
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import {
   createTextElement,
-  createLabelElement,
   createImageElement,
-  createTableElement,
   createChartElement,
   createShapeElement,
   createDataFieldElement,
@@ -78,8 +74,7 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
     category: 'text',
     label: 'テキスト系',
     items: [
-      { label: 'テキスト',         icon: <Type className="w-4 h-4" />,     createElement: createTextElement, description: '固定テキスト。{{fieldKey}}でデータ埋め込み可能' },
-      { label: 'ラベル',           icon: <Tag className="w-4 h-4" />,      createElement: createLabelElement, description: '印刷・サイズ固定のラベル' },
+      { label: 'テキスト',         icon: <Type className="w-4 h-4" />,     createElement: createTextElement, description: '固定テキスト。{{fieldKey}}でデータ埋め込み可能。ラベル用途にも' },
       { label: 'データフィールド', icon: <Database className="w-4 h-4" />, createElement: createDataFieldElement, description: 'データソースのフィールドを表示（例：顧客名、金額）' },
     ],
   },
@@ -121,7 +116,6 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
     category: 'data',
     label: 'データ表示',
     items: [
-      { label: 'テーブル',   icon: <Table className="w-4 h-4" />,    createElement: createTableElement },
       { label: 'グラフ',     icon: <BarChart2 className="w-4 h-4" />, createElement: createChartElement },
       { label: 'QRコード',   icon: <QrCode className="w-4 h-4" />,   createElement: createBarcodeElement },
       { label: 'バーコード', icon: <Rows3 className="w-4 h-4" />,    createElement: createBarcodeCode128Element },
