@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
 import { ElementRenderer } from './ElementRenderer'
 import { ElementErrorBoundary } from './ElementErrorBoundary'
+import { TextInlineEditor } from '@/elements/text/InlineEditor'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
 import type { ReportElement } from '@/types'
@@ -37,6 +38,7 @@ export const CanvasElement = memo(function CanvasElement({
   totalPages,
 }: Props) {
   const removeElement = useReportStore((s) => s.removeElement)
+  const updateElement = useReportStore((s) => s.updateElement)
   const activePageId = useReportStore(selectActivePageId)
 
   const handleDeleteElement = useCallback(
@@ -46,9 +48,15 @@ export const CanvasElement = memo(function CanvasElement({
     [activePageId, removeElement],
   )
 
+  // Inline editing state — local only, never in store (auto-clears on unmount)
+  const [editing, setEditing] = useState(false)
+  // Ref to the outermost wrapper div for returning focus after editing
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
-    disabled: element.locked || readonly,
+    // Disable drag while editing so pointer events reach the contenteditable
+    disabled: element.locked || readonly || editing,
   })
 
   // UI-03: Track Ctrl/Meta key for locked element click-through
@@ -170,9 +178,34 @@ export const CanvasElement = memo(function CanvasElement({
 
   const handles: ResizeHandle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
 
+  // Enter inline edit mode for text elements (double-click or F2)
+  const enterEditMode = useCallback(() => {
+    if (element.type !== 'text' || element.locked || readonly || isDragging) return
+    setEditing(true)
+  }, [element.type, element.locked, readonly, isDragging])
+
+  // Commit edited content and exit edit mode
+  const handleInlineCommit = useCallback(
+    (content: string) => {
+      if (activePageId) updateElement(activePageId, element.id, { content } as Partial<ReportElement>)
+      setEditing(false)
+      // Return focus to wrapper so keyboard navigation continues from this element
+      requestAnimationFrame(() => wrapperRef.current?.focus())
+    },
+    [activePageId, element.id, updateElement],
+  )
+
+  const handleInlineCancel = useCallback(() => {
+    setEditing(false)
+    requestAnimationFrame(() => wrapperRef.current?.focus())
+  }, [])
+
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node)
+        ;(wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+      }}
       data-canvas-element="true"
       data-element-id={element.id}
       data-element-type={element.type}
@@ -192,10 +225,19 @@ export const CanvasElement = memo(function CanvasElement({
         e.stopPropagation()
         if (!readonly) onSelect(element.id, e.metaKey || e.ctrlKey || e.shiftKey)
       }}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
+        enterEditMode()
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onSelect(element.id, e.metaKey || e.ctrlKey || e.shiftKey)
+        }
+        // F2: enter inline edit mode for selected text elements (WCAG 2.1 SC 2.1.1)
+        if (e.key === 'F2' && isSelected) {
+          e.preventDefault()
+          enterEditMode()
         }
       }}
       onContextMenu={(e) => {
@@ -213,14 +255,23 @@ export const CanvasElement = memo(function CanvasElement({
           isVisible: element.visible,
         })
       }}
-      {...(!readonly && !element.locked ? { ...listeners, ...attributes } : {})}
-      role="button"
+      // Remove dnd-kit listeners from DOM while editing so pointer events reach the editor
+      {...(!readonly && !element.locked && !editing ? { ...listeners, ...attributes } : {})}
+      role={editing ? 'textbox' : 'button'}
       tabIndex={readonly ? -1 : 0}
       aria-label={element.name ? `${element.name} (${element.type})` : element.type}
-      aria-pressed={isSelected}
+      aria-pressed={editing ? undefined : isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
-        <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} />
+        {editing && element.type === 'text' ? (
+          <TextInlineEditor
+            element={element}
+            onCommit={handleInlineCommit}
+            onCancel={handleInlineCancel}
+          />
+        ) : (
+          <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} />
+        )}
       </ElementErrorBoundary>
 
       {isSelected && !readonly && (

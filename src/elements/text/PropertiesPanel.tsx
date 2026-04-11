@@ -1,4 +1,6 @@
-import type { TextElement } from '@/types'
+import { useShallow } from 'zustand/shallow'
+import type { TextElement, TextStyle } from '@/types'
+import { useReportStore } from '@/store'
 import { PropSection } from '@/elements/_base/sharedUI'
 import { TextStyleSection } from '@/elements/_blocks/panels/TextStyleSection'
 import { TokenInput } from '@/components/common/TokenInput'
@@ -9,10 +11,15 @@ interface Props {
 }
 
 export function TextPropertiesPanel({ el, onChange }: Props) {
+  // Subscribe once here — the PropertiesPanel renders for only the selected element,
+  // so this is a single subscription regardless of how many text elements are on canvas.
+  const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
+
   return (
     <>
       <TextStyleSection
         style={el.style}
+        defaultStyle={defaultTextStyle}
         onStyleChange={(s) => onChange({ style: { ...el.style, ...s } })}
         showFurigana
         furigana={el.furigana}
