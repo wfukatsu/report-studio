@@ -234,3 +234,94 @@ describe('FormTableRenderer — ライブレンダラー (records provided)', ()
     expect(screen.getByText('商品B')).toBeInTheDocument()
   })
 })
+
+describe('FormTableRenderer — checkbox セル', () => {
+  function makeCheckboxRow(checked: boolean, text?: string): FormTableRow {
+    return {
+      id: 'r1',
+      role: 'body' as const,
+      height: 8,
+      cells: [{
+        id: 'c1',
+        type: 'checkbox' as const,
+        checked,
+        checkmark: '✓',
+        text,
+      }],
+    }
+  }
+
+  it('checked=true のとき チェックマークが表示される', () => {
+    const element = makeElement({
+      rows: [makeCheckboxRow(true)],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    render(<FormTableRenderer element={element} />)
+    expect(document.body.textContent).toContain('✓')
+  })
+
+  it('checked=false のとき チェックマークが表示されない', () => {
+    const element = makeElement({
+      rows: [makeCheckboxRow(false)],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    const { container } = render(<FormTableRenderer element={element} />)
+    // The checkbox box is rendered but empty
+    const spans = container.querySelectorAll('span')
+    const checkSpan = Array.from(spans).find(s => s.style.border?.includes('solid'))
+    expect(checkSpan?.textContent).toBe('')
+  })
+
+  it('cell.text があるとき ラベルテキストが表示される', () => {
+    const element = makeElement({
+      rows: [makeCheckboxRow(false, '同意する')],
+      columns: [{ id: 'col1', width: 30, align: 'left' }],
+    })
+    render(<FormTableRenderer element={element} />)
+    expect(screen.getByText('同意する')).toBeInTheDocument()
+  })
+
+  it('checkboxDataSource でデータバインドが機能する', () => {
+    const element = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 8,
+        cells: [{ id: 'c1', type: 'checkbox' as const, checkboxDataSource: 'item.disabled', checkmark: '✓' }],
+      }],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    const records = [{ item: { disabled: 'true' } }]
+    render(<FormTableRenderer element={element} records={records} />)
+    expect(document.body.textContent).toContain('✓')
+  })
+})
+
+describe('FormTableRenderer — eraSelect セル', () => {
+  it('元号リストがデザインプレビューで表示される', () => {
+    const element = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 10,
+        cells: [{ id: 'c1', type: 'eraSelect' as const, eraLayout: 'row' as const }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTableRenderer element={element} />)
+    // Default eras should be shown
+    expect(document.body.textContent).toContain('令')
+    expect(document.body.textContent).toContain('昭')
+  })
+
+  it('eraDataSource でバインドされた元号が●で表示される', () => {
+    const element = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 10,
+        cells: [{ id: 'c1', type: 'eraSelect' as const, eraDataSource: 'person.era', eraLayout: 'row' as const }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    const records = [{ person: { era: '令' } }]
+    render(<FormTableRenderer element={element} records={records} />)
+    const text = document.body.textContent ?? ''
+    // '令' should show ● prefix, others ○
+    expect(text).toContain('●')
+  })
+})
