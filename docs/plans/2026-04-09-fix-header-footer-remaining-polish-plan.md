@@ -1,7 +1,7 @@
 ---
 title: "fix: ヘッダー/フッター残存 P2/P3 ポリッシュ 4件"
 type: fix
-status: active
+status: completed
 date: 2026-04-09
 ---
 

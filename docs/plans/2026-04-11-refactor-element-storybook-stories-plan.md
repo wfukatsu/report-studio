@@ -1,7 +1,7 @@
 ---
 title: "refactor: 要素レベル Storybook ストーリー追加"
 type: refactor
-status: active
+status: completed
 date: 2026-04-11
 deepened: 2026-04-11
 origin: docs/brainstorms/2026-04-05-atomic-design-component-breakdown-brainstorm.md
