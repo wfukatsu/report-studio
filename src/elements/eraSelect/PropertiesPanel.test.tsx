@@ -3,49 +3,55 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { EraSelectPropertiesPanel } from './PropertiesPanel'
 import type { EraSelectElement } from '@/types'
 
-function makeElement(overrides: Partial<EraSelectElement> = {}): EraSelectElement {
+function makeEl(overrides?: Partial<EraSelectElement>): EraSelectElement {
   return {
-    id: 'era-1',
-    type: 'eraSelect',
-    position: { x: 0, y: 0 },
-    size: { width: 7, height: 12 },
-    zIndex: 1,
-    visible: true,
-    locked: false,
+    id: 'era-1', type: 'eraSelect',
+    position: { x: 0, y: 0 }, size: { width: 30, height: 10 },
+    zIndex: 1, visible: true, locked: false,
     ...overrides,
-  } as EraSelectElement
+  }
 }
 
-describe('EraSelectPropertiesPanel — dataSource 入力', () => {
-  it('dataSource 入力が onChange を呼ぶ', () => {
-    const onChange = vi.fn()
-    render(<EraSelectPropertiesPanel el={makeElement()} onChange={onChange} />)
-    const input = screen.getByPlaceholderText('例: employee.era')
-    fireEvent.change(input, { target: { value: 'employee.era' } })
-    expect(onChange).toHaveBeenCalledWith({ dataSource: 'employee.era' })
+describe('EraSelectPropertiesPanel', () => {
+  it('renders without error', () => {
+    render(<EraSelectPropertiesPanel el={makeEl()} onChange={vi.fn()} />)
+    expect(screen.getByText('元号選択')).toBeInTheDocument()
   })
 
-  it('dataSource 入力が空文字のとき undefined を渡す', () => {
-    const onChange = vi.fn()
-    render(
-      <EraSelectPropertiesPanel
-        el={makeElement({ dataSource: 'employee.era' })}
-        onChange={onChange}
-      />,
-    )
-    const input = screen.getByPlaceholderText('例: employee.era')
-    fireEvent.change(input, { target: { value: '' } })
-    expect(onChange).toHaveBeenCalledWith({ dataSource: undefined })
+  it('shows default eras as toggle buttons', () => {
+    render(<EraSelectPropertiesPanel el={makeEl()} onChange={vi.fn()} />)
+    expect(screen.getByText('令')).toBeInTheDocument()
+    expect(screen.getByText('平')).toBeInTheDocument()
   })
 
-  it('既存の dataSource 値が入力に表示される', () => {
-    render(
-      <EraSelectPropertiesPanel
-        el={makeElement({ dataSource: 'employee.era' })}
-        onChange={vi.fn()}
-      />,
-    )
-    const input = screen.getByPlaceholderText('例: employee.era') as HTMLInputElement
-    expect(input.value).toBe('employee.era')
+  it('calls onChange with updated eras when an era is toggled off', () => {
+    const onChange = vi.fn()
+    render(<EraSelectPropertiesPanel el={makeEl({ eras: ['明', '大', '昭', '平', '令'] })} onChange={onChange} />)
+    fireEvent.click(screen.getByText('昭'))
+    expect(onChange).toHaveBeenCalled()
+    const call = onChange.mock.calls[0][0]
+    expect(call.eras).not.toContain('昭')
+  })
+
+  it('does not remove last era (minimum 1 required)', () => {
+    const onChange = vi.fn()
+    render(<EraSelectPropertiesPanel el={makeEl({ eras: ['令'] })} onChange={onChange} />)
+    fireEvent.click(screen.getByText('令'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('calls onChange when layout changes to row', () => {
+    const onChange = vi.fn()
+    render(<EraSelectPropertiesPanel el={makeEl()} onChange={onChange} />)
+    fireEvent.click(screen.getByTitle('横1行'))
+    expect(onChange).toHaveBeenCalledWith({ layout: 'row' })
+  })
+
+  it('calls onChange when dataSource changes', () => {
+    const onChange = vi.fn()
+    render(<EraSelectPropertiesPanel el={makeEl()} onChange={onChange} />)
+    const input = screen.getByPlaceholderText('例: employee.era')
+    fireEvent.change(input, { target: { value: 'person.era' } })
+    expect(onChange).toHaveBeenCalledWith({ dataSource: 'person.era' })
   })
 })

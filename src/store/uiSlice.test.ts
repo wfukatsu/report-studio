@@ -55,3 +55,18 @@ describe('uiSlice — setEditorZoom', () => {
     expect(useReportStore.getState().editorZoom).toBe(1.75)
   })
 })
+
+describe('uiSlice — toggleMarginGuide / setHeaderEditMode', () => {
+  it('toggleMarginGuide toggles showMarginGuide', () => {
+    const initial = useReportStore.getState().showMarginGuide
+    useReportStore.getState().toggleMarginGuide()
+    expect(useReportStore.getState().showMarginGuide).toBe(!initial)
+  })
+
+  it('setHeaderEditMode sets headerEditMode', () => {
+    useReportStore.getState().setHeaderEditMode(true)
+    expect(useReportStore.getState().headerEditMode).toBe(true)
+    useReportStore.getState().setHeaderEditMode(false)
+    expect(useReportStore.getState().headerEditMode).toBe(false)
+  })
+})

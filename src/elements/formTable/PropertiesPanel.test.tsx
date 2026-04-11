@@ -180,4 +180,157 @@ describe('FormTablePropertiesPanel — 外観設定', () => {
     fireEvent.change(input, { target: { value: '' } })
     expect(onChange).toHaveBeenCalledWith({ dataSource: undefined })
   })
+
+  it('calls onChange when column align changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+      rows: [],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const alignSelect = screen.getByDisplayValue('左')
+    fireEvent.change(alignSelect, { target: { value: 'center' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+})
+
+describe('FormTablePropertiesPanel — checkbox/eraSelect セル（Phase 1.3）', () => {
+  it('renders checkbox cell UI when type is checkbox', () => {
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 8,
+        cells: [{ id: 'c1', type: 'checkbox' as const, checkmark: '✓' }],
+      }],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={vi.fn()} />)
+    expect(screen.getByDisplayValue('✓ チェック')).toBeInTheDocument()
+  })
+
+  it('calls onChange when checkbox checkmark changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 8,
+        cells: [{ id: 'c1', type: 'checkbox' as const, checkmark: '✓' }],
+      }],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const select = screen.getByDisplayValue('✓ チェック')
+    fireEvent.change(select, { target: { value: '×' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('calls onChange when checkbox dataSource changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 8,
+        cells: [{ id: 'c1', type: 'checkbox' as const, checkmark: '✓', checkboxDataSource: '' }],
+      }],
+      columns: [{ id: 'col1', width: 20, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const input = screen.getByPlaceholderText('dataSource（バインド先フィールドキー）')
+    fireEvent.change(input, { target: { value: 'item.flag' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('renders eraSelect cell UI when type is eraSelect', () => {
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 10,
+        cells: [{ id: 'c1', type: 'eraSelect' as const, eraLayout: 'row' }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={vi.fn()} />)
+    expect(screen.getByDisplayValue('横1行')).toBeInTheDocument()
+  })
+
+  it('calls onChange when eraSelect layout changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 10,
+        cells: [{ id: 'c1', type: 'eraSelect' as const, eraLayout: 'row' }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const select = screen.getByDisplayValue('横1行')
+    fireEvent.change(select, { target: { value: 'column' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('calls onChange when row role changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{ id: 'r1', role: 'header' as const, height: 8, cells: [] }],
+      columns: [],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const roleSelect = screen.getByDisplayValue('ヘッダー')
+    fireEvent.change(roleSelect, { target: { value: 'body' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('calls onChange when eraSelect dataSource changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'body' as const, height: 10,
+        cells: [{ id: 'c1', type: 'eraSelect' as const, eraLayout: 'row' as const, eraDataSource: '' }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const input = screen.getByPlaceholderText('dataSource（元号バインド先フィールドキー）')
+    fireEvent.change(input, { target: { value: 'employee.era' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('calls onChange when label cell text changes', () => {
+    const onChange = vi.fn()
+    const el = makeElement({
+      rows: [{
+        id: 'r1', role: 'header' as const, height: 8,
+        cells: [{ id: 'c1', type: 'label' as const, text: '氏名' }],
+      }],
+      columns: [{ id: 'col1', width: 40, align: 'left' }],
+    })
+    render(<FormTablePropertiesPanel el={el} onChange={onChange} />)
+    const input = screen.getByDisplayValue('氏名')
+    fireEvent.change(input, { target: { value: '名前' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+})
+
+describe('FormTablePropertiesPanel — 外観設定（枠線・行色）', () => {
+  it('calls onChange when borderColor changes', () => {
+    const onChange = vi.fn()
+    render(<FormTablePropertiesPanel el={makeElement()} onChange={onChange} />)
+    // borderColor is the first color input in the appearance section
+    const colorInputs = screen.getAllByRole('textbox').filter(
+      (el) => (el as HTMLInputElement).value.startsWith('#')
+    )
+    // Trigger the first color text input (borderColor)
+    expect(colorInputs.length).toBeGreaterThan(0)
+    fireEvent.change(colorInputs[0], { target: { value: '#ff0000' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('calls onChange when borderWidth changes', () => {
+    const onChange = vi.fn()
+    render(<FormTablePropertiesPanel el={makeElement()} onChange={onChange} />)
+    const widthInputs = screen.getAllByRole('spinbutton')
+    // Find the borderWidth input (value 0.3 or similar)
+    const borderWidthInput = widthInputs.find(
+      (el) => parseFloat((el as HTMLInputElement).value) === 0.3
+    )
+    expect(borderWidthInput).toBeDefined()
+    fireEvent.change(borderWidthInput!, { target: { value: '0.5' } })
+    expect(onChange).toHaveBeenCalled()
+  })
 })
