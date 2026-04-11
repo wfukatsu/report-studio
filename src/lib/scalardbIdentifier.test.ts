@@ -43,4 +43,14 @@ describe('validateScalarDbIdentifier', () => {
     const result = validateScalarDbIdentifier('名前')
     expect(result.valid).toBe(false)
   })
+  it('returns valid: true for exactly MAX_IDENTIFIER_LENGTH chars', () => {
+    const exactly64 = 'a'.repeat(64)
+    expect(validateScalarDbIdentifier(exactly64)).toEqual({ valid: true })
+  })
+  it('returns valid: false for identifier exceeding MAX_IDENTIFIER_LENGTH', () => {
+    const over64 = 'a'.repeat(65)
+    const result = validateScalarDbIdentifier(over64)
+    expect(result.valid).toBe(false)
+    if (!result.valid) expect(result.error).toContain('64') // error mentions the max, not the actual length
+  })
 })

@@ -22,4 +22,13 @@ public final class ScalarDbLimits {
 
     /** Maximum number of secondary index columns. */
     public static final int MAX_SECONDARY_INDEXES = 32;
+
+    /**
+     * Maximum length for a ScalarDB identifier (namespace, table, or column name).
+     *
+     * <p>64 is a safe conservative cap for common backends. Cassandra limits
+     * identifiers to 48 chars; most JDBC backends allow 63–128. The frontend
+     * mirrors this constant in {@code scalardbLimits.ts} — keep them in sync.
+     */
+    public static final int MAX_IDENTIFIER_LENGTH = 64;
 }

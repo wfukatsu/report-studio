@@ -12,6 +12,8 @@
  * and prevents cross-database quoting surprises.
  */
 
+import { MAX_IDENTIFIER_LENGTH } from './scalardbLimits'
+
 export const SCALARDB_IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 /**
@@ -30,6 +32,12 @@ export function validateScalarDbIdentifier(
 ): { valid: true } | { valid: false; error: string } {
   if (value === '') {
     return { valid: false, error: '識別子が空です' }
+  }
+  if (value.length > MAX_IDENTIFIER_LENGTH) {
+    return {
+      valid: false,
+      error: `識別子が長すぎます (最大 ${MAX_IDENTIFIER_LENGTH} 文字): "${value.slice(0, 20)}..."`,
+    }
   }
   if (!SCALARDB_IDENTIFIER_REGEX.test(value)) {
     return {

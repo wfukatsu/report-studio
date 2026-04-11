@@ -469,6 +469,8 @@ const ScalarDbColumnRespSchema = z.object({
 })
 
 export const ScalarDbTableEntrySchema = z.object({
+  /** Present in creation responses (POST /tables); absent in catalog responses. */
+  namespace: z.string().optional(),
   name: z.string(),
   columns: z.array(ScalarDbColumnRespSchema),
 })

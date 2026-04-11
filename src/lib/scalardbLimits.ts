@@ -19,3 +19,14 @@ export const MAX_CLUSTERING_KEYS = 16
 
 /** Maximum number of secondary index columns. */
 export const MAX_SECONDARY_INDEXES = 32
+
+/**
+ * Maximum length for a ScalarDB identifier (namespace, table, or column name).
+ *
+ * 64 is a safe conservative cap that works across common backends:
+ * - Most JDBC databases: 63–128 chars
+ * - Cassandra is stricter (48 chars) but ScalarDB's own tooling validates
+ *   further; 64 is chosen to catch obviously-too-long names before they
+ *   produce opaque ScalarDB errors.
+ */
+export const MAX_IDENTIFIER_LENGTH = 64

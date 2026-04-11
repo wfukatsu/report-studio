@@ -124,8 +124,18 @@ public final class V2ScalarDbTableController {
             ctx.status(400).json(Map.of("error", "Field 'tableName' is required"));
             return;
         }
+        if (namespace.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
+            ctx.status(400).json(Map.of("error",
+                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + namespace.substring(0, 20) + "...'"));
+            return;
+        }
         if (!IDENTIFIER.matcher(namespace).matches()) {
             ctx.status(400).json(Map.of("error", "Invalid identifier: '" + namespace + "'"));
+            return;
+        }
+        if (tableName.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
+            ctx.status(400).json(Map.of("error",
+                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + tableName.substring(0, 20) + "...'"));
             return;
         }
         if (!IDENTIFIER.matcher(tableName).matches()) {
@@ -154,6 +164,11 @@ public final class V2ScalarDbTableController {
             String type = col.path("type").asText(null);
             if (name == null || name.isBlank()) {
                 ctx.status(400).json(Map.of("error", "Each column must have a 'name' field"));
+                return;
+            }
+            if (name.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
+                ctx.status(400).json(Map.of("error",
+                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + name.substring(0, 20) + "...'"));
                 return;
             }
             if (!IDENTIFIER.matcher(name).matches()) {
@@ -274,7 +289,7 @@ public final class V2ScalarDbTableController {
 
             // Re-read to confirm round-trip (returns reality on disk)
             TableMetadata created = admin.getTableMetadata(namespace, tableName);
-            Map<String, Object> response = buildTableResponse(tableName, created);
+            Map<String, Object> response = buildTableResponse(namespace, tableName, created);
 
             AuditLog.op("create_table", userId, namespace, tableName, "created", correlationId);
             ctx.status(201).json(response);
@@ -318,7 +333,8 @@ public final class V2ScalarDbTableController {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private static Map<String, Object> buildTableResponse(String tableName, TableMetadata meta) {
+    private static Map<String, Object> buildTableResponse(
+            String namespace, String tableName, TableMetadata meta) {
         Set<String> partitionKeys = meta.getPartitionKeyNames();
         Set<String> clusteringKeys = meta.getClusteringKeyNames();
         Set<String> indexColumns = meta.getSecondaryIndexNames();
@@ -332,7 +348,9 @@ public final class V2ScalarDbTableController {
             if (keyType != null) colMap.put("keyType", keyType);
             columns.add(colMap);
         }
-        return Map.of("name", tableName, "columns", columns);
+        // Include namespace in the response so callers (especially agents) have a
+        // self-contained payload without needing to reconstruct it from the request.
+        return Map.of("namespace", namespace, "name", tableName, "columns", columns);
     }
 
     private static String classifyKeyType(
@@ -364,9 +382,17 @@ public final class V2ScalarDbTableController {
         return list;
     }
 
-    /** Returns true and writes a 400 response if any entry fails the IDENTIFIER regex. */
+    /**
+     * Returns true and writes a 400 response if any entry fails the IDENTIFIER regex
+     * or exceeds {@link ScalarDbLimits#MAX_IDENTIFIER_LENGTH}.
+     */
     private static boolean rejectInvalidIdentifiers(List<String> keys, Context ctx) {
         for (String k : keys) {
+            if (k.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
+                ctx.status(400).json(Map.of("error",
+                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + k.substring(0, 20) + "...'"));
+                return true;
+            }
             if (!IDENTIFIER.matcher(k).matches()) {
                 ctx.status(400).json(Map.of("error", "Invalid identifier: '" + k + "'"));
                 return true;
