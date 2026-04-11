@@ -15,7 +15,7 @@
 import { memo, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore } from '@/store'
-import type { ReportElement } from '@/types'
+import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 import { isDataEmptyInPreview } from '@/lib/previewUtils'
 
@@ -56,6 +56,10 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
   // Merge computedValues into data so calculated fields are available to all renderers.
   // useShallow: re-render only when computedValues keys or values actually change.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
+
+  // Subscribe to defaultTextStyle once here (not in each TextRenderer) to avoid
+  // N individual store subscriptions that fire on every unrelated state change.
+  const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
   // Memoize merged data so the object reference is stable across renders when
   // neither data nor computedValues have changed (prevents useMemo churn below).
   const mergedData = useMemo<Record<string, unknown>>(
@@ -83,7 +87,7 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
   if (isEmptyInPreview) return null
 
   switch (element.type) {
-    case 'text':            return <TextRenderer element={element} data={mergedData} />
+    case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
     // label → text: migration converts at load time; this branch is a safety net for
     // any label element that bypasses migration (e.g. via direct store writes).
     // LabelRenderer uses TextContent which reads el.text — correct for LabelElement.
