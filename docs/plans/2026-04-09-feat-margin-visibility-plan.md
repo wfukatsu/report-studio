@@ -1,7 +1,7 @@
 ---
 title: "feat: マージンガイド表示 + スナップ + プリセット"
 type: feat
-status: active
+status: completed
 date: 2026-04-09
 origin: docs/brainstorms/2026-04-09-margin-visibility-brainstorm.md
 ---
