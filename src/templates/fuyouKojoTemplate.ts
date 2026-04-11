@@ -539,7 +539,7 @@ C_COLS.forEach((ctype, ci) => {
   const cx = COL.name.x + ci * (C_COL_W + 2)
   elements.push(
     rect(cx, CY, C_COL_W + 2, CH2),
-    lbl(ctype, cx, CY, C_COL_W + 2, 5, { fontSize: 2.5, fontWeight: 'bold', fill: '#eeeeee' } as any),
+    lbl(ctype, cx, CY, C_COL_W + 2, 5, { fontSize: 2.5, fontWeight: 'bold', backgroundColor: '#eeeeee' }),
   )
   C_ROLES.forEach((role, ri) => {
     const ry = CY + 5 + ri * C_ROW_H

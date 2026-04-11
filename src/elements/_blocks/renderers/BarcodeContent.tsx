@@ -24,7 +24,7 @@ const DEFAULT_VALUES: Record<BarcodeKind, string> = {
  * JsBarcode throws a native Error for any other character.
  * Sanitise by uppercasing and stripping disallowed characters.
  */
-const CODE39_ALLOWED = /[^A-Z0-9 \-.$\/+%]/g
+const CODE39_ALLOWED = /[^A-Z0-9 \-.$/+%]/g
 function sanitizeCode39(value: string): string {
   return value.toUpperCase().replace(CODE39_ALLOWED, '')
 }

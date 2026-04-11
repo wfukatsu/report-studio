@@ -57,7 +57,7 @@ export const TextInlineEditor = memo(function TextInlineEditor({ element: el, on
     range.collapse(false) // collapse to end
     sel?.removeAllRanges()
     sel?.addRange(range)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps — run only once on mount
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const commitAndClose = useCallback(() => {
     const div = editorRef.current
