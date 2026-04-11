@@ -4,6 +4,16 @@ import { FormTablePropertiesPanel } from './PropertiesPanel'
 import { createFormTableElement } from '@/lib/elementFactories'
 import type { FormTableElement } from '@/types'
 
+vi.mock('@/elements/_base/sharedUI', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/elements/_base/sharedUI')>()
+  return {
+    ...mod,
+    ColorInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+    ),
+  }
+})
+
 function makeElement(overrides: Partial<FormTableElement> = {}): FormTableElement {
   return createFormTableElement(overrides) as FormTableElement
 }

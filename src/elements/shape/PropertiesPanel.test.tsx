@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ShapePropertiesPanel } from './PropertiesPanel'
 import type { ShapeElement } from '@/types'
 
+vi.mock('@/elements/_base/sharedUI', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/elements/_base/sharedUI')>()
+  return {
+    ...mod,
+    ColorInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+    ),
+  }
+})
+
 function makeEl(overrides?: Partial<ShapeElement>): ShapeElement {
   return {
     id: 's-1', type: 'shape',

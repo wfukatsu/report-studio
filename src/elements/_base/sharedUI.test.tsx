@@ -2,6 +2,18 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput, IconToggle } from './sharedUI'
 
+// Mock popover and prefs to isolate sharedUI tests
+vi.mock('./ColorPickerPopover', () => ({
+  ColorPickerPopover: ({ onChange, onClose }: { onChange: (v: string) => void; onClose: () => void }) => (
+    <div data-testid="mock-popover">
+      <button onClick={() => { onChange('#aabbcc'); onClose() }}>適用</button>
+      <button onClick={onClose}>閉じる</button>
+    </div>
+  ),
+  isValidHex: (s: string) => /^#[0-9A-Fa-f]{6}$/.test(s),
+  expandHex: (s: string) => s,
+}))
+
 describe('PropSection', () => {
   it('renders with title and children', () => {
     render(
@@ -80,35 +92,44 @@ describe('NumInput', () => {
 })
 
 describe('ColorInput', () => {
-  it('renders color and text inputs', () => {
-    render(<ColorInput value="#ff0000" onChange={vi.fn()} />)
-    const inputs = screen.getAllByRole('textbox')
-    expect(inputs.length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('displays the current color value', () => {
+  it('トリガーボタンが現在の色と HEX 値を表示する', () => {
     render(<ColorInput value="#336699" onChange={vi.fn()} />)
-    const textInput = screen.getByRole('textbox') as HTMLInputElement
-    expect(textInput.value).toBe('#336699')
+    expect(screen.getByText('#336699')).toBeInTheDocument()
   })
 
-  it('calls onChange when text input changes', () => {
+  it('クリックでポップオーバーが開く', () => {
+    render(<ColorInput value="#ff0000" onChange={vi.fn()} />)
+    fireEvent.click(screen.getByLabelText('カラーピッカーを開く'))
+    expect(screen.getByTestId('mock-popover')).toBeInTheDocument()
+  })
+
+  it('ポップオーバーで色を選択すると onChange が呼ばれる', () => {
     const onChange = vi.fn()
-    render(<ColorInput value="#000000" onChange={onChange} />)
-    const textInput = screen.getByRole('textbox')
-    fireEvent.change(textInput, { target: { value: '#ffffff' } })
-    expect(onChange).toHaveBeenCalledWith('#ffffff')
+    render(<ColorInput value="#ff0000" onChange={onChange} />)
+    fireEvent.click(screen.getByLabelText('カラーピッカーを開く'))
+    fireEvent.click(screen.getByText('適用'))
+    expect(onChange).toHaveBeenCalledWith('#aabbcc')
   })
 
-  it('renders optional label when provided', () => {
+  it('ポップオーバーを閉じると非表示になる', () => {
+    render(<ColorInput value="#ff0000" onChange={vi.fn()} />)
+    fireEvent.click(screen.getByLabelText('カラーピッカーを開く'))
+    fireEvent.click(screen.getByText('閉じる'))
+    expect(screen.queryByTestId('mock-popover')).not.toBeInTheDocument()
+  })
+
+  it('label prop が渡されると表示される', () => {
     render(<ColorInput value="#000000" onChange={vi.fn()} label="背景色" />)
     expect(screen.getByText('背景色')).toBeInTheDocument()
   })
 
-  it('does not render label when not provided', () => {
-    const { container } = render(<ColorInput value="#000000" onChange={vi.fn()} />)
-    const spans = container.querySelectorAll('span')
-    expect(spans).toHaveLength(0)
+  it('onReset が渡されると reset ボタンが存在する', () => {
+    const onReset = vi.fn()
+    render(<ColorInput value="#000000" onChange={vi.fn()} onReset={onReset} />)
+    const resetBtn = screen.getByLabelText('デフォルトにリセット')
+    expect(resetBtn).toBeInTheDocument()
+    fireEvent.click(resetBtn)
+    expect(onReset).toHaveBeenCalled()
   })
 })
 
