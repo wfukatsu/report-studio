@@ -117,6 +117,27 @@ export function ReportCanvas({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [readonly, activePage, groupSelectedElements])
 
+  // Delete / Backspace — remove selected elements (skip when a text input has focus)
+  useEffect(() => {
+    if (readonly) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) return
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+        e.preventDefault()
+        if (activePage) {
+          selectedIds.forEach((id) => removeElement(activePage.id, id))
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [readonly, activePage, selectedIds, removeElement])
+
   const snap = useCallback(
     (v: number) => snapToGrid ? Math.round(v / gridSize) * gridSize : v,
     [snapToGrid, gridSize],

@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils'
 type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection'
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'datasource', label: 'データソース' },
-  { id: 'calculation', label: '式・計算' },
-  { id: 'validation', label: 'バリデーション' },
-  { id: 'dbconnection', label: 'DB接続' },
+  { id: 'datasource', label: 'サンプルデータ' },
+  { id: 'calculation', label: '計算フィールド' },
+  { id: 'validation', label: '入力検証' },
+  { id: 'dbconnection', label: 'データ連携' },
 ]
 
 interface DataBindingModalProps {

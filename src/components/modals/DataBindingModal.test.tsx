@@ -46,28 +46,28 @@ describe('DataBindingModal — タブ切り替え', () => {
     expect(screen.getByTestId('datasource-panel')).toBeInTheDocument()
   })
 
-  it('switches to 式・計算 tab on click', () => {
+  it('switches to 計算フィールド tab on click', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByRole('tab', { name: '式・計算' }))
+    fireEvent.click(screen.getByRole('tab', { name: '計算フィールド' }))
     expect(screen.getByText('計算ルール')).toBeInTheDocument()
   })
 
-  it('switches to バリデーション tab on click', () => {
+  it('switches to 入力検証 tab on click', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'バリデーション' }))
+    fireEvent.click(screen.getByRole('tab', { name: '入力検証' }))
     expect(screen.getByText('バリデーションルール')).toBeInTheDocument()
   })
 
-  it('switches back to データソース tab', () => {
+  it('switches back to サンプルデータ tab', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByRole('tab', { name: '式・計算' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'データソース' }))
+    fireEvent.click(screen.getByRole('tab', { name: '計算フィールド' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'サンプルデータ' }))
     expect(screen.getByTestId('datasource-panel')).toBeInTheDocument()
   })
 
-  it('switches to DB接続 tab on click', () => {
+  it('switches to データ連携 tab on click', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'DB接続' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'データ連携' }))
     expect(screen.getByTestId('dbconnection-tab')).toBeInTheDocument()
   })
 })
@@ -77,7 +77,7 @@ describe('DataBindingModal — タブキーボード操作', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     const tablist = screen.getByRole('tablist')
     fireEvent.keyDown(tablist, { key: 'ArrowRight' })
-    // Should now show 式・計算 tab
+    // Should now show 計算フィールド tab
     expect(screen.getByText('計算ルール')).toBeInTheDocument()
   })
 
@@ -85,7 +85,7 @@ describe('DataBindingModal — タブキーボード操作', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     const tablist = screen.getByRole('tablist')
     fireEvent.keyDown(tablist, { key: 'ArrowLeft' })
-    // From datasource, ArrowLeft wraps to the last tab (DB接続).
+    // From datasource, ArrowLeft wraps to the last tab (データ連携).
     expect(screen.getByTestId('dbconnection-tab')).toBeInTheDocument()
   })
 })
