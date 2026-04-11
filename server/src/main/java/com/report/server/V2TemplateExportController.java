@@ -69,6 +69,14 @@ public final class V2TemplateExportController {
             return;
         }
 
+        // Ownership check — consistent with get() / put() / delete() / duplicate().
+        // Returns 404 (not 403) to prevent template ID enumeration.
+        if (!V2TemplateController.isOwner(ctx, stored.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
         JsonNode envelope;
         try {
             envelope = MAPPER.readTree(stored.get());

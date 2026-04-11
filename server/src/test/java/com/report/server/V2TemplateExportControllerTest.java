@@ -90,6 +90,40 @@ class V2TemplateExportControllerTest {
     }
 
     @Test
+    void export_returns404_whenNonOwnerRequests() throws Exception {
+        // Template belongs to "owner-user" — another user should get 404
+        var env = MAPPER.createObjectNode()
+                .put("id", "tpl-1").put("name", "Secret").put("created_by", "owner-user");
+        env.set("definition", MAPPER.createObjectNode().put("id", "tpl-1"));
+        when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(MAPPER.writeValueAsString(env)));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("other-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.export(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(ctx, never()).result(anyString());
+    }
+
+    @Test
+    void export_allowsOwnerToExport() throws Exception {
+        var env = MAPPER.createObjectNode()
+                .put("id", "tpl-1").put("name", "My Report").put("created_by", "owner-user");
+        var def = MAPPER.createObjectNode().put("id", "tpl-1");
+        env.set("definition", def);
+        when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(MAPPER.writeValueAsString(env)));
+        var principal = mock(com.report.server.auth.Principal.class);
+        when(principal.userId()).thenReturn("owner-user");
+        when(ctx.attribute("principal")).thenReturn(principal);
+
+        controller.export(ctx);
+
+        verify(ctx).contentType("application/json");
+        verify(ctx).result(anyString());
+    }
+
+    @Test
     void export_returns400_whenIdInvalid() throws Exception {
         when(ctx.pathParam("id")).thenReturn("../evil");
 
