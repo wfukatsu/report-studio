@@ -1,7 +1,7 @@
 ---
 title: "feat: FormTable 拡張 + 扶養控除等申告書テンプレート再現度改善"
 type: feat
-status: active
+status: completed
 date: 2026-04-09
 origin: docs/brainstorms/2026-04-09-formtable-enhancement-fuyou-kojo-brainstorm.md
 ---
