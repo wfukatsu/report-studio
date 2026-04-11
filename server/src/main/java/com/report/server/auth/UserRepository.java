@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -42,6 +44,29 @@ public final class UserRepository {
                 return Optional.empty();
             }
         });
+    }
+
+    /** List all users (passwords excluded by callers — return full record for internal use). */
+    public List<UserRecord> list() {
+        List<String> blobs = blob.list();
+        List<UserRecord> users = new ArrayList<>();
+        for (String json : blobs) {
+            try {
+                users.add(MAPPER.readValue(json, UserRecord.class));
+            } catch (Exception e) {
+                log.warn("Failed to parse user record: {}", e.getMessage());
+            }
+        }
+        return users;
+    }
+
+    /** Delete a user by userId. */
+    public void delete(String userId) {
+        try {
+            blob.delete(userId);
+        } catch (Exception e) {
+            log.error("Failed to delete user {}", userId, e);
+        }
     }
 
     /** Save or update a user. */

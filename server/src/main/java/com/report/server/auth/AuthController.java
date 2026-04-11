@@ -168,6 +168,62 @@ public final class AuthController {
         ctx.json(Map.of("status", "logged_out"));
     }
 
+    /**
+     * POST /api/v1/auth/change-profile — update displayName and/or password.
+     * Body: { displayName?: string, currentPassword?: string, newPassword?: string }
+     * If newPassword is provided, currentPassword is required.
+     */
+    public void changeProfile(Context ctx) {
+        Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous()) {
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            ctx.json(Map.of("error", "Authentication required"));
+            return;
+        }
+
+        Optional<UserRecord> userOpt = userRepo.findById(principal.userId());
+        if (userOpt.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "User not found"));
+            return;
+        }
+        UserRecord user = userOpt.get();
+
+        var body = ctx.bodyAsClass(Map.class);
+        String newDisplayName = (String) body.get("displayName");
+        String currentPassword = (String) body.get("currentPassword");
+        String newPassword     = (String) body.get("newPassword");
+
+        String updatedDisplayName = (newDisplayName != null && !newDisplayName.isBlank())
+                ? newDisplayName.strip() : user.displayName();
+
+        String updatedHash = user.passwordHash();
+        if (newPassword != null && !newPassword.isBlank()) {
+            if (currentPassword == null || currentPassword.isBlank()) {
+                ctx.status(HttpStatus.BAD_REQUEST);
+                ctx.json(Map.of("error", "currentPassword required to change password"));
+                return;
+            }
+            if (!BCrypt.verifyer().verify(currentPassword.toCharArray(), user.passwordHash()).verified) {
+                ctx.status(HttpStatus.UNAUTHORIZED);
+                ctx.json(Map.of("error", "Current password is incorrect"));
+                return;
+            }
+            updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
+        }
+
+        UserRecord updated = new UserRecord(user.userId(), updatedDisplayName, updatedHash, user.roles());
+        userRepo.save(updated);
+
+        ctx.json(Map.of(
+            "userId", updated.userId(),
+            "displayName", updated.displayName(),
+            "roles", updated.roles(),
+            "anonymous", false
+        ));
+        log.info("User {} updated profile", principal.userId());
+    }
+
     /** GET /api/v1/auth/me — return current principal */
     public void me(Context ctx) {
         Principal principal = (Principal) ctx.attribute("principal");
