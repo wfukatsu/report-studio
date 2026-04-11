@@ -49,6 +49,7 @@ public final class AppWiring {
     final V2PdfJobController v2PdfJobCtrl;
     final V2StatelessPdfController v2StatelessPdfCtrl;
     final V2ScalarDbCatalogController v2ScalarDbCatalogCtrl;
+    final V2ScalarDbTableController v2ScalarDbTableCtrl;
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
@@ -147,6 +148,7 @@ public final class AppWiring {
         v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, pdfExecutor);
         v2StatelessPdfCtrl = new V2StatelessPdfController(pdfExecutor);
         v2ScalarDbCatalogCtrl = new V2ScalarDbCatalogController(factory);
+        v2ScalarDbTableCtrl = new V2ScalarDbTableController(factory);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

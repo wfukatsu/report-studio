@@ -16,6 +16,7 @@ export type SchemaSlice = Pick<StoreState,
   | 'removeSchemaField'
   | 'updateSchemaField'
   | 'bindGroupToTable'
+  | 'bindGroupToTableWithColumns'
   | 'setSchema'
 >
 
@@ -96,6 +97,21 @@ export const createSchemaSlice: StateCreator<
       group.fields.forEach((f) => { delete f.dbColumnName })
     }
     group.tableMeta = { namespace: tableMeta.namespace, tableName: tableMeta.tableName }
+  }),
+
+  bindGroupToTableWithColumns: (groupId, tableMeta, fieldColumns) => set((s) => {
+    const group = s.definition.schema?.groups.find((g) => g.id === groupId)
+    if (!group) return
+
+    group.tableMeta = { namespace: tableMeta.namespace, tableName: tableMeta.tableName }
+
+    for (const { fieldId, dbColumnName } of fieldColumns) {
+      const field = group.fields.find((f) => f.id === fieldId)
+      if (!field) continue
+      field.dbColumnName = dbColumnName
+    }
+    // Does NOT call pushHistory — matches the existing bindGroupToTable convention.
+    // The schema slice is outside the history system in Phase 1.
   }),
 
   setSchema: (schema) => set((s) => {

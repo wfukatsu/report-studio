@@ -227,5 +227,7 @@ public final class ApiRoutes {
 
         // V2 ScalarDB catalog (namespaces → tables → columns) for schema binding UI
         app.get("/api/v2/scalardb/catalog", w.v2ScalarDbCatalogCtrl::getCatalog);
+        // V2 ScalarDB table creation (Phase 1.5)
+        app.post("/api/v2/scalardb/tables", w.v2ScalarDbTableCtrl::createTable);
     }
 }

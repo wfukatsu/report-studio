@@ -238,6 +238,19 @@ export interface StoreState {
    *    every row shows "(列が存在しません)" after rebind)
    */
   bindGroupToTable: (groupId: string, tableMeta: ScalarDbTableMeta | undefined) => void
+  /**
+   * Phase 1.5 — atomically set `tableMeta` on a group AND assign `dbColumnName`
+   * to each listed field in a single immer draft (no N+1 re-renders).
+   *
+   * `fieldColumns` entries referencing unknown fieldIds are silently ignored.
+   * Unlisted fields are left untouched.
+   * Does NOT call `pushHistory` — matches the existing `bindGroupToTable` convention.
+   */
+  bindGroupToTableWithColumns: (
+    groupId: string,
+    tableMeta: ScalarDbTableMeta,
+    fieldColumns: ReadonlyArray<{ fieldId: string; dbColumnName: string }>,
+  ) => void
   /** Replace the entire schema definition (used by schema inference). */
   setSchema: (schema: SchemaDefinition) => void
 

@@ -349,3 +349,90 @@ describe('bindGroupToTable', () => {
     ).not.toThrow()
   })
 })
+
+// ---------------------------------------------------------------------------
+// bindGroupToTableWithColumns — Phase 1.5 atomic bind + field mapping
+// ---------------------------------------------------------------------------
+
+describe('bindGroupToTableWithColumns', () => {
+  function seedGroupWithFields(): { groupId: string; fieldIds: string[] } {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = getGroups()[0].id
+    useReportStore.getState().addSchemaField(
+      groupId,
+      { key: 'name', label: '氏名', type: 'string' } as SchemaField,
+    )
+    useReportStore.getState().addSchemaField(
+      groupId,
+      { key: 'age', label: '年齢', type: 'number' } as SchemaField,
+    )
+    const fieldIds = getGroups()[0].fields.map((f) => f.id)
+    return { groupId, fieldIds }
+  }
+
+  it('sets tableMeta and all fieldColumns dbColumnName in one call', () => {
+    const { groupId, fieldIds } = seedGroupWithFields()
+
+    useReportStore.getState().bindGroupToTableWithColumns(
+      groupId,
+      { namespace: 'app', tableName: 'users' },
+      [
+        { fieldId: fieldIds[0], dbColumnName: 'full_name' },
+        { fieldId: fieldIds[1], dbColumnName: 'age_years' },
+      ],
+    )
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    expect(group.fields[0].dbColumnName).toBe('full_name')
+    expect(group.fields[1].dbColumnName).toBe('age_years')
+  })
+
+  it('nonexistent groupId is a no-op — does not throw', () => {
+    expect(() =>
+      useReportStore.getState().bindGroupToTableWithColumns(
+        'nonexistent',
+        { namespace: 'app', tableName: 'users' },
+        [],
+      ),
+    ).not.toThrow()
+  })
+
+  it('partial fieldColumns leaves unlisted fields untouched', () => {
+    const { groupId, fieldIds } = seedGroupWithFields()
+    // Pre-assign a dbColumnName to field[1]
+    useReportStore.getState().updateSchemaField(groupId, fieldIds[1], { dbColumnName: 'existing' })
+
+    useReportStore.getState().bindGroupToTableWithColumns(
+      groupId,
+      { namespace: 'app', tableName: 'users' },
+      [{ fieldId: fieldIds[0], dbColumnName: 'full_name' }], // only field[0]
+    )
+
+    const group = getGroups()[0]
+    expect(group.fields[0].dbColumnName).toBe('full_name')
+    // field[1] must NOT be cleared — it was not in the fieldColumns list
+    expect(group.fields[1].dbColumnName).toBe('existing')
+  })
+
+  it('fieldColumns entries referencing nonexistent fieldId are silently ignored', () => {
+    const { groupId, fieldIds } = seedGroupWithFields()
+
+    expect(() =>
+      useReportStore.getState().bindGroupToTableWithColumns(
+        groupId,
+        { namespace: 'app', tableName: 'users' },
+        [
+          { fieldId: 'does-not-exist', dbColumnName: 'phantom' },
+          { fieldId: fieldIds[0], dbColumnName: 'full_name' },
+        ],
+      ),
+    ).not.toThrow()
+
+    const group = getGroups()[0]
+    expect(group.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    expect(group.fields[0].dbColumnName).toBe('full_name')
+    // field[1] untouched
+    expect(group.fields[1].dbColumnName).toBeUndefined()
+  })
+})

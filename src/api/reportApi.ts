@@ -467,7 +467,7 @@ const ScalarDbColumnRespSchema = z.object({
   keyType: ScalarDbKeyTypeSchema.optional(), // undefined = regular column
 })
 
-const ScalarDbTableEntrySchema = z.object({
+export const ScalarDbTableEntrySchema = z.object({
   name: z.string(),
   columns: z.array(ScalarDbColumnRespSchema),
 })
@@ -485,6 +485,51 @@ export type ScalarDbCatalog = z.infer<typeof ScalarDbCatalogSchema>
 export type ScalarDbCatalogColumn = z.infer<typeof ScalarDbColumnRespSchema>
 export type ScalarDbCatalogTable = z.infer<typeof ScalarDbTableEntrySchema>
 export type ScalarDbCatalogNamespace = z.infer<typeof ScalarDbNamespaceEntrySchema>
+
+// ---------------------------------------------------------------------------
+// ScalarDB table creation — Phase 1.5
+// ---------------------------------------------------------------------------
+
+/**
+ * Request body for `POST /api/v2/scalardb/tables`.
+ *
+ * NOTE: Request types in reportApi.ts follow the `*Request` convention for
+ * HTTP wire formats only. Do NOT use `*Request` for store actions or React props.
+ */
+export interface CreateScalarDbTableRequest {
+  namespace: string
+  tableName: string
+  columns: Array<{
+    name: string
+    /** One of the 7 ScalarDB DataType values. */
+    type: 'BOOLEAN' | 'INT' | 'BIGINT' | 'FLOAT' | 'DOUBLE' | 'TEXT' | 'BLOB'
+  }>
+  partitionKeys: string[]
+  clusteringKeys: string[]
+  secondaryIndexes: string[]
+}
+
+/**
+ * Create a new ScalarDB table from the given request and return the resulting
+ * table metadata (re-read from disk, so the response reflects reality).
+ *
+ * Validates the response body with `ScalarDbTableEntrySchema`. Throws
+ * `ApiError` for HTTP errors (400/409/401/403/500/503) and `NetworkError`
+ * when the fetch itself fails.
+ *
+ * @param request - Table definition. Validated server-side and client-side.
+ * @param signal  - Optional AbortSignal for cancellation on unmount.
+ */
+export async function createScalarDbTable(
+  request: CreateScalarDbTableRequest,
+  signal?: AbortSignal,
+): Promise<ScalarDbCatalogTable> {
+  return apiFetch(
+    '/api/v2/scalardb/tables',
+    ScalarDbTableEntrySchema,
+    { ...jsonBody(request), signal },
+  )
+}
 
 /**
  * Fetch the full ScalarDB catalog (namespaces → tables → columns) in one round-trip.

@@ -12,6 +12,7 @@
  * See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md
  */
 import { z } from 'zod'
+import type { SchemaFieldType } from './index'
 
 // ---------------------------------------------------------------------------
 // ScalarDbColumnType — mirrors com.scalar.db.io.DataType exactly (7 values)
@@ -53,4 +54,28 @@ export type ScalarDbKeyType = z.infer<typeof ScalarDbKeyTypeSchema>
 export interface ScalarDbTableMeta {
   namespace: string
   tableName: string
+}
+
+// ---------------------------------------------------------------------------
+// SchemaFieldType → ScalarDbColumnType mapping.
+//
+// Used by CreateTableForm to pre-populate column types from group fields, and
+// by Phase 2's evaluate path to materialise fetched values.
+//
+// NOTE: `array` is intentionally excluded — an array field at the master level
+// cannot map to a single ScalarDB column (detail groups bind to whole tables).
+// The `Exclude<>` gives a compile-time error if SchemaFieldType gains a new case
+// without this map being updated.
+// ---------------------------------------------------------------------------
+
+export const SCHEMA_FIELD_TYPE_TO_SCALARDB_COLUMN_TYPE: Readonly<
+  Record<Exclude<SchemaFieldType, 'array'>, ScalarDbColumnType>
+> = {
+  string: 'TEXT',
+  number: 'DOUBLE',
+  boolean: 'BOOLEAN',
+  // Epoch millis — aligns with how v2 already serialises dates in the JSON source.
+  date: 'BIGINT',
+  // Assume URL. BLOB is available as an override for true inline storage.
+  image: 'TEXT',
 }
