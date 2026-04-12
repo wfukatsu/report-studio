@@ -1,7 +1,7 @@
 ---
 title: "feat: ログイン・ユーザー管理・サーバー設定（認証フルスタック）"
 type: feat
-status: active
+status: completed
 date: 2026-04-12
 origin: docs/brainstorms/2026-04-12-auth-server-management-brainstorm.md
 ---
