@@ -56,6 +56,10 @@ public final class AppWiring {
     final JsonBlobRepository tenantRepo;
     final V2TenantController v2TenantCtrl;
 
+    // ── Product Master ─────────────────────────────────────────────────────────
+    final JsonBlobRepository productRepo;
+    final ProductController productCtrl;
+
     // ── Admin controllers ─────────────────────────────────────────────────────
     final AdminUserController adminUserCtrl;
     final AdminServerController adminServerCtrl;
@@ -166,6 +170,10 @@ public final class AppWiring {
         tenantRepo = new JsonBlobRepository(factory, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
         v2TenantCtrl = new V2TenantController(tenantRepo);
+        productRepo = new JsonBlobRepository(factory, NAMESPACE, "products");
+        productRepo.ensureTable();
+        productCtrl = new ProductController(productRepo);
+        v2BindingResolveCtrl.setProductController(productCtrl);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

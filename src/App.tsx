@@ -80,11 +80,13 @@ export default function App() {
   const setHeaderEditMode = useReportStore((s) => s.setHeaderEditMode)
   const activePage = useReportStore(selectActivePage)
   const loadReport = useReportStore((s) => s.loadReport)
+  const _ensureProductMasterGroup = useReportStore((s) => s.ensureProductMasterGroup)
   const handleTemplateChange = useCallback((definition: Parameters<typeof loadReport>[0]) => {
     if (historyIndex > 0 && !confirm('未保存の変更があります。テンプレートを変更しますか？')) return
     loadReport(definition)
+    _ensureProductMasterGroup()
     setShowTemplateModal(false)
-  }, [loadReport, historyIndex])
+  }, [loadReport, _ensureProductMasterGroup, historyIndex])
   const snapToGrid = useReportStore((s) => s.snapToGrid)
   const gridSize = useReportStore((s) => s.gridSize)
 
@@ -139,6 +141,12 @@ export default function App() {
   useEffect(() => {
     fetchTenantInfo()
   }, [fetchTenantInfo])
+
+  // Ensure __productMaster__ system group exists in schema on mount
+  const ensureProductMasterGroup = useReportStore((s) => s.ensureProductMasterGroup)
+  useEffect(() => {
+    ensureProductMasterGroup()
+  }, [ensureProductMasterGroup])
 
   // Warn before closing with unsaved changes
   useEffect(() => {

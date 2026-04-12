@@ -26,6 +26,7 @@ export function TemplateManagerModal({ open, onClose }: Props) {
   const { prefs, toggleHidden, isHidden, setOverride, clearOverride, getOverride } = useBuiltinPrefs()
   const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [hasFetched, setHasFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Builtin edit states
@@ -57,6 +58,7 @@ export function TemplateManagerModal({ open, onClose }: Props) {
       const result = await listReports()
       setBackendTemplates(result.items)
       setLoadState('idle')
+      setHasFetched(true)
     } catch {
       setLoadState('error')
       setError('テンプレート一覧の取得に失敗しました')
@@ -255,7 +257,11 @@ export function TemplateManagerModal({ open, onClose }: Props) {
             {loadState === 'idle' && backendTemplates.length === 0 && (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 <FolderOpen className="w-5 h-5 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">「一覧を取得」でテンプレートを読み込めます。</p>
+                <p className="text-xs text-muted-foreground">
+                  {hasFetched
+                    ? 'テンプレートがありません。'
+                    : '「一覧を取得」でテンプレートを読み込めます。'}
+                </p>
               </div>
             )}
 

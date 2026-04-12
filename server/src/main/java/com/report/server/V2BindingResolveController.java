@@ -66,9 +66,13 @@ public final class V2BindingResolveController {
     /** Maximum rows returned per detail group Scan — prevents accidental large result sets. */
     private static final int MAX_DETAIL_ROWS = 500;
 
+    /** System group ID for the product master — must match frontend constant */
+    static final String SYSTEM_GROUP_PRODUCT_MASTER = "__productMaster__";
+
     private final TransactionFactory factory;
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter rateLimiter;
+    private ProductController productCtrl;
 
     public V2BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
         this(factory, definitionsRepo, new RateLimiter(3, 10_000L));
@@ -79,6 +83,12 @@ public final class V2BindingResolveController {
         this.factory = factory;
         this.definitionsRepo = definitionsRepo;
         this.rateLimiter = rateLimiter;
+        this.productCtrl = null; // injected lazily via setProductController
+    }
+
+    /** Injects the ProductController for __productMaster__ system group resolution. */
+    public void setProductController(ProductController ctrl) {
+        this.productCtrl = ctrl;
     }
 
     /** {@code POST /api/v2/templates/{id}/resolve-bindings} */
@@ -169,6 +179,16 @@ public final class V2BindingResolveController {
             }
 
             String role = group.path("role").asText("master");
+
+            // ── System groups (product master etc.) bypass ScalarDB resolution ──
+            if (SYSTEM_GROUP_PRODUCT_MASTER.equals(groupId)) {
+                if (productCtrl != null) {
+                    resolveProductMasterGroup(groupId, req, resolved, errors);
+                } else {
+                    errors.put(groupId, "Product master not available");
+                }
+                continue;
+            }
 
             // Extract and validate table coordinates
             JsonNode tableMeta = group.path("tableMeta");
@@ -261,6 +281,86 @@ public final class V2BindingResolveController {
         ctx.status(207);
         ctx.contentType("application/json");
         ctx.result(MAPPER.writeValueAsString(response));
+    }
+
+    // ── Product master resolution ─────────────────────────────────────────────
+
+    /**
+     * Resolves the {@code __productMaster__} system group.
+     *
+     * <p>Supported modes (from request body {@code partitionKeys.__productMaster__}):
+     * <ul>
+     *   <li>{@code mode=single} + {@code productCode} — returns a single product's fields</li>
+     *   <li>{@code mode=list} (default) — returns an array of all active products</li>
+     * </ul>
+     *
+     * <p>For single mode, {@code resolved["__productMaster__"]} is a flat object of
+     * the product's fields. For list mode, it is an array of such objects.
+     * Deleted or missing products return null fields (not an error) plus a
+     * {@code "__stale__": true} marker.
+     */
+    private void resolveProductMasterGroup(
+            String groupId,
+            JsonNode req,
+            ObjectNode resolved,
+            ObjectNode errors) {
+
+        JsonNode pkNode = req.path("partitionKeys").path(groupId);
+        String mode = pkNode.path("mode").asText("list");
+        String reportDateStr = req.path("partitionKeys").path("__reportDate__").asText(null);
+        java.time.LocalDate reportDate = null;
+        if (reportDateStr != null) {
+            try { reportDate = java.time.LocalDate.parse(reportDateStr); } catch (Exception ignored) {}
+        }
+
+        if ("single".equals(mode)) {
+            String productCode = pkNode.path("productCode").asText(null);
+            if (productCode == null) {
+                errors.put(groupId, "productCode is required for mode=single");
+                return;
+            }
+            var productOpt = productCtrl.findByCode(productCode);
+            if (productOpt.isEmpty()) {
+                // Return stale marker so UI can show warning
+                ObjectNode staleRow = MAPPER.createObjectNode();
+                staleRow.put("__stale__", true);
+                resolved.set(groupId, staleRow);
+            } else {
+                ObjectNode row = productNodeToRow(productOpt.get(), reportDate);
+                resolved.set(groupId, row);
+            }
+        } else {
+            // list mode — array of all active products
+            var products = productCtrl.listActiveProducts();
+            ArrayNode arr = MAPPER.createArrayNode();
+            for (var product : products) {
+                arr.add(productNodeToRow(product, reportDate));
+            }
+            resolved.set(groupId, arr);
+        }
+        errors.putNull(groupId);
+    }
+
+    /** Converts a product JsonNode to a flat row object for resolve-bindings output. */
+    private ObjectNode productNodeToRow(com.fasterxml.jackson.databind.JsonNode product,
+                                        java.time.LocalDate reportDate) {
+        ObjectNode row = MAPPER.createObjectNode();
+        row.put("id", product.path("id").asText(""));
+        row.put("code", product.path("code").asText(""));
+        row.put("name", product.path("name").asText(""));
+        row.put("unitPrice", ProductPriceResolver.resolvePrice(product, reportDate));
+        row.put("category", product.path("category").asText(""));
+        row.put("description", product.path("description").asText(""));
+        row.put("stockCount", product.path("stockCount").asInt(0));
+        row.put("taxType", product.path("taxType").asText("none"));
+        row.put("unit", product.path("unit").asText(""));
+        row.put("manufacturer", product.path("manufacturer").asText(""));
+        // Custom fields — flatten into row
+        com.fasterxml.jackson.databind.JsonNode customFields = product.path("customFields");
+        if (customFields.isObject()) {
+            customFields.fields().forEachRemaining(e -> row.set(e.getKey(), e.getValue()));
+        }
+        return row;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

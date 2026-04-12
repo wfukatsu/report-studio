@@ -250,5 +250,14 @@ public final class ApiRoutes {
         // Tenant info — shared organization settings
         app.get("/api/v2/tenant", w.v2TenantCtrl::get);
         app.put("/api/v2/tenant", w.v2TenantCtrl::put);
+
+        // Product Master — tenant-wide product catalog
+        app.get("/api/v1/products", w.productCtrl::list);
+        app.get("/api/v1/products/fields", w.productCtrl::getFields);
+        app.get("/api/v1/products/{id}", w.productCtrl::get);
+        app.post("/api/v1/products", w.productCtrl::create);
+        app.put("/api/v1/products/fields", w.productCtrl::putFields);
+        app.put("/api/v1/products/{id}", w.productCtrl::update);
+        app.delete("/api/v1/products/{id}", w.productCtrl::softDelete);
     }
 }
