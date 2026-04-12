@@ -7,6 +7,7 @@ import { ElementPalette } from '@/components/sidebar/ElementPalette'
 import { PropertiesPanel } from '@/components/sidebar/PropertiesPanel'
 import { PagePanel } from '@/components/sidebar/PagePanel'
 import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
+import { LoginModal } from '@/components/modals/LoginModal'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
 import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
@@ -51,6 +52,7 @@ export default function App() {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const previewMode = useReportStore((s) => s.previewMode)
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)
+  const backendConnected = useReportStore((s) => s.backendConnected)
   const activePageId = useReportStore(selectActivePageId)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
 
@@ -412,6 +414,8 @@ export default function App() {
           </aside>
         </div>
       )}
+      {/* Login modal — shown when backendConnected but not authenticated */}
+      {!currentUser && !authLoading && backendConnected && <LoginModal />}
       <TemplateSelectionModal
         open={showTemplateModal}
         onClose={() => setShowTemplateModal(false)}
