@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronRight, ChevronDown, Database, Package, FileText, AlertCircle } from 'lucide-react'
-import { fetchScalarDbCatalogCached } from '@/api/reportApi'
-import { listReports } from '@/api/reportApi'
-import type { DataSourceNode } from '@/store/dataBrowserSlice'
+import { fetchScalarDbCatalogCached, listReports } from '@/api/reportApi'
+import type { DataSourceNode } from '@/store/dataBrowserStore'
 import { cn } from '@/lib/utils'
 
 interface Props {

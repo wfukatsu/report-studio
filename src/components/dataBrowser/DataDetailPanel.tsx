@@ -5,11 +5,12 @@ import type { Product } from '@/types'
 interface Props {
   row: Record<string, unknown>
   columns: string[]
-  isProductMaster?: boolean
+  /** Full Product object — passed when the source is product-master */
+  product?: Product
   onClose: () => void
 }
 
-export function DataDetailPanel({ row, columns, isProductMaster, onClose }: Props) {
+export function DataDetailPanel({ row, columns, product, onClose }: Props) {
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -19,9 +20,7 @@ export function DataDetailPanel({ row, columns, isProductMaster, onClose }: Prop
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const priceHistory = isProductMaster
-    ? (row as unknown as Product).priceHistory ?? []
-    : []
+  const priceHistory = product?.priceHistory ?? []
 
   return (
     <div
@@ -60,7 +59,7 @@ export function DataDetailPanel({ row, columns, isProductMaster, onClose }: Prop
         </table>
 
         {/* Price history (product master only) */}
-        {isProductMaster && priceHistory.length > 0 && (
+        {product && priceHistory.length > 0 && (
           <details className="border-t">
             <summary className="px-3 py-2 text-xs font-medium cursor-pointer hover:bg-muted/30 text-muted-foreground">
               単価変更履歴（{priceHistory.length}件）

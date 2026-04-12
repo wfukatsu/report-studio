@@ -318,20 +318,6 @@ export interface StoreState {
   updateCustomFieldDefs: (defs: import('@/types').ProductCustomFieldDef[]) => Promise<void>
   setProductOp: (id: string, op: 'idle' | 'saving' | 'deleting') => void
 
-  // ── Data Browser slice ────────────────────────────────────────────────────
-  dataBrowserSelectedSource: import('./dataBrowserSlice').DataSourceNode | null
-  dataBrowserSearchQuery: string
-  dataBrowserSortCol: string | null
-  dataBrowserSortDir: 'asc' | 'desc'
-  dataBrowserCurrentPage: number
-  dataBrowserDetailRow: Record<string, unknown> | null
-  dataBrowserScalarDbCache: Map<string, import('@/api/reportApi').ScalarDbScanResponse>
-  setDataBrowserSource: (source: import('./dataBrowserSlice').DataSourceNode | null) => void
-  setDataBrowserSearch: (query: string) => void
-  setDataBrowserSort: (col: string | null, dir: 'asc' | 'desc') => void
-  setDataBrowserPage: (page: number) => void
-  setDataBrowserDetailRow: (row: Record<string, unknown> | null) => void
-  cacheScalarDbScan: (namespace: string, table: string, offset: number, data: import('@/api/reportApi').ScalarDbScanResponse) => void
 
   // ── Responses slice ───────────────────────────────────────────────────────
   responses: FormResponseSummary[]

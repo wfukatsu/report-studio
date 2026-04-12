@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react'
-import { useReportStore } from '@/store'
-import type { DataSourceNode } from '@/store/dataBrowserSlice'
+import { useDataBrowserStore } from '@/store/dataBrowserStore'
+import type { DataSourceNode } from '@/store/dataBrowserStore'
+import type { Product } from '@/types'
 import {
   scanScalarDbTable,
   listResponses,
@@ -13,7 +14,9 @@ import { DataGridToolbar, exportToCsv } from './DataGridToolbar'
 import { DataDetailPanel } from './DataDetailPanel'
 
 const PAGE_SIZE = 50
-const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+// Value type for grid cells — narrower than Record<string, unknown>
+type GridRow = Record<string, string | number | boolean | null | undefined>
 
 interface Props {
   source: DataSourceNode
@@ -21,27 +24,37 @@ interface Props {
 
 type LoadState = 'idle' | 'loading' | 'error' | 'ok'
 
+// Stable string key for a DataSourceNode (avoids object identity instability)
+function toSourceKey(source: DataSourceNode): string {
+  if (source.kind === 'scalardb-table') return `scalardb:${source.namespace}.${source.table}`
+  if (source.kind === 'form-responses') return `form-responses:${source.templateId}`
+  return 'product-master'
+}
+
 export function DataGrid({ source }: Props) {
-  const searchQuery = useReportStore((s) => s.dataBrowserSearchQuery)
-  const setSearch = useReportStore((s) => s.setDataBrowserSearch)
-  const sortCol = useReportStore((s) => s.dataBrowserSortCol)
-  const sortDir = useReportStore((s) => s.dataBrowserSortDir)
-  const setSort = useReportStore((s) => s.setDataBrowserSort)
-  const currentPage = useReportStore((s) => s.dataBrowserCurrentPage)
-  const setPage = useReportStore((s) => s.setDataBrowserPage)
-  const detailRow = useReportStore((s) => s.dataBrowserDetailRow)
-  const setDetailRow = useReportStore((s) => s.setDataBrowserDetailRow)
-  const cacheScalarDbScan = useReportStore((s) => s.cacheScalarDbScan)
+  const searchQuery = useDataBrowserStore((s) => s.searchQuery)
+  const setSearch = useDataBrowserStore((s) => s.setSearch)
+  const sortCol = useDataBrowserStore((s) => s.sortCol)
+  const sortDir = useDataBrowserStore((s) => s.sortDir)
+  const setSort = useDataBrowserStore((s) => s.setSort)
+  const currentPage = useDataBrowserStore((s) => s.currentPage)
+  const setPage = useDataBrowserStore((s) => s.setPage)
+  const detailRow = useDataBrowserStore((s) => s.detailRow)
+  const setDetailRow = useDataBrowserStore((s) => s.setDetailRow)
 
   const [loadState, setLoadState] = useState<LoadState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [scalarDbData, setScalarDbData] = useState<ScalarDbScanResponse | null>(null)
-  const [productRows, setProductRows] = useState<Record<string, unknown>[]>([])
-  const [formRows, setFormRows] = useState<Record<string, unknown>[]>([])
+  const [productRows, setProductRows] = useState<GridRow[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])  // full objects for detail panel
+  const [formRows, setFormRows] = useState<GridRow[]>([])
   const [formTotal, setFormTotal] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
 
-  // Load data when source changes or page changes
+  // Stable source key — prevents useEffect firing on object re-creation
+  const sourceKey = toSourceKey(source)
+
+  // Load data when source or page changes
   useEffect(() => {
     let cancelled = false
     setLoadState('loading')
@@ -53,8 +66,7 @@ export function DataGrid({ source }: Props) {
         .then((data) => {
           if (cancelled) return
           setScalarDbData(data)
-          setColumns(data.columns.map((c) => c.name).filter((k) => !FORBIDDEN_KEYS.has(k)))
-          cacheScalarDbScan(source.namespace, source.table, offset, data)
+          setColumns(data.columns.map((c) => c.name))
           setLoadState('ok')
         })
         .catch((e) => {
@@ -64,23 +76,29 @@ export function DataGrid({ source }: Props) {
         })
 
     } else if (source.kind === 'product-master') {
+      // Product master: fetch full Product objects; build display rows separately
       getProducts()
         .then((products) => {
           if (cancelled) return
-          const cols = ['code', 'name', 'unitPrice', 'category', 'taxType', 'unit', 'manufacturer', 'stockCount', 'description']
-          setColumns(cols)
+          setAllProducts(products)
+          setColumns(['code', 'name', 'unitPrice', 'category', 'taxType', 'unit', 'manufacturer', 'stockCount', 'description'])
           setProductRows(products.map((p) => ({
-            id: p.id, code: p.code, name: p.name, unitPrice: p.unitPrice,
-            category: p.category, taxType: p.taxType, unit: p.unit,
-            manufacturer: p.manufacturer, stockCount: p.stockCount, description: p.description,
-            subscriptionPeriod: p.subscriptionPeriod, subscriptionPriceUnit: p.subscriptionPriceUnit,
-            _product: p, // keep full product for detail panel
+            id: p.id,
+            code: p.code,
+            name: p.name,
+            unitPrice: p.unitPrice,
+            category: p.category,
+            taxType: p.taxType,
+            unit: p.unit,
+            manufacturer: p.manufacturer,
+            stockCount: p.stockCount,
+            description: p.description,
           })))
           setLoadState('ok')
         })
-        .catch(() => {
+        .catch((e) => {
           if (cancelled) return
-          setErrorMsg('商品データの読み込みに失敗しました')
+          setErrorMsg(e instanceof Error ? e.message : '商品データの読み込みに失敗しました')
           setLoadState('error')
         })
 
@@ -90,8 +108,7 @@ export function DataGrid({ source }: Props) {
         .then((data) => {
           if (cancelled) return
           setFormTotal(data.total)
-          const cols = ['submittedAt', 'submittedBy', 'summary']
-          setColumns(cols)
+          setColumns(['submittedAt', 'submittedBy', 'summary'])
           setFormRows(data.items.map((r) => ({
             submittedAt: new Date(r.submittedAt).toLocaleString('ja-JP'),
             submittedBy: r.submittedBy,
@@ -99,23 +116,28 @@ export function DataGrid({ source }: Props) {
           })))
           setLoadState('ok')
         })
-        .catch(() => {
+        .catch((e) => {
           if (cancelled) return
-          setErrorMsg('回答データの読み込みに失敗しました')
+          setErrorMsg(e instanceof Error ? e.message : '回答データの読み込みに失敗しました')
           setLoadState('error')
         })
     }
 
     return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, currentPage])
+  }, [sourceKey, currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Find full Product object for the currently selected row (for detail panel)
+  const selectedProduct = useMemo<Product | null>(() => {
+    if (source.kind !== 'product-master' || !detailRow) return null
+    return allProducts.find((p) => p.id === detailRow.id) ?? null
+  }, [source.kind, detailRow, allProducts])
 
   // Raw rows depending on source
-  const rawRows: Record<string, unknown>[] = useMemo(() => {
-    if (source.kind === 'scalardb-table') return scalarDbData?.rows ?? []
+  const rawRows: GridRow[] = useMemo(() => {
+    if (source.kind === 'scalardb-table') return (scalarDbData?.rows ?? []) as GridRow[]
     if (source.kind === 'product-master') return productRows
     return formRows
-  }, [source, scalarDbData, productRows, formRows])
+  }, [source.kind, scalarDbData, productRows, formRows])
 
   // Client-side filter & sort
   const filteredRows = useMemo(() => {
@@ -138,24 +160,19 @@ export function DataGrid({ source }: Props) {
     })
   }, [filteredRows, sortCol, sortDir])
 
-  // Pagination totals
-  const totalRows = source.kind === 'form-responses' ? formTotal : (scalarDbData?.total ?? sortedRows.length)
+  // Pagination
+  const totalRows = source.kind === 'form-responses' ? formTotal
+    : source.kind === 'scalardb-table' ? (scalarDbData?.total ?? 0)
+    : sortedRows.length
   const totalPages = Math.max(1, Math.ceil(
-    source.kind === 'form-responses' || source.kind === 'scalardb-table'
-      ? totalRows / PAGE_SIZE
-      : sortedRows.length / PAGE_SIZE
+    source.kind === 'product-master' ? sortedRows.length / PAGE_SIZE : totalRows / PAGE_SIZE
   ))
-  // For client-paginated sources (product master)
   const displayRows = source.kind === 'product-master'
     ? sortedRows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
     : sortedRows
 
   function handleSort(col: string) {
-    if (sortCol === col) {
-      setSort(col, sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSort(col, 'asc')
-    }
+    setSort(col, sortCol === col && sortDir === 'asc' ? 'desc' : 'asc')
   }
 
   function handleExportCsv() {
@@ -165,7 +182,7 @@ export function DataGrid({ source }: Props) {
       : source.kind === 'product-master'
         ? `product_master_${now}.csv`
         : `responses_${source.templateId}_${now}.csv`
-    exportToCsv(columns, displayRows, name)
+    exportToCsv(columns, displayRows as Record<string, unknown>[], name)
   }
 
   if (loadState === 'loading') {
@@ -186,7 +203,7 @@ export function DataGrid({ source }: Props) {
           description={errorMsg}
           action={
             <button
-              onClick={() => setPage(currentPage)} // re-trigger effect
+              onClick={() => setPage(currentPage)}
               className="px-3 py-1.5 text-xs border rounded hover:bg-accent"
             >
               再試行
@@ -239,7 +256,7 @@ export function DataGrid({ source }: Props) {
               {displayRows.map((row, i) => (
                 <tr
                   key={i}
-                  onClick={() => setDetailRow(row)}
+                  onClick={() => setDetailRow(row as Record<string, unknown>)}
                   className="hover:bg-muted/30 cursor-pointer"
                 >
                   {columns.map((col) => (
@@ -284,7 +301,7 @@ export function DataGrid({ source }: Props) {
         <DataDetailPanel
           row={detailRow}
           columns={columns}
-          isProductMaster={source.kind === 'product-master'}
+          product={selectedProduct ?? undefined}
           onClose={() => setDetailRow(null)}
         />
       )}

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowLeft, TableProperties } from 'lucide-react'
 import { useReportStore } from '@/store'
-import type { DataSourceNode } from '@/store/dataBrowserSlice'
+import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import { DataSourceTree } from '@/components/dataBrowser/DataSourceTree'
 import { DataGrid } from '@/components/dataBrowser/DataGrid'
 import { EmptyState } from '@/components/dataBrowser/EmptyState'
@@ -11,16 +11,19 @@ export function DataBrowserPage() {
   const currentUser = useReportStore((s) => s.currentUser)
   const authLoading = useReportStore((s) => s.authLoading)
   const checkAuth = useReportStore((s) => s.checkAuth)
-  const selectedSource = useReportStore((s) => s.dataBrowserSelectedSource)
-  const setSource = useReportStore((s) => s.setDataBrowserSource)
+  const selectedSource = useDataBrowserStore((s) => s.selectedSource)
+  const setSource = useDataBrowserStore((s) => s.setSource)
 
   // Ensure auth state is initialized
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
+  // Show nothing while auth state is loading (prevents flash for unauthenticated users)
+  if (authLoading) return null
+
   // Redirect to root if not authenticated
-  if (!authLoading && !currentUser) {
+  if (!currentUser) {
     return <Navigate to="/" replace />
   }
 
@@ -51,7 +54,7 @@ export function DataBrowserPage() {
           aria-label="データソース選択"
         >
           <DataSourceTree
-            onSelect={(node: DataSourceNode) => setSource(node)}
+            onSelect={setSource}
             selected={selectedSource}
           />
         </aside>

@@ -17,6 +17,8 @@ import io.javalin.http.ServiceUnavailableResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.report.server.auth.RateLimiter;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +61,17 @@ public final class V2ScalarDbScanController {
     static final int PAGE_LIMIT = 50;
 
     private final TransactionFactory factory;
+    private final RateLimiter rateLimiter;
 
+    /** Production constructor: 20 scans per minute per user. */
     public V2ScalarDbScanController(TransactionFactory factory) {
+        this(factory, new RateLimiter(20, 60_000L));
+    }
+
+    /** Package-private for testing with custom rate limiter. */
+    V2ScalarDbScanController(TransactionFactory factory, RateLimiter rateLimiter) {
         this.factory = factory;
+        this.rateLimiter = rateLimiter;
     }
 
     /** {@code GET /api/v2/scalardb/tables/{ns}/{table}/rows} */
@@ -71,6 +81,14 @@ public final class V2ScalarDbScanController {
         if (principal == null || principal.isAnonymous()) {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.json(Map.of("error", "Authentication required"));
+            return;
+        }
+
+        // Rate limiting: 20 req/min per user
+        String userId = principal.userId();
+        if (!rateLimiter.isAllowed(userId)) {
+            ctx.status(429);
+            ctx.json(Map.of("error", "Too many requests"));
             return;
         }
 
@@ -101,27 +119,30 @@ public final class V2ScalarDbScanController {
                 return;
             }
 
-            // Full-table scan — cap at MAX_SCAN_ROWS + 1 to detect truncation
+            // Optimized scan: fetch only (offset + limit) rows, not the full 10k table.
+            // This bounds heap usage to O(offset + limit) rather than O(MAX_SCAN_ROWS).
+            // We fetch one extra row to detect truncation at the MAX_SCAN_ROWS boundary.
+            int fetchCount = Math.min(offset + limit + 1, MAX_SCAN_ROWS + 1);
             Scan scan = Scan.newBuilder()
                     .namespace(namespace)
                     .table(tableName)
                     .all()
-                    .limit(MAX_SCAN_ROWS + 1)
+                    .limit(fetchCount)
                     .build();
 
             tx = mgr.start();
-            List<Result> allRows = tx.scan(scan);
+            List<Result> fetched = tx.scan(scan);
             tx.commit();
             tx = null;
 
-            boolean truncated = allRows.size() > MAX_SCAN_ROWS;
-            List<Result> cappedRows = allRows.subList(0, Math.min(allRows.size(), MAX_SCAN_ROWS));
-            int total = cappedRows.size();
+            // Detect truncation: if we reached the overall MAX_SCAN_ROWS boundary
+            boolean truncated = (fetchCount >= MAX_SCAN_ROWS + 1) && (fetched.size() >= MAX_SCAN_ROWS + 1);
+            int total = Math.min(fetched.size(), MAX_SCAN_ROWS);
 
-            // Apply pagination in Java (offset/limit within capped rows)
+            // Apply pagination in Java
             int fromIdx = Math.min(offset, total);
             int toIdx   = Math.min(fromIdx + limit, total);
-            List<Result> pageRows = cappedRows.subList(fromIdx, toIdx);
+            List<Result> pageRows = fetched.subList(fromIdx, toIdx);
 
             // Build column metadata (name-based — order from TableMetadata)
             ArrayNode columnsNode = buildColumnMetadata(meta);

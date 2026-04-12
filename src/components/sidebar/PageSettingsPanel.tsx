@@ -246,7 +246,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 onChange={(e) => updateMetadata({ version: e.target.value })}
               />
             </div>
-
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">帳票種別</label>
               <input
@@ -256,7 +255,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 onChange={(e) => updateMetadata({ reportType: e.target.value })}
               />
             </div>
-
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">説明</label>
               <textarea
@@ -266,7 +264,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 onChange={(e) => updateMetadata({ description: e.target.value })}
               />
             </div>
-
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">適用規制・基準</label>
               <input
@@ -275,7 +272,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 onChange={(e) => updateMetadata({ applicableRegulation: e.target.value })}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-1">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">有効開始日</label>
@@ -296,7 +292,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 />
               </div>
             </div>
-
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">カテゴリ</label>
               <CategoryCombobox
@@ -305,7 +300,6 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 onChange={(v) => updateMetadata({ category: v })}
               />
             </div>
-
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">タグ</label>
               <TagInput
