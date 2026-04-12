@@ -878,6 +878,141 @@ export async function putProductCustomFieldDefs(
 }
 
 // ---------------------------------------------------------------------------
+// Webhook Configuration
+// ---------------------------------------------------------------------------
+
+export interface WebhookConfig {
+  configured?: boolean
+  url?: string
+  secret?: string
+}
+
+export async function getWebhookConfig(templateId: string): Promise<WebhookConfig> {
+  const res = await fetch(`/api/v1/webhooks/${encodeURIComponent(templateId)}`, { credentials: 'include' })
+  if (!res.ok) throw new Error(`Failed to get webhook config: ${res.status}`)
+  return res.json()
+}
+
+export async function updateWebhookConfig(templateId: string, config: WebhookConfig): Promise<WebhookConfig> {
+  const res = await fetch(`/api/v1/webhooks/${encodeURIComponent(templateId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { error?: string }).error ?? `Failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function testWebhook(templateId: string): Promise<{ delivered: boolean; url: string }> {
+  const res = await fetch(`/api/v1/webhooks/${encodeURIComponent(templateId)}/test`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { error?: string }).error ?? `Test failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// Batch PDF Generation
+// ---------------------------------------------------------------------------
+
+export interface BatchPdfStatus {
+  batchJobId: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  total: number
+  completed: number
+  failed: number
+  error?: string
+}
+
+export async function submitBatchPdfJob(
+  templateId: string,
+  responseIds: string[],
+): Promise<{ batchJobId: string; totalCount: number; status: string; statusUrl: string }> {
+  const res = await fetch('/api/v2/pdf-jobs/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templateId, responseIds }),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Batch job submit failed: ${res.status}`)
+  return res.json()
+}
+
+export async function getBatchPdfStatus(batchJobId: string): Promise<BatchPdfStatus> {
+  const res = await fetch(`/api/v2/pdf-jobs/batch/${encodeURIComponent(batchJobId)}`, {
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Status fetch failed: ${res.status}`)
+  return res.json()
+}
+
+export async function downloadBatchPdfResult(batchJobId: string, filename: string): Promise<void> {
+  const res = await fetch(`/api/v2/pdf-jobs/batch/${encodeURIComponent(batchJobId)}/result`, {
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`)
+  const blob = await res.blob()
+  downloadBlob(blob, filename)
+}
+
+// ---------------------------------------------------------------------------
+// Document Auto-numbering (シーケンス採番)
+// ---------------------------------------------------------------------------
+
+export interface SequenceConfig {
+  configured?: boolean
+  prefix?: string
+  suffix?: string
+  digits?: number
+  resetOn?: 'year' | null
+  counter?: number
+}
+
+export async function getSequenceConfig(templateId: string): Promise<SequenceConfig> {
+  const res = await fetch(`/api/v1/sequences/${encodeURIComponent(templateId)}`, { credentials: 'include' })
+  if (!res.ok) throw new Error(`Failed to get sequence config: ${res.status}`)
+  return res.json()
+}
+
+export async function updateSequenceConfig(templateId: string, config: Partial<SequenceConfig>): Promise<SequenceConfig> {
+  const res = await fetch(`/api/v1/sequences/${encodeURIComponent(templateId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Failed to update sequence config: ${res.status}`)
+  return res.json()
+}
+
+/** POST /api/v1/products/import — bulk import from CSV text */
+export async function importProductsCsv(csvText: string): Promise<{
+  imported: number
+  skipped: number
+  errors: { row: number; column: string; value: string; reason: string }[]
+}> {
+  const res = await fetch('/api/v1/products/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ csv: csvText }),
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { error?: string }).error ?? `Import failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
 // Data Browser — ScalarDB table scan
 // ---------------------------------------------------------------------------
 
