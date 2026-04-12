@@ -7,9 +7,10 @@ import { DbConnectionTab } from '@/components/modals/DbConnectionTab'
 import { BindingMapperTab } from '@/components/modals/BindingMapperTab'
 import { TenantInfoTab } from '@/components/modals/TenantInfoTab'
 import { ProductMasterTab } from '@/components/modals/ProductMasterTab'
+import { WebhookTab } from '@/components/modals/WebhookTab'
 import { cn } from '@/lib/utils'
 
-type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper' | 'tenantinfo' | 'productmaster'
+type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper' | 'tenantinfo' | 'productmaster' | 'webhook'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'datasource', label: 'テンプレートデータ' },
@@ -19,6 +20,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'bindingmapper', label: 'バインドマッパー' },
   { id: 'tenantinfo', label: 'テナント情報' },
   { id: 'productmaster', label: '商品マスター' },
+  { id: 'webhook', label: 'Webhook' },
 ]
 
 interface DataBindingModalProps {
@@ -174,6 +176,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
           {activeTab === 'bindingmapper' && <BindingMapperTab onClose={handleClose} />}
           {activeTab === 'tenantinfo' && <TenantInfoTab />}
           {activeTab === 'productmaster' && <ProductMasterTab />}
+          {activeTab === 'webhook' && <WebhookTab />}
         </div>
       </div>
     </div>

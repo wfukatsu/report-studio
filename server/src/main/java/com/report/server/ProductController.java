@@ -430,6 +430,181 @@ public final class ProductController {
         ctx.result(MAPPER.writeValueAsString(parsed));
     }
 
+    // ── CSV Import ────────────────────────────────────────────────────────────
+
+    private static final int IMPORT_MAX_ROWS = 1_000;
+    private static final int IMPORT_MAX_CUSTOM_KEYS = 50;
+
+    // Known field column aliases (Japanese and English)
+    private static final java.util.Map<String, String> COLUMN_ALIASES = java.util.Map.ofEntries(
+        java.util.Map.entry("code", "code"),       java.util.Map.entry("商品コード", "code"),
+        java.util.Map.entry("name", "name"),       java.util.Map.entry("商品名", "name"),
+        java.util.Map.entry("unitprice", "unitPrice"), java.util.Map.entry("単価", "unitPrice"),
+        java.util.Map.entry("category", "category"), java.util.Map.entry("カテゴリ", "category"),
+        java.util.Map.entry("taxtype", "taxType"),
+        java.util.Map.entry("unit", "unit"),       java.util.Map.entry("単位", "unit"),
+        java.util.Map.entry("manufacturer", "manufacturer"), java.util.Map.entry("メーカー", "manufacturer"),
+        java.util.Map.entry("description", "description"), java.util.Map.entry("説明", "description"),
+        java.util.Map.entry("stockcount", "stockCount"), java.util.Map.entry("在庫数", "stockCount")
+    );
+
+    /**
+     * POST /api/v1/products/import
+     * Bulk-import products from CSV text. Skips rows that fail validation (no full abort).
+     */
+    public void importCsv(Context ctx) throws Exception {
+        if (!requireAuth(ctx)) return;
+
+        String body = ctx.body();
+        if (!RequestValidator.validateJson(ctx, body)) return;
+
+        JsonNode req;
+        try { req = MAPPER.readTree(body); }
+        catch (Exception e) { ctx.status(HttpStatus.BAD_REQUEST); ctx.json(Map.of("error","Invalid JSON")); return; }
+
+        String csvText = req.path("csv").asText(null);
+        if (csvText == null || csvText.isBlank()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "csv field is required"));
+            return;
+        }
+
+        // Parse CSV
+        java.util.List<java.util.Map<String, String>> rows;
+        try {
+            rows = CsvDataSource.parse(csvText);
+        } catch (IllegalArgumentException e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "CSV exceeds maximum row count of " + IMPORT_MAX_ROWS));
+            return;
+        }
+
+        if (rows.size() > IMPORT_MAX_ROWS) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "CSV exceeds maximum of " + IMPORT_MAX_ROWS + " rows"));
+            return;
+        }
+
+        int imported = 0, skipped = 0;
+        com.fasterxml.jackson.databind.node.ArrayNode errors = MAPPER.createArrayNode();
+
+        String now = java.time.Instant.now().toString();
+
+        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
+            int rowNum = rowIdx + 2; // 1-based, accounting for header
+            java.util.Map<String, String> row = rows.get(rowIdx);
+
+            // Map known columns; collect unknown as customFields
+            java.util.Map<String, String> known = new java.util.HashMap<>();
+            java.util.Map<String, String> custom = new java.util.LinkedHashMap<>();
+            boolean hasReservedKey = false;
+
+            for (java.util.Map.Entry<String, String> entry : row.entrySet()) {
+                String colKey = entry.getKey().toLowerCase().trim();
+                String resolved = COLUMN_ALIASES.get(colKey);
+                if (resolved != null) {
+                    known.put(resolved, entry.getValue());
+                } else {
+                    // Unknown column → customFields
+                    String origKey = entry.getKey().trim();
+                    if (RESERVED_KEYS.contains(origKey)) {
+                        hasReservedKey = true; break;
+                    }
+                    if (SAFE_KEY.matcher(origKey).matches() && custom.size() < IMPORT_MAX_CUSTOM_KEYS) {
+                        custom.put(origKey, entry.getValue());
+                    }
+                }
+            }
+
+            if (hasReservedKey) {
+                skipped++;
+                addError(errors, rowNum, "key", "", "プロトタイプ汚染キーが含まれています");
+                continue;
+            }
+
+            // Validate required: code
+            String code = known.getOrDefault("code", "").trim();
+            if (code.isEmpty()) {
+                skipped++;
+                addError(errors, rowNum, "code", "", "商品コードは必須です");
+                continue;
+            }
+            if (!SAFE_KEY.matcher(code).matches()) {
+                skipped++;
+                addError(errors, rowNum, "code", code, "商品コードは英数字・ハイフン・アンダースコアのみ");
+                continue;
+            }
+
+            // Validate unitPrice if present
+            double unitPrice = 0.0;
+            if (known.containsKey("unitPrice")) {
+                String priceStr = known.get("unitPrice").trim();
+                try { unitPrice = Double.parseDouble(priceStr); }
+                catch (NumberFormatException e) {
+                    skipped++;
+                    addError(errors, rowNum, "unitPrice", priceStr, "数値ではありません");
+                    continue;
+                }
+            }
+
+            // Check code uniqueness via sentinel
+            if (repo.get(SENTINEL_PREFIX + code).isPresent()) {
+                skipped++;
+                addError(errors, rowNum, "code", code, "コード重複: " + code);
+                continue;
+            }
+
+            // Build product
+            String productId = java.util.UUID.randomUUID().toString();
+            com.fasterxml.jackson.databind.node.ObjectNode product = MAPPER.createObjectNode();
+            product.put("id", productId);
+            product.put("code", code);
+            product.put("name", known.getOrDefault("name", "").trim());
+            product.put("unitPrice", unitPrice);
+            product.put("category", known.getOrDefault("category", "").trim());
+            product.put("description", known.getOrDefault("description", "").trim());
+            product.put("taxType", known.getOrDefault("taxType", "none").trim());
+            product.put("unit", known.getOrDefault("unit", "").trim());
+            product.put("manufacturer", known.getOrDefault("manufacturer", "").trim());
+            // stockCount
+            int stockCount = 0;
+            if (known.containsKey("stockCount")) {
+                try { stockCount = Integer.parseInt(known.get("stockCount").trim()); } catch (NumberFormatException ignored) {}
+            }
+            product.put("stockCount", stockCount);
+            product.putNull("subscriptionPeriod");
+            product.putNull("subscriptionPriceUnit");
+            // customFields
+            com.fasterxml.jackson.databind.node.ObjectNode cf = MAPPER.createObjectNode();
+            custom.forEach(cf::put);
+            product.set("customFields", cf);
+            product.set("priceHistory", MAPPER.createArrayNode());
+            product.putNull("deletedAt");
+            product.put("createdAt", now);
+            product.put("updatedAt", now);
+            product.put("version", 0);
+
+            // Save
+            repo.put(productId, MAPPER.writeValueAsString(product), GROUP_KEY);
+            repo.put(SENTINEL_PREFIX + code, "{\"productId\":\"" + productId + "\"}");
+            imported++;
+        }
+
+        com.fasterxml.jackson.databind.node.ObjectNode result = MAPPER.createObjectNode();
+        result.put("imported", imported);
+        result.put("skipped", skipped);
+        result.set("errors", errors);
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(result));
+    }
+
+    private static void addError(com.fasterxml.jackson.databind.node.ArrayNode errors,
+                                  int row, String column, String value, String reason) {
+        com.fasterxml.jackson.databind.node.ObjectNode e = errors.objectNode();
+        e.put("row", row); e.put("column", column); e.put("value", value); e.put("reason", reason);
+        errors.add(e);
+    }
+
     // ── Package-private helpers (used by ProductMasterResolver) ──────────────
 
     /**

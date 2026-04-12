@@ -1,0 +1,182 @@
+package com.report.server;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.Principal;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Webhook configuration endpoints per template.
+ *
+ * <ul>
+ *   <li>GET  /api/v1/webhooks/{templateId}        — get config (secret masked)</li>
+ *   <li>PUT  /api/v1/webhooks/{templateId}         — update config</li>
+ *   <li>POST /api/v1/webhooks/{templateId}/test    — send test payload</li>
+ * </ul>
+ */
+public final class WebhookController {
+
+    private static final Logger log = LoggerFactory.getLogger(WebhookController.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final JsonBlobRepository webhookRepo;
+    private final WebhookDispatcher dispatcher;
+
+    public WebhookController(JsonBlobRepository webhookRepo, WebhookDispatcher dispatcher) {
+        this.webhookRepo = webhookRepo;
+        this.dispatcher = dispatcher;
+    }
+
+    // ── GET /api/v1/webhooks/{templateId} ────────────────────────────────────
+
+    public void getConfig(Context ctx) throws Exception {
+        String templateId = RequestValidator.validateId(ctx, "templateId");
+        if (templateId == null) return;
+
+        Optional<String> stored = webhookRepo.get(templateId);
+        if (stored.isEmpty()) {
+            ctx.json(Map.of("configured", false));
+            return;
+        }
+        ObjectNode config = (ObjectNode) MAPPER.readTree(stored.get());
+        // Mask secret
+        if (config.has("secret") && !config.path("secret").isNull()) {
+            config.put("secret", "****");
+        }
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(config));
+    }
+
+    // ── PUT /api/v1/webhooks/{templateId} ────────────────────────────────────
+
+    public void putConfig(Context ctx) throws Exception {
+        if (!requireAuth(ctx)) return;
+        String templateId = RequestValidator.validateId(ctx, "templateId");
+        if (templateId == null) return;
+
+        JsonNode req;
+        try { req = MAPPER.readTree(ctx.body()); }
+        catch (Exception e) { ctx.status(HttpStatus.BAD_REQUEST); ctx.json(Map.of("error","Invalid JSON")); return; }
+
+        String url = req.path("url").asText(null);
+        if (url != null && !url.isBlank()) {
+            // Validate SSRF before saving
+            try { WebhookDispatcher.validateUrl(url); }
+            catch (IllegalArgumentException e) {
+                ctx.status(HttpStatus.BAD_REQUEST);
+                ctx.json(Map.of("error", e.getMessage()));
+                return;
+            }
+        }
+
+        // Build config — preserve existing secret if not provided in request
+        Optional<String> stored = webhookRepo.get(templateId);
+        ObjectNode config = stored.isPresent()
+                ? (ObjectNode) MAPPER.readTree(stored.get())
+                : MAPPER.createObjectNode();
+
+        if (url != null) config.put("url", url.isBlank() ? null : url);
+        if (req.has("secret")) {
+            String secret = req.path("secret").asText(null);
+            if (secret != null && !secret.equals("****")) {
+                config.put("secret", secret); // store plaintext (TODO: encrypt in production)
+            }
+        }
+
+        webhookRepo.put(templateId, MAPPER.writeValueAsString(config));
+        // Return masked config
+        ObjectNode masked = config.deepCopy();
+        if (masked.has("secret") && !masked.path("secret").isNull()) masked.put("secret", "****");
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(masked));
+    }
+
+    // ── POST /api/v1/webhooks/{templateId}/test ──────────────────────────────
+
+    public void testWebhook(Context ctx) throws Exception {
+        if (!requireAuth(ctx)) return;
+        String templateId = RequestValidator.validateId(ctx, "templateId");
+        if (templateId == null) return;
+
+        Optional<String> stored = webhookRepo.get(templateId);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Webhook not configured"));
+            return;
+        }
+
+        JsonNode config = MAPPER.readTree(stored.get());
+        String url = config.path("url").asText(null);
+        if (url == null || url.isBlank()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "No webhook URL configured"));
+            return;
+        }
+        String secret = config.path("secret").asText(null);
+
+        // Build test payload
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("event", "test");
+        payload.put("templateId", templateId);
+        payload.put("message", "This is a test webhook from Report Design Studio");
+        payload.put("timestamp", Instant.now().toString());
+
+        dispatcher.dispatch(url, secret, MAPPER.writeValueAsString(payload));
+        ctx.json(Map.of("delivered", true, "url", url));
+        log.info("Test webhook sent to {} for template {}", url, templateId);
+    }
+
+    // ── Package-private: dispatch for form response submission ────────────────
+
+    /**
+     * Dispatch webhook asynchronously for a form response. Called from V2FormResponseController.
+     * Does NOT block — dispatch happens in the provided executor.
+     */
+    public void dispatchAsync(String templateId, String responseId, String responseJson,
+                               java.util.concurrent.ExecutorService executor) {
+        executor.execute(() -> {
+            try {
+                Optional<String> stored = webhookRepo.get(templateId);
+                if (stored.isEmpty()) return;
+                JsonNode config = MAPPER.readTree(stored.get());
+                String url = config.path("url").asText(null);
+                if (url == null || url.isBlank()) return;
+                String secret = config.path("secret").asText(null);
+
+                JsonNode resp = MAPPER.readTree(responseJson);
+                ObjectNode payload = MAPPER.createObjectNode();
+                payload.put("event", "form_response.received");
+                payload.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+                payload.put("templateId", templateId);
+                payload.put("responseId", responseId);
+                payload.put("submittedAt", resp.path("submittedAt").asText(""));
+                payload.put("submittedBy", resp.path("submittedBy").asText(""));
+                // summary
+                payload.set("data", resp.path("data"));
+
+                dispatcher.dispatch(url, secret, MAPPER.writeValueAsString(payload));
+            } catch (Exception e) {
+                // Never propagate — form response is already saved
+                log.warn("Webhook dispatch failed for template={} response={}: {}", templateId, responseId, e.getMessage());
+            }
+        });
+    }
+
+    private boolean requireAuth(Context ctx) {
+        Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous()) {
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            ctx.json(Map.of("error", "Authentication required"));
+            return false;
+        }
+        return true;
+    }
+}

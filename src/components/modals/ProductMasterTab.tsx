@@ -3,6 +3,7 @@ import { useReportStore } from '@/store'
 import type { Product, ProductCustomFieldDef } from '@/types'
 import { cn } from '@/lib/utils'
 import { ProductEditDialog } from './ProductEditDialog'
+import { ProductCsvImportModal } from './ProductCsvImportModal'
 
 type SortCol = 'code' | 'name' | 'category' | 'unitPrice'
 type SortDir = 'asc' | 'desc'
@@ -37,6 +38,7 @@ export function ProductMasterTab() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isFieldDefsOpen, setIsFieldDefsOpen] = useState(false)
+  const [isCsvImportOpen, setIsCsvImportOpen] = useState(false)
 
   useEffect(() => {
     if (products.length === 0 && !productsLoading) fetchProducts()
@@ -129,6 +131,12 @@ export function ProductMasterTab() {
               onChange={(e) => setSearch(e.target.value)}
               className="border rounded px-2 py-1 text-xs bg-background w-48"
             />
+            <button
+              onClick={() => setIsCsvImportOpen(true)}
+              className="px-3 py-1 text-xs border rounded hover:bg-accent transition-colors"
+            >
+              CSV
+            </button>
             <button
               onClick={() => setIsAddOpen(true)}
               className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
@@ -237,6 +245,10 @@ export function ProductMasterTab() {
         <CustomFieldDefsDialog
           onClose={() => setIsFieldDefsOpen(false)}
         />
+      )}
+
+      {isCsvImportOpen && (
+        <ProductCsvImportModal onClose={() => setIsCsvImportOpen(false)} />
       )}
     </div>
   )

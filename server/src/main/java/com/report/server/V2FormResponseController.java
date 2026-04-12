@@ -46,6 +46,9 @@ public final class V2FormResponseController {
     private final JsonBlobRepository responseRepo;
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter submitLimiter;
+    private SequenceController sequenceCtrl; // injected lazily
+    private WebhookController webhookCtrl;   // injected lazily
+    private java.util.concurrent.ExecutorService webhookExecutor;
 
     public V2FormResponseController(
             JsonBlobRepository responseRepo,
@@ -54,6 +57,17 @@ public final class V2FormResponseController {
         this.responseRepo = responseRepo;
         this.definitionsRepo = definitionsRepo;
         this.submitLimiter = submitLimiter;
+    }
+
+    /** Inject sequence controller after construction (avoids circular dependency). */
+    public void setSequenceController(SequenceController ctrl) {
+        this.sequenceCtrl = ctrl;
+    }
+
+    /** Inject webhook controller after construction. */
+    public void setWebhookController(WebhookController ctrl, java.util.concurrent.ExecutorService executor) {
+        this.webhookCtrl = ctrl;
+        this.webhookExecutor = executor;
     }
 
     // ── submit ────────────────────────────────────────────────────────────────
@@ -129,12 +143,31 @@ public final class V2FormResponseController {
         response.put("submittedBy", principal.userId()); // server-stamped
 
         try {
-            responseRepo.put(responseId, MAPPER.writeValueAsString(response), templateId);
+            // If sequence controller is configured, use single atomic TX (seq + response)
+            if (sequenceCtrl != null) {
+                String responseJson = MAPPER.writeValueAsString(response);
+                String docNumber = sequenceCtrl.nextAndStamp(templateId, responseRepo, responseId, responseJson);
+                if (docNumber == null) {
+                    // No sequence configured — save response normally
+                    responseRepo.put(responseId, responseJson, templateId);
+                }
+                // If docNumber != null, the response was saved inside the TX with documentNumber
+            } else {
+                responseRepo.put(responseId, MAPPER.writeValueAsString(response), templateId);
+            }
         } catch (Exception e) {
             log.error("Failed to save V2 form response for template {}", templateId, e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "Failed to save response"));
             return;
+        }
+
+        // Async webhook dispatch (non-blocking, failure does NOT affect response)
+        if (webhookCtrl != null && webhookExecutor != null) {
+            try {
+                String savedJson = MAPPER.writeValueAsString(response);
+                webhookCtrl.dispatchAsync(templateId, responseId, savedJson, webhookExecutor);
+            } catch (Exception ignored) { /* webhook errors must never surface to user */ }
         }
 
         ctx.status(HttpStatus.CREATED);

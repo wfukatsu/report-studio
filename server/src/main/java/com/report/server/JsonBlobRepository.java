@@ -199,6 +199,37 @@ public final class JsonBlobRepository {
         }
     }
 
+    // ── Transaction-aware methods for atomic read-then-write ──────────────────
+
+    /** Expose factory for callers that need to manage their own transaction lifecycle. */
+    public DistributedTransactionManager getTransactionManager() {
+        return factory.getTransactionManager();
+    }
+
+    /** Read within an existing transaction (does NOT commit). */
+    public Optional<String> getWithinTx(DistributedTransaction tx, String id) throws Exception {
+        Get get = Get.newBuilder()
+                .namespace(namespace)
+                .table(table)
+                .partitionKey(Key.ofText(COL_ID, id))
+                .build();
+        Optional<Result> result = tx.get(get);
+        return result.map(r -> r.getText(COL_JSON));
+    }
+
+    /** Write within an existing transaction (does NOT commit). */
+    public void putWithinTx(DistributedTransaction tx, String id, String json) throws Exception {
+        Put put = Put.newBuilder()
+                .namespace(namespace)
+                .table(table)
+                .partitionKey(Key.ofText(COL_ID, id))
+                .textValue(COL_JSON, json)
+                .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                .enableImplicitPreRead()
+                .build();
+        tx.put(put);
+    }
+
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
             try { tx.abort(); } catch (Exception ignored) { }

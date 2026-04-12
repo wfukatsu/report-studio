@@ -60,6 +60,13 @@ public final class AppWiring {
     final JsonBlobRepository productRepo;
     final ProductController productCtrl;
     final V2ScalarDbScanController v2ScalarDbScanCtrl;
+    final V2BatchPdfController v2BatchPdfCtrl;
+    final JsonBlobRepository sequenceRepo;
+    final SequenceController sequenceCtrl;
+    final JsonBlobRepository webhookRepo;
+    final WebhookDispatcher webhookDispatcher;
+    final WebhookController webhookCtrl;
+    final java.util.concurrent.ExecutorService webhookExecutor;
 
     // ── Admin controllers ─────────────────────────────────────────────────────
     final AdminUserController adminUserCtrl;
@@ -176,6 +183,20 @@ public final class AppWiring {
         productCtrl = new ProductController(productRepo);
         v2BindingResolveCtrl.setProductController(productCtrl);
         v2ScalarDbScanCtrl = new V2ScalarDbScanController(factory);
+        v2BatchPdfCtrl = new V2BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, pdfExecutor);
+        sequenceRepo = new JsonBlobRepository(factory, NAMESPACE, "sequences");
+        sequenceRepo.ensureTable();
+        sequenceCtrl = new SequenceController(sequenceRepo);
+        v2FormResponseCtrl.setSequenceController(sequenceCtrl);
+        webhookRepo = new JsonBlobRepository(factory, NAMESPACE, "webhooks");
+        webhookRepo.ensureTable();
+        webhookDispatcher = new WebhookDispatcher();
+        webhookExecutor = new java.util.concurrent.ThreadPoolExecutor(
+            2, 8, 60L, java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<>(100),
+            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        webhookCtrl = new WebhookController(webhookRepo, webhookDispatcher);
+        v2FormResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

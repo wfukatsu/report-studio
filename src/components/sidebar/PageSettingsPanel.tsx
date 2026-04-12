@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
+import { getSequenceConfig, updateSequenceConfig } from '@/api/reportApi'
+import type { SequenceConfig } from '@/api/reportApi'
 import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
@@ -13,7 +15,26 @@ interface PageSettingsPanelProps {
 
 export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) {
   const [metaOpen, setMetaOpen] = useState(false)
+  const [seqOpen, setSeqOpen] = useState(false)
+  const [seqConfig, setSeqConfig] = useState<SequenceConfig | null>(null)
+  const [seqSaving, setSeqSaving] = useState(false)
   const activePage = useReportStore(selectActivePage)
+  const currentTemplateId = useReportStore((s) => s.currentTemplateId)
+
+  useEffect(() => {
+    if (!currentTemplateId || !seqOpen) return
+    getSequenceConfig(currentTemplateId).then(setSeqConfig).catch(() => {})
+  }, [currentTemplateId, seqOpen])
+
+  const handleSeqSave = async () => {
+    if (!currentTemplateId || !seqConfig || seqSaving) return
+    setSeqSaving(true)
+    try {
+      const updated = await updateSequenceConfig(currentTemplateId, seqConfig)
+      setSeqConfig(updated)
+    } catch { /* ignore */ }
+    finally { setSeqSaving(false) }
+  }
   const renamePage = useReportStore((s) => s.renamePage)
   const updatePageBackground = useReportStore((s) => s.updatePageBackground)
   const pageSettings = useReportStore((s) => s.definition.pageSettings)
@@ -310,6 +331,59 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           </div>
         )}
       </div>
+
+      {/* Sequence numbering section */}
+      {currentTemplateId && (
+        <div className="border rounded">
+          <button type="button" onClick={() => setSeqOpen(v => !v)} aria-expanded={seqOpen}
+            className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors">
+            {seqOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+            採番設定
+          </button>
+          {seqOpen && (
+            <div className="px-2 pb-2 space-y-2 border-t pt-2">
+              <p className="text-[10px] text-muted-foreground">
+                フォーム送信時に自動採番。帳票テキスト内で <code className="bg-muted px-0.5 rounded">{`{{documentNumber}}`}</code> を使用。
+              </p>
+              {seqConfig && (
+                <>
+                  <div className="grid grid-cols-3 gap-1">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-muted-foreground">プレフィックス</label>
+                      <input value={seqConfig.prefix ?? ''} onChange={e => setSeqConfig(s => s ? {...s, prefix: e.target.value} : s)}
+                        placeholder="QUO-" className="border rounded px-1.5 py-1 text-xs bg-background" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-muted-foreground">桁数</label>
+                      <input type="number" min={1} max={10} value={seqConfig.digits ?? 4}
+                        onChange={e => setSeqConfig(s => s ? {...s, digits: parseInt(e.target.value)||4} : s)}
+                        className="border rounded px-1.5 py-1 text-xs bg-background" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-muted-foreground">サフィックス</label>
+                      <input value={seqConfig.suffix ?? ''} onChange={e => setSeqConfig(s => s ? {...s, suffix: e.target.value} : s)}
+                        className="border rounded px-1.5 py-1 text-xs bg-background" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-muted-foreground">年次リセット</label>
+                    <input type="checkbox" checked={seqConfig.resetOn === 'year'}
+                      onChange={e => setSeqConfig(s => s ? {...s, resetOn: e.target.checked ? 'year' : null} : s)} />
+                    <span className="text-[10px] text-muted-foreground">毎年1月1日に1に戻す</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    次の番号: <code className="bg-muted px-1 rounded">{(seqConfig.prefix ?? '') + String(((seqConfig.counter ?? 0) + 1)).padStart(seqConfig.digits ?? 4, '0') + (seqConfig.suffix ?? '')}</code>
+                  </p>
+                  <button onClick={handleSeqSave} disabled={seqSaving}
+                    className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60">
+                    {seqSaving ? '保存中...' : '採番設定を保存'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {onTemplateChange && (
         <div className="pt-2 border-t">

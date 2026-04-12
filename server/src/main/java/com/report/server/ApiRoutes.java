@@ -254,6 +254,20 @@ public final class ApiRoutes {
         // Data Browser — ScalarDB full-table scan (read-only, authenticated users)
         app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbScanCtrl::scanRows);
 
+        // Webhooks
+        app.get("/api/v1/webhooks/{templateId}", w.webhookCtrl::getConfig);
+        app.put("/api/v1/webhooks/{templateId}", w.webhookCtrl::putConfig);
+        app.post("/api/v1/webhooks/{templateId}/test", w.webhookCtrl::testWebhook);
+
+        // Document auto-numbering sequences
+        app.get("/api/v1/sequences/{templateId}", w.sequenceCtrl::getConfig);
+        app.put("/api/v1/sequences/{templateId}", w.sequenceCtrl::putConfig);
+
+        // Batch PDF generation
+        app.post("/api/v2/pdf-jobs/batch", w.v2BatchPdfCtrl::submitBatch);
+        app.get("/api/v2/pdf-jobs/batch/{id}", w.v2BatchPdfCtrl::getStatus);
+        app.get("/api/v2/pdf-jobs/batch/{id}/result", w.v2BatchPdfCtrl::getResult);
+
         // Product Master — tenant-wide product catalog
         app.get("/api/v1/products", w.productCtrl::list);
         app.get("/api/v1/products/fields", w.productCtrl::getFields);
@@ -262,5 +276,6 @@ public final class ApiRoutes {
         app.put("/api/v1/products/fields", w.productCtrl::putFields);
         app.put("/api/v1/products/{id}", w.productCtrl::update);
         app.delete("/api/v1/products/{id}", w.productCtrl::softDelete);
+        app.post("/api/v1/products/import", w.productCtrl::importCsv);
     }
 }

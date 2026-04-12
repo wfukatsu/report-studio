@@ -15,7 +15,8 @@ import {
 } from 'lucide-react'
 import { useReportStore } from '@/store'
 import {
-  listResponses, deleteResponse, exportResponses, getResponsePdf
+  listResponses, deleteResponse, exportResponses, getResponsePdf,
+  submitBatchPdfJob, getBatchPdfStatus, downloadBatchPdfResult,
 } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import { CACHE_TTL_MS } from '@/store/responsesSlice'
@@ -48,6 +49,52 @@ export function ResponsesPanel() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchState, setBatchState] = useState<'idle' | 'submitting' | 'polling'>('idle')
+  const [batchProgress, setBatchProgress] = useState<{ completed: number; total: number } | null>(null)
+  const cancelBatchRef = useRef<{ canceled: boolean } | null>(null)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleBatchPdf = async () => {
+    if (batchState !== 'idle' || selectedIds.size === 0 || !currentTemplateId) return
+    setBatchState('submitting')
+    const cancelToken = { canceled: false }
+    cancelBatchRef.current = cancelToken
+    try {
+      const { batchJobId, totalCount } = await submitBatchPdfJob(currentTemplateId, [...selectedIds])
+      setBatchProgress({ completed: 0, total: totalCount })
+      setBatchState('polling')
+      while (true) {
+        if (cancelToken.canceled) break
+        await new Promise(r => setTimeout(r, 2000))
+        if (cancelToken.canceled) break
+        const status = await getBatchPdfStatus(batchJobId)
+        setBatchProgress({ completed: status.completed, total: status.total })
+        if (status.status === 'completed') {
+          try {
+            const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+            await downloadBatchPdfResult(batchJobId, `batch_${date}.zip`)
+          } catch { /* download failed — user can retry */ }
+          break
+        }
+        if (status.status === 'failed') break
+      }
+    } catch { /* ignore */ }
+    finally {
+      setBatchState('idle')
+      setBatchProgress(null)
+      setSelectedIds(new Set())
+    }
+  }
+
+  useEffect(() => () => { if (cancelBatchRef.current) cancelBatchRef.current.canceled = true }, [])
   const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null)
   const mountedRef = useRef(true)
 
@@ -157,6 +204,27 @@ export function ResponsesPanel() {
         </div>
       </div>
 
+      {/* Batch PDF bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b bg-primary/5 shrink-0">
+          <span className="text-xs text-muted-foreground flex-1">{selectedIds.size}件選択中</span>
+          {batchState === 'polling' && batchProgress && (
+            <span className="text-xs text-muted-foreground">
+              {batchProgress.completed}/{batchProgress.total} 完了
+            </span>
+          )}
+          <button
+            onClick={handleBatchPdf}
+            disabled={batchState !== 'idle'}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {batchState !== 'idle' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+            一括PDF
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+      )}
+
       {/* Export buttons */}
       <div className="flex gap-2 p-3 border-b border-gray-100 shrink-0">
         <button
@@ -210,7 +278,15 @@ export function ResponsesPanel() {
       >
         {responses.map((resp) => (
           <li key={resp.id} className="p-3 hover:bg-gray-50">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                aria-label={`${resp.submittedBy} を選択`}
+                checked={selectedIds.has(resp.id)}
+                onChange={() => toggleSelect(resp.id)}
+                className="mt-1 shrink-0"
+              />
+            <div className="flex items-start justify-between gap-2 flex-1">
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500 mb-0.5">
                   {formatDate(resp.submittedAt)} — {resp.submittedBy}
@@ -249,6 +325,7 @@ export function ResponsesPanel() {
                   }
                 </button>
               </div>
+            </div>
             </div>
           </li>
         ))}
