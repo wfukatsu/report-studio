@@ -251,6 +251,9 @@ public final class ApiRoutes {
         app.get("/api/v2/tenant", w.v2TenantCtrl::get);
         app.put("/api/v2/tenant", w.v2TenantCtrl::put);
 
+        // Data Browser — ScalarDB full-table scan (read-only, authenticated users)
+        app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbScanCtrl::scanRows);
+
         // Product Master — tenant-wide product catalog
         app.get("/api/v1/products", w.productCtrl::list);
         app.get("/api/v1/products/fields", w.productCtrl::getFields);

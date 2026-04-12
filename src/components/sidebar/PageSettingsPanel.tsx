@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
@@ -10,6 +12,7 @@ interface PageSettingsPanelProps {
 }
 
 export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) {
+  const [metaOpen, setMetaOpen] = useState(false)
   const activePage = useReportStore(selectActivePage)
   const renamePage = useReportStore((s) => s.renamePage)
   const updatePageBackground = useReportStore((s) => s.updatePageBackground)
@@ -218,21 +221,94 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">カテゴリ</label>
-        <CategoryCombobox
-          value={metadata.category}
-          options={[...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]}
-          onChange={(v) => updateMetadata({ category: v })}
-        />
-      </div>
+      {/* Metadata section — collapsible */}
+      <div className="border rounded">
+        <button
+          type="button"
+          onClick={() => setMetaOpen((v) => !v)}
+          aria-expanded={metaOpen}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+        >
+          {metaOpen
+            ? <ChevronDown className="w-3 h-3 shrink-0" />
+            : <ChevronRight className="w-3 h-3 shrink-0" />}
+          メタデータ
+        </button>
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">タグ</label>
-        <TagInput
-          value={metadata.tags ?? []}
-          onChange={(tags) => updateMetadata({ tags })}
-        />
+        {metaOpen && (
+          <div className="px-2 pb-2 space-y-2 border-t pt-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">バージョン</label>
+              <input
+                className="w-full border rounded px-2 py-1 text-xs bg-background"
+                value={metadata.version ?? ''}
+                placeholder="例: 1.0.0"
+                onChange={(e) => updateMetadata({ version: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">帳票種別</label>
+              <input
+                className="w-full border rounded px-2 py-1 text-xs bg-background"
+                value={metadata.reportType ?? ''}
+                placeholder="例: 請求書"
+                onChange={(e) => updateMetadata({ reportType: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">説明</label>
+              <textarea
+                className="w-full border rounded px-2 py-1 text-xs bg-background resize-none"
+                rows={2}
+                value={metadata.description ?? ''}
+                onChange={(e) => updateMetadata({ description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">適用規制・基準</label>
+              <input
+                className="w-full border rounded px-2 py-1 text-xs bg-background"
+                value={metadata.applicableRegulation ?? ''}
+                onChange={(e) => updateMetadata({ applicableRegulation: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">有効開始日</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-1.5 py-1 text-xs bg-background"
+                  value={metadata.effectiveFrom ?? ''}
+                  onChange={(e) => updateMetadata({ effectiveFrom: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">有効終了日</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-1.5 py-1 text-xs bg-background"
+                  value={metadata.effectiveTo ?? ''}
+                  onChange={(e) => updateMetadata({ effectiveTo: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">カテゴリ</label>
+              <CategoryCombobox
+                value={metadata.category}
+                options={[...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]}
+                onChange={(v) => updateMetadata({ category: v })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">タグ</label>
+              <TagInput
+                value={metadata.tags ?? []}
+                onChange={(tags) => updateMetadata({ tags })}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {onTemplateChange && (

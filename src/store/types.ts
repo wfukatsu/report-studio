@@ -318,6 +318,7 @@ export interface StoreState {
   updateCustomFieldDefs: (defs: import('@/types').ProductCustomFieldDef[]) => Promise<void>
   setProductOp: (id: string, op: 'idle' | 'saving' | 'deleting') => void
 
+
   // ── Responses slice ───────────────────────────────────────────────────────
   responses: FormResponseSummary[]
   responsesTotal: number

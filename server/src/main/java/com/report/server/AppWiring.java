@@ -59,6 +59,7 @@ public final class AppWiring {
     // ── Product Master ─────────────────────────────────────────────────────────
     final JsonBlobRepository productRepo;
     final ProductController productCtrl;
+    final V2ScalarDbScanController v2ScalarDbScanCtrl;
 
     // ── Admin controllers ─────────────────────────────────────────────────────
     final AdminUserController adminUserCtrl;
@@ -174,6 +175,7 @@ public final class AppWiring {
         productRepo.ensureTable();
         productCtrl = new ProductController(productRepo);
         v2BindingResolveCtrl.setProductController(productCtrl);
+        v2ScalarDbScanCtrl = new V2ScalarDbScanController(factory);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);

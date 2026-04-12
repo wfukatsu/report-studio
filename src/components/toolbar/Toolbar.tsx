@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Undo2, Redo2, Eye, FileImage, FileText, AlertCircle,
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
@@ -7,7 +8,7 @@ import {
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
-  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw, User,
+  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw, User, TableProperties,
 } from 'lucide-react'
 import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
@@ -821,6 +822,17 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         </ToolbarButton>
 
         <div className="flex-1" />
+
+        {/* Data Browser link */}
+        <Link
+          to="/data-browser"
+          className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-accent transition-colors shrink-0"
+          aria-label="データブラウザを開く"
+          title="データブラウザ"
+        >
+          <TableProperties className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">データブラウザ</span>
+        </Link>
 
         <div role="alert" aria-live="assertive" aria-atomic="true">
           {preflightErrors.length > 0 && (
