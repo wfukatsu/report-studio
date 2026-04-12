@@ -34,7 +34,15 @@ public final class AuthController {
     private static final long EVICTION_INTERVAL_MINUTES = 30;
 
     private final UserRepository userRepo;
-    private final RateLimiter loginRateLimiter = new RateLimiter();
+    private static final int LOGIN_MAX_ATTEMPTS;
+    private static final long LOGIN_WINDOW_MS;
+    static {
+        String envMax = System.getenv("LOGIN_RATE_LIMIT_MAX");
+        String envMs  = System.getenv("LOGIN_RATE_LIMIT_WINDOW_MS");
+        LOGIN_MAX_ATTEMPTS = (envMax != null && !envMax.isBlank()) ? Integer.parseInt(envMax) : 5;
+        LOGIN_WINDOW_MS    = (envMs  != null && !envMs.isBlank())  ? Long.parseLong(envMs)     : 5 * 60 * 1000L;
+    }
+    private final RateLimiter loginRateLimiter = new RateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
     private final ConcurrentHashMap<String, SessionEntry> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService evictionScheduler;
 

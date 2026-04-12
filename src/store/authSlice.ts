@@ -56,6 +56,9 @@ export const createAuthSlice: StateCreator<
   loginUser: async (userId: string, password: string) => {
     const user = await login(userId, password)
     set((s) => { s.currentUser = user })
+    // Fetch tenant info after login — the initial mount fetch always fails with 401
+    // because it runs before authentication. Re-run it now that the session is set.
+    await get().fetchTenantInfo()
   },
 
   logoutUser: async () => {
