@@ -41,9 +41,10 @@ export function ProductMasterTab() {
   const [isCsvImportOpen, setIsCsvImportOpen] = useState(false)
 
   useEffect(() => {
-    if (products.length === 0 && !productsLoading) fetchProducts()
-    if (customFieldDefs.length === 0) fetchCustomFieldDefs()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Always fetch on mount to ensure latest data is shown
+    fetchProducts()
+    fetchCustomFieldDefs()
+  }, [fetchProducts, fetchCustomFieldDefs])
 
   const filtered = products.filter(
     (p) =>

@@ -49,7 +49,9 @@ export function WebhookTab() {
   if (!currentTemplateId) {
     return (
       <div className="p-4 text-xs text-muted-foreground">
-        テンプレートを開いてからWebhookを設定してください。
+        <p className="mb-2 font-medium text-foreground">Webhook設定</p>
+        <p>サーバーからテンプレートを開くとWebhookを設定できます。</p>
+        <p className="mt-1 text-[10px]">（「開く」→「サーバーから開く」→テンプレートを選択）</p>
       </div>
     )
   }

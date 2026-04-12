@@ -118,6 +118,8 @@ export function TemplateSelectionModal({
     try {
       const definition = await getReport(id)
       onSelect(definition)
+      // Ensure currentTemplateId is set so Webhook/Sequence tabs work
+      useReportStore.getState().setCurrentTemplateId(id)
       handleClose()
     } catch {
       setBackendLoadError('テンプレートの読み込みに失敗しました')
