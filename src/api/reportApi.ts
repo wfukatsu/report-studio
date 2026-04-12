@@ -631,6 +631,38 @@ export async function fetchScalarDbCatalog(signal?: AbortSignal): Promise<Scalar
 }
 
 // ---------------------------------------------------------------------------
+// ScalarDB catalog TTL cache (#214)
+// ---------------------------------------------------------------------------
+
+const CATALOG_TTL_MS = 5 * 60 * 1000  // 5 minutes
+
+let _catalogCache: { data: ScalarDbCatalog; fetchedAt: number } | null = null
+
+/**
+ * fetchScalarDbCatalog with 5-minute module-level TTL cache.
+ * Prevents redundant re-fetches when the DbConnection modal is unmounted
+ * and remounted within a short period.
+ *
+ * Pass `force=true` to bypass the cache (e.g. user clicks "再取得").
+ */
+export async function fetchScalarDbCatalogCached(
+  signal?: AbortSignal,
+  force = false,
+): Promise<ScalarDbCatalog> {
+  if (!force && _catalogCache && Date.now() - _catalogCache.fetchedAt < CATALOG_TTL_MS) {
+    return _catalogCache.data
+  }
+  const data = await fetchScalarDbCatalog(signal)
+  _catalogCache = { data, fetchedAt: Date.now() }
+  return data
+}
+
+/** Invalidate the catalog cache (call after creating/modifying tables). */
+export function invalidateScalarDbCatalogCache(): void {
+  _catalogCache = null
+}
+
+// ---------------------------------------------------------------------------
 // Phase 2: resolve-bindings — fetch actual ScalarDB row data
 // ---------------------------------------------------------------------------
 

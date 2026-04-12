@@ -31,6 +31,10 @@ export const PreviewPane = memo(function PreviewPane() {
 
   return (
     <div className="border-l bg-muted/20 flex-1 flex flex-col overflow-hidden">
+      {/* #235: 上部ラベルで編集側と視覚的に区別 */}
+      <div className="flex items-center justify-center bg-primary/8 border-b border-primary/20 py-0.5 shrink-0 select-none">
+        <span className="text-[10px] font-medium text-primary/70 uppercase tracking-widest">ライブプレビュー</span>
+      </div>
       <div
         ref={containerRef}
         className={`flex-1 overflow-auto p-2 ${isPending ? 'opacity-70' : ''}`}

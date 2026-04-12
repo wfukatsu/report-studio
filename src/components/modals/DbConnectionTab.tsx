@@ -18,7 +18,7 @@
  */
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
-import { fetchScalarDbCatalog } from '@/api/reportApi'
+import { fetchScalarDbCatalogCached, invalidateScalarDbCatalogCache } from '@/api/reportApi'
 import type { ScalarDbCatalog } from '@/api/reportApi'
 import { GroupBindingSection } from './dbConnection/GroupBindingSection'
 
@@ -49,7 +49,8 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
 
     setIsLoading(true)
     setFetchError(null)
-    fetchScalarDbCatalog(controller.signal)
+    // Use cached fetch; force=true when user explicitly clicks 再取得
+    fetchScalarDbCatalogCached(controller.signal, fetchTick > 0)
       .then((result) => {
         if (cancelled) return
         setCatalog(result)
@@ -75,6 +76,7 @@ export const DbConnectionTab = memo(function DbConnectionTab() {
   }, [isLoading, catalog, groups.length])
 
   const handleRefetch = useCallback(() => {
+    invalidateScalarDbCatalogCache()
     setFetchTick((n) => n + 1)
   }, [])
 

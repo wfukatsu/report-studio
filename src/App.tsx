@@ -20,18 +20,18 @@ import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { useConnectionState } from '@/hooks/useConnectionState'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutTemplate, Database, Layers, BookOpen, MessageSquare, Link2 } from 'lucide-react'
 
 type LeftTab = 'elements' | 'pages' | 'layers' | 'schema' | 'responses' | 'data'
 type RightTab = 'properties' | 'versions' | 'page'
 
-const LEFT_TABS: { id: LeftTab; label: string }[] = [
-  { id: 'elements', label: '要素' },
-  { id: 'schema', label: 'スキーマ' },
-  { id: 'layers', label: 'レイヤー' },
-  { id: 'pages', label: 'ページ' },
-  { id: 'responses', label: '回答' },
-  { id: 'data', label: 'データ' },
+const LEFT_TABS: { id: LeftTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'elements',  label: '要素',    icon: <LayoutTemplate className="w-3.5 h-3.5" /> },
+  { id: 'schema',    label: 'スキーマ', icon: <Database className="w-3.5 h-3.5" /> },
+  { id: 'layers',    label: 'レイヤー', icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: 'pages',     label: 'ページ',   icon: <BookOpen className="w-3.5 h-3.5" /> },
+  { id: 'responses', label: '回答',    icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { id: 'data',      label: 'データ',   icon: <Link2 className="w-3.5 h-3.5" /> },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
@@ -314,25 +314,30 @@ export default function App() {
                     }
                   }}
                 >
-                  {LEFT_TABS.map((tab) => (
-                    <button
-                      key={tab.id}
-                      role="tab"
-                      aria-selected={leftTab === tab.id}
-                      aria-controls={`tabpanel-${tab.id}`}
-                      id={`tab-${tab.id}`}
-                      tabIndex={leftTab === tab.id ? 0 : -1}
-                      onClick={() => setLeftTab(tab.id)}
-                      className={cn(
-                        'shrink-0 px-2 py-2 text-xs font-medium transition-colors whitespace-nowrap',
-                        leftTab === tab.id
-                          ? 'border-b-2 border-primary text-primary'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  {LEFT_TABS.map((tab) => {
+                    const isActive = leftTab === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls={`tabpanel-${tab.id}`}
+                        id={`tab-${tab.id}`}
+                        tabIndex={isActive ? 0 : -1}
+                        onClick={() => setLeftTab(tab.id)}
+                        title={tab.label}
+                        className={cn(
+                          'shrink-0 flex items-center gap-1 py-2 text-xs font-medium transition-colors whitespace-nowrap',
+                          isActive
+                            ? 'border-b-2 border-primary text-primary px-2'
+                            : 'text-muted-foreground hover:text-foreground px-2',
+                        )}
+                      >
+                        {tab.icon}
+                        {isActive && <span>{tab.label}</span>}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
               <button

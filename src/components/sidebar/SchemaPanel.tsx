@@ -415,9 +415,11 @@ export const SchemaPanel = memo(function SchemaPanel() {
       </div>
 
       {groups.length === 0 && (
-        <p className="text-[10px] text-muted-foreground italic">
-          スキーマ未定義（フラットキー入力で動作します）
-        </p>
+        <div className="text-[10px] text-muted-foreground space-y-1">
+          <p className="font-medium">スキーマ未設定</p>
+          <p>グループとフィールドを追加すると、ScalarDB から実データを取得してプレビューできます。</p>
+          <p>設定しなくても <span className="font-mono bg-muted px-0.5 rounded">{'{{fieldName}}'}</span> 形式でサンプルデータを参照できます。</p>
+        </div>
       )}
 
       {groups.map((g) => (

@@ -16,7 +16,7 @@ describe('SchemaPanel — 初期レンダリング', () => {
 
   it('shows empty schema message when no groups exist', () => {
     render(<SchemaPanel />)
-    expect(screen.getByText(/スキーマ未定義/)).toBeInTheDocument()
+    expect(screen.getByText(/スキーマ未設定/)).toBeInTheDocument()
   })
 })
 
