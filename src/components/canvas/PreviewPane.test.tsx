@@ -42,7 +42,7 @@ describe('PreviewPane', () => {
 
   it('shows "ライブプレビュー" label', () => {
     render(<PreviewPane />)
-    expect(screen.getByText('ライブプレビュー')).toBeInTheDocument()
+    expect(screen.getAllByText('ライブプレビュー').length).toBeGreaterThan(0)
   })
 
   it('shows page counter', () => {

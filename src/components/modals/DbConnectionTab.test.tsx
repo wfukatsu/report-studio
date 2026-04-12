@@ -19,7 +19,9 @@ vi.mock('@/api/reportApi', async () => {
   const actual = await vi.importActual<typeof import('@/api/reportApi')>('@/api/reportApi')
   return {
     ...actual,
-    fetchScalarDbCatalog: (signal?: AbortSignal) => fetchScalarDbCatalogMock(signal),
+    // DbConnectionTab now uses the cached variant — mock that instead
+    fetchScalarDbCatalogCached: (signal?: AbortSignal) => fetchScalarDbCatalogMock(signal),
+    invalidateScalarDbCatalogCache: () => {},
   }
 })
 

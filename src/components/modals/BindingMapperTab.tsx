@@ -245,7 +245,7 @@ function ElementRow({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function BindingMapperTab() {
+export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
   const schema = useReportStore((s) => s.definition.schema)
   const pages = useReportStore((s) => s.definition.pages)
   const setElementSchemaBinding = useReportStore((s) => s.setElementSchemaBinding)
@@ -359,9 +359,17 @@ export function BindingMapperTab() {
 
   if (!schema || schema.groups.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-8 text-center">
-        スキーマが未定義です。<br />
-        「スキーマ」タブでグループとフィールドを追加してください。
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-xs text-muted-foreground p-8 text-center">
+        <p>スキーマが未定義です。</p>
+        <p>スキーマタブでグループとフィールドを追加すると、要素とのバインドが設定できます。</p>
+        {onClose && (
+          <button
+            className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+            onClick={onClose}
+          >
+            閉じてスキーマを設定する →
+          </button>
+        )}
       </div>
     )
   }

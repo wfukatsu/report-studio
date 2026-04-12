@@ -169,7 +169,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
           {activeTab === 'calculation' && <CalculationTab />}
           {activeTab === 'validation' && <ValidationTab />}
           {activeTab === 'dbconnection' && <DbConnectionTab />}
-          {activeTab === 'bindingmapper' && <BindingMapperTab />}
+          {activeTab === 'bindingmapper' && <BindingMapperTab onClose={handleClose} />}
           {activeTab === 'tenantinfo' && <TenantInfoTab />}
         </div>
       </div>

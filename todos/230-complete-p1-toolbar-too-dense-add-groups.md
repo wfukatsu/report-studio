@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "230"
 tags: [ui-ux, toolbar, qa-review]

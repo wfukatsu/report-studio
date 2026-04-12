@@ -576,17 +576,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           className="hidden"
         />
 
-        <Divider />
-
-        {/* Undo / Redo */}
-        <ToolbarButton onClick={undo} disabled={historyIndex < 1} title="元に戻す (⌘Z)">
-          <Undo2 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton onClick={redo} disabled={historyIndex >= historyLength - 1} title="やり直す (⌘⇧Z)">
-          <Redo2 className="w-4 h-4" />
-        </ToolbarButton>
-
-        <Divider />
+        {/* ─── グループ1: ファイル操作 ─────────────────────────────────────── */}
+        <GroupDivider />
 
         {/* New / Open / Save */}
         <ToolbarButton onClick={handleNew} title="新規作成">
@@ -675,16 +666,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </div>
 
-        <Divider />
+        {/* ─── グループ2: 編集 ─────────────────────────────────────────────── */}
+        <GroupDivider />
 
-        {/* Data binding */}
-        <ToolbarButton onClick={() => setShowDataModal(true)} title="データ設定">
-          <Database className="w-4 h-4" />
+        {/* Undo / Redo */}
+        <ToolbarButton onClick={undo} disabled={historyIndex < 1} title="元に戻す (⌘Z)">
+          <Undo2 className="w-4 h-4" />
         </ToolbarButton>
-
-        {/* Output variants */}
-        <ToolbarButton onClick={() => setShowVariantsModal(true)} title="出力バリアント設定">
-          <Shuffle className="w-4 h-4" />
+        <ToolbarButton onClick={redo} disabled={historyIndex >= historyLength - 1} title="やり直す (⌘⇧Z)">
+          <Redo2 className="w-4 h-4" />
         </ToolbarButton>
 
         <Divider />
@@ -775,6 +765,19 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             </div>
           )}
         </div>
+
+        {/* ─── グループ3: データ・表示設定 ────────────────────────────────── */}
+        <GroupDivider />
+
+        {/* Data binding */}
+        <ToolbarButton onClick={() => setShowDataModal(true)} title="データ設定">
+          <Database className="w-4 h-4" />
+        </ToolbarButton>
+
+        {/* Output variants */}
+        <ToolbarButton onClick={() => setShowVariantsModal(true)} title="出力バリアント設定">
+          <Shuffle className="w-4 h-4" />
+        </ToolbarButton>
 
         <Divider />
 
@@ -967,7 +970,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <ZoomIn className="w-4 h-4" />
         </ToolbarButton>
 
-        <Divider />
+        {/* ─── グループ4: 出力 ─────────────────────────────────────────────── */}
+        <GroupDivider />
 
         {/* Preview dropdown — default: live preview panel / option: full PDF preview */}
         <div className="relative flex items-center" ref={previewMenuRef}>
@@ -981,12 +985,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           </ToolbarButton>
           <button
             onClick={() => setShowPreviewMenu((v) => !v)}
-            className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
+            className="flex items-center justify-center min-w-[28px] h-7 px-1 rounded hover:bg-accent -ml-1"
             aria-expanded={showPreviewMenu}
             aria-haspopup="menu"
             aria-label="プレビューメニュー"
           >
-            <ChevronDown className="w-3 h-3" />
+            <ChevronDown className="w-3.5 h-3.5" />
           </button>
           {showPreviewMenu && (
             <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[180px] py-1">
@@ -1151,8 +1155,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   )
 }
 
+/** 細いグループ内セパレーター */
 function Divider() {
   return <div className="w-px h-5 bg-border mx-0.5 shrink-0" />
+}
+
+/** 太いグループ間セパレーター（視覚的なグルーピング用） */
+function GroupDivider() {
+  return <div className="w-px h-6 bg-border/60 mx-2 shrink-0" />
 }
 
 function MenuButton({ onClick, disabled, icon, label }: { onClick: () => void; disabled?: boolean; icon: React.ReactNode; label: string }) {
