@@ -7,7 +7,7 @@ import {
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
-  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw,
+  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw, User,
 } from 'lucide-react'
 import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
@@ -16,6 +16,7 @@ import type { Section, OutputVariant } from '@/types'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
 import { VariantsModal } from '@/components/modals/VariantsModal'
+import { ServerSettingsModal } from '@/components/modals/ServerSettingsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
 import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
@@ -124,8 +125,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
+  const currentUser = useReportStore((s) => s.currentUser)
+  const logoutUser = useReportStore((s) => s.logoutUser)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isSavingNew, setIsSavingNew] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showServerSettings, setShowServerSettings] = useState(false)
   const [showSaveMenu, setShowSaveMenu] = useState(false)
   const [showZoomMenu, setShowZoomMenu] = useState(false)
   const [showAlignMenu, setShowAlignMenu] = useState(false)
@@ -138,6 +143,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const saveMenuRef = useRef<HTMLDivElement>(null)
   const zoomMenuRef = useRef<HTMLDivElement>(null)
   const alignMenuRef = useRef<HTMLDivElement>(null)
@@ -148,12 +154,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const hasMultiSelection = selectedIds.length >= 2
   const singleId = selectedIds[0]
 
+  const closeUserMenu = useCallback(() => setShowUserMenu(false), [])
   const closeSaveMenu = useCallback(() => setShowSaveMenu(false), [])
   const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
   const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
   const closeZOrderMenu = useCallback(() => setShowZOrderMenu(false), [])
   const closePreviewMenu = useCallback(() => setShowPreviewMenu(false), [])
 
+  useDropdownDismiss(userMenuRef, showUserMenu, closeUserMenu)
   useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
   useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
   useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
@@ -1001,6 +1009,42 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             <span className="text-xs ml-1">{isExporting ? 'PDF...' : 'BEで生成'}</span>
           </ToolbarButton>
         )}
+
+        {/* User menu — shown when authenticated */}
+        {currentUser && (
+          <>
+            <Divider />
+            <div className="relative flex items-center" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu((v) => !v)}
+                className="flex items-center gap-1.5 h-7 px-2 rounded hover:bg-accent text-xs"
+                aria-expanded={showUserMenu}
+                aria-haspopup="menu"
+                aria-label="ユーザーメニュー"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span className="max-w-[80px] truncate">{currentUser.displayName}</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {showUserMenu && (
+                <div className="absolute top-full right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[140px] py-1">
+                  <button
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                    onClick={() => { setShowServerSettings(true); setShowUserMenu(false) }}
+                  >
+                    設定
+                  </button>
+                  <button
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-red-600"
+                    onClick={() => { void logoutUser(); setShowUserMenu(false) }}
+                  >
+                    ログアウト
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </header>
 
@@ -1009,6 +1053,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       <DataBindingModal
         open={showDataModal}
         onClose={() => setShowDataModal(false)}
+      />
+    )}
+
+    {/* Server settings modal */}
+    {showServerSettings && (
+      <ServerSettingsModal
+        open={showServerSettings}
+        onClose={() => setShowServerSettings(false)}
       />
     )}
 

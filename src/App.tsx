@@ -7,6 +7,7 @@ import { ElementPalette } from '@/components/sidebar/ElementPalette'
 import { PropertiesPanel } from '@/components/sidebar/PropertiesPanel'
 import { PagePanel } from '@/components/sidebar/PagePanel'
 import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
+import { LoginModal } from '@/components/modals/LoginModal'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
 import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
@@ -17,6 +18,7 @@ import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
+import { useConnectionState } from '@/hooks/useConnectionState'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -49,8 +51,13 @@ export default function App() {
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
+
+  // Start backend health-check polling (sets backendConnected in store)
+  useConnectionState()
+
   const previewMode = useReportStore((s) => s.previewMode)
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)
+  const backendConnected = useReportStore((s) => s.backendConnected)
   const activePageId = useReportStore(selectActivePageId)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
 
@@ -103,6 +110,29 @@ export default function App() {
       setShowRestorePrompt(true)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Authenticate on mount — restores existing session or flags as unauthenticated
+  const checkAuth = useReportStore((s) => s.checkAuth)
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  // Clear current template on logout (prevent data leakage between users)
+  const currentUser = useReportStore((s) => s.currentUser)
+  const authLoading = useReportStore((s) => s.authLoading)
+  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
+  const newReport = useReportStore((s) => s.newReport)
+  const prevUserRef = useRef<string | null>(null)
+  useEffect(() => {
+    const prevUserId = prevUserRef.current
+    const currUserId = currentUser?.userId ?? null
+    prevUserRef.current = currUserId
+    // Only clear if we transitioned from logged-in to logged-out
+    if (prevUserId !== null && currUserId === null) {
+      setCurrentTemplateId(null)
+      newReport()
+    }
+  }, [currentUser, setCurrentTemplateId, newReport])
 
   // Warn before closing with unsaved changes
   useEffect(() => {
@@ -389,6 +419,8 @@ export default function App() {
           </aside>
         </div>
       )}
+      {/* Login modal — shown when backendConnected but not authenticated */}
+      {!currentUser && !authLoading && backendConnected && <LoginModal />}
       <TemplateSelectionModal
         open={showTemplateModal}
         onClose={() => setShowTemplateModal(false)}

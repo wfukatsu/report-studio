@@ -1,5 +1,6 @@
 package com.report.server;
 
+import com.report.server.auth.AdminUserController;
 import com.report.server.auth.AuthController;
 import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
@@ -11,6 +12,7 @@ import com.scalar.db.service.TransactionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +53,10 @@ public final class AppWiring {
     final V2ScalarDbCatalogController v2ScalarDbCatalogCtrl;
     final V2ScalarDbTableController v2ScalarDbTableCtrl;
     final V2BindingResolveController v2BindingResolveCtrl;
+
+    // ── Admin controllers ─────────────────────────────────────────────────────
+    final AdminUserController adminUserCtrl;
+    final AdminServerController adminServerCtrl;
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
@@ -120,6 +126,10 @@ public final class AppWiring {
         // V2 rate limiters
         v2SubmitLimiter = new RateLimiter(5, 60_000L);
         v2ExportLimiter = new RateLimiter(3, 60_000L);
+
+        // Admin controllers
+        adminUserCtrl = new AdminUserController(userRepo);
+        adminServerCtrl = new AdminServerController(Path.of("scalardb.properties"));
 
         // Controllers
         authCtrl = new AuthController(userRepo);

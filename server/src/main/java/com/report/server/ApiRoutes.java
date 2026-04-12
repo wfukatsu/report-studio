@@ -39,6 +39,7 @@ public final class ApiRoutes {
         registerJobRoutes(app, w);
         registerPdfRoute(app, w);
         registerV2Routes(app, w);
+        registerAdminRoutes(app, w);
     }
 
     // ── Middleware ─────────────────────────────────────────────────────────────
@@ -113,6 +114,20 @@ public final class ApiRoutes {
         app.get("/api/v1/auth/me", w.authCtrl::me);
         app.post("/api/v1/auth/login", w.authCtrl::login);
         app.post("/api/v1/auth/logout", w.authCtrl::logout);
+        app.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
+    }
+
+    private static void registerAdminRoutes(Javalin app, AppWiring w) {
+        // User management (admin only)
+        app.get("/api/v1/admin/users",          w.adminUserCtrl::list);
+        app.post("/api/v1/admin/users",         w.adminUserCtrl::create);
+        app.put("/api/v1/admin/users/{id}",     w.adminUserCtrl::update);
+        app.delete("/api/v1/admin/users/{id}",  w.adminUserCtrl::delete);
+        // Server config (admin only)
+        app.get("/api/v1/admin/server-config",        w.adminServerCtrl::getConfig);
+        app.put("/api/v1/admin/server-config",        w.adminServerCtrl::putConfig);
+        app.post("/api/v1/admin/server-config/test",  w.adminServerCtrl::testConfig);
+        app.post("/api/v1/admin/server/restart",      w.adminServerCtrl::restart);
     }
 
     private static void registerTemplateRoutes(Javalin app, AppWiring w) {

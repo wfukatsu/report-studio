@@ -20,6 +20,7 @@ import type {
   MaskingRule,
 } from '@/types'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
+import type { Me } from '@/api/reportApi'
 
 // ---------------------------------------------------------------------------
 // Alignment / Z-order enums (moved from reportStore for shared use)
@@ -86,6 +87,13 @@ export interface ValidationViolation {
 // ---------------------------------------------------------------------------
 
 export interface StoreState {
+  // ── Auth slice ────────────────────────────────────────────────────────────
+  currentUser: Me | null
+  authLoading: boolean
+  checkAuth: () => Promise<void>
+  loginUser: (userId: string, password: string) => Promise<void>
+  logoutUser: () => Promise<void>
+
   // ── Layout slice ─────────────────────────────────────────────────────────
   definition: ReportDefinition
   selection: SelectionState
