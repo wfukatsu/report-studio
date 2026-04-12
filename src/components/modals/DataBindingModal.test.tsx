@@ -18,6 +18,9 @@ vi.mock('@/components/modals/DbConnectionTab', () => ({
 vi.mock('@/components/modals/BindingMapperTab', () => ({
   BindingMapperTab: () => <div data-testid="bindingmapper-tab">BindingMapperTab</div>,
 }))
+vi.mock('@/components/modals/TenantInfoTab', () => ({
+  TenantInfoTab: () => <div data-testid="tenantinfo-tab">TenantInfoTab</div>,
+}))
 
 beforeEach(() => {
   useReportStore.getState().newReport()
@@ -88,7 +91,7 @@ describe('DataBindingModal — タブキーボード操作', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     const tablist = screen.getByRole('tablist')
     fireEvent.keyDown(tablist, { key: 'ArrowLeft' })
-    // From datasource, ArrowLeft wraps to the last tab (バインドマッパー — Phase 3).
-    expect(screen.getByTestId('bindingmapper-tab')).toBeInTheDocument()
+    // From datasource, ArrowLeft wraps to the last tab (テナント情報).
+    expect(screen.getByTestId('tenantinfo-tab')).toBeInTheDocument()
   })
 })

@@ -18,6 +18,7 @@ import { createSchemaSlice } from './schemaSlice'
 import { createVariantsSlice } from './variantsSlice'
 import { createResponsesSlice } from './responsesSlice'
 import { createAuthSlice } from './authSlice'
+import { createTenantSlice } from './tenantSlice'
 import { createDefaultDefinition } from './layoutSlice'
 
 type ImmerStateCreator = StateCreator<StoreState, [['zustand/immer', never]]>
@@ -34,6 +35,7 @@ export const useReportStore = create<StoreState>()(
     const variants = createVariantsSlice(...a)
     const responses = createResponsesSlice(...a)
     const auth = createAuthSlice(...a)
+    const tenant = createTenantSlice(...a)
 
     // Initialize history with the default definition's initial pages
     const initialHistory = [snapshotPages(createDefaultDefinition().pages)]
@@ -48,6 +50,7 @@ export const useReportStore = create<StoreState>()(
       ...variants,
       ...responses,
       ...auth,
+      ...tenant,
       // Override initial history state with populated snapshot
       history: initialHistory,
       historyIndex: 0,

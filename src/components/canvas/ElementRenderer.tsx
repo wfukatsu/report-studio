@@ -38,6 +38,12 @@ import { EraSelectRenderer } from '@/elements/eraSelect/Renderer'
 import { PageNumberRenderer } from '@/elements/pageNumber/Renderer'
 import { CurrentDateRenderer } from '@/elements/currentDate/Renderer'
 import { DividerRenderer } from '@/elements/divider/Renderer'
+import { TenantCompanyNameRenderer } from '@/elements/tenantCompanyName/Renderer'
+import { TenantAddressRenderer } from '@/elements/tenantAddress/Renderer'
+import { TenantPhoneRenderer } from '@/elements/tenantPhone/Renderer'
+import { TenantRepresentativeRenderer } from '@/elements/tenantRepresentative/Renderer'
+import { TenantLogoRenderer } from '@/elements/tenantLogo/Renderer'
+import { TenantCustomRenderer } from '@/elements/tenantCustom/Renderer'
 
 interface Props {
   element: ReportElement
@@ -125,8 +131,14 @@ export const ElementRenderer = memo(function ElementRenderer({ element, data = {
     case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
     case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} pageIndex={pageIndex} totalPages={totalPages} />
     case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
-    case 'divider':         return <DividerRenderer element={element} />
-    default:                return assertNever(element)
+    case 'divider':               return <DividerRenderer element={element} />
+    case 'tenantCompanyName':     return <TenantCompanyNameRenderer element={element} resolveValues={readonly} />
+    case 'tenantAddress':         return <TenantAddressRenderer element={element} resolveValues={readonly} />
+    case 'tenantPhone':           return <TenantPhoneRenderer element={element} resolveValues={readonly} />
+    case 'tenantRepresentative':  return <TenantRepresentativeRenderer element={element} resolveValues={readonly} />
+    case 'tenantLogo':    return <TenantLogoRenderer element={element} />
+    case 'tenantCustom':  return <TenantCustomRenderer element={element} resolveValues={readonly} />
+    default:                      return assertNever(element)
   }
 })
 

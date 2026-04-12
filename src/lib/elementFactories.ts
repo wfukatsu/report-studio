@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement, PageNumberElement, CurrentDateElement, DividerElement } from '@/types'
+import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement, PageNumberElement, CurrentDateElement, DividerElement, TenantCompanyNameElement, TenantAddressElement, TenantPhoneElement, TenantRepresentativeElement, TenantLogoElement, TenantCustomElement } from '@/types'
 import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
 
 /**
@@ -444,6 +444,71 @@ export function createDividerElement(overrides?: Partial<DividerElement>): Repor
     color: '#000000',
     thickness: 0.3,
     dashStyle: 'solid',
+    ...overrides,
+  } as ReportElement
+}
+
+// ---------------------------------------------------------------------------
+// Tenant elements
+// ---------------------------------------------------------------------------
+
+export function createTenantCompanyNameElement(overrides?: Partial<TenantCompanyNameElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantCompanyName',
+    position: { x: 13, y: 13 }, size: { width: 60, height: 8 },
+    zIndex: 1, visible: true, locked: false,
+    style: { fontSize: 5, color: '#000000', textAlign: 'left', fontWeight: 'bold' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createTenantAddressElement(overrides?: Partial<TenantAddressElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantAddress',
+    position: { x: 13, y: 13 }, size: { width: 80, height: 6 },
+    zIndex: 1, visible: true, locked: false,
+    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createTenantPhoneElement(overrides?: Partial<TenantPhoneElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantPhone',
+    position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
+    zIndex: 1, visible: true, locked: false,
+    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createTenantRepresentativeElement(overrides?: Partial<TenantRepresentativeElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantRepresentative',
+    position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
+    zIndex: 1, visible: true, locked: false,
+    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    ...overrides,
+  } as ReportElement
+}
+
+export function createTenantLogoElement(overrides?: Partial<TenantLogoElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantLogo',
+    position: { x: 13, y: 13 }, size: { width: 30, height: 20 },
+    zIndex: 1, visible: true, locked: false,
+    objectFit: 'contain', opacity: 1,
+    ...overrides,
+  } as ReportElement
+}
+
+export function createTenantCustomElement(overrides?: Partial<TenantCustomElement>): ReportElement {
+  return {
+    id: uuidv4(), type: 'tenantCustom',
+    position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
+    zIndex: 1, visible: true, locked: false,
+    fieldKey: '',
+    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }

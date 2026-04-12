@@ -1,7 +1,7 @@
 import {
   Type, Tag, Square, Image, Table, BarChart2, Database,
   QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties, SquareCheck, Calendar,
-  Hash, CalendarDays, SeparatorHorizontal,
+  Hash, CalendarDays, SeparatorHorizontal, Building2, MapPin, Phone, User, Minus,
 } from 'lucide-react'
 import { createElement } from 'react'
 import type { ReportElement, Section } from '@/types'
@@ -32,8 +32,14 @@ export function elementIcon(type: ReportElement['type']) {
     case 'eraSelect':       return createElement(Calendar, { className: cls })
     case 'pageNumber':      return createElement(Hash, { className: cls })
     case 'currentDate':     return createElement(CalendarDays, { className: cls })
-    case 'divider':         return createElement(SeparatorHorizontal, { className: cls })
-    default:                return assertNever(type)
+    case 'divider':               return createElement(SeparatorHorizontal, { className: cls })
+    case 'tenantCompanyName':     return createElement(Building2, { className: cls })
+    case 'tenantAddress':         return createElement(MapPin, { className: cls })
+    case 'tenantPhone':           return createElement(Phone, { className: cls })
+    case 'tenantRepresentative':  return createElement(User, { className: cls })
+    case 'tenantLogo':            return createElement(Image, { className: cls })
+    case 'tenantCustom':          return createElement(Minus, { className: cls })
+    default:                      return assertNever(type)
   }
 }
 
@@ -63,7 +69,13 @@ export function defaultName(el: ReportElement): string {
     case 'eraSelect':       return '元号選択'
     case 'pageNumber':      return 'ページ番号'
     case 'currentDate':     return '現在日付'
-    case 'divider':         return '区切り線'
+    case 'divider':               return '区切り線'
+    case 'tenantCompanyName':     return '会社名'
+    case 'tenantAddress':         return '住所'
+    case 'tenantPhone':           return '電話番号'
+    case 'tenantRepresentative':  return '代表者名'
+    case 'tenantLogo':            return 'ロゴ'
+    case 'tenantCustom':          return `カスタム(${el.fieldKey || '未設定'})`
     default: return assertNever(el)
   }
 }

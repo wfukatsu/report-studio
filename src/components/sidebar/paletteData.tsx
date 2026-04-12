@@ -30,6 +30,11 @@ import {
   Hash,
   CalendarDays,
   SeparatorHorizontal,
+  Building2,
+  MapPin,
+  Phone,
+  User,
+  Tag,
 } from 'lucide-react'
 import {
   createTextElement,
@@ -51,6 +56,12 @@ import {
   createPageNumberElement,
   createCurrentDateElement,
   createDividerElement,
+  createTenantCompanyNameElement,
+  createTenantAddressElement,
+  createTenantPhoneElement,
+  createTenantRepresentativeElement,
+  createTenantLogoElement,
+  createTenantCustomElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 
@@ -144,6 +155,18 @@ export const PALETTE_CATEGORIES: PaletteCategory[] = [
       { label: '収入印紙欄', icon: <Ticket className="w-4 h-4" />, createElement: createRevenueStampElement, description: '収入印紙の貼付欄' },
       { label: 'チェックボックス', icon: <SquareCheck className="w-4 h-4" />, createElement: createCheckboxElement, description: 'チェックボックス（固定／データバインド両対応）' },
       { label: '元号選択', icon: <Calendar className="w-4 h-4" />, createElement: createEraSelectElement, description: '和暦元号選択（明・大・昭・平・令）' },
+    ],
+  },
+  {
+    category: 'tenant',
+    label: 'テナント情報',
+    items: [
+      { label: '会社名',           icon: <Building2 className="w-4 h-4" />, createElement: createTenantCompanyNameElement, description: 'テナント設定の会社名を自動表示' },
+      { label: '住所',             icon: <MapPin className="w-4 h-4" />,    createElement: createTenantAddressElement,     description: 'テナント設定の住所を自動表示（郵便番号含む）' },
+      { label: '電話番号',         icon: <Phone className="w-4 h-4" />,     createElement: createTenantPhoneElement,       description: 'テナント設定の電話番号を自動表示' },
+      { label: '代表者名',         icon: <User className="w-4 h-4" />,      createElement: createTenantRepresentativeElement, description: 'テナント設定の代表者名を自動表示' },
+      { label: 'ロゴ',             icon: <Image className="w-4 h-4" />,     createElement: createTenantLogoElement,        description: 'テナント設定のロゴ画像を自動表示' },
+      { label: 'カスタムフィールド', icon: <Tag className="w-4 h-4" />,    createElement: createTenantCustomElement,      description: 'テナント設定のカスタムフィールド値を表示' },
     ],
   },
 ]

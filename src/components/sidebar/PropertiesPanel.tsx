@@ -27,6 +27,12 @@ import { EraSelectPropertiesPanel } from '@/elements/eraSelect/PropertiesPanel'
 import { PageNumberPropertiesPanel } from '@/elements/pageNumber/PropertiesPanel'
 import { CurrentDatePropertiesPanel } from '@/elements/currentDate/PropertiesPanel'
 import { DividerPropertiesPanel } from '@/elements/divider/PropertiesPanel'
+import { TenantCompanyNamePropertiesPanel } from '@/elements/tenantCompanyName/PropertiesPanel'
+import { TenantAddressPropertiesPanel } from '@/elements/tenantAddress/PropertiesPanel'
+import { TenantPhonePropertiesPanel } from '@/elements/tenantPhone/PropertiesPanel'
+import { TenantRepresentativePropertiesPanel } from '@/elements/tenantRepresentative/PropertiesPanel'
+import { TenantLogoPropertiesPanel } from '@/elements/tenantLogo/PropertiesPanel'
+import { TenantCustomPropertiesPanel } from '@/elements/tenantCustom/PropertiesPanel'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 
 // ---------------------------------------------------------------------------
@@ -206,6 +212,12 @@ export function PropertiesPanel() {
       {el.type === 'pageNumber' && <PageNumberPropertiesPanel el={el} onChange={update} />}
       {el.type === 'currentDate' && <CurrentDatePropertiesPanel el={el} onChange={update} />}
       {el.type === 'divider' && <DividerPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantCompanyName' && <TenantCompanyNamePropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantAddress' && <TenantAddressPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantPhone' && <TenantPhonePropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantRepresentative' && <TenantRepresentativePropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantLogo' && <TenantLogoPropertiesPanel el={el} onChange={update} />}
+      {el.type === 'tenantCustom' && <TenantCustomPropertiesPanel el={el} onChange={update} />}
 
       <ElementCommonSection el={el} onChange={update} />
 
