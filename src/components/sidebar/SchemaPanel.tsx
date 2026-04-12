@@ -11,6 +11,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store'
 import type { SchemaField, SchemaFieldType, SchemaGroup, SchemaDefinition } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
+import { isSystemGroup } from '@/store/schemaSlice'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -172,7 +173,7 @@ const GroupSection = memo(function GroupSection({
 
         {/* Group label */}
         <input
-          className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0"
+          className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0 disabled:opacity-60 disabled:cursor-not-allowed"
           value={localLabel}
           onChange={(e) => setLocalLabel(e.target.value)}
           onBlur={() => {
@@ -180,6 +181,7 @@ const GroupSection = memo(function GroupSection({
           }}
           placeholder="グループ名"
           aria-label="グループ名"
+          disabled={isSystemGroup(group.id)}
         />
 
         {/* Role badge */}
@@ -191,14 +193,19 @@ const GroupSection = memo(function GroupSection({
           {group.role}
         </span>
 
-        <button
-          type="button"
-          onClick={onRemoveGroup}
-          className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-          aria-label="グループを削除"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
+        {!isSystemGroup(group.id) && (
+          <button
+            type="button"
+            onClick={onRemoveGroup}
+            className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+            aria-label="グループを削除"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+        {isSystemGroup(group.id) && (
+          <span className="text-[9px] text-muted-foreground px-1">システム</span>
+        )}
       </div>
 
       {/* Group body */}

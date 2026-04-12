@@ -6,9 +6,10 @@ import { ValidationTab } from '@/components/modals/ValidationTab'
 import { DbConnectionTab } from '@/components/modals/DbConnectionTab'
 import { BindingMapperTab } from '@/components/modals/BindingMapperTab'
 import { TenantInfoTab } from '@/components/modals/TenantInfoTab'
+import { ProductMasterTab } from '@/components/modals/ProductMasterTab'
 import { cn } from '@/lib/utils'
 
-type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper' | 'tenantinfo'
+type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper' | 'tenantinfo' | 'productmaster'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'datasource', label: 'テンプレートデータ' },
@@ -17,6 +18,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'dbconnection', label: 'データ連携' },
   { id: 'bindingmapper', label: 'バインドマッパー' },
   { id: 'tenantinfo', label: 'テナント情報' },
+  { id: 'productmaster', label: '商品マスター' },
 ]
 
 interface DataBindingModalProps {
@@ -171,6 +173,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
           {activeTab === 'dbconnection' && <DbConnectionTab />}
           {activeTab === 'bindingmapper' && <BindingMapperTab onClose={handleClose} />}
           {activeTab === 'tenantinfo' && <TenantInfoTab />}
+          {activeTab === 'productmaster' && <ProductMasterTab />}
         </div>
       </div>
     </div>

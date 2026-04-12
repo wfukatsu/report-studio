@@ -286,6 +286,8 @@ export interface StoreState {
    * @param fieldId pass `undefined` to remove the binding
    */
   setElementSchemaBinding: (pageId: string, elementId: string, fieldId: string | undefined) => void
+  /** Ensures the __productMaster__ system group exists in the current schema. */
+  ensureProductMasterGroup: () => void
 
   // ── Computed slice actions ────────────────────────────────────────────────
   setComputedResults: (payload: {
@@ -301,6 +303,20 @@ export interface StoreState {
   tenantLoading: boolean
   fetchTenantInfo: () => Promise<void>
   updateTenantInfo: (info: TenantInfo) => Promise<void>
+
+  // ── Product Master slice ──────────────────────────────────────────────────
+  products: import('@/types').Product[]
+  customFieldDefs: import('@/types').ProductCustomFieldDef[]
+  productsLoading: boolean
+  productsError: string | null
+  productOps: Map<string, 'idle' | 'saving' | 'deleting'>
+  fetchProducts: () => Promise<void>
+  addProduct: (p: import('@/types').CreateProductRequest) => Promise<import('@/types').Product>
+  updateProduct: (id: string, patch: import('@/types').UpdateProductPayload, expectedVersion: number) => Promise<void>
+  deleteProduct: (id: string) => Promise<void>
+  fetchCustomFieldDefs: () => Promise<void>
+  updateCustomFieldDefs: (defs: import('@/types').ProductCustomFieldDef[]) => Promise<void>
+  setProductOp: (id: string, op: 'idle' | 'saving' | 'deleting') => void
 
   // ── Responses slice ───────────────────────────────────────────────────────
   responses: FormResponseSummary[]

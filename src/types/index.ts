@@ -736,6 +736,71 @@ export interface TenantInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Product Master — tenant-wide product catalog
+// ---------------------------------------------------------------------------
+
+export type TaxType = 'none' | 'standard' | 'reduced'
+
+/** Valid value types for user-defined custom fields */
+export type CustomFieldValue = string | number | boolean | null
+
+/** Price history entry — append-only, never updated or deleted */
+export interface PriceHistoryEntry {
+  price: number
+  /** ISO 8601 date string (YYYY-MM-DD) — when this price became effective */
+  effectiveFrom: string
+}
+
+/** Definition of a user-defined custom field on products */
+export interface ProductCustomFieldDef {
+  /** Alphanumeric key (no __proto__ etc.) */
+  key: string
+  label: string
+  type: 'text' | 'number' | 'date' | 'boolean'
+}
+
+export interface Product {
+  id: string
+  /** Unique within the tenant (enforced server-side) */
+  code: string
+  name: string
+  /** Current unit price (base value) */
+  unitPrice: number
+  category: string
+  description: string
+  stockCount: number
+  taxType: TaxType
+  /** Display unit, e.g. "個", "本", "kg" */
+  unit: string
+  manufacturer: string
+  /** null = not a subscription product */
+  subscriptionPeriod: string | null
+  subscriptionPriceUnit: string | null
+  customFields: Record<string, CustomFieldValue>
+  /** Price change history, descending order, max 365 entries */
+  priceHistory: PriceHistoryEntry[]
+  /** Soft-delete timestamp; null = active */
+  deletedAt: string | null
+  createdAt: string
+  updatedAt: string
+  /** Optimistic concurrency version number */
+  version: number
+}
+
+export interface ProductMasterDefinition {
+  customFieldDefs: ProductCustomFieldDef[]
+  products: Product[]
+}
+
+export type CreateProductRequest = Omit<Product,
+  'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'priceHistory' | 'version'>
+
+export type UpdateProductPayload = Partial<Pick<Product,
+  | 'name' | 'code' | 'unitPrice' | 'category' | 'description'
+  | 'stockCount' | 'taxType' | 'unit' | 'manufacturer'
+  | 'subscriptionPeriod' | 'subscriptionPriceUnit' | 'customFields'>>
+
+// ---------------------------------------------------------------------------
 // Tenant elements — resolved from TenantInfo at render time
 // ---------------------------------------------------------------------------
 
