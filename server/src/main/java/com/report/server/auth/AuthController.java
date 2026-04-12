@@ -174,7 +174,8 @@ public final class AuthController {
      * If newPassword is provided, currentPassword is required.
      */
     public void changeProfile(Context ctx) {
-        Principal principal = ctx.attribute("principal");
+        // Resolve session directly (auth middleware sets principal=ANONYMOUS for /api/v1/auth/*)
+        Principal principal = resolveFromRequest(ctx);
         if (principal == null || principal.isAnonymous()) {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.json(Map.of("error", "Authentication required"));
@@ -224,10 +225,16 @@ public final class AuthController {
         log.info("User {} updated profile", principal.userId());
     }
 
-    /** GET /api/v1/auth/me — return current principal */
+    /**
+     * GET /api/v1/auth/me — return the current session user.
+     *
+     * <p>Note: the auth middleware exempts all /api/v1/auth/ paths and sets
+     * principal = ANONYMOUS. This endpoint must resolve the session itself to
+     * return the actual logged-in user.
+     */
     public void me(Context ctx) {
-        Principal principal = (Principal) ctx.attribute("principal");
-        if (principal == null) principal = Principal.ANONYMOUS;
+        // Resolve from session cookie directly (not from middleware-set attribute)
+        Principal principal = resolveFromRequest(ctx);
         ctx.json(Map.of(
             "userId", principal.userId(),
             "displayName", principal.displayName(),

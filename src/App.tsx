@@ -18,6 +18,7 @@ import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
+import { useConnectionState } from '@/hooks/useConnectionState'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -50,6 +51,10 @@ export default function App() {
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
+
+  // Start backend health-check polling (sets backendConnected in store)
+  useConnectionState()
+
   const previewMode = useReportStore((s) => s.previewMode)
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)
   const backendConnected = useReportStore((s) => s.backendConnected)

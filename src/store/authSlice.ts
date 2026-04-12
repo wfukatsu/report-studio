@@ -40,7 +40,8 @@ export const createAuthSlice: StateCreator<
     try {
       const user = await getMe()
       set((s) => {
-        s.currentUser = user
+        // anonymous=true means the server resolved no valid session
+        s.currentUser = user.anonymous ? null : user
         s.authLoading = false
       })
     } catch (err) {
