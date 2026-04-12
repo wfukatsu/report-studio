@@ -876,3 +876,41 @@ export async function putProductCustomFieldDefs(
     body: JSON.stringify(defs),
   }) as Promise<ProductCustomFieldDef[]>
 }
+
+// ---------------------------------------------------------------------------
+// Data Browser — ScalarDB table scan
+// ---------------------------------------------------------------------------
+
+const ScalarDbColumnMetaSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  keyType: z.string().optional(),
+})
+
+export const ScalarDbScanResponseSchema = z.object({
+  columns: z.array(ScalarDbColumnMetaSchema),
+  rows: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))),
+  total: z.number().int(),
+  truncated: z.boolean(),
+  offset: z.number().int(),
+  limit: z.number().int(),
+})
+
+export type ScalarDbColumnMeta = z.infer<typeof ScalarDbColumnMetaSchema>
+export type ScalarDbScanResponse = z.infer<typeof ScalarDbScanResponseSchema>
+
+/** GET /api/v2/scalardb/tables/{ns}/{table}/rows */
+export async function scanScalarDbTable(
+  namespace: string,
+  table: string,
+  params: { offset?: number; limit?: number } = {},
+): Promise<ScalarDbScanResponse> {
+  const qs = new URLSearchParams({
+    offset: String(params.offset ?? 0),
+    limit: String(params.limit ?? 50),
+  })
+  return apiFetch(
+    `/api/v2/scalardb/tables/${encodeURIComponent(namespace)}/${encodeURIComponent(table)}/rows?${qs}`,
+    ScalarDbScanResponseSchema,
+  ) as Promise<ScalarDbScanResponse>
+}
