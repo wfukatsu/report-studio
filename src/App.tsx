@@ -11,9 +11,6 @@ import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
 import { LoginModal } from '@/components/modals/LoginModal'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
-import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
-import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
-import { DataBindingOverviewPanel } from '@/components/sidebar/DataBindingOverviewPanel'
 import { VersionHistoryPanel } from '@/components/sidebar/VersionHistoryPanel'
 import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
@@ -21,18 +18,15 @@ import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, LayoutTemplate, Database, Layers, BookOpen, MessageSquare, Link2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutTemplate, Layers, BookOpen } from 'lucide-react'
 
-type LeftTab = 'elements' | 'pages' | 'layers' | 'schema' | 'responses' | 'data'
+type LeftTab = 'elements' | 'pages' | 'layers'
 type RightTab = 'properties' | 'versions' | 'page'
 
 const LEFT_TABS: { id: LeftTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'elements',  label: '要素',    icon: <LayoutTemplate className="w-3.5 h-3.5" /> },
-  { id: 'schema',    label: 'スキーマ', icon: <Database className="w-3.5 h-3.5" /> },
-  { id: 'layers',    label: 'レイヤー', icon: <Layers className="w-3.5 h-3.5" /> },
-  { id: 'pages',     label: 'ページ',   icon: <BookOpen className="w-3.5 h-3.5" /> },
-  { id: 'responses', label: '回答',    icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { id: 'data',      label: 'データ',   icon: <Link2 className="w-3.5 h-3.5" /> },
+  { id: 'elements', label: '要素',    icon: <LayoutTemplate className="w-3.5 h-3.5" /> },
+  { id: 'layers',   label: 'レイヤー', icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: 'pages',    label: 'ページ',   icon: <BookOpen className="w-3.5 h-3.5" /> },
 ]
 
 const RIGHT_TABS: { id: RightTab; label: string }[] = [
@@ -389,9 +383,6 @@ export default function App() {
                 {leftTab === 'elements' && <ElementPalette />}
                 {leftTab === 'layers' && <LayersPanel />}
                 {leftTab === 'pages' && <PagePanel />}
-                {leftTab === 'schema' && <SchemaPanel />}
-                {leftTab === 'responses' && <ResponsesPanel />}
-                {leftTab === 'data' && <DataBindingOverviewPanel />}
               </div>
             )}
           </aside>

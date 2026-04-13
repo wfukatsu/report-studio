@@ -4,7 +4,6 @@
  */
 import type { OutputVariant } from '@/types'
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
-import { VariantsModal } from '@/components/modals/VariantsModal'
 import { ServerSettingsModal } from '@/components/modals/ServerSettingsModal'
 import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
 import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
@@ -17,7 +16,6 @@ interface Props {
   // Dialog open states
   showDataModal: boolean
   showServerSettings: boolean
-  showVariantsModal: boolean
   showSaveDialog: boolean
   showManagerModal: boolean
   showUpdateFromBuiltinConfirm: boolean
@@ -32,7 +30,6 @@ interface Props {
   // Callbacks
   onCloseDataModal: () => void
   onCloseServerSettings: () => void
-  onCloseVariantsModal: () => void
   onSaveNew: (name: string) => void
   onCancelSave: () => void
   onCloseManagerModal: () => void
@@ -58,7 +55,6 @@ export function ToolbarDialogs({
   sourceTemplateName,
   showDataModal,
   showServerSettings,
-  showVariantsModal,
   showSaveDialog,
   showManagerModal,
   showUpdateFromBuiltinConfirm,
@@ -72,7 +68,6 @@ export function ToolbarDialogs({
   validationWarnings,
   onCloseDataModal,
   onCloseServerSettings,
-  onCloseVariantsModal,
   onSaveNew,
   onCancelSave,
   onCloseManagerModal,
@@ -97,8 +92,6 @@ export function ToolbarDialogs({
       {showDataModal && <DataBindingModal open={showDataModal} onClose={onCloseDataModal} />}
 
       {showServerSettings && <ServerSettingsModal open={showServerSettings} onClose={onCloseServerSettings} />}
-
-      <VariantsModal open={showVariantsModal} onClose={onCloseVariantsModal} />
 
       <SaveTemplateDialog
         open={showSaveDialog}

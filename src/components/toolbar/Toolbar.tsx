@@ -3,7 +3,6 @@ import { useToolbarModals } from './useToolbarModals'
 import { useToolbarExport } from './useToolbarExport'
 import { useToolbarFile } from './useToolbarFile'
 import { ToolbarDialogs } from './ToolbarDialogs'
-import { Link } from 'react-router-dom'
 import {
   Undo2, Redo2, Eye, FileImage, FileText,
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
@@ -11,8 +10,8 @@ import {
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
   Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
-  Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
-  ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw, User, TableProperties,
+  Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
+  ShieldCheck, ShieldAlert, Database, RefreshCw, User,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
@@ -100,7 +99,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     showZOrderMenu, setShowZOrderMenu,
     showPreviewMenu, setShowPreviewMenu,
     showDataModal, setShowDataModal,
-    showVariantsModal, setShowVariantsModal,
     showManagerModal, setShowManagerModal,
     showVariantDialog, setShowVariantDialog,
     showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm,
@@ -275,9 +273,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             </div>
           )}
         </div>
-        <ToolbarButton onClick={() => setShowManagerModal(true)} title="テンプレート管理">
-          <Settings2 className="w-4 h-4" />
-        </ToolbarButton>
         {sourceTemplate && (
           <div className="relative">
             <ToolbarButton
@@ -427,11 +422,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <Database className="w-4 h-4" />
         </ToolbarButton>
 
-        {/* Output variants */}
-        <ToolbarButton onClick={() => setShowVariantsModal(true)} title="出力バリアント設定">
-          <Shuffle className="w-4 h-4" />
-        </ToolbarButton>
-
         <Divider />
 
         {/* Grid & snap */}
@@ -474,17 +464,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         </ToolbarButton>
 
         <div className="flex-1" />
-
-        {/* Data Browser link */}
-        <Link
-          to="/data-browser"
-          className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-accent transition-colors shrink-0"
-          aria-label="データブラウザを開く"
-          title="データブラウザ"
-        >
-          <TableProperties className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">データブラウザ</span>
-        </Link>
 
         {/* Zoom — editor zoom only; preview zoom shown separately when they diverge */}
         <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom - 0.1))} disabled={editorZoom <= 0.1} title="ズームアウト (⌘-)">
@@ -730,7 +709,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       sourceTemplateName={sourceTemplate?.name}
       showDataModal={showDataModal}
       showServerSettings={showServerSettings}
-      showVariantsModal={showVariantsModal}
       showSaveDialog={showSaveDialog}
       showManagerModal={showManagerModal}
       showUpdateFromBuiltinConfirm={showUpdateFromBuiltinConfirm}
@@ -744,7 +722,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       validationWarnings={validationWarnings}
       onCloseDataModal={() => setShowDataModal(false)}
       onCloseServerSettings={() => setShowServerSettings(false)}
-      onCloseVariantsModal={() => setShowVariantsModal(false)}
       onSaveNew={handleSaveNew}
       onCancelSave={() => setShowSaveDialog(false)}
       onCloseManagerModal={() => setShowManagerModal(false)}

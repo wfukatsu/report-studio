@@ -18,7 +18,6 @@ export function useToolbarModals() {
   const [showPreviewMenu, setShowPreviewMenu] = useState(false)
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
-  const [showVariantsModal, setShowVariantsModal] = useState(false)
   const [showManagerModal, setShowManagerModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
@@ -70,7 +69,6 @@ export function useToolbarModals() {
     showPreviewMenu, setShowPreviewMenu,
     isPreviewingPdf, setIsPreviewingPdf,
     showDataModal, setShowDataModal,
-    showVariantsModal, setShowVariantsModal,
     showManagerModal, setShowManagerModal,
     showVariantDialog, setShowVariantDialog,
     showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm,
