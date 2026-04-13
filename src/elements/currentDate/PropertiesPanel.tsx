@@ -2,6 +2,7 @@ import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import type { CurrentDateElement, CurrentDateFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
 import { formatCurrentDate } from './format'
+import { FONT_FAMILIES } from '@/elements/_blocks/constants'
 
 const FORMAT_OPTIONS: { value: CurrentDateFormat; label: string }[] = [
   { value: 'yyyy/MM/dd',             label: 'yyyy/MM/dd' },
@@ -12,11 +13,6 @@ const FORMAT_OPTIONS: { value: CurrentDateFormat; label: string }[] = [
   { value: 'wareki_short',           label: '和暦略（R8.04.10）' },
   { value: 'yyyy年MM月dd日 (ddd)',    label: 'yyyy年MM月dd日 (曜日)' },
   { value: 'custom',                 label: 'カスタム' },
-]
-
-const FONT_FAMILIES = [
-  'sans-serif', 'serif', 'monospace',
-  'Noto Sans JP', 'Noto Serif JP', 'BIZ UDPGothic', 'BIZ UDPMincho',
 ]
 
 interface Props {

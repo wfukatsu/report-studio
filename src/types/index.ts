@@ -101,10 +101,8 @@ export interface TemplateVariable {
 export type ElementType =
   // テキスト系
   | 'text'
-  | 'label'
   // データ表示系
   | 'dataField'
-  | 'table'
   | 'chart'
   // 繰り返し系
   | 'repeatingBand'
@@ -293,12 +291,6 @@ export interface TextElement extends ElementBase {
   furiganaScale?: number
 }
 
-export interface LabelElement extends ElementBase {
-  type: 'label'
-  /** 静的テキスト (トークン置換なし) */
-  text: string
-  style: TextStyle
-}
 
 export interface ImageElement extends ElementBase {
   type: 'image'
@@ -318,16 +310,6 @@ export interface ShapeElement extends ElementBase {
   strokeDash?: 'solid' | 'dashed' | 'dotted'
 }
 
-export interface TableElement extends ElementBase {
-  type: 'table'
-  rows: number
-  columns: number
-  data: string[][]
-  headerRow: boolean
-  dataBinding?: string
-  /** 列ごとの消費税率 (軽減税率マーカー ※ 表示用, same length as columns) */
-  columnTaxRates?: (8 | 10 | null)[]
-}
 
 export interface ChartElement extends ElementBase {
   type: 'chart'
@@ -849,10 +831,8 @@ export interface TenantCustomElement extends ElementBase {
 
 export type ReportElement =
   | TextElement
-  | LabelElement
   | ImageElement
   | ShapeElement
-  | TableElement
   | ChartElement
   | DataFieldElement
   | ManualEntryField

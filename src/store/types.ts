@@ -139,6 +139,7 @@ export interface StoreState {
    */
   livePreviewData: LivePreviewData | null
   setLivePreviewData: (data: LivePreviewData | null) => void
+  invalidateLivePreviewData: () => void
 
   // ── Computed slice (expression evaluation — not in undo/redo history) ─────
   computedValues: Record<string, ComputedValue>

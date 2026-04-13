@@ -1,6 +1,7 @@
 import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import type { PageNumberElement, PageNumberFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
+import { FONT_FAMILIES } from '@/elements/_blocks/constants'
 
 const FORMAT_OPTIONS: { value: PageNumberFormat; label: string; example: string }[] = [
   { value: '{{page}}',                      label: 'ページ番号のみ',   example: '1' },
@@ -9,11 +10,6 @@ const FORMAT_OPTIONS: { value: PageNumberFormat; label: string; example: string 
   { value: 'Page {{page}} of {{pages}}',    label: 'Page X of Y',     example: 'Page 1 of 3' },
   { value: '{{page}}ページ',                 label: 'Xページ',          example: '1ページ' },
   { value: 'custom',                         label: 'カスタム',         example: '' },
-]
-
-const FONT_FAMILIES = [
-  'sans-serif', 'serif', 'monospace',
-  'Noto Sans JP', 'Noto Serif JP', 'BIZ UDPGothic', 'BIZ UDPMincho',
 ]
 
 interface Props {

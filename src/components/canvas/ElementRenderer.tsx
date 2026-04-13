@@ -18,7 +18,6 @@ import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 import { isDataEmptyInPreview } from '@/lib/previewUtils'
 
 import { TextRenderer } from '@/elements/text/Renderer'
-import { LabelRenderer } from '@/elements/label/Renderer'
 import { DataFieldRenderer } from '@/elements/dataField/Renderer'
 import { ImageRenderer } from '@/elements/image/Renderer'
 import { ShapeRenderer } from '@/elements/shape/Renderer'
@@ -92,15 +91,9 @@ export const ElementRenderer = memo(function ElementRenderer({
 
   switch (element.type) {
     case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
-    // label → text: migration converts at load time; this branch is a safety net for
-    // any label element that bypasses migration (e.g. via direct store writes).
-    // LabelRenderer uses TextContent which reads el.text — correct for LabelElement.
-    case 'label':           return <LabelRenderer element={element} />
     case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} />
     case 'image':           return <ImageRenderer element={element} />
     case 'shape':           return <ShapeRenderer element={element} />
-    // table → formTable migration: render as placeholder until manually converted
-    case 'table':           return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef3c7', border: '1px solid #f59e0b', fontSize: '2.5mm', color: '#92400e' }}>旧テーブル要素 — formTable に変換してください</div>
     case 'chart':           return <ChartRenderer element={element} data={mergedData} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
     case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />

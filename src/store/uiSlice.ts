@@ -117,4 +117,5 @@ export const createUISlice: StateCreator<
   // ── Phase 2: live preview data (ScalarDB resolved values) ────────────────
   livePreviewData: null,
   setLivePreviewData: (data) => set((s) => { s.livePreviewData = data }),
+  invalidateLivePreviewData: () => set((s) => { s.livePreviewData = null }),
 })

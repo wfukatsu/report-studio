@@ -32,7 +32,7 @@ function applyMaskingToElement(el: ReportElement, rules: MaskingRule[]): ReportE
   if (!rule) return el
 
   if (rule.type === 'fullReplace') {
-    if (el.type === 'text' || el.type === 'label') {
+    if (el.type === 'text') {
       return { ...el, content: rule.replaceValue } as ReportElement
     }
     return el
