@@ -439,9 +439,14 @@ export function ReportCanvas({
           >
             <path
               d={`M0,0 H${canvasWidthPx} V${canvasHeightPx} H0 Z M${mmToPx(margins.left)},${mmToPx(margins.top)} V${canvasHeightPx - mmToPx(margins.bottom)} H${canvasWidthPx - mmToPx(margins.right)} V${mmToPx(margins.top)} Z`}
-              fill="rgba(0,0,0,0.06)"
+              fill="rgba(0,0,0,0.04)"
               fillRule="evenodd"
             />
+            {/* Dashed lines at margin inner boundaries */}
+            {margins.top > 0    && <line x1={0} y1={mmToPx(margins.top)}                          x2={canvasWidthPx}  y2={mmToPx(margins.top)}                          stroke="#a0aec0" strokeWidth={0.5} strokeDasharray="4 3" />}
+            {margins.bottom > 0 && <line x1={0} y1={canvasHeightPx - mmToPx(margins.bottom)}      x2={canvasWidthPx}  y2={canvasHeightPx - mmToPx(margins.bottom)}      stroke="#a0aec0" strokeWidth={0.5} strokeDasharray="4 3" />}
+            {margins.left > 0   && <line x1={mmToPx(margins.left)}                          y1={0} x2={mmToPx(margins.left)}                          y2={canvasHeightPx} stroke="#a0aec0" strokeWidth={0.5} strokeDasharray="4 3" />}
+            {margins.right > 0  && <line x1={canvasWidthPx - mmToPx(margins.right)}         y1={0} x2={canvasWidthPx - mmToPx(margins.right)}         y2={canvasHeightPx} stroke="#a0aec0" strokeWidth={0.5} strokeDasharray="4 3" />}
           </svg>
         )}
         {page.sections.map((section) => (
