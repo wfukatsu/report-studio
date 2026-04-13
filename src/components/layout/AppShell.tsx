@@ -14,7 +14,6 @@ export function AppShell() {
 
   const activeTab = useReportStore((s) => s.activeTab)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
-  const currentUser = useReportStore((s) => s.currentUser)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -32,8 +31,8 @@ export function AppShell() {
         </div>
       </Activity>
 
-      {/* Data Management tab: 認証済みユーザーのみアクセス可能 */}
-      {activeTab === 'data' && currentUser && (
+      {/* Data Management tab */}
+      {activeTab === 'data' && (
         <div
           role="tabpanel"
           id="top-panel-data"
@@ -44,8 +43,8 @@ export function AppShell() {
         </div>
       )}
 
-      {/* Template Management tab: 認証済みユーザーのみアクセス可能 */}
-      {activeTab === 'templates' && currentUser && (
+      {/* Template Management tab */}
+      {activeTab === 'templates' && (
         <div
           role="tabpanel"
           id="top-panel-templates"
