@@ -13,8 +13,6 @@
  */
 
 import { memo, useMemo } from 'react'
-import { useShallow } from 'zustand/shallow'
-import { useReportStore } from '@/store'
 import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 import { isDataEmptyInPreview } from '@/lib/previewUtils'
@@ -56,16 +54,16 @@ interface Props {
   pageIndex?: number
   /** Total page count (for pageNumber elements) */
   totalPages?: number
+  /** Computed field values from store — lifted from parent to avoid N subscriptions */
+  computedValues?: Record<string, unknown>
+  /** Default text style from store — lifted from parent to avoid N subscriptions */
+  defaultTextStyle?: TextStyle
 }
 
-export const ElementRenderer = memo(function ElementRenderer({ element, data = {}, rowIndex, readonly = false, pageIndex, totalPages }: Props) {
-  // Merge computedValues into data so calculated fields are available to all renderers.
-  // useShallow: re-render only when computedValues keys or values actually change.
-  const computedValues = useReportStore(useShallow((s) => s.computedValues))
-
-  // Subscribe to defaultTextStyle once here (not in each TextRenderer) to avoid
-  // N individual store subscriptions that fire on every unrelated state change.
-  const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
+export const ElementRenderer = memo(function ElementRenderer({
+  element, data = {}, rowIndex, readonly = false, pageIndex, totalPages,
+  computedValues = {}, defaultTextStyle = {} as TextStyle,
+}: Props) {
   // Memoize merged data so the object reference is stable across renders when
   // neither data nor computedValues have changed (prevents useMemo churn below).
   const mergedData = useMemo<Record<string, unknown>>(

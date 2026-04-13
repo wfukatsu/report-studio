@@ -97,24 +97,40 @@ export default function App() {
   const snapToGrid = useReportStore((s) => s.snapToGrid)
   const gridSize = useReportStore((s) => s.gridSize)
 
-  // Auto-save to localStorage (debounced 1 second)
+  // Clear current template on logout (prevent data leakage between users)
+  const currentUser = useReportStore((s) => s.currentUser)
+  const authLoading = useReportStore((s) => s.authLoading)
+
+  // Auto-save to localStorage (debounced 1 second) — keyed by userId to prevent cross-user leakage
+  const autoSaveKey = currentUser ? `rds-autosave:${currentUser.userId}` : null
   useEffect(() => {
-    if (historyIndex === 0) return // don't save pristine state
+    if (historyIndex === 0 || !autoSaveKey) return // don't save pristine state or when logged out
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem('rds-autosave', JSON.stringify(definition))
+        localStorage.setItem(autoSaveKey, JSON.stringify(definition))
         setAutoSaveTime(new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }))
       } catch {
         // localStorage full or disabled — ignore silently
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [historyIndex, definition])
+  }, [historyIndex, definition, autoSaveKey])
+
+  // Clear autosave data on logout
+  useEffect(() => {
+    const prevUserId = prevUserRef.current
+    const currUserId = currentUser?.userId ?? null
+    if (prevUserId !== null && currUserId === null) {
+      // User just logged out — remove their autosave data
+      localStorage.removeItem(`rds-autosave:${prevUserId}`)
+    }
+  }, [currentUser])
 
   // Check for restore on mount — intentionally runs once; historyIndex is a
   // mount-time check only, not a reactive dependency.
   useEffect(() => {
-    const saved = localStorage.getItem('rds-autosave')
+    const key = currentUser ? `rds-autosave:${currentUser.userId}` : null
+    const saved = key ? localStorage.getItem(key) : null
     if (saved && historyIndex === 0) {
       setShowRestorePrompt(true)
     }
@@ -126,12 +142,10 @@ export default function App() {
     checkAuth()
   }, [checkAuth])
 
-  // Clear current template on logout (prevent data leakage between users)
-  const currentUser = useReportStore((s) => s.currentUser)
-  const authLoading = useReportStore((s) => s.authLoading)
   const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
   const newReport = useReportStore((s) => s.newReport)
   const prevUserRef = useRef<string | null>(null)
+  // Clear current template on logout (prevent data leakage between users)
   useEffect(() => {
     const prevUserId = prevUserRef.current
     const currUserId = currentUser?.userId ?? null
@@ -271,7 +285,8 @@ export default function App() {
           <span>前回の作業内容が自動保存されています。</span>
           <button
             onClick={() => {
-              const saved = localStorage.getItem('rds-autosave')
+              const key = currentUser ? `rds-autosave:${currentUser.userId}` : null
+              const saved = key ? localStorage.getItem(key) : null
               if (saved) importReportJSON(saved)
               setShowRestorePrompt(false)
             }}
@@ -342,14 +357,14 @@ export default function App() {
                         onClick={() => setLeftTab(tab.id)}
                         title={tab.label}
                         className={cn(
-                          'shrink-0 flex items-center gap-1 py-2 text-xs font-medium transition-colors whitespace-nowrap',
+                          'shrink-0 flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors whitespace-nowrap',
                           isActive
-                            ? 'border-b-2 border-primary text-primary px-2'
-                            : 'text-muted-foreground hover:text-foreground px-2',
+                            ? 'border-b-2 border-primary text-primary'
+                            : 'text-muted-foreground hover:text-foreground',
                         )}
                       >
                         {tab.icon}
-                        {isActive && <span>{tab.label}</span>}
+                        <span className="text-[9px] leading-tight">{tab.label}</span>
                       </button>
                     )
                   })}
@@ -408,6 +423,25 @@ export default function App() {
                   role="tablist"
                   aria-label="右サイドバーナビゲーション"
                   className="flex overflow-x-auto"
+                  onKeyDown={(e) => {
+                    const tabIds = RIGHT_TABS.map((t) => t.id)
+                    const currentIndex = tabIds.indexOf(rightTab)
+                    let nextIndex: number | null = null
+                    if (e.key === 'ArrowRight') {
+                      nextIndex = (currentIndex + 1) % tabIds.length
+                    } else if (e.key === 'ArrowLeft') {
+                      nextIndex = (currentIndex - 1 + tabIds.length) % tabIds.length
+                    } else if (e.key === 'Home') {
+                      nextIndex = 0
+                    } else if (e.key === 'End') {
+                      nextIndex = tabIds.length - 1
+                    }
+                    if (nextIndex !== null) {
+                      e.preventDefault()
+                      setRightTab(tabIds[nextIndex])
+                      document.getElementById(`right-tab-${tabIds[nextIndex]}`)?.focus()
+                    }
+                  }}
                 >
                   {RIGHT_TABS.map((tab) => (
                     <button
@@ -416,6 +450,7 @@ export default function App() {
                       aria-selected={rightTab === tab.id}
                       aria-controls={`right-tabpanel-${tab.id}`}
                       id={`right-tab-${tab.id}`}
+                      tabIndex={rightTab === tab.id ? 0 : -1}
                       onClick={() => setRightTab(tab.id)}
                       className={cn(
                         'shrink-0 px-2 py-2 text-xs font-medium transition-colors whitespace-nowrap',

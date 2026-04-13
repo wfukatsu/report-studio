@@ -7,12 +7,13 @@
  * - Minimum heights: 10mm for header/footer, 50mm for body
  */
 
-import { useRef, useCallback, useMemo, memo } from 'react'
-import type { Section, ReportElement, LayerGroup } from '@/types'
+import { useRef, useCallback, useMemo, memo, useState } from 'react'
+import type { Section, ReportElement, LayerGroup, TextStyle } from '@/types'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { CanvasElement } from './CanvasElement'
 import type { ContextMenuState } from './ContextMenu'
 import { useReportStore } from '@/store/reportStore'
+import { useShallow } from 'zustand/shallow'
 import { buildGroupMap, resolveVisible, resolveLocked } from '@/lib/groupUtils'
 
 // Stable empty array to prevent ?? [] from creating new refs each render
@@ -74,7 +75,6 @@ export const SectionContainer = memo(function SectionContainer({
   pageIndex,
   totalPages,
 }: Props) {
-  const heightPx = mmToPx(section.height)
   const minHeightMm = MIN_HEIGHT_MM[section.sectionType] ?? 10
 
   // Group-based visibility/lock overrides
@@ -83,6 +83,17 @@ export const SectionContainer = memo(function SectionContainer({
     return page?.groups ?? EMPTY_GROUPS
   })
   const groupMap = useMemo(() => buildGroupMap(pageGroups), [pageGroups])
+
+  // computedValues and defaultTextStyle subscribed once here (not in each ElementRenderer)
+  // to avoid N individual store subscriptions firing on every evaluation API response.
+  const computedValues = useReportStore(useShallow((s) => s.computedValues))
+  const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
+
+  // Local resize height: updated on pointermove without writing to the store.
+  // Only committed to the store on pointerup to avoid 120 writes/second at 120Hz.
+  const [localHeightMm, setLocalHeightMm] = useState<number | null>(null)
+  const heightMm = localHeightMm ?? section.height
+  const heightPx = mmToPx(heightMm)
 
   const resizeStartRef = useRef<{ mouseY: number; startHeightMm: number } | null>(null)
 
@@ -104,12 +115,18 @@ export const SectionContainer = memo(function SectionContainer({
     const deltaMm = pxToMm(deltaY / zoom)
     // Footer resizes from the top edge: dragging up (negative delta) increases height
     const newHeight = Math.max(minHeightMm, resizeStartRef.current.startHeightMm + (isFooter ? -deltaMm : deltaMm))
-    onResizeSection(section.id, newHeight)
-  }, [onResizeSection, section.id, zoom, minHeightMm, isFooter])
+    // Update local state only — no store write until pointerup
+    setLocalHeightMm(newHeight)
+  }, [zoom, minHeightMm, isFooter])
 
   const handleResizePointerUp = useCallback(() => {
+    // Commit the local height to the store once on release
+    if (resizeStartRef.current && onResizeSection && localHeightMm !== null) {
+      onResizeSection(section.id, localHeightMm)
+    }
+    setLocalHeightMm(null)
     resizeStartRef.current = null
-  }, [])
+  }, [onResizeSection, section.id, localHeightMm])
 
   const sortedElements = useMemo(
     () => [...section.elements].sort((a, b) => a.zIndex - b.zIndex),
@@ -187,6 +204,8 @@ export const SectionContainer = memo(function SectionContainer({
             readonly={readonly}
             pageIndex={pageIndex}
             totalPages={totalPages}
+            computedValues={computedValues}
+            defaultTextStyle={defaultTextStyle}
           />
         )
       })}
