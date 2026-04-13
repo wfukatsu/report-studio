@@ -34,6 +34,44 @@ import { TenantRepresentativePropertiesPanel } from '@/elements/tenantRepresenta
 import { TenantLogoPropertiesPanel } from '@/elements/tenantLogo/PropertiesPanel'
 import { TenantCustomPropertiesPanel } from '@/elements/tenantCustom/PropertiesPanel'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
+import type { ReportElement } from '@/types'
+
+function assertNever(x: never): null {
+  console.error('Unhandled element type in PropertiesPanel:', x)
+  return null
+}
+
+// Type-specific panel dispatcher — exhaustiveness-checked via assertNever.
+// Adding a new element type without updating this function causes a compile error.
+function renderTypePanel(el: ReportElement, update: (patch: Partial<typeof el>) => void) {
+  switch (el.type) {
+    case 'text':               return <TextPropertiesPanel el={el} onChange={update} />
+    case 'dataField':          return <DataFieldPropertiesPanel el={el} onChange={update} />
+    case 'shape':              return <ShapePropertiesPanel el={el} onChange={update} />
+    case 'image':              return <ImagePropertiesPanel el={el} onChange={update} />
+    case 'chart':              return <ChartPropertiesPanel el={el} onChange={update} />
+    case 'barcode':            return <BarcodePropertiesPanel el={el} onChange={update} />
+    case 'manualEntry':        return <ManualEntryPropertiesPanel el={el} onChange={update} />
+    case 'hanko':              return <HankoPropertiesPanel el={el} onChange={update} />
+    case 'approvalStampRow':   return <ApprovalStampRowPropertiesPanel el={el} onChange={update} />
+    case 'revenueStamp':       return <RevenueStampPropertiesPanel el={el} onChange={update} />
+    case 'repeatingBand':      return <RepeatingBandPropertiesPanel el={el} onChange={update} />
+    case 'repeatingList':      return <RepeatingListPropertiesPanel el={el} onChange={update} />
+    case 'formTable':          return <FormTablePropertiesPanel el={el} onChange={update} />
+    case 'checkbox':           return <CheckboxPropertiesPanel el={el} onChange={update} />
+    case 'eraSelect':          return <EraSelectPropertiesPanel el={el} onChange={update} />
+    case 'pageNumber':         return <PageNumberPropertiesPanel el={el} onChange={update} />
+    case 'currentDate':        return <CurrentDatePropertiesPanel el={el} onChange={update} />
+    case 'divider':            return <DividerPropertiesPanel el={el} onChange={update} />
+    case 'tenantCompanyName':  return <TenantCompanyNamePropertiesPanel el={el} onChange={update} />
+    case 'tenantAddress':      return <TenantAddressPropertiesPanel el={el} onChange={update} />
+    case 'tenantPhone':        return <TenantPhonePropertiesPanel el={el} onChange={update} />
+    case 'tenantRepresentative': return <TenantRepresentativePropertiesPanel el={el} onChange={update} />
+    case 'tenantLogo':         return <TenantLogoPropertiesPanel el={el} onChange={update} />
+    case 'tenantCustom':       return <TenantCustomPropertiesPanel el={el} onChange={update} />
+    default:                   return assertNever(el)
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Shared sections (used across all element types)
@@ -192,32 +230,7 @@ export function PropertiesPanel() {
     <div className="text-sm divide-y">
       <PositionSizeSection el={el} onChange={update} />
 
-      {el.type === 'text' && <TextPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'label' && <TextPropertiesPanel el={{ ...el, type: 'text', content: el.text }} onChange={update} />}
-      {el.type === 'dataField' && <DataFieldPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'shape' && <ShapePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'image' && <ImagePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'table' && <div className="p-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded m-3">旧テーブル要素です。formTable に変換してください。</div>}
-      {el.type === 'chart' && <ChartPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'barcode' && <BarcodePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'manualEntry' && <ManualEntryPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'hanko' && <HankoPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'approvalStampRow' && <ApprovalStampRowPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'revenueStamp' && <RevenueStampPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'repeatingBand' && <RepeatingBandPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'repeatingList' && <RepeatingListPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'formTable' && <FormTablePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'checkbox' && <CheckboxPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'eraSelect' && <EraSelectPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'pageNumber' && <PageNumberPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'currentDate' && <CurrentDatePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'divider' && <DividerPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantCompanyName' && <TenantCompanyNamePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantAddress' && <TenantAddressPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantPhone' && <TenantPhonePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantRepresentative' && <TenantRepresentativePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantLogo' && <TenantLogoPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'tenantCustom' && <TenantCustomPropertiesPanel el={el} onChange={update} />}
+      {renderTypePanel(el, update)}
 
       <ElementCommonSection el={el} onChange={update} />
 

@@ -4,6 +4,7 @@ import type { Product, ProductCustomFieldDef } from '@/types'
 import { cn } from '@/lib/utils'
 import { ProductEditDialog } from './ProductEditDialog'
 import { ProductCsvImportModal } from './ProductCsvImportModal'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 type SortCol = 'code' | 'name' | 'category' | 'unitPrice'
 type SortDir = 'asc' | 'desc'
@@ -39,6 +40,7 @@ export function ProductMasterTab() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isFieldDefsOpen, setIsFieldDefsOpen] = useState(false)
   const [isCsvImportOpen, setIsCsvImportOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
   useEffect(() => {
     // Always fetch on mount to ensure latest data is shown
@@ -68,9 +70,7 @@ export function ProductMasterTab() {
     }
   }
 
-  async function handleDelete(product: Product) {
-    if (productOps.get(product.id)) return
-    if (!window.confirm(`商品「${product.name}」を削除しますか？\n削除後 90 日間は同じ商品コードは使用できません。`)) return
+  async function execDelete(product: Product) {
     setProductOp(product.id, 'deleting')
     try {
       await deleteProduct(product.id)
@@ -79,6 +79,11 @@ export function ProductMasterTab() {
     } finally {
       setProductOp(product.id, 'idle')
     }
+  }
+
+  function handleDelete(product: Product) {
+    if (productOps.get(product.id)) return
+    setDeleteTarget(product)
   }
 
   if (productsLoading && products.length === 0) {
@@ -251,6 +256,16 @@ export function ProductMasterTab() {
       {isCsvImportOpen && (
         <ProductCsvImportModal onClose={() => setIsCsvImportOpen(false)} />
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="商品を削除"
+        message={`商品「${deleteTarget?.name}」を削除しますか？削除後 90 日間は同じ商品コードは使用できません。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => { if (deleteTarget) void execDelete(deleteTarget); setDeleteTarget(null) }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
@@ -265,6 +280,7 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
   const [defs, setDefs] = useState<ProductCustomFieldDef[]>(() => [...customFieldDefs])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [removeDefTarget, setRemoveDefTarget] = useState<{ index: number; label: string } | null>(null)
 
   async function handleSave() {
     setSaving(true)
@@ -285,8 +301,7 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
   }
 
   function removeDef(index: number) {
-    if (!window.confirm(`フィールド「${defs[index].label}」を削除しますか？\n既存商品のこのフィールドのデータは保持されますが表示されなくなります。`)) return
-    setDefs(defs.filter((_, i) => i !== index))
+    setRemoveDefTarget({ index, label: defs[index].label })
   }
 
   function updateDef<K extends keyof ProductCustomFieldDef>(
@@ -369,6 +384,19 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removeDefTarget !== null}
+        title="フィールドを削除"
+        message={`フィールド「${removeDefTarget?.label}」を削除しますか？既存商品のデータは保持されますが表示されなくなります。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (removeDefTarget) setDefs(defs.filter((_, i) => i !== removeDefTarget.index))
+          setRemoveDefTarget(null)
+        }}
+        onCancel={() => setRemoveDefTarget(null)}
+      />
     </div>
   )
 }

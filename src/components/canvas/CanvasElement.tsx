@@ -22,6 +22,8 @@ interface Props {
   readonly?: boolean
   pageIndex?: number
   totalPages?: number
+  computedValues?: Record<string, unknown>
+  defaultTextStyle?: import('@/types').TextStyle
 }
 
 type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w'
@@ -39,6 +41,8 @@ export const CanvasElement = memo(function CanvasElement({
   readonly = false,
   pageIndex,
   totalPages,
+  computedValues,
+  defaultTextStyle,
 }: Props) {
   const removeElement = useReportStore((s) => s.removeElement)
   const updateElement = useReportStore((s) => s.updateElement)
@@ -290,7 +294,7 @@ export const CanvasElement = memo(function CanvasElement({
             onCancel={handleInlineCancel}
           />
         ) : (
-          <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} />
+          <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} />
         )}
       </ElementErrorBoundary>
 

@@ -4,10 +4,16 @@
 
 import type { StateCreator } from 'zustand'
 import type { ReportElement } from '@/types'
-import type { StoreState } from './types'
+import type { AppTab, DataSection, TemplateSection, StoreState } from './types'
 import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
 
 export type UISlice = Pick<StoreState,
+  | 'activeTab'
+  | 'setActiveTab'
+  | 'dataActiveSection'
+  | 'setDataActiveSection'
+  | 'templateActiveSection'
+  | 'setTemplateActiveSection'
   | 'previewMode'
   | 'editorZoom'
   | 'previewZoom'
@@ -45,6 +51,7 @@ export type UISlice = Pick<StoreState,
   | 'setLayerSearchQuery'
   | 'livePreviewData'
   | 'setLivePreviewData'
+  | 'invalidateLivePreviewData'
 >
 
 export const createUISlice: StateCreator<
@@ -53,6 +60,14 @@ export const createUISlice: StateCreator<
   [],
   UISlice
 > = (set) => ({
+  activeTab: 'design' as AppTab,
+  setActiveTab: (tab) => set((s) => { s.activeTab = tab }),
+
+  dataActiveSection: 'datasource' as DataSection,
+  setDataActiveSection: (section) => set((s) => { s.dataActiveSection = section }),
+  templateActiveSection: 'templates' as TemplateSection,
+  setTemplateActiveSection: (section) => set((s) => { s.templateActiveSection = section }),
+
   previewMode: false,
   layerSearchQuery: '',
   editorZoom: 1.0,
@@ -117,4 +132,5 @@ export const createUISlice: StateCreator<
   // ── Phase 2: live preview data (ScalarDB resolved values) ────────────────
   livePreviewData: null,
   setLivePreviewData: (data) => set((s) => { s.livePreviewData = data }),
+  invalidateLivePreviewData: () => set((s) => { s.livePreviewData = null }),
 })

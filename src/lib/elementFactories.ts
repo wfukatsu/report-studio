@@ -23,20 +23,6 @@ export function createTextElement(overrides?: Partial<ReportElement>): ReportEle
   } as ReportElement
 }
 
-export function createLabelElement(overrides?: Partial<ReportElement>): ReportElement {
-  return {
-    id: uuidv4(),
-    type: 'label',
-    position: { x: 13, y: 13 },
-    size: { width: 40, height: 6 },
-    zIndex: 1,
-    visible: true,
-    locked: false,
-    text: 'ラベル',
-    style: { fontSize: 3.5, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
-    ...overrides,
-  } as ReportElement
-}
 
 export function createImageElement(overrides?: Partial<ReportElement>): ReportElement {
   return {
@@ -73,26 +59,6 @@ export function createShapeElement(overrides?: Partial<ReportElement>): ReportEl
   } as ReportElement
 }
 
-export function createTableElement(overrides?: Partial<ReportElement>): ReportElement {
-  return {
-    id: uuidv4(),
-    type: 'table',
-    position: { x: 13, y: 13 },
-    size: { width: 80, height: 40 },
-    zIndex: 1,
-    visible: true,
-    locked: false,
-    rows: 3,
-    columns: 3,
-    data: [
-      ['ヘッダー1', 'ヘッダー2', 'ヘッダー3'],
-      ['データ1', 'データ2', 'データ3'],
-      ['データ4', 'データ5', 'データ6'],
-    ],
-    headerRow: true,
-    ...overrides,
-  } as ReportElement
-}
 
 export function createChartElement(overrides?: Partial<ReportElement>): ReportElement {
   return {

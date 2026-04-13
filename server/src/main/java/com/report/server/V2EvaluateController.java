@@ -34,7 +34,8 @@ public final class V2EvaluateController {
     // Security limits — match frontend schema maxima
     private static final int MAX_TEST_DATA_FIELDS = 1000;
     private static final int MAX_RULES = 100;
-    private static final int MAX_EXPRESSION_LENGTH = 1000;
+    // Must match ExpressionEngine.MAX_EXPRESSION_LENGTH to avoid 500 errors for valid expressions
+    private static final int MAX_EXPRESSION_LENGTH = ExpressionEngine.MAX_EXPRESSION_LENGTH;
 
     /** 10 req / 10 s per IP — JEXL evaluation is CPU-intensive. */
     private final RateLimiter rateLimiter;

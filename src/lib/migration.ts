@@ -168,7 +168,10 @@ export function migrateReport(report: Report): ReportDefinition {
  * objects and downstream code never needs to special-case `label`.
  */
 function migrateLabelToText(definition: ReportDefinition): ReportDefinition {
-  const hasLabel = definition.pages.some((page) =>
+  // Use unknown cast since 'label' is no longer in the ElementType union (migration removes it)
+  type AnyElement = { type: string; [key: string]: unknown }
+  const rawPages = definition.pages as unknown as Array<{ sections: Array<{ elements: AnyElement[] }> }>
+  const hasLabel = rawPages.some((page) =>
     page.sections.some((sec) =>
       sec.elements.some((el) => el.type === 'label'),
     ),
@@ -181,16 +184,15 @@ function migrateLabelToText(definition: ReportDefinition): ReportDefinition {
       ...page,
       sections: page.sections.map((sec) => ({
         ...sec,
-        elements: sec.elements.map((el) => {
+        elements: (sec.elements as unknown as AnyElement[]).map((el) => {
           if (el.type !== 'label') return el
           // `LabelElement` stores text in `text`; `TextElement` uses `content`.
-          const labelEl = el as unknown as { type: 'label'; text?: string; [key: string]: unknown }
-          const { text: labelText, type: _type, ...rest } = labelEl
-          return { ...rest, type: 'text' as const, content: labelText ?? '' }
+          const { text: labelText, type: _type, ...rest } = el
+          return { ...rest, type: 'text' as const, content: (labelText as string | undefined) ?? '' }
         }),
       })),
     })),
-  }
+  } as unknown as ReportDefinition
 }
 
 /**

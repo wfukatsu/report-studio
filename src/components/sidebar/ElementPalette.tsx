@@ -35,7 +35,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
         {category.label}
       </button>
       {expanded && (
-        <div className="grid grid-cols-2 gap-1.5 mb-3">
+        <div className="grid grid-cols-2 gap-1 mb-2">
           {category.items.map((item) => (
             <Tooltip key={item.label} content={item.description} placement="bottom">
               <button
@@ -45,7 +45,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
                   e.dataTransfer.effectAllowed = 'copy'
                 }}
                 onClick={() => onAdd(item.createElement)}
-                className="w-full flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-sm cursor-grab active:cursor-grabbing"
+                className="w-full flex flex-col items-center gap-1 p-1.5 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-sm cursor-grab active:cursor-grabbing"
               >
                 {item.icon}
                 <span className="text-xs leading-tight text-center">{item.label}</span>

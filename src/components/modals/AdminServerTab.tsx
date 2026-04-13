@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getServerConfig, putServerConfig, testServerConfig, restartServer } from '@/api/reportApi'
 import type { ServerConfig } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 const STORAGE_OPTIONS = ['jdbc', 'cassandra', 'cosmos', 'dynamo'] as const
 
@@ -15,6 +16,7 @@ export function AdminServerTab() {
   const [saved, setSaved] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false)
 
   useEffect(() => {
     loadConfig()
@@ -70,8 +72,7 @@ export function AdminServerTab() {
     }
   }
 
-  async function handleRestart() {
-    if (!confirm('サーバーを再起動しますか？再起動中は一時的に接続が切断されます。')) return
+  async function execRestart() {
     setRestarting(true)
     try {
       await restartServer()
@@ -176,7 +177,7 @@ export function AdminServerTab() {
           {saving ? '保存中...' : '設定を保存'}
         </button>
         <button
-          onClick={handleRestart}
+          onClick={() => setShowRestartConfirm(true)}
           disabled={restarting}
           className="px-3 py-1.5 text-xs border border-amber-300 text-amber-700 bg-amber-50 rounded hover:bg-amber-100 disabled:opacity-50"
         >
@@ -189,6 +190,16 @@ export function AdminServerTab() {
           サーバーが再起動中です。しばらくお待ちください...
         </p>
       )}
+
+      <ConfirmDialog
+        open={showRestartConfirm}
+        title="サーバーを再起動"
+        message="サーバーを再起動しますか？再起動中は一時的に接続が切断されます。"
+        confirmLabel="再起動"
+        confirmVariant="danger"
+        onConfirm={() => { setShowRestartConfirm(false); void execRestart() }}
+        onCancel={() => setShowRestartConfirm(false)}
+      />
     </div>
   )
 }

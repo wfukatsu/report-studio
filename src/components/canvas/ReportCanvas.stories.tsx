@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect } from 'react'
 import { ReportCanvas } from './ReportCanvas'
 import { useReportStore } from '@/store/reportStore'
-import { createTextElement, createShapeElement, createTableElement } from '@/lib/elementFactories'
+import { createTextElement, createShapeElement, createFormTableElement } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 
 const meta: Meta<typeof ReportCanvas> = {
@@ -36,7 +36,7 @@ function StoreSeeder({ elements }: { elements: ReportElement[] }) {
 
 const textEl = createTextElement({ position: { x: 10, y: 10 }, content: 'Report Title' })
 const shapeEl = createShapeElement({ position: { x: 10, y: 30 }, size: { width: 80, height: 3 }, shape: 'line', stroke: '#374151', strokeWidth: 1 })
-const tableEl = createTableElement({ position: { x: 10, y: 45 }, size: { width: 180, height: 60 } })
+const tableEl = createFormTableElement({ position: { x: 10, y: 45 }, size: { width: 180, height: 60 } })
 
 export const Empty: Story = {
   render: () => (

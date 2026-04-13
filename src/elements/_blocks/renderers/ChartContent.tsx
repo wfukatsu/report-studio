@@ -52,7 +52,7 @@ export const ChartContent = memo(function ChartContent({
             <Tooltip />
             {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
             {yAxisKeys.map((key, i) => (
-              <Bar key={key} dataKey={key} fill={colors[i % colors.length]} />
+              <Bar key={key} dataKey={key} fill={colors[i % colors.length]} isAnimationActive={false} />
             ))}
           </BarChart>
         </ResponsiveContainer>

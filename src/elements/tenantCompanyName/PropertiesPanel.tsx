@@ -1,11 +1,7 @@
 import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import type { TenantCompanyNameElement } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
-
-const FONT_FAMILIES = [
-  'sans-serif', 'serif', 'monospace',
-  'Noto Sans JP', 'Noto Serif JP', 'BIZ UDPGothic', 'BIZ UDPMincho',
-]
+import { FONT_FAMILIES } from '@/elements/_blocks/constants'
 
 interface Props {
   el: TenantCompanyNameElement

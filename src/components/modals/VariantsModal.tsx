@@ -48,7 +48,7 @@ export function VariantsModal({ open, onClose }: Props) {
 // Variant list
 // ---------------------------------------------------------------------------
 
-function VariantList() {
+export function VariantList() {
   const variants = useReportStore(
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )

@@ -17,7 +17,8 @@ import { getPageDimensions } from '@/lib/paperSizes'
 import { migrateReport, importFromJSON } from '@/lib/migration'
 import { exportToJSON } from '@/lib/exportUtils'
 import { mergePreviewData } from '@/lib/dataSourceUtils'
-import type { StoreState, AlignmentType, ZOrderAction, SelectionState, HistoryEntry } from './types'
+import type { StoreState, AlignmentType, ZOrderAction, SelectionState } from './types'
+import { snapshotPages } from './historySlice'
 import { flattenPageElements } from './selectors'
 import { cloneSectionForPage } from '@/lib/sectionUtils'
 
@@ -84,14 +85,6 @@ export function createDefaultDefinition(): ReportDefinition {
     validationRules: [],
     pages: [createDefaultPageDef()],
   }
-}
-
-// ---------------------------------------------------------------------------
-// Snapshot helper (inlined to avoid lateral historySlice import)
-// ---------------------------------------------------------------------------
-
-function snapshotPages(pages: PageDef[]): HistoryEntry {
-  return { pages: JSON.parse(JSON.stringify(pages)) as PageDef[] }
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +197,12 @@ export const createLayoutSlice: StateCreator<
       return p
     })
     const migratedDefinition = { ...definition, pages: migratedPages }
-    const initial = snapshotPages(migratedPages)
+    const initial = snapshotPages(
+      migratedPages,
+      migratedDefinition.schema,
+      migratedDefinition.calculationRules,
+      migratedDefinition.validationRules,
+    )
     set((s) => {
       s.definition = migratedDefinition
       s.selection = { selectedElementIds: [], activePageId: migratedPages[0]?.id ?? null }
@@ -222,7 +220,12 @@ export const createLayoutSlice: StateCreator<
   newReport: () => {
     if (_historyTimer) { clearTimeout(_historyTimer); _historyTimer = null }
     const definition = createDefaultDefinition()
-    const initial = snapshotPages(definition.pages)
+    const initial = snapshotPages(
+      definition.pages,
+      definition.schema,
+      definition.calculationRules,
+      definition.validationRules,
+    )
     set((s) => {
       s.definition = definition
       s.selection = { selectedElementIds: [], activePageId: definition.pages[0].id }

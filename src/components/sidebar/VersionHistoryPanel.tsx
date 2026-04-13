@@ -15,6 +15,7 @@ import { History, Plus, RotateCcw, AlertCircle, Loader2 } from 'lucide-react'
 import { useReportStore } from '@/store'
 import { listVersions, createVersion, restoreVersion } from '@/api/reportApi'
 import type { VersionListItem } from '@/api/reportApi'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 function formatDate(iso: string): string {
   try {
@@ -40,6 +41,7 @@ export function VersionHistoryPanel() {
 
   const [restoringId, setRestoringId] = useState<string | null>(null)
   const [restoreError, setRestoreError] = useState<string | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<string | null>(null)
 
   const handleLoadVersions = useCallback(async () => {
     if (!currentTemplateId) return
@@ -71,9 +73,8 @@ export function VersionHistoryPanel() {
     }
   }
 
-  const handleRestore = async (versionId: string) => {
+  const execRestore = async (versionId: string) => {
     if (!currentTemplateId || restoringId) return
-    if (!confirm(`このバージョンに復元しますか？現在の未保存の変更は失われます。`)) return
     setRestoringId(versionId)
     setRestoreError(null)
     try {
@@ -193,7 +194,7 @@ export function VersionHistoryPanel() {
                 )}
               </div>
               <button
-                onClick={() => handleRestore(v.id)}
+                onClick={() => setRestoreTarget(v.id)}
                 disabled={restoringId !== null}
                 aria-label={`v${v.versionNumber} に復元`}
                 title={`v${v.versionNumber} に復元`}
@@ -207,6 +208,16 @@ export function VersionHistoryPanel() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={restoreTarget !== null}
+        title="バージョンを復元"
+        message="このバージョンに復元しますか？現在の未保存の変更は失われます。"
+        confirmLabel="復元"
+        confirmVariant="danger"
+        onConfirm={() => { if (restoreTarget) void execRestore(restoreTarget); setRestoreTarget(null) }}
+        onCancel={() => setRestoreTarget(null)}
+      />
     </div>
   )
 }

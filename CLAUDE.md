@@ -12,12 +12,15 @@ npm run lint         # ESLint
 npm test             # Run tests (watch mode)
 npm test -- --run    # Run tests once
 npm run test:coverage  # Coverage report (80% threshold)
+npm run storybook    # Storybook component explorer (http://localhost:6006)
 ```
 
 Run a single test file:
 ```bash
 npx vitest run src/lib/dataBinding.test.ts
 ```
+
+Environment: copy `.env.example` → `.env` if needed (`VITE_API_PORT=8080` is the only variable).
 
 ### Backend (Java/Javalin)
 ```bash
@@ -42,31 +45,45 @@ npm run build:backend
 - **DB**: ScalarDB 3.14 + SQLite (dev) / any JDBC (prod)
 - **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
 - **API routes**: `/api/v2/*` (templates, evaluate, validate, versions), `/api/v1/auth/*`
-- **Key engines**: `ExpressionEngine` (JEXL sandbox), `CalculationEngine`, `ValidationEngine`
+- **Key engines**: `ExpressionEngine` (JEXL sandbox), `CalculationEngine`, `ConditionEvaluator`, `ValidationEngine`
+- **PDF export**: `SectionPdfRenderer`, `FormTablePdfRenderer`, `ImagePdfRenderer`, `BarcodePdfRenderer`, `FontProvider`
+- **Batch jobs**: `BatchPdfProcessor` via `JobController` / `JobRepository`
+- **Auth**: `FormSessionManager` + `RateLimiter`; wiring in `AppWiring.java`
 
 ## Architecture
 
 **Vite + React + TypeScript** SPA + **Java/Javalin** backend.
 
-### State management (`src/store/reportStore.ts`)
+### State management (`src/store/`)
 
-Single Zustand store holds the entire `Report` (pages, elements, settings, data source) plus selection state and undo/redo history. Mutations use **immer** `produce` for immutable updates. History is an array of page snapshots; `pushHistory` is called inside mutating actions after the change is applied.
+Single Zustand store composed from 11 slices via immer middleware. Import via `useReportStore`. A separate `dataBrowserStore` handles the data browser page independently.
+
+| Slice | Responsibility |
+|-------|----------------|
+| `layoutSlice` | Pages, sections, elements, selection, zoom, grid snapping |
+| `historySlice` | Undo/redo stack (array of page snapshots) |
+| `uiSlice` | Panel visibility, preview mode, live preview, auto-save timestamp |
+| `schemaSlice` | Data schema — master/detail groups + fields with ScalarDB column bindings |
+| `rulesSlice` | Calculation rules and validation rules |
+| `variantsSlice` | Output variants (per-audience PDFs with field masking) |
+| `responsesSlice` | Form responses cache |
+| `tenantSlice` | Tenant metadata (company name, address, phone, logo) |
+| `productSlice` | Product master catalog (SKU, price, tax, custom fields) |
+| `authSlice` | User login/session state |
+| `computedSlice` | Derived selectors only (no state) |
 
 Key selectors exported from the store:
 - `selectActivePage` — returns the currently selected page
 - `selectSelectedElements` — returns selected elements on the active page
 
-### Data flow
+### Schema binding (3 phases)
 
-```
-DataSourcePanel → store.setDataSource(dataSource)
-                         ↓
-ReportCanvas → passes data={dataSource.fields} to each CanvasElement
-                         ↓
-ElementRenderer → interpolate() / resolveField() for text/dataField elements
-```
+Schema groups and fields are defined in `schemaSlice`. Fields bind to displayed values through three progressive phases:
+1. **Group → ScalarDB table**: Set `group.tableMeta.tableName`
+2. **Field → column**: Set `field.dbColumnName`
+3. **Computed field**: JEXL expression in `field.expression` (evaluated server-side via `ExpressionEngine`)
 
-Data binding uses `{{fieldKey}}` tokens in text content and dot-notation field keys in `dataField` elements (e.g. `customer.name`).
+Data binding in elements uses `{{fieldKey}}` tokens in text content and dot-notation keys in `dataField` elements (e.g. `customer.name`). `useDataResolver` hook handles field resolution + format application at render time.
 
 ### Canvas editing
 
@@ -76,9 +93,23 @@ Data binding uses `{{fieldKey}}` tokens in text content and dot-notation field k
 
 `src/lib/exportUtils.ts` renders canvas DOM nodes via `html2canvas` then either saves as PNG or assembles a `jsPDF` PDF from all pages.
 
+### Output variants
+
+`variantsSlice` stores `OutputVariant[]`. Each variant can mask specific fields at export time (fullReplace or partial character masking), enabling per-audience PDFs from a single template.
+
 ### Types (`src/types/index.ts`)
 
-`ReportElement` is a discriminated union on `type` (15 active types). Add a new element type by:
+`ReportElement` is a discriminated union on `type` (28 active types grouped by category):
+- **Text/Labels**: `text`, `label`
+- **Data display**: `dataField`, `chart`, `repeatingBand`, `repeatingList`
+- **Table**: `formTable`
+- **Shapes/Media**: `shape`, `image`, `barcode`
+- **Input/Entry**: `manualEntry`, `checkbox`, `eraSelect`
+- **Japanese-specific**: `hanko`, `approvalStampRow`, `revenueStamp`
+- **Auto-fields**: `pageNumber`, `currentDate`, `divider`
+- **Tenant fields**: `tenantCompanyName`, `tenantAddress`, `tenantPhone`, `tenantRepresentative`, `tenantLogo`, `tenantCustom`
+
+Add a new element type by:
 1. Defining the interface extending `ElementBase` in `src/types/index.ts`
 2. Adding to the `ReportElement` union
 3. Creating `src/elements/{type}/Renderer.tsx` — **compose from `_blocks/` building blocks** (TextContent, ElementFrame, GridLines, useDataResolver 等)

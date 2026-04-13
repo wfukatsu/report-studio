@@ -14,8 +14,7 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePage, flattenPageElements } from '@/store/reportStore'
-import { usePreviewData } from '@/hooks/usePreviewData'
-import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
+import { useResolvedData } from '@/hooks/useResolvedData'
 import { SectionContainer } from './SectionContainer'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
@@ -30,7 +29,6 @@ interface Props {
   canvasRef?: React.RefObject<HTMLDivElement | null>
 }
 
-const EMPTY_DATA: Record<string, unknown> = {}
 
 // Snap a single axis position to the nearest of: grid point or margin boundary.
 // Used for margin-aware snap-to-grid during drag and drop.
@@ -84,13 +82,6 @@ export function ReportCanvas({
 }: Props) {
   const activePage = useReportStore(selectActivePage)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
-  // Phase 2: live preview data from ScalarDB (resolve-bindings)
-  const livePreviewData = useReportStore((s) => s.livePreviewData)
-  const schema = useReportStore((s) => s.definition.schema)
-  const stableLiveData = useMemo(
-    () => livePreviewData ? buildFlatDataFromResolved(livePreviewData, schema) : null,
-    [livePreviewData, schema],
-  )
   const selectElement = useReportStore((s) => s.selectElement)
   const clearSelection = useReportStore((s) => s.clearSelection)
   const setSelectionIds = useReportStore((s) => s.setSelectionIds)
@@ -120,10 +111,9 @@ export function ReportCanvas({
   const updateSectionHeight = useReportStore((s) => s.updateSectionHeight)
 
   // Sample data from the first DataSource (existing flow)
-  const mergedSampleData = usePreviewData()
   const page = pageOverride ?? activePage
   // Priority: external dataOverride > live ScalarDB data > sample JSON data
-  const data = dataOverride ?? stableLiveData ?? mergedSampleData ?? EMPTY_DATA
+  const data = useResolvedData(dataOverride)
   const totalPages = pages.length
   const pageIndex = page ? pages.findIndex((p) => p.id === page.id) + 1 : 1
 
@@ -186,6 +176,15 @@ export function ReportCanvas({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [readonly, activePage, groupSelectedElements])
 
+  // Read the active page ID directly from the store at call time.
+  // This avoids closing over `page` (which changes reference on every immer mutation)
+  // and keeps these callbacks stable across drag frames.
+  const getActivePage = useCallback(() => {
+    const state = useReportStore.getState()
+    const id = state.selection.activePageId
+    return state.definition.pages.find((p) => p.id === id) ?? null
+  }, [])
+
   // Delete / Backspace — remove selected elements (skip when a text input has focus)
   useEffect(() => {
     if (readonly) return
@@ -199,57 +198,63 @@ export function ReportCanvas({
       // Use batch removeElements to create a single undo state for multi-element deletes.
       // Also guard activePage before calling preventDefault to avoid suppressing
       // browser back-navigation (Backspace) when no page is loaded.
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0 && activePage) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+        const currentPage = getActivePage()
+        if (!currentPage) return
         e.preventDefault()
-        removeElements(activePage.id, selectedIds)
+        removeElements(currentPage.id, selectedIds)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [readonly, activePage, selectedIds, removeElements])
+  }, [readonly, getActivePage, selectedIds, removeElements])
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      if (!page || !event.delta) return
-      const el = flattenPageElements(page).find((e) => e.id === event.active.id)
+      const currentPage = getActivePage()
+      if (!currentPage || !event.delta) return
+      const el = flattenPageElements(currentPage).find((e) => e.id === event.active.id)
       if (!el) return
       // Shift+drag: constrain movement to the dominant axis
       const constrained = constrainDelta(event.delta, shiftRef.current)
       const newX = el.position.x + pxToMm(constrained.x / zoom)
       const newY = el.position.y + pxToMm(constrained.y / zoom)
-      const snappedX = snapAxis(newX, el.size.width, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
-      const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
-      moveElement(page.id, el.id, { x: snappedX, y: snappedY })
+      const snappedX = snapAxis(newX, el.size.width, margins?.left ?? 0, margins?.right ?? 0, currentPage.width, snapToGrid, gridSize)
+      const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, currentPage.height, snapToGrid, gridSize)
+      moveElement(currentPage.id, el.id, { x: snappedX, y: snappedY })
     },
     // shiftRef is a stable useRef object — excluded from deps intentionally
-    [page, moveElement, zoom, snapToGrid, gridSize, margins],
+    [getActivePage, moveElement, zoom, snapToGrid, gridSize, margins],
   )
 
   const handleResize = useCallback(
     (elementId: string, size: { width: number; height: number }) => {
-      if (!page) return
-      resizeElement(page.id, elementId, size)
+      const activePageId = useReportStore.getState().selection.activePageId
+      if (!activePageId) return
+      resizeElement(activePageId, elementId, size)
     },
-    [page, resizeElement],
+    [resizeElement],
   )
 
   const handleMove = useCallback(
     (elementId: string, position: { x: number; y: number }) => {
-      if (!page) return
-      const el = flattenPageElements(page).find((e) => e.id === elementId)
-      const snappedX = snapAxis(position.x, el?.size.width, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
-      const snappedY = snapAxis(position.y, el?.size.height, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
-      moveElement(page.id, elementId, { x: snappedX, y: snappedY })
+      const currentPage = getActivePage()
+      if (!currentPage) return
+      const el = flattenPageElements(currentPage).find((e) => e.id === elementId)
+      const snappedX = snapAxis(position.x, el?.size.width, margins?.left ?? 0, margins?.right ?? 0, currentPage.width, snapToGrid, gridSize)
+      const snappedY = snapAxis(position.y, el?.size.height, margins?.top ?? 0, margins?.bottom ?? 0, currentPage.height, snapToGrid, gridSize)
+      moveElement(currentPage.id, elementId, { x: snappedX, y: snappedY })
     },
-    [page, moveElement, snapToGrid, gridSize, margins],
+    [getActivePage, moveElement, snapToGrid, gridSize, margins],
   )
 
   const handleResizeSection = useCallback(
     (sectionId: string, newHeightMm: number) => {
-      if (!page) return
-      updateSectionHeight(page.id, sectionId, newHeightMm)
+      const activePageId = useReportStore.getState().selection.activePageId
+      if (!activePageId) return
+      updateSectionHeight(activePageId, sectionId, newHeightMm)
     },
-    [page, updateSectionHeight],
+    [updateSectionHeight],
   )
 
   const handlePaletteDragOver = useCallback(
@@ -342,17 +347,18 @@ export function ReportCanvas({
   const canvasWidthPx = mmToPx(page.width)
   const canvasHeightPx = mmToPx(page.height)
 
-  // Ruler ticks (every 10mm)
-  const hTicks: number[] = []
-  for (let mm = 0; mm <= page.width; mm += 10) hTicks.push(mm)
-  const vTicks: number[] = []
-  for (let mm = 0; mm <= page.height; mm += 10) vTicks.push(mm)
-
-  // Grid lines
-  const gridLinePxH: number[] = []
-  for (let mm = 0; mm <= page.width; mm += gridSize) gridLinePxH.push(mmToPx(mm))
-  const gridLinePxV: number[] = []
-  for (let mm = 0; mm <= page.height; mm += gridSize) gridLinePxV.push(mmToPx(mm))
+  // Ruler ticks (every 10mm) — memoized so they don't rebuild on every drag frame
+  const { hTicks, vTicks, gridLinePxH, gridLinePxV } = useMemo(() => {
+    const hTicks: number[] = []
+    for (let mm = 0; mm <= page.width; mm += 10) hTicks.push(mm)
+    const vTicks: number[] = []
+    for (let mm = 0; mm <= page.height; mm += 10) vTicks.push(mm)
+    const gridLinePxH: number[] = []
+    for (let mm = 0; mm <= page.width; mm += gridSize) gridLinePxH.push(mmToPx(mm))
+    const gridLinePxV: number[] = []
+    for (let mm = 0; mm <= page.height; mm += gridSize) gridLinePxV.push(mmToPx(mm))
+    return { hTicks, vTicks, gridLinePxH, gridLinePxV }
+  }, [page.width, page.height, gridSize])
 
   const contextMenuEl = (
     <ContextMenu

@@ -38,9 +38,12 @@ export type ZOrderAction = 'front' | 'back' | 'forward' | 'backward'
 // History
 // ---------------------------------------------------------------------------
 
-/** History entry covers page layout only (no dataSources or calculationRules) */
+/** History entry covers page layout, schema, and calculation/validation rules. */
 export interface HistoryEntry {
   pages: PageDef[]
+  schema?: import('@/types').SchemaDefinition
+  calculationRules?: import('@/types').CalculationRule[]
+  validationRules?: import('@/types').ValidationRule[]
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +61,15 @@ export interface SelectionState {
 
 export type LoadState = 'idle' | 'loading' | 'error'
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+/** Top-level navigation tabs */
+export type AppTab = 'design' | 'data' | 'templates'
+
+/** Sub-sections within the Data Management tab */
+export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses'
+
+/** Sub-sections within the Template Management tab */
+export type TemplateSection = 'templates' | 'variants'
 
 // ---------------------------------------------------------------------------
 // Computed slice types (expression evaluation results)
@@ -106,6 +118,15 @@ export interface StoreState {
   historyIndex: number
 
   // ── UI slice ──────────────────────────────────────────────────────────────
+  /** Active top-level navigation tab */
+  activeTab: AppTab
+  setActiveTab: (tab: AppTab) => void
+
+  dataActiveSection: DataSection
+  setDataActiveSection: (section: DataSection) => void
+  templateActiveSection: TemplateSection
+  setTemplateActiveSection: (section: TemplateSection) => void
+
   previewMode: boolean
   /** Editor canvas zoom (set independently or together via setZoom) */
   editorZoom: number
@@ -139,6 +160,7 @@ export interface StoreState {
    */
   livePreviewData: LivePreviewData | null
   setLivePreviewData: (data: LivePreviewData | null) => void
+  invalidateLivePreviewData: () => void
 
   // ── Computed slice (expression evaluation — not in undo/redo history) ─────
   computedValues: Record<string, ComputedValue>

@@ -1,5 +1,6 @@
 import type { HankoElement } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import { FieldKeyInput } from '@/components/common/FieldKeyInput'
 
 interface Props {
   el: HankoElement
@@ -26,7 +27,7 @@ export function HankoPropertiesPanel({ el, onChange }: Props) {
         二重枠
       </label>
       <PropRow label="データバインド">
-        <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background font-mono" value={el.binding ?? ''} placeholder="例: approver.name" onChange={(e) => onChange({ binding: e.target.value || undefined })} />
+        <FieldKeyInput value={el.binding ?? ''} onChange={(v) => onChange({ binding: v || undefined })} placeholder="例: approver.name" />
       </PropRow>
     </PropSection>
   )

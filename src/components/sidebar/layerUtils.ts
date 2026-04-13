@@ -1,5 +1,5 @@
 import {
-  Type, Tag, Square, Image, Table, BarChart2, Database,
+  Type, Square, Image, BarChart2, Database,
   QrCode, PenLine, Stamp, Rows3, Ticket, AlignJustify, LayoutGrid, TableProperties, SquareCheck, Calendar,
   Hash, CalendarDays, SeparatorHorizontal, Building2, MapPin, Phone, User, Minus,
 } from 'lucide-react'
@@ -14,10 +14,8 @@ export function elementIcon(type: ReportElement['type']) {
   const cls = 'w-3.5 h-3.5 shrink-0'
   switch (type) {
     case 'text':            return createElement(Type, { className: cls })
-    case 'label':           return createElement(Tag, { className: cls })
     case 'dataField':       return createElement(Database, { className: cls })
     case 'image':           return createElement(Image, { className: cls })
-    case 'table':           return createElement(Table, { className: cls })
     case 'chart':           return createElement(BarChart2, { className: cls })
     case 'barcode':         return createElement(QrCode, { className: cls })
     case 'manualEntry':     return createElement(PenLine, { className: cls })
@@ -47,10 +45,8 @@ export function defaultName(el: ReportElement): string {
   if (el.name) return el.name
   switch (el.type) {
     case 'text':            return 'テキスト'
-    case 'label':           return 'ラベル'
     case 'dataField':       return 'データフィールド'
     case 'image':           return '画像'
-    case 'table':           return 'テーブル'
     case 'chart':           return 'グラフ'
     case 'barcode':         return 'バーコード'
     case 'manualEntry':     return '記入欄'
