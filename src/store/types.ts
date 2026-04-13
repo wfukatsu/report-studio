@@ -66,7 +66,7 @@ export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 export type AppTab = 'design' | 'data' | 'templates'
 
 /** Sub-sections within the Data Management tab */
-export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses'
+export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses' | 'databrowser'
 
 /** Sub-sections within the Template Management tab */
 export type TemplateSection = 'templates' | 'variants'
