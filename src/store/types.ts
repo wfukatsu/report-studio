@@ -38,9 +38,12 @@ export type ZOrderAction = 'front' | 'back' | 'forward' | 'backward'
 // History
 // ---------------------------------------------------------------------------
 
-/** History entry covers page layout only (no dataSources or calculationRules) */
+/** History entry covers page layout, schema, and calculation/validation rules. */
 export interface HistoryEntry {
   pages: PageDef[]
+  schema?: import('@/types').SchemaDefinition
+  calculationRules?: import('@/types').CalculationRule[]
+  validationRules?: import('@/types').ValidationRule[]
 }
 
 // ---------------------------------------------------------------------------

@@ -14,8 +14,7 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePage, flattenPageElements } from '@/store/reportStore'
-import { usePreviewData } from '@/hooks/usePreviewData'
-import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
+import { useResolvedData } from '@/hooks/useResolvedData'
 import { SectionContainer } from './SectionContainer'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
@@ -30,7 +29,6 @@ interface Props {
   canvasRef?: React.RefObject<HTMLDivElement | null>
 }
 
-const EMPTY_DATA: Record<string, unknown> = {}
 
 // Snap a single axis position to the nearest of: grid point or margin boundary.
 // Used for margin-aware snap-to-grid during drag and drop.
@@ -84,13 +82,6 @@ export function ReportCanvas({
 }: Props) {
   const activePage = useReportStore(selectActivePage)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
-  // Phase 2: live preview data from ScalarDB (resolve-bindings)
-  const livePreviewData = useReportStore((s) => s.livePreviewData)
-  const schema = useReportStore((s) => s.definition.schema)
-  const stableLiveData = useMemo(
-    () => livePreviewData ? buildFlatDataFromResolved(livePreviewData, schema) : null,
-    [livePreviewData, schema],
-  )
   const selectElement = useReportStore((s) => s.selectElement)
   const clearSelection = useReportStore((s) => s.clearSelection)
   const setSelectionIds = useReportStore((s) => s.setSelectionIds)
@@ -120,10 +111,9 @@ export function ReportCanvas({
   const updateSectionHeight = useReportStore((s) => s.updateSectionHeight)
 
   // Sample data from the first DataSource (existing flow)
-  const mergedSampleData = usePreviewData()
   const page = pageOverride ?? activePage
   // Priority: external dataOverride > live ScalarDB data > sample JSON data
-  const data = dataOverride ?? stableLiveData ?? mergedSampleData ?? EMPTY_DATA
+  const data = useResolvedData(dataOverride)
   const totalPages = pages.length
   const pageIndex = page ? pages.findIndex((p) => p.id === page.id) + 1 : 1
 

@@ -27,6 +27,7 @@ import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
 import { applyVariant } from '@/lib/variantApplicator'
+import { resolveCurrentData } from '@/hooks/useResolvedData'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
@@ -217,17 +218,16 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const doExportPdf = async (variant: OutputVariant | null) => {
     setIsExporting(true)
     setExportError(null)
-    const { definition, testData, livePreviewData } = useReportStore.getState()
+    const { definition } = useReportStore.getState()
     const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
 
     // Try server-side PDF first (higher quality, vector text)
-    // Phase 2: use livePreviewData (real DB data) if available, otherwise fall back to testData
+    // Data priority: live ScalarDB data > sample JSON (same as canvas display)
     try {
       // Apply variant masking before sending to server
       const maskedDefinition = { ...definition, pages: applyVariant(definition.pages, variant) }
       const defJson = JSON.parse(JSON.stringify(maskedDefinition)) as Record<string, unknown>
-      const exportData = livePreviewData ?? testData
-      const dataJson = (exportData ?? {}) as Record<string, unknown>
+      const dataJson = resolveCurrentData()
       const blob = await generateStatelessPdf(defJson, dataJson)
       downloadBlob(blob, filename)
       return
@@ -285,7 +285,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     if (isPreviewingPdf) return
     setIsPreviewingPdf(true)
     setExportError(null)
-    const { definition, testData, livePreviewData } = useReportStore.getState()
+    const { definition } = useReportStore.getState()
 
     /** Open a blob URL in a new tab, checking for popup blockers */
     const openBlobUrl = (blob: Blob): boolean => {
@@ -306,9 +306,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
     try {
       const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
-      // Phase 2: prefer livePreviewData (real DB) over testData (sample JSON)
-      const exportData = livePreviewData ?? testData
-      const dataJson = (exportData ?? {}) as Record<string, unknown>
+      const dataJson = resolveCurrentData()
       const blob = await generateStatelessPdf(defJson, dataJson)
       openBlobUrl(blob)
     } catch {
