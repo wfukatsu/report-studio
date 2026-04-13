@@ -21,9 +21,11 @@ export function ApprovalStampRowPropertiesPanel({ el, onChange }: Props) {
           {el.cells.map((cell, i) => (
             <div key={i} className="border rounded p-1.5 space-y-1">
               <div className="flex gap-1 items-center">
-                <input type="text" className="border rounded px-1.5 py-0.5 text-xs flex-1 bg-background" placeholder="役職名" value={cell.role} onChange={(e) => { const cells = el.cells.map((c, ci) => ci === i ? { ...c, role: e.target.value } : c); onChange({ cells }) }} />
-                <NumInput value={cell.width} onChange={(v) => { const cells = el.cells.map((c, ci) => ci === i ? { ...c, width: v } : c); onChange({ cells }) }} min={5} unit="mm" />
-                <button className="text-xs text-destructive px-1" onClick={() => onChange({ cells: el.cells.filter((_, ci) => ci !== i) })}>×</button>
+                <input type="text" className="border rounded px-1.5 py-0.5 text-xs flex-1 min-w-0 bg-background" placeholder="役職名" value={cell.role} onChange={(e) => { const cells = el.cells.map((c, ci) => ci === i ? { ...c, role: e.target.value } : c); onChange({ cells }) }} />
+                <div className="w-24 shrink-0">
+                  <NumInput value={cell.width} onChange={(v) => { const cells = el.cells.map((c, ci) => ci === i ? { ...c, width: v } : c); onChange({ cells, size: { ...el.size, width: cells.reduce((s, c) => s + c.width, 0) } }) }} min={5} unit="mm" />
+                </div>
+                <button className="text-xs text-destructive px-1 shrink-0" onClick={() => { const cells = el.cells.filter((_, ci) => ci !== i); onChange({ cells, size: { ...el.size, width: cells.reduce((s, c) => s + c.width, 0) } }) }}>×</button>
               </div>
               <div>
                 <span className="text-[11px] text-muted-foreground block mb-0.5">印影画像 URL / バインディング</span>
@@ -35,7 +37,7 @@ export function ApprovalStampRowPropertiesPanel({ el, onChange }: Props) {
               </div>
             </div>
           ))}
-          <button className="text-xs text-primary hover:underline" onClick={() => onChange({ cells: [...el.cells, { role: '担当', width: 15 }] })}>＋ セル追加</button>
+          <button className="text-xs text-primary hover:underline" onClick={() => { const cells = [...el.cells, { role: '', width: 15 }]; onChange({ cells, size: { ...el.size, width: cells.reduce((s, c) => s + c.width, 0) } }) }}>＋ セル追加</button>
         </div>
       </div>
     </PropSection>
