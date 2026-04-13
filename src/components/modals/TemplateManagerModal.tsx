@@ -118,7 +118,7 @@ export function TemplateManagerContent() {
 
   return (
     <>
-    <div className="p-5 space-y-5 overflow-y-auto">
+    <div className="p-5 space-y-5">
           {error && (
             <div role="alert" className="flex items-center gap-1 text-xs text-destructive">
               <AlertCircle className="w-3 h-3 shrink-0" />

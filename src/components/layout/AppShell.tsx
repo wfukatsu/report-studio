@@ -4,8 +4,14 @@ import { TopNavigation } from './TopNavigation'
 import App from '@/App'
 import { DataManagementTab } from '@/components/tabs/DataManagementTab'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
+import { useConnectionState } from '@/hooks/useConnectionState'
 
 export function AppShell() {
+  // Start backend health-check polling (sets backendConnected in store)
+  // Placed here (outside <Activity>) so the 30-second interval fires regardless
+  // of which tab is active, without being suppressed or re-triggered by Activity.
+  useConnectionState()
+
   const activeTab = useReportStore((s) => s.activeTab)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
   const currentUser = useReportStore((s) => s.currentUser)

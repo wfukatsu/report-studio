@@ -1,9 +1,10 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
+// TemplateManagerContent and VariantList are pure content components (no modal chrome).
+// They live in modals/ for historical reasons; planned migration to features/ directory.
 import { TemplateManagerContent } from '@/components/modals/TemplateManagerModal'
 import { VariantList } from '@/components/modals/VariantsModal'
-
-type TemplateSection = 'templates' | 'variants'
+import { useReportStore } from '@/store/reportStore'
+import type { TemplateSection } from '@/store/types'
 
 const SECTIONS: { id: TemplateSection; label: string }[] = [
   { id: 'templates', label: 'テンプレート一覧' },
@@ -11,7 +12,8 @@ const SECTIONS: { id: TemplateSection; label: string }[] = [
 ]
 
 export function TemplateManagementTab() {
-  const [activeSection, setActiveSection] = useState<TemplateSection>('templates')
+  const activeSection = useReportStore((s) => s.templateActiveSection)
+  const setActiveSection = useReportStore((s) => s.setTemplateActiveSection)
 
   return (
     <div className="flex w-full h-full overflow-hidden">

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "277"
 tags: [code-review, css, scrolling, component-design]

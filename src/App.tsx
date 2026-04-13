@@ -19,7 +19,6 @@ import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { useConnectionState } from '@/hooks/useConnectionState'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, LayoutTemplate, Database, Layers, BookOpen, MessageSquare, Link2 } from 'lucide-react'
 
@@ -54,9 +53,6 @@ export default function App() {
   const [pendingTemplateDefinition, setPendingTemplateDefinition] = useState<Parameters<typeof loadReport>[0] | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-
-  // Start backend health-check polling (sets backendConnected in store)
-  useConnectionState()
 
   const previewMode = useReportStore((s) => s.previewMode)
   const livePreviewEnabled = useReportStore((s) => s.livePreviewEnabled)

@@ -65,6 +65,12 @@ export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 /** Top-level navigation tabs */
 export type AppTab = 'design' | 'data' | 'templates'
 
+/** Sub-sections within the Data Management tab */
+export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses'
+
+/** Sub-sections within the Template Management tab */
+export type TemplateSection = 'templates' | 'variants'
+
 // ---------------------------------------------------------------------------
 // Computed slice types (expression evaluation results)
 // ---------------------------------------------------------------------------
@@ -115,6 +121,11 @@ export interface StoreState {
   /** Active top-level navigation tab */
   activeTab: AppTab
   setActiveTab: (tab: AppTab) => void
+
+  dataActiveSection: DataSection
+  setDataActiveSection: (section: DataSection) => void
+  templateActiveSection: TemplateSection
+  setTemplateActiveSection: (section: TemplateSection) => void
 
   previewMode: boolean
   /** Editor canvas zoom (set independently or together via setZoom) */

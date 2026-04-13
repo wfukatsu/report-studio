@@ -4,12 +4,16 @@
 
 import type { StateCreator } from 'zustand'
 import type { ReportElement } from '@/types'
-import type { AppTab, StoreState } from './types'
+import type { AppTab, DataSection, TemplateSection, StoreState } from './types'
 import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
 
 export type UISlice = Pick<StoreState,
   | 'activeTab'
   | 'setActiveTab'
+  | 'dataActiveSection'
+  | 'setDataActiveSection'
+  | 'templateActiveSection'
+  | 'setTemplateActiveSection'
   | 'previewMode'
   | 'editorZoom'
   | 'previewZoom'
@@ -58,6 +62,11 @@ export const createUISlice: StateCreator<
 > = (set) => ({
   activeTab: 'design' as AppTab,
   setActiveTab: (tab) => set((s) => { s.activeTab = tab }),
+
+  dataActiveSection: 'datasource' as DataSection,
+  setDataActiveSection: (section) => set((s) => { s.dataActiveSection = section }),
+  templateActiveSection: 'templates' as TemplateSection,
+  setTemplateActiveSection: (section) => set((s) => { s.templateActiveSection = section }),
 
   previewMode: false,
   layerSearchQuery: '',

@@ -1,18 +1,14 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { SchemaPanel } from '@/components/sidebar/SchemaPanel'
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel'
 import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
+// CalculationTab and ValidationTab are pure content components (no modal chrome).
+// They live in modals/ for historical reasons; planned migration to features/ directory.
 import { CalculationTab } from '@/components/modals/CalculationTab'
 import { ValidationTab } from '@/components/modals/ValidationTab'
 import { ExternalLink } from 'lucide-react'
-
-type DataSection =
-  | 'datasource'
-  | 'schema'
-  | 'calculation'
-  | 'validation'
-  | 'responses'
+import { useReportStore } from '@/store/reportStore'
+import type { DataSection } from '@/store/types'
 
 const SECTIONS: { id: DataSection; label: string }[] = [
   { id: 'datasource', label: 'データソース' },
@@ -23,7 +19,8 @@ const SECTIONS: { id: DataSection; label: string }[] = [
 ]
 
 export function DataManagementTab() {
-  const [activeSection, setActiveSection] = useState<DataSection>('datasource')
+  const activeSection = useReportStore((s) => s.dataActiveSection)
+  const setActiveSection = useReportStore((s) => s.setDataActiveSection)
 
   return (
     <div className="flex w-full h-full overflow-hidden">

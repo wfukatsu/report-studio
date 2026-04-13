@@ -8,6 +8,8 @@ const TABS: { id: AppTab; label: string }[] = [
   { id: 'templates', label: 'テンプレート管理' },
 ]
 
+const TAB_IDS = TABS.map((t) => t.id)
+
 interface TopNavigationProps {
   readonly activeTab: AppTab
   readonly onTabChange: (tab: AppTab) => void
@@ -15,7 +17,7 @@ interface TopNavigationProps {
 
 export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
   const { getTabProps } = useTopTabNavigation({
-    tabs: TABS.map((t) => t.id),
+    tabs: TAB_IDS,
     selectedTab: activeTab,
     onSelect: onTabChange,
   })
