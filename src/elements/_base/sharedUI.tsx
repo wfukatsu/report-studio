@@ -11,7 +11,7 @@ import { ColorPickerPopover } from './ColorPickerPopover'
 export function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border-b pb-3">
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-3 pt-3">
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-3 pt-3">
         {title}
       </p>
       <div className="px-3 space-y-2">{children}</div>
@@ -22,7 +22,7 @@ export function PropSection({ title, children }: { title: string; children: Reac
 export function PropRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-[11px] text-muted-foreground">{label}</span>
       {children}
     </label>
   )
@@ -52,7 +52,7 @@ export function NumInput({ value, onChange, min, max, step, unit, inherited, onR
         step={step ?? 1}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      {unit && <span className="text-[10px] text-muted-foreground shrink-0">{unit}</span>}
+      {unit && <span className="text-[11px] text-muted-foreground shrink-0">{unit}</span>}
       {/* Use visibility (not display) to prevent layout shift */}
       <button
         style={{ visibility: inherited || !onReset ? 'hidden' : 'visible' }}
@@ -136,7 +136,7 @@ export function ColorInput({ value, onChange, label, inherited, onReset }: {
           />
         )}
       </div>
-      {label && <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>}
+      {label && <span className="text-[11px] text-muted-foreground shrink-0">{label}</span>}
       <button
         style={{ visibility: inherited || !onReset ? 'hidden' : 'visible' }}
         className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"

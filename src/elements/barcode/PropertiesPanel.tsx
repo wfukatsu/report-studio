@@ -1,5 +1,6 @@
 import type { BarcodeElement } from '@/types'
 import { PropSection, PropRow, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import { FieldKeyInput } from '@/components/common/FieldKeyInput'
 
 interface Props {
   el: BarcodeElement
@@ -12,8 +13,8 @@ export function BarcodePropertiesPanel({ el, onChange }: Props) {
       <PropRow label="種別">
         <SelectInput value={el.kind} onChange={(v) => onChange({ kind: v as BarcodeElement['kind'] })} options={[{ value: 'qr', label: 'QRコード' }, { value: 'code128', label: 'CODE128' }, { value: 'code39', label: 'CODE39' }, { value: 'jan13', label: 'JAN13 (EAN-13)' }]} />
       </PropRow>
-      <PropRow label="値">
-        <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background font-mono" value={el.value} placeholder="値または {{fieldKey}}" onChange={(e) => onChange({ value: e.target.value })} />
+      <PropRow label="値 / フィールドキー">
+        <FieldKeyInput value={el.value} onChange={(v) => onChange({ value: v })} placeholder="値または {{fieldKey}}" />
       </PropRow>
       {el.kind === 'qr' && (
         <PropRow label="誤り訂正レベル">
