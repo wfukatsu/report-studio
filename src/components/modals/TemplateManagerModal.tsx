@@ -22,7 +22,11 @@ interface Props {
   onClose: () => void
 }
 
-export function TemplateManagerModal({ open, onClose }: Props) {
+/**
+ * TemplateManagerContent — the body content of the template manager, usable standalone
+ * (e.g., in a tab page) or embedded inside TemplateManagerModal.
+ */
+export function TemplateManagerContent() {
   const { prefs, toggleHidden, isHidden, setOverride, clearOverride, getOverride } = useBuiltinPrefs()
   const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -112,30 +116,9 @@ export function TemplateManagerModal({ open, onClose }: Props) {
     }
   }
 
-  if (!open) return null
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-label="テンプレート管理"
-      tabIndex={-1}
-      ref={(el) => el?.focus()}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}
-    >
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[700px] max-h-[80vh] flex flex-col mx-4">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
-          <h2 className="text-sm font-semibold">テンプレート管理</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs" aria-label="閉じる">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+  return (
+    <>
+    <div className="p-5 space-y-5 overflow-y-auto">
           {error && (
             <div role="alert" className="flex items-center gap-1 text-xs text-destructive">
               <AlertCircle className="w-3 h-3 shrink-0" />
@@ -372,8 +355,50 @@ export function TemplateManagerModal({ open, onClose }: Props) {
               </div>
             )}
           </div>
-        </div>
+    </div>
 
+    <ConfirmDialog
+      open={deleteConfirmId !== null}
+      title="テンプレートを削除"
+      message={`「${backendTemplates.find((t) => t.id === deleteConfirmId)?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
+      confirmLabel="削除"
+      confirmVariant="danger"
+      onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+      onCancel={() => setDeleteConfirmId(null)}
+    />
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Modal wrapper — thin portal wrapper around TemplateManagerContent
+// ---------------------------------------------------------------------------
+
+export function TemplateManagerModal({ open, onClose }: Props) {
+  if (!open) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="テンプレート管理"
+      tabIndex={-1}
+      ref={(el) => el?.focus()}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}
+    >
+      <div className="bg-background border border-border rounded-lg shadow-xl w-[700px] max-h-[80vh] flex flex-col mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+          <h2 className="text-sm font-semibold">テンプレート管理</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs" aria-label="閉じる">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <TemplateManagerContent />
+        </div>
         {/* Footer */}
         <div className="flex items-center justify-end px-5 py-3 border-t shrink-0">
           <button
@@ -384,17 +409,6 @@ export function TemplateManagerModal({ open, onClose }: Props) {
           </button>
         </div>
       </div>
-
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        open={deleteConfirmId !== null}
-        title="テンプレートを削除"
-        message={`「${backendTemplates.find((t) => t.id === deleteConfirmId)?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
-        confirmLabel="削除"
-        confirmVariant="danger"
-        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-        onCancel={() => setDeleteConfirmId(null)}
-      />
     </div>,
     document.body,
   )

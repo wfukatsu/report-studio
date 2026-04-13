@@ -273,7 +273,7 @@ export default function App() {
     snapToGrid, gridSize, headerEditMode, setHeaderEditMode])
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex flex-col flex-1 overflow-hidden bg-background text-foreground">
       <Toolbar
         canvasRefs={[canvasRef]}
         containerRef={canvasContainerRef}

@@ -62,6 +62,9 @@ export interface SelectionState {
 export type LoadState = 'idle' | 'loading' | 'error'
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
+/** Top-level navigation tabs */
+export type AppTab = 'design' | 'data' | 'templates'
+
 // ---------------------------------------------------------------------------
 // Computed slice types (expression evaluation results)
 // ---------------------------------------------------------------------------
@@ -109,6 +112,13 @@ export interface StoreState {
   historyIndex: number
 
   // ── UI slice ──────────────────────────────────────────────────────────────
+  /** Active top-level navigation tab */
+  activeTab: AppTab
+  setActiveTab: (tab: AppTab) => void
+  /** ID of a newly saved template to highlight on the Template Management tab. Cleared after animation. */
+  pendingTemplateHighlight: string | null
+  setPendingTemplateHighlight: (id: string | null) => void
+
   previewMode: boolean
   /** Editor canvas zoom (set independently or together via setZoom) */
   editorZoom: number
