@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { listUsers, createUser, updateUser, deleteUser } from '@/api/reportApi'
+import { listUsers, createUser, deleteUser } from '@/api/reportApi'
 import type { UserSummary } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 export function AdminUsersTab() {
   const currentUser = useReportStore((s) => s.currentUser)
@@ -15,6 +16,7 @@ export function AdminUsersTab() {
   const [newPassword, setNewPassword] = useState('')
   const [newRole, setNewRole] = useState<'user' | 'admin'>('user')
   const [creating, setCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   useEffect(() => {
     loadUsers()
@@ -54,14 +56,17 @@ export function AdminUsersTab() {
     }
   }
 
-  async function handleDelete(userId: string) {
-    if (!confirm(`ユーザー「${userId}」を削除しますか？`)) return
+  async function execDelete(userId: string) {
     try {
       await deleteUser(userId)
       setUsers((prev) => prev.filter((u) => u.userId !== userId))
     } catch {
       setError('削除に失敗しました')
     }
+  }
+
+  function handleDelete(userId: string) {
+    setDeleteTarget(userId)
   }
 
   if (loading) return <div className="p-5 text-xs text-muted-foreground">読み込み中...</div>
@@ -166,6 +171,16 @@ export function AdminUsersTab() {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="ユーザーを削除"
+        message={`ユーザー「${deleteTarget}」を削除しますか？`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => { if (deleteTarget) void execDelete(deleteTarget); setDeleteTarget(null) }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

@@ -21,6 +21,7 @@ import {
 import { downloadBlob } from '@/api/client'
 import { CACHE_TTL_MS } from '@/store/responsesSlice'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 function formatDate(epochMs: number): string {
   if (!epochMs) return '—'
@@ -50,6 +51,7 @@ export function ResponsesPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleteTarget, setDeleteTarget] = useState<FormResponseSummary | null>(null)
   const [batchState, setBatchState] = useState<'idle' | 'submitting' | 'polling'>('idle')
   const [batchProgress, setBatchProgress] = useState<{ completed: number; total: number } | null>(null)
   const cancelBatchRef = useRef<{ canceled: boolean } | null>(null)
@@ -128,9 +130,8 @@ export function ResponsesPanel() {
     fetchResponses()
   }, [fetchResponses])
 
-  const handleDelete = useCallback(async (response: FormResponseSummary) => {
+  const execDelete = useCallback(async (response: FormResponseSummary) => {
     if (!currentTemplateId) return
-    if (!window.confirm(`回答 ${response.id.slice(0, 8)}... を削除しますか？`)) return
     setDeletingId(response.id)
     try {
       await deleteResponse(currentTemplateId, response.id)
@@ -142,6 +143,10 @@ export function ResponsesPanel() {
       if (mountedRef.current) setDeletingId(null)
     }
   }, [currentTemplateId, invalidateResponsesCache, fetchResponses])
+
+  const handleDelete = useCallback((response: FormResponseSummary) => {
+    setDeleteTarget(response)
+  }, [])
 
   const handleExport = useCallback(async (format: 'csv' | 'excel') => {
     if (!currentTemplateId || isExporting) return
@@ -330,6 +335,16 @@ export function ResponsesPanel() {
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="回答を削除"
+        message={`回答 ${deleteTarget?.id.slice(0, 8)}... を削除しますか？この操作は元に戻せません。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => { if (deleteTarget) { void execDelete(deleteTarget) } setDeleteTarget(null) }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

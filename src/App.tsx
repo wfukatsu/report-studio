@@ -18,6 +18,7 @@ import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { useConnectionState } from '@/hooks/useConnectionState'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, LayoutTemplate, Database, Layers, BookOpen, MessageSquare, Link2 } from 'lucide-react'
@@ -49,6 +50,8 @@ export default function App() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
+  const [showTemplateChangeConfirm, setShowTemplateChangeConfirm] = useState(false)
+  const [pendingTemplateDefinition, setPendingTemplateDefinition] = useState<Parameters<typeof loadReport>[0] | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
 
@@ -82,7 +85,11 @@ export default function App() {
   const loadReport = useReportStore((s) => s.loadReport)
   const _ensureProductMasterGroup = useReportStore((s) => s.ensureProductMasterGroup)
   const handleTemplateChange = useCallback((definition: Parameters<typeof loadReport>[0]) => {
-    if (historyIndex > 0 && !confirm('未保存の変更があります。テンプレートを変更しますか？')) return
+    if (historyIndex > 0) {
+      setPendingTemplateDefinition(definition)
+      setShowTemplateChangeConfirm(true)
+      return
+    }
     loadReport(definition)
     _ensureProductMasterGroup()
     setShowTemplateModal(false)
@@ -448,6 +455,25 @@ export default function App() {
         confirmLabel="変更"
       />
       <SubmitResponseModal />
+
+      <ConfirmDialog
+        open={showTemplateChangeConfirm}
+        title="未保存の変更があります"
+        message="テンプレートを変更すると現在の変更が失われます。続けますか？"
+        confirmLabel="変更"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (pendingTemplateDefinition) {
+            loadReport(pendingTemplateDefinition)
+            _ensureProductMasterGroup()
+            setShowTemplateModal(false)
+          }
+          setShowTemplateChangeConfirm(false)
+          setPendingTemplateDefinition(null)
+        }}
+        onCancel={() => { setShowTemplateChangeConfirm(false); setPendingTemplateDefinition(null) }}
+      />
+
       {deleteToast && (
         <div role="status" aria-live="polite" className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 text-sm z-50">
           <span>{deleteToast.count}件の要素を削除しました</span>

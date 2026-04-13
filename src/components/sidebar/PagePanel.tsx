@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 export function PagePanel() {
   const pages = useReportStore((s) => s.definition.pages)
@@ -9,6 +11,8 @@ export function PagePanel() {
   const removePage = useReportStore((s) => s.removePage)
   const setActivePage = useReportStore((s) => s.setActivePage)
   const renamePage = useReportStore((s) => s.renamePage)
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   return (
     <div className="p-3">
@@ -51,9 +55,7 @@ export function PagePanel() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (confirm(`「${page.name}」を削除しますか？この操作は元に戻せません。`)) {
-                    removePage(page.id)
-                  }
+                  setDeleteTarget({ id: page.id, name: page.name })
                 }}
                 className={cn(
                   'opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity',
@@ -69,6 +71,16 @@ export function PagePanel() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="ページを削除"
+        message={`「${deleteTarget?.name}」を削除しますか？この操作は元に戻せません。`}
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={() => { if (deleteTarget) removePage(deleteTarget.id); setDeleteTarget(null) }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

@@ -26,6 +26,7 @@ import { loadBuiltinTemplate } from '@/lib/templateUtils'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
+import { applyVariant } from '@/lib/variantApplicator'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
@@ -144,6 +145,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const [showManagerModal, setShowManagerModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
+  const [showOpenLocalConfirm, setShowOpenLocalConfirm] = useState(false)
+  const [showOpenServerConfirm, setShowOpenServerConfirm] = useState(false)
+  const [showDeleteHeaderConfirm, setShowDeleteHeaderConfirm] = useState(false)
+  const [showDeleteFooterConfirm, setShowDeleteFooterConfirm] = useState(false)
+  const [showValidationWarnConfirm, setShowValidationWarnConfirm] = useState(false)
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const openMenuRef = useRef<HTMLDivElement>(null)
@@ -182,17 +189,21 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       return false
     }
     if (result.hasWarnings) {
-      const messages = result.violations.map((v) => `⚠️ ${v.message}`).join('\n')
-      return confirm(`バリデーション警告:\n${messages}\n\nエクスポートを続けますか？`)
+      const messages = result.violations.map((v) => v.message)
+      setValidationWarnings(messages)
+      setShowValidationWarnConfirm(true)
+      return false
     }
     return true
   }
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (skipPreflight = false) => {
     if (isExporting) return
     setPreflightErrors([])
-    const ok = await runPreflight()
-    if (!ok) return
+    if (!skipPreflight) {
+      const ok = await runPreflight()
+      if (!ok) return
+    }
     // If variants exist, show selection dialog first
     const { definition } = useReportStore.getState()
     const variants = definition.outputVariants as OutputVariant[]
@@ -212,7 +223,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     // Try server-side PDF first (higher quality, vector text)
     // Phase 2: use livePreviewData (real DB data) if available, otherwise fall back to testData
     try {
-      const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
+      // Apply variant masking before sending to server
+      const maskedDefinition = { ...definition, pages: applyVariant(definition.pages, variant) }
+      const defJson = JSON.parse(JSON.stringify(maskedDefinition)) as Record<string, unknown>
       const exportData = livePreviewData ?? testData
       const dataJson = (exportData ?? {}) as Record<string, unknown>
       const blob = await generateStatelessPdf(defJson, dataJson)
@@ -224,11 +237,31 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     }
 
     // Client-side fallback (degraded quality)
+    // Apply variant: hide elements and temporarily blank masked text nodes
     const hiddenNodes: HTMLElement[] = []
-    if (variant && variant.hiddenElementIds.length > 0) {
+    const maskedNodes: Array<{ node: HTMLElement; original: string }> = []
+    if (variant) {
       for (const id of variant.hiddenElementIds) {
         const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`)
         if (node) { node.style.visibility = 'hidden'; hiddenNodes.push(node) }
+      }
+      for (const rule of variant.maskingRules) {
+        const node = document.querySelector<HTMLElement>(`[data-element-id="${rule.targetElementId}"]`)
+        if (node) {
+          const original = node.innerText
+          maskedNodes.push({ node, original })
+          if (rule.type === 'fullReplace') {
+            node.innerText = rule.replaceValue ?? ''
+          } else if (rule.type === 'partial') {
+            const len = original.length
+            const first = rule.keepFirst ?? 0
+            const last = rule.keepLast ?? 0
+            if (first + last < len) {
+              const suffix = last > 0 ? original.slice(len - last) : ''
+              node.innerText = original.slice(0, first) + '*'.repeat(len - first - last) + suffix
+            }
+          }
+        }
       }
     }
     try {
@@ -242,6 +275,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
     } finally {
       for (const node of hiddenNodes) { node.style.visibility = '' }
+      for (const { node, original } of maskedNodes) { node.innerText = original }
       setIsExporting(false)
     }
   }
@@ -420,12 +454,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   }
 
   const handleOpenLocal = () => {
-    if (hasUnsavedChanges && !confirm('未保存の変更があります。破棄してファイルを開きますか？')) return
+    if (hasUnsavedChanges) { setShowOpenLocalConfirm(true); return }
     fileInputRef.current?.click()
   }
 
   const handleOpenServer = () => {
-    if (hasUnsavedChanges && !confirm('未保存の変更があります。破棄してテンプレートを開きますか？')) return
+    if (hasUnsavedChanges) { setShowOpenServerConfirm(true); return }
     setShowManagerModal(true)
   }
 
@@ -465,9 +499,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const handleToggleMasterHeader = () => {
     if (masterHeader) {
-      if (!confirm('ヘッダーとその内容を削除しますか？')) return
-      setMasterHeader(null)
-      if (!masterFooter) setHeaderEditMode(false)
+      setShowDeleteHeaderConfirm(true)
     } else {
       setMasterHeader(createMasterSection('header'))
       if (!headerEditMode) toggleHeaderEditMode()
@@ -476,9 +508,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const handleToggleMasterFooter = () => {
     if (masterFooter) {
-      if (!confirm('フッターとその内容を削除しますか？')) return
-      setMasterFooter(null)
-      if (!masterHeader) setHeaderEditMode(false)
+      setShowDeleteFooterConfirm(true)
     } else {
       setMasterFooter(createMasterSection('footer'))
       if (!headerEditMode) toggleHeaderEditMode()
@@ -1162,6 +1192,60 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         void doExportPdf(variant)
       }}
       onCancel={() => setShowVariantDialog(false)}
+    />
+
+    {/* Validation warning — ask user whether to continue despite warnings */}
+    <ConfirmDialog
+      open={showValidationWarnConfirm}
+      title="バリデーション警告"
+      message={`以下の警告があります。エクスポートを続けますか？\n\n${validationWarnings.map((m) => `⚠️ ${m}`).join('\n')}`}
+      confirmLabel="続けてエクスポート"
+      onConfirm={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}
+      onCancel={() => setShowValidationWarnConfirm(false)}
+    />
+
+    {/* Unsaved changes — open local file */}
+    <ConfirmDialog
+      open={showOpenLocalConfirm}
+      title="未保存の変更があります"
+      message="変更を破棄してファイルを開きますか？"
+      confirmLabel="破棄して開く"
+      confirmVariant="danger"
+      onConfirm={() => { setShowOpenLocalConfirm(false); fileInputRef.current?.click() }}
+      onCancel={() => setShowOpenLocalConfirm(false)}
+    />
+
+    {/* Unsaved changes — open server template */}
+    <ConfirmDialog
+      open={showOpenServerConfirm}
+      title="未保存の変更があります"
+      message="変更を破棄してテンプレートを開きますか？"
+      confirmLabel="破棄して開く"
+      confirmVariant="danger"
+      onConfirm={() => { setShowOpenServerConfirm(false); setShowManagerModal(true) }}
+      onCancel={() => setShowOpenServerConfirm(false)}
+    />
+
+    {/* Delete master header */}
+    <ConfirmDialog
+      open={showDeleteHeaderConfirm}
+      title="ヘッダーを削除"
+      message="ヘッダーとその内容を削除しますか？"
+      confirmLabel="削除"
+      confirmVariant="danger"
+      onConfirm={() => { setShowDeleteHeaderConfirm(false); setMasterHeader(null); if (!masterFooter) setHeaderEditMode(false) }}
+      onCancel={() => setShowDeleteHeaderConfirm(false)}
+    />
+
+    {/* Delete master footer */}
+    <ConfirmDialog
+      open={showDeleteFooterConfirm}
+      title="フッターを削除"
+      message="フッターとその内容を削除しますか？"
+      confirmLabel="削除"
+      confirmVariant="danger"
+      onConfirm={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
+      onCancel={() => setShowDeleteFooterConfirm(false)}
     />
     </>
   )

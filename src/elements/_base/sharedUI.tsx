@@ -3,7 +3,7 @@
  * These small components are used by all element type PropertiesPanel components.
  */
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ColorPickerPopover } from './ColorPickerPopover'
@@ -90,14 +90,14 @@ export function ColorInput({ value, onChange, label, inherited, onReset }: {
   const handleClose = useCallback(() => setOpen(false), [])
 
   // Listen for other instances opening
-  useState(() => {
+  useEffect(() => {
     const listener = (e: Event) => {
       const evt = e as CustomEvent<number>
       if (evt.detail !== idRef.current) setOpen(false)
     }
     window.addEventListener('color-input-open', listener)
     return () => window.removeEventListener('color-input-open', listener)
-  })
+  }, [])
 
   const handleChange = useCallback(
     (hex: string) => {
