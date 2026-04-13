@@ -10,8 +10,6 @@ import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
 export type UISlice = Pick<StoreState,
   | 'activeTab'
   | 'setActiveTab'
-  | 'pendingTemplateHighlight'
-  | 'setPendingTemplateHighlight'
   | 'previewMode'
   | 'editorZoom'
   | 'previewZoom'
@@ -60,8 +58,6 @@ export const createUISlice: StateCreator<
 > = (set) => ({
   activeTab: 'design' as AppTab,
   setActiveTab: (tab) => set((s) => { s.activeTab = tab }),
-  pendingTemplateHighlight: null,
-  setPendingTemplateHighlight: (id) => set((s) => { s.pendingTemplateHighlight = id }),
 
   previewMode: false,
   layerSearchQuery: '',

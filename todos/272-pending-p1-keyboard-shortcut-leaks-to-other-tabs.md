@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "272"
 tags: [code-review, bug, keyboard, activity-api]

@@ -115,9 +115,6 @@ export interface StoreState {
   /** Active top-level navigation tab */
   activeTab: AppTab
   setActiveTab: (tab: AppTab) => void
-  /** ID of a newly saved template to highlight on the Template Management tab. Cleared after animation. */
-  pendingTemplateHighlight: string | null
-  setPendingTemplateHighlight: (id: string | null) => void
 
   previewMode: boolean
   /** Editor canvas zoom (set independently or together via setZoom) */

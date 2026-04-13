@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "273"
 tags: [code-review, dead-code, store, agent-native]

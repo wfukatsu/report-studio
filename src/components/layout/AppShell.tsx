@@ -8,6 +8,7 @@ import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
 export function AppShell() {
   const activeTab = useReportStore((s) => s.activeTab)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
+  const currentUser = useReportStore((s) => s.currentUser)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -25,8 +26,8 @@ export function AppShell() {
         </div>
       </Activity>
 
-      {/* Data Management tab: 条件付きレンダリング（初回アクセス時にマウント） */}
-      {activeTab === 'data' && (
+      {/* Data Management tab: 認証済みユーザーのみアクセス可能 */}
+      {activeTab === 'data' && currentUser && (
         <div
           role="tabpanel"
           id="top-panel-data"
@@ -37,8 +38,8 @@ export function AppShell() {
         </div>
       )}
 
-      {/* Template Management tab: 条件付きレンダリング */}
-      {activeTab === 'templates' && (
+      {/* Template Management tab: 認証済みユーザーのみアクセス可能 */}
+      {activeTab === 'templates' && currentUser && (
         <div
           role="tabpanel"
           id="top-panel-templates"

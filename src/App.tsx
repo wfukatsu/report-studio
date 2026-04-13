@@ -184,6 +184,9 @@ export default function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // デザインタブ以外ではキャンバスショートカットを無効化
+      if (useReportStore.getState().activeTab !== 'design') return
+
       const meta = e.metaKey || e.ctrlKey
       const target = e.target as HTMLElement
       // Don't intercept when typing in inputs
