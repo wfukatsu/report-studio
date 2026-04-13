@@ -484,8 +484,19 @@ export function ReportCanvas({
   )
 
   // Full layout: sticky rulers + trim marks (used for both editor and readonly/preview)
+  const pw = canvasWidthPx * zoom
+  const ph = canvasHeightPx * zoom
+  // Guide line positions (paper top-left is at RULER_SIZE + CANVAS_PADDING from scroll origin)
+  const guideOffset = RULER_SIZE + CANVAS_PADDING
   return (
-    <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+    <div style={{ width: '100%', height: '100%', overflow: 'auto', position: 'relative' }}>
+      {/* Page edge guide lines (editor only) */}
+      {!readonly && (<>
+        <div style={{ position: 'absolute', top: guideOffset, left: 0, right: 0, height: 0, borderTop: '1px dashed #c8ccd0', pointerEvents: 'none', zIndex: 8 }} />
+        <div style={{ position: 'absolute', top: guideOffset + ph, left: 0, right: 0, height: 0, borderTop: '1px dashed #c8ccd0', pointerEvents: 'none', zIndex: 8 }} />
+        <div style={{ position: 'absolute', left: guideOffset, top: 0, bottom: 0, width: 0, borderLeft: '1px dashed #c8ccd0', pointerEvents: 'none', zIndex: 8 }} />
+        <div style={{ position: 'absolute', left: guideOffset + pw, top: 0, bottom: 0, width: 0, borderLeft: '1px dashed #c8ccd0', pointerEvents: 'none', zIndex: 8 }} />
+      </>)}
       {/* Sticky header row: corner square + horizontal ruler */}
       <div
         style={{

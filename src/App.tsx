@@ -388,7 +388,7 @@ export default function App() {
           </aside>
 
           {/* Canvas Area */}
-          <main className="flex-1 overflow-hidden bg-muted/15 flex flex-col">
+          <main className="flex-1 overflow-hidden bg-muted/10 flex flex-col">
             <div ref={canvasContainerRef} className="flex-1 overflow-hidden">
               <ReportCanvas canvasRef={canvasRef} />
             </div>
