@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "279"
 tags: [code-review, simplicity, yagni, refactor]

@@ -32,16 +32,28 @@ function applyMaskingToElement(el: ReportElement, rules: MaskingRule[]): ReportE
   if (!rule) return el
 
   if (rule.type === 'fullReplace') {
+    // text: replace inline content
     if (el.type === 'text') {
       return { ...el, content: rule.replaceValue } as ReportElement
+    }
+    // dataField: replace with static override value, clear dynamic field binding
+    if (el.type === 'dataField') {
+      return { ...el, fieldKey: '' as string, fallbackText: rule.replaceValue ?? '' } as ReportElement
     }
     return el
   }
 
   if (rule.type === 'partial') {
-    if (el.type !== 'text') return el
-    const content = typeof el.content === 'string' ? el.content : ''
-    return { ...el, content: applyPartialMask(content, rule.keepFirst, rule.keepLast) }
+    if (el.type === 'text') {
+      const content = typeof el.content === 'string' ? el.content : ''
+      return { ...el, content: applyPartialMask(content, rule.keepFirst, rule.keepLast) }
+    }
+    // dataField partial: mask via fallbackText (field key set to empty so fallbackText shows at render)
+    if (el.type === 'dataField') {
+      const placeholder = applyPartialMask(el.fieldKey ?? '', rule.keepFirst, rule.keepLast)
+      return { ...el, fieldKey: '' as string, fallbackText: placeholder } as ReportElement
+    }
+    return el
   }
 
   return el

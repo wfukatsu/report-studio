@@ -1,5 +1,6 @@
+import { useRef, useCallback } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { AppTab } from '@/store/types'
-import { useTopTabNavigation } from '@/hooks/useTopTabNavigation'
 import { cn } from '@/lib/utils'
 
 const TABS: { id: AppTab; label: string }[] = [
@@ -8,7 +9,7 @@ const TABS: { id: AppTab; label: string }[] = [
   { id: 'templates', label: 'テンプレート管理' },
 ]
 
-const TAB_IDS = TABS.map((t) => t.id)
+const TAB_IDS: AppTab[] = TABS.map((t) => t.id)
 
 interface TopNavigationProps {
   readonly activeTab: AppTab
@@ -16,11 +17,31 @@ interface TopNavigationProps {
 }
 
 export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
-  const { getTabProps } = useTopTabNavigation({
-    tabs: TAB_IDS,
-    selectedTab: activeTab,
-    onSelect: onTabChange,
-  })
+  const tabRefs = useRef<Map<AppTab, HTMLButtonElement | null>>(new Map())
+
+  const focusTab = useCallback((tab: AppTab) => {
+    tabRefs.current.get(tab)?.focus()
+  }, [])
+
+  const handleKeyDown = useCallback(
+    (currentTabId: AppTab) => (e: KeyboardEvent<HTMLButtonElement>) => {
+      if (e.nativeEvent.isComposing) return
+      const idx = TAB_IDS.indexOf(currentTabId)
+      let targetIdx: number | null = null
+      switch (e.key) {
+        case 'ArrowLeft':  targetIdx = idx === 0 ? TAB_IDS.length - 1 : idx - 1; break
+        case 'ArrowRight': targetIdx = idx === TAB_IDS.length - 1 ? 0 : idx + 1; break
+        case 'Home':       targetIdx = 0; break
+        case 'End':        targetIdx = TAB_IDS.length - 1; break
+        case 'Enter': case ' ':
+          e.preventDefault(); onTabChange(currentTabId); return
+        default: return
+      }
+      e.preventDefault()
+      if (targetIdx !== null) focusTab(TAB_IDS[targetIdx])
+    },
+    [focusTab, onTabChange],
+  )
 
   return (
     <nav
@@ -32,7 +53,14 @@ export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
       {TABS.map(({ id, label }) => (
         <button
           key={id}
-          {...getTabProps(id)}
+          role="tab"
+          id={`top-tab-${id}`}
+          aria-selected={activeTab === id}
+          aria-controls={`top-panel-${id}`}
+          tabIndex={activeTab === id ? 0 : -1}
+          onKeyDown={handleKeyDown(id)}
+          onClick={() => onTabChange(id)}
+          ref={(el) => { tabRefs.current.set(id, el) }}
           className={cn(
             'px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap border-b-2 -mb-px',
             activeTab === id

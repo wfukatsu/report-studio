@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import '@/index.css'
 import { AppShell } from '@/components/layout/AppShell'
 import { DataBrowserPage } from '@/pages/DataBrowserPage'
@@ -18,6 +19,7 @@ createRoot(rootEl).render(
           <Route path="/data-browser" element={<DataBrowserPage />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="bottom-center" richColors duration={8000} />
     </AppErrorBoundary>
   </StrictMode>,
 )

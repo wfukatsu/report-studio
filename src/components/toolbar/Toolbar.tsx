@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useToolbarModals } from './useToolbarModals'
+import { useToolbarExport } from './useToolbarExport'
+import { useToolbarFile } from './useToolbarFile'
+import { ToolbarDialogs } from './ToolbarDialogs'
 import { Link } from 'react-router-dom'
 import {
-  Undo2, Redo2, Eye, FileImage, FileText, AlertCircle,
+  Undo2, Redo2, Eye, FileImage, FileText,
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
@@ -10,24 +14,8 @@ import {
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus, Settings2,
   ShieldCheck, ShieldAlert, Database, Shuffle, RefreshCw, User, TableProperties,
 } from 'lucide-react'
-import { evaluateValidate, generateTemplatePdf, generateStatelessPdf, createReport, saveReport } from '@/api/reportApi'
-import { downloadBlob } from '@/api/client'
-import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
-import type { Section, OutputVariant } from '@/types'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
-import { DataBindingModal } from '@/components/modals/DataBindingModal'
-import { VariantsModal } from '@/components/modals/VariantsModal'
-import { ServerSettingsModal } from '@/components/modals/ServerSettingsModal'
-import { ExportVariantDialog } from '@/components/modals/ExportVariantDialog'
-import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
-import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
-import { ConfirmDialog } from '@/components/common/ConfirmDialog'
-import { loadBuiltinTemplate } from '@/lib/templateUtils'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
-import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng } from '@/lib/exportUtils'
-import { runValidation } from '@/lib/validationRunner'
-import { applyVariant } from '@/lib/variantApplicator'
-import { resolveCurrentData } from '@/hooks/useResolvedData'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
@@ -43,26 +31,6 @@ interface Props {
 }
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-
-function useDropdownDismiss(
-  ref: React.RefObject<HTMLElement | null>,
-  isOpen: boolean,
-  onClose: () => void,
-) {
-  useEffect(() => {
-    if (!isOpen) return
-    const handler = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent && e.key === 'Escape') { onClose(); return }
-      if (e instanceof MouseEvent && ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', handler)
-    document.addEventListener('keydown', handler)
-    return () => {
-      document.removeEventListener('mousedown', handler)
-      document.removeEventListener('keydown', handler)
-    }
-  }, [isOpen, onClose, ref])
-}
 
 export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Props) {
   const reportName = useReportStore((s) => s.definition.metadata.documentName)
@@ -108,294 +76,68 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const masterFooter = useReportStore((s) => s.definition.masterFooter)
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
-
-  const importReportJSON = useReportStore((s) => s.importReportJSON)
-  const loadReport = useReportStore((s) => s.loadReport)
-  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
   const sourceTemplateId = useReportStore((s) => s.definition.metadata.sourceTemplateId)
   const sourceTemplate = sourceTemplateId
     ? BUILTIN_TEMPLATES.find((t) => t.id === sourceTemplateId) ?? null
     : null
 
-  const [exportError, setExportError] = useState<string | null>(null)
-  const [refreshError, setRefreshError] = useState<string | null>(null)
-  const [isExporting, setIsExporting] = useState(false)
-  const [preflightErrors, setPreflightErrors] = useState<string[]>([])
-  const [isValidating, setIsValidating] = useState(false)
-  const [validateError, setValidateError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const violationCount = useReportStore((s) => s.computedViolations.length)
   // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
   const currentUser = useReportStore((s) => s.currentUser)
   const logoutUser = useReportStore((s) => s.logoutUser)
-  const [showSaveDialog, setShowSaveDialog] = useState(false)
-  const [isSavingNew, setIsSavingNew] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showServerSettings, setShowServerSettings] = useState(false)
-  const [showOpenMenu, setShowOpenMenu] = useState(false)
-  const [showSaveMenu, setShowSaveMenu] = useState(false)
-  const [showZoomMenu, setShowZoomMenu] = useState(false)
-  const [showAlignMenu, setShowAlignMenu] = useState(false)
-  const [showZOrderMenu, setShowZOrderMenu] = useState(false)
-  const [showPreviewMenu, setShowPreviewMenu] = useState(false)
-  const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
-  const [showDataModal, setShowDataModal] = useState(false)
-  const [showVariantsModal, setShowVariantsModal] = useState(false)
-  const [showManagerModal, setShowManagerModal] = useState(false)
-  const [showVariantDialog, setShowVariantDialog] = useState(false)
-  const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
-  const [showOpenLocalConfirm, setShowOpenLocalConfirm] = useState(false)
-  const [showOpenServerConfirm, setShowOpenServerConfirm] = useState(false)
-  const [showDeleteHeaderConfirm, setShowDeleteHeaderConfirm] = useState(false)
-  const [showDeleteFooterConfirm, setShowDeleteFooterConfirm] = useState(false)
-  const [showValidationWarnConfirm, setShowValidationWarnConfirm] = useState(false)
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-  const openMenuRef = useRef<HTMLDivElement>(null)
-  const saveMenuRef = useRef<HTMLDivElement>(null)
-  const zoomMenuRef = useRef<HTMLDivElement>(null)
-  const alignMenuRef = useRef<HTMLDivElement>(null)
-  const zOrderMenuRef = useRef<HTMLDivElement>(null)
-  const previewMenuRef = useRef<HTMLDivElement>(null)
+
+  const {
+    showSaveDialog, setShowSaveDialog,
+    isSavingNew, setIsSavingNew,
+    showUserMenu, setShowUserMenu,
+    showServerSettings, setShowServerSettings,
+    showOpenMenu, setShowOpenMenu,
+    showSaveMenu, setShowSaveMenu,
+    showZoomMenu, setShowZoomMenu,
+    showAlignMenu, setShowAlignMenu,
+    showZOrderMenu, setShowZOrderMenu,
+    showPreviewMenu, setShowPreviewMenu,
+    showDataModal, setShowDataModal,
+    showVariantsModal, setShowVariantsModal,
+    showManagerModal, setShowManagerModal,
+    showVariantDialog, setShowVariantDialog,
+    showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm,
+    showOpenLocalConfirm, setShowOpenLocalConfirm,
+    showOpenServerConfirm, setShowOpenServerConfirm,
+    showDeleteHeaderConfirm, setShowDeleteHeaderConfirm,
+    showDeleteFooterConfirm, setShowDeleteFooterConfirm,
+    showValidationWarnConfirm, setShowValidationWarnConfirm,
+    validationWarnings, setValidationWarnings,
+    fileInputRef,
+    userMenuRef, openMenuRef, saveMenuRef, zoomMenuRef,
+    alignMenuRef, zOrderMenuRef, previewMenuRef,
+  } = useToolbarModals()
+
+  const {
+    isExporting,
+    isPreviewingPdf,
+    isValidating,
+    doExportPdf,
+    handleExportPdf,
+    handleFullPreviewPdf,
+    handleBackendPdf,
+    handleExportPng,
+    handleValidate,
+  } = useToolbarExport({
+    canvasRefs,
+    reportName,
+    pages,
+    activePage,
+    setShowVariantDialog,
+    setShowValidationWarnConfirm,
+    setValidationWarnings,
+  })
 
   const hasSelection = selectedIds.length > 0
   const hasMultiSelection = selectedIds.length >= 2
   const singleId = selectedIds[0]
-
-  const closeUserMenu = useCallback(() => setShowUserMenu(false), [])
-  const closeOpenMenu = useCallback(() => setShowOpenMenu(false), [])
-  const closeSaveMenu = useCallback(() => setShowSaveMenu(false), [])
-  const closeZoomMenu = useCallback(() => setShowZoomMenu(false), [])
-  const closeAlignMenu = useCallback(() => setShowAlignMenu(false), [])
-  const closeZOrderMenu = useCallback(() => setShowZOrderMenu(false), [])
-  const closePreviewMenu = useCallback(() => setShowPreviewMenu(false), [])
-
-  useDropdownDismiss(userMenuRef, showUserMenu, closeUserMenu)
-  useDropdownDismiss(openMenuRef, showOpenMenu, closeOpenMenu)
-  useDropdownDismiss(saveMenuRef, showSaveMenu, closeSaveMenu)
-  useDropdownDismiss(zoomMenuRef, showZoomMenu, closeZoomMenu)
-  useDropdownDismiss(alignMenuRef, showAlignMenu, closeAlignMenu)
-  useDropdownDismiss(zOrderMenuRef, showZOrderMenu, closeZOrderMenu)
-  useDropdownDismiss(previewMenuRef, showPreviewMenu, closePreviewMenu)
-
-  const runPreflight = async (): Promise<boolean> => {
-    const { definition, testData } = useReportStore.getState()
-    if (definition.validationRules.length === 0) return true
-    const result = await runValidation(definition.validationRules, testData)
-    if (result.hasErrors) {
-      setPreflightErrors(result.violations.map((v) => v.message))
-      return false
-    }
-    if (result.hasWarnings) {
-      const messages = result.violations.map((v) => v.message)
-      setValidationWarnings(messages)
-      setShowValidationWarnConfirm(true)
-      return false
-    }
-    return true
-  }
-
-  const handleExportPdf = async (skipPreflight = false) => {
-    if (isExporting) return
-    setPreflightErrors([])
-    if (!skipPreflight) {
-      const ok = await runPreflight()
-      if (!ok) return
-    }
-    // If variants exist, show selection dialog first
-    const { definition } = useReportStore.getState()
-    const variants = definition.outputVariants as OutputVariant[]
-    if (variants.length > 0) {
-      setShowVariantDialog(true)
-      return
-    }
-    await doExportPdf(null)
-  }
-
-  const doExportPdf = async (variant: OutputVariant | null) => {
-    setIsExporting(true)
-    setExportError(null)
-    const { definition } = useReportStore.getState()
-    const filename = variant ? `${reportName}_${variant.name}.pdf` : `${reportName}.pdf`
-
-    // Try server-side PDF first (higher quality, vector text)
-    // Data priority: live ScalarDB data > sample JSON (same as canvas display)
-    try {
-      // Apply variant masking before sending to server
-      const maskedDefinition = { ...definition, pages: applyVariant(definition.pages, variant) }
-      const defJson = JSON.parse(JSON.stringify(maskedDefinition)) as Record<string, unknown>
-      const dataJson = resolveCurrentData()
-      const blob = await generateStatelessPdf(defJson, dataJson)
-      downloadBlob(blob, filename)
-      return
-    } catch {
-      // Server-side failed — fall back to client-side html2canvas
-      console.warn('Server-side PDF failed, falling back to client-side rendering')
-    }
-
-    // Client-side fallback (degraded quality)
-    // Apply variant: hide elements and temporarily blank masked text nodes
-    const hiddenNodes: HTMLElement[] = []
-    const maskedNodes: Array<{ node: HTMLElement; original: string }> = []
-    if (variant) {
-      for (const id of variant.hiddenElementIds) {
-        const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`)
-        if (node) { node.style.visibility = 'hidden'; hiddenNodes.push(node) }
-      }
-      for (const rule of variant.maskingRules) {
-        const node = document.querySelector<HTMLElement>(`[data-element-id="${rule.targetElementId}"]`)
-        if (node) {
-          const original = node.innerText
-          maskedNodes.push({ node, original })
-          if (rule.type === 'fullReplace') {
-            node.innerText = rule.replaceValue ?? ''
-          } else if (rule.type === 'partial') {
-            const len = original.length
-            const first = rule.keepFirst ?? 0
-            const last = rule.keepLast ?? 0
-            if (first + last < len) {
-              const suffix = last > 0 ? original.slice(len - last) : ''
-              node.innerText = original.slice(0, first) + '*'.repeat(len - first - last) + suffix
-            }
-          }
-        }
-      }
-    }
-    try {
-      const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-      await exportReportToPdf(els, filename)
-      setExportError('ローカル生成（品質低下）でエクスポートしました')
-      setTimeout(() => setExportError(null), 5000)
-    } catch (_err) {
-      const msg = 'エクスポートに失敗しました。もう一度お試しください。'
-      setExportError(msg)
-      setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
-    } finally {
-      for (const node of hiddenNodes) { node.style.visibility = '' }
-      for (const { node, original } of maskedNodes) { node.innerText = original }
-      setIsExporting(false)
-    }
-  }
-
-  /** Generate PDF and open in a new browser tab (full preview as PDF). */
-  const handleFullPreviewPdf = async () => {
-    if (isPreviewingPdf) return
-    setIsPreviewingPdf(true)
-    setExportError(null)
-    const { definition } = useReportStore.getState()
-
-    /** Open a blob URL in a new tab, checking for popup blockers */
-    const openBlobUrl = (blob: Blob): boolean => {
-      const url = URL.createObjectURL(blob)
-      const newTab = window.open(url, '_blank')
-      if (!newTab) {
-        URL.revokeObjectURL(url)
-        const msg = 'ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。'
-        setExportError(msg)
-        setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
-        return false
-      }
-      // Modern browsers capture the blob reference immediately on window.open;
-      // revoke after 1 second is sufficient and avoids accumulating multiple blobs in memory.
-      setTimeout(() => URL.revokeObjectURL(url), 1_000)
-      return true
-    }
-
-    try {
-      const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
-      const dataJson = resolveCurrentData()
-      const blob = await generateStatelessPdf(defJson, dataJson)
-      openBlobUrl(blob)
-    } catch {
-      // Server-side failed — fall back to client-side rendering with user notification
-      try {
-        const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-        const blob = await exportReportToPdfBlob(els)
-        if (openBlobUrl(blob)) {
-          // Inform the user that the fallback (lower-quality) renderer was used
-          const msg = 'クライアントレンダリングでプレビューを生成しました（品質が低下している場合があります）'
-          setExportError(msg)
-          setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
-        }
-      } catch (_err) {
-        const msg = 'PDFプレビューの生成に失敗しました'
-        setExportError(msg)
-        setTimeout(() => setExportError((prev) => (prev === msg ? null : prev)), 5000)
-      }
-    } finally {
-      setIsPreviewingPdf(false)
-    }
-  }
-
-  const handleBackendPdf = async () => {
-    if (isExporting) return
-    const { currentTemplateId, testData, definition } = useReportStore.getState()
-    if (!currentTemplateId) return
-    setIsExporting(true)
-    setExportError(null)
-    try {
-      const tdRecord = testData as Record<string, unknown>
-      const blob = await generateTemplatePdf(currentTemplateId, tdRecord)
-      downloadBlob(blob, `${definition.metadata.documentName}.pdf`)
-    } catch (_err) {
-      const msg = 'バックエンドPDF生成に失敗しました'
-      setExportError(msg)
-      setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const handleExportPng = async () => {
-    if (isExporting) return
-    setPreflightErrors([])
-    const ok = await runPreflight()
-    if (!ok) return
-    setIsExporting(true)
-    setExportError(null)
-    try {
-      const el = canvasRefs[0]?.current
-      if (el) {
-        const pageIdx = activePage ? pages.findIndex((p) => p.id === activePage.id) + 1 : 1
-        await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length)
-      }
-    } catch (_err) {
-      const msg = 'エクスポートに失敗しました。もう一度お試しください。'
-      setExportError(msg)
-      setTimeout(() => setExportError((prev) => prev === msg ? null : prev), 5000)
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const handleValidate = async () => {
-    if (isValidating) return
-    const { definition, testData, currentTemplateId } = useReportStore.getState()
-    if (!currentTemplateId) return
-
-    useReportStore.getState().setComputedViolations([])
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setIsValidating(true)
-    setValidateError(null)
-    try {
-      const result = await evaluateValidate(currentTemplateId, definition as unknown as ReportDefinitionInput, testData, controller.signal)
-      if (controller.signal.aborted) return
-      useReportStore.getState().setComputedViolations(result.violations)
-    } catch (_err) {
-      if (controller.signal.aborted) return
-      const msg = 'バリデーションに失敗しました'
-      setValidateError(msg)
-      setTimeout(() => setValidateError((prev) => prev === msg ? null : prev), 5000)
-    } finally {
-      if (!controller.signal.aborted) setIsValidating(false)
-    }
-  }
 
   const handleAlign = (alignment: Parameters<typeof alignElements>[2]) => {
     if (!activePageId || selectedIds.length < 2) return
@@ -411,7 +153,41 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const hasUnsavedChanges = historyIndex > 0
 
-  // Keyboard navigation for dropdown menus (#190) — ArrowDown/Up cycle through menuitem elements
+  const {
+    handleNew: handleNewFn,
+    handleUpdateFromBuiltin,
+    handleOpenLocal,
+    handleOpenServer,
+    handleFileChange,
+    handleToggleMasterHeader,
+    handleToggleMasterFooter,
+    handleDownloadJson,
+    handleSave,
+    handleSaveNew,
+  } = useToolbarFile({
+    reportName,
+    backendConnected,
+    hasUnsavedChanges,
+    sourceTemplateId,
+    masterHeader,
+    masterFooter,
+    headerEditMode,
+    containerRef,
+    fileInputRef,
+    setShowSaveDialog,
+    setIsSavingNew,
+    setShowManagerModal,
+    setShowOpenLocalConfirm,
+    setShowOpenServerConfirm,
+    setShowUpdateFromBuiltinConfirm,
+    setShowDeleteHeaderConfirm,
+    setShowDeleteFooterConfirm,
+    setShowSaveMenu,
+  })
+
+  const handleNew = () => handleNewFn(onRequestTemplateModal)
+
+  // Keyboard navigation for dropdown menus — ArrowDown/Up cycle through menuitem elements
   const handleMenuKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
     e.preventDefault()
@@ -428,153 +204,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     else if (e.key === 'End') next = items[items.length - 1]
     next?.focus()
   }, [])
-
-  const handleNew = () => {
-    onRequestTemplateModal?.()
-  }
-
-  const handleUpdateFromBuiltin = () => {
-    if (!sourceTemplateId) return
-    const definition = loadBuiltinTemplate(sourceTemplateId)
-    if (!definition) {
-      // Use a dedicated error state — exportError is cleared by export flows
-      setRefreshError('ビルトインテンプレートが見つかりませんでした')
-      setShowUpdateFromBuiltinConfirm(false)
-      return
-    }
-    setRefreshError(null)
-    loadReport(definition)
-    // Reset currentTemplateId so the next Save creates a new template rather than
-    // silently overwriting the user's previously-saved server record with the
-    // freshly-generated built-in definition.
-    setCurrentTemplateId(null)
-    setShowUpdateFromBuiltinConfirm(false)
-  }
-
-  const handleOpenLocal = () => {
-    if (hasUnsavedChanges) { setShowOpenLocalConfirm(true); return }
-    fileInputRef.current?.click()
-  }
-
-  const handleOpenServer = () => {
-    if (hasUnsavedChanges) { setShowOpenServerConfirm(true); return }
-    setShowManagerModal(true)
-  }
-
-  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > MAX_FILE_SIZE) {
-      setExportError('ファイルサイズが大きすぎます（10MB以下にしてください）')
-      e.target.value = ''
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const text = ev.target?.result
-        if (typeof text !== 'string') return
-        const result = importReportJSON(text)
-        if (!result.ok) {
-          setExportError(result.error ?? '読み込みに失敗しました')
-        }
-      } catch (err) {
-        setExportError(err instanceof Error ? err.message : '読み込みに失敗しました')
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = '' // allow re-selecting same file
-  }
-
-  const createMasterSection = (role: 'header' | 'footer'): Section => ({
-    id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
-    sectionType: role === 'header' ? 'header' : 'footer',
-    height: role === 'header' ? 20 : 15,
-    elements: [],
-  })
-
-  const handleToggleMasterHeader = () => {
-    if (masterHeader) {
-      setShowDeleteHeaderConfirm(true)
-    } else {
-      setMasterHeader(createMasterSection('header'))
-      if (!headerEditMode) toggleHeaderEditMode()
-    }
-  }
-
-  const handleToggleMasterFooter = () => {
-    if (masterFooter) {
-      setShowDeleteFooterConfirm(true)
-    } else {
-      setMasterFooter(createMasterSection('footer'))
-      if (!headerEditMode) toggleHeaderEditMode()
-      // フッター作成時にキャンバスを最下部にスクロール
-      requestAnimationFrame(() => {
-        containerRef?.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })
-      })
-    }
-  }
-
-  const handleDownloadJson = () => {
-    try {
-      const definition = useReportStore.getState().definition
-      const json = JSON.stringify(definition, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${reportName}.rds.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'ダウンロードに失敗しました')
-    }
-    setShowSaveMenu(false)
-  }
-
-  const handleSave = async () => {
-    const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
-
-    if (!backendConnected) {
-      setExportError('バックエンドに接続されていません。「npm run dev:backend」でバックエンドを起動してから再試行してください。')
-      return
-    }
-
-    if (currentTemplateId) {
-      // Existing template → overwrite save
-      try {
-        setSaveState('saving')
-        await saveReport(currentTemplateId, definition)
-        setSaveState('saved')
-      } catch (err) {
-        setSaveState('error')
-        setExportError(err instanceof Error ? err.message : '保存に失敗しました')
-      }
-    } else {
-      // New template → show name dialog
-      setShowSaveDialog(true)
-    }
-  }
-
-  const handleSaveNew = async (name: string) => {
-    const { definition, setCurrentTemplateId, setSaveState } = useReportStore.getState()
-    setIsSavingNew(true)
-    try {
-      setSaveState('saving')
-      const created = await createReport(name)
-      await saveReport(created.id, definition)
-      setCurrentTemplateId(created.id)
-      setShowSaveDialog(false)
-      setSaveState('saved')
-    } catch (err) {
-      setSaveState('error')
-      setExportError(err instanceof Error ? err.message : '保存に失敗しました')
-    } finally {
-      setIsSavingNew(false)
-    }
-  }
 
   return (
     <>
@@ -652,16 +281,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         {sourceTemplate && (
           <div className="relative">
             <ToolbarButton
-              onClick={() => { setRefreshError(null); setShowUpdateFromBuiltinConfirm(true) }}
+              onClick={() => setShowUpdateFromBuiltinConfirm(true)}
               title={`ビルトインテンプレート「${sourceTemplate.name}」から最新定義で更新`}
             >
               <RefreshCw className="w-4 h-4" />
             </ToolbarButton>
-            {refreshError && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-destructive/10 border border-destructive/40 text-destructive text-[10px] rounded px-2 py-1 whitespace-nowrap" role="alert" aria-live="assertive" aria-atomic="true">
-                {refreshError}
-              </div>
-            )}
           </div>
         )}
         <div className="relative flex items-center" ref={saveMenuRef}>
@@ -861,37 +485,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <TableProperties className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">データブラウザ</span>
         </Link>
-
-        <div role="alert" aria-live="assertive" aria-atomic="true">
-          {preflightErrors.length > 0 && (
-            <div className="flex items-start gap-1 text-xs text-destructive max-w-xs">
-              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-              <div className="flex-1 space-y-0.5">
-                {preflightErrors.map((msg, i) => <div key={i}>⛔ {msg}</div>)}
-              </div>
-              <button
-                className="ml-1 px-1 rounded hover:bg-accent"
-                onClick={() => setPreflightErrors([])}
-                aria-label="バリデーションエラーを閉じる"
-              >
-                &times;
-              </button>
-            </div>
-          )}
-          {!preflightErrors.length && (exportError || validateError) && (
-            <div className="flex items-center gap-1 text-xs text-destructive">
-              <AlertCircle className="w-3 h-3" />
-              <span>{exportError ?? validateError}</span>
-              <button
-                className="ml-1 px-1 rounded hover:bg-accent"
-                onClick={() => { setExportError(null); setValidateError(null) }}
-                aria-label="エラーを閉じる"
-              >
-                &times;
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Zoom — editor zoom only; preview zoom shown separately when they diverge */}
         <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom - 0.1))} disabled={editorZoom <= 0.1} title="ズームアウト (⌘-)">
@@ -1132,118 +725,44 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       </div>
     </header>
 
-    {/* DataBinding modal */}
-    {showDataModal && (
-      <DataBindingModal
-        open={showDataModal}
-        onClose={() => setShowDataModal(false)}
-      />
-    )}
-
-    {/* Server settings modal */}
-    {showServerSettings && (
-      <ServerSettingsModal
-        open={showServerSettings}
-        onClose={() => setShowServerSettings(false)}
-      />
-    )}
-
-    {/* Variants modal */}
-    <VariantsModal
-      open={showVariantsModal}
-      onClose={() => setShowVariantsModal(false)}
-    />
-
-    {/* Save template dialog */}
-    <SaveTemplateDialog
-      open={showSaveDialog}
-      onSave={handleSaveNew}
-      onCancel={() => setShowSaveDialog(false)}
-      defaultName={reportName}
-      saving={isSavingNew}
-    />
-
-    {/* Template manager */}
-    <TemplateManagerModal
-      open={showManagerModal}
-      onClose={() => setShowManagerModal(false)}
-    />
-
-    {/* Update from built-in template confirmation */}
-    <ConfirmDialog
-      open={showUpdateFromBuiltinConfirm}
-      title="ビルトインテンプレートから更新"
-      message={sourceTemplate
-        ? `現在のレポートを最新のビルトインテンプレート「${sourceTemplate.name}」の定義で上書きします。これまでの変更は失われます。続行しますか？`
-        : ''}
-      confirmLabel="更新"
-      confirmVariant="danger"
-      onConfirm={handleUpdateFromBuiltin}
-      onCancel={() => setShowUpdateFromBuiltinConfirm(false)}
-    />
-
-    {/* Export variant selector */}
-    <ExportVariantDialog
-      open={showVariantDialog}
-      onSelect={(variant) => {
-        setShowVariantDialog(false)
-        void doExportPdf(variant)
-      }}
-      onCancel={() => setShowVariantDialog(false)}
-    />
-
-    {/* Validation warning — ask user whether to continue despite warnings */}
-    <ConfirmDialog
-      open={showValidationWarnConfirm}
-      title="バリデーション警告"
-      message={`以下の警告があります。エクスポートを続けますか？\n\n${validationWarnings.map((m) => `⚠️ ${m}`).join('\n')}`}
-      confirmLabel="続けてエクスポート"
-      onConfirm={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}
-      onCancel={() => setShowValidationWarnConfirm(false)}
-    />
-
-    {/* Unsaved changes — open local file */}
-    <ConfirmDialog
-      open={showOpenLocalConfirm}
-      title="未保存の変更があります"
-      message="変更を破棄してファイルを開きますか？"
-      confirmLabel="破棄して開く"
-      confirmVariant="danger"
-      onConfirm={() => { setShowOpenLocalConfirm(false); fileInputRef.current?.click() }}
-      onCancel={() => setShowOpenLocalConfirm(false)}
-    />
-
-    {/* Unsaved changes — open server template */}
-    <ConfirmDialog
-      open={showOpenServerConfirm}
-      title="未保存の変更があります"
-      message="変更を破棄してテンプレートを開きますか？"
-      confirmLabel="破棄して開く"
-      confirmVariant="danger"
-      onConfirm={() => { setShowOpenServerConfirm(false); setShowManagerModal(true) }}
-      onCancel={() => setShowOpenServerConfirm(false)}
-    />
-
-    {/* Delete master header */}
-    <ConfirmDialog
-      open={showDeleteHeaderConfirm}
-      title="ヘッダーを削除"
-      message="ヘッダーとその内容を削除しますか？"
-      confirmLabel="削除"
-      confirmVariant="danger"
-      onConfirm={() => { setShowDeleteHeaderConfirm(false); setMasterHeader(null); if (!masterFooter) setHeaderEditMode(false) }}
-      onCancel={() => setShowDeleteHeaderConfirm(false)}
-    />
-
-    {/* Delete master footer */}
-    <ConfirmDialog
-      open={showDeleteFooterConfirm}
-      title="フッターを削除"
-      message="フッターとその内容を削除しますか？"
-      confirmLabel="削除"
-      confirmVariant="danger"
-      onConfirm={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
-      onCancel={() => setShowDeleteFooterConfirm(false)}
+    <ToolbarDialogs
+      reportName={reportName}
+      sourceTemplateName={sourceTemplate?.name}
+      showDataModal={showDataModal}
+      showServerSettings={showServerSettings}
+      showVariantsModal={showVariantsModal}
+      showSaveDialog={showSaveDialog}
+      showManagerModal={showManagerModal}
+      showUpdateFromBuiltinConfirm={showUpdateFromBuiltinConfirm}
+      showVariantDialog={showVariantDialog}
+      showValidationWarnConfirm={showValidationWarnConfirm}
+      showOpenLocalConfirm={showOpenLocalConfirm}
+      showOpenServerConfirm={showOpenServerConfirm}
+      showDeleteHeaderConfirm={showDeleteHeaderConfirm}
+      showDeleteFooterConfirm={showDeleteFooterConfirm}
+      isSavingNew={isSavingNew}
+      validationWarnings={validationWarnings}
+      onCloseDataModal={() => setShowDataModal(false)}
+      onCloseServerSettings={() => setShowServerSettings(false)}
+      onCloseVariantsModal={() => setShowVariantsModal(false)}
+      onSaveNew={handleSaveNew}
+      onCancelSave={() => setShowSaveDialog(false)}
+      onCloseManagerModal={() => setShowManagerModal(false)}
+      onConfirmUpdateFromBuiltin={handleUpdateFromBuiltin}
+      onCancelUpdateFromBuiltin={() => setShowUpdateFromBuiltinConfirm(false)}
+      onSelectVariant={(variant) => { setShowVariantDialog(false); void doExportPdf(variant) }}
+      onCancelVariantDialog={() => setShowVariantDialog(false)}
+      onConfirmExportWithWarnings={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}
+      onCancelValidationWarn={() => setShowValidationWarnConfirm(false)}
+      onConfirmOpenLocal={() => { setShowOpenLocalConfirm(false); fileInputRef.current?.click() }}
+      onCancelOpenLocal={() => setShowOpenLocalConfirm(false)}
+      onConfirmOpenServer={() => { setShowOpenServerConfirm(false); setShowManagerModal(true) }}
+      onCancelOpenServer={() => setShowOpenServerConfirm(false)}
+      onConfirmDeleteHeader={() => { setShowDeleteHeaderConfirm(false); setMasterHeader(null); if (!masterFooter) setHeaderEditMode(false) }}
+      onCancelDeleteHeader={() => setShowDeleteHeaderConfirm(false)}
+      onConfirmDeleteFooter={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
+      onCancelDeleteFooter={() => setShowDeleteFooterConfirm(false)}
+      fileInputRef={fileInputRef}
     />
     </>
   )

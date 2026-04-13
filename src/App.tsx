@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePageId, selectActivePage, flattenPageElements } from '@/store/reportStore'
@@ -44,7 +45,6 @@ export default function App() {
   const [leftTab, setLeftTab] = useState<LeftTab>('elements')
   const [rightTab, setRightTab] = useState<RightTab>('properties')
   const [showTemplateModal, setShowTemplateModal] = useState(false)
-  const [deleteToast, setDeleteToast] = useState<{ count: number; timer: ReturnType<typeof setTimeout> } | null>(null)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
@@ -230,9 +230,10 @@ export default function App() {
           e.preventDefault()
           const count = selectedIds.length
           selectedIds.forEach((id) => removeElement(activePageId, id))
-          if (deleteToast) clearTimeout(deleteToast.timer)
-          const timer = setTimeout(() => setDeleteToast(null), 3000)
-          setDeleteToast({ count, timer })
+          toast(`${count}件の要素を削除しました`, {
+            action: { label: '元に戻す', onClick: () => undo() },
+            duration: 5000,
+          })
         }
       }
 
@@ -268,7 +269,7 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [activePageId, selectedIds, undo, redo, copyElements, cutElements, pasteElements,
-    duplicateElement, removeElement, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, activePage, deleteToast,
+    duplicateElement, removeElement, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, activePage,
     snapToGrid, gridSize, headerEditMode, setHeaderEditMode])
 
   return (
@@ -508,17 +509,6 @@ export default function App() {
         onCancel={() => { setShowTemplateChangeConfirm(false); setPendingTemplateDefinition(null) }}
       />
 
-      {deleteToast && (
-        <div role="status" aria-live="polite" className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 text-sm z-50">
-          <span>{deleteToast.count}件の要素を削除しました</span>
-          <button
-            onClick={() => { undo(); setDeleteToast(null) }}
-            className="text-primary hover:underline text-xs font-medium"
-          >
-            元に戻す
-          </button>
-        </div>
-      )}
     </div>
   )
 }

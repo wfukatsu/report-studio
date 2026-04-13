@@ -10,6 +10,7 @@ import { immer } from 'zustand/middleware/immer'
 import type { StateCreator } from 'zustand'
 import type { StoreState } from './types'
 import { createLayoutSlice } from './layoutSlice'
+import { createClipboardSlice } from './clipboardSlice'
 import { createRulesSlice } from './rulesSlice'
 import { createHistorySlice, snapshotPages } from './historySlice'
 import { createUISlice } from './uiSlice'
@@ -28,6 +29,7 @@ type ImmerStateCreator = StateCreator<StoreState, [['zustand/immer', never]]>
 export const useReportStore = create<StoreState>()(
   immer(((...a: Parameters<ImmerStateCreator>) => {
     const layout = createLayoutSlice(...a)
+    const clipboard = createClipboardSlice(...a)
     const rules = createRulesSlice(...a)
     const history = createHistorySlice(...a)
     const ui = createUISlice(...a)
@@ -44,6 +46,7 @@ export const useReportStore = create<StoreState>()(
 
     return {
       ...layout,
+      ...clipboard,
       ...rules,
       ...history,
       ...ui,
