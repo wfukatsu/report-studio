@@ -17,14 +17,25 @@ const SECTIONS: { id: AdminSection; label: string }[] = [
 
 export function AdminTab() {
   const currentUser = useReportStore((s) => s.currentUser)
+  const backendConnected = useReportStore((s) => s.backendConnected)
   const isAdmin = currentUser?.roles.includes('admin') ?? false
   const [activeSection, setActiveSection] = useState<AdminSection>('users')
 
-  // Self-defense check — AppShell's double guard is the primary line of defense
+  if (!backendConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full gap-3 text-muted-foreground">
+        <p className="text-sm font-medium text-foreground">バックエンドに接続されていません</p>
+        <p className="text-xs">以下のコマンドでバックエンドを起動してください:</p>
+        <code className="text-xs bg-muted px-3 py-1.5 rounded font-mono">npm run dev:full</code>
+      </div>
+    )
+  }
+
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center w-full text-muted-foreground text-sm">
-        管理者権限が必要です。
+      <div className="flex flex-col items-center justify-center w-full gap-2 text-muted-foreground">
+        <p className="text-sm font-medium text-foreground">管理者権限が必要です</p>
+        <p className="text-xs">admin ロールを持つアカウントでログインしてください。</p>
       </div>
     )
   }
