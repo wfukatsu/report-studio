@@ -175,8 +175,20 @@ export function ResponsesPanel() {
 
   if (!backendConnected || !currentTemplateId) {
     return (
-      <div className="p-4 text-sm text-gray-500">
-        バックエンドに接続し、テンプレートを開いてください。
+      <div className="p-4 space-y-3">
+        {!backendConnected && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
+            <p className="font-medium">バックエンドに接続されていません</p>
+            <p>以下のコマンドでバックエンドを起動してください:</p>
+            <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
+          </div>
+        )}
+        {backendConnected && !currentTemplateId && (
+          <div className="rounded-md border border-muted bg-muted/30 p-3 text-xs text-muted-foreground">
+            <p className="font-medium">テンプレートが未選択です</p>
+            <p className="mt-0.5">デザインタブでテンプレートを開くか作成してください。</p>
+          </div>
+        )}
       </div>
     )
   }

@@ -406,6 +406,7 @@ export const SchemaPanel = memo(function SchemaPanel() {
         <button
           type="button"
           onClick={() => addSchemaGroup('master')}
+          title="master グループ — ヘッダー情報など1件のデータを持つグループ（例: 顧客情報・注文ヘッダー）"
           className="flex items-center gap-1 text-xs border rounded px-2 py-1 bg-background hover:bg-accent transition-colors"
         >
           <Plus className="w-3 h-3" />
@@ -414,6 +415,7 @@ export const SchemaPanel = memo(function SchemaPanel() {
         <button
           type="button"
           onClick={() => addSchemaGroup('detail')}
+          title="detail グループ — 明細行など複数件のデータを持つグループ（例: 注文明細・商品リスト）"
           className="flex items-center gap-1 text-xs border rounded px-2 py-1 bg-background hover:bg-accent transition-colors"
         >
           <Plus className="w-3 h-3" />

@@ -63,8 +63,8 @@ export function DataSourceTree({ onSelect, selected }: Props) {
           <TreeLeaf label="読み込み中..." disabled />
         )}
         {catalog.status === 'error' && (
-          <div className="flex items-center gap-1 px-3 py-1 text-amber-600">
-            <AlertCircle className="w-3 h-3 shrink-0" />
+          <div className="flex items-start gap-1.5 mx-2 my-1 px-2 py-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
             <span>{catalog.message}</span>
           </div>
         )}

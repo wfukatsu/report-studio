@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { v4 as uuidv4 } from 'uuid'
@@ -7,13 +7,35 @@ import { cn } from '@/lib/utils'
 
 type FieldRow = { id: string; key: string; value: string }
 
+function rowsFromDataSource(ds: { fields: unknown } | null): FieldRow[] {
+  if (!ds || typeof ds.fields !== 'object' || ds.fields === null) {
+    return [{ id: uuidv4(), key: '', value: '' }]
+  }
+  const entries = Object.entries(ds.fields as Record<string, unknown>)
+  if (entries.length === 0) return [{ id: uuidv4(), key: '', value: '' }]
+  return entries.map(([key, value]) => ({
+    id: uuidv4(),
+    key,
+    value: typeof value === 'string' ? value : JSON.stringify(value),
+  }))
+}
+
 export function DataSourcePanel() {
   const dataSource = useReportStore((s) => s.definition.dataSources[0] ?? null)
   const setDataSource = useReportStore((s) => s.setDataSource)
   const [jsonText, setJsonText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'form' | 'json'>('form')
-  const [formRows, setFormRows] = useState<FieldRow[]>([{ id: uuidv4(), key: '', value: '' }])
+  const [formRows, setFormRows] = useState<FieldRow[]>(() => rowsFromDataSource(dataSource))
+  const prevDataSourceIdRef = useRef(dataSource?.id ?? null)
+
+  // Sync store dataSource → formRows when the source changes externally
+  useEffect(() => {
+    if (dataSource?.id !== prevDataSourceIdRef.current) {
+      prevDataSourceIdRef.current = dataSource?.id ?? null
+      setFormRows(rowsFromDataSource(dataSource))
+    }
+  }, [dataSource])
 
   const handleApply = () => {
     const result = parseDataSourceJSON(jsonText)
@@ -37,6 +59,7 @@ export function DataSourcePanel() {
   }
 
   const handleClear = () => {
+    prevDataSourceIdRef.current = null
     setDataSource(null)
     setJsonText('')
     setFormRows([{ id: uuidv4(), key: '', value: '' }])
@@ -121,7 +144,7 @@ export function DataSourcePanel() {
               <div key={row.id} className="grid grid-cols-[1fr_1fr_20px] gap-1 items-center">
                 <input
                   className="border rounded px-1.5 py-1 text-xs bg-background"
-                  placeholder="customer.name"
+                  placeholder="例: customer.name"
                   value={row.key}
                   onChange={(e) => {
                     const newValue = e.target.value
@@ -130,7 +153,7 @@ export function DataSourcePanel() {
                 />
                 <input
                   className="border rounded px-1.5 py-1 text-xs bg-background"
-                  placeholder="山田太郎"
+                  placeholder="例: 山田太郎"
                   value={row.value}
                   onChange={(e) => {
                     const newValue = e.target.value
@@ -164,8 +187,8 @@ export function DataSourcePanel() {
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">JSONデータを貼り付け:</p>
             <textarea
-              className="w-full border rounded px-2 py-1.5 text-xs bg-background font-mono resize-y"
-              rows={6}
+              className="w-full border rounded px-2 py-1.5 text-xs bg-background font-mono resize-y min-h-[180px]"
+              rows={10}
               placeholder={'{\n  "customer": {\n    "name": "Alice"\n  }\n}'}
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}

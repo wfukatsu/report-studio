@@ -44,7 +44,7 @@ export function DataManagementTab() {
             className={cn(
               'w-full text-left px-4 py-2 text-sm transition-colors border-l-2',
               activeSection === id
-                ? 'border-primary text-primary bg-primary/5 font-medium'
+                ? 'border-primary text-primary bg-primary/10 font-medium'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
             )}
           >
@@ -56,21 +56,21 @@ export function DataManagementTab() {
 
       {/* 右コンテンツエリア */}
       <div className="flex-1 overflow-y-auto">
-        {activeSection === 'datasource' && <DataSourcePanel />}
-        {activeSection === 'schema' && <SchemaPanel />}
+        {activeSection === 'datasource' && <div className="max-w-3xl"><DataSourcePanel /></div>}
+        {activeSection === 'schema' && <div className="max-w-3xl"><SchemaPanel /></div>}
         {activeSection === 'calculation' && (
-          <div className="p-4">
+          <div className="max-w-3xl p-4">
             <h2 className="text-sm font-semibold mb-4 text-foreground">計算フィールド</h2>
             <CalculationTab />
           </div>
         )}
         {activeSection === 'validation' && (
-          <div className="p-4">
+          <div className="max-w-3xl p-4">
             <h2 className="text-sm font-semibold mb-4 text-foreground">バリデーション</h2>
             <ValidationTab />
           </div>
         )}
-        {activeSection === 'responses' && <ResponsesPanel />}
+        {activeSection === 'responses' && <div className="max-w-3xl"><ResponsesPanel /></div>}
         {activeSection === 'databrowser' && (
           <div className="flex flex-1 overflow-hidden h-full">
             <aside className="w-60 shrink-0 border-r overflow-y-auto bg-muted/10" aria-label="データソース選択">
