@@ -433,7 +433,7 @@ export function ReportCanvas({
           </svg>
         )}
         {/* Margin guide overlay */}
-        {showMarginGuide && margins && (margins.top > 0 || margins.right > 0 || margins.bottom > 0 || margins.left > 0) && (
+        {showMarginGuide && !readonly && margins && (margins.top > 0 || margins.right > 0 || margins.bottom > 0 || margins.left > 0) && (
           <svg
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}
           >
