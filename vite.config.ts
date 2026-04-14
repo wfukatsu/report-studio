@@ -11,13 +11,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/v2': {
+      '/api': {
         target: `http://localhost:${process.env.VITE_API_PORT ?? 8080}`,
         changeOrigin: true,
-      },
-      '/api/v1/auth': {
-        target: `http://localhost:${process.env.VITE_API_PORT ?? 8080}`,
-        changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
       },
     },
   },
