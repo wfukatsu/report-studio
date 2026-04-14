@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { listUsers, createUser, deleteUser } from '@/api/reportApi'
-import type { UserSummary } from '@/api/reportApi'
+import type { UserSummary, UserRole } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { RoleBadge } from '@/components/common/RoleBadge'
 
-export function AdminUsersTab() {
+export function UserManagement() {
   const currentUser = useReportStore((s) => s.currentUser)
   const [users, setUsers] = useState<UserSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -14,41 +15,56 @@ export function AdminUsersTab() {
   const [newUserId, setNewUserId] = useState('')
   const [newDisplayName, setNewDisplayName] = useState('')
   const [newPassword, setNewPassword] = useState('')
-  const [newRole, setNewRole] = useState<'user' | 'admin'>('user')
+  const [newRole, setNewRole] = useState<UserRole>('user')
   const [creating, setCreating] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   useEffect(() => {
-    loadUsers()
+    const controller = new AbortController()
+    async function load() {
+      try {
+        const list = await listUsers(controller.signal)
+        setUsers(list)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setError('ユーザー一覧の取得に失敗しました')
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+    void load()
+    return () => controller.abort()
   }, [])
 
-  async function loadUsers() {
-    try {
-      setLoading(true)
-      const list = await listUsers()
-      setUsers(list)
-    } catch {
-      setError('ユーザー一覧の取得に失敗しました')
-    } finally {
-      setLoading(false)
-    }
+  function validateForm(): boolean {
+    const errors: Record<string, string> = {}
+    if (!newUserId.trim()) errors.userId = 'ユーザーIDは必須です'
+    else if (newUserId.length > 64) errors.userId = '64文字以内で入力してください'
+    if (!newPassword) errors.password = 'パスワードは必須です'
+    else if (newPassword.length < 8) errors.password = '8文字以上で入力してください'
+    else if (newPassword.length > 128) errors.password = '128文字以内で入力してください'
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   async function handleCreate() {
-    if (!newUserId.trim() || !newPassword) return
+    if (!validateForm()) return
     setCreating(true)
+    setError(null)
     try {
       const created = await createUser({
         userId: newUserId.trim(),
         displayName: newDisplayName.trim() || newUserId.trim(),
         password: newPassword,
-        roles: [newRole, ...(newRole === 'admin' ? ['user' as const] : [])],
+        roles: [newRole, ...(newRole === 'admin' ? ['user' as UserRole] : [])],
       })
       setUsers((prev) => [...prev, created])
       setNewUserId('')
       setNewDisplayName('')
       setNewPassword('')
       setNewRole('user')
+      setFieldErrors({})
     } catch {
       setError('ユーザーの作成に失敗しました（IDが重複している可能性があります）')
     } finally {
@@ -65,15 +81,12 @@ export function AdminUsersTab() {
     }
   }
 
-  function handleDelete(userId: string) {
-    setDeleteTarget(userId)
-  }
-
   if (loading) return <div className="p-5 text-xs text-muted-foreground">読み込み中...</div>
 
   return (
     <div className="p-4 flex flex-col gap-4">
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      <h2 className="text-sm font-semibold text-foreground">ユーザー管理</h2>
+      {error && <p className="text-xs text-destructive">{error}</p>}
 
       {/* User list */}
       <table className="w-full text-xs border-collapse">
@@ -87,28 +100,33 @@ export function AdminUsersTab() {
         </thead>
         <tbody>
           {users.map((u) => (
-            <tr key={u.userId} className="border-b hover:bg-muted/20">
+            <tr key={u.userId} className="group border-b hover:bg-muted/20">
               <td className="py-1.5 pr-3 font-mono">{u.userId}</td>
               <td className="py-1.5 pr-3">{u.displayName}</td>
               <td className="py-1.5 pr-3">
-                {u.roles.includes('admin') ? (
-                  <span className="text-blue-600 font-medium">admin</span>
-                ) : (
-                  <span className="text-muted-foreground">user</span>
-                )}
+                <div className="flex gap-1 flex-wrap">
+                  {u.roles.map((r) => <RoleBadge key={r} role={r} />)}
+                </div>
               </td>
               <td className="py-1.5 text-right">
                 <button
-                  onClick={() => handleDelete(u.userId)}
+                  onClick={() => setDeleteTarget(u.userId)}
                   disabled={u.userId === currentUser?.userId}
-                  className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed text-[10px] px-1"
-                  title={u.userId === currentUser?.userId ? '自分自身は削除できません' : '削除'}
+                  className="opacity-0 group-hover:opacity-100 text-destructive/70 hover:text-destructive disabled:opacity-20 disabled:cursor-not-allowed text-[10px] px-1 transition-opacity"
+                  title={u.userId === currentUser?.userId ? '自分自身は削除できません' : `${u.userId} を削除`}
                 >
                   削除
                 </button>
               </td>
             </tr>
           ))}
+          {users.length === 0 && (
+            <tr>
+              <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                ユーザーがいません
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -125,9 +143,10 @@ export function AdminUsersTab() {
                 type="text"
                 className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
                 value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
+                onChange={(e) => { setNewUserId(e.target.value); setFieldErrors((p) => ({ ...p, userId: '' })) }}
                 placeholder="user2"
               />
+              {fieldErrors.userId && <p className="text-[10px] text-destructive mt-0.5">{fieldErrors.userId}</p>}
             </div>
             <div className="flex-1">
               <label className="text-[10px] text-muted-foreground">表示名</label>
@@ -142,20 +161,21 @@ export function AdminUsersTab() {
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-[10px] text-muted-foreground">パスワード *</label>
+              <label className="text-[10px] text-muted-foreground">パスワード * (8〜128文字)</label>
               <input
                 type="password"
                 className="border rounded px-2 py-1 text-xs w-full bg-background"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => { setNewPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: '' })) }}
               />
+              {fieldErrors.password && <p className="text-[10px] text-destructive mt-0.5">{fieldErrors.password}</p>}
             </div>
             <div>
               <label className="text-[10px] text-muted-foreground">ロール</label>
               <select
-                className="border rounded px-2 py-1 text-xs bg-background"
+                className="border rounded px-2 py-1 text-xs bg-background block"
                 value={newRole}
-                onChange={(e) => setNewRole(e.target.value as 'user' | 'admin')}
+                onChange={(e) => setNewRole(e.target.value as UserRole)}
               >
                 <option value="user">user</option>
                 <option value="admin">admin</option>
@@ -164,7 +184,7 @@ export function AdminUsersTab() {
           </div>
           <button
             onClick={handleCreate}
-            disabled={creating || !newUserId.trim() || !newPassword}
+            disabled={creating}
             className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 w-fit"
           >
             {creating ? '作成中...' : '+ 追加'}
@@ -175,8 +195,8 @@ export function AdminUsersTab() {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="ユーザーを削除"
-        message={`ユーザー「${deleteTarget}」を削除しますか？`}
-        confirmLabel="削除"
+        message={`ユーザー「${deleteTarget}」を完全に削除します。この操作は元に戻せません。`}
+        confirmLabel="削除する"
         confirmVariant="danger"
         onConfirm={() => { if (deleteTarget) void execDelete(deleteTarget); setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}

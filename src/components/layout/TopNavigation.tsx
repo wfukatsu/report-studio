@@ -3,20 +3,15 @@ import type { KeyboardEvent } from 'react'
 import type { AppTab } from '@/store/types'
 import { cn } from '@/lib/utils'
 
-const TABS: { id: AppTab; label: string }[] = [
-  { id: 'design', label: 'デザイン' },
-  { id: 'data', label: 'データ管理' },
-  { id: 'templates', label: 'テンプレート管理' },
-]
-
-const TAB_IDS: AppTab[] = TABS.map((t) => t.id)
-
 interface TopNavigationProps {
   readonly activeTab: AppTab
   readonly onTabChange: (tab: AppTab) => void
+  /** Ordered list of tabs to display. Constructed by AppShell to support role-based filtering. */
+  readonly tabs: { id: AppTab; label: string }[]
 }
 
-export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
+export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationProps) {
+  const tabIds = tabs.map((t) => t.id)
   const tabRefs = useRef<Map<AppTab, HTMLButtonElement | null>>(new Map())
 
   const focusTab = useCallback((tab: AppTab) => {
@@ -26,21 +21,21 @@ export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
   const handleKeyDown = useCallback(
     (currentTabId: AppTab) => (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.nativeEvent.isComposing) return
-      const idx = TAB_IDS.indexOf(currentTabId)
+      const idx = tabIds.indexOf(currentTabId)
       let targetIdx: number | null = null
       switch (e.key) {
-        case 'ArrowLeft':  targetIdx = idx === 0 ? TAB_IDS.length - 1 : idx - 1; break
-        case 'ArrowRight': targetIdx = idx === TAB_IDS.length - 1 ? 0 : idx + 1; break
+        case 'ArrowLeft':  targetIdx = idx === 0 ? tabIds.length - 1 : idx - 1; break
+        case 'ArrowRight': targetIdx = idx === tabIds.length - 1 ? 0 : idx + 1; break
         case 'Home':       targetIdx = 0; break
-        case 'End':        targetIdx = TAB_IDS.length - 1; break
+        case 'End':        targetIdx = tabIds.length - 1; break
         case 'Enter': case ' ':
           e.preventDefault(); onTabChange(currentTabId); return
         default: return
       }
       e.preventDefault()
-      if (targetIdx !== null) focusTab(TAB_IDS[targetIdx])
+      if (targetIdx !== null) focusTab(tabIds[targetIdx])
     },
-    [focusTab, onTabChange],
+    [tabIds, focusTab, onTabChange],
   )
 
   return (
@@ -50,7 +45,7 @@ export function TopNavigation({ activeTab, onTabChange }: TopNavigationProps) {
       aria-orientation="horizontal"
       className="flex items-end border-b bg-card shrink-0 px-2"
     >
-      {TABS.map(({ id, label }) => (
+      {tabs.map(({ id, label }) => (
         <button
           key={id}
           role="tab"

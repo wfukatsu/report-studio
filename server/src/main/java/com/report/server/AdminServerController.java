@@ -135,9 +135,11 @@ public final class AdminServerController {
             ctx.json(Map.of("success", true, "message", "接続テスト成功"));
             log.info("Admin server-config test: success");
         } catch (Exception e) {
-            log.warn("Admin server-config test failed: {}", e.getMessage());
+            Principal principal = ctx.attribute("principal");
+            String userId = (principal != null) ? principal.userId() : "unknown";
+            log.warn("Admin [{}] server-config test failed: {}", userId, e.getMessage());
             ctx.status(HttpStatus.BAD_GATEWAY);
-            ctx.json(Map.of("success", false, "message", "接続テスト失敗: " + e.getMessage()));
+            ctx.json(Map.of("success", false, "message", "接続テストに失敗しました。サーバーログを確認してください。"));
         }
     }
 
@@ -149,8 +151,10 @@ public final class AdminServerController {
     public void restart(Context ctx) {
         if (!requireAdmin(ctx)) return;
 
+        Principal principal = ctx.attribute("principal");
+        String userId = (principal != null) ? principal.userId() : "unknown";
         ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。"));
-        log.warn("Admin requested server restart — halting JVM in 2 seconds");
+        log.warn("Admin [{}] requested server restart — halting JVM in 2 seconds", userId);
 
         CompletableFuture.runAsync(() -> {
             try { Thread.sleep(2000); } catch (InterruptedException ignored) {}

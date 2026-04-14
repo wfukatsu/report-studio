@@ -158,17 +158,20 @@ export async function changeProfile(patch: {
 // Admin user management
 // ---------------------------------------------------------------------------
 
+export const UserRoleSchema = z.enum(['user', 'admin'])
+export type UserRole = z.infer<typeof UserRoleSchema>
+
 const UserSummarySchema = z.object({
   userId: z.string(),
   displayName: z.string(),
-  roles: z.array(z.string()),
+  roles: z.array(UserRoleSchema.catch('user' as UserRole)),
 })
 export type UserSummary = z.infer<typeof UserSummarySchema>
 
 const UserListSchema = z.object({ users: z.array(UserSummarySchema) })
 
-export async function listUsers(): Promise<UserSummary[]> {
-  const res = await apiFetch('/api/v1/admin/users', UserListSchema)
+export async function listUsers(signal?: AbortSignal): Promise<UserSummary[]> {
+  const res = await apiFetch('/api/v1/admin/users', UserListSchema, { signal })
   return res.users
 }
 
@@ -176,19 +179,21 @@ export async function createUser(user: {
   userId: string
   displayName?: string
   password: string
-  roles?: string[]
-}): Promise<UserSummary> {
-  return apiFetch('/api/v1/admin/users', UserSummarySchema, jsonBody(user))
+  roles?: UserRole[]
+}, signal?: AbortSignal): Promise<UserSummary> {
+  return apiFetch('/api/v1/admin/users', UserSummarySchema, { ...jsonBody(user), signal })
 }
 
 export async function updateUser(
   userId: string,
-  patch: { displayName?: string; password?: string; roles?: string[] },
+  patch: { displayName?: string; password?: string; roles?: UserRole[] },
+  signal?: AbortSignal,
 ): Promise<UserSummary> {
   return apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}`, UserSummarySchema, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
+    signal,
   })
 }
 

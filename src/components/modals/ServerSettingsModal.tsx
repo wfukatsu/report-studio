@@ -1,30 +1,16 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { useReportStore } from '@/store/reportStore'
+import { useEffect, useRef } from 'react'
 import { AccountTab } from './AccountTab'
-import { AdminUsersTab } from './AdminUsersTab'
-import { AdminServerTab } from './AdminServerTab'
-import { cn } from '@/lib/utils'
-
-type TabId = 'account' | 'users' | 'server'
 
 interface ServerSettingsModalProps {
   open: boolean
   onClose: () => void
 }
 
+/**
+ * アカウント設定モーダル。
+ * 管理者向け機能（ユーザー管理・サーバー設定）は管理タブに移行済み。
+ */
 export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps) {
-  const currentUser = useReportStore((s) => s.currentUser)
-  const isAdmin = currentUser?.roles.includes('admin') ?? false
-
-  const TABS: { id: TabId; label: string }[] = [
-    { id: 'account', label: 'アカウント' },
-    ...(isAdmin ? [
-      { id: 'users' as TabId, label: 'ユーザー管理' },
-      { id: 'server' as TabId, label: 'サーバー設定' },
-    ] : []),
-  ]
-
-  const [activeTab, setActiveTab] = useState<TabId>('account')
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,15 +32,6 @@ export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open])
 
-  const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const ids = TABS.map((t) => t.id)
-    const current = ids.indexOf(activeTab)
-    let next: number | null = null
-    if (e.key === 'ArrowRight') next = (current + 1) % ids.length
-    else if (e.key === 'ArrowLeft') next = (current - 1 + ids.length) % ids.length
-    if (next !== null) { e.preventDefault(); setActiveTab(ids[next]) }
-  }, [activeTab, TABS])
-
   if (!open) return null
 
   return (
@@ -64,11 +41,11 @@ export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps)
       aria-modal="true"
       aria-labelledby="server-settings-title"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div ref={modalRef} className="bg-background border border-border rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col mx-4">
-        {/* Header */}
+      <div ref={modalRef} className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col mx-4">
         <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
-          <h2 id="server-settings-title" className="text-sm font-semibold">設定</h2>
+          <h2 id="server-settings-title" className="text-sm font-semibold">アカウント設定</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
@@ -77,45 +54,8 @@ export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps)
             ✕
           </button>
         </div>
-
-        {/* Tab bar */}
-        <div
-          role="tablist"
-          aria-label="設定タブ"
-          className="flex border-b shrink-0 px-2"
-          onKeyDown={handleTabKeyDown}
-        >
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              id={`settings-tab-${tab.id}`}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`settings-tabpanel-${tab.id}`}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'px-4 py-2.5 text-xs font-medium transition-colors whitespace-nowrap',
-                activeTab === tab.id
-                  ? 'border-b-2 border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div
-          role="tabpanel"
-          id={`settings-tabpanel-${activeTab}`}
-          aria-labelledby={`settings-tab-${activeTab}`}
-          className="flex-1 overflow-y-auto"
-        >
-          {activeTab === 'account' && <AccountTab />}
-          {activeTab === 'users' && isAdmin && <AdminUsersTab />}
-          {activeTab === 'server' && isAdmin && <AdminServerTab />}
+        <div className="flex-1 overflow-y-auto">
+          <AccountTab />
         </div>
       </div>
     </div>

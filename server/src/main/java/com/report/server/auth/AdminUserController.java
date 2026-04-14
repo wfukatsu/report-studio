@@ -71,6 +71,16 @@ public final class AdminUserController {
             ctx.json(Map.of("error", "userId and password are required"));
             return;
         }
+        if (userId.length() > 64) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "userId must be 64 characters or less"));
+            return;
+        }
+        if (password.length() < 8 || password.length() > 128) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "パスワードは8〜128文字で入力してください"));
+            return;
+        }
 
         if (userRepo.findById(userId).isPresent()) {
             ctx.status(HttpStatus.CONFLICT);
