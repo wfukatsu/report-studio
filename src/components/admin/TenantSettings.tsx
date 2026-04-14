@@ -58,8 +58,16 @@ export function TenantSettings() {
         )}
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      {saveMessage && <p className="text-xs text-green-600">{saveMessage}</p>}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+      {saveMessage && (
+        <div className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
+          {saveMessage}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <div>

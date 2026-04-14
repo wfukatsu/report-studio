@@ -89,7 +89,12 @@ export function ServerSettings() {
     }
   }
 
-  if (loading) return <div className="p-5 text-xs text-muted-foreground">設定を読み込み中...</div>
+  if (loading) return (
+    <div className="p-8 flex items-center justify-center text-xs text-muted-foreground gap-2">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      設定を読み込み中...
+    </div>
+  )
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -102,8 +107,16 @@ export function ServerSettings() {
         )}
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      {saveMessage && <p className="text-xs text-green-600">{saveMessage}</p>}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {error}
+        </div>
+      )}
+      {saveMessage && (
+        <div className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
+          {saveMessage}
+        </div>
+      )}
 
       <fieldset className="border rounded-md p-3 flex flex-col gap-3">
         <legend className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1">
