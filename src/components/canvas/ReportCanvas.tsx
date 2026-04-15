@@ -421,23 +421,35 @@ export function ReportCanvas({
       if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
         // Case 2: Drop on repeatingBand/List → add column + set dataSource
         const bandEl = hitElement as ReportElement & {
-          fields?: { key: string; label: string; width: number; align?: string }[]
+          fields?: { key: string; label: string; width: number; align?: string; format?: { type: string } }[]
           dataSource?: string
+          totals?: { fieldKey: string; formula: string; label?: string }[]
+          showFooter?: boolean
         }
         const existingFields = bandEl.fields ?? []
-        // Don't add duplicate keys
         if (existingFields.some((f) => f.key === payload.fieldKey)) return
 
+        // Detect if field is numeric → right-align + comma format
+        const isNumeric = payload.fieldType === 'number'
         const newField = {
           key: payload.fieldKey,
           label: payload.fieldLabel,
           width: 20,
-          align: 'left' as const,
+          align: (isNumeric ? 'right' : 'left') as 'left' | 'right' | 'center',
+          ...(isNumeric ? { format: { type: 'comma' as const } } : {}),
         }
+
         const patch: Record<string, unknown> = {
           fields: [...existingFields, newField],
         }
-        // Auto-set dataSource if empty
+        // Auto-add total for numeric fields
+        if (isNumeric) {
+          const existingTotals = bandEl.totals ?? []
+          if (!existingTotals.some((t) => t.fieldKey === payload.fieldKey)) {
+            patch.totals = [...existingTotals, { fieldKey: payload.fieldKey, formula: 'sum', label: '合計' }]
+            patch.showFooter = true
+          }
+        }
         if (!bandEl.dataSource && payload.groupDataKey) {
           patch.dataSource = payload.groupDataKey
         }
@@ -536,23 +548,39 @@ export function ReportCanvas({
       if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
         // Drop group onto repeatingBand → add all fields as columns
         const bandEl = hitElement as ReportElement & {
-          fields?: { key: string; label: string; width: number; align?: string }[]
+          fields?: { key: string; label: string; width: number; align?: string; format?: { type: string } }[]
           dataSource?: string
+          totals?: { fieldKey: string; formula: string; label?: string }[]
+          showFooter?: boolean
         }
         const existingKeys = new Set((bandEl.fields ?? []).map((f) => f.key))
-        const newFields = payload.fields
-          .filter((f) => !existingKeys.has(f.fieldKey))
-          .map((f) => ({
+        const addedFields = payload.fields.filter((f) => !existingKeys.has(f.fieldKey))
+        if (addedFields.length === 0) return
+
+        const newFields = addedFields.map((f) => {
+          const isNumeric = f.fieldType === 'number'
+          return {
             key: f.fieldKey,
             label: f.fieldLabel,
             width: 20,
-            align: 'left' as const,
-          }))
+            align: (isNumeric ? 'right' : 'left') as 'left' | 'right' | 'center',
+            ...(isNumeric ? { format: { type: 'comma' as const } } : {}),
+          }
+        })
 
-        if (newFields.length === 0) return // all fields already exist
+        // Auto-add totals for numeric fields
+        const existingTotals = bandEl.totals ?? []
+        const existingTotalKeys = new Set(existingTotals.map((t) => t.fieldKey))
+        const newTotals = addedFields
+          .filter((f) => f.fieldType === 'number' && !existingTotalKeys.has(f.fieldKey))
+          .map((f) => ({ fieldKey: f.fieldKey, formula: 'sum' as const, label: '合計' }))
 
         const patch: Record<string, unknown> = {
           fields: [...(bandEl.fields ?? []), ...newFields],
+        }
+        if (newTotals.length > 0) {
+          patch.totals = [...existingTotals, ...newTotals]
+          patch.showFooter = true
         }
         if (!bandEl.dataSource && payload.groupDataKey) {
           patch.dataSource = payload.groupDataKey

@@ -195,6 +195,7 @@ function SchemaFieldsSection() {
                     groupId: group.id,
                     fieldKey: field.key,
                     fieldLabel: field.label || field.key,
+                    fieldType: field.type,
                     groupRole: group.role,
                     groupDataKey: group.dataKey,
                   }

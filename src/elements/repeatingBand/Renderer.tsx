@@ -195,7 +195,6 @@ function FooterRow({
               backgroundColor: DEFAULT_FOOTER_BG,
               fontWeight: 'bold',
               textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
-              borderBottom: 'none',
             }}
           >
             {value !== null
@@ -521,7 +520,6 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
         justifyContent: 'center',
         color: '#93c5fd',
         fontSize: '2.5mm',
-        borderBottom: el.showFooter ? bs : 'none',
         background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(219,234,254,0.3) 4px, rgba(219,234,254,0.3) 8px)',
       }}>
         ↻ {el.maxItems > 0 ? `最大 ${el.maxItems} 件` : 'レコード数分 繰り返し'}
@@ -532,7 +530,7 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
           {el.fields.map((f, i) => {
             const total = el.totals.find((t) => t.fieldKey === f.key)
             return (
-              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), backgroundColor: DEFAULT_FOOTER_BG, fontWeight: 'bold', textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'], borderBottom: 'none' }}>
+              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), backgroundColor: DEFAULT_FOOTER_BG, fontWeight: 'bold', textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'] }}>
                 {total
                   ? <span>{total.label ?? total.fieldKey} ({total.formula})</span>
                   : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
@@ -710,7 +708,6 @@ function GroupedBandRenderer({
                       fontWeight: groupStyle.fontWeight ?? 'bold',
                       textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
                       color: groupStyle.color,
-                      borderBottom: 'none',
                     }}
                   >
                     {value !== null ? formatAggregate(value, f) : (i === 0 ? '小計' : '')}

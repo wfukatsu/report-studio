@@ -171,6 +171,7 @@ export interface SchemaFieldDragPayload {
   readonly groupId: string
   readonly fieldKey: string
   readonly fieldLabel: string
+  readonly fieldType: string
   readonly groupRole: 'master' | 'detail'
   readonly groupDataKey: string
 }
