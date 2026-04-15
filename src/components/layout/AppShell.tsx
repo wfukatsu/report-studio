@@ -2,9 +2,15 @@ import { Activity } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import { TopNavigation } from './TopNavigation'
 import App from '@/App'
-import { DataManagementTab } from '@/components/tabs/DataManagementTab'
+import { BindingEditor } from '@/components/bindingEditor/BindingEditor'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
+import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
+import { DataSourceTree } from '@/components/dataBrowser/DataSourceTree'
+import { DataGrid } from '@/components/dataBrowser/DataGrid'
+import { EmptyState } from '@/components/dataBrowser/EmptyState'
 import { useConnectionState } from '@/hooks/useConnectionState'
+import { useDataBrowserStore } from '@/store/dataBrowserStore'
+import { TableProperties } from 'lucide-react'
 
 export function AppShell() {
   // Start backend health-check polling (sets backendConnected in store)
@@ -14,6 +20,8 @@ export function AppShell() {
 
   const activeTab = useReportStore((s) => s.activeTab)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
+  const selectedSource = useDataBrowserStore((s) => s.selectedSource)
+  const setSource = useDataBrowserStore((s) => s.setSource)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -31,15 +39,15 @@ export function AppShell() {
         </div>
       </Activity>
 
-      {/* Data Management tab */}
-      {activeTab === 'data' && (
+      {/* Binding Editor tab (replaces old Data Management tab) */}
+      {activeTab === 'binding' && (
         <div
           role="tabpanel"
-          id="top-panel-data"
-          aria-labelledby="top-tab-data"
+          id="top-panel-binding"
+          aria-labelledby="top-tab-binding"
           className="flex flex-1 overflow-hidden"
         >
-          <DataManagementTab />
+          <BindingEditor />
         </div>
       )}
 
@@ -52,6 +60,45 @@ export function AppShell() {
           className="flex flex-1 overflow-hidden"
         >
           <TemplateManagementTab />
+        </div>
+      )}
+
+      {/* Responses tab */}
+      {activeTab === 'responses' && (
+        <div
+          role="tabpanel"
+          id="top-panel-responses"
+          aria-labelledby="top-tab-responses"
+          className="flex flex-1 overflow-hidden"
+        >
+          <div className="max-w-3xl w-full">
+            <ResponsesPanel />
+          </div>
+        </div>
+      )}
+
+      {/* Data Browser tab */}
+      {activeTab === 'databrowser' && (
+        <div
+          role="tabpanel"
+          id="top-panel-databrowser"
+          aria-labelledby="top-tab-databrowser"
+          className="flex flex-1 overflow-hidden"
+        >
+          <aside className="w-60 shrink-0 border-r overflow-y-auto bg-muted/10" aria-label="データソース選択">
+            <DataSourceTree onSelect={setSource} selected={selectedSource} />
+          </aside>
+          <main className="flex-1 overflow-hidden flex flex-col">
+            {selectedSource ? (
+              <DataGrid source={selectedSource} />
+            ) : (
+              <EmptyState
+                icon={<TableProperties className="w-10 h-10" />}
+                title="データソースを選択してください"
+                description="左のツリーからデータソースを選択すると、ここにデータが表示されます"
+              />
+            )}
+          </main>
         </div>
       )}
     </div>
