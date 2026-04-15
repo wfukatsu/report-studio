@@ -19,6 +19,7 @@ interface ConnectionLinesProps {
   readonly lines: readonly LinePos[]
   readonly dragState: DragState | null
   readonly fieldRefs: React.RefObject<Map<string, HTMLElement | null>>
+  readonly elementRefs: React.RefObject<Map<string, HTMLElement | null>>
   readonly containerRef: React.RefObject<HTMLDivElement | null>
   readonly groupIndexMap: ReadonlyMap<string, number>
   readonly hoveredGroupId: string | null
@@ -36,6 +37,7 @@ export const ConnectionLines = memo(function ConnectionLines({
   lines,
   dragState,
   fieldRefs,
+  elementRefs,
   containerRef,
   groupIndexMap,
   hoveredGroupId,
@@ -150,18 +152,26 @@ export const ConnectionLines = memo(function ConnectionLines({
         )
       })}
 
-      {/* Drag rubber-band line — from field card left edge to cursor */}
+      {/* Drag rubber-band line — supports both field→element and element→field */}
       {dragState && containerRect && (() => {
-        const dragFieldEl = fieldRefs.current?.get(dragState.fieldId)
-        if (!dragFieldEl) return null
-        const fieldRect = dragFieldEl.getBoundingClientRect()
-        // ドラッグはフィールド(中央)→要素(左)なので、フィールドの左端から出る
-        // ただしカーソルが右側にある場合はフィールドの右端から出る(DB方向)
+        let sourceEl: HTMLElement | null | undefined
+        let color = '#6366f1'
+
+        if (dragState.source === 'field') {
+          sourceEl = fieldRefs.current?.get(dragState.fieldId)
+        } else {
+          sourceEl = elementRefs?.current?.get(dragState.elementId)
+          color = '#00C853'
+        }
+        if (!sourceEl) return null
+
+        const srcRect = sourceEl.getBoundingClientRect()
         const cursorX = dragState.currentX - containerRect.left
-        const fieldLeft = fieldRect.left - containerRect.left
-        const fieldRight = fieldRect.right - containerRect.left
-        const x1 = cursorX < fieldLeft ? fieldLeft : fieldRight
-        const y1 = fieldRect.top + fieldRect.height / 2 - containerRect.top
+        const srcLeft = srcRect.left - containerRect.left
+        const srcRight = srcRect.right - containerRect.left
+        // Line exits from the side closest to cursor
+        const x1 = cursorX < srcLeft ? srcLeft : srcRight
+        const y1 = srcRect.top + srcRect.height / 2 - containerRect.top
         const x2 = cursorX
         const y2 = dragState.currentY - containerRect.top
         return (
@@ -169,13 +179,13 @@ export const ConnectionLines = memo(function ConnectionLines({
             <path
               d={bezierPath(x1, y1, x2, y2)}
               fill="none"
-              stroke="#6366f1"
+              stroke={color}
               strokeWidth={2}
               strokeDasharray="6 3"
               strokeLinecap="round"
               opacity={0.8}
             />
-            <circle cx={x1} cy={y1} r={4} fill="#6366f1" opacity={0.8} />
+            <circle cx={x1} cy={y1} r={4} fill={color} opacity={0.8} />
           </>
         )
       })()}

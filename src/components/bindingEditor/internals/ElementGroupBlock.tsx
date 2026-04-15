@@ -19,14 +19,17 @@ interface ElementGroupBlockProps {
   readonly elements: readonly BindableElement[]
   readonly expanded: boolean
   readonly selectedFieldId: string | null
-  readonly isDragging: boolean
+  readonly isDraggingField: boolean
+  readonly isDraggingElement: boolean
   readonly fieldMap: ReadonlyMap<string, FieldItem>
   readonly groupIndexMap: ReadonlyMap<string, number>
   readonly hoveredFieldId: string | null
   readonly onToggle: (pageId: string) => void
   readonly onConnect: (pageId: string, elementId: string) => void
   readonly onDisconnect: (pageId: string, elementId: string) => void
-  readonly onPointerUp: (pageId: string, elementId: string) => void
+  readonly onDropOnElement: (pageId: string, elementId: string) => void
+  readonly onElementDragStart: (e: React.PointerEvent, pageId: string, elementId: string, label: string) => void
+  readonly onDragMove: (e: React.PointerEvent) => void
   readonly onNavigate: (pageId: string, elementId: string) => void
   readonly elementRef: (elementId: string, el: HTMLElement | null) => void
 }
@@ -38,14 +41,17 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
   elements,
   expanded,
   selectedFieldId,
-  isDragging,
+  isDraggingField,
+  isDraggingElement,
   fieldMap,
   groupIndexMap,
   hoveredFieldId,
   onToggle,
   onConnect,
   onDisconnect,
-  onPointerUp,
+  onDropOnElement,
+  onElementDragStart,
+  onDragMove,
   onNavigate,
   elementRef,
 }: ElementGroupBlockProps) {
@@ -74,13 +80,16 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
           key={sub.id}
           subGroup={sub}
           selectedFieldId={selectedFieldId}
-          isDragging={isDragging}
+          isDraggingField={isDraggingField}
+          isDraggingElement={isDraggingElement}
           fieldMap={fieldMap}
           groupIndexMap={groupIndexMap}
           hoveredFieldId={hoveredFieldId}
           onConnect={onConnect}
           onDisconnect={onDisconnect}
-          onPointerUp={onPointerUp}
+          onDropOnElement={onDropOnElement}
+          onElementDragStart={onElementDragStart}
+          onDragMove={onDragMove}
           onNavigate={onNavigate}
           elementRef={elementRef}
         />
@@ -96,13 +105,16 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
 interface SubGroupBlockProps {
   readonly subGroup: ElementSubGroup
   readonly selectedFieldId: string | null
-  readonly isDragging: boolean
+  readonly isDraggingField: boolean
+  readonly isDraggingElement: boolean
   readonly fieldMap: ReadonlyMap<string, FieldItem>
   readonly groupIndexMap: ReadonlyMap<string, number>
   readonly hoveredFieldId: string | null
   readonly onConnect: (pageId: string, elementId: string) => void
   readonly onDisconnect: (pageId: string, elementId: string) => void
-  readonly onPointerUp: (pageId: string, elementId: string) => void
+  readonly onDropOnElement: (pageId: string, elementId: string) => void
+  readonly onElementDragStart: (e: React.PointerEvent, pageId: string, elementId: string, label: string) => void
+  readonly onDragMove: (e: React.PointerEvent) => void
   readonly onNavigate: (pageId: string, elementId: string) => void
   readonly elementRef: (elementId: string, el: HTMLElement | null) => void
 }
@@ -110,13 +122,16 @@ interface SubGroupBlockProps {
 const SubGroupBlock = memo(function SubGroupBlock({
   subGroup,
   selectedFieldId,
-  isDragging,
+  isDraggingField,
+  isDraggingElement,
   fieldMap,
   groupIndexMap,
   hoveredFieldId,
   onConnect,
   onDisconnect,
-  onPointerUp,
+  onDropOnElement,
+  onElementDragStart,
+  onDragMove,
   onNavigate,
   elementRef,
 }: SubGroupBlockProps) {
@@ -150,13 +165,16 @@ const SubGroupBlock = memo(function SubGroupBlock({
             key={element.elementId}
             element={element}
             selectedFieldId={selectedFieldId}
-            isDragging={isDragging}
+            isDraggingField={isDraggingField}
+            isDraggingElement={isDraggingElement}
             fieldMap={fieldMap}
             groupIndexMap={groupIndexMap}
             hoveredFieldId={hoveredFieldId}
             onConnect={onConnect}
             onDisconnect={onDisconnect}
-            onPointerUp={onPointerUp}
+            onDropOnElement={onDropOnElement}
+            onElementDragStart={onElementDragStart}
+            onDragMove={onDragMove}
             onNavigate={onNavigate}
             elementRef={elementRef}
           />
@@ -173,13 +191,16 @@ const SubGroupBlock = memo(function SubGroupBlock({
 interface ElementSlotProps {
   readonly element: BindableElement
   readonly selectedFieldId: string | null
-  readonly isDragging: boolean
+  readonly isDraggingField: boolean
+  readonly isDraggingElement: boolean
   readonly fieldMap: ReadonlyMap<string, FieldItem>
   readonly groupIndexMap: ReadonlyMap<string, number>
   readonly hoveredFieldId: string | null
   readonly onConnect: (pageId: string, elementId: string) => void
   readonly onDisconnect: (pageId: string, elementId: string) => void
-  readonly onPointerUp: (pageId: string, elementId: string) => void
+  readonly onDropOnElement: (pageId: string, elementId: string) => void
+  readonly onElementDragStart: (e: React.PointerEvent, pageId: string, elementId: string, label: string) => void
+  readonly onDragMove: (e: React.PointerEvent) => void
   readonly onNavigate: (pageId: string, elementId: string) => void
   readonly elementRef: (elementId: string, el: HTMLElement | null) => void
 }
@@ -187,13 +208,16 @@ interface ElementSlotProps {
 const ElementSlot = memo(function ElementSlot({
   element,
   selectedFieldId,
-  isDragging,
+  isDraggingField,
+  isDraggingElement,
   fieldMap,
   groupIndexMap,
   hoveredFieldId,
   onConnect,
   onDisconnect,
-  onPointerUp,
+  onDropOnElement,
+  onElementDragStart,
+  onDragMove,
   onNavigate,
   elementRef,
 }: ElementSlotProps) {
@@ -207,6 +231,8 @@ const ElementSlot = memo(function ElementSlot({
   const groupColor = boundField
     ? getGroupColor(groupIndexMap.get(boundField.groupId) ?? 0)
     : undefined
+
+  const isDragging = isDraggingField || isDraggingElement
 
   function handleClick() {
     if (isDragging) return
@@ -226,19 +252,24 @@ const ElementSlot = memo(function ElementSlot({
       ref={(el) => elementRef(element.elementId, el)}
       data-element-id={element.elementId}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left transition-all',
+        'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left transition-all cursor-grab',
         boundField
           ? 'border-2 border-[#00C853]/40 bg-[#00C853]/5'
           : 'border-2 border-dashed border-border/60 bg-background',
         isConnectedToSelected && 'ring-2 ring-[#6366f1]/30',
         isHoveredConnection && 'bg-[#6366f1]/5',
-        (selectedFieldId !== null || isDragging) && 'hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
-        selectedFieldId === null && !isDragging && boundField && 'hover:border-red-300 hover:bg-red-50/50',
+        // Drop target highlight (when dragging a field onto this element)
+        isDraggingField && 'hover:ring-2 hover:ring-[#6366f1] hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
+        // Click-to-connect mode
+        !isDragging && selectedFieldId !== null && 'hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
+        !isDragging && selectedFieldId === null && boundField && 'hover:border-red-300 hover:bg-red-50/50',
       )}
       onClick={handleClick}
-      onPointerUp={() => onPointerUp(element.pageId, element.elementId)}
+      onPointerDown={(e) => onElementDragStart(e, element.pageId, element.elementId, element.elementLabel)}
+      onPointerMove={onDragMove}
+      onPointerUp={() => { if (isDraggingField) onDropOnElement(element.pageId, element.elementId) }}
       onDoubleClick={() => onNavigate(element.pageId, element.elementId)}
-      title={boundField ? `バインド先: ${boundField.fieldKey}` : '未バインド — フィールドを選択して接続'}
+      title={boundField ? `バインド先: ${boundField.fieldKey}` : '未バインド — ドラッグでフィールドに接続'}
     >
       {/* Binding dot */}
       <span
@@ -265,8 +296,10 @@ const ElementSlot = memo(function ElementSlot({
         >
           ← {boundField.fieldKey}
         </span>
-      ) : (selectedFieldId !== null || isDragging) ? (
-        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">接続</span>
+      ) : isDraggingField ? (
+        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">ドロップ</span>
+      ) : (selectedFieldId !== null) ? (
+        <span className="text-[10px] text-[#6366f1] shrink-0">接続</span>
       ) : (
         <span className="text-[10px] text-muted-foreground/50 italic shrink-0">未バインド</span>
       )}

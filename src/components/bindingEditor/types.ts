@@ -77,14 +77,10 @@ export interface BindingConnection {
 // UI state types
 // ---------------------------------------------------------------------------
 
-/** Drag state for drag-to-connect mode. */
-export interface DragState {
-  readonly fieldId: string
-  readonly startX: number
-  readonly startY: number
-  readonly currentX: number
-  readonly currentY: number
-}
+/** Drag state for drag-to-connect mode. Supports both directions. */
+export type DragState =
+  | { readonly source: 'field'; readonly fieldId: string; readonly startX: number; readonly startY: number; readonly currentX: number; readonly currentY: number }
+  | { readonly source: 'element'; readonly pageId: string; readonly elementId: string; readonly elementLabel: string; readonly startX: number; readonly startY: number; readonly currentX: number; readonly currentY: number }
 
 /** Bulk generation request. */
 export interface BulkRequest {

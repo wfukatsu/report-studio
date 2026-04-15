@@ -154,6 +154,7 @@ export function BindingEditor() {
           lines={cl.lines}
           dragState={bs.dragState}
           fieldRefs={cl.fieldRefs}
+          elementRefs={cl.elementRefs}
           containerRef={cl.containerRef}
           groupIndexMap={bs.groupIndexMap}
           hoveredGroupId={bs.hoveredGroupId}

@@ -31,9 +31,11 @@ interface SchemaGroupBlockProps {
   readonly onOpenComputedDialog?: (groupId: string) => void
   readonly onConnect?: (fieldId: string) => void
   readonly fieldRef: (fieldId: string, el: HTMLElement | null) => void
-  readonly onPointerDown: (e: React.PointerEvent, fieldId: string) => void
-  readonly onPointerMove: (e: React.PointerEvent, fieldId: string) => void
+  readonly onFieldDragStart: (e: React.PointerEvent, fieldId: string) => void
+  readonly onDragMove: (e: React.PointerEvent) => void
+  readonly onDropOnField: (fieldId: string) => void
   readonly selectedFieldId: string | null
+  readonly isDraggingElement: boolean
   readonly fieldBoundCount: ReadonlyMap<string, number>
   readonly hoveredFieldId: string | null
   readonly onHoverField: (fieldId: string | null) => void
@@ -53,9 +55,11 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   onOpenComputedDialog,
   onConnect,
   fieldRef,
-  onPointerDown,
-  onPointerMove,
+  onFieldDragStart,
+  onDragMove,
+  onDropOnField,
   selectedFieldId,
+  isDraggingElement,
   fieldBoundCount,
   hoveredFieldId,
   onHoverField,
@@ -117,12 +121,14 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
                   isBound={boundFieldIds.has(field.id)}
                   isSelected={selectedFieldId === field.id}
                   isHovered={hoveredFieldId === field.id}
+                  isDraggingElement={isDraggingElement}
                   boundCount={fieldBoundCount.get(field.id) ?? 0}
                   onConnect={onConnect}
                   onRemove={onRemoveField}
                   fieldRef={fieldRef}
-                  onPointerDown={onPointerDown}
-                  onPointerMove={onPointerMove}
+                  onFieldDragStart={onFieldDragStart}
+                  onDragMove={onDragMove}
+                  onDropOnField={onDropOnField}
                   onHoverField={onHoverField}
                 />
               ))
@@ -175,12 +181,14 @@ interface FieldCardProps {
   readonly isBound: boolean
   readonly isSelected: boolean
   readonly isHovered: boolean
+  readonly isDraggingElement: boolean
   readonly boundCount: number
   readonly onConnect?: (fieldId: string) => void
   readonly onRemove: (groupId: string, fieldId: string) => void
   readonly fieldRef: (fieldId: string, el: HTMLElement | null) => void
-  readonly onPointerDown: (e: React.PointerEvent, fieldId: string) => void
-  readonly onPointerMove: (e: React.PointerEvent, fieldId: string) => void
+  readonly onFieldDragStart: (e: React.PointerEvent, fieldId: string) => void
+  readonly onDragMove: (e: React.PointerEvent) => void
+  readonly onDropOnField: (fieldId: string) => void
   readonly onHoverField: (fieldId: string | null) => void
 }
 
@@ -191,12 +199,14 @@ const FieldCard = memo(function FieldCard({
   isBound,
   isSelected,
   isHovered,
+  isDraggingElement,
   boundCount,
   onConnect,
   onRemove,
   fieldRef,
-  onPointerDown,
-  onPointerMove,
+  onFieldDragStart,
+  onDragMove,
+  onDropOnField,
   onHoverField,
 }: FieldCardProps) {
   const color = getGroupColor(groupIndex)
@@ -217,13 +227,16 @@ const FieldCard = memo(function FieldCard({
         !isBound && !field.computed && 'shadow-[0_0_0_1px_rgba(0,0,0,0.08)]',
         // Selection
         isSelected && 'ring-2 ring-[#6366f1] shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_2px_8px_rgba(99,102,241,0.15)]',
+        // Drop target highlight (when dragging an element)
+        isDraggingElement && 'hover:ring-2 hover:ring-[#00C853] hover:bg-[#00C853]/5',
         // Hover lift (v1: translateX(-2px))
-        isHovered && !isSelected && '-translate-x-0.5 shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
-        !isSelected && !isHovered && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
+        isHovered && !isSelected && !isDraggingElement && '-translate-x-0.5 shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
+        !isSelected && !isHovered && !isDraggingElement && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
       )}
       onClick={() => onConnect?.(field.id)}
-      onPointerDown={(e) => onPointerDown(e, field.id)}
-      onPointerMove={(e) => onPointerMove(e, field.id)}
+      onPointerDown={(e) => onFieldDragStart(e, field.id)}
+      onPointerMove={onDragMove}
+      onPointerUp={() => { if (isDraggingElement) onDropOnField(field.id) }}
       onMouseEnter={() => onHoverField(field.id)}
       onMouseLeave={() => onHoverField(null)}
       title={`${field.key} — クリックで選択、ドラッグで要素に接続`}

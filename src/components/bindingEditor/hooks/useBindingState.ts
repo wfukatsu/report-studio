@@ -275,11 +275,14 @@ export function useBindingState() {
   )
 
   // -----------------------------------------------------------------------
-  // Actions: drag-to-connect
+  // Actions: drag-to-connect (bidirectional: field→element or element→field)
   // -----------------------------------------------------------------------
-  const handlePointerDown = useCallback((e: React.PointerEvent, fieldId: string) => {
+
+  /** Start dragging a field card */
+  const handleFieldDragStart = useCallback((e: React.PointerEvent, fieldId: string) => {
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* no-op */ }
     setDragState({
+      source: 'field',
       fieldId,
       startX: e.clientX,
       startY: e.clientY,
@@ -288,16 +291,33 @@ export function useBindingState() {
     })
   }, [])
 
-  const handlePointerMove = useCallback((e: React.PointerEvent, fieldId: string) => {
+  /** Start dragging an element card */
+  const handleElementDragStart = useCallback((e: React.PointerEvent, pageId: string, elementId: string, label: string) => {
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* no-op */ }
+    setDragState({
+      source: 'element',
+      pageId,
+      elementId,
+      elementLabel: label,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+    })
+  }, [])
+
+  /** Update drag position (works for both sources) */
+  const handleDragMove = useCallback((e: React.PointerEvent) => {
     setDragState((prev) => {
-      if (!prev || prev.fieldId !== fieldId) return prev
+      if (!prev) return prev
       return { ...prev, currentX: e.clientX, currentY: e.clientY }
     })
   }, [])
 
-  const handleElementPointerUp = useCallback(
+  /** Drop on an element card (when dragging a field) */
+  const handleDropOnElement = useCallback(
     (pageId: string, elementId: string) => {
-      if (!dragState) return
+      if (!dragState || dragState.source !== 'field') return
       setElementSchemaBinding(pageId, elementId, dragState.fieldId)
       setDragState(null)
       setSelectedFieldId(null)
@@ -305,9 +325,26 @@ export function useBindingState() {
     [dragState, setElementSchemaBinding],
   )
 
+  /** Drop on a field card (when dragging an element) */
+  const handleDropOnField = useCallback(
+    (fieldId: string) => {
+      if (!dragState || dragState.source !== 'element') return
+      setElementSchemaBinding(dragState.pageId, dragState.elementId, fieldId)
+      setDragState(null)
+      setSelectedFieldId(null)
+    },
+    [dragState, setElementSchemaBinding],
+  )
+
+  /** Cancel drag on empty area */
   const handleContainerPointerUp = useCallback(() => {
     if (dragState) setDragState(null)
   }, [dragState])
+
+  /** Whether currently dragging a field (for element drop targets) */
+  const isDraggingField = dragState?.source === 'field'
+  /** Whether currently dragging an element (for field drop targets) */
+  const isDraggingElement = dragState?.source === 'element'
 
   // -----------------------------------------------------------------------
   // Actions: navigate to element in canvas
@@ -401,10 +438,14 @@ export function useBindingState() {
     connect,
     disconnect,
 
-    // Drag-to-connect actions
-    handlePointerDown,
-    handlePointerMove,
-    handleElementPointerUp,
+    // Drag-to-connect actions (bidirectional)
+    isDraggingField,
+    isDraggingElement,
+    handleFieldDragStart,
+    handleElementDragStart,
+    handleDragMove,
+    handleDropOnElement,
+    handleDropOnField,
     handleContainerPointerUp,
 
     // Navigation

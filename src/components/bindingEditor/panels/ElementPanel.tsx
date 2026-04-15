@@ -106,14 +106,17 @@ export const ElementPanel = memo(function ElementPanel({
               elements={group.elements}
               expanded={expandedGroups.has(group.pageId)}
               selectedFieldId={bs.selectedFieldId}
-              isDragging={bs.isDragging}
+              isDraggingField={bs.isDraggingField}
+              isDraggingElement={bs.isDraggingElement}
               fieldMap={bs.fieldMap}
               groupIndexMap={bs.groupIndexMap}
               hoveredFieldId={bs.hoveredFieldId}
               onToggle={onToggleGroup}
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
-              onPointerUp={bs.handleElementPointerUp}
+              onDropOnElement={bs.handleDropOnElement}
+              onElementDragStart={bs.handleElementDragStart}
+              onDragMove={bs.handleDragMove}
               onNavigate={bs.navigateToElement}
               elementRef={elementRef}
             />
@@ -136,10 +139,18 @@ export const ElementPanel = memo(function ElementPanel({
         </div>
       )}
 
-      {bs.isDragging && (
+      {bs.isDraggingField && bs.dragState?.source === 'field' && (
         <div className="bg-primary/10 border-t px-3 py-2 text-xs text-primary flex items-center gap-2 shrink-0 animate-pulse">
           <span className="font-medium truncate">
-            ドラッグ中: {bs.fieldMap.get(bs.dragState!.fieldId)?.fieldKey}
+            フィールドをドラッグ中: {bs.fieldMap.get(bs.dragState.fieldId)?.fieldKey} → 要素にドロップ
+          </span>
+        </div>
+      )}
+
+      {bs.isDraggingElement && bs.dragState?.source === 'element' && (
+        <div className="bg-[#00C853]/10 border-t px-3 py-2 text-xs text-[#00C853] flex items-center gap-2 shrink-0 animate-pulse">
+          <span className="font-medium truncate">
+            要素をドラッグ中: {bs.dragState.elementLabel} → フィールドにドロップ
           </span>
         </div>
       )}
