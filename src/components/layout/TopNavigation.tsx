@@ -5,8 +5,10 @@ import { cn } from '@/lib/utils'
 
 const TABS: { id: AppTab; label: string }[] = [
   { id: 'design', label: 'デザイン' },
-  { id: 'data', label: 'データ管理' },
+  { id: 'binding', label: 'バインド' },
   { id: 'templates', label: 'テンプレート管理' },
+  { id: 'responses', label: '回答' },
+  { id: 'databrowser', label: 'データブラウザ' },
 ]
 
 const TAB_IDS: AppTab[] = TABS.map((t) => t.id)

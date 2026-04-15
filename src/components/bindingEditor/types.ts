@@ -1,0 +1,129 @@
+/**
+ * BindingEditor types — v2 equivalents derived from v1 BindingEditorPage.
+ *
+ * Key difference from v1: v2 stores schema/elements in Zustand (not local state).
+ * These types represent derived/display-only structures for the binding editor UI.
+ */
+
+import type { SchemaField, SchemaGroup, ReportElement } from '@/types'
+
+// ---------------------------------------------------------------------------
+// Element display model (derived from store pages/sections/elements)
+// ---------------------------------------------------------------------------
+
+/** Flat representation of a bindable element for the left panel. */
+export interface BindableElement {
+  readonly pageId: string
+  readonly elementId: string
+  readonly elementLabel: string
+  readonly elementType: string
+  /** Currently bound schema field ID */
+  readonly boundFieldId?: string
+}
+
+/** Elements grouped by page for left panel display. */
+export interface ElementGroup {
+  readonly pageId: string
+  readonly pageLabel: string
+  readonly elements: readonly BindableElement[]
+}
+
+// ---------------------------------------------------------------------------
+// Field display model (derived from store schema)
+// ---------------------------------------------------------------------------
+
+/** Flat representation of a schema field for the center panel. */
+export interface FieldItem {
+  readonly fieldId: string
+  readonly fieldKey: string
+  readonly fieldLabel: string
+  readonly groupId: string
+  readonly groupLabel: string
+  readonly dbColumnName?: string
+  readonly computed?: true
+  readonly expression?: string
+}
+
+// ---------------------------------------------------------------------------
+// Connection model
+// ---------------------------------------------------------------------------
+
+/** A binding connection between a schema field and a template element. */
+export interface BindingConnection {
+  readonly fieldId: string
+  readonly elementId: string
+}
+
+// ---------------------------------------------------------------------------
+// UI state types
+// ---------------------------------------------------------------------------
+
+/** Drag state for drag-to-connect mode. */
+export interface DragState {
+  readonly fieldId: string
+  readonly startX: number
+  readonly startY: number
+  readonly currentX: number
+  readonly currentY: number
+}
+
+/** Bulk generation request. */
+export interface BulkRequest {
+  readonly side: 'template' | 'schema'
+  readonly groupId: string
+}
+
+/** Bulk generation candidate item. */
+export interface BulkItem {
+  readonly name: string
+  readonly type: string
+}
+
+// ---------------------------------------------------------------------------
+// SVG connection line
+// ---------------------------------------------------------------------------
+
+export interface LinePos {
+  readonly x1: number
+  readonly y1: number
+  readonly x2: number
+  readonly y2: number
+  readonly fieldId: string
+  readonly elementId: string
+  /** True when either endpoint's group is collapsed */
+  readonly isCollapsed: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Reorder types
+// ---------------------------------------------------------------------------
+
+export type ReorderValidation =
+  | { readonly allowed: true }
+  | { readonly allowed: true; readonly warning: ReorderWarning }
+  | { readonly allowed: false; readonly reason: string }
+
+export interface ReorderWarning {
+  readonly title: string
+  readonly message: string
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Element types that support schemaBinding. */
+export const BINDABLE_TYPES = new Set([
+  'dataField', 'text', 'checkbox', 'eraSelect',
+] as const)
+
+/** Check if an element type supports schema binding. */
+export function isBindableType(type: string): boolean {
+  return BINDABLE_TYPES.has(type as never)
+}
+
+// ---------------------------------------------------------------------------
+// Re-exports for convenience
+// ---------------------------------------------------------------------------
+
+export type { SchemaField, SchemaGroup, ReportElement }

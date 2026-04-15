@@ -3,21 +3,18 @@ import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel'
 import { BindingPanel } from '@/components/sidebar/BindingPanel'
 import { CalculationTab } from '@/components/modals/CalculationTab'
 import { ValidationTab } from '@/components/modals/ValidationTab'
-import { DbConnectionTab } from '@/components/modals/DbConnectionTab'
-import { BindingMapperTab } from '@/components/modals/BindingMapperTab'
 import { TenantInfoTab } from '@/components/modals/TenantInfoTab'
 import { ProductMasterTab } from '@/components/modals/ProductMasterTab'
 import { WebhookTab } from '@/components/modals/WebhookTab'
 import { cn } from '@/lib/utils'
 
-type TabId = 'datasource' | 'calculation' | 'validation' | 'dbconnection' | 'bindingmapper' | 'tenantinfo' | 'productmaster' | 'webhook'
+// BindingMapperTab and DbConnectionTab removed — their functionality is now in BindingEditor.
+type TabId = 'datasource' | 'calculation' | 'validation' | 'tenantinfo' | 'productmaster' | 'webhook'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'datasource', label: 'テンプレートデータ' },
   { id: 'calculation', label: '計算フィールド' },
   { id: 'validation', label: '入力検証' },
-  { id: 'dbconnection', label: 'データ連携' },
-  { id: 'bindingmapper', label: 'バインドマッパー' },
   { id: 'tenantinfo', label: 'テナント情報' },
   { id: 'productmaster', label: '商品マスター' },
   { id: 'webhook', label: 'Webhook' },
@@ -172,8 +169,6 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
           )}
           {activeTab === 'calculation' && <CalculationTab />}
           {activeTab === 'validation' && <ValidationTab />}
-          {activeTab === 'dbconnection' && <DbConnectionTab />}
-          {activeTab === 'bindingmapper' && <BindingMapperTab onClose={handleClose} />}
           {activeTab === 'tenantinfo' && <TenantInfoTab />}
           {activeTab === 'productmaster' && <ProductMasterTab />}
           {activeTab === 'webhook' && <WebhookTab />}

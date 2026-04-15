@@ -6,11 +6,23 @@ import { MemoryRouter } from 'react-router-dom'
 
 // App内の重いコンポーネントをモック
 vi.mock('@/App', () => ({ default: () => <div data-testid="app-design" /> }))
-vi.mock('@/components/tabs/DataManagementTab', () => ({
-  DataManagementTab: () => <div data-testid="data-management-tab" />,
+vi.mock('@/components/bindingEditor/BindingEditor', () => ({
+  BindingEditor: () => <div data-testid="binding-editor" />,
 }))
 vi.mock('@/components/tabs/TemplateManagementTab', () => ({
   TemplateManagementTab: () => <div data-testid="template-management-tab" />,
+}))
+vi.mock('@/components/sidebar/ResponsesPanel', () => ({
+  ResponsesPanel: () => <div data-testid="responses-panel" />,
+}))
+vi.mock('@/components/dataBrowser/DataSourceTree', () => ({
+  DataSourceTree: () => <div data-testid="data-source-tree" />,
+}))
+vi.mock('@/components/dataBrowser/DataGrid', () => ({
+  DataGrid: () => <div data-testid="data-grid" />,
+}))
+vi.mock('@/components/dataBrowser/EmptyState', () => ({
+  EmptyState: () => <div data-testid="empty-state" />,
 }))
 vi.mock('@/hooks/useConnectionState', () => ({ useConnectionState: vi.fn() }))
 
@@ -28,17 +40,15 @@ describe('AppShell — タブ切り替え', () => {
     expect(screen.getByTestId('app-design')).toBeInTheDocument()
   })
 
-  it('未認証状態ではデータ管理タブのコンテンツが表示されない', () => {
-    useReportStore.setState({ currentUser: null } as Parameters<typeof useReportStore.setState>[0])
-    useReportStore.setState({ activeTab: 'data' } as Parameters<typeof useReportStore.setState>[0])
+  it('バインドタブでBindingEditorが表示される', () => {
+    useReportStore.setState({ activeTab: 'binding' } as Parameters<typeof useReportStore.setState>[0])
     renderAppShell()
-    expect(screen.queryByTestId('data-management-tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('binding-editor')).toBeInTheDocument()
   })
 
-  it('未認証状態ではテンプレート管理タブのコンテンツが表示されない', () => {
-    useReportStore.setState({ currentUser: null } as Parameters<typeof useReportStore.setState>[0])
+  it('テンプレート管理タブのコンテンツが表示される', () => {
     useReportStore.setState({ activeTab: 'templates' } as Parameters<typeof useReportStore.setState>[0])
     renderAppShell()
-    expect(screen.queryByTestId('template-management-tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('template-management-tab')).toBeInTheDocument()
   })
 })
