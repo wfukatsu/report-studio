@@ -1,4 +1,5 @@
 import { memo, useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
@@ -305,13 +306,22 @@ function ColumnEditor({
     onFieldsChange(next)
   }
 
+  // Clamp position to viewport
+  const panelW = 220
+  const panelH = 340
+  const left = Math.max(8, Math.min(menu.x, window.innerWidth - panelW - 8))
+  const top = Math.max(8, Math.min(menu.y + 4, window.innerHeight - panelH - 8))
+
   return (
-    <div
-      style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 9999 }}
-      className="bg-background border rounded-lg shadow-xl p-3 text-xs w-[220px] space-y-2"
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-    >
+    <>
+      {/* Invisible backdrop to close on outside click */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={onClose} />
+      <div
+        style={{ position: 'fixed', left, top, zIndex: 9999 }}
+        className="bg-background border rounded-lg shadow-xl p-3 text-xs w-[220px] space-y-2"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
       <div className="flex items-center justify-between">
         <span className="font-semibold text-foreground">列 {colIndex + 1} を編集</span>
         <button className="text-muted-foreground hover:text-foreground text-sm leading-none" onClick={onClose}>✕</button>
@@ -376,6 +386,7 @@ function ColumnEditor({
         )}
       </div>
     </div>
+    </>
   )
 }
 
@@ -433,14 +444,9 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
   const handleColumnContextMenu = useCallback((e: React.MouseEvent, colIndex: number) => {
     e.preventDefault()
     e.stopPropagation()
-    // Position editor below the clicked header cell
-    const cell = (e.currentTarget as HTMLElement)
-    const rect = cell.getBoundingClientRect()
-    // Clamp to viewport so panel doesn't go off-screen
-    const panelWidth = 220
-    const panelHeight = 320
-    const x = Math.min(rect.left, window.innerWidth - panelWidth - 8)
-    const y = Math.min(rect.bottom + 4, window.innerHeight - panelHeight - 8)
+    // Use the mouse click position directly — most reliable across zoom levels
+    const x = e.clientX
+    const y = e.clientY
     setColMenu({ x, y, colIndex })
   }, [])
 
@@ -496,14 +502,15 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
         </div>
       )}
 
-      {/* Column editor panel */}
-      {colMenu && onFieldsChange && (
+      {/* Column editor panel — rendered via portal to escape zoom transform */}
+      {colMenu && onFieldsChange && createPortal(
         <ColumnEditor
           menu={colMenu}
           fields={el.fields}
           onFieldsChange={onFieldsChange}
           onClose={() => setColMenu(null)}
-        />
+        />,
+        document.body,
       )}
 
       {/* Info badge — positioned below header if visible */}
