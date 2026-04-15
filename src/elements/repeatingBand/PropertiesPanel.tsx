@@ -1,4 +1,4 @@
-import type { RepeatingBandElement, RepeatingBandField, RepeatingBandTotal } from '@/types'
+import type { RepeatingBandElement, RepeatingBandField, RepeatingBandTotal, CalculationFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 
 interface Props {
@@ -6,7 +6,37 @@ interface Props {
   onChange: (patch: Partial<RepeatingBandElement>) => void
 }
 
+const FORMAT_OPTIONS = [
+  { value: '', label: 'なし' },
+  { value: 'integer', label: '整数 (1,234)' },
+  { value: 'decimal', label: '小数 (1,234.56)' },
+  { value: 'currency_jpy', label: '通貨 (¥1,234)' },
+  { value: 'currency_usd', label: '通貨 ($1,234.56)' },
+  { value: 'percent', label: 'パーセント (12.3%)' },
+  { value: 'comma', label: 'カンマ区切り' },
+  { value: 'kanji_numeral', label: '大字 (壱百万)' },
+] as const
+
 export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
+  /** Update a single field in the fields array immutably */
+  function updateField(index: number, patch: Partial<RepeatingBandField>) {
+    const fields = el.fields.map((f, i): RepeatingBandField =>
+      i === index ? { ...f, ...patch } : f,
+    )
+    onChange({ fields })
+  }
+
+  /** Move a field up or down in the list */
+  function moveField(index: number, direction: -1 | 1) {
+    const target = index + direction
+    if (target < 0 || target >= el.fields.length) return
+    const fields = [...el.fields]
+    const tmp = fields[index]
+    fields[index] = fields[target]
+    fields[target] = tmp
+    onChange({ fields })
+  }
+
   return (
     <>
       <PropSection title="繰り返しバンド — データ">
@@ -26,6 +56,9 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
             <input type="checkbox" checked={el.showFooter} onChange={(e) => onChange({ showFooter: e.target.checked })} className="rounded" />フッター（集計）行
           </label>
         </div>
+        <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+          <input type="checkbox" checked={el.showEmptyRowLines ?? false} onChange={(e) => onChange({ showEmptyRowLines: e.target.checked })} className="rounded" />空行罫線を表示 (最大件数まで)
+        </label>
       </PropSection>
 
       <PropSection title="繰り返しバンド — 列定義">
@@ -34,28 +67,79 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
             <div key={i} className="border rounded p-2 space-y-1.5 bg-muted/30">
               <div className="flex items-center gap-1 justify-between">
                 <span className="text-[10px] font-semibold text-muted-foreground">列 {i + 1}</span>
-                <button className="text-[10px] text-destructive hover:underline" onClick={() => onChange({ fields: el.fields.filter((_, ci) => ci !== i) })}>削除</button>
+                <div className="flex items-center gap-1">
+                  {/* Move up/down buttons */}
+                  <button
+                    className="text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    disabled={i === 0}
+                    onClick={() => moveField(i, -1)}
+                    title="上に移動"
+                  >↑</button>
+                  <button
+                    className="text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    disabled={i === el.fields.length - 1}
+                    onClick={() => moveField(i, 1)}
+                    title="下に移動"
+                  >↓</button>
+                  <button className="text-[10px] text-destructive hover:underline" onClick={() => onChange({ fields: el.fields.filter((_, ci) => ci !== i) })}>削除</button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <label className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-muted-foreground">フィールドキー</span>
-                  <input type="text" className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono" value={f.key} placeholder="field.key" onChange={(e) => { const fields = el.fields.map((cf, ci): RepeatingBandField => ci === i ? { ...cf, key: e.target.value } : cf); onChange({ fields }) }} />
+                  <input type="text" className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono" value={f.key} placeholder="field.key" onChange={(e) => updateField(i, { key: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-muted-foreground">ヘッダーラベル</span>
-                  <input type="text" className="border rounded px-1.5 py-0.5 text-xs bg-background" value={f.label} onChange={(e) => { const fields = el.fields.map((cf, ci): RepeatingBandField => ci === i ? { ...cf, label: e.target.value } : cf); onChange({ fields }) }} />
+                  <input type="text" className="border rounded px-1.5 py-0.5 text-xs bg-background" value={f.label} onChange={(e) => updateField(i, { label: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-muted-foreground">幅 (mm)</span>
-                  <input type="number" min={5} step={1} className="border rounded px-1.5 py-0.5 text-xs bg-background" value={f.width} onChange={(e) => { const fields = el.fields.map((cf, ci): RepeatingBandField => ci === i ? { ...cf, width: Number(e.target.value) } : cf); onChange({ fields }) }} />
+                  <input type="number" min={5} step={1} className="border rounded px-1.5 py-0.5 text-xs bg-background" value={f.width} onChange={(e) => updateField(i, { width: Number(e.target.value) })} />
                 </label>
                 <label className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-muted-foreground">横揃え</span>
-                  <select className="border rounded px-1 py-0.5 text-xs bg-background" value={f.align ?? 'left'} onChange={(e) => { const fields = el.fields.map((cf, ci): RepeatingBandField => ci === i ? { ...cf, align: e.target.value as RepeatingBandField['align'] } : cf); onChange({ fields }) }}>
+                  <select className="border rounded px-1 py-0.5 text-xs bg-background" value={f.align ?? 'left'} onChange={(e) => updateField(i, { align: e.target.value as RepeatingBandField['align'] })}>
                     <option value="left">左</option><option value="center">中央</option><option value="right">右</option>
                   </select>
                 </label>
               </div>
+              {/* Format setting */}
+              <label className="flex flex-col gap-0.5">
+                <span className="text-[10px] text-muted-foreground">書式</span>
+                <select
+                  className="border rounded px-1 py-0.5 text-xs bg-background"
+                  value={f.format?.type ?? ''}
+                  onChange={(e) => {
+                    const type = e.target.value
+                    if (!type) {
+                      updateField(i, { format: undefined })
+                    } else {
+                      const fmt: CalculationFormat = { type: type as CalculationFormat['type'] }
+                      if (type === 'decimal' || type === 'currency_usd') fmt.decimalPlaces = 2
+                      updateField(i, { format: fmt })
+                    }
+                  }}
+                >
+                  {FORMAT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </label>
+              {/* Decimal places (for decimal/currency formats) */}
+              {f.format && (f.format.type === 'decimal' || f.format.type === 'currency_usd') && (
+                <label className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-muted-foreground">小数桁数</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    className="border rounded px-1.5 py-0.5 text-xs bg-background w-20"
+                    value={f.format.decimalPlaces ?? 2}
+                    onChange={(e) => updateField(i, { format: { ...f.format!, decimalPlaces: Number(e.target.value) } })}
+                  />
+                </label>
+              )}
             </div>
           ))}
           <button className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded" onClick={() => onChange({ fields: [...el.fields, { key: 'field', label: '新列', width: 20, align: 'left' }] })}>＋ 列を追加</button>
@@ -90,6 +174,20 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         <PropRow label="偶数行の背景色（縞模様）"><ColorInput value={el.evenRowColor} onChange={(v) => onChange({ evenRowColor: v })} /></PropRow>
         <PropRow label="枠線色"><ColorInput value={el.borderColor} onChange={(v) => onChange({ borderColor: v })} /></PropRow>
         <PropRow label="枠線幅"><NumInput value={el.borderWidth} onChange={(v) => onChange({ borderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+      </PropSection>
+
+      <PropSection title="繰り返しバンド — ページ">
+        <PropRow label="改ページ">
+          <SelectInput
+            value={el.pageBreak ?? 'none'}
+            onChange={(v) => onChange({ pageBreak: v === 'none' ? undefined : v as 'before' | 'after' })}
+            options={[
+              { value: 'none', label: 'なし' },
+              { value: 'before', label: 'バンド前に改ページ' },
+              { value: 'after', label: 'バンド後に改ページ' },
+            ]}
+          />
+        </PropRow>
       </PropSection>
 
       {el.showFooter && (
