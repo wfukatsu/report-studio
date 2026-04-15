@@ -94,11 +94,12 @@ export function useConnectionLines(
         const fieldRect = fieldEl.getBoundingClientRect()
         const elementRect = elementEl.getBoundingClientRect()
 
+        // Element(左パネル)の右端 → Field(中央パネル)の左端
         newLines.push({
-          x1: fieldRect.right - containerRect.left,
-          y1: fieldRect.top + fieldRect.height / 2 - containerRect.top,
-          x2: elementRect.left - containerRect.left,
-          y2: elementRect.top + elementRect.height / 2 - containerRect.top,
+          x1: elementRect.right - containerRect.left,
+          y1: elementRect.top + elementRect.height / 2 - containerRect.top,
+          x2: fieldRect.left - containerRect.left,
+          y2: fieldRect.top + fieldRect.height / 2 - containerRect.top,
           fieldId,
           elementId,
           groupId,

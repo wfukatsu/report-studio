@@ -150,14 +150,19 @@ export const ConnectionLines = memo(function ConnectionLines({
         )
       })}
 
-      {/* Drag rubber-band line */}
+      {/* Drag rubber-band line — from field card left edge to cursor */}
       {dragState && containerRect && (() => {
         const dragFieldEl = fieldRefs.current?.get(dragState.fieldId)
         if (!dragFieldEl) return null
         const fieldRect = dragFieldEl.getBoundingClientRect()
-        const x1 = fieldRect.right - containerRect.left
+        // ドラッグはフィールド(中央)→要素(左)なので、フィールドの左端から出る
+        // ただしカーソルが右側にある場合はフィールドの右端から出る(DB方向)
+        const cursorX = dragState.currentX - containerRect.left
+        const fieldLeft = fieldRect.left - containerRect.left
+        const fieldRight = fieldRect.right - containerRect.left
+        const x1 = cursorX < fieldLeft ? fieldLeft : fieldRight
         const y1 = fieldRect.top + fieldRect.height / 2 - containerRect.top
-        const x2 = dragState.currentX - containerRect.left
+        const x2 = cursorX
         const y2 = dragState.currentY - containerRect.top
         return (
           <>
