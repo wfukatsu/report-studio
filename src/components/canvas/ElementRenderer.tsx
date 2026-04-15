@@ -12,7 +12,9 @@
  * N subscriptions (one per element) down to 1.
  */
 
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
+import { useReportStore } from '@/store/reportStore'
+import type { RepeatingBandField } from '@/types'
 import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
 import { isDataEmptyInPreview } from '@/lib/previewUtils'
@@ -86,6 +88,17 @@ export const ElementRenderer = memo(function ElementRenderer({
     return isDataEmptyInPreview(element, mergedData)
   }, [readonly, element, mergedData])
 
+  // Callback for repeatingBand inline column editing (design mode only)
+  const updateElement = useReportStore((s) => s.updateElement)
+  const activePageId = useReportStore((s) => s.selection.activePageId)
+  const onBandFieldsChange = useCallback(
+    (fields: RepeatingBandField[]) => {
+      if (!activePageId) return
+      updateElement(activePageId, element.id, { fields })
+    },
+    [activePageId, element.id, updateElement],
+  )
+
   if (!element.visible || !isConditionVisible) return null
   if (isEmptyInPreview) return null
 
@@ -104,7 +117,7 @@ export const ElementRenderer = memo(function ElementRenderer({
       const bandRecords = element.dataSource
         ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
         : undefined
-      return <RepeatingBandRenderer element={element} records={bandRecords} />
+      return <RepeatingBandRenderer element={element} records={bandRecords} onFieldsChange={readonly ? undefined : onBandFieldsChange} />
     }
     case 'repeatingList': {
       const listRecords = element.dataSource

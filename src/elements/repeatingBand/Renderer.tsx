@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
@@ -253,16 +253,195 @@ function BandContainer({
 // Design preview (no real data — shows faded mock rows)
 // ---------------------------------------------------------------------------
 
-function RepeatingBandDesignPreview({ element: el }: { element: RepeatingBandElement }) {
+// ---------------------------------------------------------------------------
+// Interactive column context menu for design preview
+// ---------------------------------------------------------------------------
+
+interface ColumnMenuState {
+  x: number
+  y: number
+  colIndex: number
+}
+
+function ColumnContextMenu({
+  menu, fields, onFieldsChange, onClose,
+}: {
+  menu: ColumnMenuState
+  fields: RepeatingBandField[]
+  onFieldsChange: (fields: RepeatingBandField[]) => void
+  onClose: () => void
+}) {
+
+  const { colIndex } = menu
+  const canMoveLeft = colIndex > 0
+  const canMoveRight = colIndex < fields.length - 1
+
+  function swap(i: number, j: number) {
+    const next = [...fields]
+    const tmp = next[i]
+    next[i] = next[j]
+    next[j] = tmp
+    onFieldsChange(next)
+    onClose()
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 9999 }}
+      className="bg-background border rounded-md shadow-lg py-1 text-xs min-w-[140px]"
+      onMouseLeave={onClose}
+    >
+      {canMoveLeft && (
+        <button className="w-full text-left px-3 py-1.5 hover:bg-accent" onClick={() => swap(colIndex, colIndex - 1)}>
+          ← 左に移動
+        </button>
+      )}
+      {canMoveRight && (
+        <button className="w-full text-left px-3 py-1.5 hover:bg-accent" onClick={() => swap(colIndex, colIndex + 1)}>
+          → 右に移動
+        </button>
+      )}
+      <button
+        className="w-full text-left px-3 py-1.5 hover:bg-accent"
+        onClick={() => {
+          const next = [...fields]
+          next.splice(colIndex + 1, 0, { key: 'new_field', label: '新列', width: 20, align: 'left' })
+          onFieldsChange(next)
+          onClose()
+        }}
+      >
+        + 右に列を追加
+      </button>
+      {fields.length > 1 && (
+        <button
+          className="w-full text-left px-3 py-1.5 hover:bg-accent text-destructive"
+          onClick={() => {
+            onFieldsChange(fields.filter((_, i) => i !== colIndex))
+            onClose()
+          }}
+        >
+          この列を削除
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Design preview with interactive column editing
+// ---------------------------------------------------------------------------
+
+function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: RepeatingBandElement; onFieldsChange?: (fields: RepeatingBandField[]) => void }) {
   const bs = borderStr(el)
   const colPcts = columnPercents(el.fields)
   const isGrouped = !!el.groupBy
   const PREVIEW_ROWS = 3
 
+  // Column context menu state
+  const [colMenu, setColMenu] = useState<ColumnMenuState | null>(null)
+
+  // Column resize via drag on separator
+  const resizeRef = useRef<{ colIndex: number; startX: number; startWidths: number[] } | null>(null)
+
+  const handleResizeStart = useCallback((e: React.PointerEvent, colIndex: number) => {
+    if (!onFieldsChange) return
+    e.stopPropagation()
+    e.preventDefault()
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    resizeRef.current = {
+      colIndex,
+      startX: e.clientX,
+      startWidths: el.fields.map((f) => f.width),
+    }
+  }, [el.fields, onFieldsChange])
+
+  const handleResizeMove = useCallback((e: React.PointerEvent) => {
+    const r = resizeRef.current
+    if (!r || !onFieldsChange) return
+    const dx = e.clientX - r.startX
+    // Convert px delta to mm delta (approximate: assume container is ~page width)
+    const containerWidth = (e.currentTarget as HTMLElement).closest('[style*="width: 100%"]')?.clientWidth ?? 600
+    const totalMm = r.startWidths.reduce((s, w) => s + w, 0)
+    const dMm = (dx / containerWidth) * totalMm
+
+    const newWidths = [...r.startWidths]
+    const leftW = Math.max(5, r.startWidths[r.colIndex] + dMm)
+    const rightW = Math.max(5, r.startWidths[r.colIndex + 1] - dMm)
+    newWidths[r.colIndex] = leftW
+    newWidths[r.colIndex + 1] = rightW
+
+    const newFields = el.fields.map((f, i): RepeatingBandField => ({ ...f, width: Math.round(newWidths[i] * 10) / 10 }))
+    onFieldsChange(newFields)
+  }, [el.fields, onFieldsChange])
+
+  const handleResizeEnd = useCallback(() => {
+    resizeRef.current = null
+  }, [])
+
+  const handleColumnContextMenu = useCallback((e: React.MouseEvent, colIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setColMenu({ x: e.clientX, y: e.clientY, colIndex })
+  }, [])
+
   return (
     <BandContainer el={el} bs={bs}>
+      {/* Interactive header row (design mode) */}
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
+        <div
+          style={{ display: 'flex', flexShrink: 0, borderBottom: bs, ...(el.headerHeight != null ? { height: `${el.headerHeight}mm` } : {}) }}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeEnd}
+        >
+          {el.fields.map((f, i) => (
+            <div
+              key={i}
+              style={{
+                ...baseCellLayout(colPcts[i], undefined),
+                justifyContent: 'center',
+                backgroundColor: el.headerStyle?.backgroundColor ?? DEFAULT_HEADER_BG,
+                fontWeight: 'bold',
+                color: el.headerStyle?.color ?? DEFAULT_HEADER_COLOR,
+                borderBottom: 'none',
+                position: 'relative',
+                cursor: onFieldsChange ? 'pointer' : 'default',
+              }}
+              onContextMenu={(e) => handleColumnContextMenu(e, i)}
+              title={`${f.label} (${f.key}) — 右クリックで列操作`}
+            >
+              {f.label}
+              {/* Column resize handle (between columns) */}
+              {onFieldsChange && i < el.fields.length - 1 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: -2,
+                    top: 0,
+                    bottom: 0,
+                    width: 5,
+                    cursor: 'col-resize',
+                    zIndex: 20,
+                  }}
+                  onPointerDown={(e) => handleResizeStart(e, i)}
+                />
+              )}
+              {/* Column separator line */}
+              {i < el.fields.length - 1 && (
+                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, borderRight: bs }} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Column context menu */}
+      {colMenu && onFieldsChange && (
+        <ColumnContextMenu
+          menu={colMenu}
+          fields={el.fields}
+          onFieldsChange={onFieldsChange}
+          onClose={() => setColMenu(null)}
+        />
       )}
 
       {/* Info badge — positioned below header if visible */}
@@ -560,11 +739,13 @@ interface Props {
   element: RepeatingBandElement
   /** Live Preview 時に渡す配列データ。undefined = デザインプレビュー表示 */
   records?: Record<string, unknown>[]
+  /** デザインモード時にフィールド変更を通知するコールバック */
+  onFieldsChange?: (fields: RepeatingBandField[]) => void
 }
 
-export const RepeatingBandRenderer = memo(function RepeatingBandRenderer({ element, records }: Props) {
+export const RepeatingBandRenderer = memo(function RepeatingBandRenderer({ element, records, onFieldsChange }: Props) {
   if (records === undefined) {
-    return <RepeatingBandDesignPreview element={element} />
+    return <RepeatingBandDesignPreview element={element} onFieldsChange={onFieldsChange} />
   }
   if (isGroupedElement(element)) {
     return <GroupedBandRenderer el={element} records={records} />
