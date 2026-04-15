@@ -162,6 +162,9 @@ export function isBindableType(type: string): boolean {
 /** MIME type for schema field drag-to-canvas operations. */
 export const SCHEMA_FIELD_MIME = 'application/rds-schema-field'
 
+/** MIME type for schema group drag-to-canvas operations. */
+export const SCHEMA_GROUP_MIME = 'application/rds-schema-group'
+
 /** Payload carried in dataTransfer for schema field DnD. */
 export interface SchemaFieldDragPayload {
   readonly fieldId: string
@@ -170,6 +173,20 @@ export interface SchemaFieldDragPayload {
   readonly fieldLabel: string
   readonly groupRole: 'master' | 'detail'
   readonly groupDataKey: string
+}
+
+/** Payload carried in dataTransfer for schema group DnD (all fields at once). */
+export interface SchemaGroupDragPayload {
+  readonly groupId: string
+  readonly groupLabel: string
+  readonly groupRole: 'master' | 'detail'
+  readonly groupDataKey: string
+  readonly fields: readonly {
+    readonly fieldId: string
+    readonly fieldKey: string
+    readonly fieldLabel: string
+    readonly fieldType: string
+  }[]
 }
 
 // ---------------------------------------------------------------------------

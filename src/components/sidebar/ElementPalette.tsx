@@ -11,8 +11,8 @@ import type { PaletteCategory } from './paletteData'
 import type { ReportElement } from '@/types'
 import { Tooltip } from '@/components/common/Tooltip'
 import { isSystemGroup } from '@/store/schemaSlice'
-import { SCHEMA_FIELD_MIME } from '@/components/bindingEditor/types'
-import type { SchemaFieldDragPayload } from '@/components/bindingEditor/types'
+import { SCHEMA_FIELD_MIME, SCHEMA_GROUP_MIME } from '@/components/bindingEditor/types'
+import type { SchemaFieldDragPayload, SchemaGroupDragPayload } from '@/components/bindingEditor/types'
 import { cn } from '@/lib/utils'
 
 // Re-export for consumers that import from this module
@@ -151,9 +151,30 @@ function SchemaFieldsSection() {
       </button>
       {expanded && (
         <div className="space-y-1.5 mb-2">
-          {userGroups.map((group) => (
+          {userGroups.map((group) => {
+            const groupPayload: SchemaGroupDragPayload = {
+              groupId: group.id,
+              groupLabel: group.label,
+              groupRole: group.role,
+              groupDataKey: group.dataKey,
+              fields: group.fields.map((f) => ({
+                fieldId: f.id,
+                fieldKey: f.key,
+                fieldLabel: f.label || f.key,
+                fieldType: f.type,
+              })),
+            }
+            return (
             <div key={group.id}>
-              <div className="flex items-center gap-1 px-1 py-0.5">
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(SCHEMA_GROUP_MIME, JSON.stringify(groupPayload))
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
+                className="flex items-center gap-1 px-1 py-0.5 cursor-grab active:cursor-grabbing rounded hover:bg-muted/30"
+                title={`${group.label} — グループごとドラッグして繰り返しバンドにドロップ`}
+              >
                 <span className={cn(
                   'text-[9px] px-1 py-px rounded font-medium',
                   group.role === 'master'
@@ -165,6 +186,7 @@ function SchemaFieldsSection() {
                 <span className="text-[10px] text-muted-foreground font-medium truncate">
                   {group.label}
                 </span>
+                <span className="text-[9px] text-muted-foreground/50 ml-auto">{group.fields.length}件</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 {group.fields.map((field) => {
@@ -195,7 +217,7 @@ function SchemaFieldsSection() {
                 })}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

@@ -20,8 +20,8 @@ import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import type { PageDef } from '@/types'
 import { PALETTE_ITEM_MAP } from '@/components/sidebar/ElementPalette'
-import { SCHEMA_FIELD_MIME } from '@/components/bindingEditor/types'
-import type { SchemaFieldDragPayload } from '@/components/bindingEditor/types'
+import { SCHEMA_FIELD_MIME, SCHEMA_GROUP_MIME } from '@/components/bindingEditor/types'
+import type { SchemaFieldDragPayload, SchemaGroupDragPayload } from '@/components/bindingEditor/types'
 import { createDataFieldFromSchema } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 import { RULER_SIZE, CANVAS_PADDING } from '@/config/constants'
@@ -266,7 +266,8 @@ export function ReportCanvas({
     (e: DragEvent<HTMLDivElement>) => {
       if (
         e.dataTransfer.types.includes('application/rds-palette') ||
-        e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)
+        e.dataTransfer.types.includes(SCHEMA_FIELD_MIME) ||
+        e.dataTransfer.types.includes(SCHEMA_GROUP_MIME)
       ) {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
@@ -350,6 +351,9 @@ export function ReportCanvas({
   const handleSchemaFieldDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       const raw = e.dataTransfer.getData(SCHEMA_FIELD_MIME)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[schema-field-drop] raw payload:', raw?.substring(0, 100), 'types:', Array.from(e.dataTransfer.types))
+      }
       if (!raw || !page) return
 
       let payload: SchemaFieldDragPayload
@@ -382,18 +386,26 @@ export function ReportCanvas({
       const sectionElements = targetSection?.elements ?? []
 
       // Hit-test: find topmost element at drop coordinate (zIndex descending)
+      // Both xMm and relativeY are section-relative coordinates
       const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
       let hitElement: ReportElement | null = null
       for (const el of sorted) {
         if (
-          xMm >= el.position.x + sectionOffsetY * 0 && // X is page-relative, not section-offset
-          relativeY >= el.position.y &&
+          xMm >= el.position.x &&
           xMm <= el.position.x + el.size.width &&
+          relativeY >= el.position.y &&
           relativeY <= el.position.y + el.size.height
         ) {
           hitElement = el
           break
         }
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[schema-field-drop] hit-test:', {
+          dropX: xMm.toFixed(1), dropY: relativeY.toFixed(1),
+          sectionId, sectionElements: sectionElements.length,
+          hitElement: hitElement ? { id: hitElement.id, type: hitElement.type, pos: hitElement.position, size: hitElement.size } : null,
+        })
       }
 
       // Branch based on hit element type
@@ -466,6 +478,90 @@ export function ReportCanvas({
       addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
     [page, zoom, snapToGrid, gridSize, margins, addElement, updateElement, setElementSchemaBinding, ref],
+  )
+
+  // -----------------------------------------------------------------------
+  // Schema GROUP drop handler — drops all fields at once onto a repeatingBand
+  // -----------------------------------------------------------------------
+  const handleSchemaGroupDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>) => {
+      const raw = e.dataTransfer.getData(SCHEMA_GROUP_MIME)
+      if (!raw || !page) return
+
+      let payload: SchemaGroupDragPayload
+      try {
+        payload = JSON.parse(raw)
+      } catch {
+        return
+      }
+      e.preventDefault()
+
+      const canvasEl = ref.current
+      if (!canvasEl) return
+      const rect = canvasEl.getBoundingClientRect()
+      const xMm = pxToMm((e.clientX - rect.left) / zoom)
+      const yMm = pxToMm((e.clientY - rect.top) / zoom)
+
+      // Determine section
+      let sectionId: string | undefined
+      let sectionOffsetY = 0
+      for (const sec of page.sections) {
+        if (yMm < sectionOffsetY + sec.height) {
+          sectionId = sec.id
+          break
+        }
+        sectionOffsetY += sec.height
+      }
+      const relativeY = yMm - sectionOffsetY
+      const targetSection = page.sections.find((s) => s.id === sectionId)
+      const sectionElements = targetSection?.elements ?? []
+
+      // Hit-test for repeatingBand/List
+      const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
+      let hitElement: ReportElement | null = null
+      for (const el of sorted) {
+        if (
+          xMm >= el.position.x &&
+          xMm <= el.position.x + el.size.width &&
+          relativeY >= el.position.y &&
+          relativeY <= el.position.y + el.size.height
+        ) {
+          hitElement = el
+          break
+        }
+      }
+
+      const REPEATING_TYPES = new Set(['repeatingBand', 'repeatingList'])
+
+      if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
+        // Drop group onto repeatingBand → add all fields as columns
+        const bandEl = hitElement as ReportElement & {
+          fields?: { key: string; label: string; width: number; align?: string }[]
+          dataSource?: string
+        }
+        const existingKeys = new Set((bandEl.fields ?? []).map((f) => f.key))
+        const newFields = payload.fields
+          .filter((f) => !existingKeys.has(f.fieldKey))
+          .map((f) => ({
+            key: f.fieldKey,
+            label: f.fieldLabel,
+            width: 20,
+            align: 'left' as const,
+          }))
+
+        if (newFields.length === 0) return // all fields already exist
+
+        const patch: Record<string, unknown> = {
+          fields: [...(bandEl.fields ?? []), ...newFields],
+        }
+        if (!bandEl.dataSource && payload.groupDataKey) {
+          patch.dataSource = payload.groupDataKey
+        }
+        updateElement(page.id, hitElement.id, patch)
+      }
+      // If not dropped on a repeating element, do nothing (group-level drop only makes sense for repeating)
+    },
+    [page, zoom, updateElement, ref],
   )
 
   const handleContextMenuClose = useCallback(() => setContextMenu(null), [])
@@ -550,8 +646,9 @@ export function ReportCanvas({
         onPointerUp={onMarqueePointerUp}
         onDragOver={readonly ? undefined : handlePaletteDragOver}
         onDrop={readonly ? undefined : (e) => {
-          // Schema field MIME takes priority over palette MIME
-          if (e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)) {
+          if (e.dataTransfer.types.includes(SCHEMA_GROUP_MIME)) {
+            handleSchemaGroupDrop(e)
+          } else if (e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)) {
             handleSchemaFieldDrop(e)
           } else {
             handlePaletteDrop(e)

@@ -9,8 +9,8 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Database, GripVertical } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { isSystemGroup } from '@/store/schemaSlice'
-import { SCHEMA_FIELD_MIME } from '@/components/bindingEditor/types'
-import type { SchemaFieldDragPayload } from '@/components/bindingEditor/types'
+import { SCHEMA_FIELD_MIME, SCHEMA_GROUP_MIME } from '@/components/bindingEditor/types'
+import type { SchemaFieldDragPayload, SchemaGroupDragPayload } from '@/components/bindingEditor/types'
 import { cn } from '@/lib/utils'
 
 export function SchemaFieldsTab() {
@@ -49,17 +49,38 @@ export function SchemaFieldsTab() {
 function SchemaGroupSection({ group }: { group: { id: string; label: string; role: 'master' | 'detail'; dataKey: string; fields: readonly { id: string; key: string; label: string; type: string; computed?: true }[] } }) {
   const [expanded, setExpanded] = useState(true)
 
+  const groupPayload: SchemaGroupDragPayload = {
+    groupId: group.id,
+    groupLabel: group.label,
+    groupRole: group.role,
+    groupDataKey: group.dataKey,
+    fields: group.fields.map((f) => ({
+      fieldId: f.id,
+      fieldKey: f.key,
+      fieldLabel: f.label || f.key,
+      fieldType: f.type,
+    })),
+  }
+
   return (
     <div className="mb-2">
       <button
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData(SCHEMA_GROUP_MIME, JSON.stringify(groupPayload))
+          e.dataTransfer.effectAllowed = 'copy'
+        }}
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-1.5 px-1 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 rounded transition-colors"
+        className="w-full flex items-center gap-1.5 px-1 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 rounded transition-colors cursor-grab active:cursor-grabbing"
         style={{ borderLeft: `3px solid ${group.role === 'master' ? '#3b82f6' : '#f59e0b'}` }}
+        title={`${group.label} — グループごとドラッグして繰り返しバンドにドロップ`}
       >
+        <GripVertical className="w-3 h-3 text-muted-foreground/40 shrink-0" />
         {expanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
         <span className="truncate">{group.label}</span>
+        <span className="text-[9px] text-muted-foreground ml-auto mr-1">{group.fields.length}件</span>
         <span className={cn(
-          'text-[9px] px-1 py-px rounded font-medium ml-auto shrink-0',
+          'text-[9px] px-1 py-px rounded font-medium shrink-0',
           group.role === 'master' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600',
         )}>
           {group.role === 'master' ? 'マスター' : '↻ 明細'}
