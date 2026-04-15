@@ -113,6 +113,16 @@ export function BindingEditor() {
     [bs.setHoveredGroupId, bs.setHoveredFieldId],
   )
 
+  // Disconnect a binding from the SVG line's ✕ button
+  const handleDisconnectLine = useCallback(
+    (_fieldId: string, elementId: string) => {
+      // Find which page this element is on
+      const el = bs.allElements.find((e) => e.elementId === elementId)
+      if (el) bs.disconnect(el.pageId, elementId)
+    },
+    [bs.allElements, bs.disconnect],
+  )
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Bulk generate bar (conditional) */}
@@ -125,10 +135,16 @@ export function BindingEditor() {
         />
       )}
 
-      {/* 3-panel canvas */}
+      {/* 3-panel canvas — v1-style CSS Grid layout */}
       <div
         ref={cl.containerRef}
-        className="flex flex-1 overflow-hidden relative"
+        className="flex-1 relative overflow-hidden rounded-lg shadow-sm bg-background"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: dbCollapsed ? '45% 45% 10%' : '30% 35% 35%',
+          transition: 'grid-template-columns 300ms ease',
+          minHeight: 460,
+        }}
         onPointerUp={bs.handleContainerPointerUp}
       >
         {/* SVG connection lines overlay */}
@@ -141,10 +157,11 @@ export function BindingEditor() {
           hoveredGroupId={bs.hoveredGroupId}
           hoveredFieldId={bs.hoveredFieldId}
           onHoverLine={handleHoverLine}
+          onDisconnectLine={handleDisconnectLine}
         />
 
         {/* Left panel: Template elements */}
-        <div className="w-[30%] min-w-[220px] overflow-hidden bg-background">
+        <div className="overflow-hidden">
           <ElementPanel
             bs={bs}
             expandedGroups={cl.expandedElementGroups}
@@ -154,7 +171,7 @@ export function BindingEditor() {
         </div>
 
         {/* Center panel: Schema fields */}
-        <div className="flex-1 min-w-[220px] overflow-hidden">
+        <div className="overflow-hidden">
           <SchemaPanel
             bs={bs}
             expandedGroups={cl.expandedFieldGroups}
@@ -165,7 +182,7 @@ export function BindingEditor() {
         </div>
 
         {/* Right panel: DB connection */}
-        <div className={dbCollapsed ? 'w-8 shrink-0' : 'w-[25%] min-w-[200px] shrink-0'}>
+        <div className="overflow-hidden">
           <DbPanel
             collapsed={dbCollapsed}
             onToggle={toggleDb}

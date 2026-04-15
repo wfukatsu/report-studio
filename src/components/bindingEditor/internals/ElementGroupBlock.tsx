@@ -1,12 +1,15 @@
 /**
- * ElementGroupBlock — Collapsible group of bindable template elements.
+ * ElementGroupBlock — v1-style template element group.
  *
- * Visual distinction: bound elements show green dot, unbound show orange dot.
- * Supports click-to-connect, drag-to-connect, and hover highlight.
+ * Visual style matches v1 BindingEditorPage:
+ * - Bound elements: solid green border + light green background
+ * - Unbound elements: dashed gray border
+ * - Compact card layout with 8px/12px padding
+ * - Hover lift effect on field cards
  */
 
 import { memo, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Circle, CircleDot } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BindableElement, FieldItem } from '../types'
 import { getGroupColor } from '../types'
@@ -27,13 +30,6 @@ interface ElementGroupBlockProps {
   readonly onPointerUp: (pageId: string, elementId: string) => void
   readonly onNavigate: (pageId: string, elementId: string) => void
   readonly elementRef: (elementId: string, el: HTMLElement | null) => void
-}
-
-const TYPE_ICONS: Record<string, { label: string; color: string }> = {
-  dataField: { label: 'DF', color: 'text-blue-600' },
-  text: { label: 'T', color: 'text-gray-500' },
-  checkbox: { label: 'CB', color: 'text-purple-600' },
-  eraSelect: { label: '元', color: 'text-purple-600' },
 }
 
 export const ElementGroupBlock = memo(function ElementGroupBlock({
@@ -57,49 +53,48 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
   const boundCount = elements.filter((e) => e.boundFieldId).length
 
   return (
-    <div className="border-b last:border-b-0">
+    <div className="mb-1">
       {/* Group header */}
       <button
-        className="w-full flex items-center gap-1.5 px-3 py-2 bg-muted/30 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
         onClick={handleToggle}
       >
         {expanded
-          ? <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-          : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+          ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
         <span className="truncate">{pageLabel}</span>
-        <span className={cn(
-          'ml-auto text-[10px] px-1.5 py-0.5 rounded-full',
-          boundCount === elements.length
-            ? 'bg-green-100 text-green-700'
-            : 'bg-muted text-muted-foreground',
-        )}>
+        <span className="ml-auto font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-px rounded-full">
           {boundCount}/{elements.length}
         </span>
       </button>
 
-      {/* Element list */}
-      {expanded && elements.map((element) => (
-        <ElementSlot
-          key={element.elementId}
-          element={element}
-          selectedFieldId={selectedFieldId}
-          isDragging={isDragging}
-          fieldMap={fieldMap}
-          groupIndexMap={groupIndexMap}
-          hoveredFieldId={hoveredFieldId}
-          onConnect={onConnect}
-          onDisconnect={onDisconnect}
-          onPointerUp={onPointerUp}
-          onNavigate={onNavigate}
-          elementRef={elementRef}
-        />
-      ))}
+      {/* Element cards */}
+      {expanded && (
+        <div className="flex flex-col gap-1 px-1 pb-1 pt-0.5">
+          {elements.map((element) => (
+            <ElementSlot
+              key={element.elementId}
+              element={element}
+              selectedFieldId={selectedFieldId}
+              isDragging={isDragging}
+              fieldMap={fieldMap}
+              groupIndexMap={groupIndexMap}
+              hoveredFieldId={hoveredFieldId}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onPointerUp={onPointerUp}
+              onNavigate={onNavigate}
+              elementRef={elementRef}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 })
 
 // ---------------------------------------------------------------------------
-// ElementSlot
+// ElementSlot — v1-style card with bound/unbound visual distinction
 // ---------------------------------------------------------------------------
 
 interface ElementSlotProps {
@@ -136,7 +131,6 @@ const ElementSlot = memo(function ElementSlot({
     selectedFieldId !== null && element.boundFieldId === selectedFieldId
   const isHoveredConnection =
     hoveredFieldId !== null && element.boundFieldId === hoveredFieldId
-  const typeInfo = TYPE_ICONS[element.elementType] ?? TYPE_ICONS.text
   const groupColor = boundField
     ? getGroupColor(groupIndexMap.get(boundField.groupId) ?? 0)
     : undefined
@@ -159,47 +153,52 @@ const ElementSlot = memo(function ElementSlot({
       ref={(el) => elementRef(element.elementId, el)}
       data-element-id={element.elementId}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors group',
-        // Highlight states
-        isConnectedToSelected && 'bg-primary/10',
-        isHoveredConnection && 'bg-primary/5',
-        // Interaction modes
-        (selectedFieldId !== null || isDragging) && 'hover:bg-primary/10 cursor-pointer',
-        selectedFieldId === null && !isDragging && element.boundFieldId && 'hover:bg-destructive/5',
-        // Unbound: dimmed with dashed border indicator
-        selectedFieldId === null && !isDragging && !element.boundFieldId && 'hover:bg-accent opacity-50',
+        'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left transition-all',
+        // v1 style: bound = solid border + green bg, unbound = dashed border
+        boundField
+          ? 'border-2 border-[#00C853]/40 bg-[#00C853]/5'
+          : 'border-2 border-dashed border-border/60 bg-background',
+        // Interaction highlights
+        isConnectedToSelected && 'ring-2 ring-[#6366f1]/30',
+        isHoveredConnection && 'bg-[#6366f1]/5',
+        (selectedFieldId !== null || isDragging) && 'hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
+        selectedFieldId === null && !isDragging && boundField && 'hover:border-red-300 hover:bg-red-50/50',
       )}
       onClick={handleClick}
       onPointerUp={() => onPointerUp(element.pageId, element.elementId)}
       onDoubleClick={() => onNavigate(element.pageId, element.elementId)}
-      title={boundField ? `バインド先: ${boundField.fieldKey} (ダブルクリックでキャンバスに移動)` : '未バインド (ダブルクリックでキャンバスに移動)'}
+      title={boundField ? `バインド先: ${boundField.fieldKey}` : '未バインド — フィールドを選択して接続'}
     >
-      {/* Binding status indicator */}
-      {boundField ? (
-        <CircleDot className="w-3 h-3 shrink-0" style={{ color: groupColor }} />
-      ) : (
-        <Circle className="w-3 h-3 shrink-0 text-muted-foreground/40" />
-      )}
-
-      {/* Type badge */}
-      <span className={cn('text-[10px] font-mono shrink-0 w-5', typeInfo.color)}>
-        {typeInfo.label}
-      </span>
+      {/* Binding dot */}
+      <span
+        className="w-2 h-2 rounded-full shrink-0 transition-colors"
+        style={{
+          backgroundColor: boundField ? (groupColor ?? '#00C853') : 'var(--border)',
+          boxShadow: boundField ? `0 0 0 2px ${groupColor ?? '#00C853'}33` : undefined,
+        }}
+      />
 
       {/* Element name */}
-      <span className="flex-1 truncate">{element.elementLabel}</span>
+      <span className={cn(
+        'flex-1 truncate font-medium',
+        boundField ? 'text-foreground' : 'text-muted-foreground',
+      )}>
+        {element.elementLabel}
+      </span>
 
-      {/* Bound field key */}
+      {/* Bound field indicator */}
       {boundField ? (
         <span
-          className="text-[10px] font-mono shrink-0 max-w-[35%] truncate px-1 rounded"
-          style={{ color: groupColor, backgroundColor: `${groupColor}15` }}
+          className="text-[10px] font-mono shrink-0 max-w-[40%] truncate"
+          style={{ color: groupColor }}
         >
           ← {boundField.fieldKey}
         </span>
       ) : (selectedFieldId !== null || isDragging) ? (
-        <span className="text-[10px] text-primary animate-pulse shrink-0">ドロップ</span>
-      ) : null}
+        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">接続</span>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/50 italic shrink-0">未バインド</span>
+      )}
     </button>
   )
 })

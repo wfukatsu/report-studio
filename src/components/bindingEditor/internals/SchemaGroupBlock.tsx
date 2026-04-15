@@ -1,13 +1,17 @@
 /**
- * SchemaGroupBlock — Collapsible schema group with group-colored header.
+ * SchemaGroupBlock — v1-style schema field group.
  *
- * Improved: larger click targets, group color stripe, better role badges,
- * hover state for connection highlighting.
+ * Visual style matches v1:
+ * - Field cards with ring shadow, monospace font
+ * - Hover: translateX(-2px) + elevated shadow
+ * - Bound fields: indigo ring + indigo dot
+ * - Computed fields: indigo left border + light indigo bg
+ * - Group header with role badge
  */
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, FunctionSquare, X,
+  ChevronDown, ChevronRight, Plus, Trash2, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
@@ -45,7 +49,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   onAddField,
   onRemoveField,
   onSetAddingField,
-  onBulkGenerate,
+  onBulkGenerate: _onBulkGenerate,
   onOpenComputedDialog,
   onConnect,
   fieldRef,
@@ -61,10 +65,10 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   const color = getGroupColor(groupIndex)
 
   return (
-    <div className="border-b last:border-b-0">
-      {/* Group header with color stripe */}
+    <div className="mb-1">
+      {/* Group header */}
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/30 text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
         onClick={handleToggle}
         data-schemagroup-id={group.id}
         style={{ borderLeft: `3px solid ${color}` }}
@@ -76,50 +80,48 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
         <span className={cn(
           'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
           group.role === 'master'
-            ? 'bg-blue-100 text-blue-700 border border-blue-200'
-            : 'bg-amber-100 text-amber-700 border border-amber-200',
+            ? 'bg-blue-50 text-blue-600 border border-blue-200'
+            : 'bg-amber-50 text-amber-600 border border-amber-200',
         )}>
           {group.role === 'master' ? 'マスター' : '明細'}
         </span>
-        <span className={cn(
-          'ml-auto text-[10px] px-1.5 py-0.5 rounded-full',
-          boundCount === group.fields.length && group.fields.length > 0
-            ? 'bg-green-100 text-green-700'
-            : 'bg-muted text-muted-foreground',
-        )}>
+        <span className="ml-auto font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-px rounded-full">
           {boundCount}/{group.fields.length}
         </span>
       </button>
 
-      {/* Field list */}
+      {/* Field cards */}
       {expanded && (
         <>
-          {group.fields.length === 0 ? (
-            <div className="px-3 py-3 text-xs text-muted-foreground italic">
-              フィールドがありません
-            </div>
-          ) : (
-            group.fields.map((field) => (
-              <FieldCard
-                key={field.id}
-                field={field}
-                groupId={group.id}
-                groupIndex={groupIndex}
-                isSelected={selectedFieldId === field.id}
-                isHovered={hoveredFieldId === field.id}
-                boundCount={fieldBoundCount.get(field.id) ?? 0}
-                onConnect={onConnect}
-                onRemove={onRemoveField}
-                fieldRef={fieldRef}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onHoverField={onHoverField}
-              />
-            ))
-          )}
+          <div className="flex flex-col gap-1 px-1 pb-1 pt-0.5">
+            {group.fields.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-muted-foreground italic text-center">
+                フィールドがありません
+              </div>
+            ) : (
+              group.fields.map((field) => (
+                <FieldCard
+                  key={field.id}
+                  field={field}
+                  groupId={group.id}
+                  groupIndex={groupIndex}
+                  isBound={boundFieldIds.has(field.id)}
+                  isSelected={selectedFieldId === field.id}
+                  isHovered={hoveredFieldId === field.id}
+                  boundCount={fieldBoundCount.get(field.id) ?? 0}
+                  onConnect={onConnect}
+                  onRemove={onRemoveField}
+                  fieldRef={fieldRef}
+                  onPointerDown={onPointerDown}
+                  onPointerMove={onPointerMove}
+                  onHoverField={onHoverField}
+                />
+              ))
+            )}
+          </div>
 
           {/* Footer: add field / computed field */}
-          <div className="flex items-center gap-2 px-3 py-1.5 border-t border-dashed">
+          <div className="flex items-center gap-2 px-2 pb-1.5">
             {addingField ? (
               <InlineAddField
                 groupId={group.id}
@@ -128,26 +130,20 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
               />
             ) : (
               <>
+                {/* v1-style dashed add button */}
                 <button
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-1.5 py-1"
+                  className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-[#00C853] hover:border-[#00C853]/50 hover:bg-[#00C853]/5 w-full ml-4 py-1.5 border-2 border-dashed border-border/30 rounded-md transition-colors"
                   onClick={() => onSetAddingField(group.id)}
                 >
                   <Plus className="w-3.5 h-3.5" /> フィールド追加
                 </button>
                 {onOpenComputedDialog && (
                   <button
-                    className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 px-1.5 py-1"
+                    className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 px-2 py-1.5 shrink-0 font-medium"
                     onClick={() => onOpenComputedDialog(group.id)}
+                    title="計算フィールドを追加"
                   >
-                    <FunctionSquare className="w-3.5 h-3.5" /> 計算式
-                  </button>
-                )}
-                {onBulkGenerate && (
-                  <button
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-1.5 py-1 ml-auto"
-                    onClick={() => onBulkGenerate(group.id)}
-                  >
-                    一括生成
+                    <span className="text-[9px] font-bold italic bg-[#6366f1] text-white rounded px-1 py-px">fx</span>
                   </button>
                 )}
               </>
@@ -160,13 +156,14 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
 })
 
 // ---------------------------------------------------------------------------
-// FieldCard
+// FieldCard — v1-style with ring shadow, monospace name, hover lift
 // ---------------------------------------------------------------------------
 
 interface FieldCardProps {
   readonly field: SchemaField
   readonly groupId: string
   readonly groupIndex: number
+  readonly isBound: boolean
   readonly isSelected: boolean
   readonly isHovered: boolean
   readonly boundCount: number
@@ -182,6 +179,7 @@ const FieldCard = memo(function FieldCard({
   field,
   groupId,
   groupIndex,
+  isBound,
   isSelected,
   isHovered,
   boundCount,
@@ -199,40 +197,72 @@ const FieldCard = memo(function FieldCard({
       ref={(el) => fieldRef(field.id, el)}
       data-field-id={field.id}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors select-none group',
-        isSelected && 'bg-primary/10 ring-1 ring-primary/30',
-        isHovered && !isSelected && 'bg-primary/5',
-        !isSelected && !isHovered && 'hover:bg-accent',
+        'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left select-none cursor-grab group transition-all',
+        // v1 style: ring shadow + computed border
+        field.computed
+          ? 'bg-[#6366f1]/5 border-l-[3px] border-l-[#6366f1]/40'
+          : 'bg-background',
+        // Bound: indigo ring
+        isBound && !field.computed && 'shadow-[0_0_0_1px_rgba(99,102,241,0.3),0_1px_3px_rgba(99,102,241,0.08)]',
+        // Unbound: subtle ring
+        !isBound && !field.computed && 'shadow-[0_0_0_1px_rgba(0,0,0,0.08)]',
+        // Selection
+        isSelected && 'ring-2 ring-[#6366f1] shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_2px_8px_rgba(99,102,241,0.15)]',
+        // Hover lift (v1: translateX(-2px))
+        isHovered && !isSelected && '-translate-x-0.5 shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
+        !isSelected && !isHovered && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
       )}
       onClick={() => onConnect?.(field.id)}
       onPointerDown={(e) => onPointerDown(e, field.id)}
       onPointerMove={(e) => onPointerMove(e, field.id)}
       onMouseEnter={() => onHoverField(field.id)}
       onMouseLeave={() => onHoverField(null)}
-      title={`${field.key}${field.dbColumnName ? ` (DB: ${field.dbColumnName})` : ''} — クリックで選択、ドラッグで接続`}
+      title={`${field.key} — クリックで選択、ドラッグで要素に接続`}
     >
+      {/* Binding dot (v1: 8px circle) */}
+      <span
+        className="w-2 h-2 rounded-full shrink-0 transition-colors"
+        style={{
+          backgroundColor: isBound ? '#6366f1' : 'var(--border)',
+          boxShadow: isBound ? '0 0 0 2px rgba(99,102,241,0.2)' : undefined,
+        }}
+      />
+
+      {/* Computed badge */}
       {field.computed && (
-        <FunctionSquare className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+        <span className="text-[9px] font-bold italic bg-[#6366f1] text-white rounded px-1 py-px shrink-0 min-w-[20px] text-center">
+          fx
+        </span>
       )}
-      <span className="flex-1 truncate font-medium">{field.label || field.key}</span>
-      <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[25%]">
+
+      {/* Field name (v1: monospace, 550 weight) */}
+      <span className="flex-1 truncate font-mono font-medium text-foreground">
+        {field.label || field.key}
+      </span>
+
+      {/* Field path */}
+      <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[130px] ml-auto">
         {field.key}
       </span>
+
+      {/* Bound count badge */}
       {boundCount > 0 && (
         <span
-          className="text-[10px] rounded-full px-1.5 py-0.5 font-medium shrink-0"
-          style={{ backgroundColor: `${color}20`, color }}
+          className="text-[10px] rounded-full px-1.5 py-0.5 font-mono font-semibold shrink-0"
+          style={{ backgroundColor: `${color}15`, color }}
         >
           {boundCount}
         </span>
       )}
+
+      {/* Delete button */}
       <button
-        className="text-muted-foreground/30 hover:text-destructive p-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="text-muted-foreground/20 hover:text-red-500 p-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation()
           onRemove(groupId, field.id)
         }}
-        title="フィールドを削除"
+        title="削除"
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
@@ -265,7 +295,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
     <div className="flex items-center gap-1.5 w-full">
       <input
         autoFocus
-        className="flex-1 text-xs border rounded px-2 py-1 bg-background"
+        className="flex-1 text-xs border rounded-md px-2.5 py-1.5 bg-background font-mono"
         placeholder="フィールド名"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -274,16 +304,10 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
           if (e.key === 'Escape') onCancel()
         }}
       />
-      <button
-        className="text-xs text-primary hover:underline px-1"
-        onClick={handleSubmit}
-      >
+      <button className="text-xs text-[#6366f1] font-medium px-1.5" onClick={handleSubmit}>
         追加
       </button>
-      <button
-        className="text-muted-foreground hover:text-foreground p-0.5"
-        onClick={onCancel}
-      >
+      <button className="text-muted-foreground hover:text-foreground p-0.5" onClick={onCancel}>
         <X className="w-3.5 h-3.5" />
       </button>
     </div>
