@@ -4,6 +4,7 @@ import { QUOTATION_DISCOUNT_TEMPLATE } from './quotationDiscountTemplate'
 import { QUOTATION_ENGLISH_TEMPLATE } from './quotationEnglishTemplate'
 import { FUYOU_KOJO_TEMPLATE } from './fuyouKojoTemplate'
 import { ELEMENT_SHOWCASE_TEMPLATE } from './elementShowcaseTemplate'
+import { BINDING_EDITOR_SAMPLE_TEMPLATE } from './bindingEditorSampleTemplate'
 
 export const BUILTIN_TEMPLATES: Template[] = [
   QUOTATION_TEMPLATE,
@@ -11,4 +12,5 @@ export const BUILTIN_TEMPLATES: Template[] = [
   QUOTATION_ENGLISH_TEMPLATE,
   FUYOU_KOJO_TEMPLATE,
   ELEMENT_SHOWCASE_TEMPLATE,
+  BINDING_EDITOR_SAMPLE_TEMPLATE,
 ]

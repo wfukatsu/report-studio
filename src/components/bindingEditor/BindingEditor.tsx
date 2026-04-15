@@ -1,13 +1,12 @@
 /**
  * BindingEditor — Main 3-panel layout for schema/element binding.
  *
- * Replaces the old DataManagementTab with a v1-style binding editor:
- *   Left:   Template elements (grouped by page)
- *   Center: Schema fields (grouped by schema group)
- *   Right:  DB connection panel (accordion, collapsible)
+ * Left:   Template elements (grouped by page) — click/drag targets
+ * Center: Schema fields (grouped by schema group) — click/drag sources
+ * Right:  DB connection panel (accordion, collapsible)
  *
- * SVG overlay draws connection lines between bound fields and elements.
- * Summary bar at the bottom shows binding statistics.
+ * SVG overlay draws color-coded arrow lines between bound fields and elements.
+ * Summary bar with group color legend at the bottom.
  */
 
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
@@ -34,7 +33,6 @@ export function BindingEditor() {
   const [dbCollapsed, setDbCollapsed] = useState(false)
   const toggleDb = useCallback(() => {
     setDbCollapsed((prev) => !prev)
-    // Trigger line recalc after CSS transition
     setTimeout(() => cl.triggerRecalc(), 320)
   }, [cl.triggerRecalc])
 
@@ -81,20 +79,14 @@ export function BindingEditor() {
     for (const group of bs.schemaGroups) {
       cl.expandFieldGroup(group.id)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recalc lines when groups change
   useEffect(() => {
     cl.triggerRecalc()
   }, [bs.schemaGroups, bs.elementGroups, cl.triggerRecalc])
 
-  // beforeUnload dirty guard
-  useEffect(() => {
-    // In v2 the store auto-saves, so beforeUnload is a no-op for now.
-    // Placeholder for future dirty detection.
-  }, [])
-
-  // Element ref callback for SVG line calculation
+  // Element ref callback
   const elementRefCallback = useCallback(
     (elementId: string, el: HTMLElement | null) => {
       if (el) cl.elementRefs.current.set(elementId, el)
@@ -103,7 +95,7 @@ export function BindingEditor() {
     [cl.elementRefs],
   )
 
-  // Field ref callback for SVG line calculation
+  // Field ref callback
   const fieldRefCallback = useCallback(
     (fieldId: string, el: HTMLElement | null) => {
       if (el) cl.fieldRefs.current.set(fieldId, el)
@@ -112,8 +104,17 @@ export function BindingEditor() {
     [cl.fieldRefs],
   )
 
+  // Connection line hover handler
+  const handleHoverLine = useCallback(
+    (groupId: string | null, fieldId: string | null) => {
+      bs.setHoveredGroupId(groupId)
+      bs.setHoveredFieldId(fieldId)
+    },
+    [bs.setHoveredGroupId, bs.setHoveredFieldId],
+  )
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Bulk generate bar (conditional) */}
       {bs.bulk && bs.bulkItems.length > 0 && (
         <BulkGenerateBar
@@ -136,10 +137,14 @@ export function BindingEditor() {
           dragState={bs.dragState}
           fieldRefs={cl.fieldRefs}
           containerRef={cl.containerRef}
+          groupIndexMap={bs.groupIndexMap}
+          hoveredGroupId={bs.hoveredGroupId}
+          hoveredFieldId={bs.hoveredFieldId}
+          onHoverLine={handleHoverLine}
         />
 
         {/* Left panel: Template elements */}
-        <div className="w-[30%] min-w-[200px] border-r overflow-hidden">
+        <div className="w-[30%] min-w-[220px] overflow-hidden bg-background">
           <ElementPanel
             bs={bs}
             expandedGroups={cl.expandedElementGroups}
@@ -149,7 +154,7 @@ export function BindingEditor() {
         </div>
 
         {/* Center panel: Schema fields */}
-        <div className="flex-1 min-w-[200px] overflow-hidden">
+        <div className="flex-1 min-w-[220px] overflow-hidden">
           <SchemaPanel
             bs={bs}
             expandedGroups={cl.expandedFieldGroups}
@@ -160,7 +165,7 @@ export function BindingEditor() {
         </div>
 
         {/* Right panel: DB connection */}
-        <div className={dbCollapsed ? 'w-8 shrink-0' : 'w-[25%] min-w-[180px] shrink-0'}>
+        <div className={dbCollapsed ? 'w-8 shrink-0' : 'w-[25%] min-w-[200px] shrink-0'}>
           <DbPanel
             collapsed={dbCollapsed}
             onToggle={toggleDb}
@@ -168,12 +173,14 @@ export function BindingEditor() {
         </div>
       </div>
 
-      {/* Summary bar */}
+      {/* Summary bar with group color legend */}
       {(bs.hasSchema || bs.hasFields) && (
         <SummaryBar
           bound={bs.boundElements}
           total={bs.totalElements}
           unbound={bs.unboundElements}
+          groups={bs.schemaGroups}
+          groupIndexMap={bs.groupIndexMap}
         />
       )}
 

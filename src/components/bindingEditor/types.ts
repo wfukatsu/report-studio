@@ -52,6 +52,8 @@ export interface FieldItem {
 export interface BindingConnection {
   readonly fieldId: string
   readonly elementId: string
+  /** Schema group ID for color-coding connection lines */
+  readonly groupId: string
 }
 
 // ---------------------------------------------------------------------------
@@ -90,8 +92,26 @@ export interface LinePos {
   readonly y2: number
   readonly fieldId: string
   readonly elementId: string
+  /** Schema group ID for color-coding */
+  readonly groupId: string
   /** True when either endpoint's group is collapsed */
   readonly isCollapsed: boolean
+}
+
+/** Group color palette for connection lines (up to 8 groups). */
+export const GROUP_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#f97316', // orange
+  '#ec4899', // pink
+] as const
+
+export function getGroupColor(groupIndex: number): string {
+  return GROUP_COLORS[groupIndex % GROUP_COLORS.length]
 }
 
 // ---------------------------------------------------------------------------

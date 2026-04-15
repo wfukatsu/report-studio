@@ -86,7 +86,7 @@ export function useConnectionLines(
       const containerRect = container.getBoundingClientRect()
       const newLines: LinePos[] = []
 
-      for (const { fieldId, elementId } of connections) {
+      for (const { fieldId, elementId, groupId } of connections) {
         const fieldEl = fieldRefs.current.get(fieldId)
         const elementEl = elementRefs.current.get(elementId)
         if (!fieldEl || !elementEl) continue
@@ -101,6 +101,7 @@ export function useConnectionLines(
           y2: elementRect.top + elementRect.height / 2 - containerRect.top,
           fieldId,
           elementId,
+          groupId,
           isCollapsed: false,
         })
       }

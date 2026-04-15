@@ -18,6 +18,7 @@ import type {
   BulkItem,
 } from '../types'
 import { isBindableType } from '../types'
+import { isSystemGroup } from '@/store/schemaSlice'
 
 export function useBindingState() {
   // -----------------------------------------------------------------------
@@ -47,10 +48,18 @@ export function useBindingState() {
   const [addingFieldGroupId, setAddingFieldGroupId] = useState<string | null>(null)
 
   // -----------------------------------------------------------------------
-  // Derived: all schema fields (flat)
+  // Derived: user-visible schema groups (exclude system groups)
+  // -----------------------------------------------------------------------
+  const userSchemaGroups = useMemo(() =>
+    (schema?.groups ?? []).filter((g) => !isSystemGroup(g.id)),
+    [schema?.groups],
+  )
+
+  // -----------------------------------------------------------------------
+  // Derived: all schema fields (flat, from user groups only)
   // -----------------------------------------------------------------------
   const allFields: FieldItem[] = useMemo(() =>
-    (schema?.groups ?? []).flatMap((group) =>
+    userSchemaGroups.flatMap((group) =>
       group.fields.map((field) => ({
         fieldId: field.id,
         fieldKey: field.key,
@@ -62,7 +71,7 @@ export function useBindingState() {
         expression: field.expression,
       })),
     ),
-    [schema?.groups],
+    [userSchemaGroups],
   )
 
   // -----------------------------------------------------------------------
@@ -100,8 +109,15 @@ export function useBindingState() {
   const connections: BindingConnection[] = useMemo(() =>
     allElements
       .filter((el) => el.boundFieldId != null)
-      .map((el) => ({ fieldId: el.boundFieldId!, elementId: el.elementId })),
-    [allElements],
+      .map((el) => {
+        const field = allFields.find((f) => f.fieldId === el.boundFieldId)
+        return {
+          fieldId: el.boundFieldId!,
+          elementId: el.elementId,
+          groupId: field?.groupId ?? '',
+        }
+      }),
+    [allElements, allFields],
   )
 
   const fieldBoundCount = useMemo(() => {
@@ -258,19 +274,31 @@ export function useBindingState() {
   }, [bulk, bulkItems, schema?.groups, addSchemaField])
 
   // -----------------------------------------------------------------------
-  // Schema state flags
+  // Schema state flags (based on user groups only)
   // -----------------------------------------------------------------------
-  const hasSchema = (schema?.groups ?? []).length > 0
-  const hasFields = (schema?.groups ?? []).some((g) => g.fields.length > 0)
-  const hasPhysicalSchema = (schema?.groups ?? []).some((g) => g.tableMeta != null)
+  const hasSchema = userSchemaGroups.length > 0
+  const hasFields = userSchemaGroups.some((g) => g.fields.length > 0)
+  const hasPhysicalSchema = userSchemaGroups.some((g) => g.tableMeta != null)
+
+  // Group index map for color coding
+  const groupIndexMap = useMemo(() => {
+    const map = new Map<string, number>()
+    userSchemaGroups.forEach((g, i) => map.set(g.id, i))
+    return map
+  }, [userSchemaGroups])
+
+  // Hovered connection state
+  const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
+  const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null)
 
   return {
     // Schema from store
     schema,
-    schemaGroups: schema?.groups ?? [],
+    schemaGroups: userSchemaGroups,
     hasSchema,
     hasFields,
     hasPhysicalSchema,
+    groupIndexMap,
 
     // Derived display data
     allFields,
@@ -314,6 +342,12 @@ export function useBindingState() {
     // Bulk generation actions
     setBulk,
     runBulk,
+
+    // Hover state for connection highlighting
+    hoveredGroupId,
+    setHoveredGroupId,
+    hoveredFieldId,
+    setHoveredFieldId,
 
     // Field adding mode
     setAddingFieldGroupId,
