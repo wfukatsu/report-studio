@@ -433,7 +433,15 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
   const handleColumnContextMenu = useCallback((e: React.MouseEvent, colIndex: number) => {
     e.preventDefault()
     e.stopPropagation()
-    setColMenu({ x: e.clientX, y: e.clientY, colIndex })
+    // Position editor below the clicked header cell
+    const cell = (e.currentTarget as HTMLElement)
+    const rect = cell.getBoundingClientRect()
+    // Clamp to viewport so panel doesn't go off-screen
+    const panelWidth = 220
+    const panelHeight = 320
+    const x = Math.min(rect.left, window.innerWidth - panelWidth - 8)
+    const y = Math.min(rect.bottom + 4, window.innerHeight - panelHeight - 8)
+    setColMenu({ x, y, colIndex })
   }, [])
 
   return (
