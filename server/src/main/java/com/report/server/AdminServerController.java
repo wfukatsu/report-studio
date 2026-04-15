@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Admin-only server configuration endpoints:
@@ -43,25 +44,17 @@ public final class AdminServerController {
         "scalar.db.jdbc.connection_pool.max_total"
     );
 
+    private static final long RESTART_COOLDOWN_MS = 60_000; // 1 minute between restarts
+
     private final Path propsPath;
+    private final AtomicLong lastRestartRequestMs = new AtomicLong(0);
 
     public AdminServerController(Path propsPath) {
         this.propsPath = propsPath;
     }
 
-    private boolean requireAdmin(Context ctx) {
-        Principal principal = ctx.attribute("principal");
-        if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Admin role required"));
-            return false;
-        }
-        return true;
-    }
-
     /** GET /api/v1/admin/server-config — return current properties (password masked). */
     public void getConfig(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         try {
             Properties props = loadProps();
@@ -76,35 +69,26 @@ public final class AdminServerController {
             }
             ctx.json(config);
         } catch (IOException e) {
+            log.error("Failed to read server config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read config: " + e.getMessage()));
+            ctx.json(Map.of("error", "サーバー設定の読み込みに失敗しました"));
         }
     }
 
     /** PUT /api/v1/admin/server-config — write properties (atomically). */
     public void putConfig(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         try {
             @SuppressWarnings("unchecked")
             Map<String, String> incoming = ctx.bodyAsClass(Map.class);
-
-            Properties props = loadProps();
-            for (Map.Entry<String, String> entry : incoming.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                // Don't overwrite with masked placeholder
-                if (!EXPOSED_KEYS.contains(key)) continue;
-                if (key.endsWith(".password") && "***".equals(value)) continue;
-                props.setProperty(key, value);
-            }
-
+            Properties props = mergeIncoming(incoming);
             saveProps(props);
             log.info("Admin updated server config");
             ctx.json(Map.of("message", "Config saved. Restart the server to apply."));
         } catch (IOException e) {
+            log.error("Failed to write server config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to write config: " + e.getMessage()));
+            ctx.json(Map.of("error", "サーバー設定の保存に失敗しました"));
         }
     }
 
@@ -113,23 +97,13 @@ public final class AdminServerController {
      * Accepts same body as PUT. Creates a temporary TransactionFactory to test connectivity.
      */
     public void testConfig(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         try {
             @SuppressWarnings("unchecked")
             Map<String, String> incoming = ctx.bodyAsClass(Map.class);
-
-            Properties props = loadProps();
-            for (Map.Entry<String, String> entry : incoming.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                if (!EXPOSED_KEYS.contains(key)) continue;
-                if (key.endsWith(".password") && "***".equals(value)) continue;
-                props.setProperty(key, value);
-            }
+            Properties props = mergeIncoming(incoming);
 
             // Try to create a factory — if it succeeds, connection is valid
-            // TransactionFactory doesn't have a close() method; just creating it tests connectivity
             com.scalar.db.service.TransactionFactory.create(props);
 
             ctx.json(Map.of("success", true, "message", "接続テスト成功"));
@@ -144,25 +118,46 @@ public final class AdminServerController {
     }
 
     /**
-     * POST /api/v1/admin/server/restart — schedule JVM halt after 2s.
+     * POST /api/v1/admin/server/restart — schedule graceful JVM exit after 2s.
      * The process manager (gradle, shell script) is expected to restart the server.
-     * Returns 200 before halting.
+     * Returns 200 before exiting. Rate-limited to 1 request per minute.
      */
     public void restart(Context ctx) {
-        if (!requireAdmin(ctx)) return;
+
+        long now = System.currentTimeMillis();
+        long last = lastRestartRequestMs.get();
+        if (now - last < RESTART_COOLDOWN_MS) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
+            ctx.json(Map.of("error", "再起動は1分に1回までです。しばらくお待ちください。"));
+            return;
+        }
+        lastRestartRequestMs.set(now);
 
         Principal principal = ctx.attribute("principal");
         String userId = (principal != null) ? principal.userId() : "unknown";
         ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。"));
-        log.warn("Admin [{}] requested server restart — halting JVM in 2 seconds", userId);
+        log.warn("Admin [{}] requested server restart — exiting JVM in 2 seconds", userId);
 
         CompletableFuture.runAsync(() -> {
             try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            Runtime.getRuntime().halt(0);
+            System.exit(0);
         });
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
+
+    /** Merge incoming config into current properties, skipping unknown keys and masked passwords. */
+    private Properties mergeIncoming(Map<String, String> incoming) throws IOException {
+        Properties props = loadProps();
+        for (Map.Entry<String, String> entry : incoming.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (!EXPOSED_KEYS.contains(key)) continue;
+            if (key.endsWith(".password") && "***".equals(value)) continue;
+            props.setProperty(key, value);
+        }
+        return props;
+    }
 
     private Properties loadProps() throws IOException {
         Properties props = new Properties();

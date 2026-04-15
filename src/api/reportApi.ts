@@ -184,19 +184,6 @@ export async function createUser(user: {
   return apiFetch('/api/v1/admin/users', UserSummarySchema, { ...jsonBody(user), signal })
 }
 
-export async function updateUser(
-  userId: string,
-  patch: { displayName?: string; password?: string; roles?: UserRole[] },
-  signal?: AbortSignal,
-): Promise<UserSummary> {
-  return apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}`, UserSummarySchema, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
-    signal,
-  })
-}
-
 export async function deleteUser(userId: string): Promise<void> {
   return apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}`, z.undefined(), {
     method: 'DELETE',

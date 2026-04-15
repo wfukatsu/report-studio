@@ -111,6 +111,15 @@ public final class ApiRoutes {
                 throw new io.javalin.http.UnauthorizedResponse("Authentication required");
             }
         });
+
+        // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
+        // Runs after auth filter so principal is already resolved
+        app.before("/api/v1/admin/*", ctx -> {
+            com.report.server.auth.Principal principal = ctx.attribute("principal");
+            if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
+                throw new io.javalin.http.ForbiddenResponse("Admin role required");
+            }
+        });
     }
 
     // ── Route groups ───────────────────────────────────────────────────────────

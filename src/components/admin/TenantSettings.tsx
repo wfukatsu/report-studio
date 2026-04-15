@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
+import { AlertBanner } from '@/components/common/AlertBanner'
 import type { TenantInfo } from '@/types'
 
 export function TenantSettings() {
@@ -12,6 +13,7 @@ export function TenantSettings() {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(originalForm)
 
@@ -27,6 +29,11 @@ export function TenantSettings() {
     }
   }, [tenantInfo])
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
   function setField<K extends keyof TenantInfo>(key: K, value: TenantInfo[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -39,7 +46,8 @@ export function TenantSettings() {
       await updateTenantInfo(form)
       setOriginalForm(form)
       setSaveMessage('テナント情報を保存しました。')
-      setTimeout(() => setSaveMessage(null), 3000)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setSaveMessage(null), 3000)
     } catch {
       setError('テナント情報の保存に失敗しました')
     } finally {
@@ -58,16 +66,8 @@ export function TenantSettings() {
         )}
       </div>
 
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
-      )}
-      {saveMessage && (
-        <div className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
-          {saveMessage}
-        </div>
-      )}
+      {error && <AlertBanner variant="error" message={error} />}
+      {saveMessage && <AlertBanner variant="success" message={saveMessage} />}
 
       <div className="flex flex-col gap-3">
         <div>

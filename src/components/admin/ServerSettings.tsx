@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { getServerConfig, putServerConfig, testServerConfig, restartServer } from '@/api/reportApi'
-import type { ServerConfig } from '@/api/reportApi'
+import { useEffect, useRef, useState } from 'react'
+import { testServerConfig, restartServer } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { AlertBanner } from '@/components/common/AlertBanner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,57 +12,59 @@ const STORAGE_OPTIONS = ['jdbc', 'cassandra', 'cosmos', 'dynamo'] as const
 
 export function ServerSettings() {
   const backendConnected = useReportStore((s) => s.backendConnected)
-  const [config, setConfig] = useState<ServerConfig>({})
-  const [originalConfig, setOriginalConfig] = useState<ServerConfig>({})
-  const [loading, setLoading] = useState(true)
+  const config = useReportStore((s) => s.adminServerConfig)
+  const originalConfig = useReportStore((s) => s.adminServerConfigOriginal)
+  const loading = useReportStore((s) => s.adminServerConfigLoading)
+  const storeError = useReportStore((s) => s.adminServerConfigError)
+  const fetchConfig = useReportStore((s) => s.fetchAdminServerConfig)
+  const setField = useReportStore((s) => s.setAdminServerConfigField)
+  const saveConfig = useReportStore((s) => s.saveAdminServerConfig)
+
   const [saving, setSaving] = useState(false)
   const [restarting, setRestarting] = useState(false)
   const [testState, setTestState] = useState<TestState>('idle')
-  const [error, setError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDirty = JSON.stringify(config) !== JSON.stringify(originalConfig)
+  const error = localError ?? storeError
 
   useEffect(() => {
-    void loadConfig()
-  }, [])
+    const controller = new AbortController()
+    void fetchConfig()
+    return () => controller.abort()
+  }, [fetchConfig])
 
   // Detect server restart completion
   useEffect(() => {
     if (restarting && backendConnected) {
       setRestarting(false)
-      setError(null)
+      setLocalError(null)
     }
   }, [backendConnected, restarting])
 
-  async function loadConfig() {
-    try {
-      const cfg = await getServerConfig()
-      setConfig(cfg)
-      setOriginalConfig(cfg)
-    } catch {
-      setError('設定の読み込みに失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
 
-  function setField(key: string, value: string) {
-    setConfig((prev) => ({ ...prev, [key]: value }))
+  function scheduleTimer(fn: () => void, ms: number) {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(fn, ms)
   }
 
   async function handleSave() {
     setSaving(true)
-    setError(null)
+    setLocalError(null)
     setSaveMessage(null)
     try {
-      await putServerConfig(config)
-      setOriginalConfig(config)
+      await saveConfig()
       setSaveMessage('設定を保存しました。有効化するには再起動が必要です。')
-      setTimeout(() => setSaveMessage(null), 5000)
+      scheduleTimer(() => setSaveMessage(null), 5000)
     } catch {
-      setError('設定の保存に失敗しました')
+      setLocalError('設定の保存に失敗しました')
     } finally {
       setSaving(false)
     }
@@ -76,7 +78,7 @@ export function ServerSettings() {
     } catch {
       setTestState('failure')
     } finally {
-      setTimeout(() => setTestState('idle'), 3000)
+      scheduleTimer(() => setTestState('idle'), 3000)
     }
   }
 
@@ -107,16 +109,8 @@ export function ServerSettings() {
         )}
       </div>
 
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
-      )}
-      {saveMessage && (
-        <div className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
-          {saveMessage}
-        </div>
-      )}
+      {error && <AlertBanner variant="error" message={error} />}
+      {saveMessage && <AlertBanner variant="success" message={saveMessage} />}
 
       <fieldset className="border rounded-md p-3 flex flex-col gap-3">
         <legend className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1">
@@ -191,7 +185,6 @@ export function ServerSettings() {
       </fieldset>
 
       <div className="flex gap-2 flex-wrap pt-1">
-        {/* Connection test button with 3-state feedback */}
         <button
           onClick={handleTest}
           disabled={testState === 'testing'}

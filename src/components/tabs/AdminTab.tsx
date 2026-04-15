@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ComponentType, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import { cn } from '@/lib/utils'
 import { UserManagement } from '@/components/admin/UserManagement'
@@ -8,11 +8,18 @@ import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
 
 type AdminSection = 'users' | 'server' | 'tenant' | 'templates'
 
-const SECTIONS: { id: AdminSection; label: string }[] = [
-  { id: 'users',     label: 'ユーザー管理' },
-  { id: 'server',    label: 'サーバー設定' },
-  { id: 'tenant',    label: 'テナント情報' },
-  { id: 'templates', label: 'テンプレート' },
+interface SectionEntry {
+  readonly id: AdminSection
+  readonly label: string
+  readonly component: ComponentType
+  readonly fullWidth?: boolean
+}
+
+const SECTIONS: SectionEntry[] = [
+  { id: 'users',     label: 'ユーザー管理', component: UserManagement },
+  { id: 'server',    label: 'サーバー設定',  component: ServerSettings },
+  { id: 'tenant',    label: 'テナント情報',  component: TenantSettings },
+  { id: 'templates', label: 'テンプレート',  component: TemplateManagementTab, fullWidth: true },
 ]
 
 export function AdminTab() {
@@ -40,6 +47,9 @@ export function AdminTab() {
     )
   }
 
+  const active = SECTIONS.find((s) => s.id === activeSection) ?? SECTIONS[0]
+  const ActiveComponent = active.component
+
   return (
     <div className="flex w-full h-full overflow-hidden">
       {/* 左ナビ */}
@@ -65,10 +75,10 @@ export function AdminTab() {
 
       {/* 右コンテンツ */}
       <div className="flex-1 overflow-y-auto">
-        {activeSection === 'users'     && <div className="max-w-3xl"><UserManagement /></div>}
-        {activeSection === 'server'    && <div className="max-w-3xl"><ServerSettings /></div>}
-        {activeSection === 'tenant'    && <div className="max-w-3xl"><TenantSettings /></div>}
-        {activeSection === 'templates' && <TemplateManagementTab />}
+        {active.fullWidth
+          ? <ActiveComponent />
+          : <div className="max-w-3xl"><ActiveComponent /></div>
+        }
       </div>
     </div>
   )
