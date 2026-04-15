@@ -156,6 +156,23 @@ export function isBindableType(type: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Schema field DnD to canvas
+// ---------------------------------------------------------------------------
+
+/** MIME type for schema field drag-to-canvas operations. */
+export const SCHEMA_FIELD_MIME = 'application/rds-schema-field'
+
+/** Payload carried in dataTransfer for schema field DnD. */
+export interface SchemaFieldDragPayload {
+  readonly fieldId: string
+  readonly groupId: string
+  readonly fieldKey: string
+  readonly fieldLabel: string
+  readonly groupRole: 'master' | 'detail'
+  readonly groupDataKey: string
+}
+
+// ---------------------------------------------------------------------------
 // Re-exports for convenience
 // ---------------------------------------------------------------------------
 

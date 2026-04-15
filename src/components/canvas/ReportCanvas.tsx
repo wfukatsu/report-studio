@@ -20,6 +20,10 @@ import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import type { PageDef } from '@/types'
 import { PALETTE_ITEM_MAP } from '@/components/sidebar/ElementPalette'
+import { SCHEMA_FIELD_MIME } from '@/components/bindingEditor/types'
+import type { SchemaFieldDragPayload } from '@/components/bindingEditor/types'
+import { createDataFieldFromSchema } from '@/lib/elementFactories'
+import type { ReportElement } from '@/types'
 import { RULER_SIZE, CANVAS_PADDING } from '@/config/constants'
 
 interface Props {
@@ -97,6 +101,7 @@ export function ReportCanvas({
   const setZOrder = useReportStore((s) => s.setZOrder)
   const clipboard = useReportStore((s) => s.clipboard)
   const addElement = useReportStore((s) => s.addElement)
+  const setElementSchemaBinding = useReportStore((s) => s.setElementSchemaBinding)
   const groupSelectedElements = useReportStore((s) => s.groupSelectedElements)
   const pages = useReportStore(useShallow((s) => s.definition.pages))
   const zoom = useReportStore((s) => readonly ? s.previewZoom : s.editorZoom)
@@ -259,7 +264,10 @@ export function ReportCanvas({
 
   const handlePaletteDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (e.dataTransfer.types.includes('application/rds-palette')) {
+      if (
+        e.dataTransfer.types.includes('application/rds-palette') ||
+        e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)
+      ) {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
       }
@@ -334,6 +342,130 @@ export function ReportCanvas({
       addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
     [page, zoom, snapToGrid, gridSize, margins, addElement, ref],
+  )
+
+  // -----------------------------------------------------------------------
+  // Schema field drop handler — creates dataField, binds existing, or adds repeatingBand column
+  // -----------------------------------------------------------------------
+  const handleSchemaFieldDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>) => {
+      const raw = e.dataTransfer.getData(SCHEMA_FIELD_MIME)
+      if (!raw || !page) return
+
+      let payload: SchemaFieldDragPayload
+      try {
+        payload = JSON.parse(raw)
+      } catch {
+        return // malformed payload
+      }
+      e.preventDefault()
+
+      const canvasEl = ref.current
+      if (!canvasEl) return
+      const rect = canvasEl.getBoundingClientRect()
+      const xMm = pxToMm((e.clientX - rect.left) / zoom)
+      const yMm = pxToMm((e.clientY - rect.top) / zoom)
+
+      // Determine section
+      let sectionId: string | undefined
+      let sectionOffsetY = 0
+      for (const sec of page.sections) {
+        if (yMm < sectionOffsetY + sec.height) {
+          sectionId = sec.id
+          break
+        }
+        sectionOffsetY += sec.height
+      }
+      const relativeY = yMm - sectionOffsetY
+      const targetSection = page.sections.find((s) => s.id === sectionId)
+      const sectionH = targetSection?.height ?? page.height
+      const sectionElements = targetSection?.elements ?? []
+
+      // Hit-test: find topmost element at drop coordinate (zIndex descending)
+      const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
+      let hitElement: ReportElement | null = null
+      for (const el of sorted) {
+        if (
+          xMm >= el.position.x + sectionOffsetY * 0 && // X is page-relative, not section-offset
+          relativeY >= el.position.y &&
+          xMm <= el.position.x + el.size.width &&
+          relativeY <= el.position.y + el.size.height
+        ) {
+          hitElement = el
+          break
+        }
+      }
+
+      // Branch based on hit element type
+      const BINDABLE_TYPES = new Set(['dataField', 'text', 'checkbox', 'eraSelect'])
+      const REPEATING_TYPES = new Set(['repeatingBand', 'repeatingList'])
+
+      if (hitElement && BINDABLE_TYPES.has(hitElement.type)) {
+        // Case 1: Drop on existing bindable element → set schemaBinding
+        setElementSchemaBinding(page.id, hitElement.id, payload.fieldId)
+        return
+      }
+
+      if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
+        // Case 2: Drop on repeatingBand/List → add column + set dataSource
+        const bandEl = hitElement as ReportElement & {
+          fields?: { key: string; label: string; width: number; align?: string }[]
+          dataSource?: string
+        }
+        const existingFields = bandEl.fields ?? []
+        // Don't add duplicate keys
+        if (existingFields.some((f) => f.key === payload.fieldKey)) return
+
+        const newField = {
+          key: payload.fieldKey,
+          label: payload.fieldLabel,
+          width: 20,
+          align: 'left' as const,
+        }
+        const patch: Record<string, unknown> = {
+          fields: [...existingFields, newField],
+        }
+        // Auto-set dataSource if empty
+        if (!bandEl.dataSource && payload.groupDataKey) {
+          patch.dataSource = payload.groupDataKey
+        }
+        updateElement(page.id, hitElement.id, patch)
+        return
+      }
+
+      // Case 3: Empty area → create new dataField element
+      const clampedX = Math.max(0, Math.min(xMm, page.width))
+      const clampedY = Math.max(0, Math.min(relativeY, sectionH))
+      const finalX = snapAxis(clampedX, undefined, margins?.left ?? 0, margins?.right ?? 0, page.width, snapToGrid, gridSize)
+      const finalY = snapAxis(clampedY, undefined, margins?.top ?? 0, margins?.bottom ?? 0, page.height, snapToGrid, gridSize)
+
+      const el = createDataFieldFromSchema({
+        fieldId: payload.fieldId,
+        fieldKey: payload.fieldKey,
+        fieldLabel: payload.fieldLabel,
+      })
+
+      // Collision avoidance (same as handlePaletteDrop)
+      let posX = finalX
+      let posY = finalY
+      const OFFSET_STEP = 5
+      const MAX_OFFSET_ATTEMPTS = Math.ceil(Math.max(page.width, sectionH) / OFFSET_STEP) + 1
+      for (let attempt = 0; attempt < MAX_OFFSET_ATTEMPTS; attempt++) {
+        const overlaps = sectionElements.some((ex) =>
+          ex.position.x < posX + el.size.width &&
+          ex.position.x + ex.size.width > posX &&
+          ex.position.y < posY + el.size.height &&
+          ex.position.y + ex.size.height > posY,
+        )
+        if (!overlaps) break
+        const nextOffset = (attempt + 1) * OFFSET_STEP
+        posX = Math.min(finalX + nextOffset, page.width - el.size.width)
+        posY = Math.min(finalY + nextOffset, sectionH - el.size.height)
+      }
+
+      addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
+    },
+    [page, zoom, snapToGrid, gridSize, margins, addElement, updateElement, setElementSchemaBinding, ref],
   )
 
   const handleContextMenuClose = useCallback(() => setContextMenu(null), [])
@@ -417,7 +549,14 @@ export function ReportCanvas({
         onPointerMove={onMarqueePointerMove}
         onPointerUp={onMarqueePointerUp}
         onDragOver={readonly ? undefined : handlePaletteDragOver}
-        onDrop={readonly ? undefined : handlePaletteDrop}
+        onDrop={readonly ? undefined : (e) => {
+          // Schema field MIME takes priority over palette MIME
+          if (e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)) {
+            handleSchemaFieldDrop(e)
+          } else {
+            handlePaletteDrop(e)
+          }
+        }}
       >
         {/* Grid overlay */}
         {showGrid && !readonly && (
