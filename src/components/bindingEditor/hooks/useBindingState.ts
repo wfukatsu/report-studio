@@ -11,6 +11,7 @@ import { flattenPageElements } from '@/store/selectors'
 import type {
   BindableElement,
   ElementGroup,
+  ElementSubGroup,
   FieldItem,
   BindingConnection,
   DragState,
@@ -19,6 +20,7 @@ import type {
 } from '../types'
 import { isBindableType } from '../types'
 import { isSystemGroup } from '@/store/schemaSlice'
+import type { ReportElement } from '@/types'
 
 export function useBindingState() {
   // -----------------------------------------------------------------------
@@ -75,30 +77,99 @@ export function useBindingState() {
   )
 
   // -----------------------------------------------------------------------
-  // Derived: all bindable elements (flat + grouped by page)
+  // Derived: all bindable elements with repeat container detection
   // -----------------------------------------------------------------------
-  const allElements: BindableElement[] = useMemo(() =>
-    pages.flatMap((page) =>
-      flattenPageElements(page)
-        .filter((el) => isBindableType(el.type))
-        .map((el) => ({
+  const allElements: BindableElement[] = useMemo(() => {
+    const result: BindableElement[] = []
+    for (const page of pages) {
+      const allPageElements = flattenPageElements(page)
+      // Build a map of repeat containers (repeatingBand / repeatingList)
+      const repeatContainers = new Map<string, { id: string; dataSource: string; name: string }>()
+      for (const el of allPageElements) {
+        if (el.type === 'repeatingBand' || el.type === 'repeatingList') {
+          repeatContainers.set(el.id, {
+            id: el.id,
+            dataSource: (el as ReportElement & { dataSource?: string }).dataSource ?? '',
+            name: el.name?.trim() || el.type,
+          })
+        }
+      }
+
+      // Check if a bindable element is geometrically inside a repeat container
+      for (const el of allPageElements) {
+        if (!isBindableType(el.type)) continue
+        // Find if this element is inside a repeat container (by position overlap)
+        let container: { id: string; dataSource: string } | undefined
+        for (const rc of allPageElements) {
+          if (rc.type !== 'repeatingBand' && rc.type !== 'repeatingList') continue
+          if (
+            el.position.x >= rc.position.x &&
+            el.position.y >= rc.position.y &&
+            el.position.x + el.size.width <= rc.position.x + rc.size.width &&
+            el.position.y + el.size.height <= rc.position.y + rc.size.height &&
+            el.id !== rc.id
+          ) {
+            container = repeatContainers.get(rc.id)
+            break
+          }
+        }
+
+        result.push({
           pageId: page.id,
           elementId: el.id,
           elementLabel: el.name?.trim() || el.type,
           elementType: el.type,
           boundFieldId: el.schemaBinding?.fieldId,
-        })),
-    ),
-    [pages],
-  )
+          repeatContainerId: container?.id,
+          repeatDataSource: container?.dataSource,
+        })
+      }
+    }
+    return result
+  }, [pages])
 
   const elementGroups: ElementGroup[] = useMemo(() =>
     pages
-      .map((page) => ({
-        pageId: page.id,
-        pageLabel: page.name || 'ページ',
-        elements: allElements.filter((e) => e.pageId === page.id),
-      }))
+      .map((page) => {
+        const pageElements = allElements.filter((e) => e.pageId === page.id)
+        // Split into single vs repeat sub-groups
+        const singleElements = pageElements.filter((e) => !e.repeatContainerId)
+        const repeatMap = new Map<string, BindableElement[]>()
+        for (const el of pageElements) {
+          if (el.repeatContainerId) {
+            const arr = repeatMap.get(el.repeatContainerId) ?? []
+            arr.push(el)
+            repeatMap.set(el.repeatContainerId, arr)
+          }
+        }
+
+        const subGroups: ElementSubGroup[] = []
+        if (singleElements.length > 0) {
+          subGroups.push({
+            id: `${page.id}-single`,
+            label: '単一項目',
+            role: 'single',
+            elements: singleElements,
+          })
+        }
+        for (const [containerId, elements] of repeatMap) {
+          const first = elements[0]
+          subGroups.push({
+            id: containerId,
+            label: `繰り返し (${first?.repeatDataSource || '?'})`,
+            role: 'repeat',
+            dataSource: first?.repeatDataSource,
+            elements,
+          })
+        }
+
+        return {
+          pageId: page.id,
+          pageLabel: page.name || 'ページ',
+          subGroups,
+          elements: pageElements,
+        }
+      })
       .filter((g) => g.elements.length > 0),
     [pages, allElements],
   )

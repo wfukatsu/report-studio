@@ -11,7 +11,7 @@
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, X,
+  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
@@ -78,13 +78,19 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
           : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
         <span className="truncate font-medium">{group.label || group.id}</span>
         <span className={cn(
-          'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0',
+          'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 flex items-center gap-0.5',
           group.role === 'master'
             ? 'bg-blue-50 text-blue-600 border border-blue-200'
             : 'bg-amber-50 text-amber-600 border border-amber-200',
         )}>
-          {group.role === 'master' ? 'マスター' : '明細'}
+          {group.role === 'detail' && <RefreshCw className="w-2.5 h-2.5" />}
+          {group.role === 'master' ? 'マスター' : '↻ 明細'}
         </span>
+        {group.role === 'detail' && group.dataKey && (
+          <span className="font-mono text-[9px] bg-amber-50 text-amber-500 px-1 rounded">
+            {group.dataKey}
+          </span>
+        )}
         <span className="ml-auto font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-px rounded-full">
           {boundCount}/{group.fields.length}
         </span>
@@ -93,7 +99,10 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
       {/* Field cards */}
       {expanded && (
         <>
-          <div className="flex flex-col gap-1 px-1 pb-1 pt-0.5">
+          <div className={cn(
+            'flex flex-col gap-1 px-1 pb-1 pt-0.5',
+            group.role === 'detail' && 'ml-2 border-l-2 border-amber-300/50 pl-1.5',
+          )}>
             {group.fields.length === 0 ? (
               <div className="px-3 py-3 text-xs text-muted-foreground italic text-center">
                 フィールドがありません

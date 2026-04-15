@@ -35,14 +35,21 @@ export const ElementPanel = memo(function ElementPanel({
     [bs.disconnect],
   )
 
-  // Filter elements by search query
+  // Filter elements by search query (filter within sub-groups)
   const filteredGroups = searchQuery.trim()
-    ? bs.elementGroups.map((g) => ({
-        ...g,
-        elements: g.elements.filter((e) =>
-          e.elementLabel.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-      })).filter((g) => g.elements.length > 0)
+    ? bs.elementGroups.map((g) => {
+        const q = searchQuery.toLowerCase()
+        const filteredSubGroups = g.subGroups
+          .map((sg) => ({
+            ...sg,
+            elements: sg.elements.filter((e) =>
+              e.elementLabel.toLowerCase().includes(q),
+            ),
+          }))
+          .filter((sg) => sg.elements.length > 0)
+        const filteredElements = filteredSubGroups.flatMap((sg) => sg.elements)
+        return { ...g, subGroups: filteredSubGroups, elements: filteredElements }
+      }).filter((g) => g.elements.length > 0)
     : bs.elementGroups
 
   return (
@@ -95,6 +102,7 @@ export const ElementPanel = memo(function ElementPanel({
               key={group.pageId}
               pageId={group.pageId}
               pageLabel={group.pageLabel}
+              subGroups={group.subGroups}
               elements={group.elements}
               expanded={expandedGroups.has(group.pageId)}
               selectedFieldId={bs.selectedFieldId}

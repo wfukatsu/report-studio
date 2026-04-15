@@ -19,12 +19,29 @@ export interface BindableElement {
   readonly elementType: string
   /** Currently bound schema field ID */
   readonly boundFieldId?: string
+  /** If this element is inside a repeating container */
+  readonly repeatContainerId?: string
+  /** The dataSource key of the repeating container (e.g. "items") */
+  readonly repeatDataSource?: string
 }
 
-/** Elements grouped by page for left panel display. */
+/** Sub-group within a page: single elements or repeat-container elements. */
+export interface ElementSubGroup {
+  readonly id: string
+  readonly label: string
+  /** 'single' = normal elements, 'repeat' = inside a repeatingBand/List */
+  readonly role: 'single' | 'repeat'
+  /** DataSource key for repeat groups */
+  readonly dataSource?: string
+  readonly elements: readonly BindableElement[]
+}
+
+/** Elements grouped by page, with sub-groups for repeat containers. */
 export interface ElementGroup {
   readonly pageId: string
   readonly pageLabel: string
+  readonly subGroups: readonly ElementSubGroup[]
+  /** Flat list of all elements (for backward compat) */
   readonly elements: readonly BindableElement[]
 }
 

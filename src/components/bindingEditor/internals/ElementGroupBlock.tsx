@@ -1,22 +1,21 @@
 /**
- * ElementGroupBlock — v1-style template element group.
+ * ElementGroupBlock — Template elements grouped by page with repeat sub-groups.
  *
- * Visual style matches v1 BindingEditorPage:
- * - Bound elements: solid green border + light green background
- * - Unbound elements: dashed gray border
- * - Compact card layout with 8px/12px padding
- * - Hover lift effect on field cards
+ * Shows:
+ * - Single items (normal elements)
+ * - Repeat sub-groups (elements inside repeatingBand/repeatingList) with ↻ icon
  */
 
 import { memo, useCallback } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { BindableElement, FieldItem } from '../types'
+import type { BindableElement, ElementSubGroup, FieldItem } from '../types'
 import { getGroupColor } from '../types'
 
 interface ElementGroupBlockProps {
   readonly pageId: string
   readonly pageLabel: string
+  readonly subGroups: readonly ElementSubGroup[]
   readonly elements: readonly BindableElement[]
   readonly expanded: boolean
   readonly selectedFieldId: string | null
@@ -35,6 +34,7 @@ interface ElementGroupBlockProps {
 export const ElementGroupBlock = memo(function ElementGroupBlock({
   pageId,
   pageLabel,
+  subGroups,
   elements,
   expanded,
   selectedFieldId,
@@ -54,7 +54,7 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
 
   return (
     <div className="mb-1">
-      {/* Group header */}
+      {/* Page header */}
       <button
         className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
         onClick={handleToggle}
@@ -68,27 +68,100 @@ export const ElementGroupBlock = memo(function ElementGroupBlock({
         </span>
       </button>
 
+      {/* Sub-groups */}
+      {expanded && subGroups.map((sub) => (
+        <SubGroupBlock
+          key={sub.id}
+          subGroup={sub}
+          selectedFieldId={selectedFieldId}
+          isDragging={isDragging}
+          fieldMap={fieldMap}
+          groupIndexMap={groupIndexMap}
+          hoveredFieldId={hoveredFieldId}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onPointerUp={onPointerUp}
+          onNavigate={onNavigate}
+          elementRef={elementRef}
+        />
+      ))}
+    </div>
+  )
+})
+
+// ---------------------------------------------------------------------------
+// SubGroupBlock — single items or repeat group
+// ---------------------------------------------------------------------------
+
+interface SubGroupBlockProps {
+  readonly subGroup: ElementSubGroup
+  readonly selectedFieldId: string | null
+  readonly isDragging: boolean
+  readonly fieldMap: ReadonlyMap<string, FieldItem>
+  readonly groupIndexMap: ReadonlyMap<string, number>
+  readonly hoveredFieldId: string | null
+  readonly onConnect: (pageId: string, elementId: string) => void
+  readonly onDisconnect: (pageId: string, elementId: string) => void
+  readonly onPointerUp: (pageId: string, elementId: string) => void
+  readonly onNavigate: (pageId: string, elementId: string) => void
+  readonly elementRef: (elementId: string, el: HTMLElement | null) => void
+}
+
+const SubGroupBlock = memo(function SubGroupBlock({
+  subGroup,
+  selectedFieldId,
+  isDragging,
+  fieldMap,
+  groupIndexMap,
+  hoveredFieldId,
+  onConnect,
+  onDisconnect,
+  onPointerUp,
+  onNavigate,
+  elementRef,
+}: SubGroupBlockProps) {
+  const isRepeat = subGroup.role === 'repeat'
+
+  return (
+    <div className={cn('px-1 pb-0.5', isRepeat && 'ml-2')}>
+      {/* Sub-group label */}
+      <div className={cn(
+        'flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium',
+        isRepeat
+          ? 'text-amber-600'
+          : 'text-muted-foreground',
+      )}>
+        {isRepeat && <RefreshCw className="w-3 h-3" />}
+        <span>{subGroup.label}</span>
+        {isRepeat && subGroup.dataSource && (
+          <span className="font-mono text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1 rounded">
+            {subGroup.dataSource}
+          </span>
+        )}
+      </div>
+
       {/* Element cards */}
-      {expanded && (
-        <div className="flex flex-col gap-1 px-1 pb-1 pt-0.5">
-          {elements.map((element) => (
-            <ElementSlot
-              key={element.elementId}
-              element={element}
-              selectedFieldId={selectedFieldId}
-              isDragging={isDragging}
-              fieldMap={fieldMap}
-              groupIndexMap={groupIndexMap}
-              hoveredFieldId={hoveredFieldId}
-              onConnect={onConnect}
-              onDisconnect={onDisconnect}
-              onPointerUp={onPointerUp}
-              onNavigate={onNavigate}
-              elementRef={elementRef}
-            />
-          ))}
-        </div>
-      )}
+      <div className={cn(
+        'flex flex-col gap-1',
+        isRepeat && 'border-l-2 border-amber-300/50 pl-1.5',
+      )}>
+        {subGroup.elements.map((element) => (
+          <ElementSlot
+            key={element.elementId}
+            element={element}
+            selectedFieldId={selectedFieldId}
+            isDragging={isDragging}
+            fieldMap={fieldMap}
+            groupIndexMap={groupIndexMap}
+            hoveredFieldId={hoveredFieldId}
+            onConnect={onConnect}
+            onDisconnect={onDisconnect}
+            onPointerUp={onPointerUp}
+            onNavigate={onNavigate}
+            elementRef={elementRef}
+          />
+        ))}
+      </div>
     </div>
   )
 })
@@ -154,11 +227,9 @@ const ElementSlot = memo(function ElementSlot({
       data-element-id={element.elementId}
       className={cn(
         'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left transition-all',
-        // v1 style: bound = solid border + green bg, unbound = dashed border
         boundField
           ? 'border-2 border-[#00C853]/40 bg-[#00C853]/5'
           : 'border-2 border-dashed border-border/60 bg-background',
-        // Interaction highlights
         isConnectedToSelected && 'ring-2 ring-[#6366f1]/30',
         isHoveredConnection && 'bg-[#6366f1]/5',
         (selectedFieldId !== null || isDragging) && 'hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
