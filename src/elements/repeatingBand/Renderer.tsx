@@ -32,14 +32,15 @@ function borderStr(el: { borderWidth?: number; borderColor?: string }): string {
   return `${el.borderWidth ?? DEFAULT_BORDER_WIDTH}mm solid ${el.borderColor ?? DEFAULT_BORDER_COLOR}`
 }
 
-/** Column percentage widths from field definitions */
+/** Column percentage widths from field definitions (guards against zero total) */
 function columnPercents(fields: readonly RepeatingBandField[]): string[] {
-  const total = fields.reduce((s, f) => s + f.width, 0)
-  return fields.map((f) => `${(f.width / total) * 100}%`)
+  const total = fields.reduce((s, f) => s + Math.max(0, f.width), 0)
+  if (total === 0) return fields.map(() => `${100 / Math.max(1, fields.length)}%`)
+  return fields.map((f) => `${(Math.max(0, f.width) / total) * 100}%`)
 }
 
 /** Base cell styles (layout only — no color/font) */
-function baseCellLayout(width: string, rightBorder?: string): React.CSSProperties {
+function baseCellLayout(width: string, rightBorder?: string, wrapText?: boolean): React.CSSProperties {
   return {
     width,
     flexShrink: 0,
@@ -48,8 +49,9 @@ function baseCellLayout(width: string, rightBorder?: string): React.CSSPropertie
     padding: CELL_PADDING,
     fontSize: CELL_FONT_SIZE,
     overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
+    ...(wrapText
+      ? { whiteSpace: 'normal', wordBreak: 'break-word' }
+      : { whiteSpace: 'nowrap', textOverflow: 'ellipsis' }),
     boxSizing: 'border-box',
     borderRight: rightBorder,
   }
@@ -69,6 +71,24 @@ function withTextStyle(base: React.CSSProperties, ts?: TextStyle): React.CSSProp
   }
 }
 
+/** Sort records by a field key with numeric/string auto-detection */
+function sortRecords(
+  records: Record<string, unknown>[],
+  sortKey: string,
+  sortOrder: 'asc' | 'desc' = 'asc',
+): Record<string, unknown>[] {
+  return [...records].sort((a, b) => {
+    const va = resolveField(a, sortKey)
+    const vb = resolveField(b, sortKey)
+    const numA = Number(va)
+    const numB = Number(vb)
+    const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+      ? numA - numB
+      : String(va ?? '').localeCompare(String(vb ?? ''))
+    return sortOrder === 'desc' ? -cmp : cmp
+  })
+}
+
 /** Resolve + format a field value */
 function resolveAndFormat(record: Record<string, unknown>, field: RepeatingBandField): string {
   const raw = resolveField(record, field.key)
@@ -79,7 +99,7 @@ function resolveAndFormat(record: Record<string, unknown>, field: RepeatingBandF
 /** Format an aggregated number */
 function formatAggregate(value: number, field: RepeatingBandField): string {
   if (field.format) return applyFormat(value, field.format)
-  return String(Math.round(value * 100) / 100)
+  return value.toFixed(2).replace(/\.?0+$/, '') // remove trailing zeros: 300.00 → 300, 12.50 → 12.5
 }
 
 // ---------------------------------------------------------------------------
@@ -88,15 +108,16 @@ function formatAggregate(value: number, field: RepeatingBandField): string {
 
 /** Column header row */
 function HeaderRow({
-  fields, colPcts, bs, headerStyle,
+  fields, colPcts, bs, headerStyle, headerHeight,
 }: {
   fields: readonly RepeatingBandField[]
   colPcts: string[]
   bs: string
   headerStyle?: TextStyle
+  headerHeight?: number
 }) {
   return (
-    <div style={{ display: 'flex', flexShrink: 0, borderBottom: bs }}>
+    <div style={{ display: 'flex', flexShrink: 0, borderBottom: bs, ...(headerHeight != null ? { height: `${headerHeight}mm` } : {}) }}>
       {fields.map((f, i) => (
         <div
           key={i}
@@ -118,7 +139,7 @@ function HeaderRow({
 
 /** Data row */
 function DataRow({
-  record, rowIdx, fields, colPcts, bs, oddBg, evenBg, hiddenFieldIndices, ...rest
+  record, rowIdx, fields, colPcts, bs, oddBg, evenBg, hiddenFieldIndices, wrapText, itemHeight, ...rest
 }: {
   record: Record<string, unknown>
   rowIdx: number
@@ -128,15 +149,17 @@ function DataRow({
   oddBg?: string
   evenBg?: string
   hiddenFieldIndices?: readonly number[]
+  wrapText?: boolean
+  itemHeight?: number
   'data-testid'?: string
 }) {
   return (
-    <div data-testid={rest['data-testid']} style={{ display: 'flex', flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? oddBg : evenBg }}>
+    <div data-testid={rest['data-testid']} style={{ display: 'flex', flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? oddBg : evenBg, ...(itemHeight != null && !wrapText ? { height: `${itemHeight}mm` } : { minHeight: itemHeight != null ? `${itemHeight}mm` : undefined }) }}>
       {fields.map((f, i) => (
         <div
           key={i}
           style={{
-            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? bs : undefined),
+            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? bs : undefined, wrapText),
             textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
             borderBottom: bs,
           }}
@@ -239,7 +262,7 @@ function RepeatingBandDesignPreview({ element: el }: { element: RepeatingBandEle
   return (
     <BandContainer el={el} bs={bs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} />
+        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
       )}
 
       {/* Info badge — positioned below header if visible */}
@@ -357,46 +380,36 @@ function FlatBandRenderer({
   const colPcts = columnPercents(el.fields)
   const hasFooter = el.showFooter && el.totals.length > 0
 
-  // Apply maxItems + sort
-  const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
-  const sortKey = el.sortBy
-  const sorted = sortKey
-    ? [...limited].sort((a, b) => {
-        const va = resolveField(a, sortKey)
-        const vb = resolveField(b, sortKey)
-        const numA = Number(va)
-        const numB = Number(vb)
-        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
-          ? numA - numB
-          : String(va ?? '').localeCompare(String(vb ?? ''))
-        return el.sortOrder === 'desc' ? -cmp : cmp
-      })
-    : limited
+  // Sort first, then apply maxItems (so top-N items are selected after sort)
+  const sorted = el.sortBy
+    ? sortRecords(records, el.sortBy, el.sortOrder)
+    : records
+  const limited = el.maxItems > 0 ? sorted.slice(0, el.maxItems) : sorted
 
   const emptyCount = el.showEmptyRowLines && el.maxItems > 0
-    ? Math.max(0, el.maxItems - sorted.length)
+    ? Math.max(0, el.maxItems - limited.length)
     : 0
 
   return (
     <BandContainer el={el} bs={bs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} />
+        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
       )}
 
-      {sorted.length === 0 && !el.showEmptyRowLines ? (
+      {limited.length === 0 && !el.showEmptyRowLines ? (
         <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: EMPTY_TEXT_COLOR, fontSize: CELL_FONT_SIZE, borderBottom: hasFooter ? bs : undefined }}>
           データなし
         </div>
       ) : (
-        sorted.map((record, rowIdx) => (
-          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} bs={bs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} />
+        limited.map((record, rowIdx) => (
+          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} bs={bs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} wrapText={el.wrapText} itemHeight={el.itemHeight} />
         ))
       )}
 
       {emptyCount > 0 && <EmptyRows count={emptyCount} itemHeight={el.itemHeight} bs={bs} />}
 
       {hasFooter && (
-        <FooterRow fields={el.fields} colPcts={colPcts} bs={bs} records={sorted} totals={el.totals} label={el.totals[0]?.label} />
+        <FooterRow fields={el.fields} colPcts={colPcts} bs={bs} records={limited} totals={el.totals} label={el.totals[0]?.label} />
       )}
     </BandContainer>
   )
@@ -423,30 +436,17 @@ function GroupedBandRenderer({
   const hasSubtotals = !!el.showGroupSubtotals && el.totals.length > 0
   const groupStyle = el.groupStyle ?? DEFAULT_GROUP_STYLE
 
-  // 1. Group records
-  let groups = groupRecords(records, el.groupBy)
+  // 1. Sort all records first (so top-N items are selected after sort)
+  const sorted = el.sortBy
+    ? sortRecords(records, el.sortBy, el.sortOrder)
+    : records
 
-  // 2. Apply maxItems
+  // 2. Group sorted records
+  let groups = groupRecords(sorted, el.groupBy)
+
+  // 3. Apply maxItems (after grouping, so groups get fair representation)
   if (el.maxItems > 0) {
     groups = applyGroupedMaxItems(groups, el.maxItems, hasSubtotals)
-  }
-
-  // 3. Sort within each group
-  const sortKey = el.sortBy
-  if (sortKey) {
-    groups = groups.map((g) => ({
-      ...g,
-      records: [...g.records].sort((a, b) => {
-        const va = resolveField(a, sortKey)
-        const vb = resolveField(b, sortKey)
-        const numA = Number(va)
-        const numB = Number(vb)
-        const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
-          ? numA - numB
-          : String(va ?? '').localeCompare(String(vb ?? ''))
-        return el.sortOrder === 'desc' ? -cmp : cmp
-      }),
-    }))
   }
 
   // 4. Compute empty rows
@@ -466,7 +466,7 @@ function GroupedBandRenderer({
   return (
     <BandContainer el={el} bs={bs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} />
+        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
       )}
 
       {groups.map((group, gIdx) => (
@@ -503,6 +503,8 @@ function GroupedBandRenderer({
               oddBg={el.oddRowColor}
               evenBg={el.evenRowColor}
               hiddenFieldIndices={hiddenFieldIndices}
+              wrapText={el.wrapText}
+              itemHeight={el.itemHeight}
             />
           ))}
 
