@@ -57,7 +57,7 @@ export const SchemaPanel = memo(function SchemaPanel({
 
   if (!bs.hasSchema && !bs.hasFields) {
     return (
-      <div className="flex flex-col h-full border-x">
+      <div className="flex flex-col h-full">
         <div className="px-3 py-2.5 border-b bg-muted/30 shrink-0">
           <p className="text-xs font-semibold text-foreground">
             スキーマフィールド

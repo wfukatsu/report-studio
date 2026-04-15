@@ -135,13 +135,15 @@ export function BindingEditor() {
         />
       )}
 
-      {/* 3-panel canvas — v1-style CSS Grid layout */}
+      {/* 3-panel canvas with gaps for connection lines */}
       <div
         ref={cl.containerRef}
-        className="flex-1 relative overflow-hidden rounded-lg shadow-sm bg-background"
+        className="flex-1 relative overflow-hidden p-3"
         style={{
           display: 'grid',
-          gridTemplateColumns: dbCollapsed ? '45% 45% 10%' : '30% 35% 35%',
+          gridTemplateColumns: dbCollapsed
+            ? 'minmax(280px, 1fr) 80px minmax(280px, 1fr) 80px 40px'
+            : 'minmax(280px, 1fr) 80px minmax(280px, 1fr) 80px minmax(240px, 1fr)',
           transition: 'grid-template-columns 300ms ease',
           minHeight: 460,
         }}
@@ -161,7 +163,7 @@ export function BindingEditor() {
         />
 
         {/* Left panel: Template elements */}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden rounded-lg border shadow-sm bg-background">
           <ElementPanel
             bs={bs}
             expandedGroups={cl.expandedElementGroups}
@@ -170,8 +172,11 @@ export function BindingEditor() {
           />
         </div>
 
+        {/* Gap for Element↔Schema connection lines */}
+        <div />
+
         {/* Center panel: Schema fields */}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden rounded-lg border shadow-sm bg-background">
           <SchemaPanel
             bs={bs}
             expandedGroups={cl.expandedFieldGroups}
@@ -181,8 +186,11 @@ export function BindingEditor() {
           />
         </div>
 
+        {/* Gap for Schema↔DB connection lines */}
+        <div />
+
         {/* Right panel: DB connection */}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden rounded-lg border shadow-sm bg-background">
           <DbPanel
             collapsed={dbCollapsed}
             onToggle={toggleDb}
