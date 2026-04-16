@@ -674,6 +674,7 @@ function renderGroupedElements(
         isRenaming={renamingId === el.id}
         renameValue={renameValue}
         isDraggingActive={activeId !== null}
+        indent={group ? 1 : 0}
         onRowClick={onRowClick}
         onStartRename={onStartRename}
         onCommitRename={onCommitRename}

@@ -58,7 +58,8 @@
                 "shape": "rectangle",
                 "fill": "#ffffff",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "868ad8be-4957-40fa-9826-652f592f286a",
@@ -81,7 +82,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "令和７年分 給与所得者の扶養控除等（…"
               },
               {
                 "id": "f82b43d1-c15c-4bd3-9ad4-b99b4b43e8a7",
@@ -100,7 +102,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "f21100b6-0209-4502-93fa-7900c17bf612",
@@ -123,7 +126,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "扶"
               },
               {
                 "id": "889d9f2d-d711-4006-a4ea-381df7bb4a25",
@@ -142,7 +146,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "9672b819-46ca-4c80-8092-365080e51778",
@@ -164,7 +169,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "従たる給与についての 扶養控除等申告…"
               },
               {
                 "id": "ed844427-5a16-4b66-b5fe-638dc6fb78a0",
@@ -186,7 +192,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "○"
               },
               {
                 "id": "1795f59d-a8e2-4994-8cf7-fd43843a6322",
@@ -209,7 +216,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "writingMode": "vertical-rl"
-                }
+                },
+                "name": "○この申告書は、あなたの給与について…"
               },
               {
                 "id": "136942fe-e741-49cf-ac76-9be1834fa322",
@@ -228,7 +236,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "f8cfcd2d-6784-4b0c-92a5-3d07816e40f2",
@@ -246,7 +255,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "cfdfb94d-a2fa-46ea-b5bd-26104171bdb5",
@@ -265,7 +275,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "35520d2d-abcd-472d-92b1-2deb8be33ece",
@@ -288,7 +299,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "writingMode": "vertical-rl"
-                }
+                },
+                "name": "所轄税務署長等"
               },
               {
                 "id": "bd884b2a-8655-4ceb-bcf4-7464d3970ad8",
@@ -311,7 +323,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "給与の支払者の 名称（氏名）"
               },
               {
                 "id": "e855a856-f149-4935-8cf8-23e9e1e6df5a",
@@ -335,7 +348,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "761add45-1729-43a4-a9d7-a0dd64ebb5a0",
@@ -357,7 +371,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "（フリガナ）"
               },
               {
                 "id": "68636093-0899-4ead-a9fc-3b4aa425146d",
@@ -379,7 +394,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたの氏名"
               },
               {
                 "id": "be000595-15ee-4c7e-b649-fc6776abb075",
@@ -406,7 +422,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1b95d281-a878-4d40-a500-1a8a3b005d28",
@@ -428,7 +445,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたの生年月日"
               },
               {
                 "id": "b92b7bad-ecdf-4911-9cb0-e66f53d03330",
@@ -444,7 +462,8 @@
                 "zIndex": 3,
                 "locked": true,
                 "visible": true,
-                "dataSource": "employee.era"
+                "dataSource": "employee.era",
+                "name": "元号選択"
               },
               {
                 "id": "1255d529-bfcc-406f-895c-cd864dc458a4",
@@ -468,7 +487,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "a42e03f5-25d0-42f0-8e62-557a5e56b8a6",
@@ -492,7 +512,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2a958dfa-b6d2-4302-9066-bd5f4d418656",
@@ -516,7 +537,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "61bfc9c4-5ff5-4d28-ae22-c8624571d376",
@@ -538,7 +560,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "世帯主の氏名"
               },
               {
                 "id": "d3ce275b-4e04-4fa3-8d3f-bb009a065b35",
@@ -562,7 +585,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d3873833-b539-4264-b6a2-3c7e384b6dc2",
@@ -584,7 +608,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの続柄"
               },
               {
                 "id": "ab11a626-951b-4e30-93fa-e24f719bc826",
@@ -608,7 +633,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "c67c0429-c1ec-46f4-b12e-700ae011d9f9",
@@ -627,7 +653,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "e8a344b2-2ce2-4d7f-af02-587f2e93443b",
@@ -650,7 +677,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "writingMode": "vertical-rl"
-                }
+                },
+                "name": "税務署長"
               },
               {
                 "id": "68e52c95-5788-4483-bca7-071ec24f1ec1",
@@ -673,7 +701,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "給与の支払者の 法人（個人）番号"
               },
               {
                 "id": "8f7684b2-51a5-4dbf-b4a4-f6f756702ffc",
@@ -695,7 +724,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "※この申告書の提出を受けた給与の支払…"
               },
               {
                 "id": "f160da91-cf1d-4637-b154-e1c63e7ccdcb",
@@ -717,7 +747,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたの個人番号"
               },
               {
                 "id": "25c34b07-d757-4244-b419-c50316aa0e1f",
@@ -742,7 +773,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "9b380bf5-cac4-47c0-8c3d-08083e54bc18",
@@ -764,7 +796,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの続柄"
               },
               {
                 "id": "eb787dd7-8ed1-4362-9224-8cfa9b4b38b6",
@@ -788,7 +821,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "10b54a4a-ff60-4e2b-b257-935cbb4c8645",
@@ -807,7 +841,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "edd6ef71-9013-4363-9e85-b0fb862e175c",
@@ -830,7 +865,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "writingMode": "vertical-rl"
-                }
+                },
+                "name": "市区町村長"
               },
               {
                 "id": "9e836717-b4af-4956-8827-53ed26a056c1",
@@ -853,7 +889,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "給与の支払者の 所在地（住所）"
               },
               {
                 "id": "6506bb50-8902-46e2-a295-ef8042571b17",
@@ -877,7 +914,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "5cd0feaa-05fb-487a-b3bc-63e9a4a7b3ea",
@@ -899,7 +937,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたの住所 又は居所"
               },
               {
                 "id": "5135f516-0613-48ee-ab14-5a41c092a746",
@@ -921,7 +960,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "（郵便番号"
               },
               {
                 "id": "463cad9f-8f08-4637-b54e-55dce2842613",
@@ -945,7 +985,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "61a6a9b6-c689-44bc-8f09-0c92c078299c",
@@ -969,7 +1010,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7c171c5a-9c52-4034-9da3-757f66c5d7c3",
@@ -991,7 +1033,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "配偶者 の有無"
               },
               {
                 "id": "36f16c4b-7479-4662-a6a3-0b3fb9a4df95",
@@ -1013,7 +1056,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "有"
               },
               {
                 "id": "e1c114c5-0951-4650-9a73-92764ae1a3f5",
@@ -1037,7 +1081,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "11e48106-a75e-464b-b468-85d57598e587",
@@ -1059,7 +1104,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "無"
               },
               {
                 "id": "5219cf3b-374c-4005-a94a-e9d312135b4f",
@@ -1083,7 +1129,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7cb0ef69-a0d9-4067-bcbb-1004703f4170",
@@ -1106,7 +1153,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "あなたに源泉控除対象配偶者、控除対象…"
               },
               {
                 "id": "36ecd464-ebc2-4512-be97-d567bb53e7ae",
@@ -1125,7 +1173,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "048248e8-c804-4d41-9912-ee39e3be22a2",
@@ -1143,7 +1192,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a45ce1be-8ec7-48ce-bf86-73c17419c015",
@@ -1161,7 +1211,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "0e52e55a-d660-44ab-a758-e57e7c418e37",
@@ -1179,7 +1230,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "9bb09a41-5fb6-4cee-979a-eba8abc693e6",
@@ -1197,7 +1249,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d7dbed85-7d7f-4478-8798-475dda00642f",
@@ -1215,7 +1268,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d7e119b5-9db1-43a2-bbee-d9165b05845c",
@@ -1233,7 +1287,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "96197c47-0862-48ed-984c-83b4476c149a",
@@ -1251,7 +1306,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "fcca4eb7-60c3-4eb4-a642-5fc1c9be3753",
@@ -1269,7 +1325,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "fe3ab079-f9ca-4c40-9de5-e7a7a8c51976",
@@ -1287,7 +1344,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a2ac6199-520d-4056-9872-86346a24edef",
@@ -1305,7 +1363,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "18b6fc51-468d-4687-b3c0-436468b4cf38",
@@ -1327,7 +1386,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "区 分 等"
               },
               {
                 "id": "0a114976-a336-4304-bc7e-c312aa1ce089",
@@ -1349,7 +1409,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "（フリガナ） 氏 名"
               },
               {
                 "id": "7ff1c2c2-2785-4754-bacc-ca816682c7d1",
@@ -1371,7 +1432,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの 続柄"
               },
               {
                 "id": "15efbf2d-556f-4262-8483-3fdee94259fc",
@@ -1393,7 +1455,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "個 人 番 号"
               },
               {
                 "id": "bc13851c-6540-4619-a12f-27a41cab283d",
@@ -1415,7 +1478,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "生 年 月 日 （明11.1.1〜）"
               },
               {
                 "id": "3fb34456-5b6a-4cfa-89db-c67a7c0e8db1",
@@ -1437,7 +1501,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "特定扶養親族等 （平15.1.2〜 …"
               },
               {
                 "id": "9416d81f-975f-4ea6-90e6-f46ef1a05338",
@@ -1459,7 +1524,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "令和7年中の 所得の見積額"
               },
               {
                 "id": "902fbb64-e4f8-4abc-81ce-2071da71fe81",
@@ -1481,7 +1547,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者で ある親族"
               },
               {
                 "id": "2d1bda2e-98ba-45d6-a73a-ad1483af8b12",
@@ -1503,7 +1570,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "住 所 又 は 居 所"
               },
               {
                 "id": "3f1947d5-3d75-454c-bcb1-289bea9b1685",
@@ -1525,7 +1593,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "生計を一に する事実"
               },
               {
                 "id": "949571db-edf2-4cd9-9aae-b2a1062b7e7b",
@@ -1547,7 +1616,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "異動月日及び事由"
               },
               {
                 "id": "acd66168-02b1-42d5-ab5f-4fb066fcb433",
@@ -1566,7 +1636,8 @@
                 "shape": "rectangle",
                 "fill": "#f5f5f5",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "f480d037-cabb-43b5-b884-bb4c28622012",
@@ -1589,7 +1660,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "writingMode": "vertical-rl"
-                }
+                },
+                "name": "主たる給与から控除を受ける"
               },
               {
                 "id": "61678d37-697b-47f2-87b2-edbf9b3daefd",
@@ -1608,7 +1680,8 @@
                 "shape": "rectangle",
                 "fill": "#f9f9f9",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "10e1aeb2-0859-42ed-a11e-ac5c0b85a41b",
@@ -1631,7 +1704,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "源泉控除 対象配偶者 （注1）"
               },
               {
                 "id": "3103cbad-96dc-4ac7-9ec0-3b1d47f262c9",
@@ -1654,7 +1728,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "A"
               },
               {
                 "id": "b36e2b19-0626-4881-8335-8556a4589516",
@@ -1673,7 +1748,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "da9a9eee-f54a-44de-a062-372355b1beb8",
@@ -1691,7 +1767,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "7f307482-05c3-4b38-946c-520f646e43c6",
@@ -1709,7 +1786,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "48fac119-3d89-41ae-aa92-49cd02de8df0",
@@ -1727,7 +1805,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d836acf0-696e-4680-ac12-0c95741e5c95",
@@ -1745,7 +1824,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "f2026c32-7da2-471f-a2cd-1912a0e4ea22",
@@ -1763,7 +1843,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d4eec90d-f1eb-4d4a-affc-1855a203ca33",
@@ -1781,7 +1862,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "b3d5a7c4-b4f9-45a0-acce-a3a166ef8cfc",
@@ -1799,7 +1881,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "91bc30f7-e421-4534-a263-6106848310d1",
@@ -1817,7 +1900,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "80e85ec3-39ec-41a1-ab0e-7fb8291c5058",
@@ -1835,7 +1919,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "b0fcbf78-5cc9-4dd1-b7dc-4d5cce91a79f",
@@ -1853,7 +1938,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "899144ef-a233-49e1-b2bd-fa6f7592565a",
@@ -1875,7 +1961,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "フリガナ"
               },
               {
                 "id": "f55c2489-8e7f-4941-aeff-d6329cf42810",
@@ -1899,7 +1986,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "3448a8ed-15c1-4961-979f-d2017a742342",
@@ -1921,7 +2009,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "a34d1bf3-0780-4237-9562-1a2856e7f0ee",
@@ -1945,7 +2034,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "36f3710e-c27f-4098-a528-1df9a9db5a4a",
@@ -1969,7 +2059,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "3aa418d3-67de-435e-b338-8b366d2220ca",
@@ -1994,7 +2085,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "905a583d-dda9-4241-b234-e00d8b4b7fbc",
@@ -2009,7 +2101,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "f8a62979-3c62-47ab-b496-c0899b6115e7",
@@ -2033,7 +2126,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "8bdac9e7-d95b-423e-b4b4-4c6a627f3f89",
@@ -2055,7 +2149,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "年"
               },
               {
                 "id": "4037d1a6-2e96-4ffa-a730-ace354fe9993",
@@ -2079,7 +2174,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "188a059e-e006-43dd-968d-dcfd604edceb",
@@ -2101,7 +2197,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "月"
               },
               {
                 "id": "231f9805-50dc-4b7a-b261-20028ae6190c",
@@ -2125,7 +2222,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "af503f5e-15b8-47ac-84a8-5a7a0985ca85",
@@ -2147,7 +2245,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "日"
               },
               {
                 "id": "f0e65676-b84f-45f5-8cdf-6c2000218a8a",
@@ -2171,7 +2270,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "9da80775-b68e-401d-900f-e7f0029f1256",
@@ -2193,7 +2293,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "円"
               },
               {
                 "id": "6d5419c3-2da3-4a20-966a-1c9ccd97af27",
@@ -2217,7 +2318,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1e94a42a-eea0-4b72-8f22-3cb23172919c",
@@ -2239,7 +2341,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者 である親族"
               },
               {
                 "id": "74dea93d-357e-4e12-804f-7c783f6a8fe2",
@@ -2263,7 +2366,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "66405e0c-3bac-4656-b4f4-9be4f8eede0e",
@@ -2287,7 +2391,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e9c05175-3da7-4d91-ae7a-549d3441a3ad",
@@ -2311,7 +2416,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "685d9c57-cdd6-467a-b0b2-d39eae0bb595",
@@ -2333,7 +2439,8 @@
                   "textAlign": "left",
                   "verticalAlign": "bottom",
                   "color": "#000000"
-                }
+                },
+                "name": "（該当する場合は□を 付けてください）"
               },
               {
                 "id": "9fd2f53c-3906-42fc-b164-b0ba90214543",
@@ -2352,7 +2459,8 @@
                 "shape": "rectangle",
                 "fill": "#f9f9f9",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "86c9c239-f84c-4e37-99e9-0359e2009b28",
@@ -2375,7 +2483,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "控除対象 扶養親族 （16歳以上） …"
               },
               {
                 "id": "ae90d119-3ce0-4176-8c21-650f1de46033",
@@ -2398,7 +2507,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "B"
               },
               {
                 "id": "c9bdd764-661a-4355-9401-6c59e7a2c06d",
@@ -2421,7 +2531,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "1"
               },
               {
                 "id": "e476df28-c96e-4243-b257-a82c435a5d1b",
@@ -2440,7 +2551,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "f8919725-2ec8-4163-b50e-7f629c4f5e03",
@@ -2458,7 +2570,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "58d4fbf8-196b-4f67-9682-5bb5c6068ad9",
@@ -2476,7 +2589,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "b7e1d9c9-89b2-43ba-bbec-37f7465e7ff4",
@@ -2494,7 +2608,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "b0e97d06-c938-4da5-877a-20f842608924",
@@ -2512,7 +2627,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "e9e5b399-aabb-4ffe-8ab9-1980a013c829",
@@ -2530,7 +2646,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "2c8987b4-2600-4862-bdb8-0ec06359f462",
@@ -2548,7 +2665,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "faec75d7-a7f2-48fd-873c-4f27de5cde02",
@@ -2566,7 +2684,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "8eba9086-4ab9-4e4e-a234-ac4d71746dad",
@@ -2584,7 +2703,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "50479cc2-36a6-42d1-8ecf-5200a818a987",
@@ -2602,7 +2722,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d425d08a-26b2-4f1b-b2e6-0088d682d0ec",
@@ -2620,7 +2741,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "79fa48d5-9df6-473b-b015-d17b27d6fca1",
@@ -2642,7 +2764,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "フリガナ"
               },
               {
                 "id": "fe02506b-ad86-42c8-9855-73c57f60ae59",
@@ -2666,7 +2789,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e43efcd0-9bdc-478f-9525-70fbba0ff9a0",
@@ -2688,7 +2812,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "b7aa0ed2-daea-41d9-9a6c-91475d51c546",
@@ -2712,7 +2837,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "51440e13-de63-460d-94b7-49e216e960ed",
@@ -2736,7 +2862,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "eba75e98-a487-471c-929a-281bb576dbbd",
@@ -2761,7 +2888,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "eac08a97-16e8-4393-9814-900e2f9223af",
@@ -2776,7 +2904,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "b2d8e1d0-ff79-423e-b538-fd79d2b9decd",
@@ -2800,7 +2929,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "bd074ff8-8058-4a59-a799-3af3368c4581",
@@ -2822,7 +2952,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "年"
               },
               {
                 "id": "cc0f4c71-2c0e-4311-b23e-4fb7c189e4c1",
@@ -2846,7 +2977,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ac50101b-80d7-49f6-946e-d52a8d845d32",
@@ -2868,7 +3000,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "月"
               },
               {
                 "id": "f502c5e0-7f21-479e-a9ce-10fce7dc5ff1",
@@ -2892,7 +3025,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ea031fce-fb37-48fb-9418-0f307501e6f1",
@@ -2914,7 +3048,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "日"
               },
               {
                 "id": "c91394c3-399b-4244-a4f7-d8605bc83344",
@@ -2938,7 +3073,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ed52db14-f75b-433d-8a72-8509a23ed012",
@@ -2960,7 +3096,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "円"
               },
               {
                 "id": "c3677059-eb15-48d2-9a9a-a85e990becd1",
@@ -2984,7 +3121,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d947175b-3efc-453d-b7f3-8d089a0919ec",
@@ -3006,7 +3144,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者 である親族"
               },
               {
                 "id": "ea7a0a91-e3d4-416e-b797-a6187e7849a3",
@@ -3030,7 +3169,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "4823a55c-220f-409e-a8e6-fd1077b93ea6",
@@ -3054,7 +3194,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7421c462-5420-4fb2-ad5a-acafb94b2c3c",
@@ -3078,7 +3219,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "878e2677-9067-4178-bc44-abff0e829614",
@@ -3102,7 +3244,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b2709c86-adae-46f8-8261-ae140fbc59b9",
@@ -3124,7 +3267,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同居老親等"
               },
               {
                 "id": "3d80406f-6bbd-4633-ad7d-901fec753e35",
@@ -3148,7 +3292,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "80780fde-04f1-4090-962e-3a62064defd0",
@@ -3170,7 +3315,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "その他"
               },
               {
                 "id": "fe47fb97-0166-49d7-b870-29dcfa268814",
@@ -3194,7 +3340,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "fc86b43a-553f-4db6-8fe2-e1f8eb6ff494",
@@ -3216,7 +3363,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "特定扶養親族"
               },
               {
                 "id": "272f8557-4e6d-4ccb-914b-c80ebc6cac52",
@@ -3240,7 +3388,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ea12a588-d194-44be-8e5c-c13a30e592eb",
@@ -3262,7 +3411,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "16歳以上30歳未満 又は70歳以上"
               },
               {
                 "id": "b6323ff1-61b5-4541-9a6a-f51dfe1eea32",
@@ -3286,7 +3436,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "82fed4e9-bc0b-4fd9-b8ae-dd8392a3a86d",
@@ -3308,7 +3459,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "留学"
               },
               {
                 "id": "0c995a5b-6f80-445c-a938-209336db9bf1",
@@ -3332,7 +3484,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "395e1abd-c73e-4bf1-8384-a57e86c34193",
@@ -3354,7 +3507,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者"
               },
               {
                 "id": "ea9d841a-457c-46e4-98de-8dfdbb847ca6",
@@ -3378,7 +3532,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "59c7cab6-f215-4490-ad86-fe46cc46ef20",
@@ -3400,7 +3555,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "38万円以上の支払"
               },
               {
                 "id": "86ccf99d-b8c6-430e-afb3-e935bde0f5ee",
@@ -3423,7 +3579,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "2"
               },
               {
                 "id": "ddda2780-2352-4e2b-b294-e0fdc85554f1",
@@ -3442,7 +3599,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "8cf3926f-af94-44cf-b6d0-da20d31115b5",
@@ -3460,7 +3618,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "106632ad-726a-446f-a763-62efbd00c2d3",
@@ -3478,7 +3637,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "974f452b-4c8e-4ddc-9e82-ef9116438ccd",
@@ -3496,7 +3656,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "0df0cd6e-d8d6-4f2c-b366-52c969971580",
@@ -3514,7 +3675,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "5e9b7953-16f0-4de8-8d3a-fa40e866d4dd",
@@ -3532,7 +3694,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "98156937-618f-4c66-bc1e-121cbc1b6516",
@@ -3550,7 +3713,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "ee5a3564-34c8-4210-b44e-f11d69bdb148",
@@ -3568,7 +3732,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "2c1a662f-5b25-4488-9d25-65f0563d9b86",
@@ -3586,7 +3751,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "2b1c6683-ad0c-4f52-9754-ccd3058c9f1a",
@@ -3604,7 +3770,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "6ac60c35-2939-4aa7-a068-ae70ae339286",
@@ -3622,7 +3789,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "da5b737f-2398-4058-ad0c-3a40b78f6d38",
@@ -3644,7 +3812,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "フリガナ"
               },
               {
                 "id": "2ef1cc6b-0dba-4af8-8b6b-9356c58a697c",
@@ -3668,7 +3837,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1b7d8824-e44d-4faa-9b21-10426f57df62",
@@ -3690,7 +3860,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "7fcabd4f-068b-43c5-b0ea-74db3cef0fc7",
@@ -3714,7 +3885,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "75cb124f-555a-44e3-952b-406984ec64d4",
@@ -3738,7 +3910,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "6f6e59ce-c964-44b0-86ec-f53ab9014f21",
@@ -3763,7 +3936,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "61132db8-8b04-4d00-9096-ee248774ddf3",
@@ -3778,7 +3952,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "46b3dc4c-08c1-4331-910b-c515231916a2",
@@ -3802,7 +3977,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1c1fa281-8aed-4940-90bc-35eb534e3ad6",
@@ -3824,7 +4000,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "年"
               },
               {
                 "id": "c58bff01-e491-4c17-ab94-e0dac5635564",
@@ -3848,7 +4025,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "687a6df6-5dd0-4931-9d3b-4821cda662ab",
@@ -3870,7 +4048,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "月"
               },
               {
                 "id": "9c5084f1-c5ce-462e-8fe4-43cd74546035",
@@ -3894,7 +4073,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "00395738-45cb-472a-9098-98fc4d840459",
@@ -3916,7 +4096,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "日"
               },
               {
                 "id": "83521a4c-1ea6-4ab0-bf82-f66374daca26",
@@ -3940,7 +4121,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "39fee10e-dd71-4f35-9138-80bcb23fa93e",
@@ -3962,7 +4144,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "円"
               },
               {
                 "id": "485748ae-a8ba-4a26-bb91-0a4ab97769cc",
@@ -3986,7 +4169,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1767b68d-3bdb-49c3-b2d0-cca47987c80b",
@@ -4008,7 +4192,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者 である親族"
               },
               {
                 "id": "40d5e234-31ab-4619-977a-82c212381a94",
@@ -4032,7 +4217,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7635f396-4447-4b1d-9a7a-ac20ca89c904",
@@ -4056,7 +4242,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ae69474b-8c33-473f-be4e-636a892af467",
@@ -4080,7 +4267,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0309eb40-6c3f-43a0-8f6c-5ead1e7e1897",
@@ -4104,7 +4292,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7e4a0448-18da-4267-8bf5-cdb799c17d1a",
@@ -4126,7 +4315,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同居老親等"
               },
               {
                 "id": "452857f9-2eb2-4c35-8f61-96426c94fedf",
@@ -4150,7 +4340,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "c06e7866-7735-4ab0-aab4-f9b40b0329da",
@@ -4172,7 +4363,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "その他"
               },
               {
                 "id": "e4ce4874-5aec-435e-a986-0f1616d647fa",
@@ -4196,7 +4388,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "9217a1be-3bba-4117-9715-15e0fc0c1451",
@@ -4218,7 +4411,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "特定扶養親族"
               },
               {
                 "id": "210236a8-6d15-4ba6-b182-f619bd487a11",
@@ -4242,7 +4436,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "fad150a2-d767-4000-ac02-5f154213fb37",
@@ -4264,7 +4459,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "16歳以上30歳未満 又は70歳以上"
               },
               {
                 "id": "dcd45ac9-a7d4-4afa-8093-177445be63df",
@@ -4288,7 +4484,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b25b8178-6df0-4bbc-8b88-e660005ae206",
@@ -4310,7 +4507,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "留学"
               },
               {
                 "id": "74ae948a-ecc8-422b-af55-da34548ffb73",
@@ -4334,7 +4532,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0a3e6e08-9e8b-4c89-9eff-5b890a32949e",
@@ -4356,7 +4555,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者"
               },
               {
                 "id": "84d39a71-1d67-4559-9ed3-2f2f6bceb35f",
@@ -4380,7 +4580,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7d12ae43-235c-4461-a5cf-686d4d99d014",
@@ -4402,7 +4603,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "38万円以上の支払"
               },
               {
                 "id": "7787e869-7080-4a73-81fe-b8b8187c5552",
@@ -4425,7 +4627,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "3"
               },
               {
                 "id": "b7bf1339-92d7-4d64-9871-924d16a3b2f5",
@@ -4444,7 +4647,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "c2c193ae-30f7-4923-8d79-9f57c1aac48f",
@@ -4462,7 +4666,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "646b62df-c623-4961-8873-8c746f498d5e",
@@ -4480,7 +4685,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "1ac7e8fd-b2e4-44ef-911a-deb3637a9db4",
@@ -4498,7 +4704,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "ce1d83cc-2ae0-4325-9d34-5af0a14557e2",
@@ -4516,7 +4723,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "85d66d79-3bd3-4fb0-9065-d39d061c3117",
@@ -4534,7 +4742,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "7a3fec6a-62da-42c9-8581-2d57e8b9b68e",
@@ -4552,7 +4761,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "e714035e-d05b-4492-b86b-8564b92c3229",
@@ -4570,7 +4780,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "0bebc6e1-f829-4c93-952c-e70b3e1f0f0b",
@@ -4588,7 +4799,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d33faeba-18b1-49c2-bf63-4b943a943abd",
@@ -4606,7 +4818,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "0395dd7c-7e33-4296-8b35-d5917d1d3fe4",
@@ -4624,7 +4837,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "69cab968-c663-4c1e-bbff-e5bcd9843784",
@@ -4646,7 +4860,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "フリガナ"
               },
               {
                 "id": "bdbfcc98-41cd-422d-b061-8c9dba98b0ea",
@@ -4670,7 +4885,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7a1b43ce-3e13-4ec7-a142-2ea8e874e343",
@@ -4692,7 +4908,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "c60be6bc-45f9-4541-af98-301fa915f0d7",
@@ -4716,7 +4933,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "992c7f2c-26dc-4e9e-91fb-6b76dff155cd",
@@ -4740,7 +4958,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b7ddf4b9-1b44-40a7-9e32-53cbe5de51c7",
@@ -4765,7 +4984,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e7546e9a-7009-4e02-8253-d7f9e030acad",
@@ -4780,7 +5000,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "c9227442-44cb-47b5-ac62-13578d9c7b96",
@@ -4804,7 +5025,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7fe86063-8f49-4444-b38b-d7ca0f862fa6",
@@ -4826,7 +5048,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "年"
               },
               {
                 "id": "b02cb023-371a-4f48-b702-780760bfd1bf",
@@ -4850,7 +5073,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ed9f1345-2362-473d-90c9-fe7ff48f075e",
@@ -4872,7 +5096,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "月"
               },
               {
                 "id": "5a253ce0-328c-44ff-963e-eabc7092e4e7",
@@ -4896,7 +5121,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "cc254b40-1b07-404b-9a4a-0f577cba48f4",
@@ -4918,7 +5144,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "日"
               },
               {
                 "id": "9e3e0066-4088-4b42-b10a-9d3eb6ab59b1",
@@ -4942,7 +5169,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "8c0bff97-2b27-4ece-a9ca-7385803081be",
@@ -4964,7 +5192,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "円"
               },
               {
                 "id": "eb729cac-fd7f-4005-b6eb-17cdf18a7721",
@@ -4988,7 +5217,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ddd74a32-d06f-46d5-8b7b-0f679baa67ce",
@@ -5010,7 +5240,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者 である親族"
               },
               {
                 "id": "6221281a-afa1-4668-8bce-024efc49c209",
@@ -5034,7 +5265,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "03cafe66-2e11-46a6-85bb-702f2af1e58b",
@@ -5058,7 +5290,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "8b8e02f8-e97e-410c-afc6-3421d751844b",
@@ -5082,7 +5315,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "fdfd3195-7400-4991-a724-9319326c12ee",
@@ -5106,7 +5340,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "cb6346ca-eaac-42c9-a97f-f3f1afc0e3a6",
@@ -5128,7 +5363,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同居老親等"
               },
               {
                 "id": "8c935952-bfe3-4543-ab46-d736af3949e0",
@@ -5152,7 +5388,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "80857ba3-ac6e-4beb-b377-44819a49bed4",
@@ -5174,7 +5411,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "その他"
               },
               {
                 "id": "f6a960a4-5081-42b8-8720-c0eac8e8ada0",
@@ -5198,7 +5436,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0621d767-bdc7-4682-b73d-5142c4d5b710",
@@ -5220,7 +5459,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "特定扶養親族"
               },
               {
                 "id": "ffb10954-2167-4739-abbc-3c58f9b990a2",
@@ -5244,7 +5484,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "102a3be8-6382-440e-9f67-db7a12fa552f",
@@ -5266,7 +5507,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "16歳以上30歳未満 又は70歳以上"
               },
               {
                 "id": "c5958649-e9a5-4804-898b-f9ba26e39b89",
@@ -5290,7 +5532,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2f7aee5d-9d1a-4db2-b61b-3ec252185dc0",
@@ -5312,7 +5555,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "留学"
               },
               {
                 "id": "5629fdca-1d8d-45ba-a8a8-17f0d86f6e19",
@@ -5336,7 +5580,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "450beac8-99f8-4c6c-9d7c-8fff45eed272",
@@ -5358,7 +5603,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者"
               },
               {
                 "id": "636c5e5c-6d20-4fd4-9387-c9fdb9e67ec6",
@@ -5382,7 +5628,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "4d41b372-9eb6-479b-b342-894297cb5cc5",
@@ -5404,7 +5651,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "38万円以上の支払"
               },
               {
                 "id": "bdbe8261-217b-4767-b696-d7d03b1e839d",
@@ -5427,7 +5675,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "4"
               },
               {
                 "id": "db056759-03cf-4d5c-ad47-874e94f2f643",
@@ -5446,7 +5695,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "59e21fd1-deb7-4fe7-bf15-a13dcae3e57f",
@@ -5464,7 +5714,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "211dba03-8232-4707-84c8-cb7725363c58",
@@ -5482,7 +5733,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "4f007295-58d5-4cd6-a52a-516f4d349be1",
@@ -5500,7 +5752,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a6f5b4bd-ff3b-46f3-a004-49fe72a79854",
@@ -5518,7 +5771,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "cba83594-7930-4f30-a40e-47fb1941b3d7",
@@ -5536,7 +5790,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "eb3e8606-efbc-4379-8971-168de9beec64",
@@ -5554,7 +5809,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "e5a6d092-1ca9-4fb9-971f-b1ba85c112fb",
@@ -5572,7 +5828,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "043ac123-d0d8-4024-8186-a389d5c00bf4",
@@ -5590,7 +5847,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "96d3b07a-8cdf-40da-9ffb-9b37ab820ffe",
@@ -5608,7 +5866,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "eca1496b-76e8-40bd-8583-2e4f938b3317",
@@ -5626,7 +5885,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "6502c254-8f4b-44ce-8dcc-28f98968f59a",
@@ -5648,7 +5908,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "フリガナ"
               },
               {
                 "id": "270a4e7b-cb78-42b5-8de9-dde4ded14245",
@@ -5672,7 +5933,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "6e224333-24ea-4744-aa9c-f53f83cafe50",
@@ -5694,7 +5956,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "0b79e104-51cc-4467-ba5b-c65b71eb184e",
@@ -5718,7 +5981,8 @@
                   "fontSize": 3.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "c02f8aca-09ba-4d40-b8de-d3a70a65c989",
@@ -5742,7 +6006,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "90415ee5-8a5d-4db2-a9c3-3a4a1ccf7912",
@@ -5767,7 +6032,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "26a674b5-5e75-436b-b3c0-6b93c1340842",
@@ -5782,7 +6048,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "dc7f8cfd-f79f-47ca-a6d4-04d6fa2bf09c",
@@ -5806,7 +6073,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "dfbdfd09-32d7-44b3-b34e-305e058f8af4",
@@ -5828,7 +6096,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "年"
               },
               {
                 "id": "c7305966-5f30-497e-8ca6-92172f315fb1",
@@ -5852,7 +6121,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "38f3ab8b-6f21-436e-b68a-167bfeab9c84",
@@ -5874,7 +6144,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "月"
               },
               {
                 "id": "95b5817c-5ef2-4b13-b4af-409de02881cb",
@@ -5898,7 +6169,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "35559986-0b4c-48ef-849e-7bf2ccf5a895",
@@ -5920,7 +6192,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "日"
               },
               {
                 "id": "f4305b44-d7d0-4b4f-85ae-c03b715143d8",
@@ -5944,7 +6217,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "30ae44e7-7668-410d-af8c-c4f85556ad0a",
@@ -5966,7 +6240,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "円"
               },
               {
                 "id": "f970d472-eabb-4ae3-abee-515ab4cf8c8f",
@@ -5990,7 +6265,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "4185eae8-46dc-48ed-9ba1-52bcaecfd94b",
@@ -6012,7 +6288,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者 である親族"
               },
               {
                 "id": "bfc0bf90-08fe-46e6-8a26-5831e805131e",
@@ -6036,7 +6313,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0aeea7e1-0ea4-4c21-a9c8-4edce4dd164e",
@@ -6060,7 +6338,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "9ee387cd-0b91-4cf6-872b-02020f892e93",
@@ -6084,7 +6363,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d30ca3bb-791d-4556-b782-072575098872",
@@ -6108,7 +6388,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "533fa897-cc06-4dbc-91db-c177183ba2a0",
@@ -6130,7 +6411,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同居老親等"
               },
               {
                 "id": "0dd5f353-f520-4600-beec-b287adb7a4ed",
@@ -6154,7 +6436,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "51fdfbf2-9c2b-45d0-9151-03718054d4b2",
@@ -6176,7 +6459,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "その他"
               },
               {
                 "id": "a7790a8f-a0bd-4fdd-b347-58982467aa96",
@@ -6200,7 +6484,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "22670ab9-eb42-4843-bec9-bd1e4477ad67",
@@ -6222,7 +6507,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "特定扶養親族"
               },
               {
                 "id": "4af99263-f07d-42d9-be63-9b8f4a4b720c",
@@ -6246,7 +6532,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "4be22c95-e558-4c38-a258-574aa1de93d0",
@@ -6268,7 +6555,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "16歳以上30歳未満 又は70歳以上"
               },
               {
                 "id": "db95618a-b63c-40cc-94e3-f4053c1ad350",
@@ -6292,7 +6580,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "79a411bf-bb6d-4245-8754-b9abd8157bb0",
@@ -6314,7 +6603,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "留学"
               },
               {
                 "id": "7795c1d2-515d-49b1-b695-7a91de995d51",
@@ -6338,7 +6628,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "68466516-96f0-42c5-8fc8-19e6c2229c61",
@@ -6360,7 +6651,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者"
               },
               {
                 "id": "5522b29b-6e05-4465-a756-2b0229e580e1",
@@ -6384,7 +6676,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "c1bcd7bc-f75e-4f12-8907-0aa4e46cb8e4",
@@ -6406,7 +6699,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "38万円以上の支払"
               },
               {
                 "id": "f03ed2cc-859f-497a-ac28-25ae3d982512",
@@ -6425,7 +6719,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "5a0fea0f-460b-4fb2-a411-38384eacb55b",
@@ -6444,7 +6739,8 @@
                 "shape": "rectangle",
                 "fill": "#f9f9f9",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "14b76714-8d8e-4bdd-9893-b2030a08db51",
@@ -6467,7 +6763,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "障害者、寡婦、 ひとり親 又は勤労学生"
               },
               {
                 "id": "86722c12-ce12-40e1-9529-f0f89f51a6fd",
@@ -6490,7 +6787,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "C"
               },
               {
                 "id": "4e777ca6-87c3-4649-8c28-6325e2710b11",
@@ -6513,7 +6811,8 @@
                   "verticalAlign": "top",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "区分"
               },
               {
                 "id": "40fab7d6-fb2a-4fe0-888d-0655aac14871",
@@ -6532,7 +6831,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "01156321-eb86-42db-8a94-a6c803066561",
@@ -6556,7 +6856,8 @@
                   "color": "#000000",
                   "fontWeight": "bold",
                   "backgroundColor": "#eeeeee"
-                }
+                },
+                "name": "一般障害者"
               },
               {
                 "id": "7d448659-3c5c-4823-a9bc-8c62ed851496",
@@ -6580,7 +6881,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "fb134747-e37c-45de-b066-6fa2eefd9970",
@@ -6602,7 +6904,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "本人"
               },
               {
                 "id": "45d3bd93-598b-467f-a066-e4e24c1f7b3c",
@@ -6626,7 +6929,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7629140e-c638-4d0a-9baf-c4a471486e4b",
@@ -6648,7 +6952,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同一生計配偶者 (注2)"
               },
               {
                 "id": "c812b199-e546-4210-ae86-edea7411517d",
@@ -6672,7 +6977,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "37c183ee-e447-4c40-a680-73b295b2b6e6",
@@ -6694,7 +7000,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "扶養親族"
               },
               {
                 "id": "5f64d080-a27f-476d-bcfa-18d1fb4a1ae1",
@@ -6713,7 +7020,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "29d9e0ad-3994-4073-aa00-d136f075ffe8",
@@ -6737,7 +7045,8 @@
                   "color": "#000000",
                   "fontWeight": "bold",
                   "backgroundColor": "#eeeeee"
-                }
+                },
+                "name": "特別障害者"
               },
               {
                 "id": "9ff37219-af10-4b05-8167-882657ecba62",
@@ -6761,7 +7070,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "6fc3f105-bf47-4825-b44b-38fdf7d4e259",
@@ -6783,7 +7093,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "本人"
               },
               {
                 "id": "965c8254-63d1-44fe-9a15-7e2e93abc612",
@@ -6807,7 +7118,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2e2e8fd2-a998-4524-b930-c20911ecb662",
@@ -6829,7 +7141,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同一生計配偶者 (注2)"
               },
               {
                 "id": "d47ca6b8-8ba8-4c7e-b1f1-329323008c31",
@@ -6853,7 +7166,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b31864c7-3fd3-4a20-97ca-53df9a9312e9",
@@ -6875,7 +7189,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "扶養親族"
               },
               {
                 "id": "1a784a4d-c572-46a4-8649-0a95e73faca0",
@@ -6894,7 +7209,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "e5795e7d-a2c5-4d1e-b418-1fa28f4d4a48",
@@ -6918,7 +7234,8 @@
                   "color": "#000000",
                   "fontWeight": "bold",
                   "backgroundColor": "#eeeeee"
-                }
+                },
+                "name": "同居特別障害者"
               },
               {
                 "id": "6353c7ae-a9da-410e-b494-1ee0dc747bdb",
@@ -6942,7 +7259,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0e162bc6-2c52-4f4f-874e-29552c9b817b",
@@ -6964,7 +7282,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "本人"
               },
               {
                 "id": "0b592cc5-0e49-4968-907c-0f370e1f9380",
@@ -6988,7 +7307,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1b716005-23ef-4ede-a71f-0ccb8adf0fdc",
@@ -7010,7 +7330,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "同一生計配偶者 (注2)"
               },
               {
                 "id": "70cadb87-ffa1-4fad-9e8b-eb6a503fd62c",
@@ -7034,7 +7355,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ff068cb5-9a8b-43ce-99fa-2bc44e1d6368",
@@ -7056,7 +7378,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "扶養親族"
               },
               {
                 "id": "e718ab5b-f545-4578-9708-92eb98c9d218",
@@ -7080,7 +7403,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "fcb7bbab-c1f0-44f3-9a70-d9ba1106dfd7",
@@ -7102,7 +7426,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "寡婦"
               },
               {
                 "id": "7c350718-0b6c-4d52-a6e9-d54d75abc746",
@@ -7126,7 +7451,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "419d033c-fc23-42c0-a6a6-41ee9c0f1429",
@@ -7148,7 +7474,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "ひとり親"
               },
               {
                 "id": "8cc800d0-151a-4b07-b0ba-5b65ad0f0026",
@@ -7172,7 +7499,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2d2110b8-c275-4478-8659-bed4a17e3af6",
@@ -7194,7 +7522,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "勤労学生"
               },
               {
                 "id": "dfcb9ab0-444b-4195-b1fa-678ee4a6588a",
@@ -7216,7 +7545,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者又は勤労学生の内容（この欄の記…"
               },
               {
                 "id": "b2c66f48-0d49-4159-8860-faad3167c6ba",
@@ -7240,7 +7570,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d083f7ea-5ae6-4f7a-999c-ad525cad8f9d",
@@ -7262,7 +7593,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "異動月日及び事由"
               },
               {
                 "id": "0f85d33d-c60c-4e8c-986b-99b33e2d52f1",
@@ -7281,7 +7613,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "2c2ad180-e86e-4389-85b0-608ec317eab0",
@@ -7300,7 +7633,8 @@
                 "shape": "rectangle",
                 "fill": "#f9f9f9",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "1f808c99-6ec1-498c-8edb-36e49d4e5023",
@@ -7323,7 +7657,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "D"
               },
               {
                 "id": "732e488a-a53e-4a40-ae86-734aa40e6d06",
@@ -7346,7 +7681,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "他の所得者が 控除を受ける 扶養親族等"
               },
               {
                 "id": "08d20555-8293-40f2-9fbf-b2ead987a033",
@@ -7369,7 +7705,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "85b645cd-0b35-4c0a-a2aa-82c7b3c7dda7",
@@ -7393,7 +7730,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "6588aeee-fcac-41af-aff5-d7c798b4ca1d",
@@ -7415,7 +7753,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの 続柄"
               },
               {
                 "id": "f1e68b39-e165-4305-bcfc-1d2943054e62",
@@ -7439,7 +7778,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "5375374b-ef20-4565-b3f6-8e85344fe848",
@@ -7462,7 +7802,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "生年月日"
               },
               {
                 "id": "07784636-c638-4367-990f-c00b1775899a",
@@ -7477,7 +7818,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "abd724fe-cec1-4cf6-ad65-64f517f4a7f4",
@@ -7501,7 +7843,8 @@
                   "fontSize": 2.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "0b50996d-8d54-4399-9a78-3ae60a963e2c",
@@ -7524,7 +7867,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "住所又は居所"
               },
               {
                 "id": "49655439-819b-45cb-8dc9-4c6cdf658902",
@@ -7548,7 +7892,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "f18678e5-cd7a-44cb-b3a2-8c53683f7a12",
@@ -7570,7 +7915,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "控除を受ける他の所得者 氏名"
               },
               {
                 "id": "4ccc5919-d338-4859-80ac-8e0186157ecb",
@@ -7594,7 +7940,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "f235a4e0-8a07-4243-a43e-b5f4c9fd8df8",
@@ -7616,7 +7963,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "続柄"
               },
               {
                 "id": "1bc7759e-9a76-4919-ac3d-170c38d8d3bf",
@@ -7640,7 +7988,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "9e93c515-c05e-4286-80e4-8068cb2f8080",
@@ -7663,7 +8012,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "異動月日及び事由"
               },
               {
                 "id": "68dccd60-531a-439b-b27b-3a8b1869d382",
@@ -7687,7 +8037,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "8418f22c-58e3-4ec4-8364-77b54aad3780",
@@ -7710,7 +8061,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "氏名"
               },
               {
                 "id": "d0f098fa-d966-41e8-ba4c-51cf044253db",
@@ -7734,7 +8086,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "29e48c07-2292-42a1-8f23-933af081746e",
@@ -7756,7 +8109,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの 続柄"
               },
               {
                 "id": "7c94566c-4737-45b7-ac4f-418575427204",
@@ -7780,7 +8134,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "3a3fd3f9-3f0e-4536-94d8-8ec9fd52f720",
@@ -7803,7 +8158,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "生年月日"
               },
               {
                 "id": "0318ff73-3601-4b34-bd94-0e3a61431159",
@@ -7818,7 +8174,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "d484b066-1363-4b48-b34b-6da22b548de3",
@@ -7842,7 +8199,8 @@
                   "fontSize": 2.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2038aa12-7030-420b-b910-c9c27369e16d",
@@ -7865,7 +8223,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "住所又は居所"
               },
               {
                 "id": "823be195-4411-4c50-a2d1-db0acdd13210",
@@ -7889,7 +8248,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e487b45c-4e89-41e7-a869-b29c7d552dc1",
@@ -7911,7 +8271,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "控除を受ける他の所得者 氏名"
               },
               {
                 "id": "e110076c-f27d-4eee-bef4-f19eae09fe5c",
@@ -7935,7 +8296,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1962dc7e-fed7-433e-a172-276d1ff4fb71",
@@ -7957,7 +8319,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "続柄"
               },
               {
                 "id": "aae51a4e-def1-4a41-be2e-3493adf1753a",
@@ -7981,7 +8344,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "49af5990-8a72-4868-bad9-95bc782cd42a",
@@ -8004,7 +8368,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "paddingLeft": 1
-                }
+                },
+                "name": "異動月日及び事由"
               },
               {
                 "id": "1a1ead99-c7d3-45db-9215-cfa9833c71da",
@@ -8028,7 +8393,8 @@
                   "fontSize": 3,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "a978dc25-57e2-4e52-81e6-d80df8d311ef",
@@ -8047,7 +8413,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "e9d437b3-2256-45da-9b92-f760273804d3",
@@ -8069,7 +8436,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "（注1）源泉控除対象配偶者とは、所得…"
               },
               {
                 "id": "4c14e2fe-03b3-4c13-8f3b-cf1e35674ba3",
@@ -8091,7 +8459,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "（注2）同一生計配偶者とは、所得者と…"
               },
               {
                 "id": "3f339089-d69e-42a7-a79d-7a6f49e56691",
@@ -8110,7 +8479,8 @@
                 "shape": "rectangle",
                 "fill": "#e8e8e8",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "bf9008bf-443d-4ac9-a4f2-77f538138803",
@@ -8132,7 +8502,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "○住民税に関する事項（この欄は、地方…"
               },
               {
                 "id": "76a077db-0dff-4506-ab64-752992879c38",
@@ -8151,7 +8522,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "1d775b3c-8cf6-424f-9710-a65ed1146465",
@@ -8170,7 +8542,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "6d22bced-fa37-48e9-963c-4469ea660990",
@@ -8193,7 +8566,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "16歳未満の 扶養親族 （平22.1…"
               },
               {
                 "id": "64fbaaad-f0ce-439e-af86-b0bcf42549c9",
@@ -8211,7 +8585,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "640bf5cd-56ab-4e3a-b649-ecb6134a50fa",
@@ -8233,7 +8608,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "（フリガナ） 氏名"
               },
               {
                 "id": "43a27e6b-d5ec-46d3-b91c-ec8cc594fa87",
@@ -8251,7 +8627,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "f9202537-b005-4b39-a497-999a0104dc17",
@@ -8273,7 +8650,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "個人番号"
               },
               {
                 "id": "af6466f2-10f1-42d6-bc31-1f229361430f",
@@ -8291,7 +8669,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "546c5dc4-1848-475f-82a0-f0d52a100da2",
@@ -8313,7 +8692,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの 続柄"
               },
               {
                 "id": "21e7a9a2-698e-41ff-aef8-ac30c2345cf7",
@@ -8331,7 +8711,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "7df2a6ba-5b2d-494d-9f8c-6afc8e7303c5",
@@ -8353,7 +8734,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "生 年 月 日"
               },
               {
                 "id": "ee2b7f57-c312-4e8a-a9fc-12d2067a52b3",
@@ -8371,7 +8753,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "5a2fe601-3493-418b-a44b-8ca874c0e8a0",
@@ -8393,7 +8776,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "住所又は居所"
               },
               {
                 "id": "b38bd430-7d4f-4641-a2a4-3f61a19cd141",
@@ -8411,7 +8795,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "804c891a-fb48-4d09-8681-095e78012b82",
@@ -8433,7 +8818,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "控除対象外国外扶養親族"
               },
               {
                 "id": "73000da1-542e-4177-a8d2-6b0091e43063",
@@ -8451,7 +8837,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "acc42813-d86f-4afa-b272-7aef9cce6fae",
@@ -8473,7 +8860,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "令和7年中の 所得の見積額"
               },
               {
                 "id": "6f15a997-8d8c-4bc6-b75a-80c876da68dd",
@@ -8491,7 +8879,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d082c5f2-44ae-4ff0-8da3-71178dccfc68",
@@ -8513,7 +8902,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者 区分"
               },
               {
                 "id": "335da268-1eec-4cad-a823-c56d58689041",
@@ -8531,7 +8921,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "bea23d89-eddd-481f-b016-55442bf9ebf4",
@@ -8553,7 +8944,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "異動月日 及び事由"
               },
               {
                 "id": "a15fb0af-f171-4af6-a04f-76185e6b5d8d",
@@ -8572,7 +8964,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "d198d6ba-50ca-490f-bbda-47554149333b",
@@ -8595,7 +8988,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "1"
               },
               {
                 "id": "3a8bdb62-81bf-4353-9b41-d381cba5907d",
@@ -8613,7 +9007,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "c8bb1e1c-e5cc-4c31-b809-1efe8c8d485e",
@@ -8637,7 +9032,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "67a4e27a-dce7-431f-8820-c35e3fc565f3",
@@ -8655,7 +9051,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "cf07978b-5608-4ef2-a37a-ac82ac356a71",
@@ -8679,7 +9076,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "5150c0c5-d769-4601-9e5a-879f802996a7",
@@ -8697,7 +9095,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "bc38da37-f22d-4630-b522-a19373a5e289",
@@ -8721,7 +9120,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "77cb77cf-1b82-4c77-bb54-cf1512742417",
@@ -8739,7 +9139,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "337eb379-ce3e-4566-a1d4-02ce1ec3157d",
@@ -8761,7 +9162,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "平"
               },
               {
                 "id": "71589512-49ed-424e-9f9d-f06318ecb184",
@@ -8785,7 +9187,8 @@
                   "fontSize": 2.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "45ec7a73-0a26-476e-9bc7-9f2ef6a59a81",
@@ -8803,7 +9206,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "03b37d1e-cc60-435c-b690-4b58c30a7141",
@@ -8827,7 +9231,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "cd501011-925d-4d2c-adca-b55cdb5c727d",
@@ -8845,7 +9250,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a090058b-30cb-4166-ba47-ea1ab63ce848",
@@ -8869,7 +9275,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7acebe3c-124f-4310-9473-931156a406da",
@@ -8887,7 +9294,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "676a9313-0a6c-45b2-ac13-65f49ca61228",
@@ -8911,7 +9319,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1a7b9e62-6a3c-459b-ab09-606d1a6e41d2",
@@ -8929,7 +9338,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "2912edc6-6d41-471b-af24-a50e69434a34",
@@ -8953,7 +9363,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2ccdbbee-cb9b-4d7f-9064-b5bcf18b1378",
@@ -8971,7 +9382,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "c64b40bb-8ead-4d99-b6ac-7d7042fe421d",
@@ -8995,7 +9407,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "7223dfc9-b98f-48c5-86bc-4a6591862c65",
@@ -9014,7 +9427,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "f5398078-1801-4121-a0b9-3275d1511ce0",
@@ -9037,7 +9451,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "2"
               },
               {
                 "id": "18249012-bee1-427f-8424-35834bb3fc2f",
@@ -9055,7 +9470,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "30b3d871-2290-411a-b97b-b4cc75d81a96",
@@ -9079,7 +9495,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e591600b-e6a0-4b2a-b4b6-35bf9673e7d1",
@@ -9097,7 +9514,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "7c8dc489-cc3c-45ec-9398-c6b81c4649ea",
@@ -9121,7 +9539,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "f9bfaee4-d126-4605-9d27-ab0d72d5bdb4",
@@ -9139,7 +9558,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "6c5498e3-3a29-4dba-97d2-f012ca99733e",
@@ -9163,7 +9583,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1e5985bc-1ed9-44d6-87aa-ef8def0950c8",
@@ -9181,7 +9602,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "158ee3ff-d971-407f-992a-c85e6ae82542",
@@ -9203,7 +9625,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "平"
               },
               {
                 "id": "c1b424c2-0dff-4436-87b7-d7ea868c62f6",
@@ -9227,7 +9650,8 @@
                   "fontSize": 2.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "031dde53-6b2c-4266-a042-83bbbd63d441",
@@ -9245,7 +9669,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "19d6a699-5d59-449c-8c77-c5ae8284cae9",
@@ -9269,7 +9694,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ad234948-bb37-4f2a-a900-0e3de0478061",
@@ -9287,7 +9713,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "6cee1acc-ccf4-433c-9c0b-7b91126a8d12",
@@ -9311,7 +9738,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "2de9125b-5f64-414f-bd83-03135b908aeb",
@@ -9329,7 +9757,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "90a84546-3662-4394-abcd-313835e32471",
@@ -9353,7 +9782,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d4555b8a-0685-4150-a858-555a643f3934",
@@ -9371,7 +9801,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "ad021e76-09a5-41d4-851e-cd8069525aad",
@@ -9395,7 +9826,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1bea767a-0c59-4be4-ac20-49c613ea01fd",
@@ -9413,7 +9845,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "6ccb9513-fb00-49de-b4ce-9dd74a4e62c8",
@@ -9437,7 +9870,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "307a9bb9-4be7-4613-a4d2-53614bb3ac8e",
@@ -9456,7 +9890,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "8fae13d4-1c5c-48db-b65b-5028228266e8",
@@ -9475,7 +9910,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "ac49b039-0a27-4452-9047-2ededa6c2374",
@@ -9498,7 +9934,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "退職手当等を有する 配偶者・扶養親族"
               },
               {
                 "id": "09aef033-6870-4e2b-8fa1-7ff9561d1b73",
@@ -9516,7 +9953,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "df26a0ec-2a23-4301-9e7f-979c9f9efd80",
@@ -9538,7 +9976,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "（フリガナ） 氏名"
               },
               {
                 "id": "e239b6b1-7d08-4321-b7c4-d55d50adde5d",
@@ -9562,7 +10001,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b186125b-9f8b-42af-823d-2982fe954d59",
@@ -9580,7 +10020,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "abf883de-0f4d-4d98-bf8c-f25b8596a45b",
@@ -9602,7 +10043,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "個人番号"
               },
               {
                 "id": "c405050f-0ad5-44ce-be42-6518ad1fa9f5",
@@ -9626,7 +10068,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "621d7acf-cc4e-42a0-ae51-97c46e4f7f3a",
@@ -9644,7 +10087,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "0f0a04b3-6100-45c8-b6e7-433c50f0b626",
@@ -9666,7 +10110,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "あなたとの続柄"
               },
               {
                 "id": "7755a205-a6f7-4e2f-bc46-cd846f25a886",
@@ -9690,7 +10135,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "a031661f-58be-4033-a3a1-009933e64c7d",
@@ -9708,7 +10154,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "bfa3a119-87dc-47da-b071-738147cd975b",
@@ -9730,7 +10177,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "生年月日"
               },
               {
                 "id": "3e69779c-e145-49da-a597-a467d444762c",
@@ -9745,7 +10193,8 @@
                 },
                 "zIndex": 3,
                 "locked": true,
-                "visible": true
+                "visible": true,
+                "name": "元号選択"
               },
               {
                 "id": "f6d2aebc-b586-4043-891c-18c65ea30e57",
@@ -9769,7 +10218,8 @@
                   "fontSize": 2.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "f753baf4-3f6c-4d7d-ac13-3ab9324bc7fe",
@@ -9787,7 +10237,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "70be67f0-ab7f-49cd-b90c-c9b1e048b80e",
@@ -9809,7 +10260,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "住所又は居所"
               },
               {
                 "id": "4a2574ce-f00e-45de-b073-be25b1eb181a",
@@ -9833,7 +10285,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "d07a7be0-0d6b-4c16-bd61-4b37dee2c3b1",
@@ -9851,7 +10304,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a9d21a2e-0f47-4e0e-8082-de05fc92a708",
@@ -9873,7 +10327,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "非居住者"
               },
               {
                 "id": "05845fd3-c17b-4d20-865e-7348b50eabaa",
@@ -9897,7 +10352,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "6efa6b2e-fe37-4376-a44f-9d45e2e7eafa",
@@ -9915,7 +10371,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "94f707e2-6d67-43c9-a94b-6bf9e906fc02",
@@ -9937,7 +10394,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "令和7年中の所得（退職所得を除く）"
               },
               {
                 "id": "94931c63-2fe6-4f23-b87a-5514f7c3a2db",
@@ -9961,7 +10419,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "b4ac1728-2739-4093-a6ed-8e833646d613",
@@ -9979,7 +10438,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "87316cf2-d43d-48ca-8f7b-404f2046538d",
@@ -10001,7 +10461,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "障害者区分"
               },
               {
                 "id": "6afdd017-93b7-47ab-aedf-f33d2dcf579f",
@@ -10025,7 +10486,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "eb964adc-774b-4c2d-858e-fea9bfe0766d",
@@ -10043,7 +10505,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "af735354-3787-40c5-b5a9-35ec60ab71a1",
@@ -10065,7 +10528,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "異動月日及び事由"
               },
               {
                 "id": "5a6c7488-9264-43c4-92f9-1691a7489acf",
@@ -10089,7 +10553,8 @@
                   "fontSize": 2.8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "e829ea9d-fd15-4a1d-a919-e2a2a4cd54ec",
@@ -10108,7 +10573,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "0c7d3759-7472-49c1-98f0-90e0dea940e0",
@@ -10130,7 +10596,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "（注）退職手当等（源泉徴収をされるも…"
               },
               {
                 "id": "e6b95ad9-1b8e-4bdb-9508-a88f2a2ef42d",
@@ -10154,7 +10621,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "902a34df-37cf-43e9-b7cb-3849d64e025c",
@@ -10176,7 +10644,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "寡婦"
               },
               {
                 "id": "d1e18b79-85fb-4395-9ec8-1282017f7b40",
@@ -10200,7 +10669,8 @@
                   "fontSize": 3,
                   "textAlign": "center",
                   "verticalAlign": "middle"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "ab74bbfc-58c4-46f5-8844-6df972eb380d",
@@ -10222,7 +10692,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "ひとり親"
               }
             ]
           }

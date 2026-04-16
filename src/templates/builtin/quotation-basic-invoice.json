@@ -62,7 +62,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "見 積 書"
               },
               {
                 "id": "5d2624cc-eb51-4f88-ba7d-fd7ca7c1505f",
@@ -84,7 +85,8 @@
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "発行日："
               },
               {
                 "id": "5f6d8083-5d43-4a2b-b70d-10bbbb6e75f8",
@@ -108,7 +110,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "発行日"
               },
               {
                 "id": "b642f19d-2092-48cd-ac79-3a1acd988448",
@@ -130,7 +133,8 @@
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "見積書No："
               },
               {
                 "id": "d18f48b1-78da-4133-82c7-cf285394ccd0",
@@ -154,7 +158,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "見積番号"
               },
               {
                 "id": "60b1dbc1-fc63-4064-a651-a4020d19cfc6",
@@ -176,7 +181,8 @@
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "登録番号："
               },
               {
                 "id": "5e740ad4-eadb-4a7e-aa23-60808ca0cfcc",
@@ -200,7 +206,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "登録番号"
               },
               {
                 "id": "e5b5df5d-8df5-404a-a887-81ffce0659fb",
@@ -225,7 +232,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "顧客名"
               },
               {
                 "id": "d34ad585-d2b1-413b-a7e6-bebae18b50dc",
@@ -248,7 +256,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "御中"
               },
               {
                 "id": "1c798553-2589-400c-aa32-4feb95b78c08",
@@ -266,7 +275,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.4
+                "strokeWidth": 0.4,
+                "name": "区切り線"
               },
               {
                 "id": "e841c742-926c-4dcc-914d-41fc1c5185fc",
@@ -288,7 +298,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "〒"
               },
               {
                 "id": "e1e181a2-725c-4f62-8e5b-fe1171993cb4",
@@ -312,7 +323,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "郵便番号"
               },
               {
                 "id": "ecc94ccd-25ca-4456-90cc-52931856fe07",
@@ -336,7 +348,8 @@
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
-                }
+                },
+                "name": "住所"
               },
               {
                 "id": "0a50393b-abf2-47c5-b97c-c731a11ce489",
@@ -358,7 +371,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "下記のとおり、お見積申し上げます。"
               },
               {
                 "id": "c8604ca2-00d5-4791-a98e-13c98ef53ea4",
@@ -376,7 +390,8 @@
                 "visible": true,
                 "src": "",
                 "alt": "会社ロゴ",
-                "objectFit": "contain"
+                "objectFit": "contain",
+                "name": "画像"
               },
               {
                 "id": "a6697c49-0db6-4c97-afd0-5e086388dd6e",
@@ -401,7 +416,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "差出人名"
               },
               {
                 "id": "496cf6b4-6efb-43a5-bd60-d04e35734c48",
@@ -423,7 +439,8 @@
                 "textColor": "#cc0000",
                 "fontSize": 5,
                 "writingMode": "horizontal-tb",
-                "doubleBorder": false
+                "doubleBorder": false,
+                "name": "印鑑"
               },
               {
                 "id": "9d97677f-702d-49af-8ba9-5b792a495712",
@@ -447,7 +464,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "差出人住所"
               },
               {
                 "id": "961117a9-2c46-4838-b751-9ff2fb1a0e72",
@@ -469,7 +487,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "Tel："
               },
               {
                 "id": "a1219a20-2a2a-4a17-a42e-b8b7631e1837",
@@ -493,7 +512,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "電話番号"
               },
               {
                 "id": "2be933b5-5b78-46de-a3c2-e24de82a6b65",
@@ -515,7 +535,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "Mail："
               },
               {
                 "id": "d10e4396-60d0-48ae-a698-5f4be1a661da",
@@ -539,7 +560,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "メール"
               },
               {
                 "id": "c484b450-4ebb-45cc-928e-e66f6de71d49",
@@ -561,7 +583,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "担当："
               },
               {
                 "id": "94ea1577-9a9f-4cb3-9be2-ef100d706e7e",
@@ -585,7 +608,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "担当者"
               },
               {
                 "id": "530fbdc9-1832-4d17-ae25-7e1f38183bf4",
@@ -607,7 +631,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "お見積金額（税込）"
               },
               {
                 "id": "8895d8bd-ab77-4209-8a04-586efb75f2ed",
@@ -635,7 +660,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "合計金額（税込）"
               },
               {
                 "id": "19bb7a82-bbc4-44fe-acde-39e94e2afc08",
@@ -653,7 +679,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.4
+                "strokeWidth": 0.4,
+                "name": "区切り線"
               },
               {
                 "id": "ea89f4a3-719a-4ff3-a330-e7848ff36c5d",
@@ -672,7 +699,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "ffee8a2d-8cb8-4895-a994-354f2e9d1fcd",
@@ -691,7 +719,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "28b48367-d4fb-42a1-8a27-25974513e122",
@@ -713,7 +742,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "納期"
               },
               {
                 "id": "b9b09906-4109-42fb-8bc8-eefcbd8e8133",
@@ -731,7 +761,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "533c2f59-5f59-49da-8afb-1df56891e9ef",
@@ -755,7 +786,8 @@
                   "fontSize": 3,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "60591d00-94ab-4b22-b808-c9821e1cb7b2",
@@ -774,7 +806,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "d0bd4e66-c1fd-467c-b710-4aa85e1ccc35",
@@ -796,7 +829,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "支払条件"
               },
               {
                 "id": "8764aa08-e310-4a01-ae6f-56a07ee22ddd",
@@ -814,7 +848,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "bc28fa7d-928d-4202-b102-0f172f7b4b70",
@@ -838,7 +873,8 @@
                   "fontSize": 3,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "1f371752-f45f-4065-a57d-6d8fc5b790d0",
@@ -856,7 +892,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "abdef4a9-5c1d-4ff2-836a-828e5a0b3fa2",
@@ -875,7 +912,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "69c9341c-7ca8-44f3-bcaf-02933e302d30",
@@ -897,7 +935,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "有効期限"
               },
               {
                 "id": "9d4eceb8-da6e-45f6-a4d7-f7bcf391bb0c",
@@ -915,7 +954,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "8030da83-84eb-4048-a531-611b14ceabdd",
@@ -939,7 +979,8 @@
                   "fontSize": 3,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               },
               {
                 "id": "c1f28b50-dfd9-42b0-a022-18e138a22aba",
@@ -957,7 +998,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "a9c38c37-696d-41d0-9964-953258af4706",
@@ -976,7 +1018,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "c00b3c79-7d99-4d8d-8adc-50c121813449",
@@ -995,7 +1038,8 @@
                 "shape": "rectangle",
                 "fill": "#e8e8e8",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "67d214fd-19e9-46a1-9bd0-9a6ff5bf4244",
@@ -1017,7 +1061,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "品番・品名"
               },
               {
                 "id": "89d9f1df-fda6-432a-993c-3815ac55b33b",
@@ -1035,7 +1080,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "8f1c38b1-eec0-4475-af47-9a4bbe99c043",
@@ -1057,7 +1103,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "数量"
               },
               {
                 "id": "059329d6-41af-410d-9869-b06df71b36f1",
@@ -1075,7 +1122,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "ac9a891b-db5d-437b-b9e3-3251650c4db0",
@@ -1097,7 +1145,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "単価"
               },
               {
                 "id": "bea3ef04-87b0-4ec4-857e-64722eaf098f",
@@ -1115,7 +1164,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "090b0bd5-32f9-4dd6-8a50-98d3118fcbc4",
@@ -1137,7 +1187,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "金額（税抜）"
               },
               {
                 "id": "999d2eec-7bab-425f-b6fc-f87517c6a06d",
@@ -1207,7 +1258,8 @@
                 "headerStyle": {
                   "fontSize": 3,
                   "fontWeight": "bold"
-                }
+                },
+                "name": "明細テーブル"
               },
               {
                 "id": "8f37d8c2-60c4-4e04-b337-bc9e9fd00038",
@@ -1226,7 +1278,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "02a60605-8f05-4f89-8542-2137abc98810",
@@ -1244,7 +1297,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "f6d6c146-a3cb-4a0a-b3d2-5ad8a8099733",
@@ -1267,7 +1321,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "小計"
               },
               {
                 "id": "521a7d7f-3c29-457b-8431-8a25f904c904",
@@ -1295,7 +1350,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "subtotal"
               },
               {
                 "id": "2bb388e8-dc22-4377-9943-9605c970604c",
@@ -1313,7 +1369,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "52948be1-1f2e-4070-973e-d8b17192c6d6",
@@ -1336,7 +1393,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "消費税（10％）"
               },
               {
                 "id": "6878a0de-c8d0-4ebc-9925-baa212b3a63d",
@@ -1364,7 +1422,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "tax10Amount"
               },
               {
                 "id": "d9e29133-ccfd-44a3-9d34-ea4d4b66cac9",
@@ -1382,7 +1441,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "8beef2fd-01d4-423d-873d-4adcf3949c76",
@@ -1405,7 +1465,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "消費税（8％）"
               },
               {
                 "id": "5d4564ed-4f36-4d52-96e5-c1721bc7b352",
@@ -1433,7 +1494,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "normal"
-                }
+                },
+                "name": "tax8Amount"
               },
               {
                 "id": "67c423c3-eafa-451a-9c5f-24168664f37b",
@@ -1451,7 +1513,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "5ca59aa6-b7d8-4f6a-95dd-647d2a5ca2c3",
@@ -1474,7 +1537,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "合計"
               },
               {
                 "id": "3da80d19-687a-483b-a3fe-ca1dee9b63dc",
@@ -1502,7 +1566,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "total"
               },
               {
                 "id": "2aa132d2-aa70-43df-9373-c2550d577de4",
@@ -1521,7 +1586,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "4bb1afc2-e84b-49fa-82ae-33c835280a2a",
@@ -1540,7 +1606,8 @@
                 "shape": "rectangle",
                 "fill": "#f0f0f0",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "ba1744be-81d1-431e-9e2b-c2576791219e",
@@ -1562,7 +1629,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "税率内訳"
               },
               {
                 "id": "4ccbc90a-dd8c-4b1b-b743-58ba610078b1",
@@ -1580,7 +1648,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "d4322bea-738d-4aa7-8aa9-2682e888c965",
@@ -1602,7 +1671,8 @@
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "小計"
               },
               {
                 "id": "94715885-9598-4a9b-8e8b-166540c8694f",
@@ -1620,7 +1690,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "f7097cb1-5757-4e7a-a7ba-8b495c1ebdc6",
@@ -1642,7 +1713,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "10%対象"
               },
               {
                 "id": "f1d8c9a0-e1a0-4863-83d9-b6089aafe94d",
@@ -1669,7 +1741,8 @@
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "tax10Base"
               },
               {
                 "id": "12a1a432-5028-4590-bafc-e0e2f3021137",
@@ -1687,7 +1760,8 @@
                 "visible": true,
                 "shape": "line",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "区切り線"
               },
               {
                 "id": "7d3f87d1-9105-4a2c-965f-10f263b9b1b5",
@@ -1709,7 +1783,8 @@
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "8%対象"
               },
               {
                 "id": "8eb1c0fd-653d-44a9-97d4-3c49ebf22c0a",
@@ -1736,7 +1811,8 @@
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
-                }
+                },
+                "name": "tax8Base"
               },
               {
                 "id": "9d94d2a2-7874-4727-9e10-e3bbd9efcfe1",
@@ -1755,7 +1831,8 @@
                 "shape": "rectangle",
                 "fill": "transparent",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "枠線"
               },
               {
                 "id": "2dd25fbb-5f7d-4ead-9b39-faf6a3ad4c08",
@@ -1774,7 +1851,8 @@
                 "shape": "rectangle",
                 "fill": "#e8e8e8",
                 "stroke": "#000000",
-                "strokeWidth": 0.25
+                "strokeWidth": 0.25,
+                "name": "背景ボックス"
               },
               {
                 "id": "842b16ab-7b93-48d4-ab3e-7704d0f8b401",
@@ -1797,7 +1875,8 @@
                   "verticalAlign": "middle",
                   "color": "#000000",
                   "fontWeight": "bold"
-                }
+                },
+                "name": "備考"
               },
               {
                 "id": "cfbfa1ce-431f-406e-b36d-93220bdb5d81",
@@ -1821,7 +1900,8 @@
                   "fontSize": 3,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
-                }
+                },
+                "name": "手入力欄"
               }
             ]
           }

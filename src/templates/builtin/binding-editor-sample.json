@@ -100,7 +100,8 @@
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "center"
-                }
+                },
+                "name": "納 品 書"
               },
               {
                 "id": "fd2a1c54-3ca4-4db9-a678-3775918e091d",
@@ -121,7 +122,8 @@
                   "fontSize": 3.5,
                   "fontWeight": "normal",
                   "color": "#333333"
-                }
+                },
+                "name": "No."
               },
               {
                 "id": "be-el-doc-number-00000000",
@@ -166,7 +168,8 @@
                   "fontSize": 3.5,
                   "fontWeight": "normal",
                   "color": "#333333"
-                }
+                },
+                "name": "発行日:"
               },
               {
                 "id": "be-el-issue-date-00000000",
@@ -211,7 +214,8 @@
                   "fontSize": 3.5,
                   "fontWeight": "bold",
                   "color": "#333333"
-                }
+                },
+                "name": "宛先"
               },
               {
                 "id": "be-el-company-name-00000000",
@@ -306,7 +310,8 @@
                   "fontSize": 3.5,
                   "fontWeight": "bold",
                   "color": "#ffffff"
-                }
+                },
+                "name": "品目"
               },
               {
                 "id": "2ddf52a3-c9bf-42c5-ac10-85681f528e39",
@@ -328,7 +333,8 @@
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
-                }
+                },
+                "name": "数量"
               },
               {
                 "id": "154da48d-fa35-4981-84c2-7958b4f981f3",
@@ -350,7 +356,8 @@
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
-                }
+                },
+                "name": "単価"
               },
               {
                 "id": "4840aae9-00e4-4af2-8899-5b381437d4c4",
@@ -372,7 +379,8 @@
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
-                }
+                },
+                "name": "金額"
               },
               {
                 "id": "be-el-item-name-00000000",
@@ -490,7 +498,8 @@
                   "fontWeight": "normal",
                   "color": "#333333",
                   "textAlign": "right"
-                }
+                },
+                "name": "小計:"
               },
               {
                 "id": "be-el-subtotal-00000000",
@@ -536,7 +545,8 @@
                   "fontWeight": "normal",
                   "color": "#333333",
                   "textAlign": "right"
-                }
+                },
+                "name": "消費税:"
               },
               {
                 "id": "be-el-tax-00000000",
@@ -582,7 +592,8 @@
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "right"
-                }
+                },
+                "name": "合計:"
               },
               {
                 "id": "be-el-total-00000000",
@@ -671,7 +682,8 @@
                   "fontSize": 3.5,
                   "fontWeight": "bold",
                   "color": "#333333"
-                }
+                },
+                "name": "備考"
               },
               {
                 "id": "be-el-notes-00000000",
@@ -814,7 +826,8 @@
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "center"
-                }
+                },
+                "name": "付属情報"
               },
               {
                 "id": "be-el-checkbox-00000000",

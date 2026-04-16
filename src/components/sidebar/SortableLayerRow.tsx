@@ -12,6 +12,8 @@ interface SortableLayerRowProps {
   isRenaming: boolean
   renameValue: string
   isDraggingActive: boolean
+  /** Indent level for grouped elements (0 = top level) */
+  indent?: number
   onRowClick: (id: string, e: React.MouseEvent) => void
   onStartRename: (el: ReportElement) => void
   onCommitRename: (el: ReportElement, pageId: string) => void
@@ -26,6 +28,7 @@ interface SortableLayerRowProps {
 export const SortableLayerRow = React.memo(function SortableLayerRow({
   el,
   isDraggingActive,
+  indent = 0,
   ...rowProps
 }: SortableLayerRowProps) {
   const {
@@ -50,6 +53,7 @@ export const SortableLayerRow = React.memo(function SortableLayerRow({
         opacity: isDragging ? 0.4 : 1,
       }}
       className="flex items-center"
+      style={indent > 0 ? { paddingLeft: `${indent * 16}px` } : undefined}
     >
       {/* Drag handle */}
       <button
