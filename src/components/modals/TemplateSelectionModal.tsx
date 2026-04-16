@@ -582,7 +582,6 @@ export function TemplateSelectionModal({
               )}
             </div>
           )}
-        </div>
 
           {/* Public templates */}
           {backendConnected && (
