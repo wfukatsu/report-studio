@@ -996,7 +996,16 @@ export interface ReportDefinition {
   masterHeader?: Section
   /** Master footer section — cloned to all pages on addPage */
   masterFooter?: Section
+  /**
+   * Formula language version for expression fields.
+   * - undefined | 'jexl': legacy JEXL expressions (migrated on import)
+   * - 'formula-v1': new formula language (UPPERCASE function names)
+   */
+  formulaLanguage?: FormulaLanguage
 }
+
+/** Formula language version tag for ReportDefinition */
+export type FormulaLanguage = 'jexl' | 'formula-v1'
 
 // ---------------------------------------------------------------------------
 // Legacy types (backward compat with existing store API)
