@@ -705,7 +705,9 @@
             "elementIds": [
               "ffed009b-d0e2-4169-8e04-48f5ad4fa649"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-99b34d34",
@@ -716,7 +718,9 @@
               "3b666c26-490b-42ef-9a4e-3755e2ccd240",
               "be-el-issue-date-00000000"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-780b5bd7",
@@ -727,7 +731,9 @@
               "be-el-company-addr-00000000",
               "be-el-company-tel-00000000"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-5bbc1a73",
@@ -742,7 +748,9 @@
               "be-el-item-price-00000000",
               "be-el-item-amount-00000000"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-c18ffe26",
@@ -755,7 +763,9 @@
               "ae8a5c8c-161a-4b27-b345-ed6fd2714205",
               "be-el-total-00000000"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-06c33c0c",
@@ -766,7 +776,9 @@
               "2ff358ec-33aa-45e8-b2ba-d775e3bcba7a",
               "be-el-notes-00000000"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           }
         ]
       },

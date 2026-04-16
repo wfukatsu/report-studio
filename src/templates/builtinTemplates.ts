@@ -13,7 +13,7 @@ import type { ReportDefinition } from '@/types'
 
 const templateModules = import.meta.glob('./builtin/*.json', { eager: true }) as Record<
   string,
-  { default: { formatVersion: number; definition: unknown } }
+  { formatVersion: number; definition: unknown; default?: unknown }
 >
 
 // ---------------------------------------------------------------------------
@@ -58,8 +58,9 @@ function loadBuiltinEntries(): BuiltinEntry[] {
       console.error(`[builtinTemplates] Missing JSON file for: ${meta.id}`)
       continue
     }
-    const envelope = mod.default
-    if (envelope.formatVersion !== 2 || !envelope.definition) {
+    // import.meta.glob with eager:true exposes fields both at top level and under .default
+    const envelope = (mod.formatVersion !== undefined) ? mod : (mod.default as typeof mod)
+    if (!envelope || envelope.formatVersion !== 2 || !envelope.definition) {
       console.error(`[builtinTemplates] Invalid envelope for: ${meta.id}`)
       continue
     }

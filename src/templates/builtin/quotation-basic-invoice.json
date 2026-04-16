@@ -1833,7 +1833,9 @@
             "elementIds": [
               "3ff286ef-ba37-4720-9d93-885b36d835a3"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-d0748fc3",
@@ -1846,7 +1848,9 @@
               "60b1dbc1-fc63-4064-a651-a4020d19cfc6",
               "5e740ad4-eadb-4a7e-aa23-60808ca0cfcc"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-c6bc41a6",
@@ -1860,7 +1864,9 @@
               "ecc94ccd-25ca-4456-90cc-52931856fe07",
               "0a50393b-abf2-47c5-b97c-c731a11ce489"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-77cb03ea",
@@ -1877,7 +1883,9 @@
               "c484b450-4ebb-45cc-928e-e66f6de71d49",
               "94ea1577-9a9f-4cb3-9be2-ef100d706e7e"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-9ae7d6da",
@@ -1887,7 +1895,9 @@
               "8895d8bd-ab77-4209-8a04-586efb75f2ed",
               "19bb7a82-bbc4-44fe-acde-39e94e2afc08"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-8bbb0d85",
@@ -1925,7 +1935,9 @@
               "090b0bd5-32f9-4dd6-8a50-98d3118fcbc4",
               "999d2eec-7bab-425f-b6fc-f87517c6a06d"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-6291f3d4",
@@ -1950,7 +1962,9 @@
               "f7097cb1-5757-4e7a-a7ba-8b495c1ebdc6",
               "f1d8c9a0-e1a0-4863-83d9-b6089aafe94d"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           },
           {
             "id": "grp-f090f564",
@@ -1967,7 +1981,9 @@
               "842b16ab-7b93-48d4-ab3e-7704d0f8b401",
               "cfbfa1ce-431f-406e-b36d-93220bdb5d81"
             ],
-            "collapsed": true
+            "collapsed": true,
+            "visible": true,
+            "locked": false
           }
         ]
       }
