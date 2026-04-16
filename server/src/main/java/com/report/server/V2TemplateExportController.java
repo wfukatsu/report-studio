@@ -226,13 +226,14 @@ public final class V2TemplateExportController {
             if (oldPageId != null && !oldPageId.isBlank()) {
                 idMap.put(oldPageId, "page-" + UUID.randomUUID());
             }
-            JsonNode elements = page.path("elements");
-            if (!elements.isArray()) continue;
-            for (JsonNode el : elements) {
-                if (!el.isObject()) continue;
-                String oldElId = el.path("id").asText(null);
-                if (oldElId != null && !oldElId.isBlank()) {
-                    idMap.put(oldElId, "el-" + UUID.randomUUID());
+            // Collect from page.elements (deprecated legacy path)
+            collectElementIds(page.path("elements"), idMap);
+            // Collect from page.sections[].elements (modern path)
+            JsonNode sections = page.path("sections");
+            if (sections.isArray()) {
+                for (JsonNode section : sections) {
+                    if (!section.isObject()) continue;
+                    collectElementIds(section.path("elements"), idMap);
                 }
             }
         }
@@ -245,20 +246,45 @@ public final class V2TemplateExportController {
             if (oldPageId != null && idMap.containsKey(oldPageId)) {
                 pageNode.put("id", idMap.get(oldPageId));
             }
-            JsonNode elements = pageNode.path("elements");
-            if (!elements.isArray()) continue;
-            for (JsonNode el : elements) {
-                if (!el.isObject()) continue;
-                ObjectNode elNode = (ObjectNode) el;
-                String oldElId = elNode.path("id").asText(null);
-                if (oldElId != null && idMap.containsKey(oldElId)) {
-                    elNode.put("id", idMap.get(oldElId));
+            // Remap page.elements (deprecated legacy path)
+            remapElements(pageNode.path("elements"), idMap);
+            // Remap page.sections[].elements (modern path)
+            JsonNode sections = pageNode.path("sections");
+            if (sections.isArray()) {
+                for (JsonNode section : sections) {
+                    if (!section.isObject()) continue;
+                    remapElements(section.path("elements"), idMap);
                 }
-                remapElementReferences(elNode, idMap);
             }
         }
 
         return def;
+    }
+
+    /** Collect element IDs from a JSON array of elements into the idMap. */
+    private static void collectElementIds(JsonNode elements, java.util.Map<String, String> idMap) {
+        if (!elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!el.isObject()) continue;
+            String oldElId = el.path("id").asText(null);
+            if (oldElId != null && !oldElId.isBlank()) {
+                idMap.put(oldElId, "el-" + UUID.randomUUID());
+            }
+        }
+    }
+
+    /** Apply ID remapping to a JSON array of elements. */
+    private static void remapElements(JsonNode elements, java.util.Map<String, String> idMap) {
+        if (!elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!el.isObject()) continue;
+            ObjectNode elNode = (ObjectNode) el;
+            String oldElId = elNode.path("id").asText(null);
+            if (oldElId != null && idMap.containsKey(oldElId)) {
+                elNode.put("id", idMap.get(oldElId));
+            }
+            remapElementReferences(elNode, idMap);
+        }
     }
 
     /** Remap ID cross-references within a single element's props. */
