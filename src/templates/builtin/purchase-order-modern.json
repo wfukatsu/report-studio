@@ -1,0 +1,1625 @@
+{
+  "formatVersion": 2,
+  "exportedAt": "2026-04-16T13:39:43.106Z",
+  "definition": {
+    "id": "cae3ff96-5bba-4c33-bd95-0184c6302933",
+    "metadata": {
+      "documentName": "御注文書",
+      "version": "1.0",
+      "reportType": "general",
+      "description": "Created: 2026-04-16T13:39:43.106Z | Updated: 2026-04-16T13:39:43.106Z",
+      "sourceTemplateId": "purchase-order-modern"
+    },
+    "pageSettings": {
+      "paperSize": "A4",
+      "orientation": "portrait",
+      "margins": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      },
+      "unit": "mm"
+    },
+    "defaultTextStyle": {},
+    "templateVariables": [],
+    "calculationRules": [],
+    "dataSources": [
+      {
+        "id": "602df5d4-520b-4dd6-89aa-f953dd73c7c5",
+        "name": "注文書サンプルデータ",
+        "fields": {
+          "document.documentNo": "PO-2026-0001",
+          "document.issueDate": "2026年4月16日",
+          "document.registrationNo": "T1234567890123",
+          "document.paymentTerms": "月末締め翌月末払い",
+          "document.notes": "指定納期までに納品をお願いいたします。",
+          "customer.customerName": "株式会社サンプル商事",
+          "customer.postalCode": "100-0001",
+          "customer.address": "東京都千代田区千代田1-1-1",
+          "customer.contactPerson": "山田太郎",
+          "delivery.deliveryDate": "2026年5月1日",
+          "delivery.deliveryAddress": "東京都千代田区千代田1-1-1 第2倉庫",
+          "delivery.deliveryContact": "鈴木一郎",
+          "summary.subtotal": 140000,
+          "summary.tax10Base": 140000,
+          "summary.tax10Amount": 14000,
+          "summary.tax8Base": 0,
+          "summary.tax8Amount": 0,
+          "summary.totalIncTax": 154000,
+          "items": [
+            {
+              "itemCode": "A-001",
+              "itemName": "ウィジェットA",
+              "quantity": 10,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 50000
+            },
+            {
+              "itemCode": "B-002",
+              "itemName": "ウィジェットB（大）",
+              "quantity": 5,
+              "unit": "セット",
+              "unitPrice": 12000,
+              "amount": 60000
+            },
+            {
+              "itemCode": "C-003",
+              "itemName": "設置作業費",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 30000,
+              "amount": 30000
+            }
+          ]
+        }
+      }
+    ],
+    "outputVariants": [],
+    "submissionModels": [],
+    "validationRules": [],
+    "pages": [
+      {
+        "id": "7e073688-32fa-4e00-a1de-743f2fbd1d7d",
+        "name": "ページ 1",
+        "width": 210,
+        "height": 297,
+        "background": "#ffffff",
+        "sections": [
+          {
+            "id": "8ca2d4cc-a087-4524-9ee0-fc333402cbf8",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "1c5145cf-619e-448a-a45d-d38aa98c1496",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 10
+                },
+                "size": {
+                  "width": 100,
+                  "height": 9
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "御 注 文 書",
+                "style": {
+                  "fontSize": 7,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "29830b16-f822-48e4-a25d-acc171037c76",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 19
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#3b82f6",
+                "strokeWidth": 0.5
+              },
+              {
+                "id": "061e857e-4aba-47db-b900-558ad0a8d92c",
+                "type": "tenantLogo",
+                "position": {
+                  "x": 175,
+                  "y": 10
+                },
+                "size": {
+                  "width": 25,
+                  "height": 15
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "objectFit": "contain"
+              },
+              {
+                "id": "c906c3a6-95e0-4573-9dc2-5f5a2220bc6e",
+                "type": "tenantCompanyName",
+                "position": {
+                  "x": 120,
+                  "y": 20
+                },
+                "size": {
+                  "width": 50,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "style": {
+                  "fontSize": 4,
+                  "fontWeight": "bold",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "6d67d8a0-dadf-4b2f-b8a7-aa13441be06c",
+                "type": "tenantAddress",
+                "position": {
+                  "x": 120,
+                  "y": 25
+                },
+                "size": {
+                  "width": 80,
+                  "height": 4
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "style": {
+                  "fontSize": 2.5,
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "bfb6c21b-4018-42b6-82d8-0bfedc0a97b4",
+                "type": "tenantPhone",
+                "position": {
+                  "x": 120,
+                  "y": 29
+                },
+                "size": {
+                  "width": 80,
+                  "height": 4
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "style": {
+                  "fontSize": 2.5,
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "dc3d3f2f-f170-4a42-b216-0b46e7edeca5",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 29
+                },
+                "size": {
+                  "width": 20,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "注文番号:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "9a83a54e-23a1-4a32-a165-22d43b1d0161",
+                "type": "dataField",
+                "position": {
+                  "x": 30,
+                  "y": 29
+                },
+                "size": {
+                  "width": 60,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.documentNo",
+                "fallbackText": "PO-2026-0001",
+                "label": "PO-2026-0001",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "e74aad60-8044-478c-b0ca-339270250a38",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 34
+                },
+                "size": {
+                  "width": 20,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "発行日:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "bb22739a-d4fc-4abd-b1ac-5ef65707bc54",
+                "type": "dataField",
+                "position": {
+                  "x": 30,
+                  "y": 34
+                },
+                "size": {
+                  "width": 60,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.issueDate",
+                "fallbackText": "2026年4月16日",
+                "label": "2026年4月16日",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "1bf9af40-0d34-470e-8e74-ae8bd1a0ad94",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 39
+                },
+                "size": {
+                  "width": 20,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "登録番号:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "b65439b4-eee4-4b14-a9a9-8803cb408e37",
+                "type": "dataField",
+                "position": {
+                  "x": 30,
+                  "y": 39
+                },
+                "size": {
+                  "width": 60,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.registrationNo",
+                "fallbackText": "T1234567890123",
+                "label": "T1234567890123",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "e791263f-f801-4edb-8515-a8824fdb01e6",
+                "type": "dataField",
+                "position": {
+                  "x": 10,
+                  "y": 46
+                },
+                "size": {
+                  "width": 100,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.customerName",
+                "fallbackText": "株式会社サンプル商事",
+                "label": "株式会社サンプル商事",
+                "style": {
+                  "fontSize": 4,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "c85fb6d1-1a26-48dc-a096-1fefbbf74f66",
+                "type": "text",
+                "position": {
+                  "x": 110,
+                  "y": 46
+                },
+                "size": {
+                  "width": 10,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "御中",
+                "style": {
+                  "fontSize": 4,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "1195f4e4-1a94-4053-b03e-c706e2f9e4bb",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 52
+                },
+                "size": {
+                  "width": 110,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#1a1a1a",
+                "strokeWidth": 0.3
+              },
+              {
+                "id": "cc2a14d1-30b6-403e-b3f0-d95fe6f8270a",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 52
+                },
+                "size": {
+                  "width": 5,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "〒",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "fca4759b-6e80-4289-a1ff-1a321eaf5d76",
+                "type": "dataField",
+                "position": {
+                  "x": 15,
+                  "y": 52
+                },
+                "size": {
+                  "width": 30,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.postalCode",
+                "fallbackText": "100-0001",
+                "label": "100-0001",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "3a999ef0-a95d-4564-b459-9f889132c30a",
+                "type": "dataField",
+                "position": {
+                  "x": 10,
+                  "y": 57
+                },
+                "size": {
+                  "width": 110,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.address",
+                "fallbackText": "東京都千代田区千代田1-1-1",
+                "label": "東京都千代田区千代田1-1-1",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "68e39ab4-1f6e-4ad2-94ef-7effb7d1f583",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 62
+                },
+                "size": {
+                  "width": 15,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "ご担当:",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "982b5b47-0d8f-489b-ace0-c633befb3efe",
+                "type": "dataField",
+                "position": {
+                  "x": 25,
+                  "y": 62
+                },
+                "size": {
+                  "width": 50,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.contactPerson",
+                "fallbackText": "山田太郎",
+                "label": "山田太郎",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "3f4af1eb-fdfc-446f-9eb6-4c21c59751f2",
+                "type": "text",
+                "position": {
+                  "x": 75,
+                  "y": 62
+                },
+                "size": {
+                  "width": 8,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "様",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "790d17df-4b98-4cdf-9304-f1cbc5fa1a6a",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 69
+                },
+                "size": {
+                  "width": 190,
+                  "height": 10
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f7ff",
+                "stroke": "#3b82f6",
+                "strokeWidth": 0.3,
+                "borderRadius": 2
+              },
+              {
+                "id": "067351ee-2ffa-4de9-8250-cc5025fcfa00",
+                "type": "text",
+                "position": {
+                  "x": 14,
+                  "y": 69
+                },
+                "size": {
+                  "width": 40,
+                  "height": 10
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "合計金額（税込）",
+                "style": {
+                  "fontSize": 3,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#3b82f6",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "1b4f1200-683c-4630-b01f-c8d27c63e93f",
+                "type": "dataField",
+                "position": {
+                  "x": 54,
+                  "y": 69
+                },
+                "size": {
+                  "width": 142,
+                  "height": 10
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.totalIncTax",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥154,000",
+                "label": "¥154,000",
+                "style": {
+                  "fontSize": 5,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "babd6031-4403-4280-b124-b152f676532c",
+                "type": "repeatingBand",
+                "position": {
+                  "x": 10,
+                  "y": 83
+                },
+                "size": {
+                  "width": 190,
+                  "height": 77
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "dataSource": "items",
+                "itemHeight": 7,
+                "showHeader": true,
+                "showFooter": false,
+                "maxItems": 10,
+                "showEmptyRowLines": true,
+                "pageBreak": "none",
+                "totals": [],
+                "oddRowColor": "#ffffff",
+                "evenRowColor": "#fafafa",
+                "borderColor": "#e0e0e0",
+                "borderWidth": 0.2,
+                "headerStyle": {
+                  "fontSize": 2.8,
+                  "fontWeight": "bold",
+                  "color": "#333333",
+                  "backgroundColor": "#f5f5f5"
+                },
+                "style": {
+                  "fontSize": 2.8,
+                  "color": "#1a1a1a"
+                },
+                "fields": [
+                  {
+                    "key": "itemCode",
+                    "label": "品番",
+                    "width": 28,
+                    "align": "left"
+                  },
+                  {
+                    "key": "itemName",
+                    "label": "品名",
+                    "width": 72,
+                    "align": "left"
+                  },
+                  {
+                    "key": "quantity",
+                    "label": "数量",
+                    "width": 18,
+                    "align": "right",
+                    "format": {
+                      "type": "comma"
+                    }
+                  },
+                  {
+                    "key": "unit",
+                    "label": "単位",
+                    "width": 14,
+                    "align": "center"
+                  },
+                  {
+                    "key": "unitPrice",
+                    "label": "単価",
+                    "width": 28,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  },
+                  {
+                    "key": "amount",
+                    "label": "金額",
+                    "width": 30,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "eaf49882-62a2-4170-8976-32b4e8797182",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 163
+                },
+                "size": {
+                  "width": 80,
+                  "height": 42
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "d24a3c54-0697-4fdd-af89-89cceb4dff43",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 163
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "小計",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "fb9c8a32-fd97-4056-b62a-4eb8b49bb1cd",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 163
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.subtotal",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "11dd8e9e-449b-4015-9d88-6a2804aea076",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 170
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "768ba8ef-6dee-42e8-ac27-42e0fb1846b9",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 170
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "10%対象",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "03d7419e-9135-4dc3-a0b8-a7d469bc9c1b",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 170
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.tax10Base",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "3543f319-65ea-4be4-b74d-4031978fbdb2",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 177
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "d6ea0037-0834-45a0-9327-e328377fb71d",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 177
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "消費税（10%）",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "d8bc355d-8e94-4579-8ae1-67c7f7abd799",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 177
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.tax10Amount",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "56dc7a10-96f4-4b32-9298-360fd080b7c2",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 184
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "05a7f842-60cd-4718-9192-6d4cb0c0f5e9",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 184
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "8%対象",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "0e033378-5059-4c56-82ce-332b098da1b6",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 184
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.tax8Base",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "1417741d-8edc-4363-ae91-b074556e7415",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 191
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "c7f0f530-2bda-48bf-b044-0d9732c75043",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 191
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "消費税（8%）",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "41f1b3a3-d7f5-44b5-adf4-127af581a899",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 191
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.tax8Amount",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "ca257f8e-7d61-45d4-9ca2-5dc45322b4db",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 198
+                },
+                "size": {
+                  "width": 80,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "74d1385a-282e-4a93-ad49-d30bff66c492",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 198
+                },
+                "size": {
+                  "width": 80,
+                  "height": 7
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f7ff",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "b1e9e136-7b40-4795-8a67-32cb35cf2425",
+                "type": "text",
+                "position": {
+                  "x": 122,
+                  "y": 198
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "合計（税込）",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "b685682d-f4bb-4af0-9be4-de42e5b55d28",
+                "type": "dataField",
+                "position": {
+                  "x": 162,
+                  "y": 198
+                },
+                "size": {
+                  "width": 36,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.totalIncTax",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "a38f8b78-b6b7-459a-89c7-8405774af39d",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 209
+                },
+                "size": {
+                  "width": 30,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "納品情報",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#3b82f6",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "a89efc62-3757-4933-af6c-3aee7c277d5a",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 214
+                },
+                "size": {
+                  "width": 100,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#3b82f6",
+                "strokeWidth": 0.3
+              },
+              {
+                "id": "d6c6fa7d-0e0d-4aae-8d7f-28f86bd8751c",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 215
+                },
+                "size": {
+                  "width": 28,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "納期:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "63f2ae4e-b9e9-4d7d-b38f-1161161ff958",
+                "type": "dataField",
+                "position": {
+                  "x": 38,
+                  "y": 215
+                },
+                "size": {
+                  "width": 80,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "delivery.deliveryDate",
+                "fallbackText": "2026年5月1日",
+                "label": "2026年5月1日",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "bbc5c08c-6549-4b3e-9e40-c6c96b268482",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 221
+                },
+                "size": {
+                  "width": 28,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "納品先住所:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "5154c5cc-8ebe-4abc-bcf4-0de8902e6665",
+                "type": "dataField",
+                "position": {
+                  "x": 38,
+                  "y": 221
+                },
+                "size": {
+                  "width": 80,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "delivery.deliveryAddress",
+                "fallbackText": "東京都千代田区千代田1-1-1",
+                "label": "東京都千代田区千代田1-1-1",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "72973558-29fa-4eb8-ac5b-192fb1fd9d6a",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 227
+                },
+                "size": {
+                  "width": 28,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "納品先担当:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "5c4ebc99-76ce-4319-a069-d010a40a4f2a",
+                "type": "dataField",
+                "position": {
+                  "x": 38,
+                  "y": 227
+                },
+                "size": {
+                  "width": 80,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "delivery.deliveryContact",
+                "fallbackText": "鈴木一郎",
+                "label": "鈴木一郎",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "95a43e3b-1ed0-43ac-a641-2b7bfb5a42aa",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 231
+                },
+                "size": {
+                  "width": 24,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "支払条件:",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666"
+                }
+              },
+              {
+                "id": "6007aa32-7622-41be-8a9b-b8b163a4b6de",
+                "type": "dataField",
+                "position": {
+                  "x": 34,
+                  "y": 231
+                },
+                "size": {
+                  "width": 70,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.paymentTerms",
+                "fallbackText": "月末締め翌月末払い",
+                "label": "月末締め翌月末払い",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "4a0b3720-ea7c-4a5a-be1c-0f2f3ad1d717",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 242
+                },
+                "size": {
+                  "width": 190,
+                  "height": 25
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#e0e0e0",
+                "strokeWidth": 0.2
+              },
+              {
+                "id": "9c81fa93-c7d3-4665-be32-b82ee0d0f766",
+                "type": "text",
+                "position": {
+                  "x": 12,
+                  "y": 242
+                },
+                "size": {
+                  "width": 20,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "備考",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#666666",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "53695529-3c8a-43c1-b25a-9e2c1eb65c19",
+                "type": "dataField",
+                "position": {
+                  "x": 12,
+                  "y": 248
+                },
+                "size": {
+                  "width": 186,
+                  "height": 17
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.notes",
+                "fallbackText": "",
+                "label": "",
+                "style": {
+                  "fontSize": 2.5,
+                  "textAlign": "left",
+                  "verticalAlign": "top",
+                  "color": "#1a1a1a"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "schema": {
+      "groups": [
+        {
+          "id": "po-grp-doc",
+          "label": "注文情報",
+          "role": "master",
+          "dataKey": "document",
+          "fields": [
+            {
+              "id": "po-f-doc-no",
+              "key": "documentNo",
+              "label": "注文番号",
+              "type": "string"
+            },
+            {
+              "id": "po-f-issue-date",
+              "key": "issueDate",
+              "label": "発行日",
+              "type": "date"
+            },
+            {
+              "id": "po-f-reg-no",
+              "key": "registrationNo",
+              "label": "登録番号",
+              "type": "string"
+            },
+            {
+              "id": "po-f-payment-terms",
+              "key": "paymentTerms",
+              "label": "支払条件",
+              "type": "string"
+            },
+            {
+              "id": "po-f-notes",
+              "key": "notes",
+              "label": "備考",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "id": "po-grp-customer",
+          "label": "顧客情報",
+          "role": "master",
+          "dataKey": "customer",
+          "fields": [
+            {
+              "id": "po-f-cust-name",
+              "key": "customerName",
+              "label": "顧客名",
+              "type": "string"
+            },
+            {
+              "id": "po-f-postal",
+              "key": "postalCode",
+              "label": "郵便番号",
+              "type": "string"
+            },
+            {
+              "id": "po-f-address",
+              "key": "address",
+              "label": "住所",
+              "type": "string"
+            },
+            {
+              "id": "po-f-contact",
+              "key": "contactPerson",
+              "label": "担当者",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "id": "po-grp-items",
+          "label": "明細",
+          "role": "detail",
+          "dataKey": "items",
+          "fields": [
+            {
+              "id": "po-f-code",
+              "key": "itemCode",
+              "label": "品番",
+              "type": "string"
+            },
+            {
+              "id": "po-f-name",
+              "key": "itemName",
+              "label": "品名",
+              "type": "string"
+            },
+            {
+              "id": "po-f-qty",
+              "key": "quantity",
+              "label": "数量",
+              "type": "number"
+            },
+            {
+              "id": "po-f-unit",
+              "key": "unit",
+              "label": "単位",
+              "type": "string"
+            },
+            {
+              "id": "po-f-price",
+              "key": "unitPrice",
+              "label": "単価",
+              "type": "number"
+            },
+            {
+              "id": "po-f-amount",
+              "key": "amount",
+              "label": "金額",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "id": "po-grp-summary",
+          "label": "集計情報",
+          "role": "master",
+          "dataKey": "summary",
+          "fields": [
+            {
+              "id": "po-f-subtotal",
+              "key": "subtotal",
+              "label": "小計",
+              "type": "number"
+            },
+            {
+              "id": "po-f-tax10-base",
+              "key": "tax10Base",
+              "label": "10%対象",
+              "type": "number"
+            },
+            {
+              "id": "po-f-tax10-amt",
+              "key": "tax10Amount",
+              "label": "消費税(10%)",
+              "type": "number"
+            },
+            {
+              "id": "po-f-tax8-base",
+              "key": "tax8Base",
+              "label": "8%対象",
+              "type": "number"
+            },
+            {
+              "id": "po-f-tax8-amt",
+              "key": "tax8Amount",
+              "label": "消費税(8%)",
+              "type": "number"
+            },
+            {
+              "id": "po-f-total",
+              "key": "totalIncTax",
+              "label": "合計(税込)",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "id": "po-grp-delivery",
+          "label": "納品情報",
+          "role": "master",
+          "dataKey": "delivery",
+          "fields": [
+            {
+              "id": "po-f-del-date",
+              "key": "deliveryDate",
+              "label": "納期",
+              "type": "date"
+            },
+            {
+              "id": "po-f-del-addr",
+              "key": "deliveryAddress",
+              "label": "納品先住所",
+              "type": "string"
+            },
+            {
+              "id": "po-f-del-contact",
+              "key": "deliveryContact",
+              "label": "納品先担当者",
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,1832 @@
+{
+  "formatVersion": 2,
+  "exportedAt": "2026-04-16T13:39:43.107Z",
+  "definition": {
+    "id": "30d09254-37ea-42dd-9364-d54c3cc26348",
+    "metadata": {
+      "documentName": "見積書（インボイス対応）",
+      "version": "1.0",
+      "reportType": "general",
+      "description": "Created: 2026-04-16T13:39:43.107Z | Updated: 2026-04-16T13:39:43.107Z",
+      "sourceTemplateId": "quotation-basic-invoice"
+    },
+    "pageSettings": {
+      "paperSize": "A4",
+      "orientation": "portrait",
+      "margins": {
+        "top": 8,
+        "right": 8,
+        "bottom": 8,
+        "left": 10
+      },
+      "unit": "mm"
+    },
+    "defaultTextStyle": {},
+    "templateVariables": [],
+    "calculationRules": [],
+    "dataSources": [],
+    "outputVariants": [],
+    "submissionModels": [],
+    "validationRules": [],
+    "pages": [
+      {
+        "id": "82ed080b-c89b-4299-8ebc-0f77027087bf",
+        "name": "見積書",
+        "width": 210,
+        "height": 297,
+        "background": "#ffffff",
+        "sections": [
+          {
+            "id": "a260746e-c17d-4357-b4db-5fd27a420f63",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "3ff286ef-ba37-4720-9d93-885b36d835a3",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 8
+                },
+                "size": {
+                  "width": 192,
+                  "height": 15
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "見 積 書",
+                "style": {
+                  "fontSize": 9,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "5d2624cc-eb51-4f88-ba7d-fd7ca7c1505f",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 21
+                },
+                "size": {
+                  "width": 24,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "発行日：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "5f6d8083-5d43-4a2b-b70d-10bbbb6e75f8",
+                "type": "dataField",
+                "position": {
+                  "x": 144,
+                  "y": 21
+                },
+                "size": {
+                  "width": 58,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.issueDate",
+                "fallbackText": "20XX年XX月XX日",
+                "label": "20XX年XX月XX日",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "b642f19d-2092-48cd-ac79-3a1acd988448",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 26.5
+                },
+                "size": {
+                  "width": 24,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "見積書No：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "d18f48b1-78da-4133-82c7-cf285394ccd0",
+                "type": "dataField",
+                "position": {
+                  "x": 144,
+                  "y": 26.5
+                },
+                "size": {
+                  "width": 58,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.number",
+                "fallbackText": "M-12345678",
+                "label": "M-12345678",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "60b1dbc1-fc63-4064-a651-a4020d19cfc6",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 32
+                },
+                "size": {
+                  "width": 24,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "登録番号：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "5e740ad4-eadb-4a7e-aa23-60808ca0cfcc",
+                "type": "dataField",
+                "position": {
+                  "x": 144,
+                  "y": 32
+                },
+                "size": {
+                  "width": 58,
+                  "height": 5.5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.registrationNo",
+                "fallbackText": "TXXXXXXXXXXXXX",
+                "label": "TXXXXXXXXXXXXX",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "e5b5df5d-8df5-404a-a887-81ffce0659fb",
+                "type": "dataField",
+                "position": {
+                  "x": 10,
+                  "y": 29
+                },
+                "size": {
+                  "width": 88,
+                  "height": 12
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.customer.name",
+                "fallbackText": "株式会社△△△△",
+                "label": "株式会社△△△△",
+                "style": {
+                  "fontSize": 5.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "d34ad585-d2b1-413b-a7e6-bebae18b50dc",
+                "type": "text",
+                "position": {
+                  "x": 98,
+                  "y": 29
+                },
+                "size": {
+                  "width": 18,
+                  "height": 12
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "御中",
+                "style": {
+                  "fontSize": 5.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "1c798553-2589-400c-aa32-4feb95b78c08",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 41
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.4
+              },
+              {
+                "id": "e841c742-926c-4dcc-914d-41fc1c5185fc",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 43
+                },
+                "size": {
+                  "width": 5,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "〒",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "e1e181a2-725c-4f62-8e5b-fe1171993cb4",
+                "type": "dataField",
+                "position": {
+                  "x": 15,
+                  "y": 43
+                },
+                "size": {
+                  "width": 101,
+                  "height": 5
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.customer.postalCode",
+                "fallbackText": "000-0000",
+                "label": "000-0000",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "ecc94ccd-25ca-4456-90cc-52931856fe07",
+                "type": "dataField",
+                "position": {
+                  "x": 10,
+                  "y": 49
+                },
+                "size": {
+                  "width": 106,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.customer.address",
+                "fallbackText": "東京都品川区大崎1-11-2ゲートシティ大崎イーストタワー",
+                "label": "東京都品川区大崎1-11-2ゲートシティ大崎イーストタワー",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "top",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "0a50393b-abf2-47c5-b97c-c731a11ce489",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 58
+                },
+                "size": {
+                  "width": 106,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "下記のとおり、お見積申し上げます。",
+                "style": {
+                  "fontSize": 3.2,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "c8604ca2-00d5-4791-a98e-13c98ef53ea4",
+                "type": "image",
+                "position": {
+                  "x": 120,
+                  "y": 45
+                },
+                "size": {
+                  "width": 82,
+                  "height": 12
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "src": "",
+                "alt": "会社ロゴ",
+                "objectFit": "contain"
+              },
+              {
+                "id": "a6697c49-0db6-4c97-afd0-5e086388dd6e",
+                "type": "dataField",
+                "position": {
+                  "x": 120,
+                  "y": 58
+                },
+                "size": {
+                  "width": 82,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.sender.name",
+                "fallbackText": "株式会社●●●",
+                "label": "株式会社●●●",
+                "style": {
+                  "fontSize": 4,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "496cf6b4-6efb-43a5-bd60-d04e35734c48",
+                "type": "hanko",
+                "position": {
+                  "x": 187,
+                  "y": 59
+                },
+                "size": {
+                  "width": 12,
+                  "height": 12
+                },
+                "zIndex": 5,
+                "locked": false,
+                "visible": true,
+                "text": "印",
+                "shape": "circle",
+                "borderColor": "#cc0000",
+                "textColor": "#cc0000",
+                "fontSize": 5,
+                "writingMode": "horizontal-tb",
+                "doubleBorder": false
+              },
+              {
+                "id": "9d97677f-702d-49af-8ba9-5b792a495712",
+                "type": "dataField",
+                "position": {
+                  "x": 120,
+                  "y": 70
+                },
+                "size": {
+                  "width": 82,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.sender.address",
+                "fallbackText": "東京都●●区△△△△",
+                "label": "東京都●●区△△△△",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "961117a9-2c46-4838-b751-9ff2fb1a0e72",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 77
+                },
+                "size": {
+                  "width": 9,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "Tel：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "a1219a20-2a2a-4a17-a42e-b8b7631e1837",
+                "type": "dataField",
+                "position": {
+                  "x": 129,
+                  "y": 77
+                },
+                "size": {
+                  "width": 73,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.sender.tel",
+                "fallbackText": "00-0000-0000",
+                "label": "00-0000-0000",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "2be933b5-5b78-46de-a3c2-e24de82a6b65",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 83
+                },
+                "size": {
+                  "width": 12,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "Mail：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "d10e4396-60d0-48ae-a698-5f4be1a661da",
+                "type": "dataField",
+                "position": {
+                  "x": 132,
+                  "y": 83
+                },
+                "size": {
+                  "width": 70,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.sender.email",
+                "fallbackText": "●●●@example.com",
+                "label": "●●●@example.com",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "c484b450-4ebb-45cc-928e-e66f6de71d49",
+                "type": "text",
+                "position": {
+                  "x": 120,
+                  "y": 89
+                },
+                "size": {
+                  "width": 12,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "担当：",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "94ea1577-9a9f-4cb3-9be2-ef100d706e7e",
+                "type": "dataField",
+                "position": {
+                  "x": 132,
+                  "y": 89
+                },
+                "size": {
+                  "width": 70,
+                  "height": 6
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.sender.contact",
+                "fallbackText": "アドビ太郎",
+                "label": "アドビ太郎",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "530fbdc9-1832-4d17-ae25-7e1f38183bf4",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 63
+                },
+                "size": {
+                  "width": 42,
+                  "height": 12
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "お見積金額（税込）",
+                "style": {
+                  "fontSize": 3.5,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "8895d8bd-ab77-4209-8a04-586efb75f2ed",
+                "type": "dataField",
+                "position": {
+                  "x": 52,
+                  "y": 63
+                },
+                "size": {
+                  "width": 64,
+                  "height": 12
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.totalAmountIncTax",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 7,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "19bb7a82-bbc4-44fe-acde-39e94e2afc08",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 74
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.4
+              },
+              {
+                "id": "ea89f4a3-719a-4ff3-a330-e7848ff36c5d",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 77
+                },
+                "size": {
+                  "width": 106,
+                  "height": 24
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "ffee8a2d-8cb8-4895-a994-354f2e9d1fcd",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 77
+                },
+                "size": {
+                  "width": 18,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f0f0",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "28b48367-d4fb-42a1-8a27-25974513e122",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 77
+                },
+                "size": {
+                  "width": 16,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "納期",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "b9b09906-4109-42fb-8bc8-eefcbd8e8133",
+                "type": "shape",
+                "position": {
+                  "x": 28,
+                  "y": 77
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "533c2f59-5f59-49da-8afb-1df56891e9ef",
+                "type": "manualEntry",
+                "position": {
+                  "x": 29,
+                  "y": 78
+                },
+                "size": {
+                  "width": 86,
+                  "height": 6
+                },
+                "zIndex": 4,
+                "locked": false,
+                "visible": true,
+                "label": "",
+                "labelPosition": "none",
+                "displayMode": "none",
+                "lineColor": "#555555",
+                "style": {
+                  "fontSize": 3,
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "60591d00-94ab-4b22-b808-c9821e1cb7b2",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 85
+                },
+                "size": {
+                  "width": 18,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f0f0",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "d0bd4e66-c1fd-467c-b710-4aa85e1ccc35",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 85
+                },
+                "size": {
+                  "width": 16,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "支払条件",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "8764aa08-e310-4a01-ae6f-56a07ee22ddd",
+                "type": "shape",
+                "position": {
+                  "x": 28,
+                  "y": 85
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "bc28fa7d-928d-4202-b102-0f172f7b4b70",
+                "type": "manualEntry",
+                "position": {
+                  "x": 29,
+                  "y": 86
+                },
+                "size": {
+                  "width": 86,
+                  "height": 6
+                },
+                "zIndex": 4,
+                "locked": false,
+                "visible": true,
+                "label": "",
+                "labelPosition": "none",
+                "displayMode": "none",
+                "lineColor": "#555555",
+                "style": {
+                  "fontSize": 3,
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "1f371752-f45f-4065-a57d-6d8fc5b790d0",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 85
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "abdef4a9-5c1d-4ff2-836a-828e5a0b3fa2",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 93
+                },
+                "size": {
+                  "width": 18,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f0f0",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "69c9341c-7ca8-44f3-bcaf-02933e302d30",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 93
+                },
+                "size": {
+                  "width": 16,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "有効期限",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "9d4eceb8-da6e-45f6-a4d7-f7bcf391bb0c",
+                "type": "shape",
+                "position": {
+                  "x": 28,
+                  "y": 93
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "8030da83-84eb-4048-a531-611b14ceabdd",
+                "type": "manualEntry",
+                "position": {
+                  "x": 29,
+                  "y": 94
+                },
+                "size": {
+                  "width": 86,
+                  "height": 6
+                },
+                "zIndex": 4,
+                "locked": false,
+                "visible": true,
+                "label": "",
+                "labelPosition": "none",
+                "displayMode": "none",
+                "lineColor": "#555555",
+                "style": {
+                  "fontSize": 3,
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "c1f28b50-dfd9-42b0-a022-18e138a22aba",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 93
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "a9c38c37-696d-41d0-9964-953258af4706",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 105
+                },
+                "size": {
+                  "width": 192,
+                  "height": 88
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "c00b3c79-7d99-4d8d-8adc-50c121813449",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 105
+                },
+                "size": {
+                  "width": 192,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#e8e8e8",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "67d214fd-19e9-46a1-9bd0-9a6ff5bf4244",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 105
+                },
+                "size": {
+                  "width": 106,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "品番・品名",
+                "style": {
+                  "fontSize": 3,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "89d9f1df-fda6-432a-993c-3815ac55b33b",
+                "type": "shape",
+                "position": {
+                  "x": 118,
+                  "y": 105
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 88
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "8f1c38b1-eec0-4475-af47-9a4bbe99c043",
+                "type": "text",
+                "position": {
+                  "x": 119,
+                  "y": 105
+                },
+                "size": {
+                  "width": 16,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "数量",
+                "style": {
+                  "fontSize": 3,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "059329d6-41af-410d-9869-b06df71b36f1",
+                "type": "shape",
+                "position": {
+                  "x": 136,
+                  "y": 105
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 88
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "ac9a891b-db5d-437b-b9e3-3251650c4db0",
+                "type": "text",
+                "position": {
+                  "x": 137,
+                  "y": 105
+                },
+                "size": {
+                  "width": 30,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "単価",
+                "style": {
+                  "fontSize": 3,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "bea3ef04-87b0-4ec4-857e-64722eaf098f",
+                "type": "shape",
+                "position": {
+                  "x": 168,
+                  "y": 105
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 88
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "090b0bd5-32f9-4dd6-8a50-98d3118fcbc4",
+                "type": "text",
+                "position": {
+                  "x": 169,
+                  "y": 105
+                },
+                "size": {
+                  "width": 32,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "金額（税抜）",
+                "style": {
+                  "fontSize": 3,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "999d2eec-7bab-425f-b6fc-f87517c6a06d",
+                "type": "repeatingBand",
+                "position": {
+                  "x": 10,
+                  "y": 113
+                },
+                "size": {
+                  "width": 192,
+                  "height": 80
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "dataSource": "items",
+                "itemHeight": 8,
+                "showHeader": false,
+                "showFooter": false,
+                "totals": [],
+                "pageBreak": "none",
+                "maxItems": 10,
+                "showEmptyRowLines": true,
+                "oddRowColor": "#ffffff",
+                "evenRowColor": "#f9f9f9",
+                "borderColor": "#cccccc",
+                "borderWidth": 0.25,
+                "fields": [
+                  {
+                    "key": "itemName",
+                    "label": "品番・品名",
+                    "width": 108,
+                    "align": "left"
+                  },
+                  {
+                    "key": "quantity",
+                    "label": "数量",
+                    "width": 18,
+                    "align": "right",
+                    "format": {
+                      "type": "comma"
+                    }
+                  },
+                  {
+                    "key": "unitPrice",
+                    "label": "単価",
+                    "width": 32,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  },
+                  {
+                    "key": "amount",
+                    "label": "金額（税抜）",
+                    "width": 34,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  }
+                ],
+                "style": {
+                  "fontSize": 3,
+                  "color": "#1a1a1a"
+                },
+                "headerStyle": {
+                  "fontSize": 3,
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "8f37d8c2-60c4-4e04-b337-bc9e9fd00038",
+                "type": "shape",
+                "position": {
+                  "x": 136,
+                  "y": 193
+                },
+                "size": {
+                  "width": 66,
+                  "height": 32
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "02a60605-8f05-4f89-8542-2137abc98810",
+                "type": "shape",
+                "position": {
+                  "x": 168,
+                  "y": 193
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 32
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "f6d6c146-a3cb-4a0a-b3d2-5ad8a8099733",
+                "type": "text",
+                "position": {
+                  "x": 137,
+                  "y": 193
+                },
+                "size": {
+                  "width": 30,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "小計",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "521a7d7f-3c29-457b-8431-8a25f904c904",
+                "type": "dataField",
+                "position": {
+                  "x": 169,
+                  "y": 193
+                },
+                "size": {
+                  "width": 32,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.subtotal",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "2bb388e8-dc22-4377-9943-9605c970604c",
+                "type": "shape",
+                "position": {
+                  "x": 136,
+                  "y": 201
+                },
+                "size": {
+                  "width": 66,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "52948be1-1f2e-4070-973e-d8b17192c6d6",
+                "type": "text",
+                "position": {
+                  "x": 137,
+                  "y": 201
+                },
+                "size": {
+                  "width": 30,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "消費税（10％）",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "6878a0de-c8d0-4ebc-9925-baa212b3a63d",
+                "type": "dataField",
+                "position": {
+                  "x": 169,
+                  "y": 201
+                },
+                "size": {
+                  "width": 32,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.tax10Amount",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "d9e29133-ccfd-44a3-9d34-ea4d4b66cac9",
+                "type": "shape",
+                "position": {
+                  "x": 136,
+                  "y": 209
+                },
+                "size": {
+                  "width": 66,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "8beef2fd-01d4-423d-873d-4adcf3949c76",
+                "type": "text",
+                "position": {
+                  "x": 137,
+                  "y": 209
+                },
+                "size": {
+                  "width": 30,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "消費税（8％）",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "5d4564ed-4f36-4d52-96e5-c1721bc7b352",
+                "type": "dataField",
+                "position": {
+                  "x": 169,
+                  "y": 209
+                },
+                "size": {
+                  "width": 32,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.tax8Amount",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "normal"
+                }
+              },
+              {
+                "id": "67c423c3-eafa-451a-9c5f-24168664f37b",
+                "type": "shape",
+                "position": {
+                  "x": 136,
+                  "y": 217
+                },
+                "size": {
+                  "width": 66,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "5ca59aa6-b7d8-4f6a-95dd-647d2a5ca2c3",
+                "type": "text",
+                "position": {
+                  "x": 137,
+                  "y": 217
+                },
+                "size": {
+                  "width": 30,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "合計",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "3da80d19-687a-483b-a3fe-ca1dee9b63dc",
+                "type": "dataField",
+                "position": {
+                  "x": 169,
+                  "y": 217
+                },
+                "size": {
+                  "width": 32,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.total",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "2aa132d2-aa70-43df-9373-c2550d577de4",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 201
+                },
+                "size": {
+                  "width": 68,
+                  "height": 24
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "4bb1afc2-e84b-49fa-82ae-33c835280a2a",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 201
+                },
+                "size": {
+                  "width": 68,
+                  "height": 8
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f0f0f0",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "ba1744be-81d1-431e-9e2b-c2576791219e",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 201
+                },
+                "size": {
+                  "width": 20,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "税率内訳",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "4ccbc90a-dd8c-4b1b-b743-58ba610078b1",
+                "type": "shape",
+                "position": {
+                  "x": 32,
+                  "y": 201
+                },
+                "size": {
+                  "width": 0.1,
+                  "height": 24
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "d4322bea-738d-4aa7-8aa9-2682e888c965",
+                "type": "text",
+                "position": {
+                  "x": 33,
+                  "y": 201
+                },
+                "size": {
+                  "width": 44,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "小計",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "94715885-9598-4a9b-8e8b-166540c8694f",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 209
+                },
+                "size": {
+                  "width": 68,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "f7097cb1-5757-4e7a-a7ba-8b495c1ebdc6",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 209
+                },
+                "size": {
+                  "width": 20,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "10%対象",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "f1d8c9a0-e1a0-4863-83d9-b6089aafe94d",
+                "type": "dataField",
+                "position": {
+                  "x": 33,
+                  "y": 209
+                },
+                "size": {
+                  "width": 44,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.tax10Base",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "12a1a432-5028-4590-bafc-e0e2f3021137",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 217
+                },
+                "size": {
+                  "width": 68,
+                  "height": 0.1
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "7d3f87d1-9105-4a2c-965f-10f263b9b1b5",
+                "type": "text",
+                "position": {
+                  "x": 11,
+                  "y": 217
+                },
+                "size": {
+                  "width": 20,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "8%対象",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "left",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "8eb1c0fd-653d-44a9-97d4-3c49ebf22c0a",
+                "type": "dataField",
+                "position": {
+                  "x": 33,
+                  "y": 217
+                },
+                "size": {
+                  "width": 44,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "quotation.tax8Base",
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "fallbackText": "¥0",
+                "label": "¥0",
+                "style": {
+                  "fontSize": 2.8,
+                  "textAlign": "right",
+                  "verticalAlign": "middle",
+                  "color": "#000000"
+                }
+              },
+              {
+                "id": "9d94d2a2-7874-4727-9e10-e3bbd9efcfe1",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 229
+                },
+                "size": {
+                  "width": 192,
+                  "height": 61
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "transparent",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "2dd25fbb-5f7d-4ead-9b39-faf6a3ad4c08",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 229
+                },
+                "size": {
+                  "width": 192,
+                  "height": 7
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#e8e8e8",
+                "stroke": "#000000",
+                "strokeWidth": 0.25
+              },
+              {
+                "id": "842b16ab-7b93-48d4-ab3e-7704d0f8b401",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 229
+                },
+                "size": {
+                  "width": 192,
+                  "height": 7
+                },
+                "zIndex": 3,
+                "locked": true,
+                "visible": true,
+                "content": "備考",
+                "style": {
+                  "fontSize": 3.2,
+                  "textAlign": "center",
+                  "verticalAlign": "middle",
+                  "color": "#000000",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "cfbfa1ce-431f-406e-b36d-93220bdb5d81",
+                "type": "manualEntry",
+                "position": {
+                  "x": 12,
+                  "y": 237
+                },
+                "size": {
+                  "width": 188,
+                  "height": 52
+                },
+                "zIndex": 4,
+                "locked": false,
+                "visible": true,
+                "label": "",
+                "labelPosition": "none",
+                "displayMode": "none",
+                "lineColor": "#555555",
+                "style": {
+                  "fontSize": 3,
+                  "verticalAlign": "middle",
+                  "color": "#1a1a1a"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

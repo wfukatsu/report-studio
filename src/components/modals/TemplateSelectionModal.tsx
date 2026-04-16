@@ -3,7 +3,7 @@ import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Sea
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 
-import { applyTemplate, createBlankDefinition } from '@/lib/templateUtils'
+import { loadBuiltinTemplate, createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
 import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl } from '@/api/reportApi'
@@ -223,8 +223,8 @@ export function TemplateSelectionModal({
     if (id === null) {
       setSelectedDefinition(createBlankDefinition())
     } else {
-      const template = BUILTIN_TEMPLATES.find((t) => t.id === id)
-      if (template) setSelectedDefinition(applyTemplate(template))
+      const definition = loadBuiltinTemplate(id)
+      if (definition) setSelectedDefinition(definition)
     }
   }
 
@@ -385,7 +385,7 @@ export function TemplateSelectionModal({
                     <p className="text-[10px] text-muted-foreground leading-snug">{t.description}</p>
                   )}
                   <p className="text-[10px] text-muted-foreground mt-auto">
-                    {t.pages.length}ページ · {t.settings.paperSize}
+                    {t.definition.pages.length}ページ · {t.definition.pageSettings?.paperSize ?? 'A4'}
                   </p>
                 </button>
               ))}
