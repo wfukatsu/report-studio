@@ -64,10 +64,11 @@ public final class ExpressionEngine {
             return false;
         }
         try {
+            String jexlExpr = translateFormulaToJexl(expression);
             JexlContext ctx = toJexlContext(context);
             ctx.set("_row", rowIndex);
             // strict=false for evaluate — missing variables return null rather than throwing
-            JexlExpression expr = JEXL.createExpression(expression);
+            JexlExpression expr = JEXL.createExpression(jexlExpr);
             Object result = evaluateWithTimeout(expr, ctx);
             if (result instanceof Boolean b) return b;
             if (result == null) return false;
@@ -95,9 +96,10 @@ public final class ExpressionEngine {
             throw new IllegalArgumentException("Expression exceeds max length ("
                     + expression.length() + " > " + MAX_EXPRESSION_LENGTH + ")");
         }
+        String jexlExpr = translateFormulaToJexl(expression);
         JexlContext ctx = toJexlContext(context);
         // strict=true for calculate — surface typos as errors rather than silently returning null
-        JexlExpression expr = JEXL.createExpression(expression);
+        JexlExpression expr = JEXL.createExpression(jexlExpr);
         return evaluateWithTimeout(expr, ctx);
     }
 
@@ -149,6 +151,45 @@ public final class ExpressionEngine {
             Thread.currentThread().interrupt();
             throw new ExpressionTimeoutException("Expression evaluation interrupted");
         }
+    }
+
+    // ── Formula-v1 translation layer ────────────────────────────────────────
+
+    /**
+     * Mapping from formula-v1 UPPERCASE function names to JEXL equivalents.
+     * Must be kept in sync with the frontend's FORMULA_TO_JEXL_MAP in functionCatalog.ts.
+     */
+    private static final String[][] FORMULA_TO_JEXL_MAP = {
+        {"SUM(",         "sum("},
+        {"COUNT(",       "count("},
+        {"ROUND(",       "round("},
+        {"AVG(",         "avg("},
+        {"MIN(",         "min("},
+        {"MAX(",         "max("},
+        {"CONCAT(",      "concat("},
+        {"IF(",          "ifExpr("},
+        {"TEXT(",        "formatNumber("},
+        {"FORMAT_DATE(", "formatDate("},
+    };
+
+    /**
+     * Translate a formula-v1 expression to JEXL syntax.
+     *
+     * <p>e.g. {@code SUM(price * qty)} → {@code sum(price * qty)}<br>
+     * {@code IF(x > 0, 'yes', 'no')} → {@code ifExpr(x > 0, 'yes', 'no')}
+     *
+     * <p>If the expression is already in JEXL format (all lowercase), this is a no-op.
+     *
+     * @param formula  formula-v1 or legacy JEXL expression
+     * @return         JEXL-compatible expression string
+     */
+    static String translateFormulaToJexl(String formula) {
+        if (formula == null || formula.isBlank()) return formula;
+        String result = formula;
+        for (String[] mapping : FORMULA_TO_JEXL_MAP) {
+            result = result.replace(mapping[0], mapping[1]);
+        }
+        return result;
     }
 
     // ── Context helpers ───────────────────────────────────────────────────────
