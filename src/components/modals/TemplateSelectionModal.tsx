@@ -6,7 +6,7 @@ import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { loadBuiltinTemplate, createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
 import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
-import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl } from '@/api/reportApi'
+import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl, listPublicReports, copyTemplate } from '@/api/reportApi'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { TemplateManagerModal } from './TemplateManagerModal'
 import { downloadBlob } from '@/api/client'
@@ -36,10 +36,15 @@ export function TemplateSelectionModal({
   const [selectedBuiltinId, setSelectedBuiltinId] = useState<string | null>(null)
   const [selectedDefinition, setSelectedDefinition] = useState<ReportDefinition | null>(null)
 
-  // Backend template state
+  // Backend template state (own templates)
   const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
   const [backendLoadState, setBackendLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [backendLoadError, setBackendLoadError] = useState<string | null>(null)
+
+  // Public templates state
+  const [publicTemplates, setPublicTemplates] = useState<TemplateListItem[]>([])
+  const [publicLoadState, setPublicLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [copyingId, setCopyingId] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
@@ -110,6 +115,31 @@ export function TemplateSelectionModal({
       setBackendLoadError('テンプレート一覧の取得に失敗しました')
     }
   }, [])
+
+  const handleFetchPublic = useCallback(async () => {
+    setPublicLoadState('loading')
+    try {
+      const result = await listPublicReports()
+      setPublicTemplates(result.items)
+      setPublicLoadState('idle')
+    } catch {
+      setPublicLoadState('error')
+    }
+  }, [])
+
+  const handleCopyTemplate = async (id: string) => {
+    setCopyingId(id)
+    try {
+      const result = await copyTemplate(id)
+      const definition = await getReport(result.id)
+      onSelect(definition)
+      onClose()
+    } catch {
+      setBackendLoadError('テンプレートのコピーに失敗しました')
+    } finally {
+      setCopyingId(null)
+    }
+  }
 
   const handleLoadBackend = async (id: string) => {
     if (loadingId) return
@@ -547,6 +577,42 @@ export function TemplateSelectionModal({
                         </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+          {/* Public templates */}
+          {backendConnected && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-medium">公開テンプレート</h3>
+                <button
+                  onClick={handleFetchPublic}
+                  disabled={publicLoadState === 'loading'}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  {publicLoadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FolderOpen className="w-3 h-3" />}
+                  読み込む
+                </button>
+              </div>
+              {publicTemplates.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {publicTemplates.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleCopyTemplate(t.id)}
+                      disabled={copyingId !== null}
+                      className="w-full flex flex-col rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 overflow-hidden text-left p-2"
+                      aria-label={`公開テンプレート ${t.name} をコピーして使用`}
+                    >
+                      <p className="font-medium text-xs truncate">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {copyingId === t.id ? 'コピー中...' : 'クリックでコピー'}
+                      </p>
+                    </button>
                   ))}
                 </div>
               )}

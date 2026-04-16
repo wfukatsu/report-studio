@@ -437,6 +437,30 @@ export async function duplicateReport(id: string): Promise<{ id: string; name: s
   )
 }
 
+export async function listPublicReports(): Promise<{ items: TemplateListItem[]; total: number }> {
+  return apiFetch('/api/v2/templates?visibility=public', TemplateListSchema)
+}
+
+export async function listSharedReports(): Promise<{ items: TemplateListItem[]; total: number }> {
+  return apiFetch('/api/v2/templates?visibility=shared', TemplateListSchema)
+}
+
+export async function updateVisibility(id: string, visibility: 'private' | 'shared' | 'public'): Promise<{ id: string; visibility: string }> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(id)}/visibility`,
+    z.object({ id: z.string(), visibility: z.string() }),
+    { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visibility }) },
+  )
+}
+
+export async function copyTemplate(id: string): Promise<{ id: string; name: string }> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(id)}/copy`,
+    DuplicateReportResultSchema,
+    { method: 'POST' },
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Template export / import
 // ---------------------------------------------------------------------------
