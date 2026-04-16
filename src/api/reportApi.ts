@@ -1049,3 +1049,75 @@ export async function scanScalarDbTable(
     ScalarDbScanResponseSchema,
   ) as Promise<ScalarDbScanResponse>
 }
+
+// ---------------------------------------------------------------------------
+// Schema Library — reusable schema definitions
+// ---------------------------------------------------------------------------
+
+export interface SchemaLibraryItem {
+  id: string
+  name: string
+  visibility: 'private' | 'shared'
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+const SchemaLibraryItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  visibility: z.enum(['private', 'shared']),
+  createdBy: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+const SchemaLibraryListSchema = z.object({
+  items: z.array(SchemaLibraryItemSchema),
+  total: z.number(),
+})
+
+// The definition stored in schema library (schema + dataSources)
+const SchemaLibraryDefinitionSchema = z.object({
+  schema: z.any(),
+  dataSources: z.any().optional(),
+}).passthrough()
+
+export type SchemaLibraryDefinition = z.infer<typeof SchemaLibraryDefinitionSchema>
+
+export async function listSchemaLibrary(): Promise<{ items: SchemaLibraryItem[]; total: number }> {
+  return apiFetch('/api/v2/schema-library', SchemaLibraryListSchema)
+}
+
+export async function getSchemaLibraryItem(id: string): Promise<SchemaLibraryDefinition> {
+  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, SchemaLibraryDefinitionSchema)
+}
+
+export async function saveToSchemaLibrary(
+  name: string,
+  definition: SchemaLibraryDefinition,
+  visibility: 'private' | 'shared' = 'private',
+): Promise<{ id: string }> {
+  return apiFetch('/api/v2/schema-library', z.object({ id: z.string(), name: z.string() }), jsonBody({
+    name,
+    visibility,
+    definition,
+  }))
+}
+
+export async function updateSchemaLibrary(
+  id: string,
+  name: string,
+  definition: SchemaLibraryDefinition,
+  visibility: 'private' | 'shared',
+): Promise<void> {
+  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, z.any(), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, visibility, definition }),
+  })
+}
+
+export async function deleteSchemaLibraryItem(id: string): Promise<void> {
+  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
+}

@@ -10,6 +10,7 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { BookmarkPlus, FolderOpen } from 'lucide-react'
 import { useBindingState } from './hooks/useBindingState'
 import { useConnectionLines } from './hooks/useConnectionLines'
 import { ElementPanel } from './panels/ElementPanel'
@@ -18,6 +19,9 @@ import { DbPanel } from './panels/DbPanel'
 import { ConnectionLines } from './internals/ConnectionLines'
 import { SummaryBar } from './internals/SummaryBar'
 import { BulkGenerateBar } from './internals/BulkGenerateBar'
+import { SchemaLibraryModal } from '@/components/modals/SchemaLibraryModal'
+import { saveToSchemaLibrary } from '@/api/reportApi'
+import { useReportStore } from '@/store/reportStore'
 
 const ComputedFieldDialog = lazy(() =>
   import('./internals/ComputedFieldDialog').then((m) => ({
@@ -123,8 +127,54 @@ export function BindingEditor() {
     [bs.allElements, bs.disconnect],
   )
 
+  // Schema Library modal state
+  const [libraryModalOpen, setLibraryModalOpen] = useState(false)
+  const [savingToLibrary, setSavingToLibrary] = useState(false)
+  const dataSources = useReportStore((s) => s.definition.dataSources)
+
+  const handleSaveToLibrary = useCallback(async () => {
+    const name = window.prompt('スキーマの名前を入力してください:', '')
+    if (!name?.trim()) return
+    setSavingToLibrary(true)
+    try {
+      await saveToSchemaLibrary(name.trim(), {
+        schema: bs.schema ?? { groups: [] },
+        dataSources: dataSources ?? [],
+      })
+      alert('スキーマをライブラリに保存しました')
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : '不明なエラー'}`)
+    } finally {
+      setSavingToLibrary(false)
+    }
+  }, [bs.schema, dataSources])
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
+      {/* Schema library action bar */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/10 shrink-0">
+        <span className="text-xs text-muted-foreground">スキーマライブラリ:</span>
+        <button
+          className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 font-medium px-2 py-1 rounded hover:bg-[#6366f1]/5"
+          onClick={() => setLibraryModalOpen(true)}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          ライブラリから適用
+        </button>
+        <button
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/50"
+          onClick={handleSaveToLibrary}
+          disabled={savingToLibrary || !bs.hasSchema}
+          title={bs.hasSchema ? 'テンプレートのスキーマをライブラリに保存' : 'スキーマが未定義です'}
+        >
+          <BookmarkPlus className="w-3.5 h-3.5" />
+          {savingToLibrary ? '保存中...' : 'ライブラリに保存'}
+        </button>
+      </div>
+
+      {/* Schema Library Modal */}
+      <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
+
       {/* Bulk generate bar (conditional) */}
       {bs.bulk && bs.bulkItems.length > 0 && (
         <BulkGenerateBar
