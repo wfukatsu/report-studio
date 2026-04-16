@@ -697,6 +697,77 @@
               }
             ]
           }
+        ],
+        "groups": [
+          {
+            "id": "grp-bcc4eec0",
+            "name": "タイトル",
+            "elementIds": [
+              "ffed009b-d0e2-4169-8e04-48f5ad4fa649"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-99b34d34",
+            "name": "書類情報",
+            "elementIds": [
+              "fd2a1c54-3ca4-4db9-a678-3775918e091d",
+              "be-el-doc-number-00000000",
+              "3b666c26-490b-42ef-9a4e-3755e2ccd240",
+              "be-el-issue-date-00000000"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-780b5bd7",
+            "name": "宛先・差出人",
+            "elementIds": [
+              "090df035-8a96-4a55-83f6-728fa16c3ad5",
+              "be-el-company-name-00000000",
+              "be-el-company-addr-00000000",
+              "be-el-company-tel-00000000"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-5bbc1a73",
+            "name": "明細",
+            "elementIds": [
+              "271d35db-4638-4cd8-af39-75a47f4656bb",
+              "2ddf52a3-c9bf-42c5-ac10-85681f528e39",
+              "154da48d-fa35-4981-84c2-7958b4f981f3",
+              "4840aae9-00e4-4af2-8899-5b381437d4c4",
+              "be-el-item-name-00000000",
+              "be-el-item-qty-00000000",
+              "be-el-item-price-00000000",
+              "be-el-item-amount-00000000"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-c18ffe26",
+            "name": "集計",
+            "elementIds": [
+              "77221821-9f02-42b1-9364-84e125d670fd",
+              "be-el-subtotal-00000000",
+              "2bc4a87c-728a-4248-818c-dedb1790e852",
+              "be-el-tax-00000000",
+              "ae8a5c8c-161a-4b27-b345-ed6fd2714205",
+              "be-el-total-00000000"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-06c33c0c",
+            "name": "その他",
+            "elementIds": [
+              "be-el-unbound1-00000000",
+              "be-el-unbound2-00000000",
+              "2ff358ec-33aa-45e8-b2ba-d775e3bcba7a",
+              "be-el-notes-00000000"
+            ],
+            "collapsed": true
+          }
         ]
       },
       {

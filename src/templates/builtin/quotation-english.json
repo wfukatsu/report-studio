@@ -1152,6 +1152,97 @@
               }
             ]
           }
+        ],
+        "groups": [
+          {
+            "id": "grp-b27a12ea",
+            "name": "Sender Info",
+            "elementIds": [
+              "5fb24901-d5d9-40c2-9156-092bd14cc24f",
+              "64034965-ffd8-466f-bb0a-6d22637f5348",
+              "1c6cd649-ad72-4e08-a69e-ce84e338b824",
+              "57148b89-d5f8-405a-a94e-aa951774a895",
+              "4ee9bb31-5770-407b-987d-46ca354cc674",
+              "7ad57ccd-1b33-4d45-84b3-ce5d67fe8865"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-8ab1bcad",
+            "name": "Document Info",
+            "elementIds": [
+              "31044724-a236-4188-a4cc-39851c552f20",
+              "60af0343-c411-48b2-ab58-ce236093c8ab",
+              "625964b2-30d4-448c-8228-0acab1e9195d",
+              "5888a525-07fe-4dec-a61b-2f3f382e1f10",
+              "60031468-46b4-4e4e-b03f-f6725818a249",
+              "ca662a28-9db4-44ff-8d82-54f13cc4384c",
+              "8947d294-5274-48b8-bdd6-fcabc1cbee86"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-c7cbaa8a",
+            "name": "Recipient",
+            "elementIds": [
+              "ae40f0f4-273c-4c1c-8cfa-61180c0037d2",
+              "14059b51-2063-4fe6-8e0f-d225c8c03c29",
+              "42a4fd63-58b8-4a35-9920-5c352721ad78"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-41addd7c",
+            "name": "Terms",
+            "elementIds": [
+              "ec893180-9059-4508-91ff-b81e9b1c0353",
+              "512725ab-95cf-471c-b9c9-f16fcfd2320a",
+              "d5167c0f-6e77-47bd-9b30-da8414b85498",
+              "185ed4ca-ee12-49c2-a7da-e800510dc995"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-4e04fee9",
+            "name": "Item Table",
+            "elementIds": [
+              "79f11d32-8220-4b48-a7e4-381f1d9dda04",
+              "2667edd1-f42a-4f0f-ae41-abc1e80a203e",
+              "d1d671a8-484b-4489-8313-06eccf0f0b1f",
+              "775371a8-9d33-4fea-8fa8-82fd8e37a0b3",
+              "767b04ca-2de1-4e4a-b961-ae323ce06ebe",
+              "79cb773b-bc37-4015-8c0f-67cdf3d6cd9d",
+              "fd53aed4-5eb3-49cf-ab06-097de4639dae",
+              "f8070102-6891-4751-8618-2f2b9fc73e60",
+              "b45ecc2f-aa95-436e-8991-3e3c650f05ab",
+              "4a4a8ebf-3e9e-4d1c-934e-062c875d442a"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-10fbe9c4",
+            "name": "Summary",
+            "elementIds": [
+              "32104f80-7e09-453f-bd0a-8efdf16e3cef",
+              "3a853f5e-fe18-4cde-9469-df86d8d892cf",
+              "79549466-385e-41c7-a29b-96116d1edfca",
+              "8ee76ef9-9c76-4a63-a2d3-a3f8aed93a32",
+              "cd71b3fe-a195-428b-8372-d85e9a88337f",
+              "d094a079-aaf9-402b-94c0-50975e3c4b5a",
+              "6309e4ba-eccc-4e11-a8f9-2da5f1aee0da",
+              "8b273667-be6e-4668-9b31-fdd6ac3752c0",
+              "73f726b4-4067-4962-b9f8-4bd9ab39ea96",
+              "21fa9bba-aaf6-43ea-a26e-84acfc2da894",
+              "c20ec7c5-cfba-468d-9c4d-6ee4ac6e5c2b",
+              "1ee473fd-60ff-45e7-8b24-b0de35bae6eb",
+              "9ecb3085-24b2-49b9-85b1-7c27e03d4705",
+              "5d252185-4c54-42cc-a895-fce48dcfff44",
+              "a695ad48-b0aa-4da4-865c-c4af020927c5",
+              "8e5e56d4-9fd3-4261-8303-06a24e9fdd71",
+              "070174c0-cc65-4731-9a2a-28a157713e5b"
+            ],
+            "collapsed": true
+          }
         ]
       }
     ]

@@ -1342,6 +1342,124 @@
               }
             ]
           }
+        ],
+        "groups": [
+          {
+            "id": "grp-f275890f",
+            "name": "タイトル",
+            "elementIds": [
+              "5aa72899-9b13-4595-81b1-aac637894a48",
+              "b7452bf2-9e75-4a04-bd33-aa09725c9b8b"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-afd2cf64",
+            "name": "自社情報",
+            "elementIds": [
+              "f1efbd6c-70a7-47c2-ac41-bde2b5a6dbf8",
+              "025dba65-4833-44bf-9faa-ddaa3130f29e",
+              "98d5c953-ee95-4b7b-8b7d-00d3d57c7dca",
+              "a8d9f08c-c3dc-4468-9752-e2e002d4d4d9"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-11fdcaf0",
+            "name": "書類情報",
+            "elementIds": [
+              "799fd67f-f494-4a5f-aaec-518f05c8b92d",
+              "0abc1270-ed3e-45b8-b333-69c205beb15d",
+              "ed3f37f1-32f4-4028-965e-ebc68d1b6517",
+              "365801ec-c1e6-4905-9223-be10b9b80e99",
+              "4f2604cc-bc7e-4084-814b-f6a4f9077a55",
+              "e3e7fb6f-1fb5-4e1b-88e0-57b00697eb61"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-84d0b961",
+            "name": "宛先",
+            "elementIds": [
+              "8fbf7491-d00e-4335-b16d-fd9bf7173083",
+              "e5085ca2-418f-4721-a29b-feab16bba9d4",
+              "1b97e741-01c0-457c-a241-dc707636ad2e",
+              "55004a70-eeb3-46f8-bd27-ad529f65d620",
+              "3b8dc6ed-399c-4497-99fc-ea9eee60e62d",
+              "6692c495-b8d1-4cba-a394-1535e588e39b",
+              "8ac83844-16a6-4872-9b5c-33923a2a4ca7",
+              "15c2ba18-dc7e-4b28-93f8-ba759b743d65",
+              "65fe5b37-950d-43fd-951d-c94f9d0eeeec"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-cbb787af",
+            "name": "合計金額",
+            "elementIds": [
+              "f0535fbd-ad55-465b-9e63-46cc19c58c19",
+              "5f633600-5c19-4ea5-8eb2-5af7d2d3d974",
+              "b50e8732-7d3d-4a92-af8e-6a67fb49d65c"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-b20506b3",
+            "name": "明細テーブル",
+            "elementIds": [
+              "743f5ea1-aeb9-48d1-bcd7-6c9d38952800"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-655b15a5",
+            "name": "税額内訳",
+            "elementIds": [
+              "cd08f048-36c4-47f4-ad06-c275ecc697a1",
+              "d512d2e0-f5bd-4883-8522-cf98d2a6c147",
+              "a852763d-17ef-46c7-836d-d8713f7454d2",
+              "476a726d-a68f-462a-9114-45daa423af85",
+              "555100dd-0457-4a72-8c43-a1d853685d29",
+              "6367fb00-43a9-448c-acb1-6cdb3e2bbffa",
+              "6ab0be2d-5f2e-482c-90c6-4a31af0cb590",
+              "605c312f-4822-4a31-b0c3-c950cf1819a3",
+              "0fcc7523-d39c-4fc2-977d-12b104337070",
+              "6f530fe3-6297-4ebf-9a66-f0f54c24af22",
+              "0e3d655f-b725-4f22-98d7-42aba80a2729",
+              "4c06fe79-0e31-46a3-90d2-6e38e113caf0",
+              "7811d2e9-ede7-4bb0-9cba-8881a28bcf2e",
+              "2be94f92-088e-4c41-8507-1a580777e706",
+              "907193ca-f74d-4695-bc18-ee87d43c536c",
+              "ef5e3ea7-d745-4f8b-a745-b70ea1dba90c",
+              "1cf49328-6e82-47d4-a03e-832b5f3cfb8a",
+              "4ecf2323-1cbb-4be6-a01c-a7e6163737d9",
+              "ddc5d6cd-03de-4554-8841-59e55cca8e54"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-1281fd61",
+            "name": "取引条件",
+            "elementIds": [
+              "3c01bff2-c262-4404-bcc2-265b6aa0b9f2",
+              "b6ca391c-397d-4b34-b7e8-f5f547db1e50",
+              "faf2f95d-cc35-46e3-86fc-f4ff3d30c700",
+              "9d020c85-19af-4042-9e6a-b7462f6fc394",
+              "f54a35c2-f3cb-4ff6-a368-dfae67ebe4ed",
+              "03f1d510-baf3-43d7-8ec1-bb58931f062a"
+            ],
+            "collapsed": true
+          },
+          {
+            "id": "grp-dc693cb3",
+            "name": "備考",
+            "elementIds": [
+              "1eb57bc3-8e6f-447a-b021-c64717373170",
+              "fafbf4ef-8133-4166-b75d-90724e89146c",
+              "e3a74af1-964f-476f-af3d-0e156408466c"
+            ],
+            "collapsed": true
+          }
         ]
       }
     ],
