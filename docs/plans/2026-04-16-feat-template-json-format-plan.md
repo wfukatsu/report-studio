@@ -1,7 +1,7 @@
 ---
 title: "feat: Template JSON Format Unification"
 type: feat
-status: active
+status: completed
 date: 2026-04-16
 origin: docs/brainstorms/2026-04-16-template-json-format-brainstorm.md
 ---
