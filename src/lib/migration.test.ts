@@ -225,7 +225,7 @@ describe('importFromJSON — edge cases', () => {
   it('returns error for invalid JSON string', () => {
     const result = importFromJSON('not json {{{')
     expect(result.ok).toBe(false)
-    expect((result as { ok: false; error: string }).error).toContain('JSON parse error')
+    expect((result as { ok: false; error: string }).error).toContain('JSONの解析に失敗しました')
   })
 
   it('returns error for JSON null', () => {

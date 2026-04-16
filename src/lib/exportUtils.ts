@@ -17,18 +17,19 @@ export const MM_TO_PT = 2.8346
 // ---------------------------------------------------------------------------
 
 export const SCHEMA_VERSION = 'report-definition/v1' as const
+export const FORMAT_VERSION = 2 as const
 
 /**
- * Serialize a ReportDefinition to a JSON string with `$schema` marker.
+ * Serialize a ReportDefinition to a JSON string in formatVersion: 2 envelope.
  * Uses JSON.parse/stringify to strip any immer Proxy objects safely.
  */
 export function exportToJSON(definition: ReportDefinition): string {
-  const exportable = {
-    $schema: SCHEMA_VERSION,
+  const envelope = {
+    formatVersion: FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
-    ...JSON.parse(JSON.stringify(definition)),
+    definition: JSON.parse(JSON.stringify(definition)),
   }
-  return JSON.stringify(exportable, null, 2)
+  return JSON.stringify(envelope, null, 2)
 }
 
 /** Allowed raster data: URI prefixes */

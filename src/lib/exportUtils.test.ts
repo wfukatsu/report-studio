@@ -42,11 +42,12 @@ function makeDefinition(overrides?: Partial<ReportDefinition>): ReportDefinition
 }
 
 describe('exportToJSON', () => {
-  it('includes $schema marker', () => {
+  it('includes formatVersion: 2 envelope', () => {
     const definition = makeDefinition()
     const json = exportToJSON(definition)
     const parsed = JSON.parse(json)
-    expect(parsed.$schema).toBe('report-definition/v1')
+    expect(parsed.formatVersion).toBe(2)
+    expect(parsed.definition).toBeDefined()
   })
 
   it('includes exportedAt timestamp', () => {
@@ -57,13 +58,13 @@ describe('exportToJSON', () => {
     expect(new Date(parsed.exportedAt).getTime()).toBeGreaterThan(0)
   })
 
-  it('preserves all definition fields', () => {
+  it('preserves all definition fields inside envelope', () => {
     const definition = makeDefinition({ id: 'my-report' })
     const json = exportToJSON(definition)
     const parsed = JSON.parse(json)
-    expect(parsed.id).toBe('my-report')
-    expect(parsed.metadata.documentName).toBe('Test Report')
-    expect(parsed.pages).toHaveLength(1)
+    expect(parsed.definition.id).toBe('my-report')
+    expect(parsed.definition.metadata.documentName).toBe('Test Report')
+    expect(parsed.definition.pages).toHaveLength(1)
   })
 })
 
