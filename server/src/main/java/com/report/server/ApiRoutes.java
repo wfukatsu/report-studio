@@ -40,6 +40,7 @@ public final class ApiRoutes {
         registerPdfRoute(app, w);
         registerV2Routes(app, w);
         registerAdminRoutes(app, w);
+        registerSchemaLibraryRoutes(app, w);
     }
 
     // ── Middleware ─────────────────────────────────────────────────────────────
@@ -277,5 +278,17 @@ public final class ApiRoutes {
         app.put("/api/v1/products/{id}", w.productCtrl::update);
         app.delete("/api/v1/products/{id}", w.productCtrl::softDelete);
         app.post("/api/v1/products/import", w.productCtrl::importCsv);
+    }
+
+    // -----------------------------------------------------------------------
+    // Schema Library — reusable schema definitions
+    // -----------------------------------------------------------------------
+
+    private static void registerSchemaLibraryRoutes(Javalin app, AppWiring w) {
+        app.get("/api/v2/schema-library",          w.schemaLibraryCtrl::list);
+        app.post("/api/v2/schema-library",         w.schemaLibraryCtrl::create);
+        app.get("/api/v2/schema-library/{id}",     w.schemaLibraryCtrl::get);
+        app.put("/api/v2/schema-library/{id}",     w.schemaLibraryCtrl::put);
+        app.delete("/api/v2/schema-library/{id}",  w.schemaLibraryCtrl::delete);
     }
 }
