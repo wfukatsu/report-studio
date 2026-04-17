@@ -15,6 +15,7 @@ import type {
 } from '@/types'
 import { SCHEMA_VERSION } from './exportUtils'
 import { ReportDefinitionSchema } from './schemas/reportDefinition'
+import { migrateJexlExpression } from './formula/jexlMigrator'
 
 // ---------------------------------------------------------------------------
 // Unit conversion helpers
@@ -254,6 +255,56 @@ function ensurePageSections(definition: ReportDefinition): ReportDefinition {
 }
 
 /**
+ * Migrate JEXL expression strings to formula-v1 format.
+ * Runs at import time on all expression fields: calculationRules, validationRules, computed schema fields.
+ * Only sets formulaLanguage to 'formula-v1' if ALL expressions were successfully converted.
+ */
+function migrateJexlExpressions(definition: ReportDefinition): ReportDefinition {
+  // Already migrated — skip
+  if (definition.formulaLanguage === 'formula-v1') return definition
+
+  let allSuccess = true
+
+  const migrateExpr = (expr: string | undefined, _context: string): string | undefined => {
+    if (!expr || expr.trim() === '') return expr
+    const result = migrateJexlExpression(expr)
+    if (result.hasUnmigrable) {
+      allSuccess = false
+    }
+    return result.formula
+  }
+
+  const migrated: ReportDefinition = {
+    ...definition,
+    calculationRules: definition.calculationRules.map((rule) => ({
+      ...rule,
+      expression: migrateExpr(rule.expression, `calculationRule[${rule.key}]`) ?? rule.expression,
+    })),
+    validationRules: definition.validationRules.map((rule) => ({
+      ...rule,
+      condition: migrateExpr(rule.condition, `validationRule`) ?? rule.condition,
+    })),
+    schema: definition.schema
+      ? {
+          ...definition.schema,
+          groups: definition.schema.groups.map((group) => ({
+            ...group,
+            fields: group.fields.map((field) =>
+              field.computed && field.expression
+                ? { ...field, expression: migrateExpr(field.expression, `field[${field.key}]`) }
+                : field,
+            ),
+          })),
+        }
+      : definition.schema,
+    // Only promote to formula-v1 if all expressions were migrated successfully
+    formulaLanguage: allSuccess ? 'formula-v1' : definition.formulaLanguage,
+  }
+
+  return migrated
+}
+
+/**
  * Parse raw JSON text and return a ReportDefinition.
  * Handles both the new `$schema: "report-definition/v1"` format and the
  * legacy Report format (auto-migrated).
@@ -289,7 +340,7 @@ export function importFromJSON(
         error: `Invalid report-definition/v1: 必須フィールドが不正または不足しています (${path}: ${msg})`,
       }
     }
-    const migrated = migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition)))
+    const migrated = migrateJexlExpressions(migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition))))
     return { ok: true, definition: migrated }
   }
 
@@ -302,6 +353,6 @@ export function importFromJSON(
   if (!obj['id'] || !obj['pages'] || !Array.isArray(obj['pages'])) {
     return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
   }
-  const definition = migrateLabelToText(migrateReport(obj as unknown as Report))
+  const definition = migrateJexlExpressions(migrateLabelToText(migrateReport(obj as unknown as Report)))
   return { ok: true, definition }
 }
