@@ -45,7 +45,7 @@ export function FieldTreePanel({ groups, onInsert }: FieldTreePanelProps) {
   )
 
   return (
-    <div className="flex flex-col h-full bg-muted/30 w-full">
+    <div className="flex flex-col h-full border-r border-border bg-muted/30 w-[220px] shrink-0">
       {/* Tab bar */}
       <div className="flex border-b border-border">
         <button

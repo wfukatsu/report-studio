@@ -151,7 +151,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={setDialogNode}
-        className="bg-background border rounded-lg shadow-lg w-full max-w-lg mx-4"
+        className="bg-background border rounded-lg shadow-lg w-full max-w-[780px] mx-4"
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b">
@@ -167,66 +167,77 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
           </button>
         </div>
 
-        {/* Body — single column layout */}
-        <div className="flex flex-col p-3 gap-2 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 100px)' }}>
-          {/* Field name */}
-          <div>
-            <label className="block text-xs font-medium mb-1">フィールド名</label>
-            <input
-              className="w-full border rounded px-2 py-1.5 text-sm bg-background"
-              placeholder="net_amount_calc"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isEditing}
-            />
-          </div>
+        {/* Body — 2 column: left=field/function list, right=inputs+help */}
+        <div className="flex" style={{ height: 420 }}>
+          {/* Left: Field tree panel */}
+          <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
 
-          {/* Expression editor */}
-          <div>
-            <label className="block text-xs font-medium mb-1">計算式</label>
-            <Suspense
-              fallback={
-                <div className="border rounded-lg p-3 text-xs text-muted-foreground font-mono min-h-[48px]">
-                  エディタを読み込み中...
-                </div>
-              }
-            >
-              <div
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault()
-                    handleSave()
-                  }
-                }}
-              >
-                <FormulaEditor
-                  initialValue={initialExpression ?? ''}
-                  tooltipParent={dialogNode}
-                  dynamicExtensions={dynamicExtensions}
-                  onChange={setExpression}
-                  editorRef={editorRef}
-                />
-              </div>
-            </Suspense>
-
-            {/* Toolbar */}
-            <FormulaToolbar onInsertFunction={handleInsert} />
-
-            {/* Status bar */}
-            <FormulaStatusBar validationState={validationState} />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-1.5 text-xs text-destructive">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              {error}
+          {/* Right: field name, formula, message, help */}
+          <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
+            {/* フィールド名 */}
+            <div>
+              <label className="block text-xs font-medium mb-1">フィールド名</label>
+              <input
+                className="w-full border rounded px-2 py-1.5 text-sm bg-background"
+                placeholder="net_amount_calc"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isEditing}
+              />
             </div>
-          )}
 
-          {/* Help: Field tree + Function list (below inputs) */}
-          <div className="border border-border rounded-lg overflow-hidden" style={{ height: 200 }}>
-            <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
+            {/* 計算式 */}
+            <div>
+              <label className="block text-xs font-medium mb-1">計算式</label>
+              <Suspense
+                fallback={
+                  <div className="border rounded-lg p-3 text-xs text-muted-foreground font-mono min-h-[48px]">
+                    エディタを読み込み中...
+                  </div>
+                }
+              >
+                <div
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault()
+                      handleSave()
+                    }
+                  }}
+                >
+                  <FormulaEditor
+                    initialValue={initialExpression ?? ''}
+                    tooltipParent={dialogNode}
+                    dynamicExtensions={dynamicExtensions}
+                    onChange={setExpression}
+                    editorRef={editorRef}
+                  />
+                </div>
+              </Suspense>
+              <FormulaToolbar onInsertFunction={handleInsert} />
+              <FormulaStatusBar validationState={validationState} />
+            </div>
+
+            {/* メッセージ（エラー） */}
+            {error && (
+              <div className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            {/* ヘルプ */}
+            <div className="flex-1 min-h-0">
+              <label className="block text-xs font-medium mb-1">ヘルプ</label>
+              <div className="border border-border rounded text-[11px] text-muted-foreground p-2 h-full overflow-y-auto space-y-1">
+                <p>左パネルのフィールドや関数をクリックすると計算式に挿入されます。</p>
+                <p><strong>SUM / AVG / COUNT / MIN / MAX</strong> — 集計関数</p>
+                <p><strong>IF(条件, 真, 偽)</strong> — 条件分岐</p>
+                <p><strong>ROUND(値, 桁)</strong> — 四捨五入</p>
+                <p><strong>CONCAT(a, b)</strong> — 文字列結合</p>
+                <p><strong>TEXT(値)</strong> — 数値書式化</p>
+                <p><strong>FORMAT_DATE(日付, 書式)</strong> — 日付書式化</p>
+              </div>
+            </div>
           </div>
         </div>
 
