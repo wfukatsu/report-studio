@@ -44,11 +44,18 @@ const TextStyleSchema = z.object({
 
 const SchemaFieldTypeSchema = z.enum(['string', 'number', 'date', 'boolean', 'array', 'image'])
 
+/** Field keys that could escape the prototype chain — blocked at import boundary (SEC-01) */
+const FORBIDDEN_FIELD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
 const SchemaFieldSchema = z.object({
   id: z.string(),
   key: z.string()
     .max(128)
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます'),
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます')
+    .refine(
+      (k) => !FORBIDDEN_FIELD_KEYS.has(k),
+      { message: 'このキー名は予約されており使用できません' },
+    ),
   label: z.string().max(200),
   type: SchemaFieldTypeSchema,
   itemType: SchemaFieldTypeSchema.optional(),
@@ -236,7 +243,7 @@ export const ReportDefinitionSchema = z.object({
   pageSettings: PageSettingsSchema,
   defaultTextStyle: TextStyleSchema,
   templateVariables: z.array(TemplateVariableSchema).max(100),
-  calculationRules: z.array(CalculationRuleSchema).max(100),
+  calculationRules: z.array(CalculationRuleSchema).max(50),
   dataSources: z.array(z.object({
     id: z.string().min(1),
     name: z.string(),
@@ -274,6 +281,7 @@ export const ReportDefinitionSchema = z.object({
   pages: z.array(PageDefSchema).min(1).max(50),
   masterHeader: SectionSchema.optional(),
   masterFooter: SectionSchema.optional(),
+  formulaLanguage: z.enum(['jexl', 'formula-v1']).optional(),
 }).passthrough()
 
 export type ReportDefinitionInput = z.input<typeof ReportDefinitionSchema>

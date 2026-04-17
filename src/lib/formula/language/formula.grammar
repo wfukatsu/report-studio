@@ -1,0 +1,48 @@
+@top Formula { expression }
+
+@precedence {
+  unary,
+  times @left,
+  plus @left,
+  compare @left,
+  and @left,
+  or @left
+}
+
+expression {
+  Number | String | Boolean | FunctionCall | FieldRef |
+  ParenExpr | UnaryExpr | BinaryExpr | CompareExpr | LogicalExpr
+}
+
+ParenExpr { "(" expression ")" }
+UnaryExpr { !unary (kw<"NOT"> | "-") expression }
+BinaryExpr {
+  expression !times ("*" | "/") expression |
+  expression !plus ("+" | "-") expression
+}
+CompareExpr { expression !compare CompareOp expression }
+LogicalExpr {
+  expression !and kw<"AND"> expression |
+  expression !or kw<"OR"> expression
+}
+
+FunctionCall { FunctionName "(" ArgList? ")" }
+ArgList { expression ("," expression)* }
+FunctionName { Identifier }
+FieldRef { Identifier ("." Identifier | ArrayAccess "." Identifier)* }
+ArrayAccess { "[" "]" }
+
+kw<term> { @specialize[@name={term}]<Identifier, term> }
+
+@tokens {
+  Number   { $[0-9]+ ("." $[0-9]+)? }
+  String   { "'" (!['\\\n] | "\\" _)* "'" }
+  @precedence { Boolean, Identifier }
+  Boolean  { ("true" | "false" | "TRUE" | "FALSE") }
+  Identifier { $[a-zA-Z] $[a-zA-Z0-9_]* }
+  CompareOp { "!=" | ">=" | "<=" | "=" | ">" | "<" }
+  space    { $[ \t]+ }
+  "(" ")" "[" "]" "," "." "*" "/" "+" "-"
+}
+
+@skip { space }
