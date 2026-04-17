@@ -154,7 +154,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         className="bg-background border rounded-lg shadow-lg w-full max-w-[780px] mx-4"
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b">
+        <div className="flex items-center gap-2 px-3 py-2 border-b">
           <FunctionSquare className="w-4 h-4 text-orange-500" />
           <h3 className="text-sm font-medium">
             {isEditing ? '計算フィールドを編集' : '計算フィールドを追加'}
@@ -168,12 +168,12 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         </div>
 
         {/* Body — 2 column layout */}
-        <div className="flex" style={{ minHeight: 320 }}>
+        <div className="flex" style={{ minHeight: 240 }}>
           {/* Left: Field tree panel */}
           <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
 
           {/* Right: Name + Editor + Toolbar + StatusBar */}
-          <div className="flex-1 flex flex-col p-4 gap-3">
+          <div className="flex-1 flex flex-col p-3 gap-2">
             {/* Field name */}
             <div>
               <label className="block text-xs font-medium mb-1">フィールド名</label>
@@ -219,10 +219,6 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
 
               {/* Status bar */}
               <FormulaStatusBar validationState={validationState} />
-
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Ctrl+Enter で保存
-              </p>
             </div>
 
             {/* Error */}
@@ -236,7 +232,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t">
+        <div className="flex items-center justify-end gap-2 px-3 py-2 border-t">
           <button
             className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             onClick={onClose}
