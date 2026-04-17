@@ -151,7 +151,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={setDialogNode}
-        className="bg-background border rounded-lg shadow-lg w-full max-w-[780px] mx-4"
+        className="bg-background border rounded-lg shadow-lg w-full max-w-lg mx-4"
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b">
@@ -167,67 +167,66 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
           </button>
         </div>
 
-        {/* Body — 2 column layout with fixed height to prevent resize on tab switch */}
-        <div className="flex" style={{ height: 340 }}>
-          {/* Left: Field tree panel */}
-          <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
+        {/* Body — single column layout */}
+        <div className="flex flex-col p-3 gap-2 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 100px)' }}>
+          {/* Field name */}
+          <div>
+            <label className="block text-xs font-medium mb-1">フィールド名</label>
+            <input
+              className="w-full border rounded px-2 py-1.5 text-sm bg-background"
+              placeholder="net_amount_calc"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isEditing}
+            />
+          </div>
 
-          {/* Right: Name + Editor + Toolbar + StatusBar */}
-          <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
-            {/* Field name */}
-            <div>
-              <label className="block text-xs font-medium mb-1">フィールド名</label>
-              <input
-                className="w-full border rounded px-2 py-1.5 text-sm bg-background"
-                placeholder="net_amount_calc"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isEditing}
-              />
-            </div>
-
-            {/* Expression editor */}
-            <div>
-              <label className="block text-xs font-medium mb-1">計算式</label>
-              <Suspense
-                fallback={
-                  <div className="border rounded-lg p-3 text-xs text-muted-foreground font-mono min-h-[48px]">
-                    エディタを読み込み中...
-                  </div>
-                }
-              >
-                <div
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                      e.preventDefault()
-                      handleSave()
-                    }
-                  }}
-                >
-                  <FormulaEditor
-                    initialValue={initialExpression ?? ''}
-                    tooltipParent={dialogNode}
-                    dynamicExtensions={dynamicExtensions}
-                    onChange={setExpression}
-                    editorRef={editorRef}
-                  />
+          {/* Expression editor */}
+          <div>
+            <label className="block text-xs font-medium mb-1">計算式</label>
+            <Suspense
+              fallback={
+                <div className="border rounded-lg p-3 text-xs text-muted-foreground font-mono min-h-[48px]">
+                  エディタを読み込み中...
                 </div>
-              </Suspense>
-
-              {/* Toolbar */}
-              <FormulaToolbar onInsertFunction={handleInsert} />
-
-              {/* Status bar */}
-              <FormulaStatusBar validationState={validationState} />
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="flex items-center gap-1.5 text-xs text-destructive">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                {error}
+              }
+            >
+              <div
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    handleSave()
+                  }
+                }}
+              >
+                <FormulaEditor
+                  initialValue={initialExpression ?? ''}
+                  tooltipParent={dialogNode}
+                  dynamicExtensions={dynamicExtensions}
+                  onChange={setExpression}
+                  editorRef={editorRef}
+                />
               </div>
-            )}
+            </Suspense>
+
+            {/* Toolbar */}
+            <FormulaToolbar onInsertFunction={handleInsert} />
+
+            {/* Status bar */}
+            <FormulaStatusBar validationState={validationState} />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {/* Help: Field tree + Function list (below inputs) */}
+          <div className="border border-border rounded-lg overflow-hidden" style={{ height: 200 }}>
+            <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
           </div>
         </div>
 
