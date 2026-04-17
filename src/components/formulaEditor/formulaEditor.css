@@ -1,0 +1,71 @@
+/* CodeMirror 6 global class overrides for the formula editor.
+ * These cannot be expressed as Tailwind utilities because CM6 creates
+ * its own DOM elements with these class names. */
+
+.cm-lintRange-error {
+  text-decoration: wavy underline #d03a32;
+  text-underline-offset: 3px;
+  background-image: none;
+}
+
+.cm-lintRange-warning {
+  text-decoration: wavy underline #ca8a04;
+  text-underline-offset: 3px;
+  background-image: none;
+}
+
+.cm-tooltip-autocomplete {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--background));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+}
+
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: hsl(var(--primary) / 0.1);
+}
+
+.cm-tooltip.cm-calltip {
+  pointer-events: none;
+  padding: 4px 8px;
+  max-width: 360px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 200;
+}
+
+/* Field chip decorations */
+.cm-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: default;
+  user-select: none;
+}
+
+.cm-field-chip--master {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.cm-field-chip--detail {
+  background-color: #dbeafe; /* blue-100 */
+  color: #1e40af; /* blue-800 */
+}
+
+.cm-field-chip--computed {
+  background-color: #ede9fe; /* violet-100 */
+  color: #5b21b6; /* violet-800 */
+}
