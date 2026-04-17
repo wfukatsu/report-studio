@@ -13,9 +13,10 @@ import type {
   ReportElement,
   DataSourceDefinition,
 } from '@/types'
-import { SCHEMA_VERSION } from './exportUtils'
+import { SCHEMA_VERSION, FORMAT_VERSION } from './exportUtils'
 import { ReportDefinitionSchema } from './schemas/reportDefinition'
 import { migrateJexlExpression } from './formula/jexlMigrator'
+import { sanitizeJSON } from './sanitize'
 
 // ---------------------------------------------------------------------------
 // Unit conversion helpers
@@ -319,16 +320,41 @@ export function importFromJSON(
     parsed = JSON.parse(json)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: `JSON parse error: ${message}` }
+    return { ok: false, error: `JSONの解析に失敗しました: ${message}` }
   }
 
-  if (typeof parsed !== 'object' || parsed === null) {
+  // Sanitize: strip prototype pollution keys + enforce structural limits
+  let sanitized: unknown
+  try {
+    sanitized = sanitizeJSON(parsed)
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : '不正なJSON構造です' }
+  }
+
+  if (typeof sanitized !== 'object' || sanitized === null) {
     return { ok: false, error: 'Invalid JSON: expected an object' }
   }
 
-  const obj = parsed as Record<string, unknown>
+  const obj = sanitized as Record<string, unknown>
 
-  // New ReportDefinition format — validate with Zod schema
+  // formatVersion: 2 envelope — unwrap and validate definition
+  if (obj['formatVersion'] === FORMAT_VERSION) {
+    const inner = obj['definition']
+    if (typeof inner !== 'object' || inner === null) {
+      return { ok: false, error: 'formatVersion: 2 エンベロープに definition がありません' }
+    }
+    const result = ReportDefinitionSchema.safeParse(inner)
+    if (!result.success) {
+      const first = result.error.issues[0]
+      const path = first?.path.join('.') ?? ''
+      const msg = first?.message ?? 'unknown'
+      return { ok: false, error: `バリデーションエラー (${path}: ${msg})` }
+    }
+    const migrated = migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition)))
+    return { ok: true, definition: migrated }
+  }
+
+  // ReportDefinition $schema: v1 format — validate with Zod schema
   if (obj['$schema'] === SCHEMA_VERSION) {
     const result = ReportDefinitionSchema.safeParse(obj)
     if (!result.success) {

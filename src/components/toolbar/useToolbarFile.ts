@@ -3,6 +3,7 @@ import type { Section } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { createReport, saveReport } from '@/api/reportApi'
 import { loadBuiltinTemplate } from '@/lib/templateUtils'
+import { exportToJSON } from '@/lib/exportUtils'
 
 interface FileContext {
   reportName: string
@@ -86,7 +87,7 @@ export function useToolbarFile({
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > MAX_FILE_SIZE) {
@@ -94,20 +95,15 @@ export function useToolbarFile({
       e.target.value = ''
       return
     }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const text = ev.target?.result
-        if (typeof text !== 'string') return
-        const result = importReportJSON(text)
-        if (!result.ok) {
-          toast.error(result.error ?? '読み込みに失敗しました', { duration: 8000 })
-        }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : '読み込みに失敗しました', { duration: 8000 })
+    try {
+      const text = await file.text()
+      const result = importReportJSON(text)
+      if (!result.ok) {
+        toast.error(result.error ?? '読み込みに失敗しました', { duration: 8000 })
       }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '読み込みに失敗しました', { duration: 8000 })
     }
-    reader.readAsText(file)
     e.target.value = ''
   }
 
@@ -142,13 +138,16 @@ export function useToolbarFile({
   const handleDownloadJson = () => {
     try {
       const definition = useReportStore.getState().definition
-      const json = JSON.stringify(definition, null, 2)
+      const json = exportToJSON(definition)
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${reportName}.rds.json`
+      const date = new Date().toISOString().slice(0, 10)
+      a.download = `${reportName}-${date}.rds2.json`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'ダウンロードに失敗しました', { duration: 8000 })

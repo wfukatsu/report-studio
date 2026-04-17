@@ -4,7 +4,7 @@
  * Enforces structural constraints:
  * - Pages max: 50
  * - Sections per page max: 20
- * - Elements per section max: 300
+ * - Elements per section max: 500
  * - Calculation rules max: 100
  * - Template variables max: 100
  *
@@ -127,7 +127,7 @@ const SectionSchema = z.object({
   id: z.string().min(1),
   sectionType: z.enum(['header', 'body', 'footer', 'custom']),
   height: z.number().positive(),
-  elements: z.array(ReportElementSchema).max(300),
+  elements: z.array(ReportElementSchema).max(500),
 }).passthrough()
 
 // ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ const SectionSchema = z.object({
 const LayerGroupSchema = z.object({
   id: z.string().min(1).max(100),
   name: z.string().max(200),
-  elementIds: z.array(z.string().min(1).max(100)).max(300),
+  elementIds: z.array(z.string().min(1).max(100)).max(500),
   collapsed: z.boolean(),
   visible: z.boolean(),
   locked: z.boolean(),

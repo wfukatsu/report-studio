@@ -1,0 +1,710 @@
+{
+  "formatVersion": 2,
+  "exportedAt": "2026-04-16T13:39:43.109Z",
+  "definition": {
+    "id": "0e4e5b1b-f443-4d07-a777-fac8874965df",
+    "metadata": {
+      "documentName": "要素ショーケース",
+      "version": "1.0",
+      "reportType": "general",
+      "description": "Created: 2026-04-16T13:39:43.109Z | Updated: 2026-04-16T13:39:43.109Z",
+      "sourceTemplateId": "element-showcase"
+    },
+    "pageSettings": {
+      "paperSize": "A4",
+      "orientation": "portrait",
+      "margins": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      },
+      "unit": "mm"
+    },
+    "defaultTextStyle": {},
+    "templateVariables": [],
+    "calculationRules": [],
+    "dataSources": [],
+    "outputVariants": [],
+    "submissionModels": [],
+    "validationRules": [],
+    "pages": [
+      {
+        "id": "79f5c329-c61c-4370-b926-8f6b0dbb8e7a",
+        "name": "テキスト・データ・グラフ",
+        "width": 210,
+        "height": 297,
+        "background": "#ffffff",
+        "sections": [
+          {
+            "id": "17bb193c-d545-44e5-a8df-afaf6ea3b08e",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "c794030c-7216-49b1-bc0f-22af741051c5",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 10
+                },
+                "size": {
+                  "width": 190,
+                  "height": 10
+                },
+                "zIndex": 1,
+                "locked": false,
+                "visible": true,
+                "content": "要素ショーケース — {{title}}",
+                "style": {
+                  "fontSize": 6,
+                  "fontWeight": "bold",
+                  "textAlign": "center",
+                  "color": "#1a1a1a"
+                },
+                "name": "要素ショーケース — {{title}}"
+              },
+              {
+                "id": "5a6849dc-e1d1-490e-9333-c4bfc0e003ce",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 25
+                },
+                "size": {
+                  "width": 15,
+                  "height": 50
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "縦書きテスト",
+                "style": {
+                  "fontSize": 4,
+                  "writingMode": "vertical-rl",
+                  "color": "#000000"
+                },
+                "furigana": "たてがきてすと",
+                "furiganaScale": 0.5,
+                "name": "縦書きテスト"
+              },
+              {
+                "id": "b4fc02e7-ac20-4481-9d0c-307249b0671b",
+                "type": "dataField",
+                "position": {
+                  "x": 30,
+                  "y": 25
+                },
+                "size": {
+                  "width": 60,
+                  "height": 8
+                },
+                "zIndex": 3,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "amount",
+                "label": "金額",
+                "fallbackText": "¥0",
+                "style": {
+                  "fontSize": 4,
+                  "textAlign": "right",
+                  "color": "#000000"
+                },
+                "format": {
+                  "type": "currency_jpy"
+                },
+                "name": "amount"
+              },
+              {
+                "id": "0a0d1600-a494-4982-8323-4f31c4e2521a",
+                "type": "dataField",
+                "position": {
+                  "x": 30,
+                  "y": 35
+                },
+                "size": {
+                  "width": 60,
+                  "height": 8
+                },
+                "zIndex": 4,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "date",
+                "label": "日付",
+                "style": {
+                  "fontSize": 3.5,
+                  "color": "#000000"
+                },
+                "format": {
+                  "type": "wareki_full"
+                },
+                "name": "date"
+              },
+              {
+                "id": "9abccab1-6501-4f6a-966d-98c44d022136",
+                "type": "image",
+                "position": {
+                  "x": 100,
+                  "y": 25
+                },
+                "size": {
+                  "width": 40,
+                  "height": 30
+                },
+                "zIndex": 5,
+                "locked": false,
+                "visible": true,
+                "src": "",
+                "alt": "テスト画像",
+                "objectFit": "contain",
+                "name": "画像"
+              },
+              {
+                "id": "28aad416-e215-4b10-83bb-ceb194c88eaf",
+                "type": "shape",
+                "position": {
+                  "x": 145,
+                  "y": 25
+                },
+                "size": {
+                  "width": 55,
+                  "height": 30
+                },
+                "zIndex": 6,
+                "locked": false,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#eff6ff",
+                "stroke": "#3b82f6",
+                "strokeWidth": 0.5,
+                "borderRadius": 2,
+                "name": "背景ボックス"
+              },
+              {
+                "id": "ee0d6a83-03c1-4916-b7fb-dc10f6ed1009",
+                "type": "shape",
+                "position": {
+                  "x": 10,
+                  "y": 80
+                },
+                "size": {
+                  "width": 190,
+                  "height": 0.5
+                },
+                "zIndex": 7,
+                "locked": false,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#d1d5db",
+                "strokeWidth": 0.3,
+                "name": "区切り線"
+              },
+              {
+                "id": "360c78c5-60c2-4b03-a57e-33840d83b62f",
+                "type": "chart",
+                "position": {
+                  "x": 10,
+                  "y": 85
+                },
+                "size": {
+                  "width": 90,
+                  "height": 60
+                },
+                "zIndex": 8,
+                "locked": false,
+                "visible": true,
+                "chartType": "bar",
+                "title": "月別売上",
+                "xAxisKey": "month",
+                "yAxisKeys": [
+                  "revenue"
+                ],
+                "showLegend": true,
+                "showGrid": true,
+                "name": "グラフ"
+              },
+              {
+                "id": "da0f14ca-128a-4eb5-b738-ca8420e0c234",
+                "type": "chart",
+                "position": {
+                  "x": 110,
+                  "y": 85
+                },
+                "size": {
+                  "width": 90,
+                  "height": 60
+                },
+                "zIndex": 9,
+                "locked": false,
+                "visible": true,
+                "chartType": "pie",
+                "title": "カテゴリ別",
+                "xAxisKey": "name",
+                "yAxisKeys": [
+                  "value"
+                ],
+                "showLegend": true,
+                "name": "グラフ"
+              },
+              {
+                "id": "ec0a9567-4d12-4ffa-a6e3-68548297c619",
+                "type": "barcode",
+                "position": {
+                  "x": 10,
+                  "y": 150
+                },
+                "size": {
+                  "width": 25,
+                  "height": 25
+                },
+                "zIndex": 10,
+                "locked": false,
+                "visible": true,
+                "kind": "qr",
+                "value": "https://example.com/showcase",
+                "errorCorrection": "M",
+                "name": "バーコード"
+              },
+              {
+                "id": "f3f86e44-e072-4d13-b1ec-bf6cb12ff48a",
+                "type": "barcode",
+                "position": {
+                  "x": 40,
+                  "y": 150
+                },
+                "size": {
+                  "width": 55,
+                  "height": 15
+                },
+                "zIndex": 11,
+                "locked": false,
+                "visible": true,
+                "kind": "code128",
+                "value": "1234567890",
+                "showText": true,
+                "name": "バーコード"
+              },
+              {
+                "id": "ced0b1f3-9c11-44e8-ae8c-369f0f44d2d5",
+                "type": "barcode",
+                "position": {
+                  "x": 100,
+                  "y": 150
+                },
+                "size": {
+                  "width": 50,
+                  "height": 15
+                },
+                "zIndex": 12,
+                "locked": false,
+                "visible": true,
+                "kind": "code39",
+                "value": "HELLO",
+                "showText": true,
+                "name": "バーコード"
+              },
+              {
+                "id": "fae38d1b-a5f3-42a4-92c8-53ff4c2db572",
+                "type": "barcode",
+                "position": {
+                  "x": 155,
+                  "y": 150
+                },
+                "size": {
+                  "width": 50,
+                  "height": 15
+                },
+                "zIndex": 13,
+                "locked": false,
+                "visible": true,
+                "kind": "jan13",
+                "value": "4902778913406",
+                "showText": true,
+                "name": "バーコード"
+              }
+            ]
+          }
+        ],
+        "groups": [
+          {
+            "id": "grp-4da7764d",
+            "name": "ヘッダー",
+            "elementIds": [
+              "c794030c-7216-49b1-bc0f-22af741051c5"
+            ],
+            "collapsed": true,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "grp-b27ed262",
+            "name": "テキスト・データ",
+            "elementIds": [
+              "5a6849dc-e1d1-490e-9333-c4bfc0e003ce",
+              "b4fc02e7-ac20-4481-9d0c-307249b0671b",
+              "0a0d1600-a494-4982-8323-4f31c4e2521a"
+            ],
+            "collapsed": true,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "grp-d050c6e9",
+            "name": "画像・図形",
+            "elementIds": [
+              "9abccab1-6501-4f6a-966d-98c44d022136",
+              "28aad416-e215-4b10-83bb-ceb194c88eaf",
+              "ee0d6a83-03c1-4916-b7fb-dc10f6ed1009"
+            ],
+            "collapsed": true,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "grp-329a9885",
+            "name": "グラフ",
+            "elementIds": [
+              "360c78c5-60c2-4b03-a57e-33840d83b62f",
+              "da0f14ca-128a-4eb5-b738-ca8420e0c234"
+            ],
+            "collapsed": true,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "grp-8c8cf699",
+            "name": "バーコード",
+            "elementIds": [
+              "ec0a9567-4d12-4ffa-a6e3-68548297c619",
+              "f3f86e44-e072-4d13-b1ec-bf6cb12ff48a",
+              "ced0b1f3-9c11-44e8-ae8c-369f0f44d2d5",
+              "fae38d1b-a5f3-42a4-92c8-53ff4c2db572"
+            ],
+            "collapsed": true,
+            "visible": true,
+            "locked": false
+          }
+        ]
+      },
+      {
+        "id": "0e3526c6-94ec-47e1-aea5-50aaa59066b7",
+        "name": "フォーム・日本語帳票",
+        "width": 210,
+        "height": 297,
+        "background": "#ffffff",
+        "sections": [
+          {
+            "id": "a059e13c-9794-4d0d-9ecc-a67dcadd584f",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "cf15a491-ff7b-4aad-b9af-4bb1f7f2f563",
+                "type": "checkbox",
+                "position": {
+                  "x": 10,
+                  "y": 10
+                },
+                "size": {
+                  "width": 40,
+                  "height": 5
+                },
+                "zIndex": 14,
+                "locked": false,
+                "visible": true,
+                "checked": true,
+                "checkmark": "✓",
+                "label": "同意する",
+                "labelPosition": "right",
+                "name": "チェックボックス"
+              },
+              {
+                "id": "5bd73b28-83d2-4f9a-9ac0-57a00ad5d963",
+                "type": "checkbox",
+                "position": {
+                  "x": 60,
+                  "y": 10
+                },
+                "size": {
+                  "width": 40,
+                  "height": 5
+                },
+                "zIndex": 15,
+                "locked": false,
+                "visible": true,
+                "checked": false,
+                "checkmark": "×",
+                "label": "却下",
+                "labelPosition": "left",
+                "name": "チェックボックス"
+              },
+              {
+                "id": "46c81855-4eee-4c71-8496-c1a6884da237",
+                "type": "eraSelect",
+                "position": {
+                  "x": 10,
+                  "y": 20
+                },
+                "size": {
+                  "width": 80,
+                  "height": 15
+                },
+                "zIndex": 16,
+                "locked": false,
+                "visible": true,
+                "layout": "row",
+                "eras": [
+                  "明",
+                  "大",
+                  "昭",
+                  "平",
+                  "令"
+                ],
+                "name": "元号選択"
+              },
+              {
+                "id": "4bb81348-d44a-429e-98c8-65ec592a57a1",
+                "type": "hanko",
+                "position": {
+                  "x": 10,
+                  "y": 40
+                },
+                "size": {
+                  "width": 15,
+                  "height": 15
+                },
+                "zIndex": 17,
+                "locked": false,
+                "visible": true,
+                "text": "田",
+                "shape": "circle",
+                "borderColor": "#cc0000",
+                "textColor": "#cc0000",
+                "fontSize": 5,
+                "writingMode": "horizontal-tb",
+                "doubleBorder": false,
+                "name": "印鑑"
+              },
+              {
+                "id": "f6e039ea-7961-4832-8b2f-eb3255f61cc3",
+                "type": "hanko",
+                "position": {
+                  "x": 30,
+                  "y": 40
+                },
+                "size": {
+                  "width": 15,
+                  "height": 15
+                },
+                "zIndex": 18,
+                "locked": false,
+                "visible": true,
+                "text": "承認",
+                "shape": "rectangle",
+                "borderColor": "#cc0000",
+                "textColor": "#cc0000",
+                "fontSize": 4,
+                "writingMode": "vertical-rl",
+                "doubleBorder": true,
+                "name": "印鑑"
+              },
+              {
+                "id": "7718d602-2496-44fc-9f53-a6d671a45fdf",
+                "type": "manualEntry",
+                "position": {
+                  "x": 10,
+                  "y": 60
+                },
+                "size": {
+                  "width": 80,
+                  "height": 10
+                },
+                "zIndex": 19,
+                "locked": false,
+                "visible": true,
+                "label": "氏名",
+                "labelPosition": "left",
+                "displayMode": "line",
+                "lineColor": "#000000",
+                "style": {
+                  "fontSize": 3.5
+                },
+                "name": "手入力欄"
+              },
+              {
+                "id": "78df9b48-db6e-438d-8da7-c8d069f98144",
+                "type": "manualEntry",
+                "position": {
+                  "x": 10,
+                  "y": 75
+                },
+                "size": {
+                  "width": 80,
+                  "height": 10
+                },
+                "zIndex": 20,
+                "locked": false,
+                "visible": true,
+                "label": "電話番号",
+                "labelPosition": "top",
+                "displayMode": "grid",
+                "gridCount": 11,
+                "lineColor": "#000000",
+                "style": {
+                  "fontSize": 3.5
+                },
+                "name": "手入力欄"
+              },
+              {
+                "id": "9e01a99f-4b0d-4068-8618-872657649917",
+                "type": "manualEntry",
+                "position": {
+                  "x": 10,
+                  "y": 92
+                },
+                "size": {
+                  "width": 80,
+                  "height": 15
+                },
+                "zIndex": 21,
+                "locked": false,
+                "visible": true,
+                "label": "フリガナ付き",
+                "labelPosition": "top",
+                "displayMode": "box",
+                "lineColor": "#000000",
+                "style": {
+                  "fontSize": 3.5
+                },
+                "furiganaEnabled": true,
+                "furiganaRatio": 0.35,
+                "name": "手入力欄"
+              },
+              {
+                "id": "055c5495-631c-4c9c-a6a6-340583077040",
+                "type": "approvalStampRow",
+                "position": {
+                  "x": 100,
+                  "y": 40
+                },
+                "size": {
+                  "width": 100,
+                  "height": 20
+                },
+                "zIndex": 22,
+                "locked": false,
+                "visible": true,
+                "cells": [
+                  {
+                    "role": "担当",
+                    "width": 25
+                  },
+                  {
+                    "role": "主任",
+                    "width": 25
+                  },
+                  {
+                    "role": "課長",
+                    "width": 25
+                  },
+                  {
+                    "role": "部長",
+                    "width": 25
+                  }
+                ],
+                "labelPosition": "top",
+                "borderColor": "#000000",
+                "borderWidth": 0.3,
+                "cellHeight": 15,
+                "name": "承認印欄"
+              },
+              {
+                "id": "c9baafab-0932-4c15-8143-92a347922be5",
+                "type": "revenueStamp",
+                "position": {
+                  "x": 100,
+                  "y": 65
+                },
+                "size": {
+                  "width": 30,
+                  "height": 20
+                },
+                "zIndex": 23,
+                "locked": false,
+                "visible": true,
+                "amount": "200円",
+                "borderColor": "#000000",
+                "borderWidth": 0.3,
+                "showLabel": true,
+                "showCancellationGuide": true,
+                "name": "収入印紙"
+              },
+              {
+                "id": "45fc3f19-d44c-4e2b-b2b0-03bceae17fa5",
+                "type": "repeatingBand",
+                "position": {
+                  "x": 10,
+                  "y": 115
+                },
+                "size": {
+                  "width": 190,
+                  "height": 80
+                },
+                "zIndex": 24,
+                "locked": false,
+                "visible": true,
+                "dataSource": "items",
+                "itemHeight": 6,
+                "maxItems": 10,
+                "showHeader": true,
+                "showFooter": true,
+                "showEmptyRowLines": true,
+                "fields": [
+                  {
+                    "key": "name",
+                    "label": "品名",
+                    "width": 60,
+                    "align": "left"
+                  },
+                  {
+                    "key": "qty",
+                    "label": "数量",
+                    "width": 25,
+                    "align": "right"
+                  },
+                  {
+                    "key": "price",
+                    "label": "単価",
+                    "width": 35,
+                    "align": "right"
+                  },
+                  {
+                    "key": "total",
+                    "label": "金額",
+                    "width": 40,
+                    "align": "right"
+                  }
+                ],
+                "totals": [
+                  {
+                    "fieldKey": "total",
+                    "formula": "sum",
+                    "label": "合計"
+                  }
+                ],
+                "headerStyle": {
+                  "backgroundColor": "#f3f4f6"
+                },
+                "oddRowColor": "#ffffff",
+                "evenRowColor": "#f9fafb",
+                "borderColor": "#000000",
+                "borderWidth": 0.3,
+                "name": "明細テーブル"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

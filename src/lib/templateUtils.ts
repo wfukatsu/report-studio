@@ -5,14 +5,14 @@ import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import type { Template, Report, ReportDefinition } from '@/types'
 
 /**
- * Convert a Template into a ReportDefinition by constructing a legacy Report
- * and running it through the migration pipeline.
+ * Convert a legacy Template into a ReportDefinition by constructing a legacy
+ * Report and running it through the migration pipeline.
+ *
+ * NOTE: This is retained for server-imported templates that still use the
+ * legacy Template format. For builtin templates, use loadBuiltinTemplate()
+ * which reads pre-converted ReportDefinition directly from JSON.
  */
 export function applyTemplate(template: Template): ReportDefinition {
-  // Deep-clone pages before assigning new IDs so that sections/elements do not
-  // share reference identity with the static BUILTIN_TEMPLATES object. Without
-  // this, immer mutations in the store would silently mutate the shared static
-  // reference, causing artifacts if the same built-in template is loaded twice.
   const clonedPages = JSON.parse(JSON.stringify(template.pages)) as typeof template.pages
   const legacyReport: Report = {
     id: uuidv4(),
@@ -43,10 +43,15 @@ export function createBlankDefinition(): ReportDefinition {
 }
 
 /**
- * Load a built-in template by ID and return its ReportDefinition.
- * Returns null if no template with the given ID exists.
+ * Load a built-in template by ID and return a deep-cloned ReportDefinition.
+ *
+ * Since builtin templates are now loaded from pre-converted JSON files,
+ * this function returns a deep clone of the stored definition directly
+ * without going through the applyTemplate/migrateReport pipeline.
  */
 export function loadBuiltinTemplate(id: string): ReportDefinition | null {
-  const template = BUILTIN_TEMPLATES.find((t) => t.id === id)
-  return template ? applyTemplate(template) : null
+  const entry = BUILTIN_TEMPLATES.find((t) => t.id === id)
+  if (!entry) return null
+  // Deep clone to prevent shared reference mutations via immer
+  return JSON.parse(JSON.stringify(entry.definition)) as ReportDefinition
 }

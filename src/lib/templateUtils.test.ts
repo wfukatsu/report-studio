@@ -69,17 +69,19 @@ describe('applyTemplate — sourceTemplateId + deep clone', () => {
     expect(def.metadata.sourceTemplateId).toBe('my-template')
   })
 
-  it('deep-clones pages so BUILTIN_TEMPLATES is not mutated', () => {
+  it('deep-clones definition so BUILTIN_TEMPLATES is not mutated', () => {
     if (BUILTIN_TEMPLATES.length === 0) return
-    const original = BUILTIN_TEMPLATES[0]
-    const originalPageId = original.pages[0].id
+    const entry = BUILTIN_TEMPLATES[0]
+    const originalPageId = entry.definition.pages[0].id
 
-    const def = applyTemplate(original)
+    const def = loadBuiltinTemplate(entry.id)!
 
-    // New IDs assigned — they must differ from the originals
-    expect(def.pages[0].id).not.toBe(originalPageId)
+    // loadBuiltinTemplate deep-clones, so page objects must be different references
+    expect(def.pages[0]).not.toBe(entry.definition.pages[0])
+    // But IDs are the same (no remap — just cloned)
+    expect(def.pages[0].id).toBe(originalPageId)
     // Original template must be untouched
-    expect(original.pages[0].id).toBe(originalPageId)
+    expect(entry.definition.pages[0].id).toBe(originalPageId)
   })
 
   it('applying the same template twice produces independent page objects', () => {

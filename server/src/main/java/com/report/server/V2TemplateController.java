@@ -34,6 +34,7 @@ public final class V2TemplateController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_NAME_LENGTH = 200;
     private static final String DEFAULT_NAME = "新しいテンプレート";
+    private static final java.util.Set<String> VALID_VISIBILITY = java.util.Set.of("private", "shared", "public");
 
     private final JsonBlobRepository definitionsRepo;
 
@@ -53,6 +54,7 @@ public final class V2TemplateController {
      */
     public void list(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");
+        String visibilityFilter = ctx.queryParam("visibility"); // null = own templates
         List<String> blobs = definitionsRepo.list();
         ArrayNode items = MAPPER.createArrayNode();
 
@@ -62,10 +64,18 @@ public final class V2TemplateController {
                 String id = envelope.path("id").asText(null);
                 if (id == null || id.isBlank()) continue;
 
-                // Filter to caller's own templates (and legacy templates without created_by)
                 String owner = envelope.path("created_by").asText("");
-                if (principal != null && !owner.isEmpty() && !owner.equals(principal.userId())) {
-                    continue;
+                String vis = envelope.path("visibility").asText("private");
+                boolean isOwner = principal == null || owner.isEmpty() || owner.equals(principal.userId());
+
+                // Apply visibility filter
+                if ("public".equals(visibilityFilter)) {
+                    if (!"public".equals(vis)) continue;
+                } else if ("shared".equals(visibilityFilter)) {
+                    if (!"shared".equals(vis) && !"public".equals(vis)) continue;
+                } else {
+                    // Default: own templates only
+                    if (!isOwner) continue;
                 }
 
                 ObjectNode item = MAPPER.createObjectNode();
@@ -73,6 +83,8 @@ public final class V2TemplateController {
                 item.put("name", envelope.path("name").asText(""));
                 item.put("createdAt", toIso(envelope.path("created_at").asLong()));
                 item.put("updatedAt", toIso(envelope.path("updated_at").asLong()));
+                item.put("visibility", vis);
+                item.put("isOwner", isOwner);
                 items.add(item);
             } catch (Exception ignored) {
                 // skip malformed entries
@@ -103,6 +115,7 @@ public final class V2TemplateController {
 
         ObjectNode envelope = buildEnvelope(id, name, now, now, buildDefaultDefinition(id, name));
         envelope.put("created_by", createdBy);
+        envelope.put("visibility", "private");
         definitionsRepo.put(id, MAPPER.writeValueAsString(envelope));
 
         ctx.status(HttpStatus.CREATED);
@@ -285,6 +298,82 @@ public final class V2TemplateController {
 
         definitionsRepo.delete(id);
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * PUT /api/v2/templates/{id}/visibility
+     * Body: {@code {visibility: "private"|"shared"|"public"}}
+     * Returns 200 with {@code {id, visibility}}.
+     * Only the owner can change visibility.
+     */
+    public void updateVisibility(Context ctx) throws Exception {
+        String id = RequestValidator.validateId(ctx);
+        if (id == null) return;
+
+        var stored = definitionsRepo.get(id);
+        if (stored.isEmpty() || !isOwner(ctx, stored.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
+        JsonNode body = MAPPER.readTree(ctx.body());
+        String visibility = body.path("visibility").asText("");
+        if (!VALID_VISIBILITY.contains(visibility)) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid visibility. Must be one of: private, shared, public"));
+            return;
+        }
+
+        ObjectNode envelope = (ObjectNode) MAPPER.readTree(stored.get());
+        envelope.put("visibility", visibility);
+        envelope.put("updated_at", System.currentTimeMillis());
+        definitionsRepo.put(id, MAPPER.writeValueAsString(envelope));
+
+        ctx.json(Map.of("id", id, "visibility", visibility));
+    }
+
+    /**
+     * POST /api/v2/templates/{id}/copy
+     * Creates a copy of a shared/public template for the calling user.
+     * Returns 201 with {@code {id, name}}.
+     */
+    public void copy(Context ctx) throws Exception {
+        String id = RequestValidator.validateId(ctx);
+        if (id == null) return;
+
+        var stored = definitionsRepo.get(id);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
+        JsonNode envelope = MAPPER.readTree(stored.get());
+        String vis = envelope.path("visibility").asText("private");
+        boolean isOwnerCheck = isOwner(ctx, stored.get());
+
+        // Only allow copy of own, shared, or public templates
+        if (!isOwnerCheck && !"shared".equals(vis) && !"public".equals(vis)) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+
+        Principal principal = ctx.attribute("principal");
+        String copiedBy = (principal != null) ? principal.userId() : "unknown";
+        String newId = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+        String originalName = envelope.path("name").asText(DEFAULT_NAME);
+        String newName = originalName + " (コピー)";
+
+        ObjectNode newEnvelope = buildEnvelope(newId, newName, now, now, envelope.path("definition").deepCopy());
+        newEnvelope.put("created_by", copiedBy);
+        newEnvelope.put("visibility", "private");
+        definitionsRepo.put(newId, MAPPER.writeValueAsString(newEnvelope));
+
+        ctx.status(HttpStatus.CREATED);
+        ctx.json(Map.of("id", newId, "name", newName));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

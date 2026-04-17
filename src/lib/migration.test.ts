@@ -112,8 +112,8 @@ describe('importFromJSON — Zod schema validation', () => {
     expect(result.ok).toBe(false)
   })
 
-  it('rejects when elements per section exceeds max (300)', () => {
-    const elements = Array.from({ length: 301 }, (_, i) => ({
+  it('rejects when elements per section exceeds max (500)', () => {
+    const elements = Array.from({ length: 501 }, (_, i) => ({
       id: `el-${i}`,
       type: 'text',
       position: { x: 0, y: 0 },
@@ -225,7 +225,7 @@ describe('importFromJSON — edge cases', () => {
   it('returns error for invalid JSON string', () => {
     const result = importFromJSON('not json {{{')
     expect(result.ok).toBe(false)
-    expect((result as { ok: false; error: string }).error).toContain('JSON parse error')
+    expect((result as { ok: false; error: string }).error).toContain('JSONの解析に失敗しました')
   })
 
   it('returns error for JSON null', () => {

@@ -174,7 +174,7 @@ export function ToolbarDialogs({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json,.rds.json"
+        accept=".json,.rds.json,.rds2.json"
         className="hidden"
         aria-hidden="true"
       />

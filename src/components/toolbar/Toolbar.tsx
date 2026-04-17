@@ -227,7 +227,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,.rds.json"
+          accept=".json,.rds.json,.rds2.json"
           onChange={handleFileChange}
           className="hidden"
         />
