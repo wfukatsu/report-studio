@@ -2,7 +2,12 @@ import { memo } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import ReactBarcode from 'react-barcode'
 import { MM_TO_PX } from '../constants'
+<<<<<<< HEAD
 import type { BarcodeKind } from '@/types'
+=======
+
+type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
+>>>>>>> feat/formtable-excel-editing
 
 /** JsBarcode format mapping — JAN13 is EAN-13 in Japanese naming */
 const FORMAT_MAP: Record<Exclude<BarcodeKind, 'qr'>, string> = {
@@ -19,6 +24,7 @@ const DEFAULT_VALUES: Record<BarcodeKind, string> = {
   jan13: '4902778913406',
 }
 
+<<<<<<< HEAD
 /**
  * CODE39 allows only: A-Z, 0-9, space, and: - . $ / + %
  * JsBarcode throws a native Error for any other character.
@@ -39,6 +45,8 @@ function sanitizeJan13(value: string): string {
   return digits.slice(0, 13)
 }
 
+=======
+>>>>>>> feat/formtable-excel-editing
 interface BarcodeContentProps {
   kind: BarcodeKind
   value: string
@@ -60,12 +68,16 @@ export const BarcodeContent = memo(function BarcodeContent({
   lightColor = '#ffffff',
   showText = true,
 }: BarcodeContentProps) {
+<<<<<<< HEAD
   // Sanitise the value per barcode format — JsBarcode throws a native Error for
   // invalid characters, and that error is not catchable by React error boundaries
   // unless the component is wrapped in one. Sanitising here prevents hard crashes.
   let displayValue = value || DEFAULT_VALUES[kind]
   if (kind === 'code39') displayValue = sanitizeCode39(displayValue) || DEFAULT_VALUES.code39
   if (kind === 'jan13') displayValue = sanitizeJan13(displayValue)
+=======
+  const displayValue = value || DEFAULT_VALUES[kind]
+>>>>>>> feat/formtable-excel-editing
 
   if (kind === 'qr') {
     const size = Math.min(width, height) * MM_TO_PX

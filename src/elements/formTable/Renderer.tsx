@@ -13,8 +13,6 @@ function cellStyle(
   fontSize?: number | string,
   fw?: string,
   color?: string,
-  borderRight?: string,
-  borderBottom?: string,
 ): React.CSSProperties {
   return {
     padding: '0.5mm 1mm',
@@ -26,17 +24,23 @@ function cellStyle(
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     textOverflow: 'ellipsis',
-    borderRight,
-    borderBottom,
     boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
   }
+}
+
+/** Build CSS Grid column template from column widths */
+export function gridTemplateColumns(el: FormTableElement): string {
+  return el.columns.map((c) => `${c.width}mm`).join(' ')
 }
 
 // ---------------------------------------------------------------------------
 // Cell content renderer
 // ---------------------------------------------------------------------------
 
-function CellContent({
+export function CellContent({
   cell,
   record,
 }: {
@@ -112,55 +116,64 @@ function CellContent({
 }
 
 // ---------------------------------------------------------------------------
-// Design preview (no real data)
+// Shared: render a row section as CSS Grid
 // ---------------------------------------------------------------------------
 
-function FormTableDesignPreview({ element: el }: { element: FormTableElement }) {
-  const bw = `${el.borderWidth ?? 0.3}mm`
-  const bs = `${bw} solid ${el.borderColor ?? '#000000'}`
-  const colWidths = el.columns.map((c) => `${c.width}mm`)
+interface GridRowSectionProps {
+  el: FormTableElement
+  rows: FormTableRow[]
+  record?: Record<string, unknown>
+  recordIdx?: number
+  borderStyle: string
+  showBottomBorder?: boolean
+}
 
-  // Separate rows by role
-  const headerRows = el.rows.filter((r) => r.role === 'header')
-  const bodyRows = el.rows.filter((r) => r.role === 'body')
-  const footerRows = el.rows.filter((r) => r.role === 'footer')
+function GridRowSection({
+  el,
+  rows,
+  record,
+  recordIdx,
+  borderStyle,
+  showBottomBorder = false,
+}: GridRowSectionProps) {
+  if (rows.length === 0) return null
 
-  const hasDataBind = Boolean(el.dataSource)
+  const gridRows = rows.map((r) => `${r.height}mm`).join(' ')
 
-  const renderRow = (row: FormTableRow, rowIdx: number, sectionRows: FormTableRow[]) => {
-    const isLastRow = rowIdx === sectionRows.length - 1
-    return (
-      <div
-        key={row.id}
-        style={{
-          display: 'flex',
-          height: `${row.height}mm`,
-          flexShrink: 0,
-          borderBottom: !isLastRow || footerRows.length > 0 || bodyRows.length > 0 ? bs : undefined,
-          boxSizing: 'border-box',
-        }}
-      >
-        {el.columns.map((col, colIdx) => {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: gridTemplateColumns(el),
+        gridTemplateRows: gridRows,
+        borderBottom: showBottomBorder ? borderStyle : undefined,
+        boxSizing: 'border-box',
+      }}
+    >
+      {rows.map((row, rowIdx) =>
+        el.columns.map((col, colIdx) => {
           const cell = row.cells[colIdx]
-          const isLastCol = colIdx === el.columns.length - 1
-          const bg =
-            row.role === 'header'
-              ? (el.headerStyle?.backgroundColor ?? '#f3f4f6')
-              : row.role === 'footer'
-                ? '#f9fafb'
-                : undefined
-          const fw =
-            row.role === 'header' || row.role === 'footer'
-              ? (el.headerStyle?.fontWeight ?? 'bold')
-              : el.bodyStyle?.fontWeight
+
+          // Skip merged cells
+          if (cell?.mergedInto) return null
+
+          const colspan = cell?.colspan ?? 1
+          const rowspan = cell?.rowspan ?? 1
+          const isLastCol = colIdx + colspan >= el.columns.length
+          const isLastRow = rowIdx + rowspan >= rows.length
+
+          const bg = resolveBackground(el, row, cell, recordIdx)
+          const fw = resolveFontWeight(el, row)
           const mergedAlign = cell?.style?.textAlign ?? col.align ?? 'left'
-          const mergedColor = cell?.style?.color ?? col.style?.color ?? el.headerStyle?.color
-          const mergedFontSize =
-            cell?.style?.fontSize ?? col.style?.fontSize ?? el.headerStyle?.fontSize
+          const mergedColor = cell?.style?.color ?? col.style?.color ?? (row.role === 'header' ? el.headerStyle?.color : undefined)
+          const mergedFontSize = cell?.style?.fontSize ?? col.style?.fontSize ?? (row.role === 'header' ? el.headerStyle?.fontSize : undefined)
 
           return (
             <div
-              key={col.id}
+              key={`${row.id}-${col.id}`}
+              data-cell-id={cell?.id}
+              data-row-idx={rowIdx}
+              data-col-idx={colIdx}
               style={{
                 ...cellStyle(
                   mergedAlign,
@@ -168,22 +181,61 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
                   mergedFontSize,
                   fw as string,
                   mergedColor,
-                  !isLastCol ? bs : undefined,
-                  undefined,
                 ),
-                width: colWidths[colIdx],
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
+                gridColumn: colspan > 1 ? `span ${colspan}` : undefined,
+                gridRow: rowspan > 1 ? `span ${rowspan}` : undefined,
+                borderRight: !isLastCol ? borderStyle : undefined,
+                borderBottom: (!isLastRow || showBottomBorder) ? borderStyle : undefined,
               }}
             >
-              {cell ? <CellContent cell={cell} /> : null}
+              {cell ? <CellContent cell={cell} record={record} /> : null}
             </div>
           )
-        })}
-      </div>
-    )
+        }),
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Style resolution helpers
+// ---------------------------------------------------------------------------
+
+function resolveBackground(
+  el: FormTableElement,
+  row: FormTableRow,
+  cell: FormTableCell | undefined,
+  recordIdx?: number,
+): string | undefined {
+  if (cell?.style?.backgroundColor) return cell.style.backgroundColor
+  if (row.role === 'header') return el.headerStyle?.backgroundColor ?? '#f3f4f6'
+  if (row.role === 'footer') return '#f9fafb'
+  if (row.role === 'body' && recordIdx !== undefined) {
+    return recordIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor
   }
+  return undefined
+}
+
+function resolveFontWeight(el: FormTableElement, row: FormTableRow): string | undefined {
+  if (row.role === 'header' || row.role === 'footer') {
+    return (el.headerStyle?.fontWeight ?? 'bold') as string
+  }
+  return el.bodyStyle?.fontWeight as string | undefined
+}
+
+// ---------------------------------------------------------------------------
+// Design preview (no real data)
+// ---------------------------------------------------------------------------
+
+function FormTableDesignPreview({ element: el }: { element: FormTableElement }) {
+  const bw = `${el.borderWidth ?? 0.3}mm`
+  const bs = `${bw} solid ${el.borderColor ?? '#000000'}`
+
+  const headerRows = el.rows.filter((r) => r.role === 'header')
+  const bodyRows = el.rows.filter((r) => r.role === 'body')
+  const footerRows = el.rows.filter((r) => r.role === 'footer')
+
+  const hasDataBind = Boolean(el.dataSource)
 
   return (
     <div
@@ -220,12 +272,22 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
       )}
 
       {/* Header rows */}
-      {headerRows.map((r, i) => renderRow(r, i, headerRows))}
+      <GridRowSection
+        el={el}
+        rows={headerRows}
+        borderStyle={bs}
+        showBottomBorder={bodyRows.length > 0 || footerRows.length > 0}
+      />
 
       {/* Body rows */}
-      {bodyRows.map((r, i) => renderRow(r, i, bodyRows))}
+      <GridRowSection
+        el={el}
+        rows={bodyRows}
+        borderStyle={bs}
+        showBottomBorder={hasDataBind || footerRows.length > 0}
+      />
 
-      {/* Data-bind expansion hint (shown only when dataSource set) */}
+      {/* Data-bind expansion hint */}
       {hasDataBind && (
         <div
           style={{
@@ -246,7 +308,11 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
       )}
 
       {/* Footer rows */}
-      {footerRows.map((r, i) => renderRow(r, i, footerRows))}
+      <GridRowSection
+        el={el}
+        rows={footerRows}
+        borderStyle={bs}
+      />
     </div>
   )
 }
@@ -264,75 +330,12 @@ function FormTableLiveRenderer({
 }) {
   const bw = `${el.borderWidth ?? 0.3}mm`
   const bs = `${bw} solid ${el.borderColor ?? '#000000'}`
-  const colWidths = el.columns.map((c) => `${c.width}mm`)
 
   const headerRows = el.rows.filter((r) => r.role === 'header')
   const bodyRows = el.rows.filter((r) => r.role === 'body')
   const footerRows = el.rows.filter((r) => r.role === 'footer')
 
   const limited = (el.maxItems ?? 0) > 0 ? records.slice(0, el.maxItems) : records
-
-  const renderRow = (
-    row: FormTableRow,
-    rowIdx: number,
-    record?: Record<string, unknown>,
-  ) => (
-    <div
-      key={`${row.id}-${rowIdx}`}
-      style={{
-        display: 'flex',
-        height: `${row.height}mm`,
-        flexShrink: 0,
-        borderBottom: bs,
-        boxSizing: 'border-box',
-      }}
-    >
-      {el.columns.map((col, colIdx) => {
-        const cell = row.cells[colIdx]
-        const isLastCol = colIdx === el.columns.length - 1
-        const bg =
-          row.role === 'header'
-            ? (el.headerStyle?.backgroundColor ?? '#f3f4f6')
-            : row.role === 'footer'
-              ? '#f9fafb'
-              : row.role === 'body' && record
-                ? rowIdx % 2 === 0
-                  ? el.oddRowColor
-                  : el.evenRowColor
-                : undefined
-        const fw =
-          row.role === 'header' || row.role === 'footer'
-            ? (el.headerStyle?.fontWeight ?? 'bold')
-            : el.bodyStyle?.fontWeight
-        const mergedAlign = cell?.style?.textAlign ?? col.align ?? 'left'
-        const mergedColor = cell?.style?.color ?? col.style?.color
-        const mergedFontSize = cell?.style?.fontSize ?? col.style?.fontSize
-
-        return (
-          <div
-            key={col.id}
-            style={{
-              ...cellStyle(
-                mergedAlign,
-                cell?.style?.backgroundColor ?? bg,
-                mergedFontSize,
-                fw as string,
-                mergedColor,
-                !isLastCol ? bs : undefined,
-                undefined,
-              ),
-              width: colWidths[colIdx],
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {cell ? <CellContent cell={cell} record={record} /> : null}
-          </div>
-        )
-      })}
-    </div>
-  )
 
   return (
     <div
@@ -348,7 +351,12 @@ function FormTableLiveRenderer({
       }}
     >
       {/* Header rows */}
-      {headerRows.map((r, i) => renderRow(r, i))}
+      <GridRowSection
+        el={el}
+        rows={headerRows}
+        borderStyle={bs}
+        showBottomBorder={bodyRows.length > 0 || limited.length > 0 || footerRows.length > 0}
+      />
 
       {/* Body rows × records */}
       {limited.length === 0 ? (
@@ -367,13 +375,25 @@ function FormTableLiveRenderer({
           データなし
         </div>
       ) : (
-        limited.map((record, recordIdx) =>
-          bodyRows.map((row) => renderRow(row, recordIdx, record)),
-        )
+        limited.map((record, recordIdx) => (
+          <GridRowSection
+            key={recordIdx}
+            el={el}
+            rows={bodyRows}
+            record={record}
+            recordIdx={recordIdx}
+            borderStyle={bs}
+            showBottomBorder={recordIdx < limited.length - 1 || footerRows.length > 0}
+          />
+        ))
       )}
 
       {/* Footer rows */}
-      {footerRows.map((r, i) => renderRow(r, i))}
+      <GridRowSection
+        el={el}
+        rows={footerRows}
+        borderStyle={bs}
+      />
     </div>
   )
 }

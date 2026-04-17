@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+=======
+import { Component, type ReactNode } from 'react'
+>>>>>>> feat/formtable-excel-editing
 
 interface Props {
   elementId: string
@@ -8,6 +12,7 @@ interface Props {
 interface State {
   hasError: boolean
   error: Error | null
+<<<<<<< HEAD
   retryCount: number
 }
 
@@ -50,11 +55,31 @@ export class ElementErrorBoundary extends Component<Props, State> {
       error: null,
       retryCount: prev.retryCount + 1,
     }))
+=======
+}
+
+/**
+ * Error boundary that wraps individual element renderers.
+ * Prevents a single element's rendering failure from crashing the entire canvas.
+ */
+export class ElementErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false, error: null }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null })
+>>>>>>> feat/formtable-excel-editing
   }
 
   render() {
     if (this.state.hasError) {
+<<<<<<< HEAD
       const canRetry = this.state.retryCount < MAX_RETRIES
+=======
+>>>>>>> feat/formtable-excel-editing
       return (
         <div
           style={{
@@ -75,6 +100,7 @@ export class ElementErrorBoundary extends Component<Props, State> {
           role="alert"
         >
           <span>描画エラー</span>
+<<<<<<< HEAD
           {canRetry ? (
             <button
               onClick={this.handleRetry}
@@ -93,6 +119,22 @@ export class ElementErrorBoundary extends Component<Props, State> {
           ) : (
             <span style={{ fontSize: '9px', color: '#b91c1c' }}>要素が修復不能です</span>
           )}
+=======
+          <button
+            onClick={this.handleRetry}
+            style={{
+              fontSize: '9px',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              background: 'none',
+              border: 'none',
+              color: '#991b1b',
+              padding: 0,
+            }}
+          >
+            再試行
+          </button>
+>>>>>>> feat/formtable-excel-editing
         </div>
       )
     }

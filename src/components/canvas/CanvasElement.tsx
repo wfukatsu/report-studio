@@ -7,7 +7,8 @@ import { TextInlineEditor } from '@/elements/text/InlineEditor'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { constrainAspectRatio } from '@/lib/aspectRatioConstraint'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
-import type { ReportElement } from '@/types'
+import type { ReportElement, FormTableElement } from '@/types'
+import { FormTableEditor } from '@/elements/formTable/FormTableEditor'
 
 import type { ContextMenuState } from './ContextMenu'
 
@@ -48,6 +49,9 @@ export const CanvasElement = memo(function CanvasElement({
   const updateElement = useReportStore((s) => s.updateElement)
   const activePageId = useReportStore(selectActivePageId)
 
+  // Table edit mode state
+  const [tableEditMode, setTableEditMode] = useState(false)
+
   const handleDeleteElement = useCallback(
     (id: string) => {
       if (activePageId) removeElement(activePageId, id)
@@ -62,9 +66,41 @@ export const CanvasElement = memo(function CanvasElement({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
+<<<<<<< HEAD
     // Disable drag while editing so pointer events reach the contenteditable
     disabled: element.locked || readonly || editing,
+=======
+    disabled: element.locked || readonly || tableEditMode,
+>>>>>>> feat/formtable-excel-editing
   })
+
+  // Exit table edit mode when element is deselected
+  useEffect(() => {
+    if (!isSelected && tableEditMode) setTableEditMode(false)
+  }, [isSelected, tableEditMode])
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (readonly || element.locked) return
+      if (element.type === 'formTable') {
+        e.stopPropagation()
+        e.preventDefault()
+        setTableEditMode(true)
+      }
+    },
+    [readonly, element.locked, element.type],
+  )
+
+  const handleTableChange = useCallback(
+    (patch: Partial<FormTableElement>) => {
+      if (activePageId) updateElement(activePageId, element.id, patch)
+    },
+    [activePageId, element.id, updateElement],
+  )
+
+  const handleExitTableEdit = useCallback(() => {
+    setTableEditMode(false)
+  }, [])
 
   // UI-03: Track Ctrl/Meta key for locked element click-through
   const [modifierHeld, setModifierHeld] = useState(false)
@@ -249,10 +285,14 @@ export const CanvasElement = memo(function CanvasElement({
         e.stopPropagation()
         if (!readonly) onSelect(element.id, e.metaKey || e.ctrlKey || e.shiftKey)
       }}
+<<<<<<< HEAD
       onDoubleClick={(e) => {
         e.stopPropagation()
         enterEditMode()
       }}
+=======
+      onDoubleClick={handleDoubleClick}
+>>>>>>> feat/formtable-excel-editing
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -287,6 +327,7 @@ export const CanvasElement = memo(function CanvasElement({
       aria-pressed={editing ? undefined : isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
+<<<<<<< HEAD
         {editing && element.type === 'text' ? (
           <TextInlineEditor
             element={element}
@@ -295,6 +336,16 @@ export const CanvasElement = memo(function CanvasElement({
           />
         ) : (
           <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} />
+=======
+        {tableEditMode && element.type === 'formTable' ? (
+          <FormTableEditor
+            element={element as FormTableElement}
+            onChange={handleTableChange}
+            onExitEditMode={handleExitTableEdit}
+          />
+        ) : (
+          <ElementRenderer element={element} data={data} />
+>>>>>>> feat/formtable-excel-editing
         )}
       </ElementErrorBoundary>
 

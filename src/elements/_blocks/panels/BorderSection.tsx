@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 import { DEFAULT_BORDER_WIDTH } from '../constants'
 
@@ -19,6 +20,12 @@ export interface PaddingConfig {
   left?: number
 }
 
+=======
+import type { BorderConfig } from '../renderers/ElementFrame'
+import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import { DEFAULT_BORDER_WIDTH } from '../constants'
+
+>>>>>>> feat/formtable-excel-editing
 const STROKE_STYLE_OPTIONS = [
   { value: 'solid', label: '実線' },
   { value: 'dashed', label: '破線' },

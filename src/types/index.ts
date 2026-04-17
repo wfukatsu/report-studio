@@ -581,6 +581,7 @@ export interface FormTableCell {
    * 優先順位（高→低）: cell.style > column.style > row-role style (headerStyle/bodyStyle)
    */
   style?: TextStyle
+<<<<<<< HEAD
   /** type='checkbox' で使用: チェック状態 */
   checked?: boolean
   /** type='checkbox' で使用: チェックマーク記号 */
@@ -595,6 +596,14 @@ export interface FormTableCell {
   furiganaEnabled?: boolean
   /** フリガナのデータソース */
   furiganaDataSource?: string
+=======
+  /** セル結合 — 横方向に結合するセル数（デフォルト 1） */
+  colspan?: number
+  /** セル結合 — 縦方向に結合するセル数（デフォルト 1） */
+  rowspan?: number
+  /** 結合先セルの id。設定されたセルは描画時にスキップされる */
+  mergedInto?: string
+>>>>>>> feat/formtable-excel-editing
 }
 
 export type FormTableRowRole = 'header' | 'body' | 'footer'

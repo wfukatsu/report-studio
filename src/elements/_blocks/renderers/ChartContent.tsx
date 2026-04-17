@@ -52,7 +52,11 @@ export const ChartContent = memo(function ChartContent({
             <Tooltip />
             {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
             {yAxisKeys.map((key, i) => (
+<<<<<<< HEAD
               <Bar key={key} dataKey={key} fill={colors[i % colors.length]} isAnimationActive={false} />
+=======
+              <Bar key={key} dataKey={key} fill={colors[i % colors.length]} />
+>>>>>>> feat/formtable-excel-editing
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -105,6 +109,7 @@ export const ChartContent = memo(function ChartContent({
           </PieChart>
         </ResponsiveContainer>
       )
+<<<<<<< HEAD
 
     default:
       // Guard against future chartType additions or deserialized unknown values —
@@ -120,5 +125,7 @@ export const ChartContent = memo(function ChartContent({
           不明なグラフタイプ
         </div>
       )
+=======
+>>>>>>> feat/formtable-excel-editing
   }
 })

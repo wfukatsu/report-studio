@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type {
   FormTableElement,
   FormTableColumn,
@@ -7,12 +6,25 @@ import type {
   FormTableCellType,
 } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import {
+  addColumn,
+  removeColumn,
+  updateColumn,
+  addRow,
+  removeRow,
+  updateCell,
+  updateRow,
+  CELL_TYPE_OPTIONS,
+  ROW_ROLE_OPTIONS,
+  ALIGN_OPTIONS,
+} from './tableOperations'
 
 interface Props {
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }
 
+<<<<<<< HEAD
 // ---------------------------------------------------------------------------
 // Helpers — column/row sync (column list is the authority)
 // ---------------------------------------------------------------------------
@@ -124,6 +136,9 @@ const ALIGN_OPTIONS = [
   { value: 'center', label: '中央' },
   { value: 'right', label: '右' },
 ]
+=======
+// Constants imported from tableOperations
+>>>>>>> feat/formtable-excel-editing
 
 // ---------------------------------------------------------------------------
 // Column editor

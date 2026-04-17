@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import { memo, useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
+=======
+import { memo, useMemo } from 'react'
+import type { RepeatingBandElement } from '@/types'
+>>>>>>> feat/formtable-excel-editing
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
 import { applyFormat } from '@/lib/numberFormatter'
@@ -400,11 +405,63 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
   const isGrouped = !!el.groupBy
   const PREVIEW_ROWS = 3
 
+<<<<<<< HEAD
   // Column context menu state
   const [colMenu, setColMenu] = useState<ColumnMenuState | null>(null)
 
   // Column resize via drag on separator
   const resizeRef = useRef<{ colIndex: number; startX: number; startWidths: number[] } | null>(null)
+=======
+  // Apply maxItems, sort, groupBy — memoized to avoid recomputation on every render
+  const { flatRows, sorted } = useMemo(() => {
+    const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
+
+    // Sort with smart numeric comparison
+    const sortKey = el.sortBy
+    const sortedRecords = sortKey
+      ? [...limited].sort((a, b) => {
+          const va = resolveField(a, sortKey)
+          const vb = resolveField(b, sortKey)
+          const numA = Number(va)
+          const numB = Number(vb)
+          const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
+            ? numA - numB
+            : String(va ?? '').localeCompare(String(vb ?? ''))
+          return el.sortOrder === 'desc' ? -cmp : cmp
+        })
+      : limited
+
+    // GroupBy
+    const groupByKey = el.groupBy
+    const groups = groupByKey
+      ? (() => {
+          const map = new Map<string, Record<string, unknown>[]>()
+          for (const record of sortedRecords) {
+            const key = String(resolveField(record, groupByKey) ?? '')
+            const group = map.get(key) ?? []
+            group.push(record)
+            map.set(key, group)
+          }
+          return Array.from(map, ([label, recs]) => ({ label, records: recs }))
+        })()
+      : [{ label: '', records: sortedRecords }]
+
+    // Flatten grouped rows
+    const rows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
+    let globalRowIdx = 0
+    for (const group of groups) {
+      if (groupByKey && group.label) {
+        rows.push({ type: 'group-header', groupLabel: group.label, rowIdx: globalRowIdx })
+      }
+      for (const record of group.records) {
+        rows.push({ type: 'data', record, rowIdx: globalRowIdx })
+        globalRowIdx++
+      }
+    }
+
+    return { flatRows: rows, sorted: sortedRecords }
+  }, [records, el.maxItems, el.sortBy, el.sortOrder, el.groupBy])
+>>>>>>> feat/formtable-excel-editing
 
   const handleResizeStart = useCallback((e: React.PointerEvent, colIndex: number) => {
     if (!onFieldsChange) return
@@ -451,8 +508,18 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
   }, [])
 
   return (
+<<<<<<< HEAD
     <BandContainer el={el} bs={bs}>
       {/* Interactive header row (design mode) */}
+=======
+    <div style={{
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+      border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden',
+      breakBefore: el.pageBreak === 'before' ? 'page' : undefined,
+      breakAfter: el.pageBreak === 'after' ? 'page' : undefined,
+    }}>
+      {/* Header row */}
+>>>>>>> feat/formtable-excel-editing
       {el.showHeader && (
         <div
           style={{ display: 'flex', flexShrink: 0, borderBottom: bs, ...(el.headerHeight != null ? { height: `${el.headerHeight}mm` } : {}) }}
@@ -502,6 +569,7 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Column editor panel — rendered via portal to escape zoom transform */}
       {colMenu && onFieldsChange && createPortal(
         <ColumnEditor
@@ -576,10 +644,32 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
                 {rowIdx === 0
                   ? <span style={{ color: PLACEHOLDER_COLOR, fontStyle: 'italic' }}>{`{{${f.key}}}`}</span>
                   : <span style={{ color: MUTED_BAR_COLOR }}>{'▬▬▬'.slice(0, 3 - rowIdx)}</span>}
+=======
+      {/* Data rows (with optional group headers) */}
+      {flatRows.length === 0 && !el.showEmptyRowLines ? (
+        <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '2.8mm', borderBottom: hasFooter ? bs : undefined }}>
+          データなし
+        </div>
+      ) : (
+        flatRows.map((row, idx) => {
+          if (row.type === 'group-header') {
+            return (
+              <div key={`gh-${idx}`} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: '#e5e7eb', borderBottom: bs, alignItems: 'center', paddingLeft: '1mm', fontSize: '2.8mm', fontWeight: 'bold' }}>
+                {row.groupLabel}
+>>>>>>> feat/formtable-excel-editing
               </div>
-            ))}
-          </div>
-        ))
+            )
+          }
+          return (
+            <div key={idx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: row.rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
+              {el.fields.map((f, i) => (
+                <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
+                  {resolveField(row.record!, f.key)}
+                </div>
+              ))}
+            </div>
+          )
+        })
       )}
 
       {/* Repeat indicator */}
