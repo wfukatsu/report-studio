@@ -741,6 +741,60 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       onCancelDeleteFooter={() => setShowDeleteFooterConfirm(false)}
       fileInputRef={fileInputRef}
     />
+
+    {/* Validation warning — ask user whether to continue despite warnings */}
+    <ConfirmDialog
+      open={showValidationWarnConfirm}
+      title="バリデーション警告"
+      message={`以下の警告があります。エクスポートを続けますか？\n\n${validationWarnings.map((m) => `⚠️ ${m}`).join('\n')}`}
+      confirmLabel="続けてエクスポート"
+      onConfirm={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}
+      onCancel={() => setShowValidationWarnConfirm(false)}
+    />
+
+    {/* Unsaved changes — open local file */}
+    <ConfirmDialog
+      open={showOpenLocalConfirm}
+      title="未保存の変更があります"
+      message="変更を破棄してファイルを開きますか？"
+      confirmLabel="破棄して開く"
+      confirmVariant="danger"
+      onConfirm={() => { setShowOpenLocalConfirm(false); fileInputRef.current?.click() }}
+      onCancel={() => setShowOpenLocalConfirm(false)}
+    />
+
+    {/* Unsaved changes — open server template */}
+    <ConfirmDialog
+      open={showOpenServerConfirm}
+      title="未保存の変更があります"
+      message="変更を破棄してテンプレートを開きますか？"
+      confirmLabel="破棄して開く"
+      confirmVariant="danger"
+      onConfirm={() => { setShowOpenServerConfirm(false); setShowManagerModal(true) }}
+      onCancel={() => setShowOpenServerConfirm(false)}
+    />
+
+    {/* Delete master header */}
+    <ConfirmDialog
+      open={showDeleteHeaderConfirm}
+      title="ヘッダーを削除"
+      message="ヘッダーとその内容を削除しますか？"
+      confirmLabel="削除"
+      confirmVariant="danger"
+      onConfirm={() => { setShowDeleteHeaderConfirm(false); setMasterHeader(null); if (!masterFooter) setHeaderEditMode(false) }}
+      onCancel={() => setShowDeleteHeaderConfirm(false)}
+    />
+
+    {/* Delete master footer */}
+    <ConfirmDialog
+      open={showDeleteFooterConfirm}
+      title="フッターを削除"
+      message="フッターとその内容を削除しますか？"
+      confirmLabel="削除"
+      confirmVariant="danger"
+      onConfirm={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
+      onCancel={() => setShowDeleteFooterConfirm(false)}
+    />
     </>
   )
 }

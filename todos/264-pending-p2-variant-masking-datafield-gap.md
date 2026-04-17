@@ -1,5 +1,5 @@
 ---
-status: complete
+status: pending
 priority: p2
 issue_id: "264"
 tags: [code-review, architecture, output-variants, pii]

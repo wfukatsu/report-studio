@@ -1,5 +1,5 @@
 ---
-status: complete
+status: pending
 priority: p1
 issue_id: "251"
 tags: [code-review, architecture, performance, typescript]

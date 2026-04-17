@@ -1,5 +1,5 @@
 ---
-status: complete
+status: pending
 priority: p3
 issue_id: "261"
 tags: [code-review, ui-ux, user-feedback, consistency]
