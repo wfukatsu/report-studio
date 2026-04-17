@@ -13,6 +13,8 @@ import type { Template, Report, ReportDefinition } from '@/types'
  * which reads pre-converted ReportDefinition directly from JSON.
  */
 export function applyTemplate(template: Template): ReportDefinition {
+  // Deep-clone pages before assigning new IDs so that sections/elements do not
+  // share reference identity with the static BUILTIN_TEMPLATES object.
   const clonedPages = JSON.parse(JSON.stringify(template.pages)) as typeof template.pages
   const legacyReport: Report = {
     id: uuidv4(),
