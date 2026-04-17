@@ -1,6 +1,10 @@
+import { lazy, Suspense, useRef, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import type { ValidationRule } from '@/types'
 import { cn } from '@/lib/utils'
+import type { UseFormulaEditorReturn } from '@/components/formulaEditor/useFormulaEditor'
+
+const FormulaEditor = lazy(() => import('@/components/formulaEditor/FormulaEditor'))
 
 const SEVERITY_OPTIONS: { value: ValidationRule['severity']; label: string }[] = [
   { value: 'error', label: 'エラー' },
@@ -16,16 +20,38 @@ function RuleRow({
   onUpdate: (patch: Partial<ValidationRule>) => void
   onRemove: () => void
 }) {
+  const [isFocused, setIsFocused] = useState(false)
+  const editorRef = useRef<UseFormulaEditorReturn | null>(null)
+
   return (
     <div className="border border-border rounded-md p-3 space-y-2 bg-card">
       <div className="space-y-1">
         <label className="text-[10px] text-muted-foreground">条件式（真のとき違反）</label>
-        <input
-          className="w-full h-6 px-2 text-xs border border-border rounded bg-background font-mono"
-          value={rule.condition}
-          onChange={(e) => onUpdate({ condition: e.target.value })}
-          placeholder="total < 0"
-        />
+        {isFocused ? (
+          <Suspense
+            fallback={
+              <div className="border rounded-lg p-2 text-xs text-muted-foreground font-mono min-h-[36px]">
+                {rule.condition || 'total < 0'}
+              </div>
+            }
+          >
+            <FormulaEditor
+              initialValue={rule.condition}
+              onChange={(val) => onUpdate({ condition: val })}
+              onBlur={() => setIsFocused(false)}
+              editorRef={editorRef}
+              placeholderText="total < 0"
+            />
+          </Suspense>
+        ) : (
+          <button
+            type="button"
+            className="w-full text-left h-8 px-2 text-xs border border-border rounded bg-background font-mono hover:border-primary/50 transition-colors cursor-text"
+            onClick={() => setIsFocused(true)}
+          >
+            {rule.condition || <span className="text-muted-foreground italic">total &lt; 0</span>}
+          </button>
+        )}
       </div>
 
       <div className="space-y-1">
