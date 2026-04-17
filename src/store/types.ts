@@ -21,7 +21,7 @@ import type {
   TenantInfo,
 } from '@/types'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
-import type { Me } from '@/api/reportApi'
+import type { Me, UserSummary, UserRole, ServerConfig } from '@/api/reportApi'
 
 // ---------------------------------------------------------------------------
 // Alignment / Z-order enums (moved from reportStore for shared use)
@@ -63,7 +63,7 @@ export type LoadState = 'idle' | 'loading' | 'error'
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 /** Top-level navigation tabs */
-export type AppTab = 'design' | 'binding' | 'templates' | 'responses' | 'databrowser'
+export type AppTab = 'design' | 'binding' | 'templates' | 'responses' | 'databrowser' | 'admin'
 
 /** @deprecated — DataManagementTab replaced by BindingEditor. Kept for migration. */
 export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses' | 'databrowser'
@@ -340,6 +340,22 @@ export interface StoreState {
   updateCustomFieldDefs: (defs: import('@/types').ProductCustomFieldDef[]) => Promise<void>
   setProductOp: (id: string, op: 'idle' | 'saving' | 'deleting') => void
 
+
+  // ── Admin slice ───────────────────────────────────────────────────────────
+  adminUsers: UserSummary[]
+  adminUsersLoading: boolean
+  adminUsersError: string | null
+  fetchAdminUsers: (signal?: AbortSignal) => Promise<void>
+  createAdminUser: (user: { userId: string; displayName?: string; password: string; roles?: UserRole[] }) => Promise<void>
+  deleteAdminUser: (userId: string) => Promise<void>
+
+  adminServerConfig: ServerConfig
+  adminServerConfigOriginal: ServerConfig
+  adminServerConfigLoading: boolean
+  adminServerConfigError: string | null
+  fetchAdminServerConfig: () => Promise<void>
+  setAdminServerConfigField: (key: string, value: string) => void
+  saveAdminServerConfig: () => Promise<void>
 
   // ── Responses slice ───────────────────────────────────────────────────────
   responses: FormResponseSummary[]

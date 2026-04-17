@@ -85,6 +85,10 @@ public final class AppConfig {
         config.bundledPlugins.enableCors(cors ->
             cors.addRule(rule -> {
                 rule.allowHost("http://localhost:5173");
+                // Allow any Vite dev server port (5173–5200) for local development
+                for (int port = 5174; port <= 5200; port++) {
+                    rule.allowHost("http://localhost:" + port);
+                }
                 if (allowedOrigin != null && !allowedOrigin.isBlank()) {
                     rule.allowHost(allowedOrigin);
                 }

@@ -8,9 +8,20 @@ import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
 import { DataSourceTree } from '@/components/dataBrowser/DataSourceTree'
 import { DataGrid } from '@/components/dataBrowser/DataGrid'
 import { EmptyState } from '@/components/dataBrowser/EmptyState'
+import { AdminTab } from '@/components/tabs/AdminTab'
 import { useConnectionState } from '@/hooks/useConnectionState'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import { TableProperties } from 'lucide-react'
+import type { AppTab } from '@/store/types'
+
+const TABS: { id: AppTab; label: string }[] = [
+  { id: 'design',    label: 'デザイン' },
+  { id: 'binding',   label: 'バインド' },
+  { id: 'templates', label: 'テンプレート管理' },
+  { id: 'responses', label: '回答' },
+  { id: 'databrowser', label: 'データブラウザ' },
+  { id: 'admin',     label: '管理' },
+]
 
 export function AppShell() {
   // Start backend health-check polling (sets backendConnected in store)
@@ -25,7 +36,7 @@ export function AppShell() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} tabs={TABS} />
 
       {/* Design tab: Activity でエフェクトを自動 pause/resume し、状態を保持 */}
       <Activity mode={activeTab === 'design' ? 'visible' : 'hidden'}>
@@ -99,6 +110,18 @@ export function AppShell() {
               />
             )}
           </main>
+        </div>
+      )}
+
+      {/* Admin tab */}
+      {activeTab === 'admin' && (
+        <div
+          role="tabpanel"
+          id="top-panel-admin"
+          aria-labelledby="top-tab-admin"
+          className="flex flex-1 overflow-hidden"
+        >
+          <AdminTab />
         </div>
       )}
     </div>

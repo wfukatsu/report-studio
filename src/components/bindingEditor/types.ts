@@ -25,14 +25,16 @@ export interface BindableElement {
   readonly repeatDataSource?: string
 }
 
-/** Sub-group within a page: single elements or repeat-container elements. */
+/** Sub-group within a page: grouped by bound schema group role. */
 export interface ElementSubGroup {
   readonly id: string
   readonly label: string
-  /** 'single' = normal elements, 'repeat' = inside a repeatingBand/List */
-  readonly role: 'single' | 'repeat'
+  /** 'single' = unbound or master group, 'repeat' = detail group, 'master' = master group */
+  readonly role: 'single' | 'repeat' | 'master'
   /** DataSource key for repeat groups */
   readonly dataSource?: string
+  /** Schema group ID (when grouped by bound schema group) */
+  readonly schemaGroupId?: string
   readonly elements: readonly BindableElement[]
 }
 

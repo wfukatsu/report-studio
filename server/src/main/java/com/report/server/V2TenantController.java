@@ -59,6 +59,11 @@ public final class V2TenantController {
             ctx.json(Map.of("error", "Authentication required"));
             return;
         }
+        if (!principal.roles().contains("admin")) {
+            ctx.status(HttpStatus.FORBIDDEN);
+            ctx.json(Map.of("error", "Admin role required"));
+            return;
+        }
 
         String body = ctx.body();
         if (body == null || body.isBlank()) {

@@ -4,10 +4,11 @@
  */
 
 import { useState } from 'react'
-import { Plus, Trash2, X, Eye, EyeOff, Pencil } from 'lucide-react'
+import { Pencil, Trash2, X, Eye, EyeOff, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { useShallow } from 'zustand/shallow'
 import type { OutputVariant, MaskingRule } from '@/types'
+import { VariantWizard } from './VariantWizard'
 
 interface Props {
   open: boolean
@@ -52,54 +53,52 @@ export function VariantList() {
   const variants = useReportStore(
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )
-  const addVariant = useReportStore((s) => s.addVariant)
   const removeVariant = useReportStore((s) => s.removeVariant)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [newName, setNewName] = useState('')
-
-  const handleAdd = () => {
-    const name = newName.trim() || `バリアント ${variants.length + 1}`
-    addVariant(name)
-    setNewName('')
-  }
+  const [wizardMode, setWizardMode] = useState<
+    | { type: 'new' }
+    | { type: 'edit'; variant: OutputVariant }
+    | null
+  >(null)
 
   return (
-    <div className="space-y-3">
-      {/* Add new */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-          placeholder="新しいバリアント名"
-          className="flex-1 border rounded px-2 py-1 text-xs bg-background"
-        />
+    <>
+      <div className="space-y-3">
+        {/* Add new — opens wizard */}
         <button
-          onClick={handleAdd}
-          className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
+          onClick={() => setWizardMode({ type: 'new' })}
+          className="flex items-center gap-2 px-3 py-2.5 w-full border-2 border-dashed rounded-md text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors justify-center"
         >
-          <Plus className="w-3.5 h-3.5" />
-          追加
+          <Wand2 className="w-3.5 h-3.5" />
+          ウィザードで新規バリアントを作成
         </button>
+
+        {variants.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            バリアントがありません。PDF出力時に特定の要素を非表示・マスクするバリアントを追加できます。
+          </p>
+        )}
+
+        {variants.map((v) => (
+          <VariantCard
+            key={v.id}
+            variant={v}
+            expanded={expandedId === v.id}
+            onToggleExpand={() => setExpandedId(expandedId === v.id ? null : v.id)}
+            onRemove={() => removeVariant(v.id)}
+            onEdit={() => setWizardMode({ type: 'edit', variant: v })}
+          />
+        ))}
       </div>
 
-      {variants.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-4">
-          バリアントがありません。PDF出力時に特定の要素を非表示・マスクするバリアントを追加できます。
-        </p>
-      )}
-
-      {variants.map((v) => (
-        <VariantCard
-          key={v.id}
-          variant={v}
-          expanded={expandedId === v.id}
-          onToggleExpand={() => setExpandedId(expandedId === v.id ? null : v.id)}
-          onRemove={() => removeVariant(v.id)}
+      {/* Wizard overlay */}
+      {wizardMode && (
+        <VariantWizard
+          editVariant={wizardMode.type === 'edit' ? wizardMode.variant : undefined}
+          onClose={() => setWizardMode(null)}
         />
-      ))}
-    </div>
+      )}
+    </>
   )
 }
 
@@ -112,11 +111,13 @@ function VariantCard({
   expanded,
   onToggleExpand,
   onRemove,
+  onEdit,
 }: {
   variant: OutputVariant
   expanded: boolean
   onToggleExpand: () => void
   onRemove: () => void
+  onEdit: () => void
 }) {
   const updateVariant = useReportStore((s) => s.updateVariant)
   const removeMaskingRule = useReportStore((s) => s.removeMaskingRule)
@@ -160,6 +161,14 @@ function VariantCard({
         <span className="text-[10px] text-muted-foreground shrink-0">
           非表示 {variant.hiddenElementIds.length} / マスク {variant.maskingRules.length}
         </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit() }}
+          className="p-0.5 rounded hover:bg-accent shrink-0"
+          aria-label="ウィザードで編集"
+          title="ウィザードで編集"
+        >
+          <Wand2 className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove() }}
           className="p-0.5 rounded hover:bg-destructive/20 text-destructive shrink-0"

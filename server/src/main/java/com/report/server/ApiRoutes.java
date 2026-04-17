@@ -81,10 +81,16 @@ public final class ApiRoutes {
             if (!"GET".equals(method) && !"HEAD".equals(method) && !"OPTIONS".equals(method)) {
                 String origin = ctx.header("Origin");
                 if (origin != null && !origin.isBlank()
-                        && !origin.equals("http://localhost:5173")
                         && !origin.equals("http://localhost:" + SERVER_PORT)
                         && (ALLOWED_ORIGIN == null || !origin.equals(ALLOWED_ORIGIN))) {
-                    throw new io.javalin.http.ForbiddenResponse("Cross-origin request rejected");
+                    // Allow any Vite dev server port (5173–5200) for local development
+                    boolean isLocalVite = false;
+                    for (int port = 5173; port <= 5200; port++) {
+                        if (origin.equals("http://localhost:" + port)) { isLocalVite = true; break; }
+                    }
+                    if (!isLocalVite) {
+                        throw new io.javalin.http.ForbiddenResponse("Cross-origin request rejected");
+                    }
                 }
             }
         });
@@ -103,6 +109,15 @@ public final class ApiRoutes {
             ctx.attribute("principal", principal);
             if (principal.isAnonymous()) {
                 throw new io.javalin.http.UnauthorizedResponse("Authentication required");
+            }
+        });
+
+        // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
+        // Runs after auth filter so principal is already resolved
+        app.before("/api/v1/admin/*", ctx -> {
+            com.report.server.auth.Principal principal = ctx.attribute("principal");
+            if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
+                throw new io.javalin.http.ForbiddenResponse("Admin role required");
             }
         });
     }

@@ -27,7 +27,7 @@ export function DataSourcePanel() {
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'form' | 'json'>('form')
   const [formRows, setFormRows] = useState<FieldRow[]>(() => rowsFromDataSource(dataSource))
-  const prevDataSourceIdRef = useRef(dataSource?.id ?? null)
+  const prevDataSourceIdRef = useRef<string | null>(dataSource?.id ?? null)
 
   // Sync store dataSource → formRows when the source changes externally
   useEffect(() => {

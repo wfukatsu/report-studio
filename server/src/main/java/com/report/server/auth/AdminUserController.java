@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -25,26 +26,17 @@ import java.util.stream.Collectors;
 public final class AdminUserController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminUserController.class);
+    private static final Set<String> VALID_ROLES = Set.of("user", "admin");
+    private static final Pattern USERID_PATTERN = Pattern.compile("^[a-zA-Z0-9._@-]+$");
+
     private final UserRepository userRepo;
 
     public AdminUserController(UserRepository userRepo) {
         this.userRepo = userRepo;
     }
 
-    /** Assert the calling principal has the "admin" role. Returns false (and sets 403) if not. */
-    private boolean requireAdmin(Context ctx) {
-        Principal principal = ctx.attribute("principal");
-        if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Admin role required"));
-            return false;
-        }
-        return true;
-    }
-
     /** GET /api/v1/admin/users — list all users (passwordHash masked). */
     public void list(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         List<Map<String, Object>> users = userRepo.list().stream()
             .map(u -> Map.<String, Object>of(
@@ -59,7 +51,6 @@ public final class AdminUserController {
 
     /** POST /api/v1/admin/users — create a new user. Body: { userId, displayName, password, roles: [] } */
     public void create(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         var body = ctx.bodyAsClass(Map.class);
         String userId      = (String) body.get("userId");
@@ -69,6 +60,21 @@ public final class AdminUserController {
         if (userId == null || userId.isBlank() || password == null || password.isBlank()) {
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "userId and password are required"));
+            return;
+        }
+        if (userId.length() > 64) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "userId must be 64 characters or less"));
+            return;
+        }
+        if (!USERID_PATTERN.matcher(userId).matches()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "userId に使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです"));
+            return;
+        }
+        if (password.length() < 8 || password.length() > 128) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "パスワードは8〜128文字で入力してください"));
             return;
         }
 
@@ -82,6 +88,11 @@ public final class AdminUserController {
         List<String> rolesList = body.get("roles") instanceof List<?> l
                 ? (List<String>) l : List.of("user");
         Set<String> roles = Set.copyOf(rolesList);
+        if (!VALID_ROLES.containsAll(roles)) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "無効なロールが含まれています。使用可能: user, admin"));
+            return;
+        }
 
         String hash = BCrypt.withDefaults().hashToString(12, password.toCharArray());
         UserRecord user = new UserRecord(
@@ -103,7 +114,6 @@ public final class AdminUserController {
 
     /** PUT /api/v1/admin/users/{id} — update displayName, password, roles. */
     public void update(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         String targetId = ctx.pathParam("id");
         var existing = userRepo.findById(targetId);
@@ -124,12 +134,22 @@ public final class AdminUserController {
 
         String updatedHash = user.passwordHash();
         if (newPassword != null && !newPassword.isBlank()) {
+            if (newPassword.length() < 8 || newPassword.length() > 128) {
+                ctx.status(HttpStatus.BAD_REQUEST);
+                ctx.json(Map.of("error", "パスワードは8〜128文字で入力してください"));
+                return;
+            }
             updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
         }
 
         @SuppressWarnings("unchecked")
         Set<String> updatedRoles = body.get("roles") instanceof List<?> l
                 ? Set.copyOf((List<String>) l) : user.roles();
+        if (!VALID_ROLES.containsAll(updatedRoles)) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "無効なロールが含まれています。使用可能: user, admin"));
+            return;
+        }
 
         UserRecord updated = new UserRecord(user.userId(), updatedDisplayName, updatedHash, updatedRoles);
         userRepo.save(updated);
@@ -144,7 +164,6 @@ public final class AdminUserController {
 
     /** DELETE /api/v1/admin/users/{id} — delete user (cannot delete self). */
     public void delete(Context ctx) {
-        if (!requireAdmin(ctx)) return;
 
         Principal principal = ctx.attribute("principal");
         String targetId = ctx.pathParam("id");

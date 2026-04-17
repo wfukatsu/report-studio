@@ -7,7 +7,7 @@
  */
 
 import { memo, useCallback } from 'react'
-import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, Database, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BindableElement, ElementSubGroup, FieldItem } from '../types'
 import { getGroupColor } from '../types'
@@ -136,20 +136,35 @@ const SubGroupBlock = memo(function SubGroupBlock({
   elementRef,
 }: SubGroupBlockProps) {
   const isRepeat = subGroup.role === 'repeat'
+  const isMaster = subGroup.role === 'master'
+  const isSchemaGroup = isRepeat || isMaster
 
   return (
-    <div className={cn('px-1 pb-0.5', isRepeat && 'ml-2')}>
+    <div className={cn('px-1 pb-0.5', isSchemaGroup && 'ml-2')}>
       {/* Sub-group label */}
       <div className={cn(
         'flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium',
         isRepeat
           ? 'text-amber-600'
-          : 'text-muted-foreground',
+          : isMaster
+            ? 'text-blue-600'
+            : 'text-muted-foreground',
       )}>
         {isRepeat && <RefreshCw className="w-3 h-3" />}
+        {isMaster && <Database className="w-3 h-3" />}
         <span>{subGroup.label}</span>
-        {isRepeat && subGroup.dataSource && (
+        {isMaster && (
+          <span className="font-mono text-[9px] bg-blue-50 text-blue-600 border border-blue-200 px-1 rounded">
+            マスター
+          </span>
+        )}
+        {isRepeat && (
           <span className="font-mono text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1 rounded">
+            明細
+          </span>
+        )}
+        {isRepeat && subGroup.dataSource && (
+          <span className="font-mono text-[9px] bg-amber-50/60 text-amber-500 border border-amber-200/60 px-1 rounded">
             {subGroup.dataSource}
           </span>
         )}
@@ -159,6 +174,7 @@ const SubGroupBlock = memo(function SubGroupBlock({
       <div className={cn(
         'flex flex-col gap-1',
         isRepeat && 'border-l-2 border-amber-300/50 pl-1.5',
+        isMaster && 'border-l-2 border-blue-300/50 pl-1.5',
       )}>
         {subGroup.elements.map((element) => (
           <ElementSlot

@@ -77,6 +77,17 @@ export function useBindingState() {
   )
 
   // -----------------------------------------------------------------------
+  // Derived: field lookup map (before elementGroups — needed for grouping)
+  // -----------------------------------------------------------------------
+  const fieldMap = useMemo(() => {
+    const map = new Map<string, FieldItem>()
+    for (const f of allFields) {
+      map.set(f.fieldId, f)
+    }
+    return map
+  }, [allFields])
+
+  // -----------------------------------------------------------------------
   // Derived: all bindable elements with repeat container detection
   // -----------------------------------------------------------------------
   const allElements: BindableElement[] = useMemo(() => {
@@ -132,34 +143,49 @@ export function useBindingState() {
     pages
       .map((page) => {
         const pageElements = allElements.filter((e) => e.pageId === page.id)
-        // Split into single vs repeat sub-groups
-        const singleElements = pageElements.filter((e) => !e.repeatContainerId)
-        const repeatMap = new Map<string, BindableElement[]>()
+
+        // Group elements by their bound schema group
+        const groupedBySchema = new Map<string, BindableElement[]>()
+        const unboundElements: BindableElement[] = []
+
         for (const el of pageElements) {
-          if (el.repeatContainerId) {
-            const arr = repeatMap.get(el.repeatContainerId) ?? []
-            arr.push(el)
-            repeatMap.set(el.repeatContainerId, arr)
+          if (el.boundFieldId) {
+            const field = fieldMap.get(el.boundFieldId)
+            if (field) {
+              const arr = groupedBySchema.get(field.groupId) ?? []
+              arr.push(el)
+              groupedBySchema.set(field.groupId, arr)
+              continue
+            }
           }
+          unboundElements.push(el)
         }
 
+        // Build sub-groups: one per schema group + one for unbound
         const subGroups: ElementSubGroup[] = []
-        if (singleElements.length > 0) {
+
+        // Schema-group sub-groups (ordered by schema group position)
+        for (const schemaGroup of userSchemaGroups) {
+          const elements = groupedBySchema.get(schemaGroup.id)
+          if (!elements || elements.length === 0) continue
+          const isDetail = schemaGroup.role === 'detail'
           subGroups.push({
-            id: `${page.id}-single`,
-            label: '単一項目',
-            role: 'single',
-            elements: singleElements,
+            id: `${page.id}-sg-${schemaGroup.id}`,
+            label: schemaGroup.label || schemaGroup.dataKey || schemaGroup.id,
+            role: isDetail ? 'repeat' : 'master',
+            dataSource: isDetail ? schemaGroup.dataKey : undefined,
+            schemaGroupId: schemaGroup.id,
+            elements,
           })
         }
-        for (const [containerId, elements] of repeatMap) {
-          const first = elements[0]
+
+        // Unbound elements sub-group
+        if (unboundElements.length > 0) {
           subGroups.push({
-            id: containerId,
-            label: `繰り返し (${first?.repeatDataSource || '?'})`,
-            role: 'repeat',
-            dataSource: first?.repeatDataSource,
-            elements,
+            id: `${page.id}-unbound`,
+            label: '未バインド',
+            role: 'single',
+            elements: unboundElements,
           })
         }
 
@@ -171,7 +197,7 @@ export function useBindingState() {
         }
       })
       .filter((g) => g.elements.length > 0),
-    [pages, allElements],
+    [pages, allElements, userSchemaGroups, fieldMap],
   )
 
   // -----------------------------------------------------------------------
@@ -210,16 +236,7 @@ export function useBindingState() {
   const boundElements = allElements.filter((e) => e.boundFieldId).length
   const unboundElements = totalElements - boundElements
 
-  // -----------------------------------------------------------------------
-  // Derived: field lookup map
-  // -----------------------------------------------------------------------
-  const fieldMap = useMemo(() => {
-    const map = new Map<string, FieldItem>()
-    for (const f of allFields) {
-      map.set(f.fieldId, f)
-    }
-    return map
-  }, [allFields])
+  // fieldMap moved above elementGroups (needed for schema-group grouping)
 
   // -----------------------------------------------------------------------
   // Derived: bulk generation items
