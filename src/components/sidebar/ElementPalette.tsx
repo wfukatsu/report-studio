@@ -3,13 +3,17 @@
  * Palette data (categories, icons, factories) lives in paletteData.tsx.
  */
 
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, Database } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { PALETTE_CATEGORIES } from './paletteData'
 import type { PaletteCategory } from './paletteData'
 import type { ReportElement } from '@/types'
-import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Tooltip } from '@/components/common/Tooltip'
+import { isSystemGroup } from '@/store/schemaSlice'
+import { SCHEMA_FIELD_MIME, SCHEMA_GROUP_MIME } from '@/components/bindingEditor/types'
+import type { SchemaFieldDragPayload, SchemaGroupDragPayload } from '@/components/bindingEditor/types'
+import { cn } from '@/lib/utils'
 
 // Re-export for consumers that import from this module
 export { PALETTE_CATEGORIES, PALETTE_ITEM_MAP } from './paletteData'
@@ -113,6 +117,110 @@ export function ElementPalette() {
       {PALETTE_CATEGORIES.map((cat) => (
         <CategoryPanel key={cat.category} category={cat} onAdd={handleAdd} />
       ))}
+      <SchemaFieldsSection />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Schema fields section — dynamic, from Zustand store
+// ---------------------------------------------------------------------------
+
+function SchemaFieldsSection() {
+  const schema = useReportStore((s) => s.definition.schema)
+  const [expanded, setExpanded] = useState(true)
+
+  const userGroups = useMemo(
+    () => (schema?.groups ?? []).filter((g) => !isSystemGroup(g.id)),
+    [schema?.groups],
+  )
+
+  if (userGroups.length === 0 || userGroups.every((g) => g.fields.length === 0)) {
+    return null // Hide section when no schema fields defined
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-1.5 px-1 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+      >
+        {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        <Database className="w-3 h-3" />
+        スキーマフィールド
+      </button>
+      {expanded && (
+        <div className="space-y-1.5 mb-2">
+          {userGroups.map((group) => {
+            const groupPayload: SchemaGroupDragPayload = {
+              groupId: group.id,
+              groupLabel: group.label,
+              groupRole: group.role,
+              groupDataKey: group.dataKey,
+              fields: group.fields.map((f) => ({
+                fieldId: f.id,
+                fieldKey: f.key,
+                fieldLabel: f.label || f.key,
+                fieldType: f.type,
+              })),
+            }
+            return (
+            <div key={group.id}>
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(SCHEMA_GROUP_MIME, JSON.stringify(groupPayload))
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
+                className="flex items-center gap-1 px-1 py-0.5 cursor-grab active:cursor-grabbing rounded hover:bg-muted/30"
+                title={`${group.label} — グループごとドラッグして繰り返しバンドにドロップ`}
+              >
+                <span className={cn(
+                  'text-[9px] px-1 py-px rounded font-medium',
+                  group.role === 'master'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'bg-amber-50 text-amber-600',
+                )}>
+                  {group.role === 'master' ? 'M' : 'D'}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium truncate">
+                  {group.label}
+                </span>
+                <span className="text-[9px] text-muted-foreground/50 ml-auto">{group.fields.length}件</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                {group.fields.map((field) => {
+                  const payload: SchemaFieldDragPayload = {
+                    fieldId: field.id,
+                    groupId: group.id,
+                    fieldKey: field.key,
+                    fieldLabel: field.label || field.key,
+                    fieldType: field.type,
+                    groupRole: group.role,
+                    groupDataKey: group.dataKey,
+                  }
+                  return (
+                    <Tooltip key={field.id} content={`${group.label}.${field.key} (${field.type})`} placement="bottom">
+                      <button
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData(SCHEMA_FIELD_MIME, JSON.stringify(payload))
+                          e.dataTransfer.effectAllowed = 'copy'
+                        }}
+                        className="w-full flex flex-col items-center gap-0.5 p-1.5 rounded-lg border border-dashed border-[#6366f1]/30 bg-[#6366f1]/5 hover:bg-[#6366f1]/10 hover:border-[#6366f1]/50 transition-colors text-xs cursor-grab active:cursor-grabbing"
+                      >
+                        <span className="text-[10px] font-mono truncate w-full text-center text-[#6366f1]">
+                          {field.label || field.key}
+                        </span>
+                      </button>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </div>
+          )})}
+        </div>
+      )}
     </div>
   )
 }

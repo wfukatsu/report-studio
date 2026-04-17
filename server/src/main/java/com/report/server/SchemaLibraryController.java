@@ -1,0 +1,308 @@
+package com.report.server;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.Principal;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Schema Library CRUD endpoints:
+ * <ul>
+ *   <li>GET    /api/v2/schema-library         — list (own + shared)</li>
+ *   <li>POST   /api/v2/schema-library         — create</li>
+ *   <li>GET    /api/v2/schema-library/{id}    — get</li>
+ *   <li>PUT    /api/v2/schema-library/{id}    — update</li>
+ *   <li>DELETE /api/v2/schema-library/{id}    — delete</li>
+ * </ul>
+ *
+ * Storage: {@code schema_library} table via {@link JsonBlobRepository}.
+ * Envelope: {@code {id, name, created_at, updated_at, created_by, visibility, definition}}
+ *
+ * <p>Visibility rules:
+ * <ul>
+ *   <li>{@code private} — only the owner can see/edit</li>
+ *   <li>{@code shared}  — all authenticated users can read, only owner can edit</li>
+ * </ul>
+ */
+public final class SchemaLibraryController {
+
+    private static final Logger log = LoggerFactory.getLogger(SchemaLibraryController.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final int MAX_NAME_LENGTH = 200;
+
+    private final JsonBlobRepository repo;
+
+    public SchemaLibraryController(JsonBlobRepository repo) {
+        this.repo = repo;
+    }
+
+    // -----------------------------------------------------------------------
+    // LIST — own + shared
+    // -----------------------------------------------------------------------
+
+    public void list(Context ctx) throws Exception {
+        Principal principal = ctx.attribute("principal");
+        String userId = (principal != null) ? principal.userId() : "";
+        List<String> blobs = repo.list();
+        ArrayNode items = MAPPER.createArrayNode();
+
+        for (String blob : blobs) {
+            try {
+                JsonNode envelope = MAPPER.readTree(blob);
+                String id = envelope.path("id").asText(null);
+                if (id == null || id.isBlank()) continue;
+
+                String owner = envelope.path("created_by").asText("");
+                String visibility = envelope.path("visibility").asText("private");
+
+                // Show own schemas + shared schemas
+                if (!owner.equals(userId) && !"shared".equals(visibility)) {
+                    continue;
+                }
+
+                ObjectNode item = MAPPER.createObjectNode();
+                item.put("id", id);
+                item.put("name", envelope.path("name").asText(""));
+                item.put("visibility", visibility);
+                item.put("createdBy", owner);
+                item.put("createdAt", toIso(envelope.path("created_at").asLong()));
+                item.put("updatedAt", toIso(envelope.path("updated_at").asLong()));
+                items.add(item);
+            } catch (Exception ignored) {
+                // skip malformed entries
+            }
+        }
+
+        ObjectNode response = MAPPER.createObjectNode();
+        response.set("items", items);
+        response.put("total", items.size());
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(response));
+    }
+
+    // -----------------------------------------------------------------------
+    // CREATE
+    // -----------------------------------------------------------------------
+
+    public void create(Context ctx) throws Exception {
+        String body = ctx.body();
+        if (body == null || body.isBlank()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Request body is required"));
+            return;
+        }
+
+        JsonNode input;
+        try {
+            input = MAPPER.readTree(body);
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid JSON"));
+            return;
+        }
+
+        String name = input.path("name").asText("").strip();
+        if (name.isEmpty()) name = "新しいスキーマ";
+        if (name.length() > MAX_NAME_LENGTH) name = name.substring(0, MAX_NAME_LENGTH);
+
+        String visibility = input.path("visibility").asText("private");
+        if (!"shared".equals(visibility)) visibility = "private";
+
+        JsonNode definition = input.path("definition");
+        if (definition.isMissingNode() || definition.isNull()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "definition is required"));
+            return;
+        }
+
+        Principal principal = ctx.attribute("principal");
+        String createdBy = (principal != null) ? principal.userId() : "unknown";
+
+        String id = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+
+        ObjectNode envelope = MAPPER.createObjectNode();
+        envelope.put("id", id);
+        envelope.put("name", name);
+        envelope.put("created_at", now);
+        envelope.put("updated_at", now);
+        envelope.put("created_by", createdBy);
+        envelope.put("visibility", visibility);
+        envelope.set("definition", definition);
+
+        repo.put(id, MAPPER.writeValueAsString(envelope), createdBy);
+
+        ctx.status(HttpStatus.CREATED);
+        ctx.contentType("application/json");
+        ObjectNode result = MAPPER.createObjectNode();
+        result.put("id", id);
+        result.put("name", name);
+        ctx.result(MAPPER.writeValueAsString(result));
+    }
+
+    // -----------------------------------------------------------------------
+    // GET
+    // -----------------------------------------------------------------------
+
+    public void get(Context ctx) throws Exception {
+        String id = RequestValidator.validateId(ctx);
+        if (id == null) return;
+
+        var stored = repo.get(id);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Schema not found"));
+            return;
+        }
+
+        JsonNode envelope = MAPPER.readTree(stored.get());
+
+        // Access check: owner or shared
+        if (!canRead(ctx, envelope)) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Schema not found"));
+            return;
+        }
+
+        // Return the definition portion
+        JsonNode definition = envelope.path("definition");
+        if (definition.isMissingNode()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Schema not found"));
+            return;
+        }
+
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(definition));
+    }
+
+    // -----------------------------------------------------------------------
+    // PUT
+    // -----------------------------------------------------------------------
+
+    public void put(Context ctx) throws Exception {
+        String id = RequestValidator.validateId(ctx);
+        if (id == null) return;
+
+        var stored = repo.get(id);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Schema not found"));
+            return;
+        }
+
+        JsonNode existingEnvelope = MAPPER.readTree(stored.get());
+
+        // Only owner can update
+        if (!isOwner(ctx, existingEnvelope)) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Schema not found"));
+            return;
+        }
+
+        String body = ctx.body();
+        if (body == null || body.isBlank()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Request body is required"));
+            return;
+        }
+
+        JsonNode input;
+        try {
+            input = MAPPER.readTree(body);
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid JSON"));
+            return;
+        }
+
+        // Preserve created_at and created_by
+        long createdAt = existingEnvelope.path("created_at").asLong(System.currentTimeMillis());
+        String createdBy = existingEnvelope.path("created_by").asText("unknown");
+
+        String name = input.path("name").asText("").strip();
+        if (name.isEmpty()) name = existingEnvelope.path("name").asText("スキーマ");
+        if (name.length() > MAX_NAME_LENGTH) name = name.substring(0, MAX_NAME_LENGTH);
+
+        String visibility = input.path("visibility").asText(
+                existingEnvelope.path("visibility").asText("private"));
+        if (!"shared".equals(visibility)) visibility = "private";
+
+        JsonNode definition = input.path("definition");
+        if (definition.isMissingNode() || definition.isNull()) {
+            definition = existingEnvelope.path("definition");
+        }
+
+        long now = System.currentTimeMillis();
+        ObjectNode envelope = MAPPER.createObjectNode();
+        envelope.put("id", id);
+        envelope.put("name", name);
+        envelope.put("created_at", createdAt);
+        envelope.put("updated_at", now);
+        envelope.put("created_by", createdBy);
+        envelope.put("visibility", visibility);
+        envelope.set("definition", definition);
+
+        repo.put(id, MAPPER.writeValueAsString(envelope), createdBy);
+
+        ctx.contentType("application/json");
+        ctx.result(MAPPER.writeValueAsString(Map.of("status", "saved", "id", id)));
+    }
+
+    // -----------------------------------------------------------------------
+    // DELETE
+    // -----------------------------------------------------------------------
+
+    public void delete(Context ctx) throws Exception {
+        String id = RequestValidator.validateId(ctx);
+        if (id == null) return;
+
+        var stored = repo.get(id);
+        if (stored.isPresent()) {
+            JsonNode envelope = MAPPER.readTree(stored.get());
+            if (!isOwner(ctx, envelope)) {
+                ctx.status(HttpStatus.NOT_FOUND);
+                ctx.json(Map.of("error", "Schema not found"));
+                return;
+            }
+        }
+
+        repo.delete(id);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    /** Returns true if caller is the owner (or dev mode with no auth). */
+    private static boolean isOwner(Context ctx, JsonNode envelope) {
+        Principal principal = ctx.attribute("principal");
+        if (principal == null) return true; // dev mode
+
+        String owner = envelope.path("created_by").asText("");
+        if (owner.isEmpty()) return true; // legacy
+
+        return owner.equals(principal.userId());
+    }
+
+    /** Returns true if caller can read (owner or shared visibility). */
+    private static boolean canRead(Context ctx, JsonNode envelope) {
+        if (isOwner(ctx, envelope)) return true;
+        return "shared".equals(envelope.path("visibility").asText("private"));
+    }
+
+    private static String toIso(long epochMillis) {
+        return Instant.ofEpochMilli(epochMillis).toString();
+    }
+}

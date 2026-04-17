@@ -39,6 +39,7 @@ public final class AppWiring {
     final JsonBlobRepository v2DefinitionsRepo;
     final JsonBlobRepository v2ResponseRepo;
     final V2TemplateController v2TemplateCtrl;
+    final SchemaLibraryController schemaLibraryCtrl;
     final V2EvaluateController v2EvalCtrl;
     final V2VersionController v2VersionCtrl;
     final V2FormResponseController v2FormResponseCtrl;
@@ -160,6 +161,11 @@ public final class AppWiring {
         submissionExportCtrl = new SubmissionExportController(projRepo);
         versionCtrl = new VersionController(versionRepo, projRepo);
         v2TemplateCtrl = new V2TemplateController(v2DefinitionsRepo);
+
+        // Schema Library
+        final JsonBlobRepository schemaLibraryRepo = new JsonBlobRepository(factory, NAMESPACE, "schema_library");
+        schemaLibraryRepo.ensureTable();
+        schemaLibraryCtrl = new SchemaLibraryController(schemaLibraryRepo);
         v2EvalCtrl = new V2EvaluateController();
         v2VersionCtrl = new V2VersionController(factory, v2DefinitionsRepo);
         v2VersionCtrl.ensureTable();

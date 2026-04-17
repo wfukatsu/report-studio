@@ -505,6 +505,10 @@ export interface RepeatingBandElement extends ElementBase {
   style?: TextStyle
   /** ヘッダーテキストスタイル */
   headerStyle?: TextStyle
+  /** ヘッダー行の高さ (mm)。省略時は itemHeight と同じ */
+  headerHeight?: number
+  /** セル内テキストの折り返し (default: false = nowrap + ellipsis) */
+  wrapText?: boolean
 }
 
 // ---------------------------------------------------------------------------

@@ -59,6 +59,12 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         <label className="flex items-center gap-1.5 text-xs cursor-pointer">
           <input type="checkbox" checked={el.showEmptyRowLines ?? false} onChange={(e) => onChange({ showEmptyRowLines: e.target.checked })} className="rounded" />空行罫線を表示 (最大件数まで)
         </label>
+        <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+          <input type="checkbox" checked={el.wrapText ?? false} onChange={(e) => onChange({ wrapText: e.target.checked })} className="rounded" />セル内テキストを折り返す
+        </label>
+        <PropRow label="ヘッダー行の高さ (mm)">
+          <NumInput value={el.headerHeight ?? el.itemHeight} onChange={(v) => onChange({ headerHeight: v })} min={3} step={0.5} unit="mm" />
+        </PropRow>
       </PropSection>
 
       <PropSection title="繰り返しバンド — 列定義">

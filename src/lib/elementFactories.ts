@@ -96,6 +96,23 @@ export function createDataFieldElement(overrides?: Partial<ReportElement>): Repo
   } as ReportElement
 }
 
+/**
+ * Create a dataField element pre-bound to a schema field.
+ * Used when dragging a schema field from the palette/schema tab onto the canvas.
+ */
+export function createDataFieldFromSchema(field: {
+  fieldId: string
+  fieldKey: string
+  fieldLabel: string
+}): ReportElement {
+  return createDataFieldElement({
+    fieldKey: field.fieldKey,
+    name: field.fieldLabel,
+    label: field.fieldLabel,
+    schemaBinding: { fieldId: field.fieldId },
+  })
+}
+
 export function createManualEntryField(overrides?: Partial<ReportElement>): ReportElement {
   return {
     id: uuidv4(),
