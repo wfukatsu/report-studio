@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useMemo, useRef, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import type {
   CalculationRule,
@@ -8,7 +8,15 @@ import type {
   SchemaField,
 } from '@/types'
 import { cn } from '@/lib/utils'
-import { evaluateExpression, JEXL_BUILTINS } from '@/lib/jexlEngine'
+import { evaluateExpression } from '@/lib/jexlEngine'
+import { FORMULA_FUNCTIONS } from '@/lib/formula/functionCatalog'
+import { formulaToJexl } from '@/lib/formula/expression/formulaToJexl'
+import type { UseFormulaEditorReturn } from '@/components/formulaEditor/useFormulaEditor'
+import { FormulaStatusBar } from '@/components/formulaEditor/FormulaStatusBar'
+import { FormulaToolbar } from '@/components/formulaEditor/FormulaToolbar'
+import type { FormulaValidationState } from '@/lib/formula/editor'
+
+const FormulaEditor = lazy(() => import('@/components/formulaEditor/FormulaEditor'))
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -208,14 +216,14 @@ function VariablePanel({
           <div>
             <p className="text-[9px] text-muted-foreground mb-0.5">組み込み関数</p>
             <div className="flex flex-wrap gap-1">
-              {JEXL_BUILTINS.map((fn) => (
+              {FORMULA_FUNCTIONS.map((fn) => (
                 <button
                   key={fn.name}
                   onClick={() => onInsert(`${fn.name}(`)}
                   className="px-1.5 py-0.5 text-[9px] font-mono bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900 transition-colors"
-                  title={fn.description}
+                  title={fn.descriptionJa}
                 >
-                  {fn.signature}
+                  {fn.name}({fn.args.map(a => a.name).join(', ')})
                 </button>
               ))}
             </div>
@@ -249,9 +257,11 @@ const RuleRow = memo(function RuleRow({
 }) {
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [isFocused, setIsFocused] = useState(false)
+  const [validationState, setValidationState] = useState<FormulaValidationState | undefined>()
+  const editorRef = useRef<UseFormulaEditorReturn | null>(null)
 
-  // Other rule keys (already excludes current key — safe to pass directly to VariablePanel)
+  // Race #5: only depend on peer rule keys, not full calculationRules
   const otherRuleKeys = useMemo(
     () => allKeys.filter((k) => k !== rule.key),
     [allKeys, rule.key],
@@ -262,7 +272,9 @@ const RuleRow = memo(function RuleRow({
     setTesting(true)
     setTestResult(null)
     try {
-      const result = await evaluateExpression(rule.expression, testData)
+      // Translate formula-v1 to JEXL for evaluation
+      const jexlExpr = formulaToJexl(rule.expression)
+      const result = await evaluateExpression(jexlExpr, testData)
       setTestResult(String(result))
     } catch (e) {
       setTestResult(`エラー: ${e instanceof Error ? e.message : String(e)}`)
@@ -272,16 +284,12 @@ const RuleRow = memo(function RuleRow({
   }
 
   function handleInsertToken(token: string) {
-    // textareaRef is always populated — the textarea renders unconditionally above VariablePanel
-    const ta = textareaRef.current!
-    const start = ta.selectionStart ?? rule.expression.length
-    const end = ta.selectionEnd ?? rule.expression.length
-    const newExpr = rule.expression.slice(0, start) + token + rule.expression.slice(end)
-    onUpdate({ expression: newExpr })
-    requestAnimationFrame(() => {
-      ta.focus()
-      ta.setSelectionRange(start + token.length, start + token.length)
-    })
+    if (editorRef.current) {
+      editorRef.current.insertAtCursor(token)
+    } else {
+      // Fallback for when editor is not focused (static mode)
+      onUpdate({ expression: rule.expression + token })
+    }
   }
 
   return (
@@ -327,19 +335,35 @@ const RuleRow = memo(function RuleRow({
         />
       </div>
 
-      {/* Expression */}
+      {/* Expression — focus-only CM6 virtualization (Performance #2) */}
       <div className="space-y-1">
-        <label className="text-[10px] text-muted-foreground">JEXL 式</label>
-        <textarea
-          ref={textareaRef}
-          className="w-full px-2 py-1 text-xs border border-border rounded bg-background font-mono resize-none"
-          rows={2}
-          maxLength={500}
-          value={rule.expression}
-          onChange={(e) => onUpdate({ expression: e.target.value })}
-          placeholder="price * quantity"
-          spellCheck={false}
-        />
+        <label className="text-[10px] text-muted-foreground">計算式</label>
+        {isFocused ? (
+          <Suspense
+            fallback={
+              <div className="border rounded-lg p-2 text-xs text-muted-foreground font-mono min-h-[40px]">
+                {rule.expression || '式を入力...'}
+              </div>
+            }
+          >
+            <FormulaEditor
+              initialValue={rule.expression}
+              onChange={(val) => onUpdate({ expression: val })}
+              onBlur={() => setIsFocused(false)}
+              editorRef={editorRef}
+            />
+            <FormulaToolbar onInsertFunction={handleInsertToken} />
+            <FormulaStatusBar validationState={validationState} />
+          </Suspense>
+        ) : (
+          <button
+            type="button"
+            className="w-full text-left px-2 py-1.5 text-xs border border-border rounded bg-background font-mono min-h-[40px] hover:border-primary/50 transition-colors cursor-text"
+            onClick={() => setIsFocused(true)}
+          >
+            {rule.expression || <span className="text-muted-foreground italic">式を入力...</span>}
+          </button>
+        )}
       </div>
 
       {/* Result type + onError */}
