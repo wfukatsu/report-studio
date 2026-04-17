@@ -14,6 +14,7 @@ import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { autocompletion } from '@codemirror/autocomplete'
 import type { SchemaGroup } from '@/types'
+import { FORMULA_FUNCTIONS, type FunctionDef } from '@/lib/formula/functionCatalog'
 import type { UseFormulaEditorReturn } from '@/components/formulaEditor/useFormulaEditor'
 import { FieldTreePanel } from '@/components/formulaEditor/FieldTreePanel'
 import { FormulaToolbar } from '@/components/formulaEditor/FormulaToolbar'
@@ -56,6 +57,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
   const [expression, setExpression] = useState(initialExpression ?? '')
   const [error, setError] = useState<string | null>(null)
   const [validationState, setValidationState] = useState<FormulaValidationState | undefined>()
+  const [selectedFn, setSelectedFn] = useState<FunctionDef | null>(null)
   // Race #4: tooltipParent via useState (not ref) to ensure re-render after mount
   const [dialogNode, setDialogNode] = useState<HTMLDivElement | null>(null)
   const editorRef = useRef<UseFormulaEditorReturn | null>(null)
@@ -103,6 +105,11 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
 
   const handleInsert = useCallback((text: string) => {
     editorRef.current?.insertAtCursor(text)
+  }, [])
+
+  const handleSelectFunction = useCallback((name: string) => {
+    const def = FORMULA_FUNCTIONS.find((f) => f.name === name) ?? null
+    setSelectedFn(def)
   }, [])
 
   const validate = useCallback(() => {
@@ -170,7 +177,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         {/* Body — 2 column: left=field/function list, right=inputs+help */}
         <div className="flex" style={{ height: 420 }}>
           {/* Left: Field tree panel */}
-          <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
+          <FieldTreePanel groups={contextGroups} onInsert={handleInsert} onSelectFunction={handleSelectFunction} />
 
           {/* Right: field name, formula, message, help */}
           <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
@@ -228,14 +235,52 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
             {/* ヘルプ */}
             <div className="flex-1 min-h-0">
               <label className="block text-xs font-medium mb-1">ヘルプ</label>
-              <div className="border border-border rounded text-[11px] text-muted-foreground p-2 h-full overflow-y-auto space-y-1">
-                <p>左パネルのフィールドや関数をクリックすると計算式に挿入されます。</p>
-                <p><strong>SUM / AVG / COUNT / MIN / MAX</strong> — 集計関数</p>
-                <p><strong>IF(条件, 真, 偽)</strong> — 条件分岐</p>
-                <p><strong>ROUND(値, 桁)</strong> — 四捨五入</p>
-                <p><strong>CONCAT(a, b)</strong> — 文字列結合</p>
-                <p><strong>TEXT(値)</strong> — 数値書式化</p>
-                <p><strong>FORMAT_DATE(日付, 書式)</strong> — 日付書式化</p>
+              <div className="border border-border rounded text-[11px] text-muted-foreground p-2 h-full overflow-y-auto space-y-1.5">
+                {selectedFn ? (
+                  <>
+                    <p className="font-semibold text-foreground text-xs">
+                      {selectedFn.name}({selectedFn.args.map((a) => a.optional ? `${a.name}?` : a.name).join(', ')})
+                      <span className="ml-2 font-normal text-muted-foreground">{selectedFn.labelJa}</span>
+                    </p>
+                    <p>{selectedFn.descriptionJa}</p>
+                    {selectedFn.args.length > 0 && (
+                      <div className="space-y-0.5">
+                        <p className="font-medium text-foreground">引数:</p>
+                        {selectedFn.args.map((arg) => (
+                          <p key={arg.name} className="pl-2">
+                            <code className="font-mono text-[#6E5DCF]">{arg.name}</code>
+                            <span className="text-muted-foreground"> ({arg.type})</span>
+                            {' — '}{arg.descriptionJa}
+                            {arg.optional && <span className="text-muted-foreground">（任意）</span>}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <p><span className="font-medium text-foreground">戻り値:</span> {selectedFn.returnType}</p>
+                    {selectedFn.examples.length > 0 && (
+                      <div className="space-y-0.5">
+                        <p className="font-medium text-foreground">例:</p>
+                        {selectedFn.examples.map((ex, i) => (
+                          <p key={i} className="pl-2 font-mono">
+                            {ex.formula}{ex.result && <span className="text-muted-foreground"> → {ex.result}</span>}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p>左パネルの関数をクリックすると詳細が表示されます。</p>
+                    <div className="space-y-0.5 mt-1">
+                      {FORMULA_FUNCTIONS.map((fn) => (
+                        <p key={fn.name}>
+                          <strong>{fn.name}</strong>
+                          <span className="text-muted-foreground"> — {fn.labelJa}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

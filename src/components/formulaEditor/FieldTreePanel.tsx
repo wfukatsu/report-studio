@@ -28,9 +28,11 @@ const ROLE_LABELS: Readonly<Record<string, string>> = {
 interface FieldTreePanelProps {
   readonly groups: readonly SchemaGroup[]
   readonly onInsert: (path: string) => void
+  /** Called when a function is selected (for help display). Does NOT insert. */
+  readonly onSelectFunction?: (name: string) => void
 }
 
-export function FieldTreePanel({ groups, onInsert }: FieldTreePanelProps) {
+export function FieldTreePanel({ groups, onInsert, onSelectFunction }: FieldTreePanelProps) {
   const searchId = useId()
   const [filter, setFilter] = useState('')
   const [activeTab, setActiveTab] = useState<PanelTab>('fields')
@@ -73,7 +75,7 @@ export function FieldTreePanel({ groups, onInsert }: FieldTreePanelProps) {
       </div>
 
       {activeTab === 'functions' ? (
-        <FunctionList onInsert={onInsert} />
+        <FunctionList onInsert={onInsert} onSelect={onSelectFunction} />
       ) : (
         <div className="flex-1 overflow-y-auto" role="tree" aria-label="フィールドツリー">
           {/* Search */}

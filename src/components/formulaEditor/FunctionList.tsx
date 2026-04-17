@@ -8,6 +8,8 @@ import { FORMULA_FUNCTIONS, CATEGORY_LABELS_JA, type FunctionCategory, type Func
 
 interface FunctionListProps {
   readonly onInsert: (template: string) => void
+  /** Called when a function row is clicked (for showing help). Does NOT insert. */
+  readonly onSelect?: (name: string) => void
 }
 
 type CategoryKey = FunctionCategory | 'all'
@@ -28,7 +30,7 @@ const CATEGORIES: readonly { key: CategoryKey; label: string; count: number }[] 
   })).filter((c) => c.count > 0),
 ]
 
-export function FunctionList({ onInsert }: FunctionListProps) {
+export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all')
   const [search, setSearch] = useState('')
   const [expandedFn, setExpandedFn] = useState<string | null>(null)
@@ -63,7 +65,8 @@ export function FunctionList({ onInsert }: FunctionListProps) {
 
   const handleToggle = useCallback((name: string) => {
     setExpandedFn((prev) => (prev === name ? null : name))
-  }, [])
+    onSelect?.(name)
+  }, [onSelect])
 
   const handleInsert = useCallback(
     (def: FunctionDef) => {
