@@ -15,9 +15,35 @@ import { linter } from '@codemirror/lint'
 import type { Diagnostic } from '@codemirror/lint'
 import type { EditorView } from '@codemirror/view'
 import { parse, ParseError } from '../expression'
+import type { VisualExpression } from '../expression/types'
 import { formulaToJexl } from '../expression/formulaToJexl'
 import { evaluateExpression } from '@/lib/jexlEngine'
 import type { SchemaFieldType } from '@/types'
+
+/** Extract all field_ref paths from an AST (used for cycle detection) */
+function extractFieldRefs(expr: VisualExpression): Set<string> {
+  const refs = new Set<string>()
+  function walk(node: VisualExpression): void {
+    switch (node.type) {
+      case 'field_ref':
+        refs.add(node.path)
+        break
+      case 'function':
+        for (const arg of node.args) walk(arg)
+        break
+      case 'binary_op':
+      case 'comparison':
+      case 'logical':
+        walk(node.left)
+        walk(node.right)
+        break
+      case 'literal':
+        break
+    }
+  }
+  walk(expr)
+  return refs
+}
 
 // ── Shared validation state ─────────────────────────────────────────────
 
@@ -59,11 +85,18 @@ const CHAR_WARNING_THRESHOLD = 450
 /**
  * Create a formula linter extension.
  *
- * @param previewContext - Optional context for preview evaluation (field values)
+ * @param options.previewContext - Optional context for preview evaluation (field values)
+ * @param options.currentKey - Key of the current rule (for cycle detection)
+ * @param options.peerRuleExpressions - Map of peer rule key → expression (for cycle detection)
  */
-export function createFormulaLinter(
-  previewContext?: Record<string, unknown>,
-) {
+export function createFormulaLinter(options?: {
+  readonly previewContext?: Record<string, unknown>
+  readonly currentKey?: string
+  readonly peerRuleExpressions?: ReadonlyMap<string, string>
+}) {
+  const previewContext = options?.previewContext
+  const currentKey = options?.currentKey
+  const peerRuleExpressions = options?.peerRuleExpressions
   return [
     formulaValidationField,
     linter(
@@ -104,6 +137,30 @@ export function createFormulaLinter(
 
         try {
           const ast = parse(doc)
+
+          // Cycle detection: check if this formula references a peer rule that references back
+          if (currentKey && peerRuleExpressions && peerRuleExpressions.size > 0) {
+            const refsInCurrent = extractFieldRefs(ast)
+            for (const ref of refsInCurrent) {
+              const peerExpr = peerRuleExpressions.get(ref)
+              if (peerExpr) {
+                try {
+                  const peerAst = parse(peerExpr)
+                  const peerRefs = extractFieldRefs(peerAst)
+                  if (peerRefs.has(currentKey)) {
+                    diagnostics.push({
+                      from: 0,
+                      to: doc.length,
+                      severity: 'error',
+                      message: `循環参照: ${currentKey} → ${ref} → ${currentKey}`,
+                    })
+                  }
+                } catch {
+                  // Peer parse failure — not our problem
+                }
+              }
+            }
+          }
 
           // Infer result type from AST
           if (ast.type === 'literal') {

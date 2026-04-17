@@ -254,4 +254,86 @@ class ExpressionEngineTest {
                 "formatDate('2026-04-12', 'yyyy年MM月dd日')", Map.of());
         assertEquals("2026年04月12日", result);
     }
+
+    // ── Formula-v1 translation layer ─────────────────────────────────────────
+
+    @Test
+    void translate_SUM_to_sum() {
+        assertEquals("sum(items)", ExpressionEngine.translateFormulaToJexl("SUM(items)"));
+    }
+
+    @Test
+    void translate_COUNT_to_count() {
+        assertEquals("count(rows)", ExpressionEngine.translateFormulaToJexl("COUNT(rows)"));
+    }
+
+    @Test
+    void translate_ROUND_to_round() {
+        assertEquals("round(val, 2)", ExpressionEngine.translateFormulaToJexl("ROUND(val, 2)"));
+    }
+
+    @Test
+    void translate_IF_to_ifExpr() {
+        assertEquals("ifExpr(x > 0, 'yes', 'no')", ExpressionEngine.translateFormulaToJexl("IF(x > 0, 'yes', 'no')"));
+    }
+
+    @Test
+    void translate_TEXT_to_formatNumber() {
+        assertEquals("formatNumber(price)", ExpressionEngine.translateFormulaToJexl("TEXT(price)"));
+    }
+
+    @Test
+    void translate_FORMAT_DATE_to_formatDate() {
+        assertEquals("formatDate(d, 'yyyy/MM/dd')", ExpressionEngine.translateFormulaToJexl("FORMAT_DATE(d, 'yyyy/MM/dd')"));
+    }
+
+    @Test
+    void translate_nested_functions() {
+        assertEquals("round(sum(items), 2)", ExpressionEngine.translateFormulaToJexl("ROUND(SUM(items), 2)"));
+    }
+
+    @Test
+    void translate_passthrough_plain_arithmetic() {
+        assertEquals("price * qty + 100", ExpressionEngine.translateFormulaToJexl("price * qty + 100"));
+    }
+
+    @Test
+    void translate_null_returns_null() {
+        assertNull(ExpressionEngine.translateFormulaToJexl(null));
+    }
+
+    @Test
+    void translate_blank_returns_blank() {
+        assertEquals("  ", ExpressionEngine.translateFormulaToJexl("  "));
+    }
+
+    // ── Formula-v1 expressions evaluated end-to-end ──────────────────────────
+
+    @Test
+    void calculate_formulaV1_SUM_evaluates() {
+        var items = List.of(
+                Map.of("price", 10.0),
+                Map.of("price", 20.0),
+                Map.of("price", 30.0)
+        );
+        Object result = ExpressionEngine.calculate("SUM(items, 'price')", Map.of("items", items));
+        assertEquals(60.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_formulaV1_ROUND_evaluates() {
+        Object result = ExpressionEngine.calculate("ROUND(value, 2)", Map.of("value", 12.567));
+        assertEquals(12.57, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_formulaV1_IF_evaluates() {
+        Object result = ExpressionEngine.calculate("IF(score >= 60, '合格', '不合格')", Map.of("score", 80));
+        assertEquals("合格", result);
+    }
+
+    @Test
+    void evaluate_formulaV1_condition_works() {
+        assertTrue(ExpressionEngine.evaluate("x > 3", Map.of("x", 5.0), 0));
+    }
 }

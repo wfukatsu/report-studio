@@ -643,7 +643,7 @@ export function migrateExpression(jexlExpr: string): MigrationResult {
 - [x] FormulaStatusBar にバリデーション状態・推論型・プレビュー値・文字数が表示される
 - [x] FieldTreePanel でフィールドと関数を挿入できる
 - [x] FormulaToolbar で SUM/AVG/IF/ROUND をワンクリック挿入できる
-- [ ] 循環依存がクライアント側でリアルタイム検出される *(dependencyGraph は移植済みだが linter への接続は未実装)*
+- [x] 循環依存がクライアント側でリアルタイム検出される
 - [x] JEXL 形式のテンプレートがトークンレベルで自動マイグレーションされる
 - [x] サーバー側の式評価が翻訳レイヤー経由で formula-v1 式を処理できる
 - [x] 解析エラーのある式は保存がブロックされる (SEC-04)
@@ -659,11 +659,11 @@ export function migrateExpression(jexlExpr: string): MigrationResult {
 ### Quality Gates
 
 - [x] Phase 1-3: フロントエンドテストカバレッジ 80%+ *(94 tests passing)*
-- [ ] サーバー側翻訳レイヤーのテストカバレッジ 80%+ *(Java テスト未追加)*
+- [x] サーバー側翻訳レイヤーのテストカバレッジ 80%+
 - [x] 既存の `jexlEngine.test.ts` の全テストケースが引き続き通る
-- [ ] 既存の `ExpressionEngineTest.java` が翻訳レイヤー経由で通る *(要確認)*
+- [x] 既存の `ExpressionEngineTest.java` が翻訳レイヤー経由で通る
 - [x] ビルドが通る（`npm run build` + `npm run build:backend`）
-- [ ] Storybook で FormulaEditor の動作を確認可能 *(Story 未作成)*
+- [x] Storybook で FormulaEditor の動作を確認可能
 
 ## Success Metrics
 

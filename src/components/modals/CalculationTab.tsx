@@ -14,7 +14,10 @@ import { formulaToJexl } from '@/lib/formula/expression/formulaToJexl'
 import type { UseFormulaEditorReturn } from '@/components/formulaEditor/useFormulaEditor'
 import { FormulaStatusBar } from '@/components/formulaEditor/FormulaStatusBar'
 import { FormulaToolbar } from '@/components/formulaEditor/FormulaToolbar'
+import { createFormulaLinter, setValidation } from '@/lib/formula/editor'
 import type { FormulaValidationState } from '@/lib/formula/editor'
+import { EditorView } from '@codemirror/view'
+import type { Extension } from '@codemirror/state'
 
 const FormulaEditor = lazy(() => import('@/components/formulaEditor/FormulaEditor'))
 
@@ -244,11 +247,13 @@ const RuleRow = memo(function RuleRow({
   duplicateKeySet,
   schemaFields,
   testData,
+  peerRuleExpressions,
   onUpdate,
   onRemove,
 }: {
   rule: CalculationRule
   allKeys: string[]
+  peerRuleExpressions: ReadonlyMap<string, string>
   duplicateKeySet: Set<string>
   schemaFields: { groupLabel: string; field: SchemaField }[]
   testData: Record<string, unknown>
@@ -348,6 +353,21 @@ const RuleRow = memo(function RuleRow({
           >
             <FormulaEditor
               initialValue={rule.expression}
+              dynamicExtensions={useMemo((): Extension[] => [
+                createFormulaLinter({
+                  currentKey: rule.key,
+                  peerRuleExpressions,
+                }),
+                EditorView.updateListener.of((update) => {
+                  for (const tr of update.transactions) {
+                    for (const effect of tr.effects) {
+                      if (effect.is(setValidation)) {
+                        setValidationState(effect.value)
+                      }
+                    }
+                  }
+                }),
+              ], [rule.key, peerRuleExpressions])}
               onChange={(val) => onUpdate({ expression: val })}
               onBlur={() => setIsFocused(false)}
               editorRef={editorRef}
@@ -469,6 +489,12 @@ export function CalculationTab() {
     [calculationRules],
   )
 
+  // Pre-compute peer rule expressions for cycle detection (Race #5: only keys + expressions, not full rules)
+  const peerRuleExpressionsByKey = useMemo(
+    () => new Map(calculationRules.map((r) => [r.key, r.expression])),
+    [calculationRules],
+  )
+
   // O(n) duplicate detection — passed to each RuleRow for O(1) lookup
   const duplicateKeySet = useMemo(() => {
     const seen = new Set<string>()
@@ -523,6 +549,7 @@ export function CalculationTab() {
               duplicateKeySet={duplicateKeySet}
               schemaFields={schemaFields}
               testData={testData}
+              peerRuleExpressions={peerRuleExpressionsByKey}
               onUpdate={(patch) => updateCalculationRule(rule.key, patch)}
               onRemove={() => removeCalculationRule(rule.key)}
             />
