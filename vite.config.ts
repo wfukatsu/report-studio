@@ -39,7 +39,7 @@ export default defineConfig({
         target: `http://localhost:${process.env.VITE_API_PORT ?? 8080}`,
         changeOrigin: true,
       },
-      '/api/v1/auth': {
+      '/api/v1': {
         target: `http://localhost:${process.env.VITE_API_PORT ?? 8080}`,
         changeOrigin: true,
       },
