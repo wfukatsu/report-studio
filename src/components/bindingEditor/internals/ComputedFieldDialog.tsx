@@ -167,13 +167,13 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
           </button>
         </div>
 
-        {/* Body — 2 column layout */}
-        <div className="flex" style={{ minHeight: 240 }}>
+        {/* Body — 2 column layout with fixed height to prevent resize on tab switch */}
+        <div className="flex" style={{ height: 340 }}>
           {/* Left: Field tree panel */}
           <FieldTreePanel groups={contextGroups} onInsert={handleInsert} />
 
           {/* Right: Name + Editor + Toolbar + StatusBar */}
-          <div className="flex-1 flex flex-col p-3 gap-2">
+          <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
             {/* Field name */}
             <div>
               <label className="block text-xs font-medium mb-1">フィールド名</label>
