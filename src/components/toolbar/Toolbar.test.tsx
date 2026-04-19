@@ -13,6 +13,13 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
   }
 })
 
+// Mock toast notifications (sonner)
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
+}))
+import { toast } from 'sonner'
+const mockToastError = vi.mocked(toast.error)
+
 // Mock export utilities so render doesn't fail on missing canvas refs
 vi.mock('@/lib/exportUtils', () => ({
   exportReportToPdf: vi.fn(),
@@ -156,18 +163,7 @@ describe('Toolbar — コピー/切り取り/貼り付け', () => {
   })
 })
 
-describe('Toolbar — 出力バリアント設定', () => {
-  it('renders variants button', () => {
-    renderToolbar()
-    expect(screen.getByRole('button', { name: '出力バリアント設定' })).toBeInTheDocument()
-  })
-
-  it('opens variants modal when clicked', () => {
-    renderToolbar()
-    fireEvent.click(screen.getByRole('button', { name: '出力バリアント設定' }))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
-  })
-})
+// Note: 出力バリアント設定 button was moved out of Toolbar into a separate component.
 
 describe('Toolbar — データ設定', () => {
   it('renders data button', () => {
@@ -177,9 +173,9 @@ describe('Toolbar — データ設定', () => {
 })
 
 describe('Toolbar — エクスポート', () => {
-  it('renders PDF export button', () => {
+  it('renders export dropdown button', () => {
     renderToolbar()
-    expect(screen.getByRole('button', { name: '全ページをPDFでエクスポート' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'エクスポート' })).toBeInTheDocument()
   })
 })
 
@@ -433,7 +429,7 @@ describe('Toolbar — バリデートボタン', () => {
     await userEvent.click(screen.getByRole('button', { name: 'バリデーション実行' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('バリデーションに失敗しました')
+      expect(mockToastError).toHaveBeenCalledWith('バリデーションに失敗しました', expect.any(Object))
     })
   })
 
@@ -476,5 +472,62 @@ describe('Toolbar — バリデートボタン', () => {
     // Badge should appear inside the validate button
     const btn = screen.getByRole('button', { name: 'バリデーション実行' })
     expect(btn.textContent).toContain('2')
+  })
+})
+
+describe('Toolbar — スタイルのコピー/貼り付け', () => {
+  it('style copy button is disabled when no element is selected', () => {
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'スタイルをコピー' })).toBeDisabled()
+  })
+
+  it('style paste button is disabled when no style in clipboard', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement()
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+
+    renderToolbar()
+    expect(screen.getByRole('button', { name: 'スタイルを貼り付け' })).toBeDisabled()
+  })
+
+  it('copies style on copy-style click and enables paste', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement({ style: { fontSize: 20, color: '#ff0000' } })
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+
+    renderToolbar()
+    fireEvent.click(screen.getByRole('button', { name: 'スタイルをコピー' }))
+
+    const clip = useReportStore.getState().styleClipboard
+    expect(clip).toBeTruthy()
+    expect(clip!.fontSize).toBe(20)
+    expect(clip!.color).toBe('#ff0000')
+  })
+
+  it('pastes style to selected element', () => {
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el1 = createTextElement({ style: { fontSize: 20, color: '#ff0000' } })
+    const el2 = createTextElement({ style: { fontSize: 10, color: '#000000' } })
+    store.addElement(page.id, el1)
+    store.addElement(page.id, el2)
+
+    // Copy style from el1
+    store.selectElement(el1.id, false)
+    store.copyStyle(page.id, el1.id)
+
+    // Select el2 and paste
+    store.selectElement(el2.id, false)
+    store.pasteStyle(page.id, [el2.id])
+
+    const updated = useReportStore.getState().definition.pages[0].sections
+      .flatMap((s) => s.elements)
+      .find((e) => e.id === el2.id) as { style: { fontSize: number; color: string } }
+    expect(updated.style.fontSize).toBe(20)
+    expect(updated.style.color).toBe('#ff0000')
   })
 })
