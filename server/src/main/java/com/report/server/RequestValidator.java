@@ -346,6 +346,70 @@ public final class RequestValidator {
         }
     }
 
+    // ── Schema definition validation ────────────────────────────────────────
+
+    private static final int MAX_SCHEMA_BODY_BYTES = 1_048_576; // 1MB
+    private static final int MAX_SCHEMA_GROUPS = 50;
+    private static final int MAX_SCHEMA_FIELDS_PER_GROUP = 200;
+    private static final int MAX_SCHEMA_DEPTH = 20;
+
+    /**
+     * Validate a schema definition JSON structure.
+     * Checks: body size (1MB), group count (50), field count per group (200), nesting depth (20).
+     *
+     * @param ctx  the Javalin context
+     * @param body the raw request body string
+     * @param definition the parsed definition node
+     * @return true if valid, false if invalid (response already sent)
+     */
+    public static boolean validateSchemaDefinition(Context ctx, String body, JsonNode definition) {
+        // 1. Size limit
+        if (body != null && body.length() > MAX_SCHEMA_BODY_BYTES) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Schema too large (max 1MB)"));
+            return false;
+        }
+
+        // 2. Definition must be an object
+        if (definition == null || !definition.isObject()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "definition must be a JSON object"));
+            return false;
+        }
+
+        // 3. Group count limit
+        JsonNode groups = definition.path("groups");
+        if (groups.isArray() && groups.size() > MAX_SCHEMA_GROUPS) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Too many groups (max " + MAX_SCHEMA_GROUPS + ")"));
+            return false;
+        }
+
+        // 4. Field count per group
+        if (groups.isArray()) {
+            for (JsonNode group : groups) {
+                JsonNode fields = group.path("fields");
+                if (fields.isArray() && fields.size() > MAX_SCHEMA_FIELDS_PER_GROUP) {
+                    String label = group.path("label").asText("unknown");
+                    ctx.status(HttpStatus.BAD_REQUEST);
+                    ctx.json(Map.of("error", "Too many fields in group '" + label + "' (max " + MAX_SCHEMA_FIELDS_PER_GROUP + ")"));
+                    return false;
+                }
+            }
+        }
+
+        // 5. Nesting depth check (reuse existing pattern)
+        int[] counts = {0};
+        int depth = measureDepthAndCount(definition, 0, counts);
+        if (depth > MAX_SCHEMA_DEPTH) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Schema definition too deeply nested (max " + MAX_SCHEMA_DEPTH + " levels)"));
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Validate that a request body is parseable JSON.
      *
