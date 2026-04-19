@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 import { memo, useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
-=======
-import { memo, useMemo } from 'react'
-import type { RepeatingBandElement } from '@/types'
->>>>>>> feat/formtable-excel-editing
 import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
 import { applyFormat } from '@/lib/numberFormatter'
@@ -33,9 +28,48 @@ const DEFAULT_GROUP_STYLE: TextStyle = {
   fontWeight: 'bold',
 }
 
-/** Build border shorthand from element settings */
-function borderStr(el: { borderWidth?: number; borderColor?: string }): string {
-  return `${el.borderWidth ?? DEFAULT_BORDER_WIDTH}mm solid ${el.borderColor ?? DEFAULT_BORDER_COLOR}`
+/** Resolve a border width/color with fallback chain, returning CSS shorthand or 'none' */
+function bdr(width: number | undefined, color: string | undefined): string {
+  const w = width ?? DEFAULT_BORDER_WIDTH
+  if (w <= 0) return 'none'
+  return `${w}mm solid ${color ?? DEFAULT_BORDER_COLOR}`
+}
+
+/** Outer frame border */
+function outerBorderStr(el: RepeatingBandElement): string {
+  return bdr(el.borderWidth, el.borderColor)
+}
+
+/** Header bottom border (below header row) */
+function headerBorderStr(el: RepeatingBandElement): string {
+  return bdr(
+    el.headerBorderWidth ?? el.innerBorderWidth ?? el.borderWidth,
+    el.headerBorderColor ?? el.innerBorderColor ?? el.borderColor,
+  )
+}
+
+/** Data row bottom border (between data rows) */
+function dataBorderStr(el: RepeatingBandElement): string {
+  return bdr(
+    el.dataBorderWidth ?? el.innerBorderWidth ?? el.borderWidth,
+    el.dataBorderColor ?? el.innerBorderColor ?? el.borderColor,
+  )
+}
+
+/** Column divider border (vertical lines between columns) */
+function columnBorderStr(el: RepeatingBandElement): string {
+  return bdr(
+    el.columnBorderWidth ?? el.innerBorderWidth ?? el.borderWidth,
+    el.columnBorderColor ?? el.innerBorderColor ?? el.borderColor,
+  )
+}
+
+/** Footer top border (above totals row — typically heavier) */
+function footerBorderStr(el: RepeatingBandElement): string {
+  return bdr(
+    el.footerBorderWidth ?? el.borderWidth,
+    el.footerBorderColor ?? el.borderColor,
+  )
 }
 
 /** Column percentage widths from field definitions (guards against zero total) */
@@ -68,7 +102,7 @@ function withTextStyle(base: React.CSSProperties, ts?: TextStyle): React.CSSProp
   if (!ts) return base
   return {
     ...base,
-    ...(ts.fontSize != null && { fontSize: `${ts.fontSize}mm` }),
+    ...(ts.fontSize != null && { fontSize: `${ts.fontSize}pt` }),
     ...(ts.fontWeight != null && { fontWeight: ts.fontWeight }),
     ...(ts.fontStyle != null && { fontStyle: ts.fontStyle }),
     ...(ts.color != null && { color: ts.color }),
@@ -95,17 +129,47 @@ function sortRecords(
   })
 }
 
-/** Resolve + format a field value */
+/** Check if a resolved value is numeric (finite number or numeric string) */
+function isNumericValue(v: unknown): boolean {
+  if (typeof v === 'number') return isFinite(v)
+  if (typeof v === 'string' && v !== '') return isFinite(Number(v))
+  return false
+}
+
+/** Default comma format applied to numeric values when no explicit format is set */
+const AUTO_COMMA_FORMAT = { type: 'comma' as const }
+
+/** Resolve + format a field value. Numeric values auto-format with comma separators. */
 function resolveAndFormat(record: Record<string, unknown>, field: RepeatingBandField): string {
   const raw = resolveField(record, field.key)
-  if (raw === '' || !field.format) return raw
-  return applyFormat(raw, field.format)
+  if (raw === '') return raw
+  if (field.format) return applyFormat(raw, field.format)
+  // Auto-apply comma formatting for numeric values without explicit format
+  if (isNumericValue(raw)) return applyFormat(raw, AUTO_COMMA_FORMAT)
+  return raw
+}
+
+/** Resolve the effective text-align for a field, auto-detecting numeric values */
+/** Resolve effective alignment: auto-right-align numeric values unless explicitly set to center */
+function effectiveAlign(field: RepeatingBandField, record: Record<string, unknown>): string {
+  // Explicit center or right — always honor
+  if (field.align === 'center' || field.align === 'right') return field.align
+  // align is undefined or 'left' — auto-detect numeric values and right-align them
+  const raw = resolveField(record, field.key)
+  return isNumericValue(raw) ? 'right' : 'left'
+}
+
+/** Convert text-align value to flexbox justifyContent */
+function alignToJustify(align: string): React.CSSProperties['justifyContent'] {
+  if (align === 'right') return 'flex-end'
+  if (align === 'center') return 'center'
+  return 'flex-start'
 }
 
 /** Format an aggregated number */
 function formatAggregate(value: number, field: RepeatingBandField): string {
   if (field.format) return applyFormat(value, field.format)
-  return value.toFixed(2).replace(/\.?0+$/, '') // remove trailing zeros: 300.00 → 300, 12.50 → 12.5
+  return applyFormat(value, AUTO_COMMA_FORMAT)
 }
 
 // ---------------------------------------------------------------------------
@@ -114,26 +178,28 @@ function formatAggregate(value: number, field: RepeatingBandField): string {
 
 /** Column header row */
 function HeaderRow({
-  fields, colPcts, bs, headerStyle, headerHeight,
+  fields, colPcts, hbs, cbs, headerStyle, headerHeight,
 }: {
   fields: readonly RepeatingBandField[]
   colPcts: string[]
-  bs: string
+  /** Header bottom border */
+  hbs: string
+  /** Column divider border */
+  cbs: string
   headerStyle?: TextStyle
   headerHeight?: number
 }) {
   return (
-    <div style={{ display: 'flex', flexShrink: 0, borderBottom: bs, ...(headerHeight != null ? { height: `${headerHeight}mm` } : {}) }}>
+    <div style={{ display: 'flex', flexShrink: 0, borderBottom: hbs, ...(headerHeight != null ? { height: `${headerHeight}mm` } : {}) }}>
       {fields.map((f, i) => (
         <div
           key={i}
           style={{
-            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? bs : undefined),
+            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? cbs : undefined),
             justifyContent: 'center',
             backgroundColor: headerStyle?.backgroundColor ?? DEFAULT_HEADER_BG,
             fontWeight: 'bold',
             color: headerStyle?.color ?? DEFAULT_HEADER_COLOR,
-            borderBottom: 'none',
           }}
         >
           {f.label}
@@ -145,13 +211,16 @@ function HeaderRow({
 
 /** Data row */
 function DataRow({
-  record, rowIdx, fields, colPcts, bs, oddBg, evenBg, hiddenFieldIndices, wrapText, itemHeight, ...rest
+  record, rowIdx, fields, colPcts, dbs, cbs, oddBg, evenBg, hiddenFieldIndices, wrapText, itemHeight, ...rest
 }: {
   record: Record<string, unknown>
   rowIdx: number
   fields: readonly RepeatingBandField[]
   colPcts: string[]
-  bs: string
+  /** Data row bottom border */
+  dbs: string
+  /** Column divider border */
+  cbs: string
   oddBg?: string
   evenBg?: string
   hiddenFieldIndices?: readonly number[]
@@ -160,14 +229,13 @@ function DataRow({
   'data-testid'?: string
 }) {
   return (
-    <div data-testid={rest['data-testid']} style={{ display: 'flex', flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? oddBg : evenBg, ...(itemHeight != null && !wrapText ? { height: `${itemHeight}mm` } : { minHeight: itemHeight != null ? `${itemHeight}mm` : undefined }) }}>
+    <div data-testid={rest['data-testid']} style={{ display: 'flex', flexShrink: 0, borderBottom: dbs, backgroundColor: rowIdx % 2 === 0 ? oddBg : evenBg, ...(itemHeight != null && !wrapText ? { height: `${itemHeight}mm` } : { minHeight: itemHeight != null ? `${itemHeight}mm` : undefined }) }}>
       {fields.map((f, i) => (
         <div
           key={i}
           style={{
-            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? bs : undefined, wrapText),
-            textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
-            borderBottom: bs,
+            ...baseCellLayout(colPcts[i], i < fields.length - 1 ? cbs : undefined, wrapText),
+            justifyContent: alignToJustify(effectiveAlign(f, record)),
           }}
         >
           {hiddenFieldIndices?.includes(i) ? '' : resolveAndFormat(record, f)}
@@ -179,28 +247,33 @@ function DataRow({
 
 /** Footer totals row */
 function FooterRow({
-  fields, colPcts, bs, records, totals, label,
+  fields, colPcts, cbs, fbs, records, totals, label,
 }: {
   fields: readonly RepeatingBandField[]
   colPcts: string[]
-  bs: string
+  /** Column divider border */
+  cbs: string
+  /** Footer top border */
+  fbs: string
   records: readonly Record<string, unknown>[]
   totals: readonly { fieldKey: string; formula: string; label?: string }[]
   label?: string
 }) {
   return (
-    <div style={{ display: 'flex', flexShrink: 0, borderTop: bs }}>
+    <div style={{ display: 'flex', flexShrink: 0, borderTop: fbs }}>
       {fields.map((f, i) => {
         const total = totals.find((t) => t.fieldKey === f.key)
         const value = total ? aggregateField(records as Record<string, unknown>[], f.key, total.formula as never) : null
+        // Totals cells are numeric — default to right-align
+        const align = f.align ?? (total ? 'right' : 'left')
         return (
           <div
             key={i}
             style={{
-              ...baseCellLayout(colPcts[i], i < fields.length - 1 ? bs : undefined),
+              ...baseCellLayout(colPcts[i], i < fields.length - 1 ? cbs : undefined),
               backgroundColor: DEFAULT_FOOTER_BG,
               fontWeight: 'bold',
-              textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
+              justifyContent: alignToJustify(align),
             }}
           >
             {value !== null
@@ -214,11 +287,11 @@ function FooterRow({
 }
 
 /** Empty row placeholders */
-function EmptyRows({ count, itemHeight, bs }: { count: number; itemHeight: number; bs: string }) {
+function EmptyRows({ count, itemHeight, dbs }: { count: number; itemHeight: number; dbs: string }) {
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <div key={`empty-${i}`} data-testid="empty-row-line" style={{ height: `${itemHeight}mm`, flexShrink: 0, borderBottom: bs }} />
+        <div key={`empty-${i}`} data-testid="empty-row-line" style={{ height: `${itemHeight}mm`, flexShrink: 0, borderBottom: dbs }} />
       ))}
     </>
   )
@@ -235,10 +308,12 @@ function BandContainer({
   bs: string
   children: React.ReactNode
 }) {
+  const isCompact = el.footerLayout === 'compact'
   return (
     <div style={{
       width: '100%',
-      height: '100%',
+      height: isCompact ? 'auto' : '100%',
+      minHeight: isCompact ? undefined : '100%',
       display: 'flex',
       flexDirection: 'column',
       border: bs,
@@ -400,68 +475,59 @@ function ColumnEditor({
 // ---------------------------------------------------------------------------
 
 function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: RepeatingBandElement; onFieldsChange?: (fields: RepeatingBandField[]) => void }) {
-  const bs = borderStr(el)
+  const obs = outerBorderStr(el)
+
+  // Empty state — no fields defined yet
+  if (el.fields.length === 0) {
+    return (
+      <BandContainer el={el} bs={obs}>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '2mm',
+          color: '#94a3b8',
+          fontSize: '3mm',
+          textAlign: 'center',
+          padding: '4mm',
+        }}>
+          <div style={{
+            width: '8mm',
+            height: '8mm',
+            borderRadius: '50%',
+            border: '0.5mm dashed #cbd5e1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '4mm',
+            color: '#cbd5e1',
+          }}>
+            +
+          </div>
+          <div>スキーマフィールドをドロップして列を追加</div>
+          <div style={{ fontSize: '2.5mm', color: '#cbd5e1' }}>
+            または右クリックで手動追加
+          </div>
+        </div>
+      </BandContainer>
+    )
+  }
+
+  const hbs = headerBorderStr(el)
+  const dbs = dataBorderStr(el)
+  const cbs = columnBorderStr(el)
+  const fbs = footerBorderStr(el)
   const colPcts = columnPercents(el.fields)
   const isGrouped = !!el.groupBy
   const PREVIEW_ROWS = 3
 
-<<<<<<< HEAD
   // Column context menu state
   const [colMenu, setColMenu] = useState<ColumnMenuState | null>(null)
 
   // Column resize via drag on separator
   const resizeRef = useRef<{ colIndex: number; startX: number; startWidths: number[] } | null>(null)
-=======
-  // Apply maxItems, sort, groupBy — memoized to avoid recomputation on every render
-  const { flatRows, sorted } = useMemo(() => {
-    const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
-
-    // Sort with smart numeric comparison
-    const sortKey = el.sortBy
-    const sortedRecords = sortKey
-      ? [...limited].sort((a, b) => {
-          const va = resolveField(a, sortKey)
-          const vb = resolveField(b, sortKey)
-          const numA = Number(va)
-          const numB = Number(vb)
-          const cmp = (!isNaN(numA) && !isNaN(numB) && va !== '' && vb !== '')
-            ? numA - numB
-            : String(va ?? '').localeCompare(String(vb ?? ''))
-          return el.sortOrder === 'desc' ? -cmp : cmp
-        })
-      : limited
-
-    // GroupBy
-    const groupByKey = el.groupBy
-    const groups = groupByKey
-      ? (() => {
-          const map = new Map<string, Record<string, unknown>[]>()
-          for (const record of sortedRecords) {
-            const key = String(resolveField(record, groupByKey) ?? '')
-            const group = map.get(key) ?? []
-            group.push(record)
-            map.set(key, group)
-          }
-          return Array.from(map, ([label, recs]) => ({ label, records: recs }))
-        })()
-      : [{ label: '', records: sortedRecords }]
-
-    // Flatten grouped rows
-    const rows: { type: 'group-header' | 'data'; record?: Record<string, unknown>; groupLabel?: string; rowIdx: number }[] = []
-    let globalRowIdx = 0
-    for (const group of groups) {
-      if (groupByKey && group.label) {
-        rows.push({ type: 'group-header', groupLabel: group.label, rowIdx: globalRowIdx })
-      }
-      for (const record of group.records) {
-        rows.push({ type: 'data', record, rowIdx: globalRowIdx })
-        globalRowIdx++
-      }
-    }
-
-    return { flatRows: rows, sorted: sortedRecords }
-  }, [records, el.maxItems, el.sortBy, el.sortOrder, el.groupBy])
->>>>>>> feat/formtable-excel-editing
 
   const handleResizeStart = useCallback((e: React.PointerEvent, colIndex: number) => {
     if (!onFieldsChange) return
@@ -508,21 +574,11 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
   }, [])
 
   return (
-<<<<<<< HEAD
-    <BandContainer el={el} bs={bs}>
+    <BandContainer el={el} bs={obs}>
       {/* Interactive header row (design mode) */}
-=======
-    <div style={{
-      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-      border: bs, boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden',
-      breakBefore: el.pageBreak === 'before' ? 'page' : undefined,
-      breakAfter: el.pageBreak === 'after' ? 'page' : undefined,
-    }}>
-      {/* Header row */}
->>>>>>> feat/formtable-excel-editing
       {el.showHeader && (
         <div
-          style={{ display: 'flex', flexShrink: 0, borderBottom: bs, ...(el.headerHeight != null ? { height: `${el.headerHeight}mm` } : {}) }}
+          style={{ display: 'flex', flexShrink: 0, borderBottom: hbs, ...(el.headerHeight != null ? { height: `${el.headerHeight}mm` } : {}) }}
           onPointerMove={handleResizeMove}
           onPointerUp={handleResizeEnd}
         >
@@ -562,14 +618,13 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
               )}
               {/* Column separator line */}
               {i < el.fields.length - 1 && (
-                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, borderRight: bs }} />
+                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, borderRight: cbs }} />
               )}
             </div>
           ))}
         </div>
       )}
 
-<<<<<<< HEAD
       {/* Column editor panel — rendered via portal to escape zoom transform */}
       {colMenu && onFieldsChange && createPortal(
         <ColumnEditor
@@ -608,7 +663,7 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
             alignItems: 'center',
             padding: '0 1mm',
             backgroundColor: el.headerStyle?.backgroundColor ?? '#e2e8f0',
-            borderBottom: bs,
+            borderBottom: dbs,
             fontWeight: 'bold',
             fontSize: CELL_FONT_SIZE,
             color: el.headerStyle?.color ?? DEFAULT_HEADER_COLOR,
@@ -616,9 +671,9 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
             ■ グループ 1
           </div>
           {Array.from({ length: 2 }, (_, rowIdx) => (
-            <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor, opacity: rowIdx === 0 ? 1 : 0.7 }}>
+            <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, borderBottom: dbs, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor, opacity: rowIdx === 0 ? 1 : 0.7 }}>
               {el.fields.map((f, i) => (
-                <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'], borderBottom: bs }}>
+                <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), justifyContent: alignToJustify(f.align ?? 'left') }}>
                   {rowIdx === 0
                     ? <span style={{ color: PLACEHOLDER_COLOR, fontStyle: 'italic' }}>{`{{${f.key}}}`}</span>
                     : <span style={{ color: MUTED_BAR_COLOR }}>▬▬</span>}
@@ -627,9 +682,9 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
             </div>
           ))}
           {el.showGroupSubtotals && (
-            <div data-testid="group-subtotal-preview" style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: (el.groupStyle ?? DEFAULT_GROUP_STYLE).backgroundColor ?? DEFAULT_GROUP_BG, borderBottom: bs }}>
+            <div data-testid="group-subtotal-preview" style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: (el.groupStyle ?? DEFAULT_GROUP_STYLE).backgroundColor ?? DEFAULT_GROUP_BG, borderBottom: dbs }}>
               {el.fields.map((f, i) => (
-                <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), fontWeight: 'bold', textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'], borderBottom: 'none' }}>
+                <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), fontWeight: 'bold', justifyContent: alignToJustify(f.align ?? 'left') }}>
                   {i === 0 ? '小計' : el.totals.find((t) => t.fieldKey === f.key) ? 'Σ' : ''}
                 </div>
               ))}
@@ -638,43 +693,22 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
         </>
       ) : (
         Array.from({ length: PREVIEW_ROWS }, (_, rowIdx) => (
-          <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor, opacity: rowIdx === 0 ? 1 : rowIdx === 1 ? 0.7 : 0.4 }}>
+          <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, borderBottom: dbs, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor, opacity: rowIdx === 0 ? 1 : rowIdx === 1 ? 0.7 : 0.4 }}>
             {el.fields.map((f, i) => (
-              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'], borderBottom: bs }}>
+              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), justifyContent: alignToJustify(f.align ?? 'left') }}>
                 {rowIdx === 0
                   ? <span style={{ color: PLACEHOLDER_COLOR, fontStyle: 'italic' }}>{`{{${f.key}}}`}</span>
                   : <span style={{ color: MUTED_BAR_COLOR }}>{'▬▬▬'.slice(0, 3 - rowIdx)}</span>}
-=======
-      {/* Data rows (with optional group headers) */}
-      {flatRows.length === 0 && !el.showEmptyRowLines ? (
-        <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '2.8mm', borderBottom: hasFooter ? bs : undefined }}>
-          データなし
-        </div>
-      ) : (
-        flatRows.map((row, idx) => {
-          if (row.type === 'group-header') {
-            return (
-              <div key={`gh-${idx}`} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: '#e5e7eb', borderBottom: bs, alignItems: 'center', paddingLeft: '1mm', fontSize: '2.8mm', fontWeight: 'bold' }}>
-                {row.groupLabel}
->>>>>>> feat/formtable-excel-editing
               </div>
-            )
-          }
-          return (
-            <div key={idx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: row.rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor }}>
-              {el.fields.map((f, i) => (
-                <div key={i} style={{ ...cellStyle(f.align, undefined, undefined, i < el.fields.length - 1 ? bs : undefined), width: colPcts[i], flexShrink: 0, display: 'flex', alignItems: 'center', borderBottom: bs }}>
-                  {resolveField(row.record!, f.key)}
-                </div>
-              ))}
-            </div>
-          )
-        })
+            ))}
+          </div>
+        ))
       )}
 
       {/* Repeat indicator */}
       <div style={{
-        flex: 1,
+        flex: el.footerLayout === 'compact' ? '0 0 auto' : 1,
+        minHeight: `${el.itemHeight}mm`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -683,14 +717,15 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
         background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(219,234,254,0.3) 4px, rgba(219,234,254,0.3) 8px)',
       }}>
         ↻ {el.maxItems > 0 ? `最大 ${el.maxItems} 件` : 'レコード数分 繰り返し'}
+        {el.footerLayout === 'compact' && ' (詰め)'}
       </div>
 
       {el.showFooter && el.totals.length > 0 && (
-        <div style={{ display: 'flex', flexShrink: 0, borderTop: bs }}>
+        <div style={{ display: 'flex', flexShrink: 0, borderTop: fbs }}>
           {el.fields.map((f, i) => {
             const total = el.totals.find((t) => t.fieldKey === f.key)
             return (
-              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined), backgroundColor: DEFAULT_FOOTER_BG, fontWeight: 'bold', textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'] }}>
+              <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), backgroundColor: DEFAULT_FOOTER_BG, fontWeight: 'bold', justifyContent: alignToJustify(f.align ?? 'left') }}>
                 {total
                   ? <span>{total.label ?? total.fieldKey} ({total.formula})</span>
                   : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
@@ -713,11 +748,15 @@ function FlatBandRenderer({
   el: RepeatingBandElement
   records: Record<string, unknown>[]
 }) {
-  const bs = borderStr(el)
+  const obs = outerBorderStr(el)
+  const hbs = headerBorderStr(el)
+  const dbs = dataBorderStr(el)
+  const cbs = columnBorderStr(el)
+  const fbs = footerBorderStr(el)
   const colPcts = columnPercents(el.fields)
   const hasFooter = el.showFooter && el.totals.length > 0
+  const isFixed = el.footerLayout !== 'compact'
 
-  // Sort first, then apply maxItems (so top-N items are selected after sort)
   const sorted = el.sortBy
     ? sortRecords(records, el.sortBy, el.sortOrder)
     : records
@@ -728,25 +767,34 @@ function FlatBandRenderer({
     : 0
 
   return (
-    <BandContainer el={el} bs={bs}>
+    <BandContainer el={el} bs={obs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
+        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
       )}
 
       {limited.length === 0 && !el.showEmptyRowLines ? (
-        <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: EMPTY_TEXT_COLOR, fontSize: CELL_FONT_SIZE, borderBottom: hasFooter ? bs : undefined }}>
+        <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: EMPTY_TEXT_COLOR, fontSize: CELL_FONT_SIZE }}>
           データなし
         </div>
       ) : (
         limited.map((record, rowIdx) => (
-          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} bs={bs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} wrapText={el.wrapText} itemHeight={el.itemHeight} />
+          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} dbs={dbs} cbs={cbs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} wrapText={el.wrapText} itemHeight={el.itemHeight} />
         ))
       )}
 
-      {emptyCount > 0 && <EmptyRows count={emptyCount} itemHeight={el.itemHeight} bs={bs} />}
+      {emptyCount > 0 && <EmptyRows count={emptyCount} itemHeight={el.itemHeight} dbs={dbs} />}
+
+      {/* Fixed mode: spacer with column dividers pushes footer to bottom */}
+      {isFixed && hasFooter && (
+        <div style={{ flex: 1, display: 'flex' }}>
+          {el.fields.map((f, i) => (
+            <div key={i} style={{ width: colPcts[i], borderRight: i < el.fields.length - 1 ? cbs : undefined }} />
+          ))}
+        </div>
+      )}
 
       {hasFooter && (
-        <FooterRow fields={el.fields} colPcts={colPcts} bs={bs} records={limited} totals={el.totals} label={el.totals[0]?.label} />
+        <FooterRow fields={el.fields} colPcts={colPcts} cbs={cbs} fbs={fbs} records={limited} totals={el.totals} label={el.totals[0]?.label} />
       )}
     </BandContainer>
   )
@@ -767,48 +815,45 @@ function GroupedBandRenderer({
   el: RepeatingBandElement & { groupBy: string }
   records: Record<string, unknown>[]
 }) {
-  const bs = borderStr(el)
+  const obs = outerBorderStr(el)
+  const hbs = headerBorderStr(el)
+  const dbs = dataBorderStr(el)
+  const cbs = columnBorderStr(el)
+  const fbs = footerBorderStr(el)
   const colPcts = columnPercents(el.fields)
   const hasFooter = el.showFooter && el.totals.length > 0
   const hasSubtotals = !!el.showGroupSubtotals && el.totals.length > 0
   const groupStyle = el.groupStyle ?? DEFAULT_GROUP_STYLE
 
-  // 1. Sort all records first (so top-N items are selected after sort)
   const sorted = el.sortBy
     ? sortRecords(records, el.sortBy, el.sortOrder)
     : records
 
-  // 2. Group sorted records
   let groups = groupRecords(sorted, el.groupBy)
 
-  // 3. Apply maxItems (after grouping, so groups get fair representation)
   if (el.maxItems > 0) {
     groups = applyGroupedMaxItems(groups, el.maxItems, hasSubtotals)
   }
 
-  // 4. Compute empty rows
   const consumedRows = countGroupedRows(groups, hasSubtotals)
   const emptyCount = el.showEmptyRowLines && el.maxItems > 0
     ? Math.max(0, el.maxItems - consumedRows)
     : 0
 
-  // 5. All records for grand total
   const allRecords = groups.flatMap((g) => g.records)
 
-  // Auto-hide groupBy field in data cells
   const hiddenFieldIndices = el.fields
     .map((f, i) => f.key === el.groupBy ? i : -1)
     .filter((i) => i >= 0)
 
   return (
-    <BandContainer el={el} bs={bs}>
+    <BandContainer el={el} bs={obs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} bs={bs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
+        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
       )}
 
       {groups.map((group, gIdx) => (
         <div key={gIdx} data-testid="group-section">
-          {/* Group header */}
           <div
             data-testid="group-header"
             style={withTextStyle({
@@ -818,7 +863,7 @@ function GroupedBandRenderer({
               alignItems: 'center',
               padding: '0 1mm',
               backgroundColor: el.headerStyle?.backgroundColor ?? '#e2e8f0',
-              borderBottom: bs,
+              borderBottom: dbs,
               fontWeight: 'bold',
               fontSize: CELL_FONT_SIZE,
               color: el.headerStyle?.color ?? DEFAULT_HEADER_COLOR,
@@ -827,7 +872,6 @@ function GroupedBandRenderer({
             ■ {group.groupValue}
           </div>
 
-          {/* Data rows */}
           {group.records.map((record, rowIdx) => (
             <DataRow
               key={rowIdx}
@@ -836,7 +880,8 @@ function GroupedBandRenderer({
               rowIdx={rowIdx}
               fields={el.fields}
               colPcts={colPcts}
-              bs={bs}
+              dbs={dbs}
+              cbs={cbs}
               oddBg={el.oddRowColor}
               evenBg={el.evenRowColor}
               hiddenFieldIndices={hiddenFieldIndices}
@@ -845,7 +890,6 @@ function GroupedBandRenderer({
             />
           ))}
 
-          {/* Group subtotal */}
           {hasSubtotals && (
             <div
               data-testid="group-subtotal"
@@ -854,19 +898,20 @@ function GroupedBandRenderer({
                 height: `${el.itemHeight}mm`,
                 flexShrink: 0,
                 backgroundColor: groupStyle.backgroundColor ?? DEFAULT_GROUP_BG,
-                borderBottom: bs,
+                borderBottom: dbs,
               }}
             >
               {el.fields.map((f, i) => {
                 const total = el.totals.find((t) => t.fieldKey === f.key)
                 const value = total ? aggregateField(group.records, f.key, total.formula) : null
+                const align = f.align ?? (total ? 'right' : 'left')
                 return (
                   <div
                     key={i}
                     style={{
-                      ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? bs : undefined),
+                      ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined),
                       fontWeight: groupStyle.fontWeight ?? 'bold',
-                      textAlign: (f.align ?? 'left') as React.CSSProperties['textAlign'],
+                      justifyContent: alignToJustify(align),
                       color: groupStyle.color,
                     }}
                   >
@@ -879,10 +924,18 @@ function GroupedBandRenderer({
         </div>
       ))}
 
-      {emptyCount > 0 && <EmptyRows count={emptyCount} itemHeight={el.itemHeight} bs={bs} />}
+      {emptyCount > 0 && <EmptyRows count={emptyCount} itemHeight={el.itemHeight} dbs={dbs} />}
+
+      {el.footerLayout !== 'compact' && hasFooter && (
+        <div style={{ flex: 1, display: 'flex' }}>
+          {el.fields.map((f, i) => (
+            <div key={i} style={{ width: colPcts[i], borderRight: i < el.fields.length - 1 ? cbs : undefined }} />
+          ))}
+        </div>
+      )}
 
       {hasFooter && (
-        <FooterRow fields={el.fields} colPcts={colPcts} bs={bs} records={allRecords} totals={el.totals} label={el.totals[0]?.label} />
+        <FooterRow fields={el.fields} colPcts={colPcts} cbs={cbs} fbs={fbs} records={allRecords} totals={el.totals} label={el.totals[0]?.label} />
       )}
     </BandContainer>
   )

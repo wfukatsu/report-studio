@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import type { RepeatingListElement, RepeatingListField } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
+import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
 
 // ---------------------------------------------------------------------------
 // Shared card component
@@ -28,7 +29,7 @@ function ItemCard({
   return (
     <div style={{ width: `${itemWidth}mm`, height: `${itemHeight}mm`, flexShrink: 0, border: borderStyle, borderRadius, backgroundColor: background ?? '#ffffff', position: 'relative', overflow: 'hidden', opacity }}>
       {fields.map((f, fi) => (
-        <div key={fi} style={{ position: 'absolute', left: `${f.x}mm`, top: `${f.y}mm`, width: `${f.width}mm`, height: `${f.height}mm`, fontSize: f.style?.fontSize ? `${f.style.fontSize}mm` : '2.8mm', fontWeight: f.style?.fontWeight, color: f.style?.color ?? '#374151', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        <div key={fi} style={{ position: 'absolute', left: `${f.x}mm`, top: `${f.y}mm`, width: `${f.width}mm`, height: `${f.height}mm`, fontSize: f.style?.fontSize ? `${f.style.fontSize}pt` : `${DEFAULT_CELL_FONT_SIZE_PT}pt`, fontWeight: f.style?.fontWeight, color: f.style?.color ?? '#374151', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
           {record
             ? (f.isLabel ? f.key : resolveField(record, f.key))
             : (f.isLabel ? f.key : `{{${f.key}}}`)}

@@ -4,16 +4,19 @@
  */
 import type { StateCreator } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import type { ReportElement, PageDef } from '@/types'
+import type { ReportElement, TextStyle, PageDef } from '@/types'
 import type { StoreState } from './types'
 import { flattenPageElements } from './selectors'
 import { clearHistoryTimer } from './historyTimer'
 
 export type ClipboardSlice = Pick<StoreState,
   | 'clipboard'
+  | 'styleClipboard'
   | 'copyElements'
   | 'cutElements'
   | 'pasteElements'
+  | 'copyStyle'
+  | 'pasteStyle'
 >
 
 export const createClipboardSlice: StateCreator<
@@ -23,6 +26,7 @@ export const createClipboardSlice: StateCreator<
   ClipboardSlice
 > = (set, get) => ({
   clipboard: null,
+  styleClipboard: null,
 
   copyElements: (pageId, elementIds) => {
     const page = get().definition.pages.find((p) => p.id === pageId)
@@ -82,6 +86,34 @@ export const createClipboardSlice: StateCreator<
         newIds.push(copy.id)
       })
       s.selection.selectedElementIds = newIds
+    })
+    get().pushHistory()
+  },
+
+  copyStyle: (pageId, elementId) => {
+    const page = get().definition.pages.find((p) => p.id === pageId)
+    if (!page) return
+    const el = flattenPageElements(page).find((e) => e.id === elementId)
+    if (!el || !('style' in el) || !el.style) return
+    set((s) => {
+      s.styleClipboard = JSON.parse(JSON.stringify(el.style)) as TextStyle
+    })
+  },
+
+  pasteStyle: (pageId, elementIds) => {
+    clearHistoryTimer()
+    const styleClip = get().styleClipboard
+    if (!styleClip || elementIds.length === 0) return
+    set((s) => {
+      const page = s.definition.pages.find((p) => p.id === pageId)
+      if (!page) return
+      for (const section of page.sections ?? []) {
+        for (const el of section.elements) {
+          if (elementIds.includes(el.id) && 'style' in el && el.style) {
+            ;(el as { style: TextStyle }).style = JSON.parse(JSON.stringify(styleClip)) as TextStyle
+          }
+        }
+      }
     })
     get().pushHistory()
   },

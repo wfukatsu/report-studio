@@ -53,7 +53,7 @@ describe('ResponsesPanel — offline / no template', () => {
   it('shows hint when connected but no templateId', () => {
     useReportStore.getState().setBackendConnected(true)
     render(<ResponsesPanel />)
-    expect(screen.getByText(/バックエンドに接続/)).toBeInTheDocument()
+    expect(screen.getByText(/テンプレートが未選択です/)).toBeInTheDocument()
   })
 })
 
@@ -128,11 +128,6 @@ describe('ResponsesPanel — delete', () => {
   beforeEach(() => {
     useReportStore.getState().setBackendConnected(true)
     useReportStore.getState().setCurrentTemplateId('tpl-1')
-    vi.stubGlobal('confirm', vi.fn(() => true))
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
   })
 
   it('calls deleteResponse and refreshes list on confirm', async () => {
@@ -140,18 +135,27 @@ describe('ResponsesPanel — delete', () => {
     mockDelete.mockResolvedValueOnce(undefined as never)
     render(<ResponsesPanel />)
     await waitFor(() => expect(screen.getAllByRole('button', { name: '削除' }).length).toBeGreaterThan(0))
+    // Click delete button — opens ConfirmDialog
     fireEvent.click(screen.getAllByRole('button', { name: '削除' })[0])
+    // Confirm the deletion in the dialog
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    const dialogDeleteButtons = screen.getAllByText('削除')
+    // Click the confirm button inside the dialog (last one is the dialog's confirm)
+    fireEvent.click(dialogDeleteButtons[dialogDeleteButtons.length - 1])
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('tpl-1', 'r1'))
     // delete triggers invalidateResponsesCache + fetchResponses(true) + possible extra re-fetch
     expect(mockList.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
   it('does not delete when user cancels confirm', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => false))
     mockList.mockResolvedValue(SAMPLE_LIST)
     render(<ResponsesPanel />)
     await waitFor(() => expect(screen.getAllByRole('button', { name: '削除' }).length).toBeGreaterThan(0))
+    // Click delete button — opens ConfirmDialog
     fireEvent.click(screen.getAllByRole('button', { name: '削除' })[0])
+    // Cancel the dialog
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('キャンセル'))
     expect(mockDelete).not.toHaveBeenCalled()
   })
 })

@@ -20,20 +20,6 @@ function makeTextElement(id: string, content: string): ReportElement {
   } as ReportElement
 }
 
-function makeLabelElement(id: string, content: string): ReportElement {
-  return {
-    id,
-    type: 'label' as const,
-    content,
-    position: { x: 0, y: 0 },
-    size: { width: 50, height: 10 },
-    zIndex: 0,
-    locked: false,
-    visible: true,
-    style: {},
-  } as ReportElement
-}
-
 function makeShapeElement(id: string): ReportElement {
   return {
     id,
@@ -152,8 +138,8 @@ describe('applyVariant — fullReplace masking', () => {
     expect((resultEl as { content: string }).content).toBe('***')
   })
 
-  it('replaces content of label elements', () => {
-    const el = makeLabelElement('e1', 'label text')
+  it('replaces content of another text element', () => {
+    const el = makeTextElement('e1', 'sensitive text')
     const variant = makeVariant({
       maskingRules: [{ id: 'r1', targetElementId: 'e1', type: 'fullReplace', replaceValue: 'MASKED' }],
     })
@@ -215,14 +201,14 @@ describe('applyVariant — partial masking', () => {
     expect((result[0].sections[0].elements[0] as { content: string }).content).toBe('abc')
   })
 
-  it('masks only non-text element types (partial does not apply)', () => {
-    const el = makeLabelElement('e1', 'some label')
+  it('skips partial masking for non-text element types', () => {
+    const el = makeShapeElement('e1')
     const variant = makeVariant({
       maskingRules: [{ id: 'r1', targetElementId: 'e1', type: 'partial', keepFirst: 1, keepLast: 1 }],
     })
     const result = applyVariant([makePage([el])], variant)
-    // label type is not 'text' — partial rule skips
-    expect((result[0].sections[0].elements[0] as { content: string }).content).toBe('some label')
+    // shape type is not 'text' — partial rule skips
+    expect(result[0].sections[0].elements[0]).toMatchObject({ id: 'e1', type: 'shape' })
   })
 
   it('masks keepFirst only when keepLast omitted', () => {

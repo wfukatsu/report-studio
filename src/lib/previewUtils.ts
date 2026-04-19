@@ -34,9 +34,16 @@ const HAS_TEMPLATE = /\{\{[^}]+\}\}/
 export function isDataEmptyInPreview(
   element: ReportElement,
   data: Record<string, unknown>,
+  calculationOutputKeys?: Set<string>,
 ): boolean {
   switch (element.type) {
     case 'dataField':
+      // Never hide calculated fields — their value may not have arrived yet
+      // (async evaluation via useEvaluator) but they will resolve eventually.
+      if (calculationOutputKeys?.has(element.fieldKey)) return false
+      // Never hide fields that have fallbackText — the renderer will show it
+      // when the bound data is empty (e.g. sample data not configured).
+      if (element.fallbackText) return false
       // resolveField() returns '' for missing / null / undefined keys
       return resolveField(data, element.fieldKey) === ''
 

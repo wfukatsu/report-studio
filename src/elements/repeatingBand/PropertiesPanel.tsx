@@ -1,5 +1,49 @@
+import { useState } from 'react'
 import type { RepeatingBandElement, RepeatingBandField, RepeatingBandTotal, CalculationFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+
+// ---------------------------------------------------------------------------
+// Border presets
+// ---------------------------------------------------------------------------
+
+interface BorderPreset {
+  label: string
+  icon: string
+  patch: Partial<RepeatingBandElement>
+}
+
+const BORDER_PRESETS: BorderPreset[] = [
+  {
+    label: '全罫線',
+    icon: '▦',
+    patch: { borderWidth: 0.3, headerBorderWidth: 0.3, dataBorderWidth: 0.3, columnBorderWidth: 0.3, footerBorderWidth: 0.3 },
+  },
+  {
+    label: '外枠のみ',
+    icon: '▢',
+    patch: { borderWidth: 0.3, headerBorderWidth: 0, dataBorderWidth: 0, columnBorderWidth: 0, footerBorderWidth: 0 },
+  },
+  {
+    label: '帳票標準',
+    icon: '▤',
+    patch: { borderWidth: 0.5, headerBorderWidth: 0.5, dataBorderWidth: 0.2, columnBorderWidth: 0.2, footerBorderWidth: 0.5 },
+  },
+  {
+    label: 'ヘッダー太',
+    icon: '▔',
+    patch: { borderWidth: 0.3, headerBorderWidth: 0.5, dataBorderWidth: 0.3, columnBorderWidth: 0.3, footerBorderWidth: 0.3 },
+  },
+  {
+    label: '合計太',
+    icon: '▁',
+    patch: { borderWidth: 0.3, headerBorderWidth: 0.3, dataBorderWidth: 0.3, columnBorderWidth: 0.3, footerBorderWidth: 0.5 },
+  },
+  {
+    label: '罫線なし',
+    icon: '⊘',
+    patch: { borderWidth: 0, headerBorderWidth: 0, dataBorderWidth: 0, columnBorderWidth: 0, footerBorderWidth: 0 },
+  },
+]
 
 interface Props {
   el: RepeatingBandElement
@@ -16,6 +60,36 @@ const FORMAT_OPTIONS = [
   { value: 'comma', label: 'カンマ区切り' },
   { value: 'kanji_numeral', label: '大字 (壱百万)' },
 ] as const
+
+/** Collapsible border detail settings */
+function BorderDetailSettings({ el, onChange }: Props) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div>
+      <button
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground w-full py-1"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="text-[8px]">{open ? '▼' : '▶'}</span>
+        罫線の詳細設定
+      </button>
+      {open && (
+        <div className="space-y-1 pl-2 border-l-2 border-muted">
+          <PropRow label="外枠の色"><ColorInput value={el.borderColor} onChange={(v) => onChange({ borderColor: v })} /></PropRow>
+          <PropRow label="外枠の幅"><NumInput value={el.borderWidth} onChange={(v) => onChange({ borderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+          <PropRow label="ヘッダー下の色"><ColorInput value={el.headerBorderColor ?? el.borderColor} onChange={(v) => onChange({ headerBorderColor: v })} /></PropRow>
+          <PropRow label="ヘッダー下の幅"><NumInput value={el.headerBorderWidth ?? el.innerBorderWidth ?? el.borderWidth} onChange={(v) => onChange({ headerBorderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+          <PropRow label="データ行間の色"><ColorInput value={el.dataBorderColor ?? el.borderColor} onChange={(v) => onChange({ dataBorderColor: v })} /></PropRow>
+          <PropRow label="データ行間の幅"><NumInput value={el.dataBorderWidth ?? el.innerBorderWidth ?? el.borderWidth} onChange={(v) => onChange({ dataBorderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+          <PropRow label="列区切りの色"><ColorInput value={el.columnBorderColor ?? el.borderColor} onChange={(v) => onChange({ columnBorderColor: v })} /></PropRow>
+          <PropRow label="列区切りの幅"><NumInput value={el.columnBorderWidth ?? el.innerBorderWidth ?? el.borderWidth} onChange={(v) => onChange({ columnBorderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+          <PropRow label="フッター上の色"><ColorInput value={el.footerBorderColor ?? el.borderColor} onChange={(v) => onChange({ footerBorderColor: v })} /></PropRow>
+          <PropRow label="フッター上の幅"><NumInput value={el.footerBorderWidth ?? el.borderWidth} onChange={(v) => onChange({ footerBorderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
   /** Update a single field in the fields array immutably */
@@ -56,6 +130,18 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
             <input type="checkbox" checked={el.showFooter} onChange={(e) => onChange({ showFooter: e.target.checked })} className="rounded" />フッター（集計）行
           </label>
         </div>
+        {el.showFooter && (
+          <PropRow label="フッター配置">
+            <SelectInput
+              value={el.footerLayout ?? 'fixed'}
+              onChange={(v) => onChange({ footerLayout: v as 'compact' | 'fixed' })}
+              options={[
+                { value: 'fixed', label: '下端に固定' },
+                { value: 'compact', label: 'データ行に詰める' },
+              ]}
+            />
+          </PropRow>
+        )}
         <label className="flex items-center gap-1.5 text-xs cursor-pointer">
           <input type="checkbox" checked={el.showEmptyRowLines ?? false} onChange={(e) => onChange({ showEmptyRowLines: e.target.checked })} className="rounded" />空行罫線を表示 (最大件数まで)
         </label>
@@ -169,6 +255,26 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         )}
       </PropSection>
 
+      <PropSection title="繰り返しバンド — 罫線">
+        <div className="space-y-2">
+          <span className="text-[10px] text-muted-foreground font-medium">プリセット</span>
+          <div className="grid grid-cols-3 gap-1">
+            {BORDER_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                className="flex flex-col items-center gap-0.5 p-1.5 rounded border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-xs"
+                onClick={() => onChange(preset.patch)}
+                title={preset.label}
+              >
+                <span className="text-base leading-none">{preset.icon}</span>
+                <span className="text-[9px] leading-tight">{preset.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <BorderDetailSettings el={el} onChange={onChange} />
+      </PropSection>
+
       <PropSection title="繰り返しバンド — 外観">
         {el.showHeader && (
           <>
@@ -178,8 +284,6 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         )}
         <PropRow label="奇数行の背景色"><ColorInput value={el.oddRowColor} onChange={(v) => onChange({ oddRowColor: v })} /></PropRow>
         <PropRow label="偶数行の背景色（縞模様）"><ColorInput value={el.evenRowColor} onChange={(v) => onChange({ evenRowColor: v })} /></PropRow>
-        <PropRow label="枠線色"><ColorInput value={el.borderColor} onChange={(v) => onChange({ borderColor: v })} /></PropRow>
-        <PropRow label="枠線幅"><NumInput value={el.borderWidth} onChange={(v) => onChange({ borderWidth: v })} min={0} step={0.1} unit="mm" /></PropRow>
       </PropSection>
 
       <PropSection title="繰り返しバンド — ページ">

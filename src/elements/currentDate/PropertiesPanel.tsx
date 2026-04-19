@@ -61,7 +61,7 @@ export function CurrentDatePropertiesPanel({ el, onChange }: Props) {
           </select>
         </PropRow>
         <PropRow label="サイズ">
-          <NumInput value={style.fontSize ?? 3} onChange={(v) => onStyle({ fontSize: v })} min={1} step={0.5} unit="mm" />
+          <NumInput value={style.fontSize ?? 10} onChange={(v) => onStyle({ fontSize: v })} min={1} step={0.5} unit="pt" />
         </PropRow>
         <div>
           <span className="text-[10px] text-muted-foreground">スタイル</span>

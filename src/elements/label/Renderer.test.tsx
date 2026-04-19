@@ -53,7 +53,7 @@ describe('LabelRenderer — 基本', () => {
   it('applies font size', () => {
     const { container } = render(<LabelRenderer element={makeElement({ style: s({ fontSize: 6 }) })} />)
     const { textContentInner } = getDomLevels(container)
-    expect(textContentInner.style.fontSize).toBe('6mm')
+    expect(textContentInner.style.fontSize).toBe('6pt')
   })
 
   it('applies text color', () => {

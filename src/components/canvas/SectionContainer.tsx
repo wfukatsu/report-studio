@@ -46,6 +46,8 @@ interface Props {
   section: Section
   pageId: string
   selectedIds: Set<string>
+  /** Element ID to highlight as a drop target (schema field/group drag-over) */
+  dropHighlightId?: string | null
   onSelectElement: (id: string, multi: boolean) => void
   onMoveElement: (id: string, position: { x: number; y: number }) => void
   onResizeElement: (id: string, size: { width: number; height: number }) => void
@@ -64,6 +66,7 @@ export const SectionContainer = memo(function SectionContainer({
   section,
   pageId,
   selectedIds,
+  dropHighlightId,
   onSelectElement,
   onMoveElement,
   onResizeElement,
@@ -196,6 +199,7 @@ export const SectionContainer = memo(function SectionContainer({
             key={element.id}
             element={effectiveElement}
             isSelected={selectedIds.has(element.id)}
+            isDropTarget={dropHighlightId === element.id}
             onSelect={onSelectElement}
             onMove={onMoveElement}
             onResize={onResizeElement}

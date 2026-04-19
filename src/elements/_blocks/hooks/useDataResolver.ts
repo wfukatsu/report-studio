@@ -41,7 +41,7 @@ export function useDataResolver(
         return { resolved: fallbackText ?? '', raw: rawValue, error: null }
       }
       const formatted = format
-        ? applyFormat(rawValue, format)
+        ? applyFormat(rawValue, format, { data, fieldKey })
         : String(rawValue)
       return { resolved: formatted, raw: rawValue, error: null }
     } catch (e) {

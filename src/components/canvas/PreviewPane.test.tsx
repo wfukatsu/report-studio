@@ -21,11 +21,11 @@ beforeEach(() => {
 describe('PreviewPane', () => {
   it('renders nothing when there are no pages', () => {
     // Remove all pages so selectActivePage returns null
-    useReportStore.setState((state) => ({
-      ...state,
+    const state = useReportStore.getState()
+    useReportStore.setState({
       definition: { ...state.definition, pages: [] },
       selection: { ...state.selection, activePageId: null },
-    }))
+    })
     const { container } = render(<PreviewPane />)
     expect(container.firstChild).toBeNull()
   })

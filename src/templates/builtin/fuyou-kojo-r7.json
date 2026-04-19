@@ -77,7 +77,7 @@
                 "visible": true,
                 "content": "令和７年分　給与所得者の扶養控除等（異動）申告書",
                 "style": {
-                  "fontSize": 4.5,
+                  "fontSize": 13,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -121,7 +121,7 @@
                 "visible": true,
                 "content": "扶",
                 "style": {
-                  "fontSize": 7,
+                  "fontSize": 20,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -165,7 +165,7 @@
                 "visible": true,
                 "content": "従たる給与についての\n扶養控除等申告書の提出\n（副から分けている場合のみ\n○をつけてください）",
                 "style": {
-                  "fontSize": 1.6,
+                  "fontSize": 4.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -188,7 +188,7 @@
                 "visible": true,
                 "content": "○",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -211,7 +211,7 @@
                 "visible": true,
                 "content": "○この申告書は、あなたの給与について扶養控除等を受けるために提出するものです。○パートやアルバイトの人についても、この申告書を提出する必要があります。○この申告書は、あなたの給与の支払者を経由して、提出先の各長に提出してください。なお、記載に当たっては、裏面の「2 記載についてのご注意」をお読みください。",
                 "style": {
-                  "fontSize": 1.6,
+                  "fontSize": 4.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -294,7 +294,7 @@
                 "visible": true,
                 "content": "所轄税務署長等",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -318,7 +318,7 @@
                 "visible": true,
                 "content": "給与の支払者の\n名称（氏名）",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -345,7 +345,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -367,7 +367,7 @@
                 "visible": true,
                 "content": "（フリガナ）",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -390,7 +390,7 @@
                 "visible": true,
                 "content": "あなたの氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -419,7 +419,7 @@
                 "furiganaDataSource": "employee.furigana",
                 "furiganaRatio": 0.55,
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -441,7 +441,7 @@
                 "visible": true,
                 "content": "あなたの生年月日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -484,7 +484,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -509,7 +509,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -534,7 +534,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -556,7 +556,7 @@
                 "visible": true,
                 "content": "世帯主の氏名",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -582,7 +582,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -604,7 +604,7 @@
                 "visible": true,
                 "content": "あなたとの続柄",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -630,7 +630,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -672,7 +672,7 @@
                 "visible": true,
                 "content": "税務署長",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -696,7 +696,7 @@
                 "visible": true,
                 "content": "給与の支払者の\n法人（個人）番号",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -720,7 +720,7 @@
                 "visible": true,
                 "content": "※この申告書の提出を受けた給与の支払者が記載してください。",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -743,7 +743,7 @@
                 "visible": true,
                 "content": "あなたの個人番号",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -770,7 +770,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -792,7 +792,7 @@
                 "visible": true,
                 "content": "あなたとの続柄",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -818,7 +818,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -860,7 +860,7 @@
                 "visible": true,
                 "content": "市区町村長",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -884,7 +884,7 @@
                 "visible": true,
                 "content": "給与の支払者の\n所在地（住所）",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -911,7 +911,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -933,7 +933,7 @@
                 "visible": true,
                 "content": "あなたの住所\n又は居所",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -956,7 +956,7 @@
                 "visible": true,
                 "content": "（郵便番号",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -982,7 +982,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -1007,7 +1007,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -1029,7 +1029,7 @@
                 "visible": true,
                 "content": "配偶者\nの有無",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1052,7 +1052,7 @@
                 "visible": true,
                 "content": "有",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1078,7 +1078,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -1100,7 +1100,7 @@
                 "visible": true,
                 "content": "無",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1126,7 +1126,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -1148,7 +1148,7 @@
                 "visible": true,
                 "content": "あなたに源泉控除対象配偶者、控除対象扶養親族がなく、かつ、あなた自身が障害者、寡婦、ひとり親又は勤労学生のいずれにも該当しない場合は、以下の各欄に記入する必要はありません",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1382,7 +1382,7 @@
                 "visible": true,
                 "content": "区\n分\n等",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1405,7 +1405,7 @@
                 "visible": true,
                 "content": "（フリガナ）\n氏　　　名",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1428,7 +1428,7 @@
                 "visible": true,
                 "content": "あなたとの\n続柄",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1451,7 +1451,7 @@
                 "visible": true,
                 "content": "個　人　番　号",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1474,7 +1474,7 @@
                 "visible": true,
                 "content": "生　年　月　日\n（明11.1.1〜）",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1497,7 +1497,7 @@
                 "visible": true,
                 "content": "特定扶養親族等\n（平15.1.2〜\n平19.1.1生）",
                 "style": {
-                  "fontSize": 1.8,
+                  "fontSize": 5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1520,7 +1520,7 @@
                 "visible": true,
                 "content": "令和7年中の\n所得の見積額",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1543,7 +1543,7 @@
                 "visible": true,
                 "content": "非居住者で\nある親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1566,7 +1566,7 @@
                 "visible": true,
                 "content": "住　所　又　は　居　所",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1589,7 +1589,7 @@
                 "visible": true,
                 "content": "生計を一に\nする事実",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1612,7 +1612,7 @@
                 "visible": true,
                 "content": "異動月日及び事由",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1655,7 +1655,7 @@
                 "visible": true,
                 "content": "主たる給与から控除を受ける",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1699,7 +1699,7 @@
                 "visible": true,
                 "content": "源泉控除\n対象配偶者\n（注1）",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1723,7 +1723,7 @@
                 "visible": true,
                 "content": "A",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1957,7 +1957,7 @@
                 "visible": true,
                 "content": "フリガナ",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1983,7 +1983,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2005,7 +2005,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2031,7 +2031,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2056,7 +2056,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2082,7 +2082,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2123,7 +2123,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2145,7 +2145,7 @@
                 "visible": true,
                 "content": "年",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2171,7 +2171,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2193,7 +2193,7 @@
                 "visible": true,
                 "content": "月",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2219,7 +2219,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2241,7 +2241,7 @@
                 "visible": true,
                 "content": "日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2267,7 +2267,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2289,7 +2289,7 @@
                 "visible": true,
                 "content": "円",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2315,7 +2315,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -2337,7 +2337,7 @@
                 "visible": true,
                 "content": "非居住者\nである親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2363,7 +2363,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2388,7 +2388,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2413,7 +2413,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2435,7 +2435,7 @@
                 "visible": true,
                 "content": "（該当する場合は□を\n付けてください）",
                 "style": {
-                  "fontSize": 1.6,
+                  "fontSize": 4.5,
                   "textAlign": "left",
                   "verticalAlign": "bottom",
                   "color": "#000000"
@@ -2478,7 +2478,7 @@
                 "visible": true,
                 "content": "控除対象\n扶養親族\n（16歳以上）\n（平22.1.1以前生）",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -2502,7 +2502,7 @@
                 "visible": true,
                 "content": "B",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -2526,7 +2526,7 @@
                 "visible": true,
                 "content": "1",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -2760,7 +2760,7 @@
                 "visible": true,
                 "content": "フリガナ",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2786,7 +2786,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2808,7 +2808,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2834,7 +2834,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2859,7 +2859,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2885,7 +2885,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2926,7 +2926,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2948,7 +2948,7 @@
                 "visible": true,
                 "content": "年",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -2974,7 +2974,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -2996,7 +2996,7 @@
                 "visible": true,
                 "content": "月",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3022,7 +3022,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3044,7 +3044,7 @@
                 "visible": true,
                 "content": "日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3070,7 +3070,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3092,7 +3092,7 @@
                 "visible": true,
                 "content": "円",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3118,7 +3118,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3140,7 +3140,7 @@
                 "visible": true,
                 "content": "非居住者\nである親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3166,7 +3166,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3191,7 +3191,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3216,7 +3216,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3241,7 +3241,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3263,7 +3263,7 @@
                 "visible": true,
                 "content": "同居老親等",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3289,7 +3289,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3311,7 +3311,7 @@
                 "visible": true,
                 "content": "その他",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3337,7 +3337,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3359,7 +3359,7 @@
                 "visible": true,
                 "content": "特定扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3385,7 +3385,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3407,7 +3407,7 @@
                 "visible": true,
                 "content": "16歳以上30歳未満\n又は70歳以上",
                 "style": {
-                  "fontSize": 1.9,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3433,7 +3433,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3455,7 +3455,7 @@
                 "visible": true,
                 "content": "留学",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3481,7 +3481,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3503,7 +3503,7 @@
                 "visible": true,
                 "content": "障害者",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3529,7 +3529,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -3551,7 +3551,7 @@
                 "visible": true,
                 "content": "38万円以上の支払",
                 "style": {
-                  "fontSize": 1.8,
+                  "fontSize": 5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3574,7 +3574,7 @@
                 "visible": true,
                 "content": "2",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -3808,7 +3808,7 @@
                 "visible": true,
                 "content": "フリガナ",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3834,7 +3834,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3856,7 +3856,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -3882,7 +3882,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3907,7 +3907,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3933,7 +3933,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3974,7 +3974,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -3996,7 +3996,7 @@
                 "visible": true,
                 "content": "年",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4022,7 +4022,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4044,7 +4044,7 @@
                 "visible": true,
                 "content": "月",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4070,7 +4070,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4092,7 +4092,7 @@
                 "visible": true,
                 "content": "日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4118,7 +4118,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4140,7 +4140,7 @@
                 "visible": true,
                 "content": "円",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4166,7 +4166,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4188,7 +4188,7 @@
                 "visible": true,
                 "content": "非居住者\nである親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4214,7 +4214,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4239,7 +4239,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4264,7 +4264,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4289,7 +4289,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4311,7 +4311,7 @@
                 "visible": true,
                 "content": "同居老親等",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4337,7 +4337,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4359,7 +4359,7 @@
                 "visible": true,
                 "content": "その他",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4385,7 +4385,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4407,7 +4407,7 @@
                 "visible": true,
                 "content": "特定扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4433,7 +4433,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4455,7 +4455,7 @@
                 "visible": true,
                 "content": "16歳以上30歳未満\n又は70歳以上",
                 "style": {
-                  "fontSize": 1.9,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4481,7 +4481,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4503,7 +4503,7 @@
                 "visible": true,
                 "content": "留学",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4529,7 +4529,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4551,7 +4551,7 @@
                 "visible": true,
                 "content": "障害者",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4577,7 +4577,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -4599,7 +4599,7 @@
                 "visible": true,
                 "content": "38万円以上の支払",
                 "style": {
-                  "fontSize": 1.8,
+                  "fontSize": 5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4622,7 +4622,7 @@
                 "visible": true,
                 "content": "3",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -4856,7 +4856,7 @@
                 "visible": true,
                 "content": "フリガナ",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4882,7 +4882,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4904,7 +4904,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -4930,7 +4930,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4955,7 +4955,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -4981,7 +4981,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5022,7 +5022,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5044,7 +5044,7 @@
                 "visible": true,
                 "content": "年",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5070,7 +5070,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5092,7 +5092,7 @@
                 "visible": true,
                 "content": "月",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5118,7 +5118,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5140,7 +5140,7 @@
                 "visible": true,
                 "content": "日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5166,7 +5166,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5188,7 +5188,7 @@
                 "visible": true,
                 "content": "円",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5214,7 +5214,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5236,7 +5236,7 @@
                 "visible": true,
                 "content": "非居住者\nである親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5262,7 +5262,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5287,7 +5287,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5312,7 +5312,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5337,7 +5337,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5359,7 +5359,7 @@
                 "visible": true,
                 "content": "同居老親等",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5385,7 +5385,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5407,7 +5407,7 @@
                 "visible": true,
                 "content": "その他",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5433,7 +5433,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5455,7 +5455,7 @@
                 "visible": true,
                 "content": "特定扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5481,7 +5481,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5503,7 +5503,7 @@
                 "visible": true,
                 "content": "16歳以上30歳未満\n又は70歳以上",
                 "style": {
-                  "fontSize": 1.9,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5529,7 +5529,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5551,7 +5551,7 @@
                 "visible": true,
                 "content": "留学",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5577,7 +5577,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5599,7 +5599,7 @@
                 "visible": true,
                 "content": "障害者",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5625,7 +5625,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -5647,7 +5647,7 @@
                 "visible": true,
                 "content": "38万円以上の支払",
                 "style": {
-                  "fontSize": 1.8,
+                  "fontSize": 5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5670,7 +5670,7 @@
                 "visible": true,
                 "content": "4",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -5904,7 +5904,7 @@
                 "visible": true,
                 "content": "フリガナ",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5930,7 +5930,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -5952,7 +5952,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -5978,7 +5978,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6003,7 +6003,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6029,7 +6029,7 @@
                 "lineColor": "#555555",
                 "gridCount": 12,
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6070,7 +6070,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6092,7 +6092,7 @@
                 "visible": true,
                 "content": "年",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6118,7 +6118,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6140,7 +6140,7 @@
                 "visible": true,
                 "content": "月",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6166,7 +6166,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6188,7 +6188,7 @@
                 "visible": true,
                 "content": "日",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6214,7 +6214,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6236,7 +6236,7 @@
                 "visible": true,
                 "content": "円",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6262,7 +6262,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6284,7 +6284,7 @@
                 "visible": true,
                 "content": "非居住者\nである親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6310,7 +6310,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6335,7 +6335,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6360,7 +6360,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -6385,7 +6385,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6407,7 +6407,7 @@
                 "visible": true,
                 "content": "同居老親等",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6433,7 +6433,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6455,7 +6455,7 @@
                 "visible": true,
                 "content": "その他",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6481,7 +6481,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6503,7 +6503,7 @@
                 "visible": true,
                 "content": "特定扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6529,7 +6529,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6551,7 +6551,7 @@
                 "visible": true,
                 "content": "16歳以上30歳未満\n又は70歳以上",
                 "style": {
-                  "fontSize": 1.9,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6577,7 +6577,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6599,7 +6599,7 @@
                 "visible": true,
                 "content": "留学",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6625,7 +6625,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6647,7 +6647,7 @@
                 "visible": true,
                 "content": "障害者",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6673,7 +6673,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6695,7 +6695,7 @@
                 "visible": true,
                 "content": "38万円以上の支払",
                 "style": {
-                  "fontSize": 1.8,
+                  "fontSize": 5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6758,7 +6758,7 @@
                 "visible": true,
                 "content": "障害者、寡婦、\nひとり親\n又は勤労学生",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -6782,7 +6782,7 @@
                 "visible": true,
                 "content": "C",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -6806,7 +6806,7 @@
                 "visible": true,
                 "content": "区分",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "top",
                   "color": "#000000",
@@ -6850,7 +6850,7 @@
                 "visible": true,
                 "content": "一般障害者",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -6878,7 +6878,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6900,7 +6900,7 @@
                 "visible": true,
                 "content": "本人",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6926,7 +6926,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6948,7 +6948,7 @@
                 "visible": true,
                 "content": "同一生計配偶者\n(注2)",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -6974,7 +6974,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -6996,7 +6996,7 @@
                 "visible": true,
                 "content": "扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7039,7 +7039,7 @@
                 "visible": true,
                 "content": "特別障害者",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7067,7 +7067,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7089,7 +7089,7 @@
                 "visible": true,
                 "content": "本人",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7115,7 +7115,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7137,7 +7137,7 @@
                 "visible": true,
                 "content": "同一生計配偶者\n(注2)",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7163,7 +7163,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7185,7 +7185,7 @@
                 "visible": true,
                 "content": "扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7228,7 +7228,7 @@
                 "visible": true,
                 "content": "同居特別障害者",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7256,7 +7256,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7278,7 +7278,7 @@
                 "visible": true,
                 "content": "本人",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7304,7 +7304,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7326,7 +7326,7 @@
                 "visible": true,
                 "content": "同一生計配偶者\n(注2)",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7352,7 +7352,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7374,7 +7374,7 @@
                 "visible": true,
                 "content": "扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7400,7 +7400,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7422,7 +7422,7 @@
                 "visible": true,
                 "content": "寡婦",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7448,7 +7448,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7470,7 +7470,7 @@
                 "visible": true,
                 "content": "ひとり親",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7496,7 +7496,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -7518,7 +7518,7 @@
                 "visible": true,
                 "content": "勤労学生",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7541,7 +7541,7 @@
                 "visible": true,
                 "content": "障害者又は勤労学生の内容（この欄の記載に当たっては、裏面の「2 記載についてのご注意」の9をお読みください。）",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7567,7 +7567,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7589,7 +7589,7 @@
                 "visible": true,
                 "content": "異動月日及び事由",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7652,7 +7652,7 @@
                 "visible": true,
                 "content": "D",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7676,7 +7676,7 @@
                 "visible": true,
                 "content": "他の所得者が\n控除を受ける\n扶養親族等",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7700,7 +7700,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7727,7 +7727,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7749,7 +7749,7 @@
                 "visible": true,
                 "content": "あなたとの\n続柄",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7775,7 +7775,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7797,7 +7797,7 @@
                 "visible": true,
                 "content": "生年月日",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7840,7 +7840,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7862,7 +7862,7 @@
                 "visible": true,
                 "content": "住所又は居所",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -7889,7 +7889,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7911,7 +7911,7 @@
                 "visible": true,
                 "content": "控除を受ける他の所得者\n氏名",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7937,7 +7937,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -7959,7 +7959,7 @@
                 "visible": true,
                 "content": "続柄",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -7985,7 +7985,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8007,7 +8007,7 @@
                 "visible": true,
                 "content": "異動月日及び事由",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8034,7 +8034,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8056,7 +8056,7 @@
                 "visible": true,
                 "content": "氏名",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8083,7 +8083,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8105,7 +8105,7 @@
                 "visible": true,
                 "content": "あなたとの\n続柄",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8131,7 +8131,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8153,7 +8153,7 @@
                 "visible": true,
                 "content": "生年月日",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8196,7 +8196,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8218,7 +8218,7 @@
                 "visible": true,
                 "content": "住所又は居所",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8245,7 +8245,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8267,7 +8267,7 @@
                 "visible": true,
                 "content": "控除を受ける他の所得者\n氏名",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8293,7 +8293,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8315,7 +8315,7 @@
                 "visible": true,
                 "content": "続柄",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8341,7 +8341,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8363,7 +8363,7 @@
                 "visible": true,
                 "content": "異動月日及び事由",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8390,7 +8390,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -8432,7 +8432,7 @@
                 "visible": true,
                 "content": "（注1）源泉控除対象配偶者とは、所得者（令和7年中の所得の見積額が900万円以下の人に限ります。）と生計を一にする配偶者（青色事業専従者として給与の支払を受ける人及び白色事業専従者を除きます。）で、令和7年中の所得の見積額が95万円以下（給与所得だけの場合は、給与の収入金額が150万円以下）の人をいいます。",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -8455,7 +8455,7 @@
                 "visible": true,
                 "content": "（注2）同一生計配偶者とは、所得者と生計を一にする配偶者（青色事業専従者として給与の支払を受ける人及び白色事業専従者を除きます。）で、令和7年中の所得の見積額が48万円以下の人をいいます。",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -8498,7 +8498,7 @@
                 "visible": true,
                 "content": "○住民税に関する事項（この欄は、地方税法第45条の3の2及び第317条の3の2に基づき、給与の支払を経由して市区町村長に提出する給与所得者の扶養親族等申告書の記載欄を兼ねています。）",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8561,7 +8561,7 @@
                 "visible": true,
                 "content": "16歳未満の\n扶養親族\n（平22.1.2以後生）",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -8604,7 +8604,7 @@
                 "visible": true,
                 "content": "（フリガナ）\n氏名",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8646,7 +8646,7 @@
                 "visible": true,
                 "content": "個人番号",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8688,7 +8688,7 @@
                 "visible": true,
                 "content": "あなたとの\n続柄",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8730,7 +8730,7 @@
                 "visible": true,
                 "content": "生\n年\n月\n日",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8772,7 +8772,7 @@
                 "visible": true,
                 "content": "住所又は居所",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8814,7 +8814,7 @@
                 "visible": true,
                 "content": "控除対象外国外扶養親族",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8856,7 +8856,7 @@
                 "visible": true,
                 "content": "令和7年中の\n所得の見積額",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8898,7 +8898,7 @@
                 "visible": true,
                 "content": "障害者\n区分",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8940,7 +8940,7 @@
                 "visible": true,
                 "content": "異動月日\n及び事由",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -8983,7 +8983,7 @@
                 "visible": true,
                 "content": "1",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -9029,7 +9029,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9073,7 +9073,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9117,7 +9117,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9158,7 +9158,7 @@
                 "visible": true,
                 "content": "平",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -9184,7 +9184,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9228,7 +9228,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9272,7 +9272,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9316,7 +9316,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9360,7 +9360,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9404,7 +9404,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9446,7 +9446,7 @@
                 "visible": true,
                 "content": "2",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -9492,7 +9492,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9536,7 +9536,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9580,7 +9580,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9621,7 +9621,7 @@
                 "visible": true,
                 "content": "平",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -9647,7 +9647,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9691,7 +9691,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9735,7 +9735,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9779,7 +9779,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9823,7 +9823,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9867,7 +9867,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -9929,7 +9929,7 @@
                 "visible": true,
                 "content": "退職手当等を有する\n配偶者・扶養親族",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -9972,7 +9972,7 @@
                 "visible": true,
                 "content": "（フリガナ）\n氏名",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -9998,7 +9998,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10039,7 +10039,7 @@
                 "visible": true,
                 "content": "個人番号",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10065,7 +10065,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10106,7 +10106,7 @@
                 "visible": true,
                 "content": "あなたとの続柄",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10132,7 +10132,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10173,7 +10173,7 @@
                 "visible": true,
                 "content": "生年月日",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10215,7 +10215,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10256,7 +10256,7 @@
                 "visible": true,
                 "content": "住所又は居所",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10282,7 +10282,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10323,7 +10323,7 @@
                 "visible": true,
                 "content": "非居住者",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10349,7 +10349,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10390,7 +10390,7 @@
                 "visible": true,
                 "content": "令和7年中の所得（退職所得を除く）",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10416,7 +10416,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10457,7 +10457,7 @@
                 "visible": true,
                 "content": "障害者区分",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10483,7 +10483,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10524,7 +10524,7 @@
                 "visible": true,
                 "content": "異動月日及び事由",
                 "style": {
-                  "fontSize": 2,
+                  "fontSize": 5.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10550,7 +10550,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "verticalAlign": "bottom",
                   "color": "#1a1a1a"
                 },
@@ -10592,7 +10592,7 @@
                 "visible": true,
                 "content": "（注）退職手当等（源泉徴収をされるものに限ります。）の支払を受ける配偶者又は扶養親族がいる場合に記載してください。なお、退職所得の金額の計算については、給与の支払者にお尋ねください。",
                 "style": {
-                  "fontSize": 2.2,
+                  "fontSize": 6,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -10618,7 +10618,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -10640,7 +10640,7 @@
                 "visible": true,
                 "content": "寡婦",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -10666,7 +10666,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle"
                 },
@@ -10688,7 +10688,7 @@
                 "visible": true,
                 "content": "ひとり親",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"

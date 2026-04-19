@@ -19,7 +19,6 @@ export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {
   const records = useMemo(() => {
     if (el.dataBinding) {
       const bound = data[el.dataBinding]
-<<<<<<< HEAD
       // Validate that the bound value is an array of plain objects before
       // passing to Recharts — an array of primitives would produce malformed
       // data keys and silent rendering errors.
@@ -36,9 +35,6 @@ export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {
       if (Array.isArray(bound) && bound.length === 0) {
         return bound as Record<string, unknown>[]
       }
-=======
-      if (Array.isArray(bound)) return bound as Record<string, unknown>[]
->>>>>>> feat/formtable-excel-editing
     }
     return SAMPLE_DATA
   }, [el.dataBinding, data])

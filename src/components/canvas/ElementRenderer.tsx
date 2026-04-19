@@ -14,6 +14,7 @@
 
 import { memo, useCallback, useMemo } from 'react'
 import { useReportStore } from '@/store/reportStore'
+import { useShallow } from 'zustand/shallow'
 import type { RepeatingBandField } from '@/types'
 import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
@@ -78,6 +79,13 @@ export const ElementRenderer = memo(function ElementRenderer({
     return evaluateConditionalDisplay(element.conditionalDisplay, mergedData, rowIndex)
   }, [element.conditionalDisplay, mergedData, rowIndex])
 
+  // Memoize the set of calculation output keys so that isDataEmptyInPreview
+  // never hides a field whose value is produced by a calculation rule.
+  const calcOutputKeys = useReportStore(useShallow((s) => {
+    const keys = s.definition.calculationRules.map((r) => r.outputKey)
+    return new Set(keys)
+  }))
+
   // In readonly mode (preview / PDF-PNG export): hide elements whose data binding
   // resolves to empty so that placeholder displays (grey-italic field names,
   // empty repeating-band headers, etc.) are suppressed in the final output.
@@ -85,8 +93,8 @@ export const ElementRenderer = memo(function ElementRenderer({
   // Must be declared before any early returns to satisfy React's Rules of Hooks.
   const isEmptyInPreview = useMemo(() => {
     if (!readonly) return false
-    return isDataEmptyInPreview(element, mergedData)
-  }, [readonly, element, mergedData])
+    return isDataEmptyInPreview(element, mergedData, calcOutputKeys)
+  }, [readonly, element, mergedData, calcOutputKeys])
 
   // Callback for repeatingBand inline column editing (design mode only)
   const updateElement = useReportStore((s) => s.updateElement)
@@ -103,21 +111,10 @@ export const ElementRenderer = memo(function ElementRenderer({
   if (isEmptyInPreview) return null
 
   switch (element.type) {
-<<<<<<< HEAD
     case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
-    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} />
+    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
     case 'image':           return <ImageRenderer element={element} />
     case 'shape':           return <ShapeRenderer element={element} />
-=======
-    case 'text':            return <TextRenderer element={element} data={mergedData} />
-    // label → text migration: convert inline and render as TextRenderer
-    case 'label':           return <TextRenderer element={{ ...element, type: 'text', content: element.text }} data={mergedData} />
-    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} />
-    case 'image':           return <ImageRenderer element={element} />
-    case 'shape':           return <ShapeRenderer element={element} />
-    // table → formTable migration: render as placeholder until manually converted
-    case 'table':           return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef3c7', border: '1px solid #f59e0b', fontSize: '2.5mm', color: '#92400e' }}>旧テーブル要素 — formTable に変換してください</div>
->>>>>>> feat/formtable-excel-editing
     case 'chart':           return <ChartRenderer element={element} data={mergedData} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
     case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
@@ -125,13 +122,14 @@ export const ElementRenderer = memo(function ElementRenderer({
     case 'approvalStampRow': return <ApprovalStampRowRenderer element={element} />
     case 'revenueStamp':    return <RevenueStampRenderer element={element} />
     case 'repeatingBand': {
-      const bandRecords = element.dataSource
+      // Editor mode: show design preview (placeholders). Preview mode: show live data.
+      const bandRecords = readonly && element.dataSource
         ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
         : undefined
       return <RepeatingBandRenderer element={element} records={bandRecords} onFieldsChange={readonly ? undefined : onBandFieldsChange} />
     }
     case 'repeatingList': {
-      const listRecords = element.dataSource
+      const listRecords = readonly && element.dataSource
         ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
         : undefined
       return <RepeatingListRenderer element={element} records={listRecords} />
@@ -147,12 +145,12 @@ export const ElementRenderer = memo(function ElementRenderer({
     case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} pageIndex={pageIndex} totalPages={totalPages} />
     case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
     case 'divider':               return <DividerRenderer element={element} />
-    case 'tenantCompanyName':     return <TenantCompanyNameRenderer element={element} resolveValues={readonly} />
-    case 'tenantAddress':         return <TenantAddressRenderer element={element} resolveValues={readonly} />
-    case 'tenantPhone':           return <TenantPhoneRenderer element={element} resolveValues={readonly} />
-    case 'tenantRepresentative':  return <TenantRepresentativeRenderer element={element} resolveValues={readonly} />
+    case 'tenantCompanyName':     return <TenantCompanyNameRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
+    case 'tenantAddress':         return <TenantAddressRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
+    case 'tenantPhone':           return <TenantPhoneRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
+    case 'tenantRepresentative':  return <TenantRepresentativeRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
     case 'tenantLogo':    return <TenantLogoRenderer element={element} />
-    case 'tenantCustom':  return <TenantCustomRenderer element={element} resolveValues={readonly} />
+    case 'tenantCustom':  return <TenantCustomRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
     default:                      return assertNever(element)
   }
 })

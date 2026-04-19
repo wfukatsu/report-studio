@@ -8,10 +8,8 @@ import { useReportStore } from '@/store'
 import { ElementRenderer } from './ElementRenderer'
 import {
   createTextElement,
-  createLabelElement,
   createShapeElement,
   createImageElement,
-  createTableElement,
   createChartElement,
   createDataFieldElement,
   createBarcodeElement,
@@ -28,18 +26,6 @@ import type { ReportElement } from '@/types'
 beforeEach(() => {
   useReportStore.getState().newReport()
   useReportStore.getState().invalidateComputed()
-})
-
-// ---------------------------------------------------------------------------
-// Label element
-// ---------------------------------------------------------------------------
-
-describe('ElementRenderer — label', () => {
-  it('renders label element', () => {
-    const el = createLabelElement({ id: 'label-1' })
-    const { container } = render(<ElementRenderer element={el} />)
-    expect(container.firstChild).not.toBeNull()
-  })
 })
 
 // ---------------------------------------------------------------------------
@@ -92,18 +78,6 @@ describe('ElementRenderer — dataField', () => {
   it('renders dataField element', () => {
     const el = createDataFieldElement({ id: 'df-1', fieldKey: 'customer.name' })
     const { container } = render(<ElementRenderer element={el} data={{ customer: { name: 'テスト' } }} />)
-    expect(container.firstChild).not.toBeNull()
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Table element
-// ---------------------------------------------------------------------------
-
-describe('ElementRenderer — table', () => {
-  it('renders table element', () => {
-    const el = createTableElement({ id: 'table-1' })
-    const { container } = render(<ElementRenderer element={el} />)
     expect(container.firstChild).not.toBeNull()
   })
 })
@@ -204,7 +178,14 @@ describe('ElementRenderer — repeatingBand', () => {
   })
 
   it('renders repeating band with matching data', () => {
-    const el = createRepeatingBandElement({ id: 'band-2', dataSource: 'items' })
+    const el = createRepeatingBandElement({
+      id: 'band-2',
+      dataSource: 'items',
+      fields: [
+        { key: 'no', label: 'No.', width: 12, align: 'center' },
+        { key: 'name', label: '品目', width: 55, align: 'left' },
+      ],
+    } as Partial<ReportElement>)
     const data = {
       items: [
         { no: 1, name: '商品A', quantity: 2, unit: '個', unitPrice: 1000, amount: 2000 },

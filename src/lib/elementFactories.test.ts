@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   createTextElement,
-  createLabelElement,
   createImageElement,
   createShapeElement,
-  createTableElement,
   createChartElement,
   createDataFieldElement,
   createManualEntryField,
@@ -24,9 +22,6 @@ describe('共通: 各ファクトリはユニーク id を生成する', () => {
   it('createTextElement', () => {
     expect(createTextElement().id).not.toBe(createTextElement().id)
   })
-  it('createLabelElement', () => {
-    expect(createLabelElement().id).not.toBe(createLabelElement().id)
-  })
 })
 
 describe('createTextElement', () => {
@@ -38,11 +33,6 @@ describe('createTextElement', () => {
   })
 })
 
-describe('createLabelElement', () => {
-  it('type が label', () => expect(createLabelElement().type).toBe('label'))
-  it('デフォルトテキストが設定されている', () => expect((createLabelElement() as { text: string }).text).toBe('ラベル'))
-})
-
 describe('createImageElement', () => {
   it('type が image', () => expect(createImageElement().type).toBe('image'))
   it('objectFit が contain', () => expect((createImageElement() as { objectFit: string }).objectFit).toBe('contain'))
@@ -52,16 +42,6 @@ describe('createImageElement', () => {
 describe('createShapeElement', () => {
   it('type が shape', () => expect(createShapeElement().type).toBe('shape'))
   it('デフォルト shape が rectangle', () => expect((createShapeElement() as { shape: string }).shape).toBe('rectangle'))
-})
-
-describe('createTableElement', () => {
-  it('type が table', () => expect(createTableElement().type).toBe('table'))
-  it('3行3列のデフォルトデータ', () => {
-    const el = createTableElement() as { rows: number; columns: number }
-    expect(el.rows).toBe(3)
-    expect(el.columns).toBe(3)
-  })
-  it('headerRow が true', () => expect((createTableElement() as { headerRow: boolean }).headerRow).toBe(true))
 })
 
 describe('createChartElement', () => {
@@ -112,10 +92,10 @@ describe('createRevenueStampElement', () => {
 
 describe('createRepeatingBandElement', () => {
   it('type が repeatingBand', () => expect(createRepeatingBandElement().type).toBe('repeatingBand'))
-  it('dataSource が items', () => expect((createRepeatingBandElement() as { dataSource: string }).dataSource).toBe('items'))
-  it('6フィールドが存在する', () => {
+  it('dataSource が空文字列（未設定）', () => expect((createRepeatingBandElement() as { dataSource: string }).dataSource).toBe(''))
+  it('フィールドが空（ユーザーが追加する）', () => {
     const el = createRepeatingBandElement() as { fields: unknown[] }
-    expect(el.fields).toHaveLength(6)
+    expect(el.fields).toHaveLength(0)
   })
 })
 

@@ -4,9 +4,10 @@ import { cn } from '@/lib/utils'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { ServerSettings } from '@/components/admin/ServerSettings'
 import { TenantSettings } from '@/components/admin/TenantSettings'
+import { DefaultStyleSettings } from '@/components/admin/DefaultStyleSettings'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
 
-type AdminSection = 'users' | 'server' | 'tenant' | 'templates'
+type AdminSection = 'users' | 'server' | 'tenant' | 'style' | 'templates'
 
 interface SectionEntry {
   readonly id: AdminSection
@@ -19,6 +20,7 @@ const SECTIONS: SectionEntry[] = [
   { id: 'users',     label: 'ユーザー管理', component: UserManagement },
   { id: 'server',    label: 'サーバー設定',  component: ServerSettings },
   { id: 'tenant',    label: 'テナント情報',  component: TenantSettings },
+  { id: 'style',     label: 'デフォルトスタイル', component: DefaultStyleSettings },
   { id: 'templates', label: 'テンプレート',  component: TemplateManagementTab, fullWidth: true },
 ]
 

@@ -12,6 +12,7 @@ import {
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, RefreshCw, User,
+  Paintbrush, PaintBucket, Download,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
@@ -44,7 +45,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const setZoom = useReportStore((s) => s.setZoom)
   const setEditorZoom = useReportStore((s) => s.setEditorZoom)
   const activePage = useReportStore(selectActivePage)
-  // When both panels have the same zoom, show it; otherwise indicate mismatch
   const zoomsMatch = editorZoom === previewZoom
   const [inputZoom, setInputZoom] = useState<string | null>(null)
   const showGrid = useReportStore((s) => s.showGrid)
@@ -71,6 +71,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const pasteElements = useReportStore((s) => s.pasteElements)
   const clipboard = useReportStore((s) => s.clipboard)
 
+  // Style clipboard
+  const copyStyle = useReportStore((s) => s.copyStyle)
+  const pasteStyle = useReportStore((s) => s.pasteStyle)
+  const styleClipboard = useReportStore((s) => s.styleClipboard)
+
   const masterHeader = useReportStore((s) => s.definition.masterHeader)
   const masterFooter = useReportStore((s) => s.definition.masterFooter)
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
@@ -81,7 +86,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     : null
 
   const violationCount = useReportStore((s) => s.computedViolations.length)
-  // Subscribe for disabled prop rendering (handleValidate reads from getState() for async correctness)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
   const currentUser = useReportStore((s) => s.currentUser)
@@ -136,6 +140,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const hasSelection = selectedIds.length > 0
   const hasMultiSelection = selectedIds.length >= 2
   const singleId = selectedIds[0]
+  const hasSingleSelection = selectedIds.length === 1
 
   const handleAlign = (alignment: Parameters<typeof alignElements>[2]) => {
     if (!activePageId || selectedIds.length < 2) return
@@ -150,6 +155,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   }
 
   const hasUnsavedChanges = historyIndex > 0
+
+  // Export dropdown
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   const {
     handleNew: handleNewFn,
@@ -185,7 +193,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const handleNew = () => handleNewFn(onRequestTemplateModal)
 
-  // Keyboard navigation for dropdown menus — ArrowDown/Up cycle through menuitem elements
+  // Keyboard navigation for dropdown menus
   const handleMenuKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
     e.preventDefault()
@@ -206,7 +214,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   return (
     <>
     <header className="flex flex-col border-b bg-background shrink-0">
-      {/* Main toolbar row */}
       <div className="flex items-center gap-1 h-11 px-3">
         <FileText className="w-4 h-4 text-primary shrink-0" />
         <input
@@ -232,10 +239,9 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           className="hidden"
         />
 
-        {/* ─── グループ1: ファイル操作 ─────────────────────────────────────── */}
+        {/* ─── G1: ファイル操作 ─────────────────────────────────────── */}
         <GroupDivider />
 
-        {/* New / Open / Save */}
         <ToolbarButton onClick={handleNew} title="新規作成">
           <FilePlus className="w-4 h-4" />
         </ToolbarButton>
@@ -254,17 +260,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           </button>
           {showOpenMenu && (
             <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
-              <button
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
-                onClick={() => { handleOpenLocal(); setShowOpenMenu(false) }}
-              >
+              <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={() => { handleOpenLocal(); setShowOpenMenu(false) }}>
                 ローカルファイルを開く
               </button>
               <button
-                className={cn(
-                  'w-full text-left px-3 py-1.5 text-sm',
-                  backendConnected ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed',
-                )}
+                className={cn('w-full text-left px-3 py-1.5 text-sm', backendConnected ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed')}
                 disabled={!backendConnected}
                 onClick={() => { handleOpenServer(); setShowOpenMenu(false) }}
               >
@@ -274,14 +274,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </div>
         {sourceTemplate && (
-          <div className="relative">
-            <ToolbarButton
-              onClick={() => setShowUpdateFromBuiltinConfirm(true)}
-              title={`ビルトインテンプレート「${sourceTemplate.name}」から最新定義で更新`}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </ToolbarButton>
-          </div>
+          <ToolbarButton
+            onClick={() => setShowUpdateFromBuiltinConfirm(true)}
+            title={`ビルトインテンプレート「${sourceTemplate.name}」から最新定義で更新`}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </ToolbarButton>
         )}
         <div className="relative flex items-center" ref={saveMenuRef}>
           <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
@@ -298,26 +296,19 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           </button>
           {showSaveMenu && (
             <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
-              <button
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
-                onClick={() => { void handleSave(); setShowSaveMenu(false) }}
-              >
+              <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={() => { void handleSave(); setShowSaveMenu(false) }}>
                 サーバーに保存
               </button>
-              <button
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
-                onClick={handleDownloadJson}
-              >
+              <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={handleDownloadJson}>
                 JSON ファイルとしてダウンロード
               </button>
             </div>
           )}
         </div>
 
-        {/* ─── グループ2: 編集 ─────────────────────────────────────────────── */}
+        {/* ─── G2: 編集 ─────────────────────────────────────────────── */}
         <GroupDivider />
 
-        {/* Undo / Redo */}
         <ToolbarButton onClick={undo} disabled={historyIndex < 1} title="元に戻す (⌘Z)">
           <Undo2 className="w-4 h-4" />
         </ToolbarButton>
@@ -327,7 +318,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
         <Divider />
 
-        {/* Copy / Cut / Paste */}
         <ToolbarButton
           onClick={() => activePageId && copyElements(activePageId, selectedIds)}
           disabled={!hasSelection}
@@ -359,6 +349,25 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           title="貼り付け (⌘V)"
         >
           <Clipboard className="w-4 h-4" />
+        </ToolbarButton>
+
+        <Divider />
+
+        {/* Style copy / paste */}
+        <ToolbarButton
+          onClick={() => activePageId && singleId && copyStyle(activePageId, singleId)}
+          disabled={!hasSingleSelection}
+          title="スタイルをコピー"
+          active={!!styleClipboard}
+        >
+          <Paintbrush className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => activePageId && pasteStyle(activePageId, selectedIds)}
+          disabled={!hasSelection || !styleClipboard}
+          title="スタイルを貼り付け"
+        >
+          <PaintBucket className="w-4 h-4" />
         </ToolbarButton>
 
         <Divider />
@@ -414,17 +423,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </div>
 
-        {/* ─── グループ3: データ・表示設定 ────────────────────────────────── */}
+        {/* ─── G3: 表示・構造 ──────────────────────────────────────── */}
         <GroupDivider />
 
-        {/* Data binding */}
         <ToolbarButton onClick={() => setShowDataModal(true)} title="データ設定">
           <Database className="w-4 h-4" />
         </ToolbarButton>
 
         <Divider />
 
-        {/* Grid & snap */}
         <ToolbarButton onClick={toggleGrid} active={showGrid} title="グリッド表示切替">
           <Grid3X3 className="w-4 h-4" />
         </ToolbarButton>
@@ -437,14 +444,16 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton onClick={toggleMarginGuide} active={showMarginGuide} title="余白ガイド表示切替">
           <ScanLine className="w-4 h-4" />
         </ToolbarButton>
+
+        <Divider />
+
         <ToolbarButton
           onClick={toggleHeaderEditMode}
           active={headerEditMode}
           disabled={!masterHeader && !masterFooter}
-          title="ヘッダー/フッター編集モード (セクション高さ変更)"
+          title="ヘッダー/フッター編集モード"
         >
           <PanelTop className="w-4 h-4" />
-          <span className="text-xs ml-1">H/F編集</span>
         </ToolbarButton>
         <ToolbarButton
           onClick={handleToggleMasterHeader}
@@ -452,7 +461,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           title={masterHeader ? 'マスターヘッダーを削除' : 'マスターヘッダーを作成'}
         >
           <ArrowUpToLine className="w-4 h-4" />
-          <span className="text-xs ml-1">ヘッダー</span>
         </ToolbarButton>
         <ToolbarButton
           onClick={handleToggleMasterFooter}
@@ -460,12 +468,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           title={masterFooter ? 'マスターフッターを削除' : 'マスターフッターを作成'}
         >
           <ArrowDownToLine className="w-4 h-4" />
-          <span className="text-xs ml-1">フッター</span>
         </ToolbarButton>
 
         <div className="flex-1" />
 
-        {/* Zoom — editor zoom only; preview zoom shown separately when they diverge */}
+        {/* ─── ズーム ──────────────────────────────────────────────── */}
         <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom - 0.1))} disabled={editorZoom <= 0.1} title="ズームアウト (⌘-)">
           <ZoomOut className="w-4 h-4" />
         </ToolbarButton>
@@ -479,11 +486,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               type="text"
               value={inputZoom ?? `${Math.round(editorZoom * 100)}%`}
               onChange={(e) => setInputZoom(e.target.value)}
-              onFocus={(e) => {
-                setInputZoom(String(Math.round(editorZoom * 100)))
-                e.target.select()
-                setShowZoomMenu(false)
-              }}
+              onFocus={(e) => { setInputZoom(String(Math.round(editorZoom * 100))); e.target.select(); setShowZoomMenu(false) }}
               onBlur={(e) => {
                 const parsed = parseFloat(e.target.value.replace('%', ''))
                 if (!isNaN(parsed) && parsed > 0) setEditorZoom(clampZoom(parsed / 100))
@@ -526,10 +529,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                   key={z}
                   role="menuitem"
                   aria-pressed={editorZoom === z}
-                  className={cn(
-                    'w-full text-left px-3 py-1 text-xs hover:bg-accent',
-                    editorZoom === z && 'bg-accent font-medium',
-                  )}
+                  className={cn('w-full text-left px-3 py-1 text-xs hover:bg-accent', editorZoom === z && 'bg-accent font-medium')}
                   onClick={() => { setEditorZoom(z); setShowZoomMenu(false) }}
                 >
                   {Math.round(z * 100)}%
@@ -538,28 +538,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               {containerRef && activePage && (
                 <>
                   <div className="border-t my-1" />
-                  <button
-                    role="menuitem"
-                    aria-label="横幅フィット"
-                    title="横幅フィット"
-                    className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
-                    onClick={() => {
-                      setEditorZoom(computeFitZoom(containerRef, activePage).fitWidth)
-                      setShowZoomMenu(false)
-                    }}
-                  >
+                  <button role="menuitem" aria-label="横幅フィット" title="横幅フィット" className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
+                    onClick={() => { setEditorZoom(computeFitZoom(containerRef, activePage).fitWidth); setShowZoomMenu(false) }}>
                     <FitWidthIcon />
                   </button>
-                  <button
-                    role="menuitem"
-                    aria-label="ページ全体フィット"
-                    title="ページ全体フィット"
-                    className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
-                    onClick={() => {
-                      setEditorZoom(computeFitZoom(containerRef, activePage).fitPage)
-                      setShowZoomMenu(false)
-                    }}
-                  >
+                  <button role="menuitem" aria-label="ページ全体フィット" title="ページ全体フィット" className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
+                    onClick={() => { setEditorZoom(computeFitZoom(containerRef, activePage).fitPage); setShowZoomMenu(false) }}>
                     <FitPageIcon />
                   </button>
                 </>
@@ -567,10 +551,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               {!zoomsMatch && (
                 <>
                   <div className="border-t my-1" />
-                  <button
-                    className="w-full text-left px-3 py-1 text-xs hover:bg-accent text-amber-600"
-                    onClick={() => { setZoom(editorZoom); setShowZoomMenu(false) }}
-                  >
+                  <button className="w-full text-left px-3 py-1 text-xs hover:bg-accent text-amber-600"
+                    onClick={() => { setZoom(editorZoom); setShowZoomMenu(false) }}>
                     プレビューをエディタに同期 ({Math.round(editorZoom * 100)}%)
                   </button>
                 </>
@@ -582,10 +564,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <ZoomIn className="w-4 h-4" />
         </ToolbarButton>
 
-        {/* ─── グループ4: 出力 ─────────────────────────────────────────────── */}
+        {/* ─── G4: 出力 ────────────────────────────────────────────── */}
         <GroupDivider />
 
-        {/* Preview dropdown — default: live preview panel / option: full PDF preview */}
+        {/* Preview */}
         <div className="relative flex items-center" ref={previewMenuRef}>
           <ToolbarButton
             onClick={toggleLivePreview}
@@ -593,7 +575,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             active={livePreviewEnabled}
           >
             <Eye className="w-4 h-4" />
-            <span className="text-xs ml-1">プレビュー</span>
           </ToolbarButton>
           <button
             onClick={() => setShowPreviewMenu((v) => !v)}
@@ -626,6 +607,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </div>
 
+        {/* Validate */}
         <ToolbarButton
           onClick={handleValidate}
           disabled={!hasTemplateId || isValidating}
@@ -635,9 +617,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           {violationCount > 0
             ? <ShieldAlert className="w-4 h-4" />
             : <ShieldCheck className="w-4 h-4" />}
-          <span className="text-xs ml-1">
-            {isValidating ? '検証中...' : 'バリデート'}
-          </span>
           {violationCount > 0 && !isValidating && (
             <span className="ml-1 text-xs bg-destructive text-destructive-foreground rounded-full px-1 min-w-[16px] text-center">
               {violationCount}
@@ -645,28 +624,49 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </ToolbarButton>
 
-        <ToolbarButton onClick={handleExportPng} disabled={isExporting} title="現在のページをPNGでエクスポート">
-          <FileImage className="w-4 h-4" />
-          <span className="text-xs ml-1">{isExporting ? 'PNG...' : 'PNG'}</span>
-        </ToolbarButton>
-
-        <ToolbarButton onClick={handleExportPdf} disabled={isExporting} title="全ページをPDFでエクスポート">
-          <FileText className="w-4 h-4" />
-          <span className="text-xs ml-1">{isExporting ? 'PDF...' : 'PDF'}</span>
-        </ToolbarButton>
-
-        {hasTemplateId && backendConnected && (
+        {/* Export dropdown — consolidated PNG / PDF / backend PDF */}
+        <div className="relative">
           <ToolbarButton
-            onClick={handleBackendPdf}
+            onClick={() => setShowExportMenu((v) => !v)}
             disabled={isExporting}
-            title="バックエンドでPDFを生成（サーバーサイドレンダリング）"
+            title="エクスポート"
+            active={showExportMenu}
+            ariaExpanded={showExportMenu}
+            ariaHasPopup="menu"
           >
-            <FileText className="w-4 h-4" />
-            <span className="text-xs ml-1">{isExporting ? 'PDF...' : 'BEで生成'}</span>
+            <Download className="w-4 h-4" />
+            <ChevronDown className="w-3 h-3 ml-0.5" />
           </ToolbarButton>
-        )}
+          {showExportMenu && (
+            <div role="menu" className="absolute top-full right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[200px] py-1" onKeyDown={handleMenuKeyDown}>
+              <MenuButton
+                onClick={() => { handleExportPng(); setShowExportMenu(false) }}
+                disabled={isExporting}
+                icon={<FileImage className="w-4 h-4" />}
+                label="PNG（現在のページ）"
+              />
+              <MenuButton
+                onClick={() => { void handleExportPdf(); setShowExportMenu(false) }}
+                disabled={isExporting}
+                icon={<FileText className="w-4 h-4" />}
+                label="PDF（全ページ）"
+              />
+              {hasTemplateId && backendConnected && (
+                <>
+                  <div className="border-t my-1" />
+                  <MenuButton
+                    onClick={() => { handleBackendPdf(); setShowExportMenu(false) }}
+                    disabled={isExporting}
+                    icon={<FileText className="w-4 h-4" />}
+                    label="PDF（サーバー生成）"
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
-        {/* User menu — shown when authenticated */}
+        {/* User menu */}
         {currentUser && (
           <>
             <Divider />
@@ -684,16 +684,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               </button>
               {showUserMenu && (
                 <div className="absolute top-full right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[140px] py-1">
-                  <button
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
-                    onClick={() => { setShowServerSettings(true); setShowUserMenu(false) }}
-                  >
+                  <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                    onClick={() => { setShowServerSettings(true); setShowUserMenu(false) }}>
                     設定
                   </button>
-                  <button
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-red-600"
-                    onClick={() => { void logoutUser(); setShowUserMenu(false) }}
-                  >
+                  <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-red-600"
+                    onClick={() => { void logoutUser(); setShowUserMenu(false) }}>
                     ログアウト
                   </button>
                 </div>
@@ -704,6 +700,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       </div>
     </header>
 
+    {/* All dialogs rendered via ToolbarDialogs — no duplicates here */}
     <ToolbarDialogs
       reportName={reportName}
       sourceTemplateName={sourceTemplate?.name}
@@ -739,61 +736,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       onCancelDeleteHeader={() => setShowDeleteHeaderConfirm(false)}
       onConfirmDeleteFooter={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
       onCancelDeleteFooter={() => setShowDeleteFooterConfirm(false)}
-      fileInputRef={fileInputRef}
-    />
-
-    {/* Validation warning — ask user whether to continue despite warnings */}
-    <ConfirmDialog
-      open={showValidationWarnConfirm}
-      title="バリデーション警告"
-      message={`以下の警告があります。エクスポートを続けますか？\n\n${validationWarnings.map((m) => `⚠️ ${m}`).join('\n')}`}
-      confirmLabel="続けてエクスポート"
-      onConfirm={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}
-      onCancel={() => setShowValidationWarnConfirm(false)}
-    />
-
-    {/* Unsaved changes — open local file */}
-    <ConfirmDialog
-      open={showOpenLocalConfirm}
-      title="未保存の変更があります"
-      message="変更を破棄してファイルを開きますか？"
-      confirmLabel="破棄して開く"
-      confirmVariant="danger"
-      onConfirm={() => { setShowOpenLocalConfirm(false); fileInputRef.current?.click() }}
-      onCancel={() => setShowOpenLocalConfirm(false)}
-    />
-
-    {/* Unsaved changes — open server template */}
-    <ConfirmDialog
-      open={showOpenServerConfirm}
-      title="未保存の変更があります"
-      message="変更を破棄してテンプレートを開きますか？"
-      confirmLabel="破棄して開く"
-      confirmVariant="danger"
-      onConfirm={() => { setShowOpenServerConfirm(false); setShowManagerModal(true) }}
-      onCancel={() => setShowOpenServerConfirm(false)}
-    />
-
-    {/* Delete master header */}
-    <ConfirmDialog
-      open={showDeleteHeaderConfirm}
-      title="ヘッダーを削除"
-      message="ヘッダーとその内容を削除しますか？"
-      confirmLabel="削除"
-      confirmVariant="danger"
-      onConfirm={() => { setShowDeleteHeaderConfirm(false); setMasterHeader(null); if (!masterFooter) setHeaderEditMode(false) }}
-      onCancel={() => setShowDeleteHeaderConfirm(false)}
-    />
-
-    {/* Delete master footer */}
-    <ConfirmDialog
-      open={showDeleteFooterConfirm}
-      title="フッターを削除"
-      message="フッターとその内容を削除しますか？"
-      confirmLabel="削除"
-      confirmVariant="danger"
-      onConfirm={() => { setShowDeleteFooterConfirm(false); setMasterFooter(null); if (!masterHeader) setHeaderEditMode(false) }}
-      onCancel={() => setShowDeleteFooterConfirm(false)}
     />
     </>
   )

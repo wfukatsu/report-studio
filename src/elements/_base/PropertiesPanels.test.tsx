@@ -6,11 +6,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TextPropertiesPanel } from '@/elements/text/PropertiesPanel'
-import { LabelPropertiesPanel } from '@/elements/label/PropertiesPanel'
 import { DataFieldPropertiesPanel } from '@/elements/dataField/PropertiesPanel'
 import { ImagePropertiesPanel } from '@/elements/image/PropertiesPanel'
 import { ShapePropertiesPanel } from '@/elements/shape/PropertiesPanel'
-import { TablePropertiesPanel } from '@/elements/table/PropertiesPanel'
 import { ChartPropertiesPanel } from '@/elements/chart/PropertiesPanel'
 import { BarcodePropertiesPanel } from '@/elements/barcode/PropertiesPanel'
 import { ManualEntryPropertiesPanel } from '@/elements/manualEntry/PropertiesPanel'
@@ -21,11 +19,9 @@ import { RepeatingBandPropertiesPanel } from '@/elements/repeatingBand/Propertie
 import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/PropertiesPanel'
 import {
   createTextElement,
-  createLabelElement,
   createDataFieldElement,
   createImageElement,
   createShapeElement,
-  createTableElement,
   createChartElement,
   createBarcodeElement,
   createManualEntryField,
@@ -33,15 +29,14 @@ import {
   createApprovalStampRowElement,
   createRevenueStampElement,
   createRepeatingBandElement,
+  createRepeatingBandWithDefaults,
   createRepeatingListElement,
 } from '@/lib/elementFactories'
 import type {
   TextElement,
-  LabelElement,
   DataFieldElement,
   ImageElement,
   ShapeElement,
-  TableElement,
   ChartElement,
   BarcodeElement,
   ManualEntryField,
@@ -183,109 +178,6 @@ describe('TextPropertiesPanel', () => {
     const onChange = vi.fn()
     render(<TextPropertiesPanel el={el} onChange={onChange} />)
     expect(screen.getByText('テキストスタイル')).toBeInTheDocument()
-  })
-})
-
-// ---------------------------------------------------------------------------
-// LabelPropertiesPanel
-// ---------------------------------------------------------------------------
-
-describe('LabelPropertiesPanel', () => {
-  it('renders without error', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    const { container } = render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    expect(container.firstChild).not.toBeNull()
-  })
-
-  it('calls onChange when text changes', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    const textarea = screen.getByRole('textbox', { name: /テキスト/ })
-    fireEvent.change(textarea, { target: { value: '新しいラベル' } })
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ text: '新しいラベル' }))
-  })
-
-  it('calls onChange when font family changes', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    const select = screen.getAllByRole('combobox')[0]
-    fireEvent.change(select, { target: { value: 'monospace' } })
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when bold is toggled', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('太字'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when italic is toggled', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('斜体'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when underline is toggled', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('下線'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when strikethrough is toggled', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('打ち消し線'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when textAlign left is clicked', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('left'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when textAlign center is clicked', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('center'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when textAlign right is clicked', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('right'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when textAlign justify is clicked', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('justify'))
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when writingMode changes', () => {
-    const el = createLabelElement() as LabelElement
-    const onChange = vi.fn()
-    render(<LabelPropertiesPanel el={el} onChange={onChange} />)
-    fireEvent.click(screen.getByTitle('縦書き'))
-    expect(onChange).toHaveBeenCalled()
   })
 })
 
@@ -435,56 +327,6 @@ describe('ShapePropertiesPanel', () => {
     // Last spinbutton is borderRadius when rectangle
     const borderRadiusInput = spinButtons[spinButtons.length - 1]
     fireEvent.change(borderRadiusInput, { target: { value: '5' } })
-    expect(onChange).toHaveBeenCalled()
-  })
-})
-
-// ---------------------------------------------------------------------------
-// TablePropertiesPanel
-// ---------------------------------------------------------------------------
-
-describe('TablePropertiesPanel', () => {
-  it('renders without error', () => {
-    const el = createTableElement() as TableElement
-    const onChange = vi.fn()
-    const { container } = render(<TablePropertiesPanel el={el} onChange={onChange} />)
-    expect(container.firstChild).not.toBeNull()
-  })
-
-  it('calls onChange when header row checkbox changes', () => {
-    const el = createTableElement() as TableElement
-    const onChange = vi.fn()
-    render(<TablePropertiesPanel el={el} onChange={onChange} />)
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when data binding changes', () => {
-    const el = createTableElement() as TableElement
-    const onChange = vi.fn()
-    render(<TablePropertiesPanel el={el} onChange={onChange} />)
-    const bindingInput = screen.getByPlaceholderText('例: items')
-    fireEvent.change(bindingInput, { target: { value: 'tableData' } })
-    expect(onChange).toHaveBeenCalled()
-  })
-
-  it('calls onChange when data binding is cleared (empty string becomes undefined)', () => {
-    const el = { ...createTableElement() as TableElement, dataBinding: 'items' }
-    const onChange = vi.fn()
-    render(<TablePropertiesPanel el={el} onChange={onChange} />)
-    const bindingInput = screen.getByPlaceholderText('例: items')
-    fireEvent.change(bindingInput, { target: { value: '' } })
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dataBinding: undefined }))
-  })
-
-  it('calls onChange when columns changes', () => {
-    const el = createTableElement() as TableElement
-    const onChange = vi.fn()
-    render(<TablePropertiesPanel el={el} onChange={onChange} />)
-    const spinButtons = screen.getAllByRole('spinbutton')
-    // Second spinbutton is columns
-    fireEvent.change(spinButtons[1], { target: { value: '5' } })
     expect(onChange).toHaveBeenCalled()
   })
 })
@@ -826,14 +668,14 @@ describe('RevenueStampPropertiesPanel', () => {
 
 describe('RepeatingBandPropertiesPanel', () => {
   it('renders without error', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     const { container } = render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     expect(container.firstChild).not.toBeNull()
   })
 
   it('calls onChange when data source changes', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const dataSrcInputs = screen.getAllByPlaceholderText('例: items, records')
@@ -842,7 +684,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when showHeader checkbox changes', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const checkboxes = screen.getAllByRole('checkbox')
@@ -851,7 +693,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field key is changed', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const fieldKeyInputs = screen.getAllByPlaceholderText('field.key')
@@ -860,7 +702,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field is deleted', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const deleteButtons = screen.getAllByText('削除')
@@ -871,7 +713,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when add field button is clicked', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     fireEvent.click(screen.getByText('＋ 列を追加'))
@@ -881,7 +723,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field label is changed', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     // Each field has a label input; find the first header label input
@@ -892,7 +734,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when showFooter checkbox is toggled', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const checkboxes = screen.getAllByRole('checkbox')
@@ -902,14 +744,14 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('shows footer totals section when showFooter is true', () => {
-    const el = createRepeatingBandElement({ showFooter: true }) as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults({ showFooter: true }) as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     expect(screen.getByText(/集計（フッター）/)).toBeInTheDocument()
   })
 
   it('calls onChange when add totals button is clicked', () => {
-    const el = createRepeatingBandElement({ showFooter: true }) as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults({ showFooter: true }) as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     fireEvent.click(screen.getByText('＋ 集計を追加'))
@@ -917,7 +759,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field header label is changed', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     // The field section has: field.key input (placeholder='field.key') and label input (no placeholder)
@@ -934,7 +776,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field width is changed', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const widthInput = screen.getAllByRole('spinbutton')[3] // field width input
@@ -943,7 +785,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when field align is changed', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const selects = screen.getAllByRole('combobox')
@@ -956,7 +798,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when sortBy input changes', () => {
-    const el = createRepeatingBandElement() as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
     const sortByInput = screen.getByPlaceholderText('例: date, amount')
@@ -965,7 +807,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when total is deleted', () => {
-    const el = createRepeatingBandElement({ showFooter: true }) as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults({ showFooter: true }) as RepeatingBandElement
     // Add a total first
     const bandWithTotal = {
       ...el,
@@ -983,7 +825,7 @@ describe('RepeatingBandPropertiesPanel', () => {
   })
 
   it('calls onChange when total fieldKey changes', () => {
-    const el = createRepeatingBandElement({ showFooter: true }) as RepeatingBandElement
+    const el = createRepeatingBandWithDefaults({ showFooter: true }) as RepeatingBandElement
     const bandWithTotal = {
       ...el,
       totals: [{ fieldKey: 'amount', formula: 'sum' as const, label: '合計' }],

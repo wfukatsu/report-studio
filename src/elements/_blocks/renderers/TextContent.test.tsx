@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { TextContent } from './TextContent'
 
@@ -100,5 +100,50 @@ describe('TextContent — style branch coverage', () => {
     // top position is set for horizontal mode
     expect(furiganaSpan.style.top).toBeTruthy()
     expect(furiganaSpan.style.right).toBe('')
+  })
+})
+
+describe('TextContent — textFit modes', () => {
+  it('default (no textFit) uses overflow hidden and height 100%', () => {
+    const { container } = render(<TextContent text="Hello" style={{}} />)
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.overflow).toBe('hidden')
+    expect(outer.style.height).toBe('100%')
+  })
+
+  it('shrinkText mode uses overflow hidden and height 100%', () => {
+    const { container } = render(
+      <TextContent text="Hello" style={{ textFit: 'shrinkText' }} />,
+    )
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.overflow).toBe('hidden')
+    expect(outer.style.height).toBe('100%')
+  })
+
+  it('expandFrame mode uses overflow visible and height auto', () => {
+    const { container } = render(
+      <TextContent text="Hello" style={{ textFit: 'expandFrame' }} />,
+    )
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.overflow).toBe('visible')
+    expect(outer.style.height).toBe('auto')
+  })
+
+  it('expandFrame sets minHeight 100%', () => {
+    const { container } = render(
+      <TextContent text="Hello" style={{ textFit: 'expandFrame' }} />,
+    )
+    const outer = container.firstChild as HTMLElement
+    expect(outer.style.minHeight).toBe('100%')
+  })
+
+  it('shrinkText applies base fontSize when no overflow (JSDOM)', () => {
+    // In JSDOM, scrollHeight === clientHeight === 0, so no shrinking occurs
+    const { container } = render(
+      <TextContent text="Short" style={{ textFit: 'shrinkText', fontSize: 5 }} />,
+    )
+    const inner = container.firstChild?.firstChild as HTMLElement
+    // Should keep original font size since JSDOM reports no overflow
+    expect(inner.style.fontSize).toBe('5pt')
   })
 })

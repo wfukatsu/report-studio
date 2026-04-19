@@ -1,4 +1,6 @@
-import type { DataFieldElement } from '@/types'
+import { useShallow } from 'zustand/shallow'
+import type { DataFieldElement, TextStyle } from '@/types'
+import { useReportStore } from '@/store/reportStore'
 import { PropSection, PropRow } from '@/elements/_base/sharedUI'
 import { TextStyleSection } from '@/elements/_blocks/panels/TextStyleSection'
 import { DataBindingSection } from '@/elements/_blocks/panels/DataBindingSection'
@@ -10,6 +12,8 @@ interface Props {
 }
 
 export function DataFieldPropertiesPanel({ el, onChange }: Props) {
+  const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
+
   return (
     <>
       <DataBindingSection
@@ -42,6 +46,7 @@ export function DataFieldPropertiesPanel({ el, onChange }: Props) {
       />
       <TextStyleSection
         style={el.style}
+        defaultStyle={defaultTextStyle}
         onStyleChange={(s) => onChange({ style: { ...el.style, ...s } })}
       />
     </>

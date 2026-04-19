@@ -24,7 +24,22 @@
     "defaultTextStyle": {},
     "templateVariables": [],
     "calculationRules": [],
-    "dataSources": [],
+    "dataSources": [
+      {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "ショーケースサンプルデータ",
+        "fields": {
+          "amount": 154000,
+          "date": "2026年4月18日",
+          "items": [
+            {"name": "ウィジェットA", "qty": 10, "price": 5000, "total": 50000},
+            {"name": "ウィジェットB", "qty": 5, "price": 8000, "total": 40000},
+            {"name": "設置作業費", "qty": 1, "price": 30000, "total": 30000},
+            {"name": "保守サポート（年間）", "qty": 1, "price": 20000, "total": 20000}
+          ]
+        }
+      }
+    ],
     "outputVariants": [],
     "submissionModels": [],
     "validationRules": [],
@@ -57,7 +72,7 @@
                 "visible": true,
                 "content": "要素ショーケース — {{title}}",
                 "style": {
-                  "fontSize": 6,
+                  "fontSize": 17,
                   "fontWeight": "bold",
                   "textAlign": "center",
                   "color": "#1a1a1a"
@@ -80,7 +95,7 @@
                 "visible": true,
                 "content": "縦書きテスト",
                 "style": {
-                  "fontSize": 4,
+                  "fontSize": 11,
                   "writingMode": "vertical-rl",
                   "color": "#000000"
                 },
@@ -106,7 +121,7 @@
                 "label": "金額",
                 "fallbackText": "¥0",
                 "style": {
-                  "fontSize": 4,
+                  "fontSize": 11,
                   "textAlign": "right",
                   "color": "#000000"
                 },
@@ -132,7 +147,7 @@
                 "fieldKey": "date",
                 "label": "日付",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#000000"
                 },
                 "format": {
@@ -480,7 +495,7 @@
                 "shape": "circle",
                 "borderColor": "#cc0000",
                 "textColor": "#cc0000",
-                "fontSize": 5,
+                "fontSize": 14,
                 "writingMode": "horizontal-tb",
                 "doubleBorder": false,
                 "name": "印鑑"
@@ -503,7 +518,7 @@
                 "shape": "rectangle",
                 "borderColor": "#cc0000",
                 "textColor": "#cc0000",
-                "fontSize": 4,
+                "fontSize": 11,
                 "writingMode": "vertical-rl",
                 "doubleBorder": true,
                 "name": "印鑑"
@@ -527,7 +542,7 @@
                 "displayMode": "line",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3.5
+                  "fontSize": 10
                 },
                 "name": "手入力欄"
               },
@@ -551,7 +566,7 @@
                 "gridCount": 11,
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3.5
+                  "fontSize": 10
                 },
                 "name": "手入力欄"
               },
@@ -574,7 +589,7 @@
                 "displayMode": "box",
                 "lineColor": "#000000",
                 "style": {
-                  "fontSize": 3.5
+                  "fontSize": 10
                 },
                 "furiganaEnabled": true,
                 "furiganaRatio": 0.35,

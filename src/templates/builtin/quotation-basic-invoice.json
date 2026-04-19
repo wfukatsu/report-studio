@@ -24,7 +24,44 @@
     "defaultTextStyle": {},
     "templateVariables": [],
     "calculationRules": [],
-    "dataSources": [],
+    "dataSources": [
+      {
+        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "name": "見積書サンプルデータ",
+        "fields": {
+          "quotation": {
+            "issueDate": "2026年4月18日",
+            "number": "M-20260418",
+            "registrationNo": "T1234567890123",
+            "customer": {
+              "name": "株式会社サンプル商事",
+              "postalCode": "100-0001",
+              "address": "東京都千代田区千代田1-1-1 サンプルビル3F"
+            },
+            "sender": {
+              "name": "株式会社スカラー",
+              "address": "東京都新宿区西新宿2-8-1 東京都庁第一本庁舎",
+              "tel": "03-1234-5678",
+              "email": "info@example.com",
+              "contact": "佐藤花子"
+            },
+            "totalAmountIncTax": 154000,
+            "subtotal": 140000,
+            "tax10Amount": 14000,
+            "tax8Amount": 0,
+            "total": 154000,
+            "tax10Base": 140000,
+            "tax8Base": 0
+          },
+          "items": [
+            {"itemName": "ウィジェットA", "quantity": 10, "unitPrice": 5000, "amount": 50000},
+            {"itemName": "ウィジェットB", "quantity": 5, "unitPrice": 8000, "amount": 40000},
+            {"itemName": "設置作業費", "quantity": 1, "unitPrice": 30000, "amount": 30000},
+            {"itemName": "保守サポート（年間）", "quantity": 1, "unitPrice": 20000, "amount": 20000}
+          ]
+        }
+      }
+    ],
     "outputVariants": [],
     "submissionModels": [],
     "validationRules": [],
@@ -57,7 +94,7 @@
                 "visible": true,
                 "content": "見 積 書",
                 "style": {
-                  "fontSize": 9,
+                  "fontSize": 26,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -81,7 +118,7 @@
                 "visible": true,
                 "content": "発行日：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -106,7 +143,7 @@
                 "fallbackText": "20XX年XX月XX日",
                 "label": "20XX年XX月XX日",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -129,7 +166,7 @@
                 "visible": true,
                 "content": "見積書No：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -154,7 +191,7 @@
                 "fallbackText": "M-12345678",
                 "label": "M-12345678",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -177,7 +214,7 @@
                 "visible": true,
                 "content": "登録番号：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -202,7 +239,7 @@
                 "fallbackText": "TXXXXXXXXXXXXX",
                 "label": "TXXXXXXXXXXXXX",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -227,7 +264,7 @@
                 "fallbackText": "株式会社△△△△",
                 "label": "株式会社△△△△",
                 "style": {
-                  "fontSize": 5.5,
+                  "fontSize": 16,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -251,7 +288,7 @@
                 "visible": true,
                 "content": "御中",
                 "style": {
-                  "fontSize": 5.5,
+                  "fontSize": 16,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -294,7 +331,7 @@
                 "visible": true,
                 "content": "〒",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -319,7 +356,7 @@
                 "fallbackText": "000-0000",
                 "label": "000-0000",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -344,7 +381,7 @@
                 "fallbackText": "東京都品川区大崎1-11-2ゲートシティ大崎イーストタワー",
                 "label": "東京都品川区大崎1-11-2ゲートシティ大崎イーストタワー",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -367,7 +404,7 @@
                 "visible": true,
                 "content": "下記のとおり、お見積申し上げます。",
                 "style": {
-                  "fontSize": 3.2,
+                  "fontSize": 9,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -411,7 +448,7 @@
                 "fallbackText": "株式会社●●●",
                 "label": "株式会社●●●",
                 "style": {
-                  "fontSize": 4,
+                  "fontSize": 11,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -437,7 +474,7 @@
                 "shape": "circle",
                 "borderColor": "#cc0000",
                 "textColor": "#cc0000",
-                "fontSize": 5,
+                "fontSize": 14,
                 "writingMode": "horizontal-tb",
                 "doubleBorder": false,
                 "name": "印鑑"
@@ -460,7 +497,7 @@
                 "fallbackText": "東京都●●区△△△△",
                 "label": "東京都●●区△△△△",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -483,7 +520,7 @@
                 "visible": true,
                 "content": "Tel：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -508,7 +545,7 @@
                 "fallbackText": "00-0000-0000",
                 "label": "00-0000-0000",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -531,7 +568,7 @@
                 "visible": true,
                 "content": "Mail：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -556,7 +593,7 @@
                 "fallbackText": "●●●@example.com",
                 "label": "●●●@example.com",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -579,7 +616,7 @@
                 "visible": true,
                 "content": "担当：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -604,7 +641,7 @@
                 "fallbackText": "アドビ太郎",
                 "label": "アドビ太郎",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -627,7 +664,7 @@
                 "visible": true,
                 "content": "お見積金額（税込）",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -655,7 +692,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 7,
+                  "fontSize": 20,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -738,7 +775,7 @@
                 "visible": true,
                 "content": "納期",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -783,7 +820,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
                 },
@@ -825,7 +862,7 @@
                 "visible": true,
                 "content": "支払条件",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -870,7 +907,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
                 },
@@ -931,7 +968,7 @@
                 "visible": true,
                 "content": "有効期限",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -976,7 +1013,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
                 },
@@ -1057,7 +1094,7 @@
                 "visible": true,
                 "content": "品番・品名",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1099,7 +1136,7 @@
                 "visible": true,
                 "content": "数量",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1141,7 +1178,7 @@
                 "visible": true,
                 "content": "単価",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1183,7 +1220,7 @@
                 "visible": true,
                 "content": "金額（税抜）",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1252,11 +1289,11 @@
                   }
                 ],
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "color": "#1a1a1a"
                 },
                 "headerStyle": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "fontWeight": "bold"
                 },
                 "name": "明細テーブル"
@@ -1316,7 +1353,7 @@
                 "visible": true,
                 "content": "小計",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1345,7 +1382,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1388,7 +1425,7 @@
                 "visible": true,
                 "content": "消費税（10％）",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1417,7 +1454,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1460,7 +1497,7 @@
                 "visible": true,
                 "content": "消費税（8％）",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1489,7 +1526,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1532,7 +1569,7 @@
                 "visible": true,
                 "content": "合計",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1561,7 +1598,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1625,7 +1662,7 @@
                 "visible": true,
                 "content": "税率内訳",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1667,7 +1704,7 @@
                 "visible": true,
                 "content": "小計",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1709,7 +1746,7 @@
                 "visible": true,
                 "content": "10%対象",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1737,7 +1774,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1779,7 +1816,7 @@
                 "visible": true,
                 "content": "8%対象",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1807,7 +1844,7 @@
                 "fallbackText": "¥0",
                 "label": "¥0",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -1870,7 +1907,7 @@
                 "visible": true,
                 "content": "備考",
                 "style": {
-                  "fontSize": 3.2,
+                  "fontSize": 9,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1897,7 +1934,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
                 },

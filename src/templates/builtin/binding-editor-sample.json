@@ -96,7 +96,7 @@
                 "visible": true,
                 "content": "納 品 書",
                 "style": {
-                  "fontSize": 8,
+                  "fontSize": 23,
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "center"
@@ -119,7 +119,7 @@
                 "visible": true,
                 "content": "No.",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 },
@@ -142,7 +142,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -165,7 +165,7 @@
                 "visible": true,
                 "content": "発行日:",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 },
@@ -188,7 +188,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -211,7 +211,7 @@
                 "visible": true,
                 "content": "宛先",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#333333"
                 },
@@ -234,7 +234,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -258,7 +258,7 @@
                 "visible": true,
                 "content": "{{company_address}}",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 },
@@ -283,7 +283,7 @@
                 "visible": true,
                 "content": "{{company_tel}}",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 },
@@ -307,7 +307,7 @@
                 "visible": true,
                 "content": "品目",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#ffffff"
                 },
@@ -329,7 +329,7 @@
                 "visible": true,
                 "content": "数量",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
@@ -352,7 +352,7 @@
                 "visible": true,
                 "content": "単価",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
@@ -375,7 +375,7 @@
                 "visible": true,
                 "content": "金額",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#ffffff",
                   "textAlign": "right"
@@ -399,7 +399,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -423,7 +423,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -447,7 +447,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -471,7 +471,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -494,7 +494,7 @@
                 "visible": true,
                 "content": "小計:",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333",
                   "textAlign": "right"
@@ -518,7 +518,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -541,7 +541,7 @@
                 "visible": true,
                 "content": "消費税:",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333",
                   "textAlign": "right"
@@ -565,7 +565,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -588,7 +588,7 @@
                 "visible": true,
                 "content": "合計:",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "right"
@@ -612,7 +612,7 @@
                 "visible": true,
                 "fieldKey": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "color": "#333333"
                 },
                 "schemaBinding": {
@@ -636,7 +636,7 @@
                 "visible": true,
                 "content": "（未バインド）",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }
@@ -658,7 +658,7 @@
                 "visible": true,
                 "content": "（未バインド）",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }
@@ -679,7 +679,7 @@
                 "visible": true,
                 "content": "備考",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "bold",
                   "color": "#333333"
                 },
@@ -702,7 +702,7 @@
                 "visible": true,
                 "content": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }
@@ -822,7 +822,7 @@
                 "visible": true,
                 "content": "付属情報",
                 "style": {
-                  "fontSize": 6,
+                  "fontSize": 17,
                   "fontWeight": "bold",
                   "color": "#333333",
                   "textAlign": "center"
@@ -864,7 +864,7 @@
                 "visible": true,
                 "content": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }
@@ -886,7 +886,7 @@
                 "visible": true,
                 "content": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }
@@ -908,7 +908,7 @@
                 "visible": true,
                 "content": "",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "fontWeight": "normal",
                   "color": "#333333"
                 }

@@ -230,27 +230,7 @@ export function PropertiesPanel() {
     <div className="text-sm divide-y">
       <PositionSizeSection el={el} onChange={update} />
 
-<<<<<<< HEAD
       {renderTypePanel(el, update)}
-=======
-      {el.type === 'text' && <TextPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'label' && <TextPropertiesPanel el={{ ...el, type: 'text', content: el.text }} onChange={update} />}
-      {el.type === 'dataField' && <DataFieldPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'shape' && <ShapePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'image' && <ImagePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'table' && <div className="p-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded m-3">旧テーブル要素です。formTable に変換してください。</div>}
-      {el.type === 'chart' && <ChartPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'barcode' && <BarcodePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'manualEntry' && <ManualEntryPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'hanko' && <HankoPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'approvalStampRow' && <ApprovalStampRowPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'revenueStamp' && <RevenueStampPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'repeatingBand' && <RepeatingBandPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'repeatingList' && <RepeatingListPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'formTable' && <FormTablePropertiesPanel el={el} onChange={update} />}
-      {el.type === 'checkbox' && <CheckboxPropertiesPanel el={el} onChange={update} />}
-      {el.type === 'eraSelect' && <EraSelectPropertiesPanel el={el} onChange={update} />}
->>>>>>> feat/formtable-excel-editing
 
       <ElementCommonSection el={el} onChange={update} />
 

@@ -91,13 +91,29 @@ export function TenantSettings() {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">住所</label>
+          <label className="text-xs text-muted-foreground block mb-1">住所1（都道府県・市区町村）</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
-            value={form.address ?? ''}
-            onChange={(e) => setField('address', e.target.value)}
-            placeholder="東京都渋谷区〇〇1-2-3"
+            value={form.address1 ?? ''}
+            onChange={(e) => {
+              const v = e.target.value
+              setForm((prev) => ({ ...prev, address1: v, address: v + (prev.address2 ?? '') }))
+            }}
+            placeholder="東京都千代田区千代田"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">住所2（番地・建物名）</label>
+          <input
+            type="text"
+            className="border rounded px-3 py-1.5 text-sm w-full bg-background"
+            value={form.address2 ?? ''}
+            onChange={(e) => {
+              const v = e.target.value
+              setForm((prev) => ({ ...prev, address2: v, address: (prev.address1 ?? '') + v }))
+            }}
+            placeholder="1-1-1 〇〇ビル3F"
           />
         </div>
         <div className="flex gap-2">

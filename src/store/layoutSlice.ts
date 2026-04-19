@@ -99,6 +99,7 @@ export type LayoutSlice = Pick<StoreState,
   | 'setReportName'
   | 'updateMetadata'
   | 'updateSettings'
+  | 'updateDefaultTextStyle'
   | 'setDataSource'
   | 'loadReport'
   | 'loadLegacyReport'
@@ -177,6 +178,10 @@ export const createLayoutSlice: StateCreator<
         page.sections[0].height = dims.height
       }
     }
+  }),
+
+  updateDefaultTextStyle: (patch) => set((s) => {
+    Object.assign(s.definition.defaultTextStyle, patch)
   }),
 
   setDataSource: (dataSource: DataSourceDefinition | null) => set((s) => {

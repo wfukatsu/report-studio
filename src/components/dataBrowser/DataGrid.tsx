@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2 } from 'lucide-react'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
 import type { Product } from '@/types'
@@ -7,11 +7,16 @@ import {
   scanScalarDbTable,
   listResponses,
   getProducts,
+  deleteScalarDbRow,
+  updateScalarDbRow,
 } from '@/api/reportApi'
-import type { ScalarDbScanResponse } from '@/api/reportApi'
+import type { ScalarDbScanResponse, ScalarDbRowValues } from '@/api/reportApi'
 import { EmptyState } from './EmptyState'
 import { DataGridToolbar, exportToCsv } from './DataGridToolbar'
 import { DataDetailPanel } from './DataDetailPanel'
+import { RowEditModal } from './RowEditModal'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { toast } from 'sonner'
 
 const PAGE_SIZE = 50
 
@@ -50,6 +55,20 @@ export function DataGrid({ source }: Props) {
   const [formRows, setFormRows] = useState<GridRow[]>([])
   const [formTotal, setFormTotal] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
+
+  // CRUD state (ScalarDB tables only, non-system namespaces)
+  const isWritable = source.kind === 'scalardb-table' && !['report_studio', 'scalardb', 'coordinator'].includes(source.namespace)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editModalRow, setEditModalRow] = useState<ScalarDbRowValues | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<GridRow | null>(null)
+
+  // Inline editing state
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string } | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  // Reload trigger
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
   // Stable source key — prevents useEffect firing on object re-creation
   const sourceKey = toSourceKey(source)
@@ -124,7 +143,7 @@ export function DataGrid({ source }: Props) {
     }
 
     return () => { cancelled = true }
-  }, [sourceKey, currentPage]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sourceKey, currentPage, reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Find full Product object for the currently selected row (for detail panel)
   const selectedProduct = useMemo<Product | null>(() => {
@@ -171,6 +190,53 @@ export function DataGrid({ source }: Props) {
     ? sortedRows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
     : sortedRows
 
+  // Get key columns for ScalarDB tables
+  const keyColumns = useMemo(() => {
+    if (source.kind !== 'scalardb-table' || !scalarDbData) return new Set<string>()
+    return new Set(scalarDbData.columns.filter((c) => c.keyType).map((c) => c.name))
+  }, [source.kind, scalarDbData])
+
+  // Inline edit commit
+  async function handleInlineCommit(rowIndex: number, column: string, newValue: string) {
+    if (source.kind !== 'scalardb-table') return
+    const row = displayRows[rowIndex]
+    if (!row) return
+    const values: ScalarDbRowValues = {}
+    // Include all key columns
+    for (const k of keyColumns) values[k] = row[k] as string | number | boolean | null
+    // Include the changed value
+    const colMeta = scalarDbData?.columns.find((c) => c.name === column)
+    if (colMeta) {
+      switch (colMeta.type) {
+        case 'INT': case 'BIGINT': values[column] = newValue === '' ? null : parseInt(newValue, 10); break
+        case 'FLOAT': case 'DOUBLE': values[column] = newValue === '' ? null : parseFloat(newValue); break
+        case 'BOOLEAN': values[column] = newValue === 'true'; break
+        default: values[column] = newValue || null
+      }
+    }
+    try {
+      await updateScalarDbRow(source.namespace, source.table, values)
+      reload()
+    } catch (e) {
+      toast.error('セルの更新に失敗しました', { description: e instanceof Error ? e.message : undefined })
+    }
+    setEditingCell(null)
+  }
+
+  // Delete handler
+  async function handleDeleteConfirm() {
+    if (source.kind !== 'scalardb-table' || !deleteTarget) return
+    const keys: ScalarDbRowValues = {}
+    for (const k of keyColumns) keys[k] = deleteTarget[k] as string | number | boolean | null
+    try {
+      await deleteScalarDbRow(source.namespace, source.table, keys)
+      reload()
+    } catch (e) {
+      toast.error('行の削除に失敗しました', { description: e instanceof Error ? e.message : undefined })
+    }
+    setDeleteTarget(null)
+  }
+
   function handleSort(col: string) {
     setSort(col, sortCol === col && sortDir === 'asc' ? 'desc' : 'asc')
   }
@@ -216,13 +282,26 @@ export function DataGrid({ source }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <DataGridToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearch}
-        onExportCsv={handleExportCsv}
-        totalRows={source.kind === 'product-master' ? sortedRows.length : totalRows}
-        truncated={source.kind === 'scalardb-table' && (scalarDbData?.truncated ?? false)}
-      />
+      <div className="flex items-center gap-1">
+        <div className="flex-1">
+          <DataGridToolbar
+            searchQuery={searchQuery}
+            onSearchChange={setSearch}
+            onExportCsv={handleExportCsv}
+            totalRows={source.kind === 'product-master' ? sortedRows.length : totalRows}
+            truncated={source.kind === 'scalardb-table' && (scalarDbData?.truncated ?? false)}
+          />
+        </div>
+        {isWritable && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent mr-2 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            行を追加
+          </button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-auto">
         {displayRows.length === 0 ? (
@@ -250,20 +329,70 @@ export function DataGrid({ source }: Props) {
                     </span>
                   </th>
                 ))}
+                {isWritable && <th className="w-8" />}
               </tr>
             </thead>
             <tbody className="divide-y">
               {displayRows.map((row, i) => (
                 <tr
                   key={i}
-                  onClick={() => setDetailRow(row as Record<string, unknown>)}
-                  className="hover:bg-muted/30 cursor-pointer"
+                  onClick={() => {
+                    if (!editingCell) {
+                      if (isWritable) {
+                        setEditModalRow(row as ScalarDbRowValues)
+                      } else {
+                        setDetailRow(row as Record<string, unknown>)
+                      }
+                    }
+                  }}
+                  className="hover:bg-muted/30 cursor-pointer group"
                 >
-                  {columns.map((col) => (
-                    <td key={col} className="px-3 py-1.5 whitespace-nowrap max-w-xs truncate">
-                      {renderCell(row[col])}
+                  {columns.map((col) => {
+                    const isEditing = editingCell?.rowIndex === i && editingCell?.column === col
+                    const isKey = keyColumns.has(col)
+                    return (
+                      <td
+                        key={col}
+                        className={`px-3 py-1.5 whitespace-nowrap max-w-xs truncate ${isKey ? 'bg-muted/20' : ''}`}
+                        onDoubleClick={(e) => {
+                          if (!isWritable || isKey) return
+                          e.stopPropagation()
+                          setEditingCell({ rowIndex: i, column: col })
+                          setEditValue(String(row[col] ?? ''))
+                        }}
+                      >
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { void handleInlineCommit(i, col, editValue); e.preventDefault() }
+                              if (e.key === 'Escape') setEditingCell(null)
+                              e.stopPropagation()
+                            }}
+                            onBlur={() => { void handleInlineCommit(i, col, editValue) }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full border rounded px-1 py-0.5 text-xs bg-background outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        ) : (
+                          renderCell(row[col])
+                        )}
+                      </td>
+                    )
+                  })}
+                  {isWritable && (
+                    <td className="px-1 py-1.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(row) }}
+                        className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="行を削除"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
-                  ))}
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -296,8 +425,8 @@ export function DataGrid({ source }: Props) {
         </div>
       </div>
 
-      {/* Detail panel */}
-      {detailRow && (
+      {/* Detail panel (non-writable sources) */}
+      {detailRow && !isWritable && (
         <DataDetailPanel
           row={detailRow}
           columns={columns}
@@ -305,6 +434,42 @@ export function DataGrid({ source }: Props) {
           onClose={() => setDetailRow(null)}
         />
       )}
+
+      {/* Row edit modal (writable ScalarDB tables) */}
+      {source.kind === 'scalardb-table' && isWritable && scalarDbData && (
+        <>
+          <RowEditModal
+            open={showCreateModal}
+            mode="create"
+            namespace={source.namespace}
+            table={source.table}
+            columns={scalarDbData.columns}
+            onSave={reload}
+            onClose={() => setShowCreateModal(false)}
+          />
+          <RowEditModal
+            open={editModalRow !== null}
+            mode="edit"
+            namespace={source.namespace}
+            table={source.table}
+            columns={scalarDbData.columns}
+            row={editModalRow ?? undefined}
+            onSave={reload}
+            onClose={() => setEditModalRow(null)}
+          />
+        </>
+      )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="行を削除"
+        message="この行を削除してもよろしいですか？この操作は元に戻せません。"
+        confirmLabel="削除"
+        confirmVariant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

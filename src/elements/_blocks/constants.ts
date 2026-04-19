@@ -6,8 +6,8 @@
 /** 1mm = 3.7795275591px @ 96dpi */
 export const MM_TO_PX = 3.7795275591
 
-/** Default font size in mm */
-export const DEFAULT_FONT_SIZE = 3.5
+/** Default font size in pt */
+export const DEFAULT_FONT_SIZE = 10
 
 /** Default line height (unitless) */
 export const DEFAULT_LINE_HEIGHT = 1.4
@@ -52,3 +52,39 @@ export const DEFAULT_BORDER_WIDTH = 0.3
 
 /** Default furigana scale (relative to parent font size) */
 export const DEFAULT_FURIGANA_SCALE = 0.5
+
+/** Furigana position offset multiplier (em units) */
+export const FURIGANA_OFFSET_MULTIPLIER = 1.2
+
+// ---------------------------------------------------------------------------
+// shrinkText binary search parameters
+// ---------------------------------------------------------------------------
+
+/** Minimum font size (pt) — shrinkText will never go below this */
+export const MIN_SHRINK_FONT_SIZE_PT = 1
+
+/** Maximum iterations for binary search */
+export const SHRINK_MAX_ITERATIONS = 20
+
+/** Convergence threshold for binary search (pt) */
+export const SHRINK_CONVERGENCE_PT = 0.05
+
+/** Pixel tolerance when comparing scrollHeight vs clientHeight */
+export const OVERFLOW_TOLERANCE_PX = 1
+
+// ---------------------------------------------------------------------------
+// expandFrame parameters
+// ---------------------------------------------------------------------------
+
+/** Pixel tolerance for detecting overflow in expandFrame mode */
+export const EXPAND_OVERFLOW_TOLERANCE_PX = 2
+
+/** Extra padding (mm) added when expanding the frame */
+export const EXPAND_PADDING_MM = 0.5
+
+// ---------------------------------------------------------------------------
+// Default cell / table font sizes (pt)
+// ---------------------------------------------------------------------------
+
+/** Default font size for table cells and similar compact text (pt) */
+export const DEFAULT_CELL_FONT_SIZE_PT = 8

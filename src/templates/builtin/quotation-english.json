@@ -24,7 +24,41 @@
     "defaultTextStyle": {},
     "templateVariables": [],
     "calculationRules": [],
-    "dataSources": [],
+    "dataSources": [
+      {
+        "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+        "name": "Quotation Sample Data",
+        "fields": {
+          "quotation": {
+            "issueDate": "April 18, 2026",
+            "number": "QT-2026-0042",
+            "registrationNo": "T1234567890123",
+            "validUntil": "May 18, 2026",
+            "customer": {
+              "name": "Sample Trading Co., Ltd.",
+              "address": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan"
+            },
+            "sender": {
+              "name": "Scalar, Inc.",
+              "address": "Shinjuku Mitsui Building, 2-1-1 Nishi-Shinjuku, Shinjuku-ku, Tokyo, Japan",
+              "tel": "+81-3-1234-5678",
+              "email": "info@example.com",
+              "contact": "Hanako Sato"
+            },
+            "subtotal": 1400.00,
+            "tax10Amount": 140.00,
+            "tax8Amount": 0,
+            "total": 1540.00
+          },
+          "items": [
+            {"quantity": 10, "description": "Widget A", "unitPrice": 50.00, "amount": 500.00},
+            {"quantity": 5, "description": "Widget B", "unitPrice": 80.00, "amount": 400.00},
+            {"quantity": 1, "description": "Installation Service", "unitPrice": 300.00, "amount": 300.00},
+            {"quantity": 1, "description": "Annual Maintenance Support", "unitPrice": 200.00, "amount": 200.00}
+          ]
+        }
+      }
+    ],
     "outputVariants": [],
     "submissionModels": [],
     "validationRules": [],
@@ -59,7 +93,7 @@
                 "fallbackText": "●●● Co., Ltd.",
                 "label": "●●● Co., Ltd.",
                 "style": {
-                  "fontSize": 4.5,
+                  "fontSize": 13,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -85,7 +119,7 @@
                 "fallbackText": "1-2-3 △△△△, ●●-ku, Tokyo, Japan",
                 "label": "1-2-3 △△△△, ●●-ku, Tokyo, Japan",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -108,7 +142,7 @@
                 "visible": true,
                 "content": "Phone: ",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -133,7 +167,7 @@
                 "fallbackText": "00-0000-0000",
                 "label": "00-0000-0000",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -156,7 +190,7 @@
                 "visible": true,
                 "content": "Email：",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -181,7 +215,7 @@
                 "fallbackText": "●●●@example.com",
                 "label": "●●●@example.com",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -204,7 +238,7 @@
                 "visible": true,
                 "content": "Quotation",
                 "style": {
-                  "fontSize": 8,
+                  "fontSize": 23,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -228,7 +262,7 @@
                 "visible": true,
                 "content": "Date of Issue:",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -253,7 +287,7 @@
                 "fallbackText": "4/1/2025",
                 "label": "4/1/2025",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -276,7 +310,7 @@
                 "visible": true,
                 "content": "Quotation #:",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -301,7 +335,7 @@
                 "fallbackText": "M-12345678",
                 "label": "M-12345678",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -324,7 +358,7 @@
                 "visible": true,
                 "content": "Registration #:",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -349,7 +383,7 @@
                 "fallbackText": "TXXXXXXXXXXXXX",
                 "label": "TXXXXXXXXXXXXX",
                 "style": {
-                  "fontSize": 2.5,
+                  "fontSize": 7,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -372,7 +406,7 @@
                 "visible": true,
                 "content": "Quotation To:",
                 "style": {
-                  "fontSize": 3.2,
+                  "fontSize": 9,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -398,7 +432,7 @@
                 "fallbackText": "△△△△ Co., Ltd.",
                 "label": "△△△△ Co., Ltd.",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -423,7 +457,7 @@
                 "fallbackText": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan",
                 "label": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "top",
                   "color": "#000000"
@@ -446,7 +480,7 @@
                 "visible": true,
                 "content": "Quotation valid until:",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#cc0000"
@@ -471,7 +505,7 @@
                 "fallbackText": "5/31/2025",
                 "label": "5/31/2025",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#cc0000"
@@ -494,7 +528,7 @@
                 "visible": true,
                 "content": "Prepared by:",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#333333"
@@ -519,7 +553,7 @@
                 "fallbackText": "Taro Adobe",
                 "label": "Taro Adobe",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000"
@@ -582,7 +616,7 @@
                 "visible": true,
                 "content": "QUANTITY",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#ffffff",
@@ -625,7 +659,7 @@
                 "visible": true,
                 "content": "DESCRIPTION",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#ffffff",
@@ -668,7 +702,7 @@
                 "visible": true,
                 "content": "UNIT PRICE",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#ffffff",
@@ -711,7 +745,7 @@
                 "visible": true,
                 "content": "AMOUNT",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "center",
                   "verticalAlign": "middle",
                   "color": "#ffffff",
@@ -781,11 +815,11 @@
                   }
                 ],
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "color": "#1a1a1a"
                 },
                 "headerStyle": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "fontWeight": "bold",
                   "color": "#ffffff"
                 },
@@ -846,7 +880,7 @@
                 "visible": true,
                 "content": "SUB TOTAL",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -875,7 +909,7 @@
                 "fallbackText": "$0.00",
                 "label": "$0.00",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -918,7 +952,7 @@
                 "visible": true,
                 "content": "TAX (10%)",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -947,7 +981,7 @@
                 "fallbackText": "$0.00",
                 "label": "$0.00",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -990,7 +1024,7 @@
                 "visible": true,
                 "content": "TAX (8%)",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1019,7 +1053,7 @@
                 "fallbackText": "$0.00",
                 "label": "$0.00",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1062,7 +1096,7 @@
                 "visible": true,
                 "content": "TOTAL",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1091,7 +1125,7 @@
                 "fallbackText": "$0.00",
                 "label": "$0.00",
                 "style": {
-                  "fontSize": 2.8,
+                  "fontSize": 8,
                   "textAlign": "right",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1115,7 +1149,7 @@
                 "visible": true,
                 "content": "Notes",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1142,7 +1176,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "top",
                   "color": "#1a1a1a"
                 },
@@ -1164,7 +1198,7 @@
                 "visible": true,
                 "content": "Terms & Conditions",
                 "style": {
-                  "fontSize": 3.5,
+                  "fontSize": 10,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#000000",
@@ -1191,7 +1225,7 @@
                 "displayMode": "none",
                 "lineColor": "#555555",
                 "style": {
-                  "fontSize": 3,
+                  "fontSize": 8.5,
                   "verticalAlign": "top",
                   "color": "#1a1a1a"
                 },

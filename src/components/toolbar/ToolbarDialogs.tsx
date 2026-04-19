@@ -47,7 +47,6 @@ interface Props {
   onCancelDeleteHeader: () => void
   onConfirmDeleteFooter: () => void
   onCancelDeleteFooter: () => void
-  fileInputRef: React.RefObject<HTMLInputElement | null>
 }
 
 export function ToolbarDialogs({
@@ -85,7 +84,6 @@ export function ToolbarDialogs({
   onCancelDeleteHeader,
   onConfirmDeleteFooter,
   onCancelDeleteFooter,
-  fileInputRef,
 }: Props) {
   return (
     <>
@@ -170,14 +168,6 @@ export function ToolbarDialogs({
         onCancel={onCancelDeleteFooter}
       />
 
-      {/* Hidden file input for local file open */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json,.rds.json,.rds2.json"
-        className="hidden"
-        aria-hidden="true"
-      />
     </>
   )
 }
