@@ -31,26 +31,16 @@ describe('ElementRenderer — computedValues merge', () => {
   })
 
   it('passes merged data (testData + computedValues) to child renderer', () => {
-    useReportStore.getState().setComputedResults({
-      results: { total: 1500 },
-      errors: {},
-    })
-
     const element = makeTextElement('Total: {{total}}')
-    render(<ElementRenderer element={element} data={{ name: 'Test' }} />)
+    render(<ElementRenderer element={element} data={{ name: 'Test' }} computedValues={{ total: 1500 }} />)
 
     expect(screen.getByText('Total: 1500')).toBeTruthy()
   })
 
   it('computedValues overrides testData on key conflict', () => {
     // testData says total=999, computedValues says total=1500
-    useReportStore.getState().setComputedResults({
-      results: { total: 1500 },
-      errors: {},
-    })
-
     const element = makeTextElement('{{total}}')
-    render(<ElementRenderer element={element} data={{ total: 999 }} />)
+    render(<ElementRenderer element={element} data={{ total: 999 }} computedValues={{ total: 1500 }} />)
 
     // computedValues wins
     expect(screen.getByText('1500')).toBeTruthy()

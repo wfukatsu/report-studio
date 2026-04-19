@@ -18,7 +18,7 @@ export function createTextElement(overrides?: Partial<ReportElement>): ReportEle
     visible: true,
     locked: false,
     content: 'テキスト',
-    style: { fontSize: 3.5, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }
@@ -90,7 +90,7 @@ export function createDataFieldElement(overrides?: Partial<ReportElement>): Repo
     locked: false,
     fieldKey: 'field.key',
     label: 'フィールド',
-    style: { fontSize: 3.5, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     fallbackText: '',
     ...overrides,
   } as ReportElement
@@ -127,7 +127,7 @@ export function createManualEntryField(overrides?: Partial<ReportElement>): Repo
     displayMode: 'line' as const,
     lineColor: '#000000',
     placeholder: '（記入）',
-    style: { fontSize: 3.5, color: '#000000' },
+    style: { fontSize: 10, color: '#000000' },
     ...overrides,
   } as ReportElement
 }
@@ -248,14 +248,12 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
     zIndex: 1,
     visible: true,
     locked: false,
-    dataSource: 'items',
+    dataSource: '',
     itemHeight: 8,
-    fields: DEFAULT_BAND_FIELDS,
+    fields: [],
     showHeader: true,
-    showFooter: true,
-    totals: [
-      { fieldKey: 'amount', formula: 'sum', label: '合計' },
-    ],
+    showFooter: false,
+    totals: [],
     pageBreak: 'none',
     maxItems: 0,
     oddRowColor: '#ffffff',
@@ -265,16 +263,27 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
     sortOrder: 'asc',
     showEmptyRowLines: false,
     showGroupSubtotals: false,
-    style: { fontSize: 3.5, color: '#000000' },
-    headerStyle: { fontSize: 3.5, fontWeight: 'bold', color: '#374151', backgroundColor: '#f3f4f6' },
+    style: { fontSize: 10, color: '#000000' },
+    headerStyle: { fontSize: 10, fontWeight: 'bold', color: '#374151', backgroundColor: '#f3f4f6' },
     ...overrides,
   } as ReportElement
 }
 
+/** Pre-configured repeating band with default invoice columns (used by templates) */
+export function createRepeatingBandWithDefaults(overrides?: Partial<ReportElement>): ReportElement {
+  return createRepeatingBandElement({
+    dataSource: 'items',
+    fields: DEFAULT_BAND_FIELDS as RepeatingBandField[],
+    showFooter: true,
+    totals: [{ fieldKey: 'amount', formula: 'sum', label: '合計' }],
+    ...overrides,
+  } as Partial<ReportElement>)
+}
+
 const DEFAULT_LIST_FIELDS: RepeatingListField[] = [
-  { key: 'name',  label: '名前',  x: 2, y: 2,  width: 36, height: 5, style: { fontSize: 4, fontWeight: 'bold' } },
-  { key: 'title', label: '役職',  x: 2, y: 8,  width: 36, height: 4, style: { fontSize: 3, color: '#6b7280' } },
-  { key: 'dept',  label: '部署',  x: 2, y: 13, width: 36, height: 4, style: { fontSize: 3, color: '#6b7280' } },
+  { key: 'name',  label: '名前',  x: 2, y: 2,  width: 36, height: 5, style: { fontSize: 11, fontWeight: 'bold' } },
+  { key: 'title', label: '役職',  x: 2, y: 8,  width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
+  { key: 'dept',  label: '部署',  x: 2, y: 13, width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
 ]
 
 const DEFAULT_FORM_TABLE_COLUMNS: FormTableColumn[] = [
@@ -394,7 +403,7 @@ export function createPageNumberElement(overrides?: Partial<PageNumberElement>):
     visible: true,
     locked: false,
     format: '{{page}} / {{pages}}',
-    style: { fontSize: 3, color: '#666666', textAlign: 'center' },
+    style: { fontSize: 8.5, color: '#666666', textAlign: 'center' },
     ...overrides,
   } as ReportElement
 }
@@ -409,7 +418,7 @@ export function createCurrentDateElement(overrides?: Partial<CurrentDateElement>
     visible: true,
     locked: false,
     format: 'yyyy年MM月dd日',
-    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    style: { fontSize: 8.5, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }
@@ -440,17 +449,19 @@ export function createTenantCompanyNameElement(overrides?: Partial<TenantCompany
     id: uuidv4(), type: 'tenantCompanyName',
     position: { x: 13, y: 13 }, size: { width: 60, height: 8 },
     zIndex: 1, visible: true, locked: false,
-    style: { fontSize: 5, color: '#000000', textAlign: 'left', fontWeight: 'bold' },
+    style: { fontSize: 14, color: '#000000', textAlign: 'left', fontWeight: 'bold' },
     ...overrides,
   } as ReportElement
 }
 
 export function createTenantAddressElement(overrides?: Partial<TenantAddressElement>): ReportElement {
+  const mode = overrides?.displayMode ?? 'single'
   return {
     id: uuidv4(), type: 'tenantAddress',
-    position: { x: 13, y: 13 }, size: { width: 80, height: 6 },
+    position: { x: 13, y: 13 }, size: { width: 80, height: mode === 'multiLine' ? 15 : 6 },
     zIndex: 1, visible: true, locked: false,
-    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, color: '#000000', textAlign: 'left' },
+    displayMode: 'single',
     ...overrides,
   } as ReportElement
 }
@@ -460,7 +471,7 @@ export function createTenantPhoneElement(overrides?: Partial<TenantPhoneElement>
     id: uuidv4(), type: 'tenantPhone',
     position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
     zIndex: 1, visible: true, locked: false,
-    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }
@@ -470,7 +481,7 @@ export function createTenantRepresentativeElement(overrides?: Partial<TenantRepr
     id: uuidv4(), type: 'tenantRepresentative',
     position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
     zIndex: 1, visible: true, locked: false,
-    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }
@@ -491,7 +502,7 @@ export function createTenantCustomElement(overrides?: Partial<TenantCustomElemen
     position: { x: 13, y: 13 }, size: { width: 50, height: 6 },
     zIndex: 1, visible: true, locked: false,
     fieldKey: '',
-    style: { fontSize: 3, color: '#000000', textAlign: 'left' },
+    style: { fontSize: 10, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
 }

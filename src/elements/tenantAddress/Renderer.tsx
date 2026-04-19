@@ -1,25 +1,28 @@
 import { memo } from 'react'
-import type { TenantAddressElement } from '@/types'
+import type { TenantAddressElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
-import { toFlexAlign } from '@/elements/_base/styleUtils'
+import { TextContent } from '@/elements/_blocks/renderers/TextContent'
+import { resolveStyle } from '@/lib/styleUtils'
+import { formatAddress } from '@/elements/_blocks/formatAddress'
 
 interface Props {
   element: TenantAddressElement
   resolveValues?: boolean
+  defaultStyle?: TextStyle
 }
 
-export const TenantAddressRenderer = memo(function TenantAddressRenderer({ element: el, resolveValues = false }: Props) {
-  const address = useReportStore((s) => s.tenantInfo?.address)
-  const postalCode = useReportStore((s) => s.tenantInfo?.postalCode)
+export const TenantAddressRenderer = memo(function TenantAddressRenderer({ element: el, resolveValues = false, defaultStyle }: Props) {
+  const tenantInfo = useReportStore((s) => s.tenantInfo)
+  const mode = el.displayMode ?? 'single'
+
   const value = resolveValues
-    ? (postalCode && address ? `〒${postalCode} ${address}` : (address ?? el.fallback ?? '（住所未設定）'))
+    ? (formatAddress({
+        postalCode: tenantInfo?.postalCode,
+        address1: tenantInfo?.address1,
+        address2: tenantInfo?.address2,
+        address: tenantInfo?.address,
+      }, mode) || el.fallback || '（住所未設定）')
     : '{{住所}}'
-  const style = el.style
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: toFlexAlign(style.verticalAlign), overflow: 'hidden', userSelect: 'none' }}>
-      <div style={{ fontSize: style.fontSize ? `${style.fontSize}mm` : '3mm', fontWeight: style.fontWeight ?? 'normal', fontStyle: style.fontStyle ?? 'normal', color: style.color ?? '#000000', fontFamily: style.fontFamily, textAlign: style.textAlign ?? 'left', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-        {value}
-      </div>
-    </div>
-  )
+
+  return <TextContent text={value} style={resolveStyle(el.style, defaultStyle ?? {})} />
 })

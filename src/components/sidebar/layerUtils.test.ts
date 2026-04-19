@@ -12,7 +12,7 @@ function el(type: ReportElement['type'], extra: Record<string, unknown> = {}): R
 
 describe('elementIcon', () => {
   const allTypes: ReportElement['type'][] = [
-    'text', 'label', 'dataField', 'image', 'table', 'chart', 'barcode',
+    'text', 'dataField', 'image', 'chart', 'barcode',
     'manualEntry', 'hanko', 'approvalStampRow', 'revenueStamp', 'shape',
     'repeatingBand', 'repeatingList', 'formTable', 'checkbox', 'eraSelect',
     'pageNumber', 'currentDate', 'divider',
@@ -29,10 +29,8 @@ describe('defaultName', () => {
     expect(defaultName({ ...el('text'), name: 'カスタム名' } as ReportElement)).toBe('カスタム名')
   })
   it('text', () => expect(defaultName(el('text', { content: '', style: {} }))).toBe('テキスト'))
-  it('label', () => expect(defaultName(el('label', { text: '', style: {} }))).toBe('ラベル'))
   it('dataField', () => expect(defaultName(el('dataField', { fieldKey: '', style: {} }))).toBe('データフィールド'))
   it('image', () => expect(defaultName(el('image', { src: '', alt: '', objectFit: 'contain' }))).toBe('画像'))
-  it('table', () => expect(defaultName(el('table'))).toBe('テーブル'))
   it('chart', () => expect(defaultName(el('chart', { chartType: 'bar' }))).toBe('グラフ'))
   it('barcode', () => expect(defaultName(el('barcode', { kind: 'qr', value: '' }))).toBe('バーコード'))
   it('manualEntry', () => expect(defaultName(el('manualEntry', { label: '', labelPosition: 'top', displayMode: 'line', lineColor: '#000', style: {} }))).toBe('記入欄'))

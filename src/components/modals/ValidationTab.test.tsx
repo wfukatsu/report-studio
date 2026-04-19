@@ -35,7 +35,8 @@ describe('ValidationTab — ルール追加', () => {
   it('renders rule row after adding', () => {
     render(<ValidationTab />)
     fireEvent.click(screen.getByText('+ 追加'))
-    expect(screen.getByPlaceholderText('total < 0')).toBeInTheDocument()
+    // Condition is now a click-to-focus button showing placeholder text
+    expect(screen.getByText('total < 0')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('合計金額が不正です')).toBeInTheDocument()
   })
 
@@ -48,15 +49,16 @@ describe('ValidationTab — ルール追加', () => {
 })
 
 describe('ValidationTab — ルール編集', () => {
-  it('updates condition when condition input changes', () => {
+  it('updates condition via store action', () => {
     render(<ValidationTab />)
     fireEvent.click(screen.getByText('+ 追加'))
 
-    const conditionInput = screen.getByPlaceholderText('total < 0')
-    fireEvent.change(conditionInput, { target: { value: 'amount < 0' } })
-
+    // Condition editor is now a lazy-loaded FormulaEditor; update via store action
     const rules = useReportStore.getState().definition.validationRules
-    expect(rules[0].condition).toBe('amount < 0')
+    useReportStore.getState().updateValidationRule(rules[0].id, { condition: 'amount < 0' })
+
+    const updated = useReportStore.getState().definition.validationRules
+    expect(updated[0].condition).toBe('amount < 0')
   })
 
   it('updates message when message input changes', () => {
@@ -99,7 +101,8 @@ describe('ValidationTab — 複数ルール', () => {
     fireEvent.click(screen.getByText('+ 追加'))
     fireEvent.click(screen.getByText('+ 追加'))
 
-    const conditionInputs = screen.getAllByPlaceholderText('total < 0')
-    expect(conditionInputs).toHaveLength(2)
+    // Condition is now a click-to-focus button showing "total < 0" as italic text
+    const conditionButtons = screen.getAllByText('total < 0')
+    expect(conditionButtons).toHaveLength(2)
   })
 })

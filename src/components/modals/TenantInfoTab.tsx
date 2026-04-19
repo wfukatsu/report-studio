@@ -124,13 +124,28 @@ export function TenantInfoTab() {
               onChange={(e) => setField('postalCode', e.target.value)}
             />
           </PropRow>
-          <PropRow label="住所">
+          <PropRow label="住所1（都道府県・市区町村）">
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
-              placeholder="東京都千代田区..."
-              value={form.address ?? ''}
-              onChange={(e) => setField('address', e.target.value)}
+              placeholder="東京都千代田区千代田"
+              value={form.address1 ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                setForm((prev) => ({ ...prev, address1: v, address: v + (prev.address2 ?? '') }))
+              }}
+            />
+          </PropRow>
+          <PropRow label="住所2（番地・建物名）">
+            <input
+              type="text"
+              className="border rounded px-2 py-1 text-xs w-full bg-background"
+              placeholder="1-1-1 〇〇ビル3F"
+              value={form.address2 ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                setForm((prev) => ({ ...prev, address2: v, address: (prev.address1 ?? '') + v }))
+              }}
             />
           </PropRow>
           <PropRow label="電話番号">

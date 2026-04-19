@@ -126,13 +126,15 @@ describe('VersionHistoryPanel — connected with template', () => {
   it('calls restoreVersion with correct ids when restore button clicked', async () => {
     mockListVersions.mockResolvedValue(SAMPLE_VERSIONS)
     mockRestoreVersion.mockResolvedValue(undefined)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<VersionHistoryPanel />)
     await userEvent.click(screen.getByLabelText('バージョン一覧を更新'))
     await waitFor(() => expect(screen.getByText('v2')).toBeInTheDocument())
 
     await userEvent.click(screen.getByLabelText('v2 に復元'))
+    // ConfirmDialog opens — click the confirm button
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('復元'))
 
     await waitFor(() => {
       expect(mockRestoreVersion).toHaveBeenCalledWith('tpl-1', 'v2')
@@ -141,13 +143,15 @@ describe('VersionHistoryPanel — connected with template', () => {
 
   it('does not restore when user cancels confirm', async () => {
     mockListVersions.mockResolvedValue(SAMPLE_VERSIONS)
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     render(<VersionHistoryPanel />)
     await userEvent.click(screen.getByLabelText('バージョン一覧を更新'))
     await waitFor(() => expect(screen.getByText('v2')).toBeInTheDocument())
 
     await userEvent.click(screen.getByLabelText('v2 に復元'))
+    // ConfirmDialog opens — click cancel
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('キャンセル'))
 
     expect(mockRestoreVersion).not.toHaveBeenCalled()
   })
@@ -155,13 +159,15 @@ describe('VersionHistoryPanel — connected with template', () => {
   it('shows restore error when restoreVersion rejects', async () => {
     mockListVersions.mockResolvedValue(SAMPLE_VERSIONS)
     mockRestoreVersion.mockRejectedValue(new Error('Restore failed'))
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<VersionHistoryPanel />)
     await userEvent.click(screen.getByLabelText('バージョン一覧を更新'))
     await waitFor(() => expect(screen.getByText('v2')).toBeInTheDocument())
 
     await userEvent.click(screen.getByLabelText('v2 に復元'))
+    // ConfirmDialog opens — click the confirm button
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('復元'))
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('復元に失敗しました')

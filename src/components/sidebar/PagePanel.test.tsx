@@ -74,28 +74,27 @@ describe('PagePanel', () => {
     useReportStore.getState().addPage('削除対象')
     const initialCount = useReportStore.getState().definition.pages.length
 
-    // Mock window.confirm to return true
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-
     render(<PagePanel />)
     const deleteButtons = screen.getAllByTitle('ページを削除')
     fireEvent.click(deleteButtons[0])
 
+    // ConfirmDialog opens — click the confirm button
+    fireEvent.click(screen.getByText('削除'))
+
     expect(useReportStore.getState().definition.pages.length).toBe(initialCount - 1)
-    vi.restoreAllMocks()
   })
 
   it('does not delete a page when delete is cancelled', () => {
     useReportStore.getState().addPage('保持対象')
     const initialCount = useReportStore.getState().definition.pages.length
 
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
-
     render(<PagePanel />)
     const deleteButtons = screen.getAllByTitle('ページを削除')
     fireEvent.click(deleteButtons[0])
 
+    // ConfirmDialog opens — click cancel
+    fireEvent.click(screen.getByText('キャンセル'))
+
     expect(useReportStore.getState().definition.pages.length).toBe(initialCount)
-    vi.restoreAllMocks()
   })
 })

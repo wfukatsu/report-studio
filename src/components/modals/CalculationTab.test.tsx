@@ -5,11 +5,9 @@ import { CalculationTab } from './CalculationTab'
 
 vi.mock('@/lib/jexlEngine', () => ({
   evaluateExpression: vi.fn(),
-  JEXL_BUILTINS: [
-    { name: 'sum',   signature: 'sum(array)',            description: '配列の合計値' },
-    { name: 'count', signature: 'count(array)',           description: '配列の要素数' },
-    { name: 'round', signature: 'round(value, places?)', description: '小数の丸め' },
-  ],
+}))
+vi.mock('@/lib/formula/expression/formulaToJexl', () => ({
+  formulaToJexl: vi.fn((expr: string) => expr),
 }))
 
 import { evaluateExpression } from '@/lib/jexlEngine'
@@ -58,7 +56,8 @@ describe('CalculationTab — ルール追加', () => {
     fireEvent.click(screen.getByText('+ 追加'))
     expect(screen.getByPlaceholderText('calc_total')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('合計金額')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('price * quantity')).toBeInTheDocument()
+    // Expression is now a click-to-focus button when unfocused
+    expect(screen.getByText('式を入力...')).toBeInTheDocument()
   })
 
   it('renders result type and onError selects', () => {
@@ -81,15 +80,16 @@ describe('CalculationTab — ルール編集', () => {
     expect(rules[0].key).toBe('my_calc')
   })
 
-  it('updates expression when expression input changes', () => {
+  it('updates expression via store action', () => {
     render(<CalculationTab />)
     fireEvent.click(screen.getByText('+ 追加'))
 
-    const exprInput = screen.getByPlaceholderText('price * quantity')
-    fireEvent.change(exprInput, { target: { value: 'a + b' } })
-
+    // Expression editor is a lazy-loaded CM6 editor; update via store action
     const rules = useReportStore.getState().definition.calculationRules
-    expect(rules[0].expression).toBe('a + b')
+    useReportStore.getState().updateCalculationRule(rules[0].key, { expression: 'a + b' })
+
+    const updated = useReportStore.getState().definition.calculationRules
+    expect(updated[0].expression).toBe('a + b')
   })
 
   it('updates resultType when select changes', () => {
@@ -187,12 +187,13 @@ describe('CalculationTab — 説明フィールド', () => {
   })
 })
 
-describe('CalculationTab — 式テキストエリア', () => {
-  it('renders expression as textarea', () => {
+describe('CalculationTab — 式エディタ', () => {
+  it('renders expression as click-to-focus button when unfocused', () => {
     render(<CalculationTab />)
     fireEvent.click(screen.getByText('+ 追加'))
-    const ta = screen.getByPlaceholderText('price * quantity')
-    expect(ta.tagName).toBe('TEXTAREA')
+    // When unfocused, expression shows as a button wrapping a span
+    const span = screen.getByText('式を入力...')
+    expect(span.closest('button')).toBeTruthy()
   })
 })
 
@@ -334,9 +335,9 @@ describe('CalculationTab — 変数参照パネル', () => {
     fireEvent.click(screen.getByText('+ 追加'))
 
     fireEvent.click(screen.getByTestId('variable-panel-toggle'))
-    expect(screen.getByText('sum(array)')).toBeInTheDocument()
-    expect(screen.getByText('count(array)')).toBeInTheDocument()
-    expect(screen.getByText('round(value, places?)')).toBeInTheDocument()
+    expect(screen.getByText('SUM(array)')).toBeInTheDocument()
+    expect(screen.getByText('COUNT(array)')).toBeInTheDocument()
+    expect(screen.getByText('ROUND(value, places)')).toBeInTheDocument()
   })
 
   it('shows schema fields when schema is defined', () => {

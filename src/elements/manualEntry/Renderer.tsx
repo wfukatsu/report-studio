@@ -36,7 +36,7 @@ function InputArea({ el }: { el: ManualEntryField }) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: el.style.fontSize ? `${el.style.fontSize}mm` : `${DEFAULT_FONT_SIZE}mm`,
+            fontSize: el.style.fontSize ? `${el.style.fontSize}pt` : `${DEFAULT_FONT_SIZE}pt`,
             color: el.style.color ?? '#000000',
             opacity: 0.4,
             whiteSpace: 'nowrap',

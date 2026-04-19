@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { RepeatingBandRenderer } from './Renderer'
-import { createRepeatingBandElement } from '@/lib/elementFactories'
+import { createRepeatingBandWithDefaults } from '@/lib/elementFactories'
 import type { RepeatingBandElement } from '@/types'
 
 function makeElement(overrides: Partial<RepeatingBandElement> = {}): RepeatingBandElement {
-  return createRepeatingBandElement(overrides) as RepeatingBandElement
+  return createRepeatingBandWithDefaults(overrides) as RepeatingBandElement
 }
 
 describe('RepeatingBandRenderer — デザインプレビュー (records=undefined)', () => {
@@ -21,9 +21,14 @@ describe('RepeatingBandRenderer — デザインプレビュー (records=undefin
   })
 
   it('shows column headers when showHeader is true', () => {
-    const el = makeElement({ showHeader: true })
+    const el = makeElement({
+      showHeader: true,
+      fields: [
+        { key: 'no', label: 'No.', width: 12, align: 'center' },
+        { key: 'name', label: '品目', width: 55, align: 'left' },
+      ],
+    })
     render(<RepeatingBandRenderer element={el} />)
-    // First field label from DEFAULT_BAND_FIELDS is 'No.'
     expect(screen.getByText('No.')).toBeInTheDocument()
   })
 
@@ -156,7 +161,14 @@ describe('RepeatingBandRenderer — groupBy rendering', () => {
   })
 
   it('groupBy未設定時は従来のフラット表示になること', () => {
-    const el = makeElement({ showHeader: false, showFooter: false })
+    const el = makeElement({
+      showHeader: false,
+      showFooter: false,
+      fields: [
+        { key: 'name', label: 'Name', width: 50, align: 'left' },
+        { key: 'amount', label: 'Amount', width: 50, align: 'right' },
+      ],
+    })
     const { container } = render(<RepeatingBandRenderer element={el} records={groupRecords} />)
     // No group headers should be present
     const headers = container.querySelectorAll('[data-testid="group-header"]')

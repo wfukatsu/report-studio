@@ -3,7 +3,7 @@
  */
 
 import type { StateCreator } from 'zustand'
-import type { ReportElement } from '@/types'
+import type { ReportElement, TextStyle } from '@/types'
 import type { AppTab, DataSection, TemplateSection, StoreState } from './types'
 import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
 
@@ -23,6 +23,7 @@ export type UISlice = Pick<StoreState,
   | 'showMarginGuide'
   | 'gridSize'
   | 'clipboard'
+  | 'styleClipboard'
   | 'headerEditMode'
   | 'livePreviewEnabled'
   | 'backendConnected'
@@ -78,6 +79,7 @@ export const createUISlice: StateCreator<
   showMarginGuide: true,
   gridSize: 5,
   clipboard: null as ReportElement[] | null,
+  styleClipboard: null as TextStyle | null,
   headerEditMode: false,
   livePreviewEnabled: false,
   backendConnected: false,

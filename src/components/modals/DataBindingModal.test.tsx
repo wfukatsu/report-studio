@@ -10,16 +10,14 @@ vi.mock('@/components/sidebar/DataSourcePanel', () => ({
 vi.mock('@/components/sidebar/BindingPanel', () => ({
   BindingPanel: () => <div data-testid="binding-panel">BindingPanel</div>,
 }))
-// DbConnectionTab fires a real catalog fetch on mount; mock it out so these
-// DataBindingModal tests don't depend on network / Zod schema plumbing.
-vi.mock('@/components/modals/DbConnectionTab', () => ({
-  DbConnectionTab: () => <div data-testid="dbconnection-tab">DbConnectionTab</div>,
-}))
-vi.mock('@/components/modals/BindingMapperTab', () => ({
-  BindingMapperTab: () => <div data-testid="bindingmapper-tab">BindingMapperTab</div>,
-}))
 vi.mock('@/components/modals/TenantInfoTab', () => ({
   TenantInfoTab: () => <div data-testid="tenantinfo-tab">TenantInfoTab</div>,
+}))
+vi.mock('@/components/modals/ProductMasterTab', () => ({
+  ProductMasterTab: () => <div data-testid="productmaster-tab">ProductMasterTab</div>,
+}))
+vi.mock('@/components/modals/WebhookTab', () => ({
+  WebhookTab: () => <div data-testid="webhook-tab">WebhookTab</div>,
 }))
 
 beforeEach(() => {
@@ -71,10 +69,10 @@ describe('DataBindingModal — タブ切り替え', () => {
     expect(screen.getByTestId('datasource-panel')).toBeInTheDocument()
   })
 
-  it('switches to データ連携 tab on click', () => {
+  it('switches to テナント情報 tab on click', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'データ連携' }))
-    expect(screen.getByTestId('dbconnection-tab')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'テナント情報' }))
+    expect(screen.getByTestId('tenantinfo-tab')).toBeInTheDocument()
   })
 })
 
@@ -91,7 +89,7 @@ describe('DataBindingModal — タブキーボード操作', () => {
     render(<DataBindingModal open={true} onClose={vi.fn()} />)
     const tablist = screen.getByRole('tablist')
     fireEvent.keyDown(tablist, { key: 'ArrowLeft' })
-    // From datasource, ArrowLeft wraps to the last tab (テナント情報).
-    expect(screen.getByTestId('tenantinfo-tab')).toBeInTheDocument()
+    // From datasource, ArrowLeft wraps to the last tab (Webhook).
+    expect(screen.getByTestId('webhook-tab')).toBeInTheDocument()
   })
 })

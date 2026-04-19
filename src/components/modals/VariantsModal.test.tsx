@@ -44,42 +44,19 @@ describe('VariantsModal — 基本表示', () => {
 })
 
 describe('VariantsModal — バリアント追加', () => {
-  it('adds a variant with custom name', () => {
+  it('adds a variant via store action', () => {
     render(<VariantsModal open={true} onClose={onClose} />)
-    const input = screen.getByPlaceholderText('新しいバリアント名')
-    fireEvent.change(input, { target: { value: 'テストバリアント' } })
-    fireEvent.click(screen.getByText('追加'))
+    // Variant creation now uses a wizard; test via store action
+    useReportStore.getState().addVariant('テストバリアント')
 
     const variants = useReportStore.getState().definition.outputVariants
     expect(variants.length).toBe(1)
     expect(variants[0].name).toBe('テストバリアント')
   })
 
-  it('adds a variant with default name when input is empty', () => {
+  it('shows wizard button for creating new variant', () => {
     render(<VariantsModal open={true} onClose={onClose} />)
-    fireEvent.click(screen.getByText('追加'))
-
-    const variants = useReportStore.getState().definition.outputVariants
-    expect(variants.length).toBe(1)
-    expect(variants[0].name).toBe('バリアント 1')
-  })
-
-  it('adds a variant when Enter is pressed in input', () => {
-    render(<VariantsModal open={true} onClose={onClose} />)
-    const input = screen.getByPlaceholderText('新しいバリアント名')
-    fireEvent.change(input, { target: { value: 'Enterバリアント' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    const variants = useReportStore.getState().definition.outputVariants
-    expect(variants.length).toBe(1)
-  })
-
-  it('clears input after adding', () => {
-    render(<VariantsModal open={true} onClose={onClose} />)
-    const input = screen.getByPlaceholderText('新しいバリアント名') as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'テスト' } })
-    fireEvent.click(screen.getByText('追加'))
-    expect(input.value).toBe('')
+    expect(screen.getByText('ウィザードで新規バリアントを作成')).toBeInTheDocument()
   })
 })
 

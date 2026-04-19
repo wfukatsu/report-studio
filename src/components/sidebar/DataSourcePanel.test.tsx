@@ -17,8 +17,8 @@ describe('DataSourcePanel — 初期状態', () => {
 
   it('shows form inputs in form mode', () => {
     render(<DataSourcePanel />)
-    expect(screen.getByPlaceholderText('customer.name')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('山田太郎')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('例: customer.name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('例: 山田太郎')).toBeInTheDocument()
   })
 
   it('shows system variables section', () => {
@@ -30,9 +30,9 @@ describe('DataSourcePanel — 初期状態', () => {
 describe('DataSourcePanel — フォームモード', () => {
   it('adds a new row when + フィールドを追加 is clicked', () => {
     render(<DataSourcePanel />)
-    const keyInputs = screen.getAllByPlaceholderText('customer.name')
+    const keyInputs = screen.getAllByPlaceholderText('例: customer.name')
     fireEvent.click(screen.getByText('+ フィールドを追加'))
-    const keyInputsAfter = screen.getAllByPlaceholderText('customer.name')
+    const keyInputsAfter = screen.getAllByPlaceholderText('例: customer.name')
     expect(keyInputsAfter.length).toBe(keyInputs.length + 1)
   })
 
@@ -52,17 +52,17 @@ describe('DataSourcePanel — フォームモード', () => {
   it('removes row when delete button clicked', () => {
     render(<DataSourcePanel />)
     fireEvent.click(screen.getByText('+ フィールドを追加'))
-    const beforeCount = screen.getAllByPlaceholderText('customer.name').length
+    const beforeCount = screen.getAllByPlaceholderText('例: customer.name').length
     const deleteBtns = screen.getAllByRole('button', { name: 'この行を削除' })
     fireEvent.click(deleteBtns[0])
-    const afterCount = screen.getAllByPlaceholderText('customer.name').length
+    const afterCount = screen.getAllByPlaceholderText('例: customer.name').length
     expect(afterCount).toBe(beforeCount - 1)
   })
 
   it('applies form data to store when データを適用 is clicked', () => {
     render(<DataSourcePanel />)
-    const keyInput = screen.getByPlaceholderText('customer.name')
-    const valueInput = screen.getByPlaceholderText('山田太郎')
+    const keyInput = screen.getByPlaceholderText('例: customer.name')
+    const valueInput = screen.getByPlaceholderText('例: 山田太郎')
     fireEvent.change(keyInput, { target: { value: 'name' } })
     fireEvent.change(valueInput, { target: { value: '鈴木' } })
 
@@ -113,7 +113,7 @@ describe('DataSourcePanel — JSONモード', () => {
     render(<DataSourcePanel />)
     fireEvent.click(screen.getByText('JSON'))
     fireEvent.click(screen.getByText('フォーム'))
-    expect(screen.getByPlaceholderText('customer.name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('例: customer.name')).toBeInTheDocument()
   })
 })
 
@@ -133,7 +133,7 @@ describe('DataSourcePanel — データソース表示とクリア', () => {
 
   it('syncs form rows to JSON when switching to JSON mode', () => {
     render(<DataSourcePanel />)
-    const keyInput = screen.getByPlaceholderText('customer.name')
+    const keyInput = screen.getByPlaceholderText('例: customer.name')
     fireEvent.change(keyInput, { target: { value: 'myField' } })
     fireEvent.click(screen.getByText('JSON'))
 

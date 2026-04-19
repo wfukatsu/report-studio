@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { toast } from 'sonner'
 import { PanelTop } from 'lucide-react'
 import { useDragSelect } from '@/hooks/useDragSelect'
 import { useShiftKeyTracker } from '@/hooks/useShiftKeyTracker'
@@ -162,6 +163,9 @@ export function ReportCanvas({
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
+  // ID of the element highlighted as a drop target during schema field/group drag-over
+  const [dropHighlightId, setDropHighlightId] = useState<string | null>(null)
+
   // ⌘G / Ctrl+G — group selected elements (skip when a text input has focus)
   useEffect(() => {
     if (readonly) return
@@ -264,16 +268,51 @@ export function ReportCanvas({
 
   const handlePaletteDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (
-        e.dataTransfer.types.includes('application/rds-palette') ||
-        e.dataTransfer.types.includes(SCHEMA_FIELD_MIME) ||
+      const isSchema = e.dataTransfer.types.includes(SCHEMA_FIELD_MIME) ||
         e.dataTransfer.types.includes(SCHEMA_GROUP_MIME)
+      if (
+        e.dataTransfer.types.includes('application/rds-palette') || isSchema
       ) {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
       }
+
+      // Hit-test for repeatingBand/List highlight during schema field/group drag
+      if (isSchema && page && ref.current) {
+        const rect = ref.current.getBoundingClientRect()
+        const xMm = pxToMm((e.clientX - rect.left) / zoom)
+        const yMm = pxToMm((e.clientY - rect.top) / zoom)
+
+        let sectionOffsetY = 0
+        let targetSection: typeof page.sections[number] | undefined
+        for (const sec of page.sections) {
+          if (yMm < sectionOffsetY + sec.height) {
+            targetSection = sec
+            break
+          }
+          sectionOffsetY += sec.height
+        }
+        const relativeY = yMm - sectionOffsetY
+        const sectionElements = targetSection?.elements ?? []
+        const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
+
+        let hitId: string | null = null
+        for (const el of sorted) {
+          if (
+            xMm >= el.position.x &&
+            xMm <= el.position.x + el.size.width &&
+            relativeY >= el.position.y &&
+            relativeY <= el.position.y + el.size.height &&
+            (el.type === 'repeatingBand' || el.type === 'repeatingList')
+          ) {
+            hitId = el.id
+            break
+          }
+        }
+        setDropHighlightId(hitId)
+      }
     },
-    [],
+    [page, zoom, ref],
   )
 
   const handlePaletteDrop = useCallback(
@@ -454,6 +493,7 @@ export function ReportCanvas({
           patch.dataSource = payload.groupDataKey
         }
         updateElement(page.id, hitElement.id, patch)
+        toast.success(`列「${payload.fieldLabel}」を追加しました`)
         return
       }
 
@@ -586,6 +626,7 @@ export function ReportCanvas({
           patch.dataSource = payload.groupDataKey
         }
         updateElement(page.id, hitElement.id, patch)
+        toast.success(`${addedFields.length}列を追加しました`)
       }
       // If not dropped on a repeating element, do nothing (group-level drop only makes sense for repeating)
     },
@@ -673,7 +714,9 @@ export function ReportCanvas({
         onPointerMove={onMarqueePointerMove}
         onPointerUp={onMarqueePointerUp}
         onDragOver={readonly ? undefined : handlePaletteDragOver}
+        onDragLeave={readonly ? undefined : () => setDropHighlightId(null)}
         onDrop={readonly ? undefined : (e) => {
+          setDropHighlightId(null)
           if (e.dataTransfer.types.includes(SCHEMA_GROUP_MIME)) {
             handleSchemaGroupDrop(e)
           } else if (e.dataTransfer.types.includes(SCHEMA_FIELD_MIME)) {
@@ -719,6 +762,7 @@ export function ReportCanvas({
             section={section}
             pageId={page.id}
             selectedIds={selectedIdSet}
+            dropHighlightId={dropHighlightId}
             onSelectElement={selectElement}
             onMoveElement={handleMove}
             onResizeElement={handleResize}

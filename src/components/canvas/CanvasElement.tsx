@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useCallback, useEffect } from 'react'
+import { memo, useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
 import { ElementRenderer } from './ElementRenderer'
@@ -7,7 +7,8 @@ import { TextInlineEditor } from '@/elements/text/InlineEditor'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { constrainAspectRatio } from '@/lib/aspectRatioConstraint'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
-import type { ReportElement, FormTableElement } from '@/types'
+import type { ReportElement, FormTableElement, TextStyle } from '@/types'
+import { EXPAND_OVERFLOW_TOLERANCE_PX, EXPAND_PADDING_MM } from '@/elements/_blocks/constants'
 import { FormTableEditor } from '@/elements/formTable/FormTableEditor'
 
 import type { ContextMenuState } from './ContextMenu'
@@ -15,6 +16,8 @@ import type { ContextMenuState } from './ContextMenu'
 interface Props {
   element: ReportElement
   isSelected: boolean
+  /** True when this element is highlighted as a schema field/group drop target */
+  isDropTarget?: boolean
   onSelect: (id: string, multi: boolean) => void
   onMove: (id: string, position: { x: number; y: number }) => void
   onResize: (id: string, size: { width: number; height: number }) => void
@@ -34,6 +37,7 @@ const CORNER_HANDLES = new Set<ResizeHandle>(['se', 'sw', 'ne', 'nw'])
 export const CanvasElement = memo(function CanvasElement({
   element,
   isSelected,
+  isDropTarget = false,
   onSelect,
   onMove,
   onResize,
@@ -66,30 +70,14 @@ export const CanvasElement = memo(function CanvasElement({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
-<<<<<<< HEAD
     // Disable drag while editing so pointer events reach the contenteditable
     disabled: element.locked || readonly || editing,
-=======
-    disabled: element.locked || readonly || tableEditMode,
->>>>>>> feat/formtable-excel-editing
   })
 
   // Exit table edit mode when element is deselected
   useEffect(() => {
     if (!isSelected && tableEditMode) setTableEditMode(false)
   }, [isSelected, tableEditMode])
-
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (readonly || element.locked) return
-      if (element.type === 'formTable') {
-        e.stopPropagation()
-        e.preventDefault()
-        setTableEditMode(true)
-      }
-    },
-    [readonly, element.locked, element.type],
-  )
 
   const handleTableChange = useCallback(
     (patch: Partial<FormTableElement>) => {
@@ -230,6 +218,32 @@ export const CanvasElement = memo(function CanvasElement({
     [onMove, onResize, readonly],
   )
 
+  // --- expandFrame: auto-grow element height to fit text content ---
+  const textFit = getTextFit(element)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const expandPending = useRef(false)
+
+  useEffect(() => {
+    if (textFit !== 'expandFrame') return
+    const el = contentRef.current
+    if (!el || !activePageId || expandPending.current) return
+
+    // Measure actual content height vs current element height
+    const contentHeightPx = el.scrollHeight
+    const elementHeightPx = mmToPx(element.size.height)
+
+    // Only update if content overflows beyond tolerance to avoid oscillation
+    if (contentHeightPx > elementHeightPx + EXPAND_OVERFLOW_TOLERANCE_PX) {
+      expandPending.current = true
+      const newHeightMm = pxToMm(contentHeightPx) + EXPAND_PADDING_MM
+      updateElement(activePageId, element.id, {
+        size: { ...element.size, height: newHeightMm },
+      })
+      // Allow next check after the store update has rendered
+      requestAnimationFrame(() => { expandPending.current = false })
+    }
+  }, [textFit, element.size.height, element.size.width, element.id, activePageId, updateElement])
+
   // Convert mm → px for rendering
   const xPx = mmToPx(element.position.x) + (transform?.x ?? 0)
   const yPx = mmToPx(element.position.y) + (transform?.y ?? 0)
@@ -285,14 +299,16 @@ export const CanvasElement = memo(function CanvasElement({
         e.stopPropagation()
         if (!readonly) onSelect(element.id, e.metaKey || e.ctrlKey || e.shiftKey)
       }}
-<<<<<<< HEAD
       onDoubleClick={(e) => {
         e.stopPropagation()
-        enterEditMode()
+        if (readonly || element.locked) return
+        if (element.type === 'formTable') {
+          e.preventDefault()
+          setTableEditMode(true)
+        } else {
+          enterEditMode()
+        }
       }}
-=======
-      onDoubleClick={handleDoubleClick}
->>>>>>> feat/formtable-excel-editing
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -327,27 +343,37 @@ export const CanvasElement = memo(function CanvasElement({
       aria-pressed={editing ? undefined : isSelected}
     >
       <ElementErrorBoundary elementId={element.id} elementType={element.type} onDelete={handleDeleteElement}>
-<<<<<<< HEAD
-        {editing && element.type === 'text' ? (
-          <TextInlineEditor
-            element={element}
-            onCommit={handleInlineCommit}
-            onCancel={handleInlineCancel}
-          />
-        ) : (
-          <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} />
-=======
-        {tableEditMode && element.type === 'formTable' ? (
-          <FormTableEditor
-            element={element as FormTableElement}
-            onChange={handleTableChange}
-            onExitEditMode={handleExitTableEdit}
-          />
-        ) : (
-          <ElementRenderer element={element} data={data} />
->>>>>>> feat/formtable-excel-editing
-        )}
+        <div
+          ref={contentRef}
+          style={{
+            width: '100%',
+            height: '100%',
+            overflow: textFit === 'expandFrame' ? 'visible' : undefined,
+          }}
+        >
+          {editing && element.type === 'text' ? (
+            <TextInlineEditor
+              element={element}
+              onCommit={handleInlineCommit}
+              onCancel={handleInlineCancel}
+            />
+          ) : (
+            <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} />
+          )}
+        </div>
       </ElementErrorBoundary>
+
+      {/* Drop target highlight overlay — shown when dragging a schema field/group over this element */}
+      {isDropTarget && (
+        <div
+          className="absolute inset-0 pointer-events-none ring-2 ring-indigo-500 ring-offset-0 bg-indigo-500/10 rounded-sm"
+          style={{ zIndex: 9998 }}
+        >
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-medium bg-indigo-500 text-white whitespace-nowrap">
+            列を追加
+          </div>
+        </div>
+      )}
 
       {isSelected && !readonly && (
         <>
@@ -380,6 +406,14 @@ const RESIZE_HANDLE_STYLES: Record<ResizeHandle, React.CSSProperties> = {
   nw: { top: -4, left: -4, cursor: 'nw-resize' },
   se: { bottom: -4, right: -4, cursor: 'se-resize' },
   sw: { bottom: -4, left: -4, cursor: 'sw-resize' },
+}
+
+/** Extract textFit from any element that has a TextStyle */
+function getTextFit(element: ReportElement): TextStyle['textFit'] {
+  if ('style' in element && element.style && typeof element.style === 'object' && 'textFit' in element.style) {
+    return (element.style as TextStyle).textFit
+  }
+  return undefined
 }
 
 const ResizeHandleEl = memo(function ResizeHandleEl({

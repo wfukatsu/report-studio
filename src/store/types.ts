@@ -8,6 +8,7 @@ import type {
   PageDef,
   Section,
   ReportElement,
+  TextStyle,
   DataSourceDefinition,
   CalculationRule,
   ValidationRule,
@@ -138,6 +139,7 @@ export interface StoreState {
   showMarginGuide: boolean
   gridSize: number
   clipboard: ReportElement[] | null
+  styleClipboard: TextStyle | null
   headerEditMode: boolean
   livePreviewEnabled: boolean
   /** V1 backend connection status */
@@ -172,6 +174,7 @@ export interface StoreState {
   setReportName: (name: string) => void
   updateMetadata: (patch: Partial<ReportDefinition['metadata']>) => void
   updateSettings: (settings: Partial<ReportDefinition['pageSettings']>) => void
+  updateDefaultTextStyle: (patch: Partial<ReportDefinition['defaultTextStyle']>) => void
   setDataSource: (dataSource: DataSourceDefinition | null) => void
   loadReport: (report: ReportDefinition) => void
   loadLegacyReport: (report: import('@/types').Report) => void
@@ -199,6 +202,8 @@ export interface StoreState {
   copyElements: (pageId: string, elementIds: string[]) => void
   pasteElements: (pageId: string) => void
   cutElements: (pageId: string, elementIds: string[]) => void
+  copyStyle: (pageId: string, elementId: string) => void
+  pasteStyle: (pageId: string, elementIds: string[]) => void
 
   // Group layer actions
   addLayerGroup: (pageId: string, group: LayerGroup) => void

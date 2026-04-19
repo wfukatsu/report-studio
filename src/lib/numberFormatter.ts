@@ -1,4 +1,5 @@
-import type { CalculationFormat, NumberFormatType, DateFormatType } from '@/types'
+import type { CalculationFormat, NumberFormatType, DateFormatType, AddressFormatType } from '@/types'
+import { formatAddress } from '@/elements/_blocks/formatAddress'
 
 // ---------------------------------------------------------------------------
 // 和暦変換テーブル
@@ -156,8 +157,26 @@ export function formatDate(value: Date | string, format: CalculationFormat): str
 // 汎用フォーマット (値の型に応じて数値/日付を自動判定)
 // ---------------------------------------------------------------------------
 
-export function applyFormat(value: unknown, format: CalculationFormat): string {
+/**
+ * 汎用フォーマット。
+ *
+ * @param value      フォーマット対象の値
+ * @param format     書式定義
+ * @param context    住所フォーマット用: { data, fieldKey } を渡すと同一グループの
+ *                   postalCode/address1/address2 を自動取得して formatAddress() を呼ぶ
+ */
+export function applyFormat(
+  value: unknown,
+  format: CalculationFormat,
+  context?: { data: Record<string, unknown>; fieldKey: string },
+): string {
   if (value === null || value === undefined) return ''
+
+  // 住所フォーマット
+  const addressTypes: AddressFormatType[] = ['address_single', 'address_multiline']
+  if (addressTypes.includes(format.type as AddressFormatType)) {
+    return applyAddressFormat(value, format.type as AddressFormatType, context)
+  }
 
   // 日付フォーマット指定の場合
   const dateTypes: string[] = ['yyyy/MM/dd', 'yyyy年MM月dd日', 'MM/dd/yyyy', 'wareki_full', 'wareki_short']
@@ -169,6 +188,47 @@ export function applyFormat(value: unknown, format: CalculationFormat): string {
   const num = typeof value === 'number' ? value : parseFloat(String(value))
   if (!isNaN(num)) return formatNumber(num, format)
 
+  return String(value)
+}
+
+function applyAddressFormat(
+  value: unknown,
+  type: AddressFormatType,
+  context?: { data: Record<string, unknown>; fieldKey: string },
+): string {
+  const mode = type === 'address_multiline' ? 'multiLine' : 'single'
+
+  // 値がオブジェクトの場合 (グループキーでバインドされたケース)
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>
+    return formatAddress({
+      postalCode: obj.postalCode != null ? String(obj.postalCode) : undefined,
+      address1: obj.address1 != null ? String(obj.address1) : undefined,
+      address2: obj.address2 != null ? String(obj.address2) : undefined,
+      address: obj.address != null ? String(obj.address) : undefined,
+    }, mode)
+  }
+
+  // context があれば同一グループのフィールドを自動取得
+  if (context) {
+    const { data, fieldKey } = context
+    const dotIdx = fieldKey.lastIndexOf('.')
+    if (dotIdx >= 0) {
+      const prefix = fieldKey.substring(0, dotIdx)
+      const resolve = (subKey: string): string | undefined => {
+        const v = data[`${prefix}.${subKey}`]
+        return v != null ? String(v) : undefined
+      }
+      return formatAddress({
+        postalCode: resolve('postalCode'),
+        address1: resolve('address1'),
+        address2: resolve('address2'),
+        address: resolve('address'),
+      }, mode)
+    }
+  }
+
+  // 単純な文字列値の場合はそのまま返す
   return String(value)
 }
 

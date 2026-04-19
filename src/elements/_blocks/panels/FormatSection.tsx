@@ -1,4 +1,4 @@
-import type { CalculationFormat, NumberFormatType, DateFormatType } from '@/types'
+import type { CalculationFormat, NumberFormatType, DateFormatType, AddressFormatType } from '@/types'
 import { PropSection, PropRow, NumInput, SelectInput } from '@/elements/_base/sharedUI'
 
 const FORMAT_OPTIONS: { value: string; label: string }[] = [
@@ -14,6 +14,8 @@ const FORMAT_OPTIONS: { value: string; label: string }[] = [
   { value: 'wareki_full', label: '和暦 (令和8年4月1日)' },
   { value: 'wareki_short', label: '和暦略 (R8.04.01)' },
   { value: 'custom', label: 'カスタム' },
+  { value: 'address_single', label: '住所（1行）' },
+  { value: 'address_multiline', label: '住所（3行）' },
 ]
 
 interface FormatSectionProps {
@@ -28,7 +30,7 @@ export function FormatSection({ format, onChange }: FormatSectionProps) {
       return
     }
     onChange({
-      type: type as NumberFormatType | DateFormatType,
+      type: type as NumberFormatType | DateFormatType | AddressFormatType,
       decimalPlaces: type === 'decimal' ? (format?.decimalPlaces ?? 2) : undefined,
       customPattern: type === 'custom' ? (format?.customPattern ?? '') : undefined,
     })

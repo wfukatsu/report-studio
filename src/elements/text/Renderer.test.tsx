@@ -50,7 +50,7 @@ describe('TextRenderer', () => {
       <TextRenderer element={makeElement({ style: { fontSize: 5, fontWeight: 'bold', color: '#ff0000', textAlign: 'center' } })} />,
     )
     const span = container.firstChild!.firstChild as HTMLElement
-    expect(span.style.fontSize).toBe('5mm')
+    expect(span.style.fontSize).toBe('5pt')
   })
 
   it('applies font weight', () => {

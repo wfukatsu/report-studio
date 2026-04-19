@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { PageNumberElement } from '@/types'
 import { toFlexAlign } from '@/elements/_base/styleUtils'
 import { formatPageNumber } from './format'
+import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
 
 interface Props {
   element: PageNumberElement
@@ -39,7 +40,7 @@ export const PageNumberRenderer = memo(function PageNumberRenderer({
     >
       <div
         style={{
-          fontSize: style.fontSize ? `${style.fontSize}mm` : '3mm',
+          fontSize: `${style.fontSize ?? DEFAULT_FONT_SIZE}pt`,
           fontWeight: style.fontWeight ?? 'normal',
           fontStyle: style.fontStyle ?? 'normal',
           color: style.color ?? '#666666',

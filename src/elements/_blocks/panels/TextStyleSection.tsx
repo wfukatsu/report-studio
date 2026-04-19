@@ -12,18 +12,21 @@ import { FONT_FAMILIES, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT } from '../consta
 
 const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: f }))
 
+const TEXT_FIT_OPTIONS = [
+  { value: 'clip', label: 'なし（はみ出し非表示）' },
+  { value: 'shrinkText', label: 'テキストを縮小' },
+  { value: 'expandFrame', label: '枠を拡大' },
+]
+
 interface TextStyleSectionProps {
   style: TextStyle
   onStyleChange: (patch: Partial<TextStyle>) => void
-<<<<<<< HEAD
   /**
    * Template-level default style (from report.defaultTextStyle).
    * When provided, inputs for properties where style[prop] === undefined
    * will show an "inherited" visual state with a reset (✕) button.
    */
   defaultStyle?: TextStyle
-=======
->>>>>>> feat/formtable-excel-editing
   /** Show furigana input (default: false) */
   showFurigana?: boolean
   furigana?: string
@@ -33,15 +36,11 @@ interface TextStyleSectionProps {
 export function TextStyleSection({
   style,
   onStyleChange,
-<<<<<<< HEAD
   defaultStyle,
-=======
->>>>>>> feat/formtable-excel-editing
   showFurigana = false,
   furigana,
   onFuriganaChange,
 }: TextStyleSectionProps) {
-<<<<<<< HEAD
   // Helper: is the given property inherited from defaultStyle?
   const inh = <K extends keyof TextStyle>(key: K): boolean =>
     style[key] === undefined
@@ -50,42 +49,27 @@ export function TextStyleSection({
   const rst = <K extends keyof TextStyle>(key: K) =>
     defaultStyle ? () => onStyleChange({ [key]: undefined } as Partial<TextStyle>) : undefined
 
-=======
->>>>>>> feat/formtable-excel-editing
   return (
     <PropSection title="テキストスタイル">
       <PropRow label="フォント">
         <SelectInput
-<<<<<<< HEAD
           value={style.fontFamily ?? defaultStyle?.fontFamily ?? 'sans-serif'}
           onChange={(v) => onStyleChange({ fontFamily: v })}
           options={fontFamilyOptions}
           inherited={defaultStyle ? inh('fontFamily') : undefined}
           onReset={rst('fontFamily')}
-=======
-          value={style.fontFamily ?? 'sans-serif'}
-          onChange={(v) => onStyleChange({ fontFamily: v })}
-          options={fontFamilyOptions}
->>>>>>> feat/formtable-excel-editing
         />
       </PropRow>
 
       <PropRow label="フォントサイズ">
         <NumInput
-<<<<<<< HEAD
           value={style.fontSize ?? defaultStyle?.fontSize ?? DEFAULT_FONT_SIZE}
-=======
-          value={style.fontSize ?? DEFAULT_FONT_SIZE}
->>>>>>> feat/formtable-excel-editing
           onChange={(v) => onStyleChange({ fontSize: v })}
           min={1}
           step={0.5}
-          unit="mm"
-<<<<<<< HEAD
+          unit="pt"
           inherited={defaultStyle ? inh('fontSize') : undefined}
           onReset={rst('fontSize')}
-=======
->>>>>>> feat/formtable-excel-editing
         />
       </PropRow>
 
@@ -124,7 +108,6 @@ export function TextStyleSection({
       </div>
 
       <PropRow label="文字色">
-<<<<<<< HEAD
         <ColorInput
           value={style.color ?? defaultStyle?.color ?? '#000000'}
           onChange={(v) => onStyleChange({ color: v })}
@@ -140,13 +123,6 @@ export function TextStyleSection({
           inherited={defaultStyle ? inh('backgroundColor') : undefined}
           onReset={rst('backgroundColor')}
         />
-=======
-        <ColorInput value={style.color ?? '#000000'} onChange={(v) => onStyleChange({ color: v })} />
-      </PropRow>
-
-      <PropRow label="背景色">
-        <ColorInput value={style.backgroundColor ?? '#ffffff'} onChange={(v) => onStyleChange({ backgroundColor: v })} />
->>>>>>> feat/formtable-excel-editing
       </PropRow>
 
       <div>
@@ -178,40 +154,26 @@ export function TextStyleSection({
 
       <PropRow label="行間">
         <NumInput
-<<<<<<< HEAD
           value={style.lineHeight ?? defaultStyle?.lineHeight ?? DEFAULT_LINE_HEIGHT}
-=======
-          value={style.lineHeight ?? DEFAULT_LINE_HEIGHT}
->>>>>>> feat/formtable-excel-editing
           onChange={(v) => onStyleChange({ lineHeight: v })}
           min={0.5}
           max={5}
           step={0.1}
-<<<<<<< HEAD
           inherited={defaultStyle ? inh('lineHeight') : undefined}
           onReset={rst('lineHeight')}
-=======
->>>>>>> feat/formtable-excel-editing
         />
       </PropRow>
 
       <PropRow label="文字間隔">
         <NumInput
-<<<<<<< HEAD
           value={style.letterSpacing ?? defaultStyle?.letterSpacing ?? 0}
-=======
-          value={style.letterSpacing ?? 0}
->>>>>>> feat/formtable-excel-editing
           onChange={(v) => onStyleChange({ letterSpacing: v })}
           min={-0.2}
           max={2}
           step={0.05}
           unit="em"
-<<<<<<< HEAD
           inherited={defaultStyle ? inh('letterSpacing') : undefined}
           onReset={rst('letterSpacing')}
-=======
->>>>>>> feat/formtable-excel-editing
         />
       </PropRow>
 
@@ -234,6 +196,14 @@ export function TextStyleSection({
           </IconToggle>
         </div>
       </div>
+
+      <PropRow label="テキストフィット">
+        <SelectInput
+          value={style.textFit ?? 'clip'}
+          onChange={(v) => onStyleChange({ textFit: v === 'clip' ? undefined : v as 'shrinkText' | 'expandFrame' })}
+          options={TEXT_FIT_OPTIONS}
+        />
+      </PropRow>
 
       {showFurigana && onFuriganaChange && (
         <PropRow label="ふりがな">

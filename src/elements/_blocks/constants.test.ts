@@ -16,9 +16,9 @@ describe('constants', () => {
     expect(MM_TO_PX).toBeCloseTo(96 / 25.4, 4)
   })
 
-  it('DEFAULT_FONT_SIZE is a reasonable mm value', () => {
+  it('DEFAULT_FONT_SIZE is a reasonable pt value', () => {
     expect(DEFAULT_FONT_SIZE).toBeGreaterThan(0)
-    expect(DEFAULT_FONT_SIZE).toBeLessThan(20)
+    expect(DEFAULT_FONT_SIZE).toBeLessThan(72)
   })
 
   it('DEFAULT_LINE_HEIGHT is a reasonable unitless value', () => {

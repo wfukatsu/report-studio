@@ -18,7 +18,7 @@ export interface Size {
 
 export interface TextStyle {
   // フォント
-  fontSize?: number               // mm 単位
+  fontSize?: number               // pt 単位
   fontFamily?: string
   fontWeight?: 'normal' | 'bold'
   fontStyle?: 'normal' | 'italic'
@@ -38,11 +38,15 @@ export interface TextStyle {
   paddingLeft?: number            // mm
   // 日本語
   writingMode?: 'horizontal-tb' | 'vertical-rl'
+  // テキストフィット
+  textFit?: 'shrinkText' | 'expandFrame'
 }
 
 // ---------------------------------------------------------------------------
 // Format types (DataFieldElement / CalculationRule で使用)
 // ---------------------------------------------------------------------------
+
+export type AddressFormatType = 'address_single' | 'address_multiline'
 
 export type NumberFormatType =
   | 'integer'
@@ -63,7 +67,7 @@ export type DateFormatType =
   | 'custom'
 
 export interface CalculationFormat {
-  type: NumberFormatType | DateFormatType
+  type: NumberFormatType | DateFormatType | AddressFormatType
   decimalPlaces?: number
   customPattern?: string
 }
@@ -363,7 +367,7 @@ export interface HankoElement extends ElementBase {
   shape: 'circle' | 'rectangle'
   borderColor: string
   textColor: string
-  fontSize: number   // mm
+  fontSize: number   // mm (HankoElement 固有 — TextStyle.fontSize とは別単位)
   writingMode: 'vertical-rl' | 'horizontal-tb'
   doubleBorder: boolean
   /** データソースフィールドからテキストを自動入力 */
@@ -485,10 +489,30 @@ export interface RepeatingBandElement extends ElementBase {
   oddRowColor: string
   /** 偶数行背景色 */
   evenRowColor: string
-  /** 枠線色 */
+  /** 外枠の線色 */
   borderColor: string
-  /** 枠線幅 (mm) */
+  /** 外枠の線幅 (mm) */
   borderWidth: number
+  /** @deprecated innerBorder は headerBorder/dataBorder/columnBorder に移行。フォールバック用に残す */
+  innerBorderColor?: string
+  /** @deprecated */
+  innerBorderWidth?: number
+  /** ヘッダー下罫線の色。フォールバック: innerBorderColor → borderColor */
+  headerBorderColor?: string
+  /** ヘッダー下罫線の幅 (mm)。フォールバック: innerBorderWidth → borderWidth */
+  headerBorderWidth?: number
+  /** データ行間の横罫線色。フォールバック: innerBorderColor → borderColor */
+  dataBorderColor?: string
+  /** データ行間の横罫線幅 (mm)。フォールバック: innerBorderWidth → borderWidth */
+  dataBorderWidth?: number
+  /** 列区切りの縦罫線色。フォールバック: innerBorderColor → borderColor */
+  columnBorderColor?: string
+  /** 列区切りの縦罫線幅 (mm)。フォールバック: innerBorderWidth → borderWidth */
+  columnBorderWidth?: number
+  /** フッター上罫線の色。フォールバック: borderColor */
+  footerBorderColor?: string
+  /** フッター上罫線の幅 (mm)。フォールバック: borderWidth */
+  footerBorderWidth?: number
   /** ソートフィールドキー */
   sortBy?: string
   /** ソート順 */
@@ -509,6 +533,12 @@ export interface RepeatingBandElement extends ElementBase {
   headerHeight?: number
   /** セル内テキストの折り返し (default: false = nowrap + ellipsis) */
   wrapText?: boolean
+  /**
+   * フッター配置モード
+   * - 'compact': データ行直後にフッターを配置し、バンド全体をコンテンツに合わせて縮小
+   * - 'fixed': フッターをバンド枠の下端に固定配置（デフォルト）
+   */
+  footerLayout?: 'compact' | 'fixed'
 }
 
 // ---------------------------------------------------------------------------
@@ -581,7 +611,6 @@ export interface FormTableCell {
    * 優先順位（高→低）: cell.style > column.style > row-role style (headerStyle/bodyStyle)
    */
   style?: TextStyle
-<<<<<<< HEAD
   /** type='checkbox' で使用: チェック状態 */
   checked?: boolean
   /** type='checkbox' で使用: チェックマーク記号 */
@@ -596,14 +625,6 @@ export interface FormTableCell {
   furiganaEnabled?: boolean
   /** フリガナのデータソース */
   furiganaDataSource?: string
-=======
-  /** セル結合 — 横方向に結合するセル数（デフォルト 1） */
-  colspan?: number
-  /** セル結合 — 縦方向に結合するセル数（デフォルト 1） */
-  rowspan?: number
-  /** 結合先セルの id。設定されたセルは描画時にスキップされる */
-  mergedInto?: string
->>>>>>> feat/formtable-excel-editing
 }
 
 export type FormTableRowRole = 'header' | 'body' | 'footer'
@@ -721,6 +742,10 @@ export interface TenantInfo {
   companyName?: string
   postalCode?: string
   address?: string
+  /** 都道府県・市区町村 */
+  address1?: string
+  /** 番地・建物名 */
+  address2?: string
   phone?: string
   email?: string
   representativeName?: string
@@ -806,10 +831,13 @@ export interface TenantCompanyNameElement extends ElementBase {
   fallback?: string
 }
 
+export type AddressDisplayMode = 'single' | 'multiLine'
+
 export interface TenantAddressElement extends ElementBase {
   type: 'tenantAddress'
   style: TextStyle
   fallback?: string
+  displayMode?: AddressDisplayMode
 }
 
 export interface TenantPhoneElement extends ElementBase {

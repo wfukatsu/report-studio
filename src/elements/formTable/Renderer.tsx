@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { FormTableElement, FormTableRow, FormTableCell, EraSelectLayout } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
+import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
 
 // ---------------------------------------------------------------------------
 // Style helpers
@@ -16,7 +17,7 @@ function cellStyle(
 ): React.CSSProperties {
   return {
     padding: '0.5mm 1mm',
-    fontSize: fontSize ? (typeof fontSize === 'number' ? `${fontSize}mm` : fontSize) : '2.8mm',
+    fontSize: fontSize ? (typeof fontSize === 'number' ? `${fontSize}pt` : fontSize) : `${DEFAULT_CELL_FONT_SIZE_PT}pt`,
     textAlign: (align ?? 'left') as React.CSSProperties['textAlign'],
     backgroundColor: bg,
     fontWeight: fw as React.CSSProperties['fontWeight'],

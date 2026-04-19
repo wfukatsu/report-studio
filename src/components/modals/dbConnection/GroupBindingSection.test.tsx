@@ -72,15 +72,15 @@ beforeEach(() => {
   useReportStore.getState().addSchemaGroup('master')
   const groupId = useReportStore.getState().definition.schema!.groups[0].id
   // Replace the auto-created group with our fixture id
-  useReportStore.setState((s) => ({
-    ...s,
+  const state = useReportStore.getState()
+  useReportStore.setState({
     definition: {
-      ...s.definition,
+      ...state.definition,
       schema: {
         groups: [{ ...makeGroup(), id: groupId }],
       },
     },
-  }))
+  })
 })
 
 // ---------------------------------------------------------------------------

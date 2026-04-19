@@ -158,7 +158,7 @@ describe('TextInlineEditor', () => {
 })
 
 describe('TextInlineEditor — style fallbacks', () => {
-  it('uses default fontSize 3.5mm when style.fontSize is undefined', () => {
+  it('uses default fontSize 10pt when style.fontSize is undefined', () => {
     render(
       <TextInlineEditor
         element={makeElement({ style: {} })}
@@ -167,7 +167,7 @@ describe('TextInlineEditor — style fallbacks', () => {
       />,
     )
     const editor = screen.getByRole('textbox')
-    expect(editor.style.fontSize).toBe('3.5mm')
+    expect(editor.style.fontSize).toBe('10pt')
   })
 
   it('uses default fontWeight normal when not set', () => {
