@@ -272,6 +272,11 @@ public final class ApiRoutes {
         // Data Browser — ScalarDB full-table scan (read-only, authenticated users)
         app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbScanCtrl::scanRows);
 
+        // Data Browser — ScalarDB row CRUD (authenticated users, system namespaces protected)
+        app.post("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::insertRow);
+        app.put("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::updateRow);
+        app.delete("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::deleteRow);
+
         // Webhooks
         app.get("/api/v1/webhooks/{templateId}", w.webhookCtrl::getConfig);
         app.put("/api/v1/webhooks/{templateId}", w.webhookCtrl::putConfig);

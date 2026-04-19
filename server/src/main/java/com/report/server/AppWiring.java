@@ -61,6 +61,7 @@ public final class AppWiring {
     final JsonBlobRepository productRepo;
     final ProductController productCtrl;
     final V2ScalarDbScanController v2ScalarDbScanCtrl;
+    final V2ScalarDbRowController v2ScalarDbRowCtrl;
     final V2BatchPdfController v2BatchPdfCtrl;
     final JsonBlobRepository sequenceRepo;
     final SequenceController sequenceCtrl;
@@ -189,6 +190,7 @@ public final class AppWiring {
         productCtrl = new ProductController(productRepo);
         v2BindingResolveCtrl.setProductController(productCtrl);
         v2ScalarDbScanCtrl = new V2ScalarDbScanController(factory);
+        v2ScalarDbRowCtrl = new V2ScalarDbRowController(factory);
         v2BatchPdfCtrl = new V2BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, pdfExecutor);
         sequenceRepo = new JsonBlobRepository(factory, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();

@@ -771,6 +771,8 @@ const TenantInfoSchema = z.object({
   companyName: z.string().optional(),
   postalCode: z.string().optional(),
   address: z.string().optional(),
+  address1: z.string().optional(),
+  address2: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
   representativeName: z.string().optional(),
@@ -1064,6 +1066,49 @@ export async function scanScalarDbTable(
     `/api/v2/scalardb/tables/${encodeURIComponent(namespace)}/${encodeURIComponent(table)}/rows?${qs}`,
     ScalarDbScanResponseSchema,
   ) as Promise<ScalarDbScanResponse>
+}
+
+// ---------------------------------------------------------------------------
+// ScalarDB Row CRUD
+// ---------------------------------------------------------------------------
+
+export type ScalarDbRowValues = Record<string, string | number | boolean | null>
+
+const ScalarDbRowResponseSchema = z.object({
+  row: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+})
+
+/** POST /api/v2/scalardb/tables/{ns}/{table}/rows — insert row */
+export async function insertScalarDbRow(
+  namespace: string, table: string, values: ScalarDbRowValues,
+): Promise<{ row: ScalarDbRowValues }> {
+  return apiFetch(
+    `/api/v2/scalardb/tables/${encodeURIComponent(namespace)}/${encodeURIComponent(table)}/rows`,
+    ScalarDbRowResponseSchema,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) },
+  )
+}
+
+/** PUT /api/v2/scalardb/tables/{ns}/{table}/rows — upsert (partial update) */
+export async function updateScalarDbRow(
+  namespace: string, table: string, values: ScalarDbRowValues,
+): Promise<{ row: ScalarDbRowValues }> {
+  return apiFetch(
+    `/api/v2/scalardb/tables/${encodeURIComponent(namespace)}/${encodeURIComponent(table)}/rows`,
+    ScalarDbRowResponseSchema,
+    { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) },
+  )
+}
+
+/** DELETE /api/v2/scalardb/tables/{ns}/{table}/rows — physical delete */
+export async function deleteScalarDbRow(
+  namespace: string, table: string, keys: ScalarDbRowValues,
+): Promise<void> {
+  await apiFetch(
+    `/api/v2/scalardb/tables/${encodeURIComponent(namespace)}/${encodeURIComponent(table)}/rows`,
+    z.any(),
+    { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keys }) },
+  )
 }
 
 // ---------------------------------------------------------------------------
