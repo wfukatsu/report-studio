@@ -7,13 +7,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Database, Globe, Lock, Loader2, Trash2 } from 'lucide-react'
-import {
-  listSchemaLibrary,
-  getSchemaLibraryItem,
-  deleteSchemaLibraryItem,
-} from '@/api/reportApi'
-import type { SchemaLibraryItem } from '@/api/reportApi'
+import { getSchema } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
+import { toast } from 'sonner'
 
 interface Props {
   open: boolean
@@ -21,41 +17,33 @@ interface Props {
 }
 
 export function SchemaLibraryModal({ open, onClose }: Props) {
-  const [items, setItems] = useState<SchemaLibraryItem[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState<string | null>(null)
 
+  const items = useReportStore((s) => s.schemaList)
+  const loading = useReportStore((s) => s.schemaLoading)
+  const error = useReportStore((s) => s.schemaError)
   const setSchema = useReportStore((s) => s.setSchema)
   const currentUser = useReportStore((s) => s.currentUser)
-
-  const fetchList = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await listSchemaLibrary()
-      setItems(result.items)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'スキーマ一覧の取得に失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const fetchSchemaList = useReportStore((s) => s.fetchSchemaList)
+  const storeDeleteSchema = useReportStore((s) => s.deleteSchema)
 
   useEffect(() => {
-    if (open) fetchList()
-  }, [open, fetchList])
+    if (open) fetchSchemaList()
+  }, [open, fetchSchemaList])
 
   const handleApply = useCallback(async (id: string) => {
     setApplying(id)
     try {
-      const def = await getSchemaLibraryItem(id)
-      if (def.schema) {
-        setSchema(def.schema)
+      const envelope = await getSchema(id)
+      const def = envelope.definition
+      if (def && typeof def === 'object' && 'schema' in def && def.schema) {
+        setSchema(def.schema as Parameters<typeof setSchema>[0])
+      } else if (def && typeof def === 'object' && 'groups' in def) {
+        setSchema(def as Parameters<typeof setSchema>[0])
       }
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'スキーマの適用に失敗しました')
+      toast.error(e instanceof Error ? e.message : 'スキーマの適用に失敗しました', { duration: 8000 })
     } finally {
       setApplying(null)
     }
@@ -63,12 +51,11 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
 
   const handleDelete = useCallback(async (id: string) => {
     try {
-      await deleteSchemaLibraryItem(id)
-      setItems((prev) => prev.filter((item) => item.id !== id))
+      await storeDeleteSchema(id)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '削除に失敗しました')
+      toast.error(e instanceof Error ? e.message : '削除に失敗しました', { duration: 8000 })
     }
-  }, [])
+  }, [storeDeleteSchema])
 
   if (!open) return null
 
@@ -104,7 +91,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
           {error && (
             <div className="px-4 py-3 text-xs text-destructive">
               {error}
-              <button className="ml-2 text-primary hover:underline" onClick={fetchList}>
+              <button className="ml-2 text-primary hover:underline" onClick={fetchSchemaList}>
                 再試行
               </button>
             </div>
