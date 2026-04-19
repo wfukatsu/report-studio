@@ -27,12 +27,12 @@ const page1Elements: ReportElement[] = [
   // 1. text (horizontal + token)
   el('text', 10, 10, 190, 10, {
     content: '要素ショーケース — {{title}}',
-    style: { fontSize: 6, fontWeight: 'bold', textAlign: 'center', color: '#1a1a1a' },
+    style: { fontSize: 17, fontWeight: 'bold', textAlign: 'center', color: '#1a1a1a' },
   }),
   // 2. text (vertical + furigana)
   el('text', 10, 25, 15, 50, {
     content: '縦書きテスト',
-    style: { fontSize: 4, writingMode: 'vertical-rl', color: '#000000' },
+    style: { fontSize: 11, writingMode: 'vertical-rl', color: '#000000' },
     furigana: 'たてがきてすと',
     furiganaScale: 0.5,
   }),
@@ -41,14 +41,14 @@ const page1Elements: ReportElement[] = [
     fieldKey: 'amount',
     label: '金額',
     fallbackText: '¥0',
-    style: { fontSize: 4, textAlign: 'right', color: '#000000' },
+    style: { fontSize: 11, textAlign: 'right', color: '#000000' },
     format: { type: 'currency_jpy' },
   }),
   // 4. dataField (wareki format)
   el('dataField', 30, 35, 60, 8, {
     fieldKey: 'date',
     label: '日付',
-    style: { fontSize: 3.5, color: '#000000' },
+    style: { fontSize: 10, color: '#000000' },
     format: { type: 'wareki_full' },
   }),
   // 5. image
@@ -141,7 +141,7 @@ const page2Elements: ReportElement[] = [
     shape: 'circle',
     borderColor: '#cc0000',
     textColor: '#cc0000',
-    fontSize: 5,
+    fontSize: 14,
     writingMode: 'horizontal-tb',
     doubleBorder: false,
   }),
@@ -151,7 +151,7 @@ const page2Elements: ReportElement[] = [
     shape: 'rectangle',
     borderColor: '#cc0000',
     textColor: '#cc0000',
-    fontSize: 4,
+    fontSize: 11,
     writingMode: 'vertical-rl',
     doubleBorder: true,
   }),
@@ -161,7 +161,7 @@ const page2Elements: ReportElement[] = [
     labelPosition: 'left',
     displayMode: 'line',
     lineColor: '#000000',
-    style: { fontSize: 3.5 },
+    style: { fontSize: 10 },
   }),
   // 20. manualEntry (grid)
   el('manualEntry', 10, 75, 80, 10, {
@@ -170,7 +170,7 @@ const page2Elements: ReportElement[] = [
     displayMode: 'grid',
     gridCount: 11,
     lineColor: '#000000',
-    style: { fontSize: 3.5 },
+    style: { fontSize: 10 },
   }),
   // 21. manualEntry (box + furigana)
   el('manualEntry', 10, 92, 80, 15, {
@@ -178,7 +178,7 @@ const page2Elements: ReportElement[] = [
     labelPosition: 'top',
     displayMode: 'box',
     lineColor: '#000000',
-    style: { fontSize: 3.5 },
+    style: { fontSize: 10 },
     furiganaEnabled: true,
     furiganaRatio: 0.35,
   }),

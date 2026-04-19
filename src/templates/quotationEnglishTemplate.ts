@@ -73,7 +73,7 @@ function lbl(
     id: uuidv4(), type: 'text',
     position: { x, y }, size: { width: w, height: h },
     zIndex: 3, locked: true, visible: true, content: text,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }
 
@@ -87,7 +87,7 @@ function df(
     zIndex: 3, locked: false, visible: true, fieldKey, format,
     fallbackText: placeholder ?? ' ',
     label: placeholder ?? fieldKey.split('.').pop() ?? fieldKey,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }
 
@@ -128,7 +128,7 @@ function input(x: number, y: number, w: number, h: number): ReportElement {
     position: { x, y }, size: { width: w, height: h },
     zIndex: 4, locked: false, visible: true,
     label: '', labelPosition: 'none', displayMode: 'none', lineColor: '#555555',
-    style: { fontSize: 3.0, verticalAlign: 'top', color: '#1a1a1a' },
+    style: { fontSize: 8.5, verticalAlign: 'top', color: '#1a1a1a' },
   }
 }
 
@@ -141,33 +141,33 @@ const elements: ReportElement[] = []
 // Company name (bold)
 elements.push(
   df('quotation.sender.name', ML, Y_COMPANY, 80, 7,
-    { fontSize: 4.5, fontWeight: 'bold' }, undefined, '●●● Co., Ltd.'),
-  df('quotation.sender.address', ML, Y_COMPANY + 7, 80, 5, { fontSize: 2.8 },
+    { fontSize: 13, fontWeight: 'bold' }, undefined, '●●● Co., Ltd.'),
+  df('quotation.sender.address', ML, Y_COMPANY + 7, 80, 5, { fontSize: 8 },
     undefined, '1-2-3 △△△△, ●●-ku, Tokyo, Japan'),
-  lbl('Phone: ', ML, Y_COMPANY + 12, 12, 5, { fontSize: 2.8 }),
-  df('quotation.sender.tel', ML + 12, Y_COMPANY + 12, 40, 5, { fontSize: 2.8 },
+  lbl('Phone: ', ML, Y_COMPANY + 12, 12, 5, { fontSize: 8 }),
+  df('quotation.sender.tel', ML + 12, Y_COMPANY + 12, 40, 5, { fontSize: 8 },
     undefined, '00-0000-0000'),
-  lbl('Email：', ML, Y_COMPANY + 17, 12, 5, { fontSize: 2.8 }),
-  df('quotation.sender.email', ML + 12, Y_COMPANY + 17, 60, 5, { fontSize: 2.8 },
+  lbl('Email：', ML, Y_COMPANY + 17, 12, 5, { fontSize: 8 }),
+  df('quotation.sender.email', ML + 12, Y_COMPANY + 17, 60, 5, { fontSize: 8 },
     undefined, '●●●@example.com'),
 )
 
 // Title "Quotation" (top-right, large)
 elements.push(
   lbl('Quotation', TABLE_R - 60, Y_TITLE, 60, 12,
-    { fontSize: 8, fontWeight: 'bold', textAlign: 'right' }),
+    { fontSize: 22.5, fontWeight: 'bold', textAlign: 'right' }),
 )
 
 // Right info block
 elements.push(
-  lbl('Date of Issue:', TABLE_R - 60, Y_INFO,             30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' }),
-  df('quotation.issueDate', TABLE_R - 30, Y_INFO,         30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' },
+  lbl('Date of Issue:', TABLE_R - 60, Y_INFO,             30, INFO_ROW, { fontSize: 7, textAlign: 'right' }),
+  df('quotation.issueDate', TABLE_R - 30, Y_INFO,         30, INFO_ROW, { fontSize: 7, textAlign: 'right' },
     undefined, '4/1/2025'),
-  lbl('Quotation #:', TABLE_R - 60, Y_INFO + INFO_ROW,    30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' }),
-  df('quotation.number', TABLE_R - 30, Y_INFO + INFO_ROW, 30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' },
+  lbl('Quotation #:', TABLE_R - 60, Y_INFO + INFO_ROW,    30, INFO_ROW, { fontSize: 7, textAlign: 'right' }),
+  df('quotation.number', TABLE_R - 30, Y_INFO + INFO_ROW, 30, INFO_ROW, { fontSize: 7, textAlign: 'right' },
     undefined, 'M-12345678'),
-  lbl('Registration #:', TABLE_R - 60, Y_INFO + INFO_ROW * 2, 30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' }),
-  df('quotation.registrationNo', TABLE_R - 30, Y_INFO + INFO_ROW * 2, 30, INFO_ROW, { fontSize: 2.5, textAlign: 'right' },
+  lbl('Registration #:', TABLE_R - 60, Y_INFO + INFO_ROW * 2, 30, INFO_ROW, { fontSize: 7, textAlign: 'right' }),
+  df('quotation.registrationNo', TABLE_R - 30, Y_INFO + INFO_ROW * 2, 30, INFO_ROW, { fontSize: 7, textAlign: 'right' },
     undefined, 'TXXXXXXXXXXXXX'),
 )
 
@@ -175,24 +175,24 @@ elements.push(
 // 2. Quotation To (left) + Valid until / Prepared by (right, red)
 // ════════════════════════════════════════════════════════
 elements.push(
-  lbl('Quotation To:', ML, Y_CUSTOMER, 30, 6, { fontSize: 3.2, fontWeight: 'bold' }),
+  lbl('Quotation To:', ML, Y_CUSTOMER, 30, 6, { fontSize: 9, fontWeight: 'bold' }),
   df('quotation.customer.name', ML, Y_CUSTOMER + 6, 80, 6,
-    { fontSize: 3.0 }, undefined, '△△△△ Co., Ltd.'),
+    { fontSize: 8.5 }, undefined, '△△△△ Co., Ltd.'),
   df('quotation.customer.address', ML, Y_CUSTOMER + 12, 80, 10,
-    { fontSize: 2.8, verticalAlign: 'top' },
+    { fontSize: 8, verticalAlign: 'top' },
     undefined, 'Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan'),
 )
 
 // Red text: valid until + prepared by
 elements.push(
   lbl('Quotation valid until:', TABLE_R - 60, Y_VALID, 30, 6,
-    { fontSize: 2.8, textAlign: 'right', color: '#cc0000' }),
+    { fontSize: 8, textAlign: 'right', color: '#cc0000' }),
   df('quotation.validUntil', TABLE_R - 30, Y_VALID, 30, 6,
-    { fontSize: 2.8, textAlign: 'right', color: '#cc0000' }, undefined, '5/31/2025'),
+    { fontSize: 8, textAlign: 'right', color: '#cc0000' }, undefined, '5/31/2025'),
   lbl('Prepared by:', TABLE_R - 60, Y_VALID + 7, 30, 6,
-    { fontSize: 2.8, textAlign: 'right', color: '#333333' }),
+    { fontSize: 8, textAlign: 'right', color: '#333333' }),
   df('quotation.sender.contact', TABLE_R - 30, Y_VALID + 7, 30, 6,
-    { fontSize: 2.8, textAlign: 'right' }, undefined, 'Taro Adobe'),
+    { fontSize: 8, textAlign: 'right' }, undefined, 'Taro Adobe'),
 )
 
 // ════════════════════════════════════════════════════════
@@ -203,13 +203,13 @@ elements.push(rect(ML, Y_TABLE, CONTENT_W, TABLE_H))
 // Header row
 elements.push(
   rect(ML, Y_TABLE, CONTENT_W, TABLE_HDR_H, { fill: '#333333' }),
-  lbl('QUANTITY',   COL_QTY_X + 1,   Y_TABLE, COL_QTY_W - 2,   TABLE_HDR_H, { fontSize: 2.8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
+  lbl('QUANTITY',   COL_QTY_X + 1,   Y_TABLE, COL_QTY_W - 2,   TABLE_HDR_H, { fontSize: 8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
   vline(COL_DESC_X,  Y_TABLE, TABLE_H),
-  lbl('DESCRIPTION', COL_DESC_X + 1, Y_TABLE, COL_DESC_W - 2,  TABLE_HDR_H, { fontSize: 2.8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
+  lbl('DESCRIPTION', COL_DESC_X + 1, Y_TABLE, COL_DESC_W - 2,  TABLE_HDR_H, { fontSize: 8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
   vline(COL_PRICE_X, Y_TABLE, TABLE_H),
-  lbl('UNIT PRICE', COL_PRICE_X + 1, Y_TABLE, COL_PRICE_W - 2, TABLE_HDR_H, { fontSize: 2.8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
+  lbl('UNIT PRICE', COL_PRICE_X + 1, Y_TABLE, COL_PRICE_W - 2, TABLE_HDR_H, { fontSize: 8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
   vline(COL_AMT_X,   Y_TABLE, TABLE_H),
-  lbl('AMOUNT',     COL_AMT_X + 1,   Y_TABLE, COL_AMT_W - 2,   TABLE_HDR_H, { fontSize: 2.8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
+  lbl('AMOUNT',     COL_AMT_X + 1,   Y_TABLE, COL_AMT_W - 2,   TABLE_HDR_H, { fontSize: 8, textAlign: 'center', color: '#ffffff', fontWeight: 'bold' }),
 )
 
 // Repeating band (with empty row lines)
@@ -229,8 +229,8 @@ elements.push({
     { key: 'unitPrice',   label: 'UNIT PRICE', width: COL_PRICE_W, align: 'right', format: USD_FMT },
     { key: 'amount',      label: 'AMOUNT',     width: COL_AMT_W,   align: 'right', format: USD_FMT },
   ],
-  style: { fontSize: 2.8, color: '#1a1a1a' },
-  headerStyle: { fontSize: 2.8, fontWeight: 'bold', color: '#ffffff' },
+  style: { fontSize: 8, color: '#1a1a1a' },
+  headerStyle: { fontSize: 8, fontWeight: 'bold', color: '#ffffff' },
 } as ReportElement)
 
 // ════════════════════════════════════════════════════════
@@ -252,9 +252,9 @@ summRows.forEach(({ label, key, y, bold }, i) => {
   if (i > 0) elements.push(hline(SUMM_LABEL_X, y, SUMM_LABEL_W + SUMM_AMT_W))
   elements.push(
     lbl(label, SUMM_LABEL_X + 1, y, SUMM_LABEL_W - 2, SUMM_ROW_H,
-      { fontSize: 2.8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal' }),
+      { fontSize: 8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal' }),
     df(key, SUMM_AMT_X + 1, y, SUMM_AMT_W - 2, SUMM_ROW_H,
-      { fontSize: 2.8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal' },
+      { fontSize: 8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal' },
       USD_FMT, '$0.00'),
   )
 })
@@ -263,9 +263,9 @@ summRows.forEach(({ label, key, y, bold }, i) => {
 // 5. Notes + Terms & Conditions
 // ════════════════════════════════════════════════════════
 elements.push(
-  lbl('Notes', ML, Y_NOTES, 30, 6, { fontSize: 3.5, fontWeight: 'bold' }),
+  lbl('Notes', ML, Y_NOTES, 30, 6, { fontSize: 10, fontWeight: 'bold' }),
   input(ML, Y_NOTES + 7, CONTENT_W, 20),
-  lbl('Terms & Conditions', ML, Y_TERMS, 50, 6, { fontSize: 3.5, fontWeight: 'bold' }),
+  lbl('Terms & Conditions', ML, Y_TERMS, 50, 6, { fontSize: 10, fontWeight: 'bold' }),
   input(ML, Y_TERMS + 7, CONTENT_W, 40),
 )
 

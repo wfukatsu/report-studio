@@ -96,7 +96,7 @@ function lbl(
     id: uuidv4(), type: 'text',
     position: { x, y }, size: { width: w, height: h },
     zIndex: 3, locked: true, visible: true, content: text,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }
 
@@ -110,7 +110,7 @@ function df(
     zIndex: 3, locked: false, visible: true, fieldKey, format,
     fallbackText: placeholder ?? ' ',
     label: placeholder ?? fieldKey.split('.').pop() ?? fieldKey,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }
 
@@ -151,7 +151,7 @@ function input(x: number, y: number, w: number, h: number, opts?: { fontSize?: n
     position: { x, y }, size: { width: w, height: h },
     zIndex: 4, locked: false, visible: true,
     label: '', labelPosition: 'none', displayMode: 'none', lineColor: '#555555',
-    style: { fontSize: opts?.fontSize ?? 3.0, verticalAlign: 'middle', color: '#1a1a1a' },
+    style: { fontSize: opts?.fontSize ?? 8.5, verticalAlign: 'middle', color: '#1a1a1a' },
   }
 }
 
@@ -160,30 +160,30 @@ const elements: ReportElement[] = []
 
 // 1. タイトル
 elements.push(
-  lbl('見 積 書', ML, Y_TITLE, CONTENT_W, 15, { fontSize: 9, textAlign: 'center', fontWeight: 'bold' }),
+  lbl('見 積 書', ML, Y_TITLE, CONTENT_W, 15, { fontSize: 26, textAlign: 'center', fontWeight: 'bold' }),
 )
 
 // 2. 右上情報ブロック
 elements.push(
-  lbl('発行日：',   RIGHT_X, Y_RIGHT_INFO,                24, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
-  df('quotation.issueDate', RIGHT_X + 24, Y_RIGHT_INFO,   RIGHT_W - 24, INFO_ROW, { fontSize: 2.8 }, undefined, '20XX年XX月XX日'),
-  lbl('見積書No：', RIGHT_X, Y_RIGHT_INFO + INFO_ROW,     24, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
-  df('quotation.number',    RIGHT_X + 24, Y_RIGHT_INFO + INFO_ROW, RIGHT_W - 24, INFO_ROW, { fontSize: 2.8 }, undefined, 'M-12345678'),
-  lbl('登録番号：', RIGHT_X, Y_RIGHT_INFO + INFO_ROW * 2, 24, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
-  df('quotation.registrationNo', RIGHT_X + 24, Y_RIGHT_INFO + INFO_ROW * 2, RIGHT_W - 24, INFO_ROW, { fontSize: 2.8 }, undefined, 'TXXXXXXXXXXXXX'),
+  lbl('発行日：',   RIGHT_X, Y_RIGHT_INFO,                24, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
+  df('quotation.issueDate', RIGHT_X + 24, Y_RIGHT_INFO,   RIGHT_W - 24, INFO_ROW, { fontSize: 8 }, undefined, '20XX年XX月XX日'),
+  lbl('見積書No：', RIGHT_X, Y_RIGHT_INFO + INFO_ROW,     24, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
+  df('quotation.number',    RIGHT_X + 24, Y_RIGHT_INFO + INFO_ROW, RIGHT_W - 24, INFO_ROW, { fontSize: 8 }, undefined, 'M-12345678'),
+  lbl('登録番号：', RIGHT_X, Y_RIGHT_INFO + INFO_ROW * 2, 24, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
+  df('quotation.registrationNo', RIGHT_X + 24, Y_RIGHT_INFO + INFO_ROW * 2, RIGHT_W - 24, INFO_ROW, { fontSize: 8 }, undefined, 'TXXXXXXXXXXXXX'),
 )
 
 // 3. 顧客情報ブロック
 elements.push(
   df('quotation.customer.name', ML, Y_CUST_NAME, LEFT_W - 18, 12,
-    { fontSize: 5.5, fontWeight: 'bold' }, undefined, '株式会社△△△△'),
-  lbl('御中', ML + LEFT_W - 18, Y_CUST_NAME, 18, 12, { fontSize: 5.5, fontWeight: 'bold' }),
+    { fontSize: 16, fontWeight: 'bold' }, undefined, '株式会社△△△△'),
+  lbl('御中', ML + LEFT_W - 18, Y_CUST_NAME, 18, 12, { fontSize: 16, fontWeight: 'bold' }),
   hline(ML, Y_CUST_UNDER + 2, LEFT_W, { strokeWidth: 0.4 }),
-  lbl('〒', ML, Y_CUST_ZIP + 2, 5, 5, { fontSize: 2.8 }),
-  df('quotation.customer.postalCode', ML + 5, Y_CUST_ZIP + 2, LEFT_W - 5, 5, { fontSize: 2.8 }, undefined, '000-0000'),
-  df('quotation.customer.address', ML, Y_CUST_ADDR + 2, LEFT_W, 8, { fontSize: 2.8, verticalAlign: 'top' },
+  lbl('〒', ML, Y_CUST_ZIP + 2, 5, 5, { fontSize: 8 }),
+  df('quotation.customer.postalCode', ML + 5, Y_CUST_ZIP + 2, LEFT_W - 5, 5, { fontSize: 8 }, undefined, '000-0000'),
+  df('quotation.customer.address', ML, Y_CUST_ADDR + 2, LEFT_W, 8, { fontSize: 8, verticalAlign: 'top' },
     undefined, '東京都品川区大崎1-11-2ゲートシティ大崎イーストタワー'),
-  lbl('下記のとおり、お見積申し上げます。', ML, Y_CUST_MSG + 2, LEFT_W, 7, { fontSize: 3.2 }),
+  lbl('下記のとおり、お見積申し上げます。', ML, Y_CUST_MSG + 2, LEFT_W, 7, { fontSize: 9 }),
 )
 
 // 4. 発行者情報ブロック
@@ -195,32 +195,32 @@ elements.push({
 
 elements.push(
   df('quotation.sender.name', RIGHT_X, Y_SENDER_LOGO + 13, RIGHT_W, 8,
-    { fontSize: 4.0, fontWeight: 'bold' }, undefined, '株式会社●●●'),
+    { fontSize: 11, fontWeight: 'bold' }, undefined, '株式会社●●●'),
 )
 
 elements.push({
   id: uuidv4(), type: 'hanko',
   position: { x: TABLE_R - 15, y: Y_SENDER_LOGO + 14 }, size: { width: 12, height: 12 },
   zIndex: 5, locked: false, visible: true, text: '印', shape: 'circle',
-  borderColor: '#cc0000', textColor: '#cc0000', fontSize: 5,
+  borderColor: '#cc0000', textColor: '#cc0000', fontSize: 14,
   writingMode: 'horizontal-tb', doubleBorder: false,
 } as ReportElement)
 
 elements.push(
-  df('quotation.sender.address', RIGHT_X, Y_SENDER_ADDR + 8, RIGHT_W, 6, { fontSize: 2.8 }, undefined, '東京都●●区△△△△'),
-  lbl('Tel：',  RIGHT_X, Y_SENDER_TEL + 8,  9,  6, { fontSize: 2.8 }),
-  df('quotation.sender.tel',     RIGHT_X + 9,  Y_SENDER_TEL + 8,  RIGHT_W - 9,  6, { fontSize: 2.8 }, undefined, '00-0000-0000'),
-  lbl('Mail：', RIGHT_X, Y_SENDER_MAIL + 8, 12, 6, { fontSize: 2.8 }),
-  df('quotation.sender.email',   RIGHT_X + 12, Y_SENDER_MAIL + 8, RIGHT_W - 12, 6, { fontSize: 2.8 }, undefined, '●●●@example.com'),
-  lbl('担当：', RIGHT_X, Y_SENDER_CONT + 8, 12, 6, { fontSize: 2.8 }),
-  df('quotation.sender.contact', RIGHT_X + 12, Y_SENDER_CONT + 8, RIGHT_W - 12, 6, { fontSize: 2.8 }, undefined, 'アドビ太郎'),
+  df('quotation.sender.address', RIGHT_X, Y_SENDER_ADDR + 8, RIGHT_W, 6, { fontSize: 8 }, undefined, '東京都●●区△△△△'),
+  lbl('Tel：',  RIGHT_X, Y_SENDER_TEL + 8,  9,  6, { fontSize: 8 }),
+  df('quotation.sender.tel',     RIGHT_X + 9,  Y_SENDER_TEL + 8,  RIGHT_W - 9,  6, { fontSize: 8 }, undefined, '00-0000-0000'),
+  lbl('Mail：', RIGHT_X, Y_SENDER_MAIL + 8, 12, 6, { fontSize: 8 }),
+  df('quotation.sender.email',   RIGHT_X + 12, Y_SENDER_MAIL + 8, RIGHT_W - 12, 6, { fontSize: 8 }, undefined, '●●●@example.com'),
+  lbl('担当：', RIGHT_X, Y_SENDER_CONT + 8, 12, 6, { fontSize: 8 }),
+  df('quotation.sender.contact', RIGHT_X + 12, Y_SENDER_CONT + 8, RIGHT_W - 12, 6, { fontSize: 8 }, undefined, 'アドビ太郎'),
 )
 
 // 5. お見積金額（税込）
 elements.push(
-  lbl('お見積金額（税込）', ML, Y_AMOUNT, 42, 12, { fontSize: 3.5 }),
+  lbl('お見積金額（税込）', ML, Y_AMOUNT, 42, 12, { fontSize: 10 }),
   df('quotation.totalAmountIncTax', ML + 42, Y_AMOUNT, LEFT_W - 42, 12,
-    { fontSize: 7.0, fontWeight: 'bold', textAlign: 'right' }, JPY_FMT, '¥0'),
+    { fontSize: 20, fontWeight: 'bold', textAlign: 'right' }, JPY_FMT, '¥0'),
   hline(ML, Y_AMOUNT_UNDER, LEFT_W, { strokeWidth: 0.4 }),
 )
 
@@ -232,7 +232,7 @@ condLabels.forEach((label, i) => {
   const rowY = Y_COND + i * COND_ROW_H
   elements.push(
     rect(ML, rowY, COND_LABEL_W, COND_ROW_H, { fill: '#f0f0f0' }),
-    lbl(label, ML + 1, rowY, COND_LABEL_W - 2, COND_ROW_H, { fontSize: 2.8, textAlign: 'center' }),
+    lbl(label, ML + 1, rowY, COND_LABEL_W - 2, COND_ROW_H, { fontSize: 8, textAlign: 'center' }),
     vline(ML + COND_LABEL_W, rowY, COND_ROW_H),
     input(ML + COND_LABEL_W + 1, rowY + 1, LEFT_W - COND_LABEL_W - 2, COND_ROW_H - 2),
   )
@@ -245,15 +245,15 @@ elements.push(rect(ML, Y_TABLE, CONTENT_W, TABLE_H))
 // ヘッダー行
 elements.push(
   rect(ML, Y_TABLE, CONTENT_W, TABLE_HDR_H, { fill: '#e8e8e8' }),
-  lbl('品番・品名',   COL_NAME_X + 1,     Y_TABLE, COL_NAME_W - 2,     TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
+  lbl('品番・品名',   COL_NAME_X + 1,     Y_TABLE, COL_NAME_W - 2,     TABLE_HDR_H, { fontSize: 8.5, textAlign: 'center' }),
   vline(COL_QTY_X,      Y_TABLE, TABLE_H),
-  lbl('数量',         COL_QTY_X + 1,      Y_TABLE, COL_QTY_W - 2,      TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
+  lbl('数量',         COL_QTY_X + 1,      Y_TABLE, COL_QTY_W - 2,      TABLE_HDR_H, { fontSize: 8.5, textAlign: 'center' }),
   vline(COL_PRICE_X,    Y_TABLE, TABLE_H),
-  lbl('単価',         COL_PRICE_X + 1,    Y_TABLE, COL_PRICE_W - 2,    TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
+  lbl('単価',         COL_PRICE_X + 1,    Y_TABLE, COL_PRICE_W - 2,    TABLE_HDR_H, { fontSize: 8.5, textAlign: 'center' }),
   vline(COL_DISCOUNT_X, Y_TABLE, TABLE_H),
-  lbl('値引',         COL_DISCOUNT_X + 1, Y_TABLE, COL_DISCOUNT_W - 2, TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
+  lbl('値引',         COL_DISCOUNT_X + 1, Y_TABLE, COL_DISCOUNT_W - 2, TABLE_HDR_H, { fontSize: 8.5, textAlign: 'center' }),
   vline(COL_AMOUNT_X,   Y_TABLE, TABLE_H),
-  lbl('金額（税抜）', COL_AMOUNT_X + 1,   Y_TABLE, COL_AMOUNT_W - 2,   TABLE_HDR_H, { fontSize: 3.0, textAlign: 'center' }),
+  lbl('金額（税抜）', COL_AMOUNT_X + 1,   Y_TABLE, COL_AMOUNT_W - 2,   TABLE_HDR_H, { fontSize: 8.5, textAlign: 'center' }),
 )
 
 // 繰り返しバンド（5フィールド + 空行罫線）
@@ -274,8 +274,8 @@ elements.push({
     { key: 'discount',  label: '値引',      width: COL_DISCOUNT_W, align: 'right', format: JPY_FMT   },
     { key: 'amount',    label: '金額（税抜）', width: COL_AMOUNT_W, align: 'right', format: JPY_FMT   },
   ],
-  style: { fontSize: 3.0, color: '#1a1a1a' },
-  headerStyle: { fontSize: 3.0, fontWeight: 'bold' },
+  style: { fontSize: 8.5, color: '#1a1a1a' },
+  headerStyle: { fontSize: 8.5, fontWeight: 'bold' },
 } as ReportElement)
 
 // 8. 集計エリア（5行: 小計 / 値引合計 / 消費税10% / 消費税8% / 合計）
@@ -298,9 +298,9 @@ summRows.forEach(({ label, key, y, bold, red }, i) => {
   const color = red ? '#cc0000' : '#000000'
   elements.push(
     lbl(label, SUMM_LABEL_X + 1, y, SUMM_LABEL_W - 2, SUMM_ROW_H,
-      { fontSize: 2.8, textAlign: bold ? 'center' : 'left', fontWeight: bold ? 'bold' : 'normal', color }),
+      { fontSize: 8, textAlign: bold ? 'center' : 'left', fontWeight: bold ? 'bold' : 'normal', color }),
     df(key, SUMM_AMT_X + 1, y, SUMM_AMT_W - 2, SUMM_ROW_H,
-      { fontSize: 2.8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal', color },
+      { fontSize: 8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal', color },
       JPY_FMT, '¥0'),
   )
 })
@@ -309,24 +309,24 @@ summRows.forEach(({ label, key, y, bold, red }, i) => {
 elements.push(
   rect(TAX_X, Y_TAXBREAK_HDR, TAX_TOTAL_W, SUMM_ROW_H * 3),
   rect(TAX_X, Y_TAXBREAK_HDR, TAX_TOTAL_W, SUMM_ROW_H, { fill: '#f0f0f0' }),
-  lbl('税率内訳', TAX_X + 1, Y_TAXBREAK_HDR, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 2.8, textAlign: 'center' }),
+  lbl('税率内訳', TAX_X + 1, Y_TAXBREAK_HDR, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 8, textAlign: 'center' }),
   vline(TAX_X + TAX_LABEL_W, Y_TAXBREAK_HDR, SUMM_ROW_H * 3),
-  lbl('小計', TAX_X + TAX_LABEL_W + 1, Y_TAXBREAK_HDR, TAX_AMT_W - 2, SUMM_ROW_H, { fontSize: 2.8, textAlign: 'center' }),
+  lbl('小計', TAX_X + TAX_LABEL_W + 1, Y_TAXBREAK_HDR, TAX_AMT_W - 2, SUMM_ROW_H, { fontSize: 8, textAlign: 'center' }),
   hline(TAX_X, Y_TAXBREAK_10, TAX_TOTAL_W),
-  lbl('10%対象', TAX_X + 1, Y_TAXBREAK_10, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 2.8 }),
+  lbl('10%対象', TAX_X + 1, Y_TAXBREAK_10, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 8 }),
   df('quotation.tax10Base', TAX_X + TAX_LABEL_W + 1, Y_TAXBREAK_10, TAX_AMT_W - 2, SUMM_ROW_H,
-    { fontSize: 2.8, textAlign: 'right' }, JPY_FMT, '¥0'),
+    { fontSize: 8, textAlign: 'right' }, JPY_FMT, '¥0'),
   hline(TAX_X, Y_TAXBREAK_8, TAX_TOTAL_W),
-  lbl('8%対象', TAX_X + 1, Y_TAXBREAK_8, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 2.8 }),
+  lbl('8%対象', TAX_X + 1, Y_TAXBREAK_8, TAX_LABEL_W - 2, SUMM_ROW_H, { fontSize: 8 }),
   df('quotation.tax8Base', TAX_X + TAX_LABEL_W + 1, Y_TAXBREAK_8, TAX_AMT_W - 2, SUMM_ROW_H,
-    { fontSize: 2.8, textAlign: 'right' }, JPY_FMT, '¥0'),
+    { fontSize: 8, textAlign: 'right' }, JPY_FMT, '¥0'),
 )
 
 // 10. 備考セクション
 elements.push(
   rect(ML, Y_NOTES, CONTENT_W, NOTES_HDR_H + NOTES_BODY_H),
   rect(ML, Y_NOTES, CONTENT_W, NOTES_HDR_H, { fill: '#e8e8e8' }),
-  lbl('備考', ML, Y_NOTES, CONTENT_W, NOTES_HDR_H, { fontSize: 3.2, textAlign: 'center', fontWeight: 'bold' }),
+  lbl('備考', ML, Y_NOTES, CONTENT_W, NOTES_HDR_H, { fontSize: 9, textAlign: 'center', fontWeight: 'bold' }),
   input(ML + 2, Y_NOTES + NOTES_HDR_H + 1, CONTENT_W - 4, NOTES_BODY_H - 2),
 )
 

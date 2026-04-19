@@ -50,13 +50,13 @@ export const COLORS = {
   label: '#666666',
 } as const
 
-// ─── フォントサイズ (mm) ─────────────────────────────────────
+// ─── フォントサイズ (pt) ─────────────────────────────────────
 export const FONT = {
-  title: 7,
-  section: 4,
-  body: 3,
-  table: 2.8,
-  small: 2.5,
+  title: 20,
+  section: 11,
+  body: 8.5,
+  table: 8,
+  small: 7,
 } as const
 
 // ─── フォーマット定数 ────────────────────────────────────────

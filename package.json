@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:backend": "cd server && ./gradlew run",
+    "seed": "cd server && ./gradlew seed",
     "dev:full": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "build:backend": "cd server && ./gradlew shadowJar",
@@ -50,13 +51,9 @@
     "react": "^19.0.0",
     "react-barcode": "^1.6.1",
     "react-dom": "^19.0.0",
-<<<<<<< HEAD
     "react-router-dom": "^7.14.0",
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
-=======
-    "recharts": "^3.8.1",
->>>>>>> feat/formtable-excel-editing
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.0.5",

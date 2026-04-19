@@ -83,7 +83,7 @@ function lbl(
     id: uuidv4(), type: 'label',
     position: { x, y }, size: { width: w, height: h },
     zIndex: nextZ(), locked: true, visible: true, text,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }
 
@@ -98,7 +98,7 @@ function df(
     position: { x, y }, size: { width: w, height: h },
     zIndex: nextZ(), locked: false, visible: true,
     fieldKey, label: undefined,
-    style: { fontSize: 3.0, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
+    style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
     format, fallbackText,
   }
 }
@@ -155,7 +155,7 @@ const TITLE_UNDERLINE_W = 80
 const TITLE_UNDERLINE_X = ML + (CONTENT_W - TITLE_UNDERLINE_W) / 2
 elements.push(
   lbl('御 見 積 書', ML, Y_TITLE, CONTENT_W, 12, {
-    fontSize: 8, fontWeight: 'bold', textAlign: 'center', color: '#1a1a1a',
+    fontSize: 22.5, fontWeight: 'bold', textAlign: 'center', color: '#1a1a1a',
   }),
   hline(TITLE_UNDERLINE_X, Y_TITLE + 12, TITLE_UNDERLINE_W, { strokeWidth: 0.5 }),
 )
@@ -165,17 +165,17 @@ elements.push(
 // =====================================================================
 const INFO_LABEL_W = 22
 elements.push(
-  lbl('発行日：', RIGHT_BLOCK_X, Y_INFO, INFO_LABEL_W, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
+  lbl('発行日：', RIGHT_BLOCK_X, Y_INFO, INFO_LABEL_W, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
   df('issue_date', RIGHT_BLOCK_X + INFO_LABEL_W, Y_INFO, RIGHT_BLOCK_W - INFO_LABEL_W, INFO_ROW,
-    { fontSize: 2.8 }, undefined, '2026年4月10日'),
+    { fontSize: 8 }, undefined, '2026年4月10日'),
 
-  lbl('見積番号：', RIGHT_BLOCK_X, Y_INFO + INFO_ROW, INFO_LABEL_W, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
+  lbl('見積番号：', RIGHT_BLOCK_X, Y_INFO + INFO_ROW, INFO_LABEL_W, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
   df('quotation_number', RIGHT_BLOCK_X + INFO_LABEL_W, Y_INFO + INFO_ROW, RIGHT_BLOCK_W - INFO_LABEL_W, INFO_ROW,
-    { fontSize: 2.8 }, undefined, 'Q-2026-0001'),
+    { fontSize: 8 }, undefined, 'Q-2026-0001'),
 
-  lbl('有効期限：', RIGHT_BLOCK_X, Y_INFO + INFO_ROW * 2, INFO_LABEL_W, INFO_ROW, { fontSize: 2.8, textAlign: 'right' }),
+  lbl('有効期限：', RIGHT_BLOCK_X, Y_INFO + INFO_ROW * 2, INFO_LABEL_W, INFO_ROW, { fontSize: 8, textAlign: 'right' }),
   df('expiry_date', RIGHT_BLOCK_X + INFO_LABEL_W, Y_INFO + INFO_ROW * 2, RIGHT_BLOCK_W - INFO_LABEL_W, INFO_ROW,
-    { fontSize: 2.8 }, undefined, '2026年5月10日'),
+    { fontSize: 8 }, undefined, '2026年5月10日'),
 )
 
 // =====================================================================
@@ -183,18 +183,18 @@ elements.push(
 // =====================================================================
 elements.push(
   df('customer_name', ML, Y_CUSTOMER, 60, 10,
-    { fontSize: 5.0, fontWeight: 'bold' }, undefined, '株式会社サンプル'),
+    { fontSize: 14, fontWeight: 'bold' }, undefined, '株式会社サンプル'),
   lbl('御中', ML + 60, Y_CUSTOMER, 12, 10,
-    { fontSize: 5.0, fontWeight: 'bold' }),
+    { fontSize: 14, fontWeight: 'bold' }),
   hline(ML, Y_CUSTOMER + 11, LEFT_BLOCK_W, { strokeWidth: 0.4 }),
 
-  lbl('〒', ML, Y_CUSTOMER + 13, 5, 5, { fontSize: 2.8 }),
+  lbl('〒', ML, Y_CUSTOMER + 13, 5, 5, { fontSize: 8 }),
   df('customer_postal_code', ML + 5, Y_CUSTOMER + 13, LEFT_BLOCK_W - 5, 5,
-    { fontSize: 2.8 }, undefined, '100-0001'),
+    { fontSize: 8 }, undefined, '100-0001'),
   df('customer_address', ML, Y_CUSTOMER + 18, LEFT_BLOCK_W, 8,
-    { fontSize: 2.8, verticalAlign: 'top' }, undefined, '東京都千代田区丸の内1-1-1'),
+    { fontSize: 8, verticalAlign: 'top' }, undefined, '東京都千代田区丸の内1-1-1'),
   df('customer_contact', ML, Y_CUSTOMER + 26, LEFT_BLOCK_W, 5,
-    { fontSize: 2.8 }, undefined, 'ご担当者様'),
+    { fontSize: 8 }, undefined, 'ご担当者様'),
 )
 
 // =====================================================================
@@ -212,11 +212,11 @@ elements.push({
 const Y_SENDER_NAME = Y_SENDER + 11
 elements.push(
   lbl('株式会社Scalar', RIGHT_BLOCK_X, Y_SENDER_NAME, RIGHT_BLOCK_W - 16, 6,
-    { fontSize: 3.5, fontWeight: 'bold' }),
-  lbl('〒162-0828', RIGHT_BLOCK_X, Y_SENDER_NAME + 6, RIGHT_BLOCK_W, 4.5, { fontSize: 2.8 }),
-  lbl('東京都新宿区袋町5-1', RIGHT_BLOCK_X, Y_SENDER_NAME + 10.5, RIGHT_BLOCK_W, 4.5, { fontSize: 2.8 }),
-  lbl('faro神楽坂 209号室', RIGHT_BLOCK_X, Y_SENDER_NAME + 15, RIGHT_BLOCK_W, 4.5, { fontSize: 2.8 }),
-  lbl('backoffice@scalar-labs.com', RIGHT_BLOCK_X, Y_SENDER_NAME + 19.5, RIGHT_BLOCK_W, 4.5, { fontSize: 2.8 }),
+    { fontSize: 10, fontWeight: 'bold' }),
+  lbl('〒162-0828', RIGHT_BLOCK_X, Y_SENDER_NAME + 6, RIGHT_BLOCK_W, 4.5, { fontSize: 8 }),
+  lbl('東京都新宿区袋町5-1', RIGHT_BLOCK_X, Y_SENDER_NAME + 10.5, RIGHT_BLOCK_W, 4.5, { fontSize: 8 }),
+  lbl('faro神楽坂 209号室', RIGHT_BLOCK_X, Y_SENDER_NAME + 15, RIGHT_BLOCK_W, 4.5, { fontSize: 8 }),
+  lbl('backoffice@scalar-labs.com', RIGHT_BLOCK_X, Y_SENDER_NAME + 19.5, RIGHT_BLOCK_W, 4.5, { fontSize: 8 }),
 )
 
 // 印鑑（社名の右横）
@@ -226,7 +226,7 @@ elements.push({
   size: { width: 12, height: 12 },
   zIndex: nextZ(), locked: false, visible: true,
   text: 'Scalar', shape: 'circle',
-  borderColor: '#cc0000', textColor: '#cc0000', fontSize: 3,
+  borderColor: '#cc0000', textColor: '#cc0000', fontSize: 8.5,
   writingMode: 'horizontal-tb', doubleBorder: false,
 } as ReportElement)
 
@@ -234,9 +234,9 @@ elements.push({
 // 5. お見積金額（税込）
 // =====================================================================
 elements.push(
-  lbl('お見積金額（税込）', ML, Y_CUSTOMER + 32, 42, 10, { fontSize: 3.5 }),
+  lbl('お見積金額（税込）', ML, Y_CUSTOMER + 32, 42, 10, { fontSize: 10 }),
   df('total_amount_inc_tax', ML + 42, Y_CUSTOMER + 32, LEFT_BLOCK_W - 42, 10,
-    { fontSize: 6.5, fontWeight: 'bold', textAlign: 'right' }, JPY_FMT, '¥0'),
+    { fontSize: 18.5, fontWeight: 'bold', textAlign: 'right' }, JPY_FMT, '¥0'),
   hline(ML, Y_CUSTOMER + 43, LEFT_BLOCK_W, { strokeWidth: 0.4 }),
 )
 
@@ -244,16 +244,16 @@ elements.push(
 // 6. 契約期間情報
 // =====================================================================
 elements.push(
-  lbl('契約開始日：', ML, Y_CONTRACT, 24, 6, { fontSize: 2.8, textAlign: 'right' }),
+  lbl('契約開始日：', ML, Y_CONTRACT, 24, 6, { fontSize: 8, textAlign: 'right' }),
   df('contract_start_date', ML + 24, Y_CONTRACT, 40, 6,
-    { fontSize: 2.8 }, undefined, '2026年5月1日'),
+    { fontSize: 8 }, undefined, '2026年5月1日'),
 
-  lbl('契約終了日：', ML + 70, Y_CONTRACT, 24, 6, { fontSize: 2.8, textAlign: 'right' }),
+  lbl('契約終了日：', ML + 70, Y_CONTRACT, 24, 6, { fontSize: 8, textAlign: 'right' }),
   df('contract_end_date', ML + 94, Y_CONTRACT, 40, 6,
-    { fontSize: 2.8 }, undefined, '2027年4月30日'),
+    { fontSize: 8 }, undefined, '2027年4月30日'),
 
   lbl('下記のとおり、サブスクリプションライセンスのお見積りを申し上げます。', ML, Y_CONTRACT + 8, CONTENT_W, 6,
-    { fontSize: 3.0 }),
+    { fontSize: 8.5 }),
 )
 
 // =====================================================================
@@ -276,7 +276,7 @@ elements.push({
   borderColor: '#dee2e6', borderWidth: 0.2,
   groupBy: 'system_name',
   showGroupSubtotals: true,
-  groupStyle: { backgroundColor: '#edf2f7', fontWeight: 'bold', fontSize: 2.8 },
+  groupStyle: { backgroundColor: '#edf2f7', fontWeight: 'bold', fontSize: 8 },
   fields: [
     { key: 'system_name', label: '対象システム', width: COL_SYSTEM_W, align: 'left' },
     { key: 'product_name', label: '製品名', width: COL_PRODUCT_W, align: 'left' },
@@ -285,8 +285,8 @@ elements.push({
     { key: 'unit_price', label: '単価(月額)', width: COL_UNIT_W, align: 'right', format: JPY_FMT },
     { key: 'line_subtotal', label: '小計', width: COL_SUBTOTAL_W, align: 'right', format: JPY_FMT },
   ],
-  style: { fontSize: 2.8, color: '#1a1a1a' },
-  headerStyle: { fontSize: 2.8, fontWeight: 'bold', color: '#ffffff', backgroundColor: SECTION_HDR_FILL },
+  style: { fontSize: 8, color: '#1a1a1a' },
+  headerStyle: { fontSize: 8, fontWeight: 'bold', color: '#ffffff', backgroundColor: SECTION_HDR_FILL },
 } as ReportElement)
 
 // =====================================================================
@@ -301,7 +301,7 @@ condLabels.forEach((label, i) => {
   const rowY = Y_SUMM + i * COND_ROW_H
   elements.push(
     rect(ML, rowY, COND_LABEL_W, COND_ROW_H, { fill: '#f0f0f0' }),
-    lbl(label, ML + 1, rowY, COND_LABEL_W - 2, COND_ROW_H, { fontSize: 2.8, textAlign: 'center' }),
+    lbl(label, ML + 1, rowY, COND_LABEL_W - 2, COND_ROW_H, { fontSize: 8, textAlign: 'center' }),
     vline(ML + COND_LABEL_W, rowY, COND_ROW_H),
   )
   if (i > 0) elements.push(hline(ML, rowY, COND_W))
@@ -310,11 +310,11 @@ condLabels.forEach((label, i) => {
 // 条件値（データフィールド）
 elements.push(
   df('delivery_term', ML + COND_LABEL_W + 2, Y_SUMM, COND_W - COND_LABEL_W - 4, COND_ROW_H,
-    { fontSize: 2.8 }, undefined, 'ご発注後、即日ライセンス発行'),
+    { fontSize: 8 }, undefined, 'ご発注後、即日ライセンス発行'),
   df('payment_term', ML + COND_LABEL_W + 2, Y_SUMM + COND_ROW_H, COND_W - COND_LABEL_W - 4, COND_ROW_H,
-    { fontSize: 2.8 }, undefined, '月末締め翌月末払い'),
+    { fontSize: 8 }, undefined, '月末締め翌月末払い'),
   df('validity_term', ML + COND_LABEL_W + 2, Y_SUMM + COND_ROW_H * 2, COND_W - COND_LABEL_W - 4, COND_ROW_H,
-    { fontSize: 2.8 }, undefined, '発行日より30日間'),
+    { fontSize: 8 }, undefined, '発行日より30日間'),
 )
 
 // =====================================================================
@@ -352,10 +352,10 @@ summaryItems.forEach(({ label, key, y, bold, format, fallback, highlight }, i) =
   }
   elements.push(
     lbl(label, SUMM_X + 2, y, SUMM_LABEL_W - 4, SUMM_ROW_H, {
-      fontSize: 2.8, textAlign: 'left', fontWeight: bold ? 'bold' : 'normal', color: textColor,
+      fontSize: 8, textAlign: 'left', fontWeight: bold ? 'bold' : 'normal', color: textColor,
     }),
     df(key, SUMM_X + SUMM_LABEL_W + 2, y, SUMM_AMT_W - 4, SUMM_ROW_H, {
-      fontSize: 2.8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal', color: textColor,
+      fontSize: 8, textAlign: 'right', fontWeight: bold ? 'bold' : 'normal', color: textColor,
     }, format, fallback),
   )
 })
@@ -367,9 +367,9 @@ const NOTES_H = 40
 elements.push(
   rect(ML, Y_NOTES, CONTENT_W, NOTES_H),
   rect(ML, Y_NOTES, CONTENT_W, 7, { fill: SECTION_HDR_FILL, stroke: SECTION_HDR_FILL }),
-  lbl('備考', ML, Y_NOTES, CONTENT_W, 7, { fontSize: 2.8, textAlign: 'center', fontWeight: 'bold', color: '#ffffff' }),
+  lbl('備考', ML, Y_NOTES, CONTENT_W, 7, { fontSize: 8, textAlign: 'center', fontWeight: 'bold', color: '#ffffff' }),
   df('notes', ML + 2, Y_NOTES + 8, CONTENT_W - 4, NOTES_H - 10, {
-    fontSize: 2.8, verticalAlign: 'top',
+    fontSize: 8, verticalAlign: 'top',
   }, undefined, '・サブスクリプションライセンスの価格はPod/月単位です。\n・価格は予告なく変更される場合があります。'),
 )
 
