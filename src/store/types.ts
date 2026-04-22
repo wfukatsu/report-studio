@@ -22,7 +22,7 @@ import type {
   TenantInfo,
 } from '@/types'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
-import type { Me, UserSummary, UserRole, ServerConfig } from '@/api/reportApi'
+import type { Me, UserSummary, UserRole, ServerConfig, SchemaListItem } from '@/api/reportApi'
 
 // ---------------------------------------------------------------------------
 // Alignment / Z-order enums (moved from reportStore for shared use)
@@ -315,6 +315,23 @@ export interface StoreState {
   setElementSchemaBinding: (pageId: string, elementId: string, fieldId: string | undefined) => void
   /** Ensures the __productMaster__ system group exists in the current schema. */
   ensureProductMasterGroup: () => void
+
+  // ── Schema API state & actions ────────────────────────────────────────────
+  /** Backend schema ID (null if not yet persisted) */
+  schemaId: string | null
+  schemaName: string
+  schemaVisibility: 'private' | 'shared'
+  schemaLoading: boolean
+  schemaSaving: boolean
+  schemaPendingCreate: boolean
+  schemaError: string | null
+  schemaUpdatedAt: number | null
+  schemaList: SchemaListItem[]
+
+  fetchSchemaList: () => Promise<void>
+  loadSchema: (id: string) => Promise<void>
+  saveSchema: () => Promise<void>
+  deleteSchema: (id: string) => Promise<void>
 
   // ── Computed slice actions ────────────────────────────────────────────────
   setComputedResults: (payload: {

@@ -1112,10 +1112,10 @@ export async function deleteScalarDbRow(
 }
 
 // ---------------------------------------------------------------------------
-// Schema Library — reusable schema definitions
+// Schema API — unified schema CRUD (/api/v2/schemas)
 // ---------------------------------------------------------------------------
 
-export interface SchemaLibraryItem {
+export interface SchemaListItem {
   id: string
   name: string
   visibility: 'private' | 'shared'
@@ -1124,7 +1124,7 @@ export interface SchemaLibraryItem {
   updatedAt: string
 }
 
-const SchemaLibraryItemSchema = z.object({
+const SchemaListItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   visibility: z.enum(['private', 'shared']),
@@ -1133,52 +1133,100 @@ const SchemaLibraryItemSchema = z.object({
   updatedAt: z.string(),
 })
 
-const SchemaLibraryListSchema = z.object({
-  items: z.array(SchemaLibraryItemSchema),
+const SchemaListSchema = z.object({
+  items: z.array(SchemaListItemSchema),
   total: z.number(),
 })
 
-// The definition stored in schema library (schema + dataSources)
-const SchemaLibraryDefinitionSchema = z.object({
-  schema: z.any(),
-  dataSources: z.any().optional(),
-}).passthrough()
-
-export type SchemaLibraryDefinition = z.infer<typeof SchemaLibraryDefinitionSchema>
-
-export async function listSchemaLibrary(): Promise<{ items: SchemaLibraryItem[]; total: number }> {
-  return apiFetch('/api/v2/schema-library', SchemaLibraryListSchema)
+// Full envelope returned by GET /api/v2/schemas/{id}
+export interface SchemaEnvelope {
+  id: string
+  name: string
+  visibility: 'private' | 'shared'
+  createdBy: string
+  createdAt: number
+  updatedAt: number
+  definition: SchemaDefinitionPayload
 }
 
-export async function getSchemaLibraryItem(id: string): Promise<SchemaLibraryDefinition> {
-  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, SchemaLibraryDefinitionSchema)
+export interface SchemaDefinitionPayload {
+  schema?: unknown
+  dataSources?: unknown
+  groups?: unknown
+  [key: string]: unknown
 }
 
-export async function saveToSchemaLibrary(
+const SchemaEnvelopeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  visibility: z.enum(['private', 'shared']),
+  createdBy: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  definition: z.object({}).passthrough(),
+})
+
+const SchemaCreateResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  updatedAt: z.number(),
+})
+
+const SchemaUpdateResponseSchema = z.object({
+  status: z.string(),
+  id: z.string(),
+  updatedAt: z.number(),
+})
+
+// Backward-compat re-exports
+export type SchemaLibraryItem = SchemaListItem
+export type SchemaLibraryDefinition = SchemaDefinitionPayload
+
+export async function listSchemas(): Promise<{ items: SchemaListItem[]; total: number }> {
+  return apiFetch('/api/v2/schemas', SchemaListSchema)
+}
+
+export async function getSchema(id: string): Promise<SchemaEnvelope> {
+  return apiFetch(`/api/v2/schemas/${encodeURIComponent(id)}`, SchemaEnvelopeSchema)
+}
+
+export async function createSchema(
   name: string,
-  definition: SchemaLibraryDefinition,
+  definition: SchemaDefinitionPayload,
   visibility: 'private' | 'shared' = 'private',
-): Promise<{ id: string }> {
-  return apiFetch('/api/v2/schema-library', z.object({ id: z.string(), name: z.string() }), jsonBody({
+): Promise<{ id: string; name: string; updatedAt: number }> {
+  return apiFetch('/api/v2/schemas', SchemaCreateResponseSchema, jsonBody({
     name,
     visibility,
     definition,
   }))
 }
 
-export async function updateSchemaLibrary(
+export async function updateSchema(
   id: string,
-  name: string,
-  definition: SchemaLibraryDefinition,
-  visibility: 'private' | 'shared',
-): Promise<void> {
-  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, z.any(), {
+  params: {
+    name: string
+    visibility: 'private' | 'shared'
+    definition: SchemaDefinitionPayload
+    updatedAt?: number | null
+  },
+): Promise<{ status: string; id: string; updatedAt: number }> {
+  return apiFetch(`/api/v2/schemas/${encodeURIComponent(id)}`, SchemaUpdateResponseSchema, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, visibility, definition }),
+    body: JSON.stringify(params),
   })
 }
 
-export async function deleteSchemaLibraryItem(id: string): Promise<void> {
-  return apiFetch(`/api/v2/schema-library/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
+export async function deleteSchema(id: string): Promise<void> {
+  return apiFetch(`/api/v2/schemas/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
 }
+
+// Legacy aliases for backward compatibility
+export const listSchemaLibrary = listSchemas
+export const getSchemaLibraryItem = (id: string) => getSchema(id).then(e => e.definition as SchemaDefinitionPayload)
+export const saveToSchemaLibrary = (name: string, definition: SchemaDefinitionPayload, visibility: 'private' | 'shared' = 'private') =>
+  createSchema(name, definition, visibility)
+export const updateSchemaLibrary = (id: string, name: string, definition: SchemaDefinitionPayload, visibility: 'private' | 'shared') =>
+  updateSchema(id, { name, visibility, definition }).then(() => undefined)
+export const deleteSchemaLibraryItem = deleteSchema

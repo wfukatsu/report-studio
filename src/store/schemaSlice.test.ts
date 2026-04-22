@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useReportStore } from './index'
 import type { SchemaGroup, SchemaField, ScalarDbTableMeta } from '@/types'
 
@@ -544,5 +544,192 @@ describe('removeSchemaGroup schemaBinding cleanup', () => {
     expect(useReportStore.getState().definition.pages[0]
       .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-grp-cleanup')!
       .schemaBinding).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Schema API state — initial values
+// ---------------------------------------------------------------------------
+
+describe('schema API state initial values', () => {
+  it('has correct initial state', () => {
+    const state = useReportStore.getState()
+    expect(state.schemaId).toBeNull()
+    expect(state.schemaName).toBe('')
+    expect(state.schemaVisibility).toBe('private')
+    expect(state.schemaLoading).toBe(false)
+    expect(state.schemaSaving).toBe(false)
+    expect(state.schemaPendingCreate).toBe(false)
+    expect(state.schemaError).toBeNull()
+    expect(state.schemaUpdatedAt).toBeNull()
+    expect(state.schemaList).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fetchSchemaList — async action
+// ---------------------------------------------------------------------------
+
+vi.mock('@/api/reportApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/reportApi')>()
+  return {
+    ...actual,
+    listSchemas: vi.fn(),
+    getSchema: vi.fn(),
+    createSchema: vi.fn(),
+    updateSchema: vi.fn(),
+    deleteSchema: vi.fn(),
+  }
+})
+
+vi.mock('@/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/client')>()
+  return {
+    ...actual,
+    isApiError: (err: unknown): err is { status: number } =>
+      err !== null && typeof err === 'object' && 'status' in err,
+  }
+})
+
+describe('fetchSchemaList', () => {
+  it('sets schemaLoading during fetch and populates schemaList on success', async () => {
+    const { listSchemas } = await import('@/api/reportApi')
+    const mockList = vi.mocked(listSchemas)
+    mockList.mockResolvedValueOnce({
+      items: [
+        { id: 'sch-1', name: 'テスト', visibility: 'private', createdBy: 'user1', createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+      ],
+      total: 1,
+    })
+
+    const promise = useReportStore.getState().fetchSchemaList()
+    expect(useReportStore.getState().schemaLoading).toBe(true)
+    await promise
+    expect(useReportStore.getState().schemaLoading).toBe(false)
+    expect(useReportStore.getState().schemaList).toHaveLength(1)
+    expect(useReportStore.getState().schemaList[0].name).toBe('テスト')
+  })
+
+  it('sets schemaError on fetch failure', async () => {
+    const { listSchemas } = await import('@/api/reportApi')
+    const mockList = vi.mocked(listSchemas)
+    mockList.mockRejectedValueOnce(new Error('Network error'))
+
+    await useReportStore.getState().fetchSchemaList()
+    expect(useReportStore.getState().schemaLoading).toBe(false)
+    expect(useReportStore.getState().schemaError).toBe('Network error')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// saveSchema — async action
+// ---------------------------------------------------------------------------
+
+describe('saveSchema', () => {
+  it('creates new schema when schemaId is null', async () => {
+    const { createSchema } = await import('@/api/reportApi')
+    const mockCreate = vi.mocked(createSchema)
+    mockCreate.mockResolvedValueOnce({ id: 'new-id', name: 'テスト', updatedAt: 1000 })
+
+    useReportStore.getState().addSchemaGroup('master')
+    useReportStore.setState({ schemaName: 'テスト' })
+
+    await useReportStore.getState().saveSchema()
+    expect(useReportStore.getState().schemaId).toBe('new-id')
+    expect(useReportStore.getState().schemaUpdatedAt).toBe(1000)
+    expect(useReportStore.getState().schemaSaving).toBe(false)
+    expect(useReportStore.getState().schemaPendingCreate).toBe(false)
+  })
+
+  it('updates existing schema when schemaId is present', async () => {
+    const { updateSchema } = await import('@/api/reportApi')
+    const mockUpdate = vi.mocked(updateSchema)
+    mockUpdate.mockResolvedValueOnce({ status: 'saved', id: 'existing-id', updatedAt: 2000 })
+
+    useReportStore.setState({
+      schemaId: 'existing-id',
+      schemaName: 'テスト',
+      schemaVisibility: 'private',
+      schemaUpdatedAt: 1000,
+    })
+    useReportStore.getState().addSchemaGroup('master')
+
+    await useReportStore.getState().saveSchema()
+    expect(useReportStore.getState().schemaUpdatedAt).toBe(2000)
+    expect(mockUpdate).toHaveBeenCalledWith('existing-id', expect.objectContaining({
+      updatedAt: 1000,
+    }))
+  })
+
+  it('throws user-friendly error on 409 conflict', async () => {
+    const { updateSchema } = await import('@/api/reportApi')
+    const mockUpdate = vi.mocked(updateSchema)
+    const conflictError = Object.assign(new Error('Conflict'), { status: 409, body: '' })
+    mockUpdate.mockRejectedValueOnce(conflictError)
+
+    useReportStore.setState({
+      schemaId: 'existing-id',
+      schemaName: 'テスト',
+      schemaVisibility: 'private',
+      schemaUpdatedAt: 1000,
+    })
+    useReportStore.getState().addSchemaGroup('master')
+
+    await expect(useReportStore.getState().saveSchema()).rejects.toThrow('他のユーザー')
+    expect(useReportStore.getState().schemaSaving).toBe(false)
+  })
+
+  it('does not save when schemaSaving is already true', async () => {
+    const { createSchema, updateSchema } = await import('@/api/reportApi')
+    const mockCreate = vi.mocked(createSchema)
+    const mockUpdate = vi.mocked(updateSchema)
+    mockCreate.mockClear()
+    mockUpdate.mockClear()
+
+    useReportStore.setState({ schemaSaving: true })
+    await useReportStore.getState().saveSchema()
+    expect(mockCreate).not.toHaveBeenCalled()
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// deleteSchema — async action
+// ---------------------------------------------------------------------------
+
+describe('deleteSchema', () => {
+  it('removes item from schemaList after deletion', async () => {
+    const reportApi = await import('@/api/reportApi')
+    const mockDelete = vi.mocked(reportApi.deleteSchema)
+    mockDelete.mockResolvedValueOnce(undefined)
+
+    useReportStore.setState({
+      schemaList: [
+        { id: 'sch-1', name: 'A', visibility: 'private', createdBy: 'u1', createdAt: '', updatedAt: '' },
+        { id: 'sch-2', name: 'B', visibility: 'shared', createdBy: 'u1', createdAt: '', updatedAt: '' },
+      ],
+    })
+
+    await useReportStore.getState().deleteSchema('sch-1')
+    expect(useReportStore.getState().schemaList).toHaveLength(1)
+    expect(useReportStore.getState().schemaList[0].id).toBe('sch-2')
+  })
+
+  it('clears schemaId when deleting the currently loaded schema', async () => {
+    const reportApi = await import('@/api/reportApi')
+    const mockDelete = vi.mocked(reportApi.deleteSchema)
+    mockDelete.mockResolvedValueOnce(undefined)
+
+    useReportStore.setState({
+      schemaId: 'sch-1',
+      schemaName: 'Active',
+      schemaList: [
+        { id: 'sch-1', name: 'Active', visibility: 'private', createdBy: 'u1', createdAt: '', updatedAt: '' },
+      ],
+    })
+
+    await useReportStore.getState().deleteSchema('sch-1')
+    expect(useReportStore.getState().schemaId).toBeNull()
+    expect(useReportStore.getState().schemaName).toBe('')
   })
 })

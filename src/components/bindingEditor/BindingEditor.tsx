@@ -22,6 +22,7 @@ import { BulkGenerateBar } from './internals/BulkGenerateBar'
 import { SchemaLibraryModal } from '@/components/modals/SchemaLibraryModal'
 import { saveToSchemaLibrary } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
+import { toast } from 'sonner'
 
 const ComputedFieldDialog = lazy(() =>
   import('./internals/ComputedFieldDialog').then((m) => ({
@@ -141,9 +142,9 @@ export function BindingEditor() {
         schema: bs.schema ?? { groups: [] },
         dataSources: dataSources ?? [],
       })
-      alert('スキーマをライブラリに保存しました')
+      toast.success('スキーマをライブラリに保存しました')
     } catch (e) {
-      alert(`保存に失敗しました: ${e instanceof Error ? e.message : '不明なエラー'}`)
+      toast.error(e instanceof Error ? e.message : '保存に失敗しました', { duration: 8000 })
     } finally {
       setSavingToLibrary(false)
     }

@@ -1,6 +1,7 @@
 package com.report.server;
 
 import io.javalin.Javalin;
+import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,7 @@ public final class ApiRoutes {
         registerPdfRoute(app, w);
         registerV2Routes(app, w);
         registerAdminRoutes(app, w);
-        registerSchemaLibraryRoutes(app, w);
+        registerV2SchemaRoutes(app, w);
     }
 
     // ── Middleware ─────────────────────────────────────────────────────────────
@@ -303,14 +304,19 @@ public final class ApiRoutes {
     }
 
     // -----------------------------------------------------------------------
-    // Schema Library — reusable schema definitions
+    // Schemas — unified schema CRUD (was schema-library)
     // -----------------------------------------------------------------------
 
-    private static void registerSchemaLibraryRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v2/schema-library",          w.schemaLibraryCtrl::list);
-        app.post("/api/v2/schema-library",         w.schemaLibraryCtrl::create);
-        app.get("/api/v2/schema-library/{id}",     w.schemaLibraryCtrl::get);
-        app.put("/api/v2/schema-library/{id}",     w.schemaLibraryCtrl::put);
-        app.delete("/api/v2/schema-library/{id}",  w.schemaLibraryCtrl::delete);
+    private static void registerV2SchemaRoutes(Javalin app, AppWiring w) {
+        // New canonical paths
+        app.get("/api/v2/schemas",          w.schemaLibraryCtrl::list);
+        app.post("/api/v2/schemas",         w.schemaLibraryCtrl::create);
+        app.get("/api/v2/schemas/{id}",     w.schemaLibraryCtrl::get);
+        app.put("/api/v2/schemas/{id}",     w.schemaLibraryCtrl::put);
+        app.delete("/api/v2/schemas/{id}",  w.schemaLibraryCtrl::delete);
+
+        // Backward-compat redirects for old /api/v2/schema-library paths
+        app.get("/api/v2/schema-library",      ctx -> ctx.redirect("/api/v2/schemas", HttpStatus.MOVED_PERMANENTLY));
+        app.get("/api/v2/schema-library/{id}", ctx -> ctx.redirect("/api/v2/schemas/" + ctx.pathParam("id"), HttpStatus.MOVED_PERMANENTLY));
     }
 }

@@ -7,6 +7,8 @@ import type { StateCreator } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
 import type { SchemaGroup, SchemaField } from '@/types'
 import type { StoreState } from './types'
+import { listSchemas, getSchema, createSchema, updateSchema, deleteSchema as deleteSchemaApi } from '@/api/reportApi'
+import { isApiError } from '@/api/client'
 
 // ---------------------------------------------------------------------------
 // System group constants
@@ -67,7 +69,23 @@ export type SchemaSlice = Pick<StoreState,
   | 'setSchema'
   | 'setElementSchemaBinding'
   | 'ensureProductMasterGroup'
+  | 'schemaId'
+  | 'schemaName'
+  | 'schemaVisibility'
+  | 'schemaLoading'
+  | 'schemaSaving'
+  | 'schemaPendingCreate'
+  | 'schemaError'
+  | 'schemaUpdatedAt'
+  | 'schemaList'
+  | 'fetchSchemaList'
+  | 'loadSchema'
+  | 'saveSchema'
+  | 'deleteSchema'
 >
+
+// Stale-fetch guard (module-level, following productSlice pattern)
+let _fetchSeq = 0
 
 export const createSchemaSlice: StateCreator<
   StoreState,
@@ -75,6 +93,110 @@ export const createSchemaSlice: StateCreator<
   [],
   SchemaSlice
 > = (set, get) => ({
+  // ── Schema API state (initial values) ───────────────────────────────────
+  schemaId: null,
+  schemaName: '',
+  schemaVisibility: 'private' as const,
+  schemaLoading: false,
+  schemaSaving: false,
+  schemaPendingCreate: false,
+  schemaError: null,
+  schemaUpdatedAt: null,
+  schemaList: [],
+
+  // ── Schema API async actions ────────────────────────────────────────────
+
+  fetchSchemaList: async () => {
+    const seq = ++_fetchSeq
+    set((s) => { s.schemaLoading = true; s.schemaError = null })
+    try {
+      const result = await listSchemas()
+      if (_fetchSeq !== seq) return // stale response guard
+      set((s) => { s.schemaList = result.items; s.schemaLoading = false })
+    } catch (err) {
+      if (_fetchSeq !== seq) return
+      set((s) => {
+        s.schemaLoading = false
+        s.schemaError = err instanceof Error ? err.message : 'スキーマの読み込みに失敗しました'
+      })
+    }
+  },
+
+  loadSchema: async (id: string) => {
+    set((s) => { s.schemaLoading = true; s.schemaError = null })
+    try {
+      const envelope = await getSchema(id)
+      set((s) => {
+        s.schemaId = envelope.id
+        s.schemaName = envelope.name
+        s.schemaVisibility = envelope.visibility
+        s.schemaUpdatedAt = envelope.updatedAt
+        s.definition.schema = envelope.definition as StoreState['definition']['schema']
+        s.schemaLoading = false
+      })
+    } catch (err) {
+      set((s) => {
+        s.schemaLoading = false
+        s.schemaError = err instanceof Error ? err.message : 'スキーマの読み込みに失敗しました'
+      })
+    }
+  },
+
+  saveSchema: async () => {
+    const state = get()
+    if (state.schemaPendingCreate) return // POST in-flight, skip
+    if (state.schemaSaving) return // prevent concurrent saves
+
+    const definition = state.definition.schema ?? { groups: [] }
+    set((s) => { s.schemaSaving = true })
+
+    try {
+      if (state.schemaId) {
+        // Existing schema — PUT with optimistic lock
+        const res = await updateSchema(state.schemaId, {
+          name: state.schemaName || '新しいスキーマ',
+          visibility: state.schemaVisibility,
+          definition,
+          updatedAt: state.schemaUpdatedAt,
+        })
+        set((s) => { s.schemaUpdatedAt = res.updatedAt })
+      } else {
+        // New schema — POST
+        set((s) => { s.schemaPendingCreate = true })
+        const res = await createSchema(
+          state.schemaName || '新しいスキーマ',
+          definition,
+          state.schemaVisibility,
+        )
+        set((s) => {
+          s.schemaId = res.id
+          s.schemaUpdatedAt = res.updatedAt
+        })
+      }
+    } catch (err) {
+      if (isApiError(err) && err.status === 409) {
+        throw new Error('他のユーザーがこのスキーマを更新しました。再読み込みしてください。')
+      }
+      throw err // caller (UI hook) handles toast
+    } finally {
+      set((s) => { s.schemaSaving = false; s.schemaPendingCreate = false })
+    }
+  },
+
+  deleteSchema: async (id: string) => {
+    await deleteSchemaApi(id)
+    set((s) => {
+      s.schemaList = s.schemaList.filter(item => item.id !== id)
+      if (s.schemaId === id) {
+        s.schemaId = null
+        s.schemaName = ''
+        s.schemaUpdatedAt = null
+      }
+    })
+  },
+
+  // ── Schema local actions ────────────────────────────────────────────────
+
   addSchemaGroup: (role) => set((s) => {
     if (!s.definition.schema) {
       s.definition.schema = { groups: [] }
