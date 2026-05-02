@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useMemo } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { AppTab } from '@/store/types'
 import { cn } from '@/lib/utils'
@@ -7,10 +7,15 @@ import { cn } from '@/lib/utils'
  * One entry in the top-nav `tabs` prop. Either a focusable tab or a
  * vertical separator that visually groups adjacent tabs without joining
  * the keyboard-navigation ring.
+ *
+ * Backward-compat: `kind` defaults to `'tab'` when omitted by a caller, so
+ * existing test fixtures and configurations that pass plain `{ id, label }`
+ * objects continue to work. New code should set `kind: 'tab'` explicitly so
+ * the discriminated union narrows cleanly.
  */
-export type TopNavItem =
-  | { kind?: 'tab'; id: AppTab; label: string }
-  | { kind: 'separator' }
+export type TopNavTab = { kind?: 'tab'; id: AppTab; label: string }
+export type TopNavSeparator = { kind: 'separator' }
+export type TopNavItem = TopNavTab | TopNavSeparator
 
 interface TopNavigationProps {
   readonly activeTab: AppTab
@@ -19,12 +24,19 @@ interface TopNavigationProps {
   readonly tabs: readonly TopNavItem[]
 }
 
-function isSeparator(item: TopNavItem): item is { kind: 'separator' } {
+function isTab(item: TopNavItem): item is TopNavTab {
+  return item.kind !== 'separator'
+}
+
+function isSeparator(item: TopNavItem): item is TopNavSeparator {
   return item.kind === 'separator'
 }
 
 export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationProps) {
-  const tabIds = tabs.filter((t): t is { kind?: 'tab'; id: AppTab; label: string } => !isSeparator(t)).map((t) => t.id)
+  // Memoize so `useCallback` consumers downstream see a stable array reference
+  // across renders that don't change the tabs prop (the prop is a module-level
+  // constant in AppShell, so this effectively runs once per mount).
+  const tabIds = useMemo(() => tabs.filter(isTab).map((t) => t.id), [tabs])
   const tabRefs = useRef<Map<AppTab, HTMLButtonElement | null>>(new Map())
 
   const focusTab = useCallback((tab: AppTab) => {

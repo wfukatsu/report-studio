@@ -49,4 +49,27 @@ describe('InlineErrorBanner', () => {
     render(<InlineErrorBanner error={new NetworkError('x')} />)
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
+
+  it('renders the dev-only details block when correlationId is present (DEV mode)', () => {
+    render(
+      <InlineErrorBanner
+        error={{ code: 'server_error', retryable: false, correlationId: 'abc-123' }}
+      />,
+    )
+    // In Vitest import.meta.env.DEV defaults to true, so the details surface
+    // for callers that pre-classified with a correlationId.
+    expect(screen.getByText(/技術情報/)).toBeInTheDocument()
+    expect(screen.getByText(/abc-123/)).toBeInTheDocument()
+  })
+
+  it('does not crash when a pre-classified error carries an unmapped code', () => {
+    // e.g. a Node-style { code: 'ECONNREFUSED', retryable: false } slips past
+    // isClassified — getErrorCopy falls back to the unknown copy.
+    render(
+      <InlineErrorBanner
+        error={{ code: 'ECONNREFUSED', retryable: false } as never}
+      />,
+    )
+    expect(screen.getByText('予期しないエラーが発生しました')).toBeInTheDocument()
+  })
 })

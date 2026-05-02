@@ -20,4 +20,11 @@ describe('userFacingErrorMessages', () => {
       expect(copy.hint).not.toMatch(/HTTP|\b[45]\d{2}\b/i)
     }
   })
+
+  it('falls back to the unknown copy for an unrecognized code string', () => {
+    // e.g. a Node-style error like { code: 'ECONNREFUSED' } slipping past
+    // InlineErrorBanner.isClassified must not crash with `undefined.title`.
+    const copy = getErrorCopy('ECONNREFUSED')
+    expect(copy).toBe(ERROR_MESSAGES_JA.unknown)
+  })
 })

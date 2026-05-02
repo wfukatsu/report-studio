@@ -54,6 +54,8 @@ export const ERROR_MESSAGES_JA: Record<UserFacingErrorCode, UserFacingErrorCopy>
   },
 }
 
-export function getErrorCopy(code: UserFacingErrorCode): UserFacingErrorCopy {
-  return ERROR_MESSAGES_JA[code]
+export function getErrorCopy(code: UserFacingErrorCode | string): UserFacingErrorCopy {
+  // Tolerate stray code strings (e.g. a Node-style `code: 'ECONNREFUSED'` slipping
+  // through `InlineErrorBanner.isClassified`) by falling back to the unknown copy.
+  return ERROR_MESSAGES_JA[code as UserFacingErrorCode] ?? ERROR_MESSAGES_JA.unknown
 }

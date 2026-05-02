@@ -15,8 +15,13 @@ import { getErrorCopy } from '@/lib/userFacingErrorMessages'
 import { cn } from '@/lib/utils'
 
 interface Props {
-  /** A caught error or a pre-classified UserFacingError. Pre-classifying is useful when callers also need `retryable` to drive other UI. */
-  error: unknown | UserFacingError
+  /**
+   * Any caught value. Plain errors are passed through `classifyError`; a
+   * pre-classified `UserFacingError` is detected by `isClassified` and used
+   * as-is. Callers that already need `retryable` to drive other UI should
+   * pre-classify and pass the result here.
+   */
+  error: unknown
   /** Optional retry handler. Hidden when the classified error is not retryable. */
   onRetry?: () => void
   /** Visual tone. Defaults to amber for connection-style errors. */

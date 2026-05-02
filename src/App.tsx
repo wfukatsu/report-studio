@@ -125,6 +125,9 @@ export default function App() {
   useEffect(() => {
     // Best-effort cleanup of any pre-multiuser unkeyed draft so it cannot
     // resurface as a phantom restore prompt for the wrong user.
+    // TODO(2026-08-01): drop this shim and the LEGACY_AUTOSAVE_KEY export once
+    // every active session has remounted at least once after the multiuser
+    // autosave key migration. Track via review-feedback ticket.
     try { localStorage.removeItem(LEGACY_AUTOSAVE_KEY) } catch { /* storage disabled */ }
     const key = getAutoSaveKey(currentUser?.userId)
     const saved = key ? localStorage.getItem(key) : null

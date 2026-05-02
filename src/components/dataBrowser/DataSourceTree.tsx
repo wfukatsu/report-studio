@@ -18,7 +18,7 @@ type CatalogState =
 
 type TemplatesState =
   | { status: 'loading' }
-  | { status: 'error' }
+  | { status: 'error'; error: UserFacingError }
   | { status: 'ok'; items: { id: string; name: string }[] }
 
 function nodeKey(node: DataSourceNode): string {
@@ -37,18 +37,29 @@ export function DataSourceTree({ onSelect, selected }: Props) {
   const [templates, setTemplates] = useState<TemplatesState>({ status: 'loading' })
   const [scalarDbOpen, setScalarDbOpen] = useState(true)
   const [responsesOpen, setResponsesOpen] = useState(true)
+  const [catalogTick, setCatalogTick] = useState(0)
+  const [templatesTick, setTemplatesTick] = useState(0)
 
   useEffect(() => {
+    let cancelled = false
+    setCatalog({ status: 'loading' })
     fetchScalarDbCatalogCached()
-      .then((data) => setCatalog({ status: 'ok', namespaces: data.namespaces }))
-      .catch((err) => setCatalog({ status: 'error', error: classifyError(err) }))
-  }, [])
+      .then((data) => { if (!cancelled) setCatalog({ status: 'ok', namespaces: data.namespaces }) })
+      .catch((err) => { if (!cancelled) setCatalog({ status: 'error', error: classifyError(err) }) })
+    return () => { cancelled = true }
+  }, [catalogTick])
 
   useEffect(() => {
+    let cancelled = false
+    setTemplates({ status: 'loading' })
     listReports()
-      .then((data) => setTemplates({ status: 'ok', items: data.items }))
-      .catch(() => setTemplates({ status: 'error' }))
-  }, [])
+      .then((data) => { if (!cancelled) setTemplates({ status: 'ok', items: data.items }) })
+      .catch((err) => { if (!cancelled) setTemplates({ status: 'error', error: classifyError(err) }) })
+    return () => { cancelled = true }
+  }, [templatesTick])
+
+  const retryCatalog = () => setCatalogTick((n) => n + 1)
+  const retryTemplates = () => setTemplatesTick((n) => n + 1)
 
   const productMasterNode: DataSourceNode = { kind: 'product-master' }
 
@@ -66,7 +77,7 @@ export function DataSourceTree({ onSelect, selected }: Props) {
         )}
         {catalog.status === 'error' && (
           <div className="mx-2 my-1">
-            <InlineErrorBanner error={catalog.error} />
+            <InlineErrorBanner error={catalog.error} onRetry={retryCatalog} />
           </div>
         )}
         {catalog.status === 'ok' && catalog.namespaces.length === 0 && (
@@ -115,7 +126,11 @@ export function DataSourceTree({ onSelect, selected }: Props) {
         onToggle={() => setResponsesOpen((v) => !v)}
       >
         {templates.status === 'loading' && <TreeLeaf label="読み込み中..." disabled />}
-        {templates.status === 'error' && <TreeLeaf label="テンプレートの読み込みに失敗" disabled />}
+        {templates.status === 'error' && (
+          <div className="mx-2 my-1">
+            <InlineErrorBanner error={templates.error} onRetry={retryTemplates} />
+          </div>
+        )}
         {templates.status === 'ok' && templates.items.length === 0 && (
           <TreeLeaf label="テンプレートがありません" disabled />
         )}
