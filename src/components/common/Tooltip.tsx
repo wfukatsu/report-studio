@@ -67,6 +67,20 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
     setPos({ top, left })
   }, [visible, placement])
 
+  // Auto-hide on scroll (HTML5 drag does not fire mouseleave reliably) and Escape.
+  // Listeners are only registered while a tooltip is visible.
+  useEffect(() => {
+    if (!visible) return
+    const onScroll = () => hide()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') hide() }
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [visible, hide])
+
   if (!content) return <>{children}</>
 
   return (
@@ -77,6 +91,9 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
+      onClick={hide}
+      onDragStart={hide}
+      onPointerCancel={hide}
     >
       {children}
       {visible && createPortal(
