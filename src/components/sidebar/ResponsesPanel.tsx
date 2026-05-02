@@ -178,9 +178,15 @@ export function ResponsesPanel() {
       <div className="p-4 space-y-3">
         {!backendConnected && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
-            <p className="font-medium">バックエンドに接続されていません</p>
-            <p>以下のコマンドでバックエンドを起動してください:</p>
-            <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
+            <p className="font-medium">バックエンドに接続できません</p>
+            <p>しばらく待ってから再試行してください。</p>
+            {import.meta.env.DEV && (
+              <details className="mt-1 opacity-90">
+                <summary className="cursor-pointer text-[10px]">開発者向け (dev)</summary>
+                <p className="mt-1">以下のコマンドでバックエンドを起動してください:</p>
+                <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
+              </details>
+            )}
           </div>
         )}
         {backendConnected && !currentTemplateId && (

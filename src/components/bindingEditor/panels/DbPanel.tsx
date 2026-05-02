@@ -12,6 +12,8 @@ import { useReportStore } from '@/store'
 import { fetchScalarDbCatalogCached } from '@/api/reportApi'
 import type { ScalarDbCatalog } from '@/api/reportApi'
 import { GroupBindingSection } from '@/components/modals/dbConnection/GroupBindingSection'
+import { classifyError, type UserFacingError } from '@/lib/userFacingError'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 
 const CreateTableForm = lazy(() =>
   import('@/components/modals/dbConnection/CreateTableForm').then((m) => ({
@@ -33,7 +35,7 @@ export const DbPanel = memo(function DbPanel({
 
   const [catalog, setCatalog] = useState<ScalarDbCatalog | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [fetchError, setFetchError] = useState<UserFacingError | null>(null)
   const [fetchTick, setFetchTick] = useState(0)
   const [createFormGroupId, setCreateFormGroupId] = useState<string | null>(null)
 
@@ -52,7 +54,7 @@ export const DbPanel = memo(function DbPanel({
       })
       .catch((err) => {
         if (cancelled || controller.signal.aborted) return
-        setFetchError(err instanceof Error ? err.message : 'カタログ取得に失敗')
+        setFetchError(classifyError(err))
         setIsLoading(false)
       })
 
@@ -129,14 +131,8 @@ export const DbPanel = memo(function DbPanel({
         )}
 
         {fetchError && (
-          <div className="px-3 py-2 text-[10px] text-destructive">
-            {fetchError}
-            <button
-              className="ml-2 text-primary hover:underline"
-              onClick={handleRefetch}
-            >
-              再試行
-            </button>
+          <div className="px-3 py-2">
+            <InlineErrorBanner error={fetchError} onRetry={handleRefetch} tone="destructive" />
           </div>
         )}
 

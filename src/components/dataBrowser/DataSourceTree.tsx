@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Database, Package, FileText, AlertCircle } from 'lucide-react'
+import { ChevronRight, ChevronDown, Database, Package, FileText } from 'lucide-react'
 import { fetchScalarDbCatalogCached, listReports } from '@/api/reportApi'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
 import { cn } from '@/lib/utils'
+import { classifyError, type UserFacingError } from '@/lib/userFacingError'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 
 interface Props {
   onSelect: (node: DataSourceNode) => void
@@ -11,7 +13,7 @@ interface Props {
 
 type CatalogState =
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; error: UserFacingError }
   | { status: 'ok'; namespaces: { name: string; tables: { name: string }[] }[] }
 
 type TemplatesState =
@@ -39,7 +41,7 @@ export function DataSourceTree({ onSelect, selected }: Props) {
   useEffect(() => {
     fetchScalarDbCatalogCached()
       .then((data) => setCatalog({ status: 'ok', namespaces: data.namespaces }))
-      .catch(() => setCatalog({ status: 'error', message: 'ScalarDB に接続できません' }))
+      .catch((err) => setCatalog({ status: 'error', error: classifyError(err) }))
   }, [])
 
   useEffect(() => {
@@ -63,9 +65,8 @@ export function DataSourceTree({ onSelect, selected }: Props) {
           <TreeLeaf label="読み込み中..." disabled />
         )}
         {catalog.status === 'error' && (
-          <div className="flex items-start gap-1.5 mx-2 my-1 px-2 py-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-            <span>{catalog.message}</span>
+          <div className="mx-2 my-1">
+            <InlineErrorBanner error={catalog.error} />
           </div>
         )}
         {catalog.status === 'ok' && catalog.namespaces.length === 0 && (
