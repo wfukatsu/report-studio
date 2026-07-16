@@ -213,6 +213,18 @@ public final class SectionRenderHelper {
         if ("repeatingBand".equals(kind) || "repeatingList".equals(kind)) {
             return resolveArrayData(el, formData, "dataSource");
         }
+        // formTable resolves dataField cells from an element-level _formData;
+        // production only sets it on the projection root, so inject it here so
+        // dataField cells are no longer blank in server PDFs (issue #52/#53)
+        if ("formTable".equals(kind) && el.get("_formData") == null && formData != null) {
+            try {
+                ObjectNode copy = (ObjectNode) el.deepCopy();
+                copy.set("_formData", formData.deepCopy());
+                return copy;
+            } catch (Exception e) {
+                return el;
+            }
+        }
         String ref = resolveBindingRef(el);
         if (ref == null) return el;
         if (ref.startsWith("{")) return el; // system variable — resolved at render time

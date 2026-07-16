@@ -80,15 +80,13 @@ class PdfFormTableParseBackTest {
     }
 
     @Test
-    void dataFieldCells_areEmptyOnProductionPath_rootFormDataNotWired() throws IOException {
-        // KNOWN GAP (#52/#53): production only sets _formData on the projection
-        // root; nothing copies it into formTable elements, so dataField cells
-        // render empty. Flip when the wiring is implemented.
+    void dataFieldCells_resolveFromRootFormData_onProductionPath() throws IOException {
+        // #52/#53: SectionRenderHelper injects the projection-root _formData into
+        // formTable elements, so dataField cells resolve on the production path.
         String json = tableJson("", ",\"_formData\":{%s}".formatted(PERSON_DATA));
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
-        assertFalse(probe.pageContains(0, "山田太郎"),
-                "root _formData unexpectedly reached formTable cells — wiring implemented; "
-                        + "update this characterization test");
+        assertTrue(probe.pageContains(0, "山田太郎"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "ヤマダタロウ"), probe.pageText(0));
     }
 
     @Test

@@ -100,11 +100,9 @@ class V2ElementParityMatrixTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
-    void v2TextElement_contentField_isCurrentlyIgnored() throws Exception {
-        // V2 text elements carry their string in `content` (src/types/index.ts:288),
-        // but TextPdfRenderer reads props.text and falls back to the element name.
-        // Characterization of the V2ProjectionBuilder gap (#52): the definition
-        // round-trips verbatim, so content never reaches the PDF.
+    void v2TextElement_contentFieldRenders() throws Exception {
+        // V2 text elements carry their string in `content` (src/types/index.ts).
+        // TextPdfRenderer now resolves props.text → content → name (#52).
         String definition = """
             {
               "id":"def-1",
@@ -128,11 +126,10 @@ class V2ElementParityMatrixTest {
         String projection = V2ProjectionBuilder.build("tpl-1", def, null, null);
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(projection));
 
-        assertFalse(probe.allText().contains("V2本文コンテンツ"),
-                "V2 content field unexpectedly rendered — the projection bridge has been fixed; "
-                        + "update this characterization test (#52)");
-        assertTrue(probe.allText().contains("NAMEFALLBACK"),
-                "text renderer should fall back to element name; runs:\n" + probe.dumpRuns());
+        assertTrue(probe.allText().contains("V2本文コンテンツ"),
+                "V2 content should render; runs:\n" + probe.dumpRuns());
+        assertFalse(probe.allText().contains("NAMEFALLBACK"),
+                "name fallback should not appear when content is present");
     }
 
     @Test

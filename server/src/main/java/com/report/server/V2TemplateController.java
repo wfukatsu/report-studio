@@ -185,6 +185,15 @@ public final class V2TemplateController {
             return;
         }
 
+        // Structural validation at the save boundary (issue #52) — the server
+        // no longer stores unbounded documents that only the browser rejected
+        var validationError = ReportDefinitionValidator.validate(definition);
+        if (validationError.isPresent()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", validationError.get()));
+            return;
+        }
+
         // Preserve created_at and created_by from existing envelope, and verify ownership
         long createdAt = System.currentTimeMillis();
         String createdBy = null;

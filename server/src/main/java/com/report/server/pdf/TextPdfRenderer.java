@@ -27,19 +27,43 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                        float w, float h, float pageHeight, PDDocument doc,
                        Map<String, PDFont> fontCache) throws IOException {
         JsonNode props = el.get("props");
-        String text = props != null ? textOf(props, "text", textOf(el, "name", "")) : textOf(el, "name", "");
+        // V1 stores the string in props.text; V2 TextElement stores it in
+        // `content` at the element top level (src/types/index.ts). Resolve in
+        // priority order so V2 definitions render their content (issue #52).
+        String text = props != null ? textOf(props, "text", "") : "";
+        if (text.isEmpty()) text = textOf(el, "content", "");
+        if (text.isEmpty()) text = textOf(el, "name", "");
         if (text.isEmpty()) return;
 
-        float fontSize = props != null ? floatOf(props, "fontSize", 12) : 12;
-        boolean bold = props != null && props.path("bold").asBoolean(false);
+        // V2 text style lives in `style`; V1 in `props`
+        JsonNode style = el.get("style");
+        float fontSize = props != null ? floatOf(props, "fontSize", 0) : 0;
+        if (fontSize == 0 && style != null) fontSize = floatOf(style, "fontSize", 0);
+        if (fontSize == 0) fontSize = 12;
+        boolean bold = (props != null && props.path("bold").asBoolean(false))
+                || (style != null && style.path("bold").asBoolean(false));
         String fontFamily = props != null ? textOf(props, "fontFamily", "") : "";
+        if (fontFamily.isEmpty() && style != null) fontFamily = textOf(style, "fontFamily", "");
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
+
+        String colorHex = props != null ? textOf(props, "color", "") : "";
+        if (colorHex.isEmpty() && style != null) colorHex = textOf(style, "color", "");
+        Color color = parseColor(colorHex, Color.BLACK);
+        String align = props != null ? textOf(props, "textAlign", "") : "";
+        if (align.isEmpty() && style != null) align = textOf(style, "textAlign", "left");
+
+        String truncated = truncateToWidth(text, font, fontSize, w);
+        float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
+        float tx = switch (align) {
+            case "center" -> x + (w - textWidth) / 2;
+            case "right" -> x + w - textWidth;
+            default -> x;
+        };
 
         cs.beginText();
         cs.setFont(font, fontSize);
-        cs.setNonStrokingColor(Color.BLACK);
-        cs.newLineAtOffset(x, y - fontSize);
-        String truncated = truncateToWidth(text, font, fontSize, w);
+        cs.setNonStrokingColor(color);
+        cs.newLineAtOffset(tx, y - fontSize);
         cs.showText(truncated);
         cs.endText();
     }
