@@ -9,9 +9,6 @@ import type { PageNumberFormat, CurrentDateFormat } from '@/types'
 
 const EXPORT_SCALE = 2
 
-/** 1mm = 2.8346pt (used for jsPDF mm-unit mode) */
-export const MM_TO_PT = 2.8346
-
 // ---------------------------------------------------------------------------
 // JSON export / import
 // ---------------------------------------------------------------------------
@@ -235,25 +232,31 @@ export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blo
   const totalPages = pageEls.length
   const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, i + 1, totalPages))
   try {
-    // Render first page to obtain PDF dimensions
+    // Render first page to size the initial PDF page
     const firstCanvas = await html2canvas(pageEls[0], { useCORS: true, scale: EXPORT_SCALE })
-    const pdfWidth = firstCanvas.width / EXPORT_SCALE
-    const pdfHeight = firstCanvas.height / EXPORT_SCALE
+    const firstW = firstCanvas.width / EXPORT_SCALE
+    const firstH = firstCanvas.height / EXPORT_SCALE
 
     const pdf = new jsPDF({
-      orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+      orientation: firstW > firstH ? 'landscape' : 'portrait',
       unit: 'px',
-      format: [pdfWidth, pdfHeight],
+      format: [firstW, firstH],
     })
 
-    // Process pages one at a time and release each canvas immediately after use
+    // Process pages one at a time; each PDF page takes its own source page's
+    // dimensions so mixed A4/A3 or portrait/landscape reports stay faithful
+    // (previously every page was forced to page 0's geometry — issue #61).
     for (let i = 0; i < pageEls.length; i++) {
-      if (i > 0) pdf.addPage()
       const canvas = i === 0
         ? firstCanvas
         : await html2canvas(pageEls[i], { useCORS: true, scale: EXPORT_SCALE })
+      const pageW = canvas.width / EXPORT_SCALE
+      const pageH = canvas.height / EXPORT_SCALE
+      if (i > 0) {
+        pdf.addPage([pageW, pageH], pageW > pageH ? 'landscape' : 'portrait')
+      }
       const imgData = canvas.toDataURL('image/png')
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.addImage(imgData, 'PNG', 0, 0, pageW, pageH)
       // Release GPU memory immediately after the page is added to the PDF
       canvas.width = 0
       canvas.height = 0

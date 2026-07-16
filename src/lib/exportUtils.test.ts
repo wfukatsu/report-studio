@@ -379,6 +379,24 @@ describe('exportReportToPdf', () => {
     const el = document.createElement('div')
     await expect(exportReportToPdf([el])).rejects.toThrow('PDF export failed: html2canvas failure')
   })
+
+  it('gives each page its own dimensions for mixed page sizes (issue #61)', async () => {
+    // Page 1: A4 portrait, page 2: A3 landscape — before the fix every page
+    // was forced to page 1's geometry.
+    mockHtml2canvas
+      .mockResolvedValueOnce(makeCanvasMock(1190, 1684) as unknown as HTMLCanvasElement) // A4 @scale2
+      .mockResolvedValueOnce(makeCanvasMock(3368, 2380) as unknown as HTMLCanvasElement) // A3 landscape @scale2
+
+    await exportReportToPdf([document.createElement('div'), document.createElement('div')], 'mixed.pdf')
+
+    // addPage called for page 2 with its own [w,h] and orientation
+    expect(mockAddPage).toHaveBeenCalledTimes(1)
+    expect(mockAddPage).toHaveBeenCalledWith([1684, 1190], 'landscape')
+
+    // page 1 image drawn at A4 size, page 2 at A3-landscape size
+    expect(mockAddImage).toHaveBeenNthCalledWith(1, expect.any(String), 'PNG', 0, 0, 595, 842)
+    expect(mockAddImage).toHaveBeenNthCalledWith(2, expect.any(String), 'PNG', 0, 0, 1684, 1190)
+  })
 })
 
 describe('isSafeImageSrc — additional edge cases', () => {
