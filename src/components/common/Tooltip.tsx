@@ -32,15 +32,30 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
   const tooltipRef = useRef<HTMLSpanElement>(null)
 
   const show = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
+      timerRef.current = null
       setVisible(true)
     }, delay)
   }, [delay])
 
   const hide = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
     setVisible(false)
     setPos(null)
+  }, [])
+
+  // Cancel any pending show timer when the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
   }, [])
 
   // Position the tooltip after it renders via portal
@@ -67,6 +82,20 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
     setPos({ top, left })
   }, [visible, placement])
 
+  // Auto-hide on scroll (HTML5 drag does not fire mouseleave reliably) and Escape.
+  // Listeners are only registered while a tooltip is visible.
+  useEffect(() => {
+    if (!visible) return
+    const onScroll = () => hide()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') hide() }
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true })
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [visible, hide])
+
   if (!content) return <>{children}</>
 
   return (
@@ -77,6 +106,9 @@ export function Tooltip({ content, children, placement = 'bottom', className, de
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
+      onClick={hide}
+      onDragStart={hide}
+      onPointerCancel={hide}
     >
       {children}
       {visible && createPortal(

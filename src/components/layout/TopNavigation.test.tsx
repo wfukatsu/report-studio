@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TopNavigation } from './TopNavigation'
+import { TopNavigation, type TopNavItem } from './TopNavigation'
 import type { AppTab } from '@/store/types'
 
 const DEFAULT_TABS: { id: AppTab; label: string }[] = [
@@ -13,6 +13,17 @@ const DEFAULT_TABS: { id: AppTab; label: string }[] = [
 
 const ADMIN_TABS: { id: AppTab; label: string }[] = [
   ...DEFAULT_TABS,
+  { id: 'admin', label: '管理' },
+]
+
+const GROUPED_TABS: TopNavItem[] = [
+  { id: 'design', label: 'デザイン' },
+  { id: 'binding', label: 'バインド' },
+  { kind: 'separator' },
+  { id: 'templates', label: 'テンプレート管理' },
+  { id: 'responses', label: '回答' },
+  { id: 'databrowser', label: 'データブラウザ' },
+  { kind: 'separator' },
   { id: 'admin', label: '管理' },
 ]
 
@@ -119,5 +130,51 @@ describe('TopNavigation — キーボードナビゲーション', () => {
     const designTab = screen.getByRole('tab', { name: 'デザイン' })
     fireEvent.keyDown(designTab, { key: 'End' })
     expect(onTabChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('TopNavigation — グルーピング (separator)', () => {
+  it('セパレータが role=separator として描画される', () => {
+    render(<TopNavigation activeTab="design" onTabChange={vi.fn()} tabs={GROUPED_TABS} />)
+    const seps = screen.getAllByRole('separator')
+    expect(seps).toHaveLength(2)
+    seps.forEach((s) => expect(s).toHaveAttribute('aria-orientation', 'vertical'))
+  })
+
+  it('セパレータが含まれていてもタブ数は変わらない', () => {
+    render(<TopNavigation activeTab="design" onTabChange={vi.fn()} tabs={GROUPED_TABS} />)
+    expect(screen.getAllByRole('tab')).toHaveLength(6)
+  })
+
+  it('セパレータはクリックしてもタブが切り替わらない', () => {
+    const onTabChange = vi.fn()
+    render(<TopNavigation activeTab="design" onTabChange={onTabChange} tabs={GROUPED_TABS} />)
+    const sep = screen.getAllByRole('separator')[0]
+    fireEvent.click(sep)
+    expect(onTabChange).not.toHaveBeenCalled()
+  })
+
+  it('矢印キーナビは separator をスキップする (binding → templates)', () => {
+    render(<TopNavigation activeTab="binding" onTabChange={vi.fn()} tabs={GROUPED_TABS} />)
+    const bindingTab = screen.getByRole('tab', { name: 'バインド' })
+    bindingTab.focus()
+    fireEvent.keyDown(bindingTab, { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'テンプレート管理' }))
+  })
+
+  it('左矢印キーナビは separator をスキップする (templates → binding)', () => {
+    render(<TopNavigation activeTab="templates" onTabChange={vi.fn()} tabs={GROUPED_TABS} />)
+    const templatesTab = screen.getByRole('tab', { name: 'テンプレート管理' })
+    templatesTab.focus()
+    fireEvent.keyDown(templatesTab, { key: 'ArrowLeft' })
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'バインド' }))
+  })
+
+  it('End キーは末尾の管理タブまで行ける (separator は無視)', () => {
+    render(<TopNavigation activeTab="design" onTabChange={vi.fn()} tabs={GROUPED_TABS} />)
+    const designTab = screen.getByRole('tab', { name: 'デザイン' })
+    designTab.focus()
+    fireEvent.keyDown(designTab, { key: 'End' })
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: '管理' }))
   })
 })

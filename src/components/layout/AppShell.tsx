@@ -12,14 +12,19 @@ import { AdminTab } from '@/components/tabs/AdminTab'
 import { useConnectionState } from '@/hooks/useConnectionState'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import { TableProperties } from 'lucide-react'
-import type { AppTab } from '@/store/types'
+import type { TopNavItem } from './TopNavigation'
 
-const TABS: { id: AppTab; label: string }[] = [
+// Visual grouping: editing surfaces (デザイン/バインド) — resource management
+// (テンプレート管理/回答/データブラウザ) — system administration (管理).
+// Separators are non-focusable and skipped by arrow-key navigation.
+const TABS: readonly TopNavItem[] = [
   { id: 'design',    label: 'デザイン' },
   { id: 'binding',   label: 'バインド' },
+  { kind: 'separator' },
   { id: 'templates', label: 'テンプレート管理' },
   { id: 'responses', label: '回答' },
   { id: 'databrowser', label: 'データブラウザ' },
+  { kind: 'separator' },
   { id: 'admin',     label: '管理' },
 ]
 

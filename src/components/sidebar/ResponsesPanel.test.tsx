@@ -14,13 +14,18 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
     getResponsePdf: vi.fn(),
   }
 })
-vi.mock('@/api/client', () => ({
-  downloadBlob: vi.fn(),
-  apiFetch: vi.fn(),
-  apiFetchBlobWithFilename: vi.fn(),
-}))
+vi.mock('@/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/client')>()
+  return {
+    ...actual,
+    downloadBlob: vi.fn(),
+    apiFetch: vi.fn(),
+    apiFetchBlobWithFilename: vi.fn(),
+  }
+})
 
 import { listResponses, deleteResponse } from '@/api/reportApi'
+import { ApiError, NetworkError } from '@/api/client'
 const mockList = vi.mocked(listResponses)
 const mockDelete = vi.mocked(deleteResponse)
 
@@ -92,10 +97,22 @@ describe('ResponsesPanel — connected with template', () => {
     await waitFor(() => expect(screen.getByText('回答がまだありません。')).toBeInTheDocument())
   })
 
-  it('shows error when fetch fails', async () => {
-    mockList.mockRejectedValueOnce(new Error('Network error'))
+  it('shows R3-compliant error banner when fetch fails (no raw HTTP / English text)', async () => {
+    mockList.mockRejectedValueOnce(new ApiError(503, null, 'HTTP 503: Service Unavailable'))
     render(<ResponsesPanel />)
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Network error'))
+    const alert = await waitFor(() => screen.getByRole('alert'))
+    // Banner shows the user-facing copy keyed by classifyError(503) → 'unreachable'.
+    expect(alert).toHaveTextContent('バックエンドに接続できません')
+    // Contract: no HTTP status numbers and no English stack text reach the user.
+    expect(alert).not.toHaveTextContent(/HTTP/i)
+    expect(alert).not.toHaveTextContent(/503/)
+  })
+
+  it('exposes a retry button on retryable banner errors', async () => {
+    mockList.mockRejectedValueOnce(new NetworkError('offline'))
+    render(<ResponsesPanel />)
+    await waitFor(() => screen.getByRole('alert'))
+    expect(screen.getByRole('button', { name: '再試行' })).toBeInTheDocument()
   })
 
   it('uses cached responses when cache is fresh', async () => {

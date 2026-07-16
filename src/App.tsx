@@ -19,6 +19,7 @@ import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
+import { getAutoSaveKey, LEGACY_AUTOSAVE_KEY } from '@/lib/autoSaveKey'
 import { ChevronLeft, ChevronRight, LayoutTemplate, Layers, BookOpen, Database } from 'lucide-react'
 
 type LeftTab = 'elements' | 'pages' | 'layers' | 'schema'
@@ -94,7 +95,7 @@ export default function App() {
   const authLoading = useReportStore((s) => s.authLoading)
 
   // Auto-save to localStorage (debounced 1 second) — keyed by userId to prevent cross-user leakage
-  const autoSaveKey = currentUser ? `rds-autosave:${currentUser.userId}` : null
+  const autoSaveKey = getAutoSaveKey(currentUser?.userId)
   useEffect(() => {
     if (historyIndex === 0 || !autoSaveKey) return // don't save pristine state or when logged out
     const timer = setTimeout(() => {
@@ -114,14 +115,21 @@ export default function App() {
     const currUserId = currentUser?.userId ?? null
     if (prevUserId !== null && currUserId === null) {
       // User just logged out — remove their autosave data
-      localStorage.removeItem(`rds-autosave:${prevUserId}`)
+      const prevKey = getAutoSaveKey(prevUserId)
+      if (prevKey) localStorage.removeItem(prevKey)
     }
   }, [currentUser])
 
   // Check for restore on mount — intentionally runs once; historyIndex is a
   // mount-time check only, not a reactive dependency.
   useEffect(() => {
-    const key = currentUser ? `rds-autosave:${currentUser.userId}` : null
+    // Best-effort cleanup of any pre-multiuser unkeyed draft so it cannot
+    // resurface as a phantom restore prompt for the wrong user.
+    // TODO(2026-08-01): drop this shim and the LEGACY_AUTOSAVE_KEY export once
+    // every active session has remounted at least once after the multiuser
+    // autosave key migration. Track via review-feedback ticket.
+    try { localStorage.removeItem(LEGACY_AUTOSAVE_KEY) } catch { /* storage disabled */ }
+    const key = getAutoSaveKey(currentUser?.userId)
     const saved = key ? localStorage.getItem(key) : null
     if (saved && historyIndex === 0) {
       setShowRestorePrompt(true)
@@ -281,8 +289,7 @@ export default function App() {
           <span>前回の作業内容が自動保存されています。</span>
           <button
             onClick={() => {
-              const key = currentUser ? `rds-autosave:${currentUser.userId}` : null
-              const saved = key ? localStorage.getItem(key) : null
+              const saved = autoSaveKey ? localStorage.getItem(autoSaveKey) : null
               if (saved) importReportJSON(saved)
               setShowRestorePrompt(false)
             }}
@@ -292,7 +299,7 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('rds-autosave')
+              if (autoSaveKey) localStorage.removeItem(autoSaveKey)
               setShowRestorePrompt(false)
             }}
             className="text-muted-foreground hover:text-foreground"

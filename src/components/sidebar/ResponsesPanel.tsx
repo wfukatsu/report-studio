@@ -11,8 +11,9 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import {
-  RefreshCw, Download, FileText, Trash2, AlertCircle, Loader2, Send
+  RefreshCw, Download, FileText, Trash2, Loader2, Send
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import {
   listResponses, deleteResponse, exportResponses, getResponsePdf,
@@ -22,6 +23,9 @@ import { downloadBlob } from '@/api/client'
 import { CACHE_TTL_MS } from '@/store/responsesSlice'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
+import { classifyError, type UserFacingError } from '@/lib/userFacingError'
+import { getErrorCopy } from '@/lib/userFacingErrorMessages'
 
 function formatDate(epochMs: number): string {
   if (!epochMs) return '—'
@@ -47,7 +51,7 @@ export function ResponsesPanel() {
   const invalidateResponsesCache = useReportStore((s) => s.invalidateResponsesCache)
   const openSubmitResponseModal = useReportStore((s) => s.openSubmitResponseModal)
 
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<UserFacingError | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -118,7 +122,7 @@ export function ResponsesPanel() {
       setResponses(result.items, result.total)
     } catch (err) {
       if (!mountedRef.current) return
-      setLoadError(err instanceof Error ? err.message : 'Failed to load responses')
+      setLoadError(classifyError(err))
     } finally {
       if (mountedRef.current) setResponsesLoading(false)
     }
@@ -138,7 +142,8 @@ export function ResponsesPanel() {
       invalidateResponsesCache()
       await fetchResponses(true)
     } catch (err) {
-      alert(err instanceof Error ? err.message : '削除に失敗しました')
+      const copy = getErrorCopy(classifyError(err).code)
+      toast.error('削除に失敗しました', { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDeletingId(null)
     }
@@ -154,7 +159,8 @@ export function ResponsesPanel() {
     try {
       await exportResponses(currentTemplateId, format)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'エクスポートに失敗しました')
+      const copy = getErrorCopy(classifyError(err).code)
+      toast.error('エクスポートに失敗しました', { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setIsExporting(false)
     }
@@ -167,7 +173,8 @@ export function ResponsesPanel() {
       const blob = await getResponsePdf(currentTemplateId, response.id)
       downloadBlob(blob, `response-${response.id}.pdf`)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'PDF生成に失敗しました')
+      const copy = getErrorCopy(classifyError(err).code)
+      toast.error('PDF生成に失敗しました', { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDownloadingPdfId(null)
     }
@@ -178,9 +185,15 @@ export function ResponsesPanel() {
       <div className="p-4 space-y-3">
         {!backendConnected && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
-            <p className="font-medium">バックエンドに接続されていません</p>
-            <p>以下のコマンドでバックエンドを起動してください:</p>
-            <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
+            <p className="font-medium">バックエンドに接続できません</p>
+            <p>しばらく待ってから再試行してください。</p>
+            {import.meta.env.DEV && (
+              <details className="mt-1 opacity-90">
+                <summary className="cursor-pointer text-[10px]">開発者向け (dev)</summary>
+                <p className="mt-1">以下のコマンドでバックエンドを起動してください:</p>
+                <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
+              </details>
+            )}
           </div>
         )}
         {backendConnected && !currentTemplateId && (
@@ -267,9 +280,12 @@ export function ResponsesPanel() {
 
       {/* Error */}
       {loadError && (
-        <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50" role="alert">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          {loadError}
+        <div className="p-3">
+          <InlineErrorBanner
+            error={loadError}
+            tone="destructive"
+            onRetry={() => fetchResponses(true)}
+          />
         </div>
       )}
 
