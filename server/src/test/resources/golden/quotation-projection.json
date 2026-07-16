@@ -1,0 +1,115 @@
+{
+  "templates": [
+    {
+      "id": "golden-quotation",
+      "name": "見積書（ゴールデン）",
+      "pageSetup": { "kind": "preset", "paperSizeId": "A4", "orientation": "portrait" },
+      "sections": [
+        {
+          "id": "header",
+          "type": "page_base",
+          "name": "ヘッダー",
+          "y": 0,
+          "height": 65,
+          "elements": [
+            {
+              "id": "title",
+              "kind": "text",
+              "name": "タイトル",
+              "frame": { "x": 80, "y": 15, "width": 60, "height": 12, "rotation": 0 },
+              "props": { "text": "御見積書", "fontSize": 18 }
+            },
+            {
+              "id": "issue-date",
+              "kind": "text",
+              "name": "発行日",
+              "frame": { "x": 150, "y": 30, "width": 50, "height": 8, "rotation": 0 },
+              "props": { "text": "令和8年7月16日", "fontSize": 10 }
+            },
+            {
+              "id": "customer",
+              "kind": "text",
+              "name": "宛先",
+              "frame": { "x": 15, "y": 35, "width": 90, "height": 8, "rotation": 0 },
+              "bindingRef": "customer.name",
+              "props": { "fontSize": 12 }
+            },
+            {
+              "id": "total-label",
+              "kind": "text",
+              "name": "合計ラベル",
+              "frame": { "x": 15, "y": 52, "width": 30, "height": 8, "rotation": 0 },
+              "props": { "text": "合計金額", "fontSize": 10 }
+            },
+            {
+              "id": "total-amount",
+              "kind": "text",
+              "name": "合計金額",
+              "frame": { "x": 50, "y": 50, "width": 50, "height": 10, "rotation": 0 },
+              "bindingRef": "quote.total",
+              "props": { "fontSize": 14 }
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "type": "detail_table",
+          "name": "明細",
+          "y": 70,
+          "height": 150,
+          "repeatHeader": true,
+          "elements": [
+            {
+              "id": "col-name",
+              "kind": "text",
+              "name": "品名見出し",
+              "frame": { "x": 15, "y": 72, "width": 80, "height": 7, "rotation": 0 },
+              "props": { "text": "品名", "fontSize": 9 }
+            },
+            {
+              "id": "col-amount",
+              "kind": "text",
+              "name": "金額見出し",
+              "frame": { "x": 150, "y": 72, "width": 40, "height": 7, "rotation": 0 },
+              "props": { "text": "金額", "fontSize": 9 }
+            },
+            {
+              "id": "row-name",
+              "kind": "row_block",
+              "name": "品名行",
+              "frame": { "x": 15, "y": 82, "width": 80, "height": 8, "rotation": 0 },
+              "bindingRef": "items[].name",
+              "props": { "fontSize": 9 }
+            },
+            {
+              "id": "row-amount",
+              "kind": "row_block",
+              "name": "金額行",
+              "frame": { "x": 150, "y": 82, "width": 40, "height": 8, "rotation": 0 },
+              "bindingRef": "items[].amount",
+              "props": { "fontSize": 9 }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_formData": {
+    "customer.name": "株式会社スカラー 御中",
+    "quote.total": "¥1,234,567",
+    "items": [
+      { "name": "基本設計支援", "amount": "¥100,000" },
+      { "name": "詳細設計支援", "amount": "¥120,000" },
+      { "name": "実装支援（フェーズ1）", "amount": "¥150,000" },
+      { "name": "実装支援（フェーズ2）", "amount": "¥150,000" },
+      { "name": "テスト支援", "amount": "¥90,000" },
+      { "name": "性能検証", "amount": "¥110,000" },
+      { "name": "セキュリティレビュー", "amount": "¥80,000" },
+      { "name": "運用設計", "amount": "¥95,000" },
+      { "name": "ドキュメント整備", "amount": "¥60,000" },
+      { "name": "教育・引き継ぎ", "amount": "¥70,000" },
+      { "name": "プロジェクト管理", "amount": "¥130,000" },
+      { "name": "予備費", "amount": "¥79,567" }
+    ]
+  }
+}
