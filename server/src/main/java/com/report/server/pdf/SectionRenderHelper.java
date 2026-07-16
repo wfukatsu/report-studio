@@ -89,13 +89,17 @@ public final class SectionRenderHelper {
 
     /**
      * Render all non-row-block elements with variant-aware masking.
+     * Carry-over elements are skipped — the section renderer draws them
+     * with page-aware sums (issue #55).
      */
     public static void renderNonRowElements(PageContext ctx, JsonNode section, JsonNode formData,
                                             VariantContext variantCtx) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            if ("row_block".equals(resolveKind(el))) continue;
+            String kind = resolveKind(el);
+            if ("row_block".equals(kind)) continue;
+            if ("carryover_header".equals(kind) || "carryover_footer".equals(kind)) continue;
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
@@ -273,6 +277,84 @@ public final class SectionRenderHelper {
         } catch (Exception e) {
             return el;
         }
+    }
+
+    // ── Carry-over totals (issue #55) ────────────────────────────────────
+
+    /**
+     * Render carry-over elements of a paginating section (帳票の繰越小計).
+     *
+     * <p>Two special element kinds, positioned by their own frames:
+     * <ul>
+     *   <li>{@code carryover_footer} — drawn on every page that has more rows
+     *       coming (「次頁へ続く」); value = sum of rows [0, endRow)</li>
+     *   <li>{@code carryover_header} — drawn on continuation pages
+     *       (「前頁より繰越」); value = sum of rows [0, startRow)</li>
+     * </ul>
+     *
+     * <p>Element fields: {@code carryField} (field name inside the row group,
+     * required; values must be numeric), optional {@code prefix} / {@code suffix}
+     * text, optional {@code format} (CalculationFormat), {@code style} (TextStyle).
+     */
+    public static void renderCarryOverElements(PageContext ctx, JsonNode section, JsonNode formData,
+                                               int startRow, int endRow, int totalRows) {
+        JsonNode elements = section.get("elements");
+        if (elements == null || !elements.isArray() || formData == null) return;
+        String group = findRowGroupName(section);
+        if (group == null) return;
+        JsonNode rows = formData.get(group);
+        if (rows == null || !rows.isArray()) return;
+
+        for (JsonNode el : elements) {
+            String kind = resolveKind(el);
+            boolean footer = "carryover_footer".equals(kind);
+            boolean header = "carryover_header".equals(kind);
+            if (!footer && !header) continue;
+            if (footer && endRow >= totalRows) continue; // final page — nothing continues
+            if (header && startRow == 0) continue;       // first page — nothing carried
+
+            String field = PdfUtils.elementTextOf(el, "carryField", "");
+            if (field.isEmpty()) continue;
+
+            double sum = 0;
+            int limit = Math.min(footer ? endRow : startRow, rows.size());
+            for (int i = 0; i < limit; i++) {
+                JsonNode v = rows.get(i).get(field);
+                if (v == null) continue;
+                if (v.isNumber()) {
+                    sum += v.asDouble();
+                } else if (v.isTextual()) {
+                    try {
+                        sum += Double.parseDouble(v.asText().trim());
+                    } catch (NumberFormatException ignored) {
+                        // non-numeric row value — skip
+                    }
+                }
+            }
+
+            JsonNode numNode = (sum == Math.rint(sum) && Math.abs(sum) < 1e15)
+                    ? com.fasterxml.jackson.databind.node.LongNode.valueOf((long) sum)
+                    : com.fasterxml.jackson.databind.node.DoubleNode.valueOf(sum);
+            String text = PdfUtils.elementTextOf(el, "prefix", "")
+                    + com.report.server.ValueFormatter.applyFormat(numNode, el.get("format"))
+                    + PdfUtils.elementTextOf(el, "suffix", "");
+            renderElement(ctx, withResolvedProp(el,
+                    com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
+        }
+    }
+
+    /** Group name from the first row_block bindingRef ({@code group[].field}). */
+    private static String findRowGroupName(JsonNode section) {
+        JsonNode elements = section.get("elements");
+        if (elements == null || !elements.isArray()) return null;
+        for (JsonNode el : elements) {
+            if (!"row_block".equals(resolveKind(el))) continue;
+            JsonNode ref = el.get("bindingRef");
+            if (ref != null && ref.isTextual() && ref.asText().contains("[]")) {
+                return ref.asText().split("\\[\\]")[0];
+            }
+        }
+        return null;
     }
 
     // ── System values (issue #54) ───────────────────────────────────────

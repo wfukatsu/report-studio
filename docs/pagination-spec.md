@@ -52,6 +52,23 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
   （列見出し・装飾）を継続ページにも描画
 - `multi_row_table`: `continuationHeader: true` で同様
 
+## 繰越小計（carry-over totals）
+
+ページ分割セクション（`detail_table` / `multi_row_table`）内に専用要素を
+配置すると、ページごとの累積合計を描画する。位置は要素自身の `frame` で制御。
+
+| kind | 表示条件 | 値 |
+|---|---|---|
+| `carryover_footer` | 続きのページがある場合（「次頁へ続く」） | 行 [0, endRow) の合計 |
+| `carryover_header` | 継続ページ（「前頁より繰越」） | 行 [0, startRow) の合計 |
+
+要素フィールド: `carryField`（行グループ内のフィールド名。値は数値であること）、
+`prefix` / `suffix`（前後テキスト）、`format`（CalculationFormat、例 `{"type":"comma"}`）、
+`style`（TextStyle）。
+
+実装: `SectionRenderHelper.renderCarryOverElements`。
+検証: `PdfCarryOverParseBackTest`。
+
 ## splitPolicy（multi_row_table）
 
 - `forbidden`: **対応** — ユニット単位のページ割当（上記 stride 方式）に
@@ -61,7 +78,6 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 
 ## 未実装（今後のスコープ）
 
-- 繰越小計・「次頁へ続く」表示（キャリーオーバー行）
 - グループ改ページ（groupBy 境界での強制改ページ)
 - `RelativeLayoutResolver`（押し下げレイアウト）のページ下端自動改ページ
 - マージンのクリッピング強制（`pageSetup.margins` は現状データ保持のみ）

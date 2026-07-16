@@ -73,6 +73,9 @@ public final class ElementPdfRendererRegistry {
         registry.register(new TextCellPdfRenderer());
         // row_block: per-row text of detail/multi-row table sections (issue #55)
         registry.register(new RowBlockPdfRenderer());
+        // Carry-over totals — text injected per page by the section renderer (issue #55)
+        registry.register(new StyledTextPdfRenderer("carryover_header"));
+        registry.register(new StyledTextPdfRenderer("carryover_footer"));
         return registry;
     }
 }

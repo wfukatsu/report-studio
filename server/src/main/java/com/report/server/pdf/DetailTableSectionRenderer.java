@@ -74,5 +74,8 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
             SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage,
                     ctx.variantCtx(), stride);
         }
+
+        // 繰越小計 — carried-forward / to-be-continued totals (issue #55)
+        SectionRenderHelper.renderCarryOverElements(ctx, section, formData, startRow, endRow, totalRows);
     }
 }
