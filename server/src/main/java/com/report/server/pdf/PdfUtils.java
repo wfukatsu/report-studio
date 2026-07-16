@@ -96,6 +96,51 @@ public final class PdfUtils {
     }
 
     /**
+     * Greedy word/character wrapping to fit {@code maxWidth} (issue #56).
+     * Honors explicit newlines, breaks Latin runs at spaces when possible,
+     * and falls back to per-character breaks (CJK {@code break-all} semantics).
+     * Returns at least one line (possibly empty).
+     */
+    public static java.util.List<String> wrapText(String text, PDFont font, float fontSize, float maxWidth) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (text == null) { lines.add(""); return lines; }
+        for (String paragraph : text.split("\n", -1)) {
+            if (paragraph.isEmpty()) { lines.add(""); continue; }
+            StringBuilder line = new StringBuilder();
+            int lastBreak = -1; // index in `line` after the last space (Latin break point)
+            for (int i = 0; i < paragraph.length(); ) {
+                int cp = paragraph.codePointAt(i);
+                String ch = new String(Character.toChars(cp));
+                float w = safeWidth(font, line + ch, fontSize);
+                if (w > maxWidth && line.length() > 0) {
+                    boolean latinBreak = lastBreak > 0 && cp < 0x3000 && !Character.isWhitespace(cp);
+                    if (latinBreak) {
+                        lines.add(line.substring(0, lastBreak).stripTrailing());
+                        line.delete(0, lastBreak);
+                    } else {
+                        lines.add(line.toString());
+                        line.setLength(0);
+                    }
+                    lastBreak = -1;
+                }
+                line.append(ch);
+                if (cp == ' ') lastBreak = line.length();
+                i += Character.charCount(cp);
+            }
+            lines.add(line.toString());
+        }
+        return lines;
+    }
+
+    private static float safeWidth(PDFont font, String s, float fontSize) {
+        try {
+            return font.getStringWidth(s) / 1000 * fontSize;
+        } catch (Exception e) {
+            return s.length() * fontSize; // conservative fallback
+        }
+    }
+
+    /**
      * Truncate text to fit within maxWidth. O(n) single-pass accumulation
      * instead of O(n log n) binary search with repeated substring scans.
      */
