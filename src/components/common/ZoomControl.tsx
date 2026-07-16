@@ -89,7 +89,7 @@ export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
             }}
             onBlur={(e) => commitInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { commitInput((e.target as HTMLInputElement).value); inputRef.current?.blur() }
+              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') { commitInput((e.target as HTMLInputElement).value); inputRef.current?.blur() }
               if (e.key === 'Escape') { setInputValue(null); inputRef.current?.blur() }
               e.stopPropagation()
             }}

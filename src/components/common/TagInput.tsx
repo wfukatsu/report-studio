@@ -12,7 +12,7 @@ export function TagInput({ value, onChange, placeholder = 'タグを追加...' }
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && input.trim()) {
+    if (e.nativeEvent.isComposing) return; if (e.key === 'Enter' && input.trim()) {
       e.preventDefault()
       const tag = input.trim()
       if (!value.includes(tag)) {

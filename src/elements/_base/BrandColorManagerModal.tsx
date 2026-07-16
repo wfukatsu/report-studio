@@ -118,7 +118,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value.slice(0, MAX_NAME_LENGTH))}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(c.hex) }
+                    if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(c.hex) }
                     if (e.key === 'Escape') setEditingHex(null)
                   }}
                   onBlur={() => handleSaveEdit(c.hex)}
@@ -173,7 +173,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
               onChange={(e) => setNewHex(e.target.value)}
               placeholder="#RRGGBB"
               maxLength={7}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd() }}
               aria-label="新しいカラーの HEX 値"
             />
             <input
@@ -183,7 +183,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
               onChange={(e) => setNewName(e.target.value.slice(0, MAX_NAME_LENGTH))}
               placeholder="名前（任意）"
               maxLength={MAX_NAME_LENGTH}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd() }}
               aria-label="新しいカラーの名前"
             />
             <button

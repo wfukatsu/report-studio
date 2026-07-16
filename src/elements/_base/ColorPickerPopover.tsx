@@ -124,7 +124,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
 
   const handleCustomKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') { e.preventDefault(); handleCustomConfirm() }
+      if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') { e.preventDefault(); handleCustomConfirm() }
       if (e.key === 'Escape') { e.preventDefault(); onClose() }
     },
     [handleCustomConfirm, onClose],

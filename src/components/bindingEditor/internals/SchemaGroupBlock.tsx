@@ -322,7 +322,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') handleSubmit()
+          if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleSubmit()
           if (e.key === 'Escape') onCancel()
         }}
       />

@@ -143,7 +143,7 @@ function VariantCard({
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               onBlur={commitName}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameInput(variant.name); setEditingName(false) } }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameInput(variant.name); setEditingName(false) } }}
               onClick={(e) => e.stopPropagation()}
               className="flex-1 border-b bg-transparent outline-none text-xs px-0"
             />

@@ -493,7 +493,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 setInputZoom(null)
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') {
                   const parsed = parseFloat((e.target as HTMLInputElement).value.replace('%', ''))
                   if (!isNaN(parsed) && parsed > 0) setEditorZoom(clampZoom(parsed / 100));
                   (e.target as HTMLInputElement).blur()

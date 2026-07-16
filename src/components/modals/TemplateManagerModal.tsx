@@ -259,7 +259,7 @@ export function TemplateManagerContent() {
                         value={renameValue}
                         onChange={(e) => setRenameValue(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRename(t.id)
+                          if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleRename(t.id)
                           if (e.key === 'Escape') setRenamingId(null)
                         }}
                         onBlur={() => handleRename(t.id)}

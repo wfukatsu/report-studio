@@ -61,7 +61,7 @@ export function LayerRow({
             onChange={(e) => onRenameChange(e.target.value)}
             onBlur={() => onCommitRename(el, pageId)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onCommitRename(el, pageId)
+              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') onCommitRename(el, pageId)
               if (e.key === 'Escape') onCancelRename()
             }}
             onClick={(e) => e.stopPropagation()}

@@ -69,7 +69,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename()
+              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') commitRename()
               if (e.key === 'Escape') setIsRenaming(false)
             }}
             onClick={(e) => e.stopPropagation()}

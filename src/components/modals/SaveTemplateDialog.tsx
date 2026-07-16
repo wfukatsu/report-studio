@@ -76,7 +76,7 @@ export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', d
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave()
+              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleSave()
               if (e.key === 'Escape') onCancel()
             }}
             className="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"

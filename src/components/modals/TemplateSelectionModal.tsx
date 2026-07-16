@@ -516,7 +516,7 @@ export function TemplateSelectionModal({
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleCommitRename(t.id)
+                              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleCommitRename(t.id)
                               if (e.key === 'Escape') setRenamingId(null)
                             }}
                             onBlur={() => handleCommitRename(t.id)}

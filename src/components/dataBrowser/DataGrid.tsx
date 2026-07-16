@@ -368,7 +368,7 @@ export function DataGrid({ source }: Props) {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') { void handleInlineCommit(i, col, editValue); e.preventDefault() }
+                              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') { void handleInlineCommit(i, col, editValue); e.preventDefault() }
                               if (e.key === 'Escape') setEditingCell(null)
                               e.stopPropagation()
                             }}

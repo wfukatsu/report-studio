@@ -40,7 +40,7 @@ export function CategoryCombobox({ value, options, onChange, placeholder = 'ã‚«ã
   }
 
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && input.trim()) {
+    if (e.nativeEvent.isComposing) return; if (e.key === 'Enter' && input.trim()) {
       e.preventDefault()
       handleSelect(input.trim())
     }
