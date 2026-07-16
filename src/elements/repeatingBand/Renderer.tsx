@@ -477,51 +477,8 @@ function ColumnEditor({
 function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: RepeatingBandElement; onFieldsChange?: (fields: RepeatingBandField[]) => void }) {
   const obs = outerBorderStr(el)
 
-  // Empty state — no fields defined yet
-  if (el.fields.length === 0) {
-    return (
-      <BandContainer el={el} bs={obs}>
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '2mm',
-          color: '#94a3b8',
-          fontSize: '3mm',
-          textAlign: 'center',
-          padding: '4mm',
-        }}>
-          <div style={{
-            width: '8mm',
-            height: '8mm',
-            borderRadius: '50%',
-            border: '0.5mm dashed #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '4mm',
-            color: '#cbd5e1',
-          }}>
-            +
-          </div>
-          <div>スキーマフィールドをドロップして列を追加</div>
-          <div style={{ fontSize: '2.5mm', color: '#cbd5e1' }}>
-            または右クリックで手動追加
-          </div>
-        </div>
-      </BandContainer>
-    )
-  }
-
-  const hbs = headerBorderStr(el)
-  const dbs = dataBorderStr(el)
-  const cbs = columnBorderStr(el)
-  const fbs = footerBorderStr(el)
-  const colPcts = columnPercents(el.fields)
-  const isGrouped = !!el.groupBy
-  const PREVIEW_ROWS = 3
+  // All hooks must run before the empty-state early return below —
+  // otherwise the hook order changes when fields go 0 → n (Rules of Hooks, issue #62)
 
   // Column context menu state
   const [colMenu, setColMenu] = useState<ColumnMenuState | null>(null)
@@ -572,6 +529,52 @@ function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: 
     const y = e.clientY
     setColMenu({ x, y, colIndex })
   }, [])
+
+  // Empty state — no fields defined yet
+  if (el.fields.length === 0) {
+    return (
+      <BandContainer el={el} bs={obs}>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '2mm',
+          color: '#94a3b8',
+          fontSize: '3mm',
+          textAlign: 'center',
+          padding: '4mm',
+        }}>
+          <div style={{
+            width: '8mm',
+            height: '8mm',
+            borderRadius: '50%',
+            border: '0.5mm dashed #cbd5e1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '4mm',
+            color: '#cbd5e1',
+          }}>
+            +
+          </div>
+          <div>スキーマフィールドをドロップして列を追加</div>
+          <div style={{ fontSize: '2.5mm', color: '#cbd5e1' }}>
+            または右クリックで手動追加
+          </div>
+        </div>
+      </BandContainer>
+    )
+  }
+
+  const hbs = headerBorderStr(el)
+  const dbs = dataBorderStr(el)
+  const cbs = columnBorderStr(el)
+  const fbs = footerBorderStr(el)
+  const colPcts = columnPercents(el.fields)
+  const isGrouped = !!el.groupBy
+  const PREVIEW_ROWS = 3
 
   return (
     <BandContainer el={el} bs={obs}>

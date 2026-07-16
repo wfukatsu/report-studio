@@ -282,3 +282,37 @@ describe('RepeatingBandRenderer — groupBy edge cases', () => {
     expect(screen.getByText(/グループ 1/)).toBeInTheDocument()
   })
 })
+
+describe('RepeatingBandRenderer — Rules of Hooks (issue #62)', () => {
+  it('does not crash when fields transition from 0 to n (hook order stays stable)', () => {
+    const empty = makeElement({ fields: [] })
+    const { rerender } = render(<RepeatingBandRenderer element={empty} onFieldsChange={() => {}} />)
+    expect(screen.getByText(/スキーマフィールドをドロップ/)).toBeInTheDocument()
+
+    const withFields = makeElement({
+      id: empty.id,
+      showHeader: true,
+      fields: [{ key: 'name', label: '品目', width: 55, align: 'left' }],
+    })
+    // Before the fix this rerender changed the hook order (useState after an
+    // early return) and React threw "Rendered more hooks than during the
+    // previous render".
+    expect(() =>
+      rerender(<RepeatingBandRenderer element={withFields} onFieldsChange={() => {}} />),
+    ).not.toThrow()
+    expect(screen.getByText('品目')).toBeInTheDocument()
+  })
+
+  it('does not crash when fields transition from n to 0', () => {
+    const withFields = makeElement({
+      showHeader: true,
+      fields: [{ key: 'name', label: '品目', width: 55, align: 'left' }],
+    })
+    const { rerender } = render(<RepeatingBandRenderer element={withFields} onFieldsChange={() => {}} />)
+    const empty = makeElement({ id: withFields.id, fields: [] })
+    expect(() =>
+      rerender(<RepeatingBandRenderer element={empty} onFieldsChange={() => {}} />),
+    ).not.toThrow()
+    expect(screen.getByText(/スキーマフィールドをドロップ/)).toBeInTheDocument()
+  })
+})
