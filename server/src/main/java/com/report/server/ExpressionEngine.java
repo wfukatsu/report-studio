@@ -36,6 +36,39 @@ public final class ExpressionEngine {
     /** Maximum allowed expression length (chars). */
     public static final int MAX_EXPRESSION_LENGTH = 500;
 
+    /**
+     * Maximum parenthesis / bracket nesting depth (issue #58). The 500 ms
+     * timeout cannot interrupt a busy JEXL evaluation (no interruption points),
+     * so a pathologically nested expression could occupy an evaluator thread
+     * for its full run. Rejecting deeply nested input before evaluation bounds
+     * the worst case cheaply. Real business formulas nest only a few levels.
+     */
+    public static final int MAX_NESTING_DEPTH = 16;
+
+    /**
+     * Returns true if the expression's bracket nesting exceeds
+     * {@link #MAX_NESTING_DEPTH}. Brackets inside string literals are ignored.
+     */
+    static boolean exceedsNestingDepth(String expr) {
+        int depth = 0, max = 0;
+        boolean inStr = false;
+        char quote = 0;
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if (inStr) {
+                if (c == quote && (i == 0 || expr.charAt(i - 1) != '\\')) inStr = false;
+                continue;
+            }
+            switch (c) {
+                case '\'', '"' -> { inStr = true; quote = c; }
+                case '(', '[' -> { depth++; if (depth > max) max = depth; }
+                case ')', ']' -> { if (depth > 0) depth--; }
+                default -> { /* not a bracket */ }
+            }
+        }
+        return max > MAX_NESTING_DEPTH;
+    }
+
     /** Maximum number of expressions per template evaluation. */
     public static final int MAX_EXPRESSIONS_PER_TEMPLATE = 50;
 
@@ -61,6 +94,10 @@ public final class ExpressionEngine {
         if (expression.length() > MAX_EXPRESSION_LENGTH) {
             log.warn("Expression exceeds max length ({} > {}): {}...",
                     expression.length(), MAX_EXPRESSION_LENGTH, expression.substring(0, 50));
+            return false;
+        }
+        if (exceedsNestingDepth(expression)) {
+            log.warn("Expression exceeds max nesting depth ({})", MAX_NESTING_DEPTH);
             return false;
         }
         try {
@@ -95,6 +132,10 @@ public final class ExpressionEngine {
         if (expression != null && expression.length() > MAX_EXPRESSION_LENGTH) {
             throw new IllegalArgumentException("Expression exceeds max length ("
                     + expression.length() + " > " + MAX_EXPRESSION_LENGTH + ")");
+        }
+        if (expression != null && exceedsNestingDepth(expression)) {
+            throw new IllegalArgumentException("Expression exceeds max nesting depth ("
+                    + MAX_NESTING_DEPTH + ")");
         }
         String jexlExpr = translateFormulaToJexl(expression);
         JexlContext ctx = toJexlContext(context);

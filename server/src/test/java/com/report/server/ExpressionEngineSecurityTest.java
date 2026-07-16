@@ -62,4 +62,24 @@ class ExpressionEngineSecurityTest {
         Object result = ExpressionEngine.calculate("price * qty", ctx);
         assertEquals(300.0, ((Number) result).doubleValue(), 0.001);
     }
+
+    @Test
+    void deeplyNestedExpression_isRejectedBeforeEvaluation() {
+        StringBuilder e = new StringBuilder("1");
+        for (int i = 0; i < 40; i++) e.insert(0, "(").append(")");
+        assertThrows(IllegalArgumentException.class,
+                () -> ExpressionEngine.calculate(e.toString(), EMPTY));
+    }
+
+    @Test
+    void moderatelyNestedExpression_stillEvaluates() {
+        // ((((1 + 2)))) — well within MAX_NESTING_DEPTH
+        Object r = ExpressionEngine.calculate("((((1 + 2))))", EMPTY);
+        assertEquals(3.0, ((Number) r).doubleValue(), 0.001);
+    }
+
+    @Test
+    void bracketsInsideStringLiteral_doNotCountTowardNesting() {
+        assertFalse(ExpressionEngine.exceedsNestingDepth("'((((((((((((((((((((' + x"));
+    }
 }
