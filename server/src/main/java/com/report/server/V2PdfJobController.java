@@ -155,7 +155,11 @@ public final class V2PdfJobController {
                         }, pdfExecutor)
                         .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-                jobs.put(jobId, job.withCompleted(pdfBytes));
+                // Spill the result to a temp file instead of holding bytes on the
+                // heap — bounds memory when several large jobs complete (issue #60)
+                java.nio.file.Path resultFile = java.nio.file.Files.createTempFile("v2pdf-" + jobId + "-", ".pdf");
+                java.nio.file.Files.write(resultFile, pdfBytes);
+                jobs.put(jobId, job.withCompleted(resultFile.toString()));
                 log.info("Async PDF job {} completed ({} bytes)", jobId, pdfBytes.length);
             } catch (java.util.concurrent.TimeoutException e) {
                 jobs.put(jobId, job.withFailed("PDF generation timed out (30s)"));
@@ -225,8 +229,18 @@ public final class V2PdfJobController {
             return;
         }
 
-        byte[] pdfBytes = job.pdfBytes();
-        if (pdfBytes == null) {
+        java.nio.file.Path resultFile = job.pdfPath() != null
+                ? java.nio.file.Path.of(job.pdfPath()) : null;
+        if (resultFile == null || !java.nio.file.Files.exists(resultFile)) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "PDF result unavailable"));
+            return;
+        }
+
+        byte[] pdfBytes;
+        try {
+            pdfBytes = java.nio.file.Files.readAllBytes(resultFile);
+        } catch (java.io.IOException e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "PDF result unavailable"));
             return;
@@ -238,8 +252,15 @@ public final class V2PdfJobController {
         ctx.header("Content-Length", String.valueOf(pdfBytes.length));
         ctx.result(pdfBytes);
 
-        // Remove from memory after download to free resources
+        // Delete the temp file and drop the record after download
+        deleteQuietly(resultFile);
         jobs.remove(jobId);
+    }
+
+    private static void deleteQuietly(java.nio.file.Path path) {
+        try {
+            if (path != null) java.nio.file.Files.deleteIfExists(path);
+        } catch (java.io.IOException ignored) { /* temp file; OS will reclaim */ }
     }
 
     // ---------------------------------------------------------------------------
@@ -248,7 +269,13 @@ public final class V2PdfJobController {
 
     private void evictExpired() {
         long cutoff = Instant.now().getEpochSecond() - TTL_SECONDS;
-        jobs.entrySet().removeIf(e -> e.getValue().createdAt() < cutoff);
+        jobs.entrySet().removeIf(e -> {
+            if (e.getValue().createdAt() < cutoff) {
+                if (e.getValue().pdfPath() != null) deleteQuietly(java.nio.file.Path.of(e.getValue().pdfPath()));
+                return true;
+            }
+            return false;
+        });
     }
 
     // ---------------------------------------------------------------------------
@@ -281,7 +308,7 @@ public final class V2PdfJobController {
             String templateId,
             String owner,
             String status,
-            byte[] pdfBytes,
+            String pdfPath,     // temp-file path of the result (issue #60 — off-heap)
             String error,
             long createdAt
     ) {
@@ -293,8 +320,8 @@ public final class V2PdfJobController {
             return new PdfJobRecord(jobId, templateId, owner, newStatus, null, null, createdAt);
         }
 
-        PdfJobRecord withCompleted(byte[] bytes) {
-            return new PdfJobRecord(jobId, templateId, owner, STATUS_COMPLETED, bytes, null, createdAt);
+        PdfJobRecord withCompleted(String path) {
+            return new PdfJobRecord(jobId, templateId, owner, STATUS_COMPLETED, path, null, createdAt);
         }
 
         PdfJobRecord withFailed(String msg) {

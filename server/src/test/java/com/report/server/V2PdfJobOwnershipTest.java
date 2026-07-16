@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 class V2PdfJobOwnershipTest {
 
     private static PdfJobRecord job(String owner) {
-        return new PdfJobRecord("pjob-1", "tpl-1", owner, "completed", new byte[]{1}, null, 0L);
+        return new PdfJobRecord("pjob-1", "tpl-1", owner, "completed", "/tmp/x.pdf", null, 0L);
     }
 
     private static Context ctxWith(Principal principal) {
