@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import com.report.server.pdf.ImagePdfRenderer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,68 +43,19 @@ public final class BatchPdfProcessor {
         if (flag != null) flag.set(true);
     }
 
+    /** Produces the projection JSON to render for a given zero-based row index. */
+    @FunctionalInterface
+    private interface RowProjection {
+        String forRow(int index) throws Exception;
+    }
+
     /**
      * Run a batch job with CSV data rows.
      * Each row produces one PDF with its data merged into the projection.
      */
     public void runWithData(String jobId, String templateId, List<Map<String, String>> rows) {
-        AtomicBoolean cancelFlag = new AtomicBoolean(false);
-        cancelFlags.put(jobId, cancelFlag);
-        try {
-            Optional<String> projOpt = projRepo.getProjection(templateId);
-            String projectionJson = projOpt.orElse("{\"templates\":[]}");
-
-            JobRecord job = jobRepo.findById(jobId).orElseThrow();
-            jobRepo.save(job.withStatus(JobRecord.PROCESSING));
-
-            Path outputDir = jobRepo.getOutputDir(jobId);
-            Files.createDirectories(outputDir);
-
-            int processed = 0;
-            int failed = 0;
-
-            for (int i = 0; i < rows.size(); i++) {
-                if (cancelFlag.get()) {
-                    log.info("Job {} cancelled at item {}/{}", jobId, i, rows.size());
-                    JobRecord current = jobRepo.findById(jobId).orElseThrow();
-                    jobRepo.save(new JobRecord(jobId, templateId, "CANCELLED",
-                        rows.size(), processed, failed, "Cancelled by user",
-                        current.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()));
-                    return;
-                }
-                try {
-                    String mergedProjection = ProjectionMerger.merge(projectionJson, rows.get(i));
-                    Path outputFile = outputDir.resolve(String.format("%04d.pdf", i + 1));
-                    try (BufferedOutputStream bos = new BufferedOutputStream(
-                            new FileOutputStream(outputFile.toFile()), 64 * 1024)) {
-                        PdfRenderer.renderToStream(mergedProjection, bos);
-                    }
-                    processed++;
-                } catch (Exception e) {
-                    log.warn("Row {} failed in job {}: {}", i + 1, jobId, e.getMessage());
-                    failed++;
-                }
-
-                if ((processed + failed) % SUB_BATCH_SIZE == 0 || i == rows.size() - 1) {
-                    JobRecord current = jobRepo.findById(jobId).orElseThrow();
-                    jobRepo.save(current.withProgress(processed, failed));
-                }
-            }
-
-            createZipArchive(jobId, outputDir);
-            JobRecord finalJob = jobRepo.findById(jobId).orElseThrow();
-            jobRepo.save(finalJob.withProgress(processed, failed).withStatus(JobRecord.COMPLETED));
-            log.info("Job {} completed: {}/{} success, {} failed", jobId, processed, rows.size(), failed);
-
-        } catch (Exception e) {
-            log.error("Job {} failed with unhandled exception", jobId, e);
-            jobRepo.findById(jobId).ifPresent(j ->
-                jobRepo.save(j.withError("PDF generation failed. Check server logs for details."))
-            );
-        } finally {
-            cancelFlags.remove(jobId);
-            ImagePdfRenderer.clearImageCache();
-        }
+        String base = projRepo.getProjection(templateId).orElse("{\"templates\":[]}");
+        execute(jobId, templateId, rows.size(), i -> ProjectionMerger.merge(base, rows.get(i)));
     }
 
     /**
@@ -113,40 +63,44 @@ public final class BatchPdfProcessor {
      * Updates job progress in the repository as items are processed.
      */
     public void run(String jobId, String templateId, int rowCount) {
+        String base = projRepo.getProjection(templateId).orElse("{\"templates\":[]}");
+        execute(jobId, templateId, rowCount, i -> base);
+    }
+
+    /**
+     * Shared batch loop for {@link #run} and {@link #runWithData} (issue #60):
+     * status transition, per-row render with error isolation, cancellation
+     * checks, progress checkpoints, ZIP archiving, and terminal status — the
+     * only per-mode difference is how each row's projection is produced.
+     */
+    private void execute(String jobId, String templateId, int itemCount, RowProjection rowProjection) {
         AtomicBoolean cancelFlag = new AtomicBoolean(false);
         cancelFlags.put(jobId, cancelFlag);
         try {
-            // Load template projection
-            Optional<String> projOpt = projRepo.getProjection(templateId);
-            String projectionJson = projOpt.orElse("{\"templates\":[]}");
-
-            // Update status to PROCESSING
             JobRecord job = jobRepo.findById(jobId).orElseThrow();
             jobRepo.save(job.withStatus(JobRecord.PROCESSING));
 
-            // Ensure output directory
             Path outputDir = jobRepo.getOutputDir(jobId);
             Files.createDirectories(outputDir);
 
             int processed = 0;
             int failed = 0;
 
-            // Process in sub-batches
-            for (int i = 0; i < rowCount; i++) {
-                // Check cancel flag before each item
+            for (int i = 0; i < itemCount; i++) {
                 if (cancelFlag.get()) {
-                    log.info("Job {} cancelled at item {}/{}", jobId, i, rowCount);
+                    log.info("Job {} cancelled at item {}/{}", jobId, i, itemCount);
                     JobRecord current = jobRepo.findById(jobId).orElseThrow();
                     jobRepo.save(new JobRecord(jobId, templateId, "CANCELLED",
-                        rowCount, processed, failed, "Cancelled by user",
+                        itemCount, processed, failed, "Cancelled by user",
                         current.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()));
                     return;
                 }
                 try {
+                    String projection = rowProjection.forRow(i);
                     Path outputFile = outputDir.resolve(String.format("%04d.pdf", i + 1));
                     try (BufferedOutputStream bos = new BufferedOutputStream(
                             new FileOutputStream(outputFile.toFile()), 64 * 1024)) {
-                        PdfRenderer.renderToStream(projectionJson, bos);
+                        PdfRenderer.renderToStream(projection, bos);
                     }
                     processed++;
                 } catch (Exception e) {
@@ -154,27 +108,21 @@ public final class BatchPdfProcessor {
                     failed++;
                 }
 
-                // Checkpoint progress every SUB_BATCH_SIZE items
-                if ((processed + failed) % SUB_BATCH_SIZE == 0 || i == rowCount - 1) {
+                if ((processed + failed) % SUB_BATCH_SIZE == 0 || i == itemCount - 1) {
                     JobRecord current = jobRepo.findById(jobId).orElseThrow();
                     jobRepo.save(current.withProgress(processed, failed));
                 }
             }
 
-            // Create ZIP archive
             createZipArchive(jobId, outputDir);
-
-            // Mark completed
             JobRecord finalJob = jobRepo.findById(jobId).orElseThrow();
             jobRepo.save(finalJob.withProgress(processed, failed).withStatus(JobRecord.COMPLETED));
-
-            log.info("Job {} completed: {}/{} success, {} failed",
-                jobId, processed, rowCount, failed);
+            log.info("Job {} completed: {}/{} success, {} failed", jobId, processed, itemCount, failed);
 
         } catch (Exception e) {
             log.error("Job {} failed with unhandled exception", jobId, e);
-            jobRepo.findById(jobId).ifPresent(job ->
-                jobRepo.save(job.withError("PDF generation failed. Check server logs for details."))
+            jobRepo.findById(jobId).ifPresent(j ->
+                jobRepo.save(j.withError("PDF generation failed. Check server logs for details."))
             );
         } finally {
             cancelFlags.remove(jobId);
