@@ -106,18 +106,35 @@ class PdfTypographyParseBackTest {
     }
 
     @Test
-    void bold_usesFillStrokeRenderMode() throws IOException {
+    void bold_usesRealBoldFace_notSyntheticStroke() throws IOException {
+        // Issue #56: sans bold now embeds the real Noto Sans JP Bold face
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
             "content":"太字テスト","style":{"fontSize":12,"bold":true}""")));
         assertTrue(probe.pageContains(0, "太字テスト"), probe.pageText(0));
-        // synthetic bold sets text render mode 2 (fill+stroke) → "2 Tr" in the stream
-        assertTrue(probe.pageContent(0).contains("2 Tr"), probe.pageContent(0));
+        PdfProbe.TextRun run = probe.findRun(0, "太字").orElseThrow();
+        assertTrue(run.fontName().contains("NotoSansJP-Bold"),
+                "bold should use the real Bold face, got: " + run.fontName());
+        // real bold does not stroke-widen
+        assertFalse(probe.pageContent(0).contains("2 Tr"), "real bold must not stroke");
     }
 
     @Test
-    void nonBold_usesPlainFillRenderMode() throws IOException {
+    void nonBold_usesRegularFace() throws IOException {
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
             "content":"通常テキスト","style":{"fontSize":12}""")));
+        PdfProbe.TextRun run = probe.findRun(0, "通常").orElseThrow();
+        assertTrue(run.fontName().contains("NotoSansJP") && !run.fontName().contains("Bold"),
+                "non-bold should use the Regular face, got: " + run.fontName());
         assertFalse(probe.pageContent(0).contains("2 Tr"), "non-bold text must not stroke");
+    }
+
+    @Test
+    void serifBold_fallsBackToSyntheticStroke() throws IOException {
+        // No serif bold face is bundled → bold serif stroke-widens the Regular serif
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+            "content":"明朝太字","style":{"fontSize":12,"bold":true,"fontFamily":"Noto Serif JP"}""")));
+        assertTrue(probe.pageContains(0, "明朝太字"), probe.pageText(0));
+        assertTrue(probe.pageContent(0).contains("2 Tr"),
+                "serif bold should synthetic-stroke (no serif bold face): " + probe.pageContent(0));
     }
 }

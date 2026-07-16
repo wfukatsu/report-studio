@@ -49,7 +49,9 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         String fontFamily = firstNonEmpty(
                 props != null ? textOf(props, "fontFamily", "") : "",
                 style != null ? textOf(style, "fontFamily", "") : "");
-        PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, false);
+        // Real bold face when available; synthetic stroke only as a fallback (issue #56)
+        PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
+        boolean syntheticBold = FontProvider.isSyntheticBold(fontFamily, bold);
         Color color = parseColor(firstNonEmpty(
                 props != null ? textOf(props, "color", "") : "",
                 style != null ? textOf(style, "color", "") : ""), Color.BLACK);
@@ -68,7 +70,7 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
 
         cs.saveGraphicsState();
         try {
-            configureBold(cs, bold, fontSize, color);
+            configureBold(cs, syntheticBold, fontSize, color);
             if (vertical) {
                 drawVertical(cs, font, fontSize, lineHeight, text, x, y, w, h, furigana, furiScale);
             } else {
