@@ -199,15 +199,25 @@ public final class RequestValidator {
 
     private static final int MAX_JSON_DEPTH = 50;
     private static final int MAX_OBJECT_COUNT = 5000;
-    private static final Set<String> KNOWN_ELEMENT_KINDS = Set.of(
-            "text", "shape", "line", "barcode", "qrcode", "image",
-            "check_mark", "checkbox", "radio_mark",
-            "seal_box", "signature_line",
-            "table", "form_grid", "text_cell", "row_block",
-            "formTable", "formGrid",
-            "revenueStamp", "repeatingBand", "repeatingList",
-            "eraSelect"
-    );
+    /**
+     * Known element kinds, derived from the renderer registry so newly
+     * registered renderers are accepted automatically (the previous
+     * hand-maintained list drifted and rejected V2 templates whose elements
+     * the renderer fully supported — e.g. manualEntry, tenantLogo).
+     */
+    private static final Set<String> KNOWN_ELEMENT_KINDS = buildKnownElementKinds();
+
+    private static Set<String> buildKnownElementKinds() {
+        var kinds = new java.util.HashSet<>(
+                com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds());
+        // Aliases resolved before registry lookup + historical names kept for compat
+        kinds.addAll(Set.of(
+                "label",                      // migrated to text at render time
+                "form_grid", "formGrid",      // grid naming variants
+                "table", "formTable"          // table naming variants
+        ));
+        return Set.copyOf(kinds);
+    }
 
     /**
      * Validate a stateless PDF generation request body.

@@ -25,6 +25,11 @@ public final class ElementPdfRendererRegistry {
         return Optional.ofNullable(handlers.get(kind));
     }
 
+    /** All registered element kinds — the source RequestValidator derives its whitelist from. */
+    public java.util.Set<String> kinds() {
+        return java.util.Set.copyOf(handlers.keySet());
+    }
+
     /** Create a registry pre-loaded with all built-in renderers. */
     public static ElementPdfRendererRegistry createDefault() {
         ElementPdfRendererRegistry registry = new ElementPdfRendererRegistry();

@@ -40,7 +40,7 @@ const BUILTIN_META: Omit<BuiltinEntry, 'definition'>[] = [
   { id: 'quotation-basic-invoice', name: '見積書（インボイス対応）' },
   { id: 'quotation-discount-invoice', name: '見積書（値引対応・インボイス対応）' },
   { id: 'quotation-english', name: 'Quotation (English)' },
-  { id: 'fuyou-kojo-r7', name: '不要小銃等除去通知書（様式第7号）' },
+  { id: 'fuyou-kojo-r7', name: '扶養控除等（異動）申告書（令和7年分）' },
   { id: 'element-showcase', name: '帳票エンジン ショーケース', category: '検証・サンプル',
     description: '全要素タイプ・和暦/大字・縦書き/ふりがな/太字・テナント情報・複数ページを網羅した検証テンプレート' },
   { id: 'binding-editor-sample', name: 'バインドエディタ検証用納品書', category: '検証・サンプル' },

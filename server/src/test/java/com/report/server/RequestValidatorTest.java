@@ -167,4 +167,42 @@ class RequestValidatorTest {
             assertNotNull(result);
         }
     }
+
+    @org.junit.jupiter.api.Nested
+    class ValidatePdfGenerateRequest {
+
+        private static final com.fasterxml.jackson.databind.ObjectMapper M =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+
+        private JsonNode requestWithElementType(String type) throws Exception {
+            return M.readTree("""
+                {"template":{"pages":[{"sections":[{"elements":[
+                  {"id":"e1","type":"%s","position":{"x":0,"y":0},"size":{"width":10,"height":10}}
+                ]}]}]},"data":{}}""".formatted(type));
+        }
+
+        @Test
+        void acceptsEveryRegisteredRendererKind() throws Exception {
+            // The whitelist is derived from the renderer registry — every kind
+            // the server can draw must pass validation (the previous
+            // hand-maintained list rejected manualEntry/tenantLogo/hanko etc.)
+            for (String kind : com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds()) {
+                assertNull(RequestValidator.validatePdfGenerateRequest(requestWithElementType(kind)),
+                        "kind should be accepted: " + kind);
+            }
+        }
+
+        @Test
+        void acceptsLabelAlias() throws Exception {
+            assertNull(RequestValidator.validatePdfGenerateRequest(requestWithElementType("label")));
+        }
+
+        @Test
+        void rejectsUnknownElementType() throws Exception {
+            String error = RequestValidator.validatePdfGenerateRequest(
+                    requestWithElementType("totallyBogusType"));
+            assertNotNull(error);
+            assertTrue(error.contains("Unknown element type"));
+        }
+    }
 }

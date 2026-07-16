@@ -291,7 +291,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         if ("dataField".equals(cellType)) {
             String fieldKey = textOf(cell, "fieldKey", "");
             if (!fieldKey.isEmpty() && formData != null) {
-                JsonNode value = formData.get(fieldKey);
+                // Dot-notation keys traverse nested objects (frontend parity)
+                JsonNode value = SectionRenderHelper.resolveDataPath(formData, fieldKey);
                 if (value != null && !value.isNull()) {
                     if (value.isTextual()) return value.asText();
                     if (value.isNumber()) return value.isInt()

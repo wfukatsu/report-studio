@@ -297,7 +297,7 @@ public final class SectionRenderHelper {
                 }
             }
         } else {
-            value = formData.get(ref);
+            value = resolveDataPath(formData, ref);
         }
 
         if (value == null) return el;
@@ -444,6 +444,25 @@ public final class SectionRenderHelper {
         } catch (Exception e) {
             return el;
         }
+    }
+
+    /**
+     * Resolve a scalar data reference: exact key first (legacy flat projection
+     * data), then dot-notation traversal into nested objects — mirroring the
+     * frontend {@code resolveField} (e.g. {@code "document.documentNo"} into
+     * {@code {document: {documentNo: ...}}}). Returns null when unresolved.
+     */
+    public static JsonNode resolveDataPath(JsonNode data, String ref) {
+        if (data == null || ref == null || ref.isEmpty()) return null;
+        JsonNode direct = data.get(ref);
+        if (direct != null && !direct.isNull()) return direct;
+        if (!ref.contains(".")) return null;
+        JsonNode cur = data;
+        for (String part : ref.split("\\.")) {
+            if (cur == null || !cur.isObject()) return null;
+            cur = cur.get(part);
+        }
+        return (cur == null || cur.isNull()) ? null : cur;
     }
 
     /** Available vertical space (mm) from the topmost row_block to the section bottom, or -1. */
