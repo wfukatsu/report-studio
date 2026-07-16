@@ -24,7 +24,14 @@ public final class JobRepository {
     private static final Logger log = LoggerFactory.getLogger(JobRepository.class);
     private static final String NAMESPACE = "report_studio";
     private static final String TABLE = "jobs";
-    private static final Path JOBS_DIR = Path.of("data", "jobs");
+    // Resolved to an absolute path once at startup so containment checks are
+    // stable regardless of later working-directory changes (issue #58)
+    private static final Path JOBS_DIR = Path.of("data", "jobs").toAbsolutePath().normalize();
+
+    /** Absolute root under which all job artifacts live — containment-check anchor. */
+    public static Path jobsRoot() {
+        return JOBS_DIR;
+    }
 
     private final JsonBlobRepository blob;
 

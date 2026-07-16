@@ -159,7 +159,14 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
         cs.drawImage(image, drawX, drawY, drawW, drawH);
     }
 
-    /** SSRF protection: block dangerous schemes and private/internal network addresses. */
+    /**
+     * SSRF protection: block dangerous schemes and private/internal network
+     * addresses. Validates EVERY resolved address ({@code getAllByName}) so a
+     * host with mixed public/private records is rejected outright, and is
+     * re-run inside {@link #fetchUrl} right before the request — combined with
+     * the JVM's positive DNS cache (default 30s) this closes the practical
+     * DNS-rebinding window between check and use (issue #58).
+     */
     static boolean isSafeUrl(String url) {
         try {
             URI uri = URI.create(url);
@@ -179,31 +186,36 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
                 return false;
             }
 
-            InetAddress addr = InetAddress.getByName(host);
-            if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
-                    || addr.isSiteLocalAddress() || addr.isMulticastAddress()) {
-                return false;
+            // Every A/AAAA record must be safe — not just the first
+            for (InetAddress addr : InetAddress.getAllByName(host)) {
+                if (isForbiddenAddress(addr)) return false;
             }
-
-            // Double-check private IP ranges after resolution
-            byte[] addrBytes = addr.getAddress();
-            if (addrBytes.length == 4) {
-                int b0 = addrBytes[0] & 0xFF;
-                int b1 = addrBytes[1] & 0xFF;
-                // 10.0.0.0/8
-                if (b0 == 10) return false;
-                // 172.16.0.0/12
-                if (b0 == 172 && b1 >= 16 && b1 <= 31) return false;
-                // 192.168.0.0/16
-                if (b0 == 192 && b1 == 168) return false;
-                // 169.254.0.0/16 (link-local, includes metadata endpoint)
-                if (b0 == 169 && b1 == 254) return false;
-            }
-
             return true;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean isForbiddenAddress(InetAddress addr) {
+        if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
+                || addr.isSiteLocalAddress() || addr.isMulticastAddress()
+                || addr.isAnyLocalAddress()) {
+            return true;
+        }
+        byte[] addrBytes = addr.getAddress();
+        if (addrBytes.length == 4) {
+            int b0 = addrBytes[0] & 0xFF;
+            int b1 = addrBytes[1] & 0xFF;
+            // 10.0.0.0/8
+            if (b0 == 10) return true;
+            // 172.16.0.0/12
+            if (b0 == 172 && b1 >= 16 && b1 <= 31) return true;
+            // 192.168.0.0/16
+            if (b0 == 192 && b1 == 168) return true;
+            // 169.254.0.0/16 (link-local, includes metadata endpoint)
+            if (b0 == 169 && b1 == 254) return true;
+        }
+        return false;
     }
 
     private static void renderPlaceholder(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {

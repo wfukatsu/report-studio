@@ -130,10 +130,12 @@ public final class ExpressionEngine {
     // ── Engine construction ────────────────────────────────────────────────────
 
     private static JexlEngine buildEngine() {
-        // RESTRICTED blocks unsafe Java packages (reflect, invoke, security, io, net, Process).
-        // Combined with createExpression()-only usage and 500 ms timeout, this hardens the sandbox.
-        JexlPermissions permissions = JexlPermissions.RESTRICTED
-                .compose("com.report.server.*");  // needed so JEXL can call methods on JexlFunctions namespace
+        // RESTRICTED is allow-list based (java.lang/util/math/... minus dangerous
+        // classes). ClassPermissions adds ONLY JexlFunctions on top — the previous
+        // compose("com.report.server.*") exposed every public member of the whole
+        // application package to user expressions (issue #58).
+        JexlPermissions permissions =
+                new JexlPermissions.ClassPermissions(JexlFunctions.class);
 
         // Map.of() does not allow null keys; JEXL resolves un-prefixed functions via null namespace key.
         java.util.HashMap<String, Object> ns = new java.util.HashMap<>();

@@ -122,10 +122,12 @@ public final class V2PdfJobController {
         }
         String raw = rawOpt.get();
 
-        // Create job
+        // Create job — remember the submitting principal for access control (issue #58)
+        Principal submitter = ctx.attribute("principal");
+        String owner = submitter != null && !submitter.isAnonymous() ? submitter.userId() : null;
         String jobId = "pjob-" + UUID.randomUUID();
         long now = Instant.now().getEpochSecond();
-        PdfJobRecord job = new PdfJobRecord(jobId, templateId, STATUS_PENDING, null, null, now);
+        PdfJobRecord job = new PdfJobRecord(jobId, templateId, owner, STATUS_PENDING, null, null, now);
         jobs.put(jobId, job);
         activeJobs.incrementAndGet();
 
@@ -161,7 +163,8 @@ public final class V2PdfJobController {
                 jobs.put(jobId, job.withFailed("PDF generation timed out (30s)"));
                 log.warn("Async PDF job {} timed out", jobId);
             } catch (Exception e) {
-                jobs.put(jobId, job.withFailed("PDF generation failed: " + e.getMessage()));
+                // Generic client-facing message — the exception detail stays in the log (issue #58)
+                jobs.put(jobId, job.withFailed("PDF generation failed"));
                 log.error("Async PDF job {} failed", jobId, e);
             } finally {
                 activeJobs.decrementAndGet();
@@ -188,7 +191,7 @@ public final class V2PdfJobController {
     public void getStatus(Context ctx) {
         String jobId = ctx.pathParam("jobId");
         PdfJobRecord job = jobs.get(jobId);
-        if (job == null) {
+        if (job == null || !canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
             return;
@@ -213,7 +216,7 @@ public final class V2PdfJobController {
     public void getResult(Context ctx) {
         String jobId = ctx.pathParam("jobId");
         PdfJobRecord job = jobs.get(jobId);
-        if (job == null) {
+        if (job == null || !canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
             return;
@@ -258,6 +261,19 @@ public final class V2PdfJobController {
         return Optional.ofNullable(jobs.get(jobId));
     }
 
+    /**
+     * Ownership check (issue #58): a job submitted by an authenticated user is
+     * visible only to that user (or an admin). Jobs submitted anonymously
+     * (auth disabled) remain accessible as before. 404 — not 403 — so job IDs
+     * cannot be probed for existence.
+     */
+    static boolean canAccess(Context ctx, PdfJobRecord job) {
+        if (job.owner() == null) return true;
+        Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous()) return false;
+        return job.owner().equals(principal.userId()) || principal.roles().contains("admin");
+    }
+
     // ---------------------------------------------------------------------------
     // Job record — immutable value
     // ---------------------------------------------------------------------------
@@ -265,6 +281,7 @@ public final class V2PdfJobController {
     record PdfJobRecord(
             String jobId,
             String templateId,
+            String owner,
             String status,
             byte[] pdfBytes,
             String error,
@@ -275,15 +292,15 @@ public final class V2PdfJobController {
         }
 
         PdfJobRecord withStatus(String newStatus) {
-            return new PdfJobRecord(jobId, templateId, newStatus, null, null, createdAt);
+            return new PdfJobRecord(jobId, templateId, owner, newStatus, null, null, createdAt);
         }
 
         PdfJobRecord withCompleted(byte[] bytes) {
-            return new PdfJobRecord(jobId, templateId, STATUS_COMPLETED, bytes, null, createdAt);
+            return new PdfJobRecord(jobId, templateId, owner, STATUS_COMPLETED, bytes, null, createdAt);
         }
 
         PdfJobRecord withFailed(String msg) {
-            return new PdfJobRecord(jobId, templateId, STATUS_FAILED, null, msg, createdAt);
+            return new PdfJobRecord(jobId, templateId, owner, STATUS_FAILED, null, msg, createdAt);
         }
     }
 }

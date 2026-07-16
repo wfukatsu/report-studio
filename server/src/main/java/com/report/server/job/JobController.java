@@ -258,9 +258,11 @@ public final class JobController {
         }
 
         try {
-            // Path containment check using normalize (does not require file to exist)
+            // Path containment check using normalize (does not require file to exist).
+            // The base is the startup-resolved absolute jobs root, not the current
+            // working directory (issue #58)
             Path zipPath = jobRepo.getOutputZipPath(jobId).normalize().toAbsolutePath();
-            Path jobsBase = Path.of("data", "jobs").normalize().toAbsolutePath();
+            Path jobsBase = JobRepository.jobsRoot();
             if (!zipPath.startsWith(jobsBase)) {
                 ctx.status(HttpStatus.FORBIDDEN);
                 ctx.json(Map.of("error", "Access denied"));
