@@ -1,0 +1,113 @@
+{
+  "templates": [
+    {
+      "id": "golden-fuyou-kojo",
+      "name": "給与所得者の扶養控除等（異動）申告書（ゴールデン）",
+      "pageSetup": { "kind": "preset", "paperSizeId": "A4", "orientation": "landscape" },
+      "sections": [
+        {
+          "id": "base",
+          "type": "page_base",
+          "name": "申告書",
+          "y": 0,
+          "height": 210,
+          "elements": [
+            {
+              "id": "title",
+              "kind": "text",
+              "name": "表題",
+              "frame": { "x": 70, "y": 10, "width": 160, "height": 10, "rotation": 0 },
+              "props": { "text": "給与所得者の扶養控除等（異動）申告書", "fontSize": 14 }
+            },
+            {
+              "id": "year",
+              "kind": "text",
+              "name": "年分",
+              "frame": { "x": 40, "y": 12, "width": 30, "height": 8, "rotation": 0 },
+              "props": { "text": "令和8年分", "fontSize": 10 }
+            },
+            {
+              "id": "employer-label",
+              "kind": "text",
+              "name": "勤務先ラベル",
+              "frame": { "x": 15, "y": 28, "width": 45, "height": 6, "rotation": 0 },
+              "props": { "text": "給与の支払者の名称", "fontSize": 8 }
+            },
+            {
+              "id": "employer-name",
+              "kind": "text",
+              "name": "勤務先",
+              "frame": { "x": 62, "y": 26, "width": 80, "height": 8, "rotation": 0 },
+              "bindingRef": "employer.name",
+              "props": { "fontSize": 11 }
+            },
+            {
+              "id": "main-table",
+              "kind": "formTable",
+              "name": "本人情報",
+              "frame": { "x": 15, "y": 45, "width": 250, "height": 24, "rotation": 0 },
+              "columns": [
+                { "width": 35 },
+                { "width": 60 },
+                { "width": 60 },
+                { "width": 45 },
+                { "width": 50 }
+              ],
+              "rows": [
+                {
+                  "height": 8,
+                  "role": "header",
+                  "cells": [
+                    { "type": "label", "text": "区分" },
+                    { "type": "label", "text": "氏名（フリガナ）" },
+                    { "type": "label", "text": "生年月日" },
+                    { "type": "label", "text": "続柄" },
+                    { "type": "label", "text": "控除区分" }
+                  ]
+                },
+                {
+                  "height": 8,
+                  "role": "body",
+                  "cells": [
+                    { "type": "label", "text": "本人" },
+                    { "type": "dataField", "fieldKey": "taxpayer.name" },
+                    { "type": "eraSelect", "eraDataSource": "taxpayer.era" },
+                    { "type": "label", "text": "―" },
+                    { "type": "checkbox", "checked": false, "text": "源泉控除" }
+                  ]
+                },
+                {
+                  "height": 8,
+                  "role": "body",
+                  "cells": [
+                    { "type": "label", "text": "配偶者" },
+                    { "type": "dataField", "fieldKey": "spouse.name" },
+                    { "type": "eraSelect", "eraDataSource": "spouse.era" },
+                    { "type": "label", "text": "妻" },
+                    { "type": "checkbox", "checked": true, "text": "源泉控除" }
+                  ]
+                }
+              ],
+              "_formData": {
+                "taxpayer.name": "山田太郎",
+                "taxpayer.era": "昭",
+                "spouse.name": "山田花子",
+                "spouse.era": "平"
+              }
+            },
+            {
+              "id": "seal",
+              "kind": "seal_box",
+              "name": "押印欄",
+              "frame": { "x": 250, "y": 25, "width": 15, "height": 15, "rotation": 0 },
+              "props": {}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_formData": {
+    "employer.name": "株式会社スカラー"
+  }
+}

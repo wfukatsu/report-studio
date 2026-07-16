@@ -128,8 +128,12 @@ public final class PdfProbe {
         return String.join("\n", pageTexts);
     }
 
+    /**
+     * Whether the page text contains {@code needle}. The needle is NFKC-normalized
+     * to match the extracted text (e.g. fullwidth （） fold to ASCII parens).
+     */
     public boolean pageContains(int pageIndex, String needle) {
-        return pageText(pageIndex).contains(needle);
+        return pageText(pageIndex).contains(nfkc(needle));
     }
 
     // ── Text-run accessors ──────────────────────────────────────────────
@@ -142,14 +146,20 @@ public final class PdfProbe {
         return runs.stream().filter(r -> r.pageIndex() == pageIndex).toList();
     }
 
-    /** First run on the page whose text contains {@code needle}. */
+    /** First run on the page whose text contains {@code needle} (NFKC-normalized). */
     public Optional<TextRun> findRun(int pageIndex, String needle) {
-        return runs(pageIndex).stream().filter(r -> r.text().contains(needle)).findFirst();
+        String n = nfkc(needle);
+        return runs(pageIndex).stream().filter(r -> r.text().contains(n)).findFirst();
     }
 
-    /** All runs (any page) whose text contains {@code needle}. */
+    /** All runs (any page) whose text contains {@code needle} (NFKC-normalized). */
     public List<TextRun> findRuns(String needle) {
-        return runs.stream().filter(r -> r.text().contains(needle)).toList();
+        String n = nfkc(needle);
+        return runs.stream().filter(r -> r.text().contains(n)).toList();
+    }
+
+    private static String nfkc(String s) {
+        return Normalizer.normalize(s, Normalizer.Form.NFKC);
     }
 
     // ── Expected-position helpers (renderer coordinate contract) ───────
