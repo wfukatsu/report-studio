@@ -7,8 +7,16 @@ import java.io.IOException;
 /**
  * Renders {@code detail_table} sections with pagination.
  * Handles header-row repetition and variable/fixed row-count modes.
+ *
+ * <p>Rows per page (issue #55): {@code tableMode: "fixed"} +
+ * {@code fixedRowCount} wins; otherwise the capacity is derived from the
+ * actual geometry — how many row units fit between the topmost row_block
+ * and the section's bottom edge — falling back to 10 only when the
+ * geometry is unusable.
  */
 final class DetailTableSectionRenderer implements SectionPdfRenderer {
+
+    private static final int LEGACY_DEFAULT_ROWS_PER_PAGE = 10;
 
     @Override public String sectionType() { return "detail_table"; }
     @Override public boolean isPaginating() { return true; }
@@ -37,13 +45,19 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
         String tableMode = PdfUtils.textOf(section, "tableMode", "variable");
         int fixedRowCount = PdfUtils.intOf(section, "fixedRowCount", 0);
         if ("fixed".equals(tableMode) && fixedRowCount > 0) return fixedRowCount;
-        return 10; // default variable rows per page
+        int capacity = SectionRenderHelper.computeRowCapacity(section);
+        return capacity > 0 ? capacity : LEGACY_DEFAULT_ROWS_PER_PAGE;
     }
 
     @Override
     public void renderPage(PageContext ctx, JsonNode section, JsonNode formData,
                            SectionRenderHelper helper, int pageIdx, int rowsPerPage, int totalRows)
             throws IOException {
+        int startRow = pageIdx * rowsPerPage;
+        // Beyond this section's own data: draw nothing (other paginating
+        // sections may still be flowing on later pages — issue #55)
+        if (pageIdx > 0 && startRow >= totalRows) return;
+
         boolean repeatHeader =
                 section.has("repeatHeader") && section.get("repeatHeader").asBoolean(false);
 
@@ -52,11 +66,13 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
             SectionRenderHelper.renderNonRowElements(ctx, section, formData, ctx.variantCtx());
         }
 
-        // Render data rows for this page's slice
-        int startRow = pageIdx * rowsPerPage;
+        // Render data rows for this page's slice, advancing by the unit stride
+        float[] region = SectionRenderHelper.computeRowRegion(section);
+        float stride = region != null ? region[1] : Float.NaN;
         int endRow = Math.min(startRow + rowsPerPage, totalRows);
         for (int rowIdx = startRow; rowIdx < endRow; rowIdx++) {
-            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage, ctx.variantCtx());
+            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage,
+                    ctx.variantCtx(), stride);
         }
     }
 }

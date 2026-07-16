@@ -8,19 +8,17 @@ import java.io.IOException;
  * Renders {@code multi_row_table} sections where each logical data record
  * spans multiple physical rows (rowUnitSize).
  *
- * <p>The {@code splitPolicy} field controls page-break behaviour:
- * <ul>
- *   <li>{@code forbidden} — a logical unit never splits across pages</li>
- *   <li>{@code allowed-between-rows} — split between the physical rows of a unit</li>
- *   <li>{@code allowed-inside-unit} — split even inside a physical row</li>
- * </ul>
- *
- * <p>Phase 1a implements the core paginating render loop. Split-policy enforcement
- * (keeping units together across page boundaries) is applied in future refinements.
+ * <p>Pagination (issue #55) is unit-based: capacity per page is derived from
+ * the section geometry (how many whole units fit between the topmost
+ * row_block and the section bottom), and each record advances by the unit's
+ * full extent — so a logical unit never splits across pages. This satisfies
+ * {@code splitPolicy: "forbidden"}; the finer-grained
+ * {@code allowed-between-rows} / {@code allowed-inside-unit} policies (which
+ * would allow partial units at a page break) are not yet implemented and
+ * currently behave like {@code forbidden}.
  */
 final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
 
-    private static final int DEFAULT_ROW_UNIT_SIZE = 1;
     private static final int DEFAULT_UNITS_PER_PAGE = 10;
 
     @Override public String sectionType() { return "multi_row_table"; }
@@ -47,19 +45,22 @@ final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
 
     @Override
     public int rowsPerPage(JsonNode section) {
-        // Express capacity in logical records per page
-        int rowUnitSize = PdfUtils.intOf(section, "rowUnitSize", DEFAULT_ROW_UNIT_SIZE);
-        if (rowUnitSize <= 0) rowUnitSize = DEFAULT_ROW_UNIT_SIZE;
-        // Use fixed row count if specified, otherwise default capacity
+        // Explicit fixed unit count wins
         int fixedRowCount = PdfUtils.intOf(section, "fixedRowCount", 0);
         if (fixedRowCount > 0) return fixedRowCount;
-        return DEFAULT_UNITS_PER_PAGE;
+        // Height-derived: whole units fitting inside the section (issue #55)
+        int capacity = SectionRenderHelper.computeRowCapacity(section);
+        return capacity > 0 ? capacity : DEFAULT_UNITS_PER_PAGE;
     }
 
     @Override
     public void renderPage(PageContext ctx, JsonNode section, JsonNode formData,
                            SectionRenderHelper helper, int pageIdx, int rowsPerPage, int totalRows)
             throws IOException {
+        int startRow = pageIdx * rowsPerPage;
+        // Beyond this section's own data: draw nothing (issue #55)
+        if (pageIdx > 0 && startRow >= totalRows) return;
+
         boolean repeatHeader =
                 section.has("continuationHeader") && section.get("continuationHeader").asBoolean(false);
 
@@ -68,11 +69,13 @@ final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
             SectionRenderHelper.renderNonRowElements(ctx, section, formData, ctx.variantCtx());
         }
 
-        // Render logical rows for this page's slice
-        int startRow = pageIdx * rowsPerPage;
+        // Render logical units for this page's slice, advancing by the unit extent
+        float[] region = SectionRenderHelper.computeRowRegion(section);
+        float stride = region != null ? region[1] : Float.NaN;
         int endRow = Math.min(startRow + rowsPerPage, totalRows);
         for (int rowIdx = startRow; rowIdx < endRow; rowIdx++) {
-            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage, ctx.variantCtx());
+            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage,
+                    ctx.variantCtx(), stride);
         }
     }
 }

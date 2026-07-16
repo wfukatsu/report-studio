@@ -53,13 +53,8 @@ public final class ElementPdfRendererRegistry {
         registry.register(new FormGridPdfRenderer());
         registry.register(new FormTablePdfRenderer());
         registry.register(new TextCellPdfRenderer());
-        // row_block: no-op — grid lines drawn by table/form_grid, text by text_cell
-        registry.register(new ElementPdfRenderer() {
-            @Override public String kind() { return "row_block"; }
-            @Override public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                                          float w, float h, float pageHeight, PDDocument doc,
-                                          Map<String, PDFont> fontCache) { /* no-op */ }
-        });
+        // row_block: per-row text of detail/multi-row table sections (issue #55)
+        registry.register(new RowBlockPdfRenderer());
         return registry;
     }
 }

@@ -121,10 +121,22 @@ public final class SectionRenderHelper {
 
     /**
      * Render row_block elements with variant-aware visibility and masking.
+     * The row stride defaults to each element's own frame height.
      */
     public static void renderElementsForRow(PageContext ctx, JsonNode section,
                                             JsonNode formData, int rowIdx, int rowsPerPage,
                                             VariantContext variantCtx) {
+        renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage, variantCtx, Float.NaN);
+    }
+
+    /**
+     * Render row_block elements with an explicit row-unit stride (mm).
+     * Multi-row units must advance by the whole unit's extent, not each
+     * element's own height (issue #55).
+     */
+    public static void renderElementsForRow(PageContext ctx, JsonNode section,
+                                            JsonNode formData, int rowIdx, int rowsPerPage,
+                                            VariantContext variantCtx, float strideMm) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
@@ -133,7 +145,7 @@ public final class SectionRenderHelper {
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
-            JsonNode rowEl = resolveDetailRow(el, formData, rowIdx, rowsPerPage);
+            JsonNode rowEl = resolveDetailRow(el, formData, rowIdx, rowsPerPage, strideMm);
             JsonNode masked = applyMaskingToElement(rowEl, variantCtx);
             renderElement(ctx, masked);
         }
@@ -212,6 +224,15 @@ public final class SectionRenderHelper {
      */
     public static JsonNode resolveDetailRow(JsonNode el, JsonNode formData,
                                             int rowIdx, int rowsPerPage) {
+        return resolveDetailRow(el, formData, rowIdx, rowsPerPage, Float.NaN);
+    }
+
+    /**
+     * Stride-aware variant: the Y offset per logical row is {@code strideMm}
+     * (the row unit's full extent); NaN falls back to the element's own height.
+     */
+    public static JsonNode resolveDetailRow(JsonNode el, JsonNode formData,
+                                            int rowIdx, int rowsPerPage, float strideMm) {
         JsonNode bindingRefNode = el.get("bindingRef");
         if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
         String ref = bindingRefNode.asText();
@@ -232,9 +253,10 @@ public final class SectionRenderHelper {
             JsonNode frame = copy.get("frame");
             if (frame != null && frame.isObject()) {
                 ObjectNode frameCopy = (ObjectNode) frame;
-                float rowHeight = PdfUtils.floatOf(frame, "height");
+                float stride = Float.isNaN(strideMm) || strideMm <= 0
+                        ? PdfUtils.floatOf(frame, "height") : strideMm;
                 float baseY = PdfUtils.floatOf(frame, "y");
-                frameCopy.put("y", baseY + rowHeight * (rowIdx % rowsPerPage));
+                frameCopy.put("y", baseY + stride * (rowIdx % rowsPerPage));
             }
             // Set the resolved value into props
             ObjectNode props = copy.has("props") && copy.get("props").isObject()
@@ -248,6 +270,50 @@ public final class SectionRenderHelper {
         } catch (Exception e) {
             return el;
         }
+    }
+
+    // ── Row-region geometry (issue #55) ─────────────────────────────────
+
+    /**
+     * Compute the row-unit region of a paginating section from its row_block
+     * elements: {@code [startYmm, strideMm]} where startY is the topmost
+     * row_block frame Y and stride is the unit's full vertical extent
+     * (max(y+height) − min(y)). Returns null when the section has no
+     * row_block with usable geometry.
+     */
+    public static float[] computeRowRegion(JsonNode section) {
+        JsonNode elements = section.get("elements");
+        if (elements == null || !elements.isArray()) return null;
+        float minY = Float.MAX_VALUE;
+        float maxBottom = -Float.MAX_VALUE;
+        for (JsonNode el : elements) {
+            if (!"row_block".equals(resolveKind(el))) continue;
+            JsonNode frame = el.get("frame");
+            if (frame == null) continue;
+            float y = PdfUtils.floatOf(frame, "y");
+            float h = PdfUtils.floatOf(frame, "height");
+            minY = Math.min(minY, y);
+            maxBottom = Math.max(maxBottom, y + h);
+        }
+        if (minY == Float.MAX_VALUE || maxBottom <= minY) return null;
+        return new float[]{minY, maxBottom - minY};
+    }
+
+    /**
+     * Height-derived row capacity: how many whole row units fit between the
+     * topmost row_block and the section's bottom edge ({@code section.y +
+     * section.height}). Returns -1 when the geometry is not computable, so
+     * callers can fall back to their legacy default.
+     */
+    public static int computeRowCapacity(JsonNode section) {
+        float[] region = computeRowRegion(section);
+        if (region == null) return -1;
+        float sectionY = PdfUtils.floatOf(section, "y", 0);
+        float sectionH = PdfUtils.floatOf(section, "height", 0);
+        if (sectionH <= 0) return -1;
+        float available = sectionY + sectionH - region[0];
+        if (available < region[1]) return 1;
+        return (int) Math.floor(available / region[1]);
     }
 
     // ── Private helpers ─────────────────────────────────────────────────

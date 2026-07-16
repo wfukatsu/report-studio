@@ -56,7 +56,7 @@
           "type": "detail_table",
           "name": "明細",
           "y": 70,
-          "height": 150,
+          "height": 92,
           "repeatHeader": true,
           "elements": [
             {

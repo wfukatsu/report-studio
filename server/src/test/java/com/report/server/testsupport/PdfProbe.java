@@ -176,19 +176,20 @@ public final class PdfProbe {
 
     /**
      * NFKC folds Kangxi radicals (U+2F00–2FDF) back to unified ideographs, but
-     * NOT the CJK Radicals Supplement (U+2E80–2EFF) that the Noto subset's
-     * ToUnicode CMap also emits (e.g. 長→⻑). Fold the common ones by hand.
+     * the Noto subset's ToUnicode CMap emits further lookalike codepoints NFKC
+     * leaves alone: CJK Radicals Supplement glyphs (長→⻑) and the hyphenation
+     * point for the katakana middle dot (・→‧). Fold the known ones by hand.
      */
-    private static final String RADICAL_SUPPLEMENT = "⻑⻄⻘⻝⻤⻲⻯⻁⺠⻣⻭⻩⻨⻖⻗";
-    private static final String RADICAL_UNIFIED    = "長西青食鬼亀竜虎民骨歯黄麦阝雨";
+    private static final String TOUNICODE_QUIRKS = "⻑⻄⻘⻝⻤⻲⻯⻁⺠⻣⻭⻩⻨⻖⻗‧";
+    private static final String QUIRKS_CANONICAL = "長西青食鬼亀竜虎民骨歯黄麦阝雨・";
 
     private static String nfkc(String s) {
         String normalized = Normalizer.normalize(s, Normalizer.Form.NFKC);
         StringBuilder sb = new StringBuilder(normalized.length());
         for (int i = 0; i < normalized.length(); i++) {
             char c = normalized.charAt(i);
-            int idx = RADICAL_SUPPLEMENT.indexOf(c);
-            sb.append(idx >= 0 ? RADICAL_UNIFIED.charAt(idx) : c);
+            int idx = TOUNICODE_QUIRKS.indexOf(c);
+            sb.append(idx >= 0 ? QUIRKS_CANONICAL.charAt(idx) : c);
         }
         return sb.toString();
     }

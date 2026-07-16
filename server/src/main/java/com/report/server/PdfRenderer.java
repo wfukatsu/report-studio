@@ -111,26 +111,29 @@ public final class PdfRenderer {
             return;
         }
 
-        // Classify sections: find the first paginating section to determine total pages,
-        // keep all sections in order for per-page dispatch.
+        // Per-section pagination (issue #55): every paginating section computes
+        // its own rows-per-page and row count; the document's page count is the
+        // max across sections, and each section flows independently.
         java.util.List<JsonNode> orderedSections = new java.util.ArrayList<>();
-        JsonNode paginatingSection = null;
-        int totalRows = 0;
-        int rowsPerPage = 10;
+        java.util.List<int[]> sectionParams = new java.util.ArrayList<>(); // {rowsPerPage, totalRows}
+        int totalPages = 1;
 
         for (JsonNode section : sections) {
             orderedSections.add(section);
             String sectionType = resolveSectionType(section);
             SectionPdfRenderer renderer = SECTION_REGISTRY.getOrFallback(sectionType);
-            if (paginatingSection == null && renderer.isPaginating()) {
-                paginatingSection = section;
-                rowsPerPage = renderer.rowsPerPage(section);
+            int rowsPerPage = 10;
+            int totalRows = 0;
+            if (renderer.isPaginating()) {
+                rowsPerPage = Math.max(renderer.rowsPerPage(section), 1);
                 totalRows = (formData != null) ? renderer.countRows(section, formData) : 0;
+                if (totalRows > rowsPerPage) {
+                    totalPages = Math.max(totalPages,
+                            (int) Math.ceil((double) totalRows / rowsPerPage));
+                }
             }
+            sectionParams.add(new int[]{rowsPerPage, totalRows});
         }
-
-        int totalPages = (totalRows > rowsPerPage)
-                ? (int) Math.ceil((double) totalRows / rowsPerPage) : 1;
 
         Map<String, PDFont> fontCache = new HashMap<>();
 
@@ -140,11 +143,13 @@ public final class PdfRenderer {
 
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();
-                for (JsonNode section : orderedSections) {
+                for (int i = 0; i < orderedSections.size(); i++) {
+                    JsonNode section = orderedSections.get(i);
                     String sectionType = resolveSectionType(section);
                     SectionPdfRenderer renderer = SECTION_REGISTRY.getOrFallback(sectionType);
+                    int[] params = sectionParams.get(i);
                     renderer.renderPage(ctx, section, formData, null,
-                            pageIdx, rowsPerPage, totalRows);
+                            pageIdx, params[0], params[1]);
                 }
             }
         }

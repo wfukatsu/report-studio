@@ -79,12 +79,20 @@ class PdfGoldenTemplateTest {
     }
 
     @Test
-    void detailRowData_isCurrentlyLost() {
-        // KNOWN DATA-LOSS GAP (issues #53/#55): all 12 item rows resolve their
-        // values but the row_block renderer is a no-op, so no item name or
-        // amount reaches the PDF. Flip these assertions when row rendering lands.
-        assertFalse(probe.allText().contains("基本設計支援"),
-                "row data unexpectedly rendered — update this characterization test");
-        assertFalse(probe.allText().contains("¥100,000"));
+    void detailRowsRenderAndFlowAcrossPages() {
+        // Row rendering + height-derived pagination (issue #55): the section
+        // bottom edge is 162mm and rows start at 82mm with an 8mm stride
+        // → 10 rows on page 0, rows 11–12 on page 1 back at the region top.
+        PdfProbe.TextRun first = probe.findRun(0, "基本設計支援").orElseThrow(
+                () -> new AssertionError("row data missing; runs:\n" + probe.dumpRuns()));
+        assertEquals(PdfProbe.expectedBaselineYMm(82, 9), first.baselineYMm(), 0.5f);
+        assertTrue(probe.pageContains(0, "¥100,000"));
+        assertTrue(probe.pageContains(0, "教育・引き継ぎ"));
+        assertFalse(probe.pageContains(0, "プロジェクト管理"));
+
+        PdfProbe.TextRun row11 = probe.findRun(1, "プロジェクト管理").orElseThrow();
+        assertEquals(PdfProbe.expectedBaselineYMm(82, 9), row11.baselineYMm(), 0.5f);
+        assertTrue(probe.pageContains(1, "予備費"));
+        assertTrue(probe.pageContains(1, "¥79,567"));
     }
 }
