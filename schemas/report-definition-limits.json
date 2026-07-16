@@ -1,0 +1,12 @@
+{
+  "$comment": "ReportDefinition structural limits — single source of truth (issue #52). Consumed by src/lib/schemas/limits.ts (Zod) and server ReportDefinitionValidator (bundled into resources via processResources). See schemas/README.md.",
+  "maxPages": 50,
+  "maxSectionsPerPage": 20,
+  "maxElementsPerSection": 500,
+  "maxCalculationRules": 50,
+  "maxValidationRules": 200,
+  "maxOutputVariants": 50,
+  "maxTemplateVariables": 100,
+  "maxDataSources": 50,
+  "maxSubmissionModels": 50
+}

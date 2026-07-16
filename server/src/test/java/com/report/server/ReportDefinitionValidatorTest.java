@@ -72,10 +72,34 @@ class ReportDefinitionValidatorTest {
     void tooManyCalculationRules_isRejected() {
         ObjectNode def = M.createObjectNode();
         ArrayNode rules = def.putArray("calculationRules");
-        for (int i = 0; i <= ReportDefinitionValidator.MAX_RULES; i++) {
+        for (int i = 0; i <= ReportDefinitionValidator.MAX_CALCULATION_RULES; i++) {
             rules.addObject().put("key", "r" + i);
         }
         assertTrue(ReportDefinitionValidator.validate(def).orElse("").contains("calculationRules"));
+    }
+
+    @Test
+    void tooManyOutputVariants_isRejected() {
+        ObjectNode def = M.createObjectNode();
+        ArrayNode variants = def.putArray("outputVariants");
+        for (int i = 0; i <= ReportDefinitionValidator.MAX_OUTPUT_VARIANTS; i++) {
+            variants.addObject().put("id", "v" + i);
+        }
+        assertTrue(ReportDefinitionValidator.validate(def).orElse("").contains("outputVariants"));
+    }
+
+    @Test
+    void limitsMatchSharedLimitsFile() throws Exception {
+        // The bundled resource is the single source (schemas/report-definition-limits.json)
+        try (var in = ReportDefinitionValidator.class.getResourceAsStream("/report-definition-limits.json")) {
+            assertNotNull(in, "report-definition-limits.json must be bundled into resources");
+            JsonNode limits = M.readTree(in);
+            assertEquals(limits.get("maxPages").asInt(), ReportDefinitionValidator.MAX_PAGES);
+            assertEquals(limits.get("maxSectionsPerPage").asInt(), ReportDefinitionValidator.MAX_SECTIONS_PER_PAGE);
+            assertEquals(limits.get("maxElementsPerSection").asInt(), ReportDefinitionValidator.MAX_ELEMENTS_PER_SECTION);
+            assertEquals(limits.get("maxCalculationRules").asInt(), ReportDefinitionValidator.MAX_CALCULATION_RULES);
+            assertEquals(limits.get("maxValidationRules").asInt(), ReportDefinitionValidator.MAX_VALIDATION_RULES);
+        }
     }
 
     @Test

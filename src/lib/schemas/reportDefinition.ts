@@ -1,16 +1,14 @@
 /**
  * Zod schemas for ReportDefinition API boundary validation.
  *
- * Enforces structural constraints:
- * - Pages max: 50
- * - Sections per page max: 20
- * - Elements per section max: 500
- * - Calculation rules max: 100
- * - Template variables max: 100
+ * Structural limits come from schemas/report-definition-limits.json via
+ * REPORT_DEFINITION_LIMITS — the single source shared with the server-side
+ * validator (issue #52).
  *
  * Uses .passthrough() so unknown future fields aren't rejected (forward compat).
  */
 import { z } from 'zod'
+import { REPORT_DEFINITION_LIMITS as LIMITS } from './limits'
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -127,7 +125,7 @@ const SectionSchema = z.object({
   id: z.string().min(1),
   sectionType: z.enum(['header', 'body', 'footer', 'custom']),
   height: z.number().positive(),
-  elements: z.array(ReportElementSchema).max(500),
+  elements: z.array(ReportElementSchema).max(LIMITS.maxElementsPerSection),
 }).passthrough()
 
 // ---------------------------------------------------------------------------
@@ -153,7 +151,7 @@ const PageDefSchema = z.object({
   width: z.number().positive(),
   height: z.number().positive(),
   background: z.string(),
-  sections: z.array(SectionSchema).max(20),
+  sections: z.array(SectionSchema).max(LIMITS.maxSectionsPerPage),
   groups: z.array(LayerGroupSchema).max(100).optional(),
 }).passthrough()
 
@@ -242,13 +240,13 @@ export const ReportDefinitionSchema = z.object({
   metadata: MetadataSchema,
   pageSettings: PageSettingsSchema,
   defaultTextStyle: TextStyleSchema,
-  templateVariables: z.array(TemplateVariableSchema).max(100),
-  calculationRules: z.array(CalculationRuleSchema).max(50),
+  templateVariables: z.array(TemplateVariableSchema).max(LIMITS.maxTemplateVariables),
+  calculationRules: z.array(CalculationRuleSchema).max(LIMITS.maxCalculationRules),
   dataSources: z.array(z.object({
     id: z.string().min(1),
     name: z.string(),
     fields: z.record(z.string(), z.unknown()),
-  }).passthrough()).max(50),
+  }).passthrough()).max(LIMITS.maxDataSources),
   outputVariants: z.array(z.union([
     // New typed format
     z.object({
@@ -274,11 +272,11 @@ export const ReportDefinitionSchema = z.object({
     }),
     // Legacy / unknown format — passthrough
     z.record(z.string(), z.unknown()),
-  ])).max(50),
+  ])).max(LIMITS.maxOutputVariants),
   schema: SchemaDefinitionSchema.optional(),
-  submissionModels: z.array(z.record(z.string(), z.unknown())).max(50),
-  validationRules: z.array(ValidationRuleSchema).max(200),
-  pages: z.array(PageDefSchema).min(1).max(50),
+  submissionModels: z.array(z.record(z.string(), z.unknown())).max(LIMITS.maxSubmissionModels),
+  validationRules: z.array(ValidationRuleSchema).max(LIMITS.maxValidationRules),
+  pages: z.array(PageDefSchema).min(1).max(LIMITS.maxPages),
   masterHeader: SectionSchema.optional(),
   masterFooter: SectionSchema.optional(),
   formulaLanguage: z.enum(['jexl', 'formula-v1']).optional(),

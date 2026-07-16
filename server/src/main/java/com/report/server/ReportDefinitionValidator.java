@@ -1,7 +1,11 @@
 package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.util.Optional;
 
 /**
@@ -14,14 +18,58 @@ import java.util.Optional;
  * lenient about per-element-type fields (those fail gracefully at render time)
  * — the goal is to reject documents that are structurally abusive or malformed,
  * not to fully mirror the type union.
+ *
+ * <p>Limits are loaded from {@code report-definition-limits.json} — the single
+ * source at {@code schemas/report-definition-limits.json}, bundled into
+ * resources by the {@code processResources} task and shared with the frontend
+ * Zod schema (src/lib/schemas/limits.ts).
  */
 public final class ReportDefinitionValidator {
 
-    // Mirror of src/lib/schemas/reportDefinition.ts limits
-    static final int MAX_PAGES = 50;
-    static final int MAX_SECTIONS_PER_PAGE = 20;
-    static final int MAX_ELEMENTS_PER_SECTION = 500;
-    static final int MAX_RULES = 200;
+    private static final Logger log = LoggerFactory.getLogger(ReportDefinitionValidator.class);
+    private static final String LIMITS_RESOURCE = "/report-definition-limits.json";
+
+    static final int MAX_PAGES;
+    static final int MAX_SECTIONS_PER_PAGE;
+    static final int MAX_ELEMENTS_PER_SECTION;
+    static final int MAX_CALCULATION_RULES;
+    static final int MAX_VALIDATION_RULES;
+    static final int MAX_OUTPUT_VARIANTS;
+    static final int MAX_TEMPLATE_VARIABLES;
+    static final int MAX_DATA_SOURCES;
+    static final int MAX_SUBMISSION_MODELS;
+
+    static {
+        JsonNode limits = loadLimits();
+        MAX_PAGES = intLimit(limits, "maxPages", 50);
+        MAX_SECTIONS_PER_PAGE = intLimit(limits, "maxSectionsPerPage", 20);
+        MAX_ELEMENTS_PER_SECTION = intLimit(limits, "maxElementsPerSection", 500);
+        MAX_CALCULATION_RULES = intLimit(limits, "maxCalculationRules", 50);
+        MAX_VALIDATION_RULES = intLimit(limits, "maxValidationRules", 200);
+        MAX_OUTPUT_VARIANTS = intLimit(limits, "maxOutputVariants", 50);
+        MAX_TEMPLATE_VARIABLES = intLimit(limits, "maxTemplateVariables", 100);
+        MAX_DATA_SOURCES = intLimit(limits, "maxDataSources", 50);
+        MAX_SUBMISSION_MODELS = intLimit(limits, "maxSubmissionModels", 50);
+    }
+
+    private static JsonNode loadLimits() {
+        try (InputStream in = ReportDefinitionValidator.class.getResourceAsStream(LIMITS_RESOURCE)) {
+            if (in == null) {
+                log.warn("Limits resource {} not found — falling back to built-in defaults", LIMITS_RESOURCE);
+                return null;
+            }
+            return new ObjectMapper().readTree(in);
+        } catch (Exception e) {
+            log.warn("Failed to read limits resource {} — falling back to built-in defaults", LIMITS_RESOURCE, e);
+            return null;
+        }
+    }
+
+    private static int intLimit(JsonNode limits, String key, int fallback) {
+        if (limits == null) return fallback;
+        JsonNode v = limits.get(key);
+        return (v != null && v.isInt() && v.asInt() > 0) ? v.asInt() : fallback;
+    }
 
     private ReportDefinitionValidator() {}
 
@@ -43,11 +91,19 @@ public final class ReportDefinitionValidator {
             }
         }
 
-        for (String field : new String[]{"calculationRules", "validationRules", "outputVariants"}) {
-            JsonNode arr = def.get(field);
-            if (arr != null && arr.isArray() && arr.size() > MAX_RULES) {
-                return Optional.of("Too many " + field + " (" + arr.size() + " > " + MAX_RULES + ")");
-            }
+        Optional<String> arrErr = checkArrayLimit(def, "calculationRules", MAX_CALCULATION_RULES);
+        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "validationRules", MAX_VALIDATION_RULES);
+        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "outputVariants", MAX_OUTPUT_VARIANTS);
+        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "templateVariables", MAX_TEMPLATE_VARIABLES);
+        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "dataSources", MAX_DATA_SOURCES);
+        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "submissionModels", MAX_SUBMISSION_MODELS);
+        return arrErr;
+    }
+
+    private static Optional<String> checkArrayLimit(JsonNode def, String field, int max) {
+        JsonNode arr = def.get(field);
+        if (arr != null && arr.isArray() && arr.size() > max) {
+            return Optional.of("Too many " + field + " (" + arr.size() + " > " + max + ")");
         }
         return Optional.empty();
     }

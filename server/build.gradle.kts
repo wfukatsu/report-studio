@@ -77,6 +77,15 @@ tasks.register<JavaExec>("seed") {
     workingDir = rootProject.projectDir
 }
 
+// Bundle the shared ReportDefinition limits (single source at ../schemas)
+// into resources so ReportDefinitionValidator reads the same file as the
+// frontend Zod schema (issue #52).
+tasks.processResources {
+    from(project.projectDir.resolve("../schemas")) {
+        include("report-definition-limits.json")
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
