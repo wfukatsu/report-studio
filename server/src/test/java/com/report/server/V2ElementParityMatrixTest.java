@@ -36,20 +36,21 @@ class V2ElementParityMatrixTest {
             "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow",
             "dataField", "pageNumber", "currentDate",
             "tenantCompanyName", "tenantAddress", "tenantPhone",
-            "tenantRepresentative", "tenantLogo", "tenantCustom");
+            "tenantRepresentative", "tenantLogo", "tenantCustom",
+            "manualEntry", "chart", "repeatingBand", "repeatingList");
 
     private static Map<String, String> buildTypeNotes() {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("text", "props.text のみ。V2 の content フィールドは未解釈（#52/#53）");
         m.put("dataField", "対応（DataFieldPdfRenderer + ValueFormatter — 数値/日付/和暦/大字/住所書式、fieldKey 解決、textAlign）");
-        m.put("chart", "サーバ側チャート描画なし（#53）");
-        m.put("repeatingBand", "要素レンダラーなし。繰返しはセクション (detail_table) のみ（#53/#55）");
-        m.put("repeatingList", "要素レンダラーなし（#53/#55）");
+        m.put("chart", "対応（ChartPdfRenderer — bar/line/pie/donut をネイティブ描画）");
+        m.put("repeatingBand", "対応（RepeatingBandPdfRenderer — 要素内テーブル。groupBy/小計は detail_table セクション側）");
+        m.put("repeatingList", "対応（RepeatingListPdfRenderer — vertical/horizontal/grid カードレイアウト）");
         m.put("formTable", "対応（kind 名一致）。eraSelect セルは resolveCellText で対応");
         m.put("shape", "対応");
         m.put("image", "対応（URL 取得時は SSRF ガードあり）");
         m.put("barcode", "対応（qrcode は別 kind）");
-        m.put("manualEntry", "レンダラーなし（#53）");
+        m.put("manualEntry", "対応（ManualEntryPdfRenderer — line/box/grid・ラベル・ふりがな帯）");
         m.put("checkbox", "対応（CheckPdfRenderer）");
         m.put("eraSelect", "対応（EraSelectPdfRenderer — column/row/grid-2col、dataSource 解決）");
         m.put("hanko", "対応（HankoPdfRenderer — 円/角・二重枠・縦書き・色・binding 解決）");

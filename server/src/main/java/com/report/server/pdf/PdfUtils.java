@@ -57,6 +57,14 @@ public final class PdfUtils {
         return props != null ? floatOf(props, field, defaultValue) : defaultValue;
     }
 
+    /** Integer variant of {@link #elementTextOf}. */
+    public static int elementIntOf(JsonNode el, String field, int defaultValue) {
+        JsonNode v = el.get(field);
+        if (v != null && v.isNumber()) return v.intValue();
+        JsonNode props = el.get("props");
+        return props != null ? intOf(props, field, defaultValue) : defaultValue;
+    }
+
     /** Boolean variant of {@link #elementTextOf}. */
     public static boolean elementBoolOf(JsonNode el, String field, boolean defaultValue) {
         JsonNode v = el.get(field);

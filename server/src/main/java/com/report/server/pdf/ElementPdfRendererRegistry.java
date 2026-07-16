@@ -48,6 +48,10 @@ public final class ElementPdfRendererRegistry {
         registry.register(new ApprovalStampRowPdfRenderer());
         registry.register(new EraSelectPdfRenderer());
         registry.register(new DataFieldPdfRenderer());
+        registry.register(new ManualEntryPdfRenderer());
+        registry.register(new ChartPdfRenderer());
+        registry.register(new RepeatingBandPdfRenderer());
+        registry.register(new RepeatingListPdfRenderer());
         // Auto-fields — values resolved from the page context (issue #54)
         registry.register(new StyledTextPdfRenderer("pageNumber"));
         registry.register(new StyledTextPdfRenderer("currentDate"));

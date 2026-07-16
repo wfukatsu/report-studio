@@ -120,23 +120,22 @@ class PdfParseBackTest {
 
     @Test
     void unknownElementKind_producesNoText() throws IOException {
-        // Characterization: unknown kinds fall back to an empty border box.
-        // Related gap: several V2 element types still hit this path (issue #53).
+        // A genuinely unknown future kind falls back to an empty border box.
         String json = """
             {"templates":[{
               "id":"t1","name":"Unknown",
               "sections":[{
                 "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
                 "elements":[{
-                  "id":"e1","kind":"manualEntry","name":"記入欄",
+                  "id":"e1","kind":"future_widget_v9","name":"未知",
                   "frame":{"x":20,"y":30,"width":100,"height":20,"rotation":0},
-                  "props":{"text":"手書き記入欄","fontSize":12}
+                  "props":{"text":"未知要素テキスト","fontSize":12}
                 }]
               }]
             }]}""";
         PdfProbe probe = render(json);
-        assertFalse(probe.pageContains(0, "手書き記入欄"),
-                "manualEntry has no server renderer yet (#53) — update this test when implemented");
+        assertFalse(probe.pageContains(0, "未知要素テキスト"),
+                "unknown kinds render an empty border box, not their text");
     }
 
     @Test

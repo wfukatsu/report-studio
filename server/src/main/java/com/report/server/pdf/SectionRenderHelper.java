@@ -204,6 +204,15 @@ public final class SectionRenderHelper {
      * Detail fields (first row only): "group[].field" → _formData.group[0].field
      */
     public static JsonNode resolveFormData(JsonNode el, JsonNode formData) {
+        // Array-bound elements copy a whole _formData array into props.data:
+        // chart (dataBinding), repeatingBand / repeatingList (dataSource)
+        String kind = resolveKind(el);
+        if ("chart".equals(kind)) {
+            return resolveArrayData(el, formData, "dataBinding");
+        }
+        if ("repeatingBand".equals(kind) || "repeatingList".equals(kind)) {
+            return resolveArrayData(el, formData, "dataSource");
+        }
         String ref = resolveBindingRef(el);
         if (ref == null) return el;
         if (ref.startsWith("{")) return el; // system variable — resolved at render time
@@ -223,6 +232,24 @@ public final class SectionRenderHelper {
 
         if (value == null) return el;
         return withResolvedProp(el, value);
+    }
+
+    /** Copy the bound data array ({@code field} → {@code _formData[key]}) into props.data. */
+    private static JsonNode resolveArrayData(JsonNode el, JsonNode formData, String field) {
+        String key = PdfUtils.elementTextOf(el, field, "");
+        if (key.isEmpty() || formData == null) return el;
+        JsonNode arr = formData.get(key);
+        if (arr == null || !arr.isArray()) return el;
+        try {
+            ObjectNode copy = (ObjectNode) el.deepCopy();
+            ObjectNode props = copy.has("props") && copy.get("props").isObject()
+                    ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+            props.set("data", arr.deepCopy());
+            copy.set("props", props);
+            return copy;
+        } catch (Exception e) {
+            return el;
+        }
     }
 
     /**
@@ -525,6 +552,7 @@ public final class SectionRenderHelper {
             case "eraSelect" -> "dataSource";
             case "hanko" -> "binding";
             case "dataField" -> "fieldKey";
+            case "manualEntry" -> "furiganaDataSource";
             default -> null;
         };
         if (v2Field == null) return null;
