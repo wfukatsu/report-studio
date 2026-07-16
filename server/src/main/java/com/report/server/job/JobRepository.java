@@ -14,16 +14,19 @@ import java.util.Optional;
 
 /**
  * Job repository backed by ScalarDB for metadata persistence
- * and local filesystem for PDF output files.
+ * and local filesystem for PDF output files — the {@link JobStore}
+ * implementation shared by every job stack (issue #60).
  *
  * <p>Metadata (JobRecord) is stored as JSON in ScalarDB table {@code report_studio.jobs}.
  * Output PDFs and ZIP archives remain on the local filesystem under {@code data/jobs/{jobId}/}.
  */
-public final class JobRepository {
+public final class JobRepository implements JobStore {
 
     private static final Logger log = LoggerFactory.getLogger(JobRepository.class);
     private static final String NAMESPACE = "report_studio";
     private static final String TABLE = "jobs";
+    private static final int SAVE_ATTEMPTS = 3;
+    private static final long SAVE_RETRY_BACKOFF_MS = 200;
     // Resolved to an absolute path once at startup so containment checks are
     // stable regardless of later working-directory changes (issue #58)
     private static final Path JOBS_DIR = Path.of("data", "jobs").toAbsolutePath().normalize();
@@ -49,16 +52,37 @@ public final class JobRepository {
         blob.ensureTable();
     }
 
-    /** Save or update a job record. */
+    /**
+     * Save or update a job record, retrying transient failures (issue #60).
+     * A save that still fails after retries is logged as an alert — the job's
+     * visible status will lag reality until the next successful checkpoint.
+     */
+    @Override
     public void save(JobRecord record) {
-        try {
-            blob.put(record.jobId(), record.toJson());
-        } catch (Exception e) {
-            log.error("Failed to save job {}", record.jobId(), e);
+        for (int attempt = 1; attempt <= SAVE_ATTEMPTS; attempt++) {
+            try {
+                blob.put(record.jobId(), record.toJson());
+                return;
+            } catch (Exception e) {
+                if (attempt == SAVE_ATTEMPTS) {
+                    log.error("ALERT: failed to save job {} after {} attempts — "
+                            + "job status may be stale", record.jobId(), SAVE_ATTEMPTS, e);
+                    return;
+                }
+                log.warn("Failed to save job {} (attempt {}/{}): {}",
+                        record.jobId(), attempt, SAVE_ATTEMPTS, e.getMessage());
+                try {
+                    Thread.sleep(SAVE_RETRY_BACKOFF_MS * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
         }
     }
 
     /** Find a job by ID. */
+    @Override
     public Optional<JobRecord> findById(String jobId) {
         return blob.get(jobId).flatMap(json -> {
             try {
@@ -71,6 +95,7 @@ public final class JobRepository {
     }
 
     /** List all jobs, sorted by creation date descending. */
+    @Override
     public List<JobRecord> listAll() {
         return blob.list().stream()
                 .map(json -> {
@@ -87,6 +112,7 @@ public final class JobRepository {
     }
 
     /** Delete a job record and its output files. */
+    @Override
     public void delete(String jobId) {
         blob.delete(jobId);
         // Clean up local output files
@@ -107,14 +133,43 @@ public final class JobRepository {
         log.info("Deleted job {} and its output files", jobId);
     }
 
+    /** Root directory for a job's artifacts. */
+    @Override
+    public Path jobDir(String jobId) {
+        return JOBS_DIR.resolve(jobId);
+    }
+
     /** Get the output directory for a job. */
+    @Override
     public Path getOutputDir(String jobId) {
         return JOBS_DIR.resolve(jobId).resolve("output");
     }
 
     /** Get the ZIP output path for a job. */
+    @Override
     public Path getOutputZipPath(String jobId) {
         return JOBS_DIR.resolve(jobId).resolve("output.zip");
+    }
+
+    /**
+     * Delete jobs whose TTL has passed (issue #60). Covers artifacts too via
+     * {@link #delete}. Non-terminal expired jobs are logged — with the V2
+     * per-job timeouts far below the TTL this indicates something got stuck.
+     */
+    @Override
+    public int deleteExpired(long nowMillis) {
+        int reaped = 0;
+        for (JobRecord job : listAll()) {
+            if (job.expiresAt() > 0 && job.expiresAt() < nowMillis) {
+                if (!job.isTerminal()) {
+                    log.warn("Reaping expired job {} that never reached a terminal state (was {})",
+                            job.jobId(), job.status());
+                }
+                delete(job.jobId());
+                reaped++;
+            }
+        }
+        return reaped;
     }
 
     /** Reconcile orphaned jobs on startup: mark PROCESSING/PENDING as FAILED. */

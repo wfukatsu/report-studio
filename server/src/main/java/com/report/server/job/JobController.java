@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HTTP handlers for batch job endpoints.
@@ -35,7 +34,7 @@ public final class JobController {
     private final JobRepository jobRepo;
     private final BatchPdfProcessor processor;
     private final ExecutorService executor;
-    private final AtomicInteger activeJobs = new AtomicInteger(0);
+    private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
     public JobController(JobRepository jobRepo, BatchPdfProcessor processor, ExecutorService executor) {
         this.jobRepo = jobRepo;
@@ -45,9 +44,8 @@ public final class JobController {
 
     /** POST /api/v1/jobs — submit a batch job (JSON or multipart with CSV) */
     public void submit(Context ctx) {
-        // Atomic concurrency limit — increment first, decrement on reject
-        if (activeJobs.incrementAndGet() > MAX_ACTIVE_JOBS) {
-            activeJobs.decrementAndGet();
+        // Unified admission control (issue #60) — slot released on reject or in the worker
+        if (!limiter.tryAcquire()) {
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             ctx.header("Retry-After", "30");
             ctx.json(Map.of("error", "Server busy, retry later"));
@@ -68,14 +66,14 @@ public final class JobController {
         var body = ctx.bodyAsClass(Map.class);
         String templateId = (String) body.get("templateId");
         if (templateId == null || templateId.isBlank()) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "templateId is required"));
             return;
         }
 
         if (!templateId.matches("^[a-zA-Z0-9_-]{1,128}$")) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Invalid templateId format"));
             return;
@@ -100,7 +98,7 @@ public final class JobController {
             try {
                 processor.run(jobId, templateId, finalRowCount);
             } finally {
-                activeJobs.decrementAndGet();
+                limiter.release();
             }
         });
 
@@ -118,14 +116,14 @@ public final class JobController {
     private void submitWithCsv(Context ctx) {
         String templateId = ctx.formParam("templateId");
         if (templateId == null || templateId.isBlank()) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "templateId is required"));
             return;
         }
 
         if (!templateId.matches("^[a-zA-Z0-9_-]{1,128}$")) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Invalid templateId format"));
             return;
@@ -133,7 +131,7 @@ public final class JobController {
 
         UploadedFile csvFile = ctx.uploadedFile("csv");
         if (csvFile == null) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "CSV file is required (field name: csv)"));
             return;
@@ -144,19 +142,19 @@ public final class JobController {
             String csvText = new String(csvFile.content().readAllBytes(), StandardCharsets.UTF_8);
             rows = CsvDataSource.parse(csvText);
         } catch (IllegalArgumentException e) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", e.getMessage()));
             return;
         } catch (IOException e) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Failed to read CSV file"));
             return;
         }
 
         if (rows.isEmpty()) {
-            activeJobs.decrementAndGet();
+            limiter.release();
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "CSV contains no data rows"));
             return;
@@ -174,7 +172,7 @@ public final class JobController {
             try {
                 processor.runWithData(jobId, templateId, rows);
             } finally {
-                activeJobs.decrementAndGet();
+                limiter.release();
             }
         });
 
@@ -190,9 +188,9 @@ public final class JobController {
             jobId, templateId, rows.size());
     }
 
-    /** GET /api/v1/jobs — list all jobs */
+    /** GET /api/v1/jobs — list V1 batch jobs (V2 jobs share the store but not this API) */
     public void list(Context ctx) {
-        ctx.json(jobRepo.listAll());
+        ctx.json(jobRepo.listAll().stream().filter(JobRecord::isV1).toList());
     }
 
     /** GET /api/v1/jobs/{id} — job status */
@@ -200,7 +198,7 @@ public final class JobController {
         String jobId = RequestValidator.validateId(ctx);
         if (jobId == null) return;
 
-        var job = jobRepo.findById(jobId);
+        var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
@@ -221,7 +219,7 @@ public final class JobController {
         String jobId = RequestValidator.validateId(ctx);
         if (jobId == null) return;
 
-        var job = jobRepo.findById(jobId);
+        var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
@@ -244,7 +242,7 @@ public final class JobController {
         String jobId = RequestValidator.validateId(ctx);
         if (jobId == null) return;
 
-        var job = jobRepo.findById(jobId);
+        var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));

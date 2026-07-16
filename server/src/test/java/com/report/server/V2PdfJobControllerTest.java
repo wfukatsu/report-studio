@@ -30,7 +30,8 @@ class V2PdfJobControllerTest {
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
         executor = Executors.newSingleThreadExecutor();
-        controller = new V2PdfJobController(definitionsRepo, executor);
+        controller = new V2PdfJobController(definitionsRepo,
+                new com.report.server.testsupport.InMemoryJobStore(), executor);
 
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenAnswer(inv -> {
@@ -164,8 +165,7 @@ class V2PdfJobControllerTest {
         // Force status to "pending" for this test
         var job = controller.findJob(jobId);
         assertTrue(job.isPresent());
-        if (V2PdfJobController.STATUS_PENDING.equals(job.get().status()) ||
-            V2PdfJobController.STATUS_PROCESSING.equals(job.get().status())) {
+        if (!job.get().isTerminal()) {
             controller.getResult(ctx);
             assertEquals(409, capturedStatus);
         }

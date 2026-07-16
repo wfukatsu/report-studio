@@ -5,16 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
+import com.report.server.job.JobConcurrencyLimiter;
+import com.report.server.job.JobRecord;
+import com.report.server.job.JobStatus;
+import com.report.server.job.JobStore;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -27,9 +34,16 @@ import java.util.zip.ZipOutputStream;
  *   <li>GET  /api/v2/pdf-jobs/batch/{id}/result — download ZIP</li>
  * </ul>
  *
+ * <p>Runs on the unified job abstraction (issue #60): metadata persisted via
+ * {@link JobStore}, the result ZIP streamed to {@code data/jobs/{id}/output.zip}
+ * (previously held on-heap as a byte array), TTL reaped by the shared reaper,
+ * restart-reconciled like every other job type, and admission-capped by the
+ * shared limiter (previously unbounded). The V2 API keeps its historical
+ * response shape and lowercase status vocabulary.
+ *
  * <p>Generates PDFs in parallel using the shared pdfExecutor (max 4 threads).
  * Partial failures produce a ZIP of successful PDFs + summary.json.
- * All-fail → 500 with no ZIP.
+ * All-fail → failed job with no ZIP.
  */
 public final class V2BatchPdfController {
 
@@ -40,26 +54,27 @@ public final class V2BatchPdfController {
     static final long MAX_ZIP_BYTES = 100L * 1024 * 1024; // 100 MB
     static final long BATCH_TIMEOUT_SECONDS = 300; // 5 minutes
     static final long TTL_SECONDS = 300;
+    private static final int MAX_ACTIVE_JOBS = 10;
 
     private final JsonBlobRepository definitionsRepo;
     private final JsonBlobRepository responseRepo;
+    private final JobStore jobStore;
     private final ExecutorService pdfExecutor;
-
-    private final ConcurrentHashMap<String, BatchJobRecord> jobs = new ConcurrentHashMap<>();
+    private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
     public V2BatchPdfController(JsonBlobRepository definitionsRepo,
                                  JsonBlobRepository responseRepo,
+                                 JobStore jobStore,
                                  ExecutorService pdfExecutor) {
         this.definitionsRepo = definitionsRepo;
         this.responseRepo = responseRepo;
+        this.jobStore = jobStore;
         this.pdfExecutor = pdfExecutor;
     }
 
     // ── POST /api/v2/pdf-jobs/batch ───────────────────────────────────────────
 
     public void submitBatch(Context ctx) throws Exception {
-        evictExpired();
-
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
             ctx.status(HttpStatus.UNAUTHORIZED);
@@ -104,11 +119,19 @@ public final class V2BatchPdfController {
             return;
         }
 
+        // Admission control (issue #60) — previously this stack had no cap
+        if (!limiter.tryAcquire()) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
+            ctx.header("Retry-After", "5");
+            ctx.json(Map.of("error", "Too many concurrent batch jobs; retry shortly"));
+            return;
+        }
+
         String batchJobId = "batch-" + UUID.randomUUID();
-        long now = Instant.now().getEpochSecond();
-        BatchJobRecord job = new BatchJobRecord(batchJobId, templateId, "pending", null, null,
-                responseIds.size(), 0, 0, now);
-        jobs.put(batchJobId, job);
+        JobRecord job = JobRecord.create(batchJobId, templateId, JobRecord.TYPE_V2_BATCH,
+                principal.userId(), responseIds.size(),
+                System.currentTimeMillis() + TTL_SECONDS * 1000);
+        jobStore.save(job);
 
         final String finalTemplateId = templateId;
         final String finalRaw = rawOpt.get();
@@ -116,14 +139,18 @@ public final class V2BatchPdfController {
         final String userId = principal.userId();
 
         CompletableFuture.runAsync(() -> {
-            jobs.put(batchJobId, job.withStatus("processing"));
+            jobStore.save(job.withStatus(JobStatus.PROCESSING));
             try {
-                byte[] zipBytes = generateBatchZip(batchJobId, finalTemplateId, finalRaw, finalIds, userId);
-                jobs.put(batchJobId, jobs.get(batchJobId).withCompleted(zipBytes));
-                log.info("Batch PDF job {} completed ({} bytes)", batchJobId, zipBytes.length);
+                Path zipPath = generateBatchZip(batchJobId, finalTemplateId, finalRaw, finalIds, userId);
+                JobRecord latest = jobStore.findById(batchJobId).orElse(job);
+                jobStore.save(latest.withArtifact(zipPath.toString()));
+                log.info("Batch PDF job {} completed ({})", batchJobId, zipPath);
             } catch (Exception e) {
-                jobs.put(batchJobId, jobs.get(batchJobId).withFailed(e.getMessage()));
+                JobRecord latest = jobStore.findById(batchJobId).orElse(job);
+                jobStore.save(latest.withError(e.getMessage()));
                 log.error("Batch PDF job {} failed", batchJobId, e);
+            } finally {
+                limiter.release();
             }
         }, pdfExecutor);
 
@@ -131,17 +158,21 @@ public final class V2BatchPdfController {
         ctx.json(Map.of(
             "batchJobId", batchJobId,
             "totalCount", responseIds.size(),
-            "status", "pending",
+            "status", JobStatus.PENDING.v2Name(),
             "statusUrl", "/api/v2/pdf-jobs/batch/" + batchJobId
         ));
     }
 
-    private byte[] generateBatchZip(String batchJobId, String templateId, String rawDef,
-                                     List<String> responseIds, String userId) throws Exception {
+    /** Renders each response and streams the resulting ZIP to the job's artifact path. */
+    private Path generateBatchZip(String batchJobId, String templateId, String rawDef,
+                                  List<String> responseIds, String userId) throws Exception {
         JsonNode definitionNode = MAPPER.readTree(rawDef);
         String dateStr = DateTimeFormatter.ofPattern("yyyyMMdd")
                 .withZone(java.time.ZoneOffset.UTC)
                 .format(Instant.now());
+
+        AtomicInteger completedCount = new AtomicInteger();
+        AtomicInteger failedCount = new AtomicInteger();
 
         List<CompletableFuture<PdfResult>> futures = new ArrayList<>();
         int[] seqArr = {0};
@@ -149,23 +180,25 @@ public final class V2BatchPdfController {
         for (String responseId : responseIds) {
             int seq = ++seqArr[0];
             String seqStr = String.format("%03d", seq);
+            final String filename = seqStr + "_" + dateStr + ".pdf";
 
             // Fetch response data
             Optional<String> respOpt;
             try { respOpt = responseRepo.get(responseId); }
             catch (Exception e) {
+                failedCount.incrementAndGet();
                 futures.add(CompletableFuture.completedFuture(
-                    new PdfResult(responseId, seqStr + "_" + dateStr + ".pdf", null, "Response not found: " + responseId)));
+                    new PdfResult(responseId, filename, null, "Response not found: " + responseId)));
                 continue;
             }
             if (respOpt.isEmpty()) {
+                failedCount.incrementAndGet();
                 futures.add(CompletableFuture.completedFuture(
-                    new PdfResult(responseId, seqStr + "_" + dateStr + ".pdf", null, "Response not found")));
+                    new PdfResult(responseId, filename, null, "Response not found")));
                 continue;
             }
 
             final String respJson = respOpt.get();
-            final String filename = seqStr + "_" + dateStr + ".pdf";
             final JsonNode defNode = definitionNode;
 
             CompletableFuture<PdfResult> future = CompletableFuture.supplyAsync(() -> {
@@ -177,13 +210,10 @@ public final class V2BatchPdfController {
                     }
                     String defJson = V2RenderSupport.prepare(defNode, testData, null);
                     byte[] pdfBytes = PdfRenderer.renderDefinition(defJson);
-                    // Update progress
-                    BatchJobRecord cur = jobs.get(batchJobId);
-                    if (cur != null) jobs.put(batchJobId, cur.incCompleted());
+                    checkpointProgress(batchJobId, completedCount.incrementAndGet(), failedCount.get());
                     return new PdfResult(responseId, filename, pdfBytes, null);
                 } catch (Exception ex) {
-                    BatchJobRecord cur = jobs.get(batchJobId);
-                    if (cur != null) jobs.put(batchJobId, cur.incFailed());
+                    checkpointProgress(batchJobId, completedCount.get(), failedCount.incrementAndGet());
                     return new PdfResult(responseId, filename, null, ex.getMessage());
                 }
             }, pdfExecutor);
@@ -194,7 +224,6 @@ public final class V2BatchPdfController {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-        // Build ZIP
         List<PdfResult> results = futures.stream()
                 .map(f -> f.getNow(null))
                 .filter(Objects::nonNull)
@@ -207,11 +236,14 @@ public final class V2BatchPdfController {
             throw new RuntimeException("All PDF generations failed");
         }
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        // Stream the ZIP to the job's artifact path (off-heap, issue #60)
+        Path zipPath = jobStore.getOutputZipPath(batchJobId);
+        Files.createDirectories(zipPath.getParent());
         long bytesWritten = 0;
         boolean truncated = false;
 
-        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+        try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(
+                Files.newOutputStream(zipPath), 64 * 1024))) {
             for (PdfResult result : results) {
                 if (result.bytes() == null) continue;
                 long entrySize = result.bytes().length;
@@ -251,26 +283,34 @@ public final class V2BatchPdfController {
             zos.closeEntry();
         }
 
-        return baos.toByteArray();
+        // Final counts (progress checkpoints raced with completion)
+        checkpointProgress(batchJobId, (int) successCount, (int) failCount);
+        return zipPath;
+    }
+
+    /** Persist per-row progress; counters are monotonic so last-write-wins is safe. */
+    private void checkpointProgress(String batchJobId, int completed, int failed) {
+        jobStore.findById(batchJobId).ifPresent(j ->
+                jobStore.save(j.withProgress(completed, failed)));
     }
 
     // ── GET /api/v2/pdf-jobs/batch/{id} ──────────────────────────────────────
 
     public void getStatus(Context ctx) {
         String id = ctx.pathParam("id");
-        BatchJobRecord job = jobs.get(id);
+        JobRecord job = findBatchJob(id).orElse(null);
         if (job == null) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Batch job not found"));
             return;
         }
         ObjectNode resp = MAPPER.createObjectNode();
-        resp.put("batchJobId", job.batchJobId());
-        resp.put("status", job.status());
-        resp.put("total", job.total());
-        resp.put("completed", job.completed());
-        resp.put("failed", job.failed());
-        if (job.error() != null) resp.put("error", job.error());
+        resp.put("batchJobId", job.jobId());
+        resp.put("status", job.statusEnum().v2Name());
+        resp.put("total", job.totalItems());
+        resp.put("completed", job.processedItems());
+        resp.put("failed", job.failedItems());
+        if (job.errorMessage() != null) resp.put("error", job.errorMessage());
         ctx.json(resp);
         if (!job.isTerminal()) ctx.header("Retry-After", "2");
     }
@@ -279,19 +319,27 @@ public final class V2BatchPdfController {
 
     public void getResult(Context ctx) {
         String id = ctx.pathParam("id");
-        BatchJobRecord job = jobs.get(id);
+        JobRecord job = findBatchJob(id).orElse(null);
         if (job == null) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Batch job not found"));
             return;
         }
-        if (!"completed".equals(job.status())) {
+        if (job.statusEnum() != JobStatus.COMPLETED) {
             ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "Job not completed", "status", job.status()));
+            ctx.json(Map.of("error", "Job not completed", "status", job.statusEnum().v2Name()));
             return;
         }
-        byte[] zipBytes = job.zipBytes();
-        if (zipBytes == null) {
+        Path zipPath = job.artifactPath() != null ? Path.of(job.artifactPath()) : null;
+        if (zipPath == null || !Files.exists(zipPath)) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "ZIP result unavailable"));
+            return;
+        }
+        byte[] zipBytes;
+        try {
+            zipBytes = Files.readAllBytes(zipPath);
+        } catch (java.io.IOException e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "ZIP result unavailable"));
             return;
@@ -300,39 +348,16 @@ public final class V2BatchPdfController {
         ctx.header("Content-Disposition", "attachment; filename=\"batch-" + id + ".zip\"");
         ctx.header("Content-Length", String.valueOf(zipBytes.length));
         ctx.result(zipBytes);
-        jobs.remove(id);
+        // One-shot download: drop the record and its artifacts
+        jobStore.delete(job.jobId());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private void evictExpired() {
-        long cutoff = Instant.now().getEpochSecond() - TTL_SECONDS;
-        jobs.entrySet().removeIf(e -> e.getValue().createdAt() < cutoff);
+    private Optional<JobRecord> findBatchJob(String id) {
+        return jobStore.findById(id)
+                .filter(j -> JobRecord.TYPE_V2_BATCH.equals(j.jobType()));
     }
 
     private record PdfResult(String responseId, String filename, byte[] bytes, String error) {}
-
-    record BatchJobRecord(
-            String batchJobId, String templateId, String status,
-            byte[] zipBytes, String error,
-            int total, int completed, int failed, long createdAt) {
-
-        boolean isTerminal() { return "completed".equals(status) || "failed".equals(status); }
-
-        BatchJobRecord withStatus(String s) {
-            return new BatchJobRecord(batchJobId, templateId, s, null, null, total, completed, failed, createdAt);
-        }
-        BatchJobRecord withCompleted(byte[] zip) {
-            return new BatchJobRecord(batchJobId, templateId, "completed", zip, null, total, completed, failed, createdAt);
-        }
-        BatchJobRecord withFailed(String msg) {
-            return new BatchJobRecord(batchJobId, templateId, "failed", null, msg, total, completed, failed, createdAt);
-        }
-        BatchJobRecord incCompleted() {
-            return new BatchJobRecord(batchJobId, templateId, status, zipBytes, error, total, completed + 1, failed, createdAt);
-        }
-        BatchJobRecord incFailed() {
-            return new BatchJobRecord(batchJobId, templateId, status, zipBytes, error, total, completed, failed + 1, createdAt);
-        }
-    }
 }

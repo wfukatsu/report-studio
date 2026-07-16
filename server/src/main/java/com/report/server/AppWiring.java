@@ -91,6 +91,7 @@ public final class AppWiring {
     final ThumbnailController thumbnailCtrl;
 
     // ── Executor pools ────────────────────────────────────────────────────────
+    private final com.report.server.job.JobTtlReaper jobTtlReaper;
     private final ExecutorService jobExecutor;
     final ExecutorService pdfExecutor;
     private final FormSessionManager formSessionManager;
@@ -121,6 +122,8 @@ public final class AppWiring {
         jobRepo = new JobRepository(factory);
         jobRepo.ensureTable();
         jobRepo.reconcileOrphans();
+        // Unified TTL reclamation for all job types (issue #60)
+        jobTtlReaper = new com.report.server.job.JobTtlReaper(jobRepo, 60);
 
         responseRepo = new JsonBlobRepository(factory, NAMESPACE, "form_responses");
         responseRepo.ensureTable();
@@ -177,7 +180,7 @@ public final class AppWiring {
         v2ExportCtrl = new V2TemplateExportController(v2DefinitionsRepo, new RateLimiter(10, 60_000L));
         v2ThumbnailCtrl = new V2ThumbnailController(v2DefinitionsRepo, pdfExecutor);
         v2SchemaInferCtrl = new V2SchemaInferController();
-        v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, pdfExecutor);
+        v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, jobRepo, pdfExecutor);
         v2StatelessPdfCtrl = new V2StatelessPdfController(pdfExecutor);
         v2ScalarDbCatalogCtrl = new V2ScalarDbCatalogController(factory);
         v2ScalarDbTableCtrl = new V2ScalarDbTableController(factory);
@@ -202,7 +205,7 @@ public final class AppWiring {
         v2BindingResolveCtrl.setProductController(productCtrl);
         v2ScalarDbScanCtrl = new V2ScalarDbScanController(factory);
         v2ScalarDbRowCtrl = new V2ScalarDbRowController(factory);
-        v2BatchPdfCtrl = new V2BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, pdfExecutor);
+        v2BatchPdfCtrl = new V2BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
         sequenceRepo = new JsonBlobRepository(factory, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();
         sequenceCtrl = new SequenceController(sequenceRepo);
@@ -226,6 +229,7 @@ public final class AppWiring {
         log.info("Shutting down executor pools...");
         authCtrl.shutdown();
         formSessionManager.shutdown();
+        jobTtlReaper.close();
         jobExecutor.shutdown();
         pdfExecutor.shutdown();
         try {

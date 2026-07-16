@@ -4,19 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
+import com.report.server.job.JobConcurrencyLimiter;
+import com.report.server.job.JobRecord;
+import com.report.server.job.JobStatus;
+import com.report.server.job.JobStore;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Async PDF generation jobs for V2 templates.
@@ -27,35 +31,34 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   <li>{@code GET  /api/v2/pdf-jobs/{jobId}/result} — download PDF (completed only)</li>
  * </ul>
  *
- * <p>Jobs live in-memory. After TTL_SECONDS they are eligible for eviction on the
- * next submit call (lazy eviction — no separate cleanup thread needed).
+ * <p>Jobs run on the unified job abstraction (issue #60): metadata is
+ * persisted via {@link JobStore} (ScalarDB in production), the result PDF
+ * lands under {@code data/jobs/{jobId}/output.pdf}, TTL reclamation is
+ * handled by the shared reaper, and server restarts reconcile in-flight jobs
+ * to FAILED like every other job type. The V2 API keeps its historical
+ * lowercase status vocabulary as a compatibility layer.
  */
 public final class V2PdfJobController {
 
     private static final Logger log = LoggerFactory.getLogger(V2PdfJobController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    static final String STATUS_PENDING    = "pending";
-    static final String STATUS_PROCESSING = "processing";
-    static final String STATUS_COMPLETED  = "completed";
-    static final String STATUS_FAILED     = "failed";
-
-    /** Jobs older than this are evicted on the next submit. */
-    private static final long TTL_SECONDS = 300; // 5 minutes
+    /** Jobs expire this long after submission (reaped by JobTtlReaper). */
+    static final long TTL_SECONDS = 300; // 5 minutes
     /** Maximum concurrent in-flight PDF jobs. */
     private static final int MAX_ACTIVE_JOBS = 10;
     /** PDF generation timeout. */
     private static final long TIMEOUT_SECONDS = 30;
 
     private final JsonBlobRepository definitionsRepo;
+    private final JobStore jobStore;
     private final ExecutorService pdfExecutor;
+    private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
-    /** In-memory job registry. */
-    private final ConcurrentHashMap<String, PdfJobRecord> jobs = new ConcurrentHashMap<>();
-    private final AtomicInteger activeJobs = new AtomicInteger(0);
-
-    public V2PdfJobController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
+    public V2PdfJobController(JsonBlobRepository definitionsRepo, JobStore jobStore,
+                              ExecutorService pdfExecutor) {
         this.definitionsRepo = definitionsRepo;
+        this.jobStore = jobStore;
         this.pdfExecutor = pdfExecutor;
     }
 
@@ -64,22 +67,29 @@ public final class V2PdfJobController {
     // ---------------------------------------------------------------------------
 
     public void submit(Context ctx) {
-        evictExpired();
-
-        if (activeJobs.get() >= MAX_ACTIVE_JOBS) {
+        if (!limiter.tryAcquire()) {
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             ctx.header("Retry-After", "5");
             ctx.json(Map.of("error", "Too many concurrent PDF jobs; retry shortly"));
             return;
         }
+        boolean handedOff = false;
+        try {
+            handedOff = doSubmit(ctx);
+        } finally {
+            if (!handedOff) limiter.release();
+        }
+    }
 
+    /** @return true when the job was handed to the executor (slot released by the worker). */
+    private boolean doSubmit(Context ctx) {
         String body = ctx.body();
         if (body.length() > 512_000) {
             ctx.status(413);
             ctx.json(Map.of("error", "Request body too large"));
-            return;
+            return false;
         }
-        if (!RequestValidator.validateJson(ctx, body)) return;
+        if (!RequestValidator.validateJson(ctx, body)) return false;
 
         String templateId;
         ObjectNode testDataNode;
@@ -87,17 +97,12 @@ public final class V2PdfJobController {
         try {
             JsonNode root = MAPPER.readTree(body);
             JsonNode tidNode = root.get("templateId");
-            if (tidNode == null || !tidNode.isTextual()) {
+            if (tidNode == null || !tidNode.isTextual() || tidNode.asText().trim().isEmpty()) {
                 ctx.status(HttpStatus.BAD_REQUEST);
                 ctx.json(Map.of("error", "templateId is required"));
-                return;
+                return false;
             }
             templateId = tidNode.asText().trim();
-            if (templateId.isEmpty()) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "templateId is required"));
-                return;
-            }
 
             JsonNode tdNode = root.get("testData");
             testDataNode = (tdNode != null && tdNode.isObject())
@@ -110,7 +115,7 @@ public final class V2PdfJobController {
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Invalid JSON body"));
-            return;
+            return false;
         }
 
         // Ensure template exists
@@ -118,7 +123,7 @@ public final class V2PdfJobController {
         if (rawOpt.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
-            return;
+            return false;
         }
         String raw = rawOpt.get();
 
@@ -126,19 +131,16 @@ public final class V2PdfJobController {
         Principal submitter = ctx.attribute("principal");
         String owner = submitter != null && !submitter.isAnonymous() ? submitter.userId() : null;
         String jobId = "pjob-" + UUID.randomUUID();
-        long now = Instant.now().getEpochSecond();
-        PdfJobRecord job = new PdfJobRecord(jobId, templateId, owner, STATUS_PENDING, null, null, now);
-        jobs.put(jobId, job);
-        activeJobs.incrementAndGet();
+        JobRecord job = JobRecord.create(jobId, templateId, JobRecord.TYPE_V2_PDF, owner, 1,
+                System.currentTimeMillis() + TTL_SECONDS * 1000);
+        jobStore.save(job);
 
-        // Capture for lambda
-        final String finalTemplateId = templateId;
+        final String finalRaw = raw;
         final ObjectNode finalTestData = testDataNode;
         final String finalVariantId = variantId;
-        final String finalRaw = raw;
 
         pdfExecutor.submit(() -> {
-            jobs.put(jobId, job.withStatus(STATUS_PROCESSING));
+            jobStore.save(job.withStatus(JobStatus.PROCESSING));
             try {
                 JsonNode definitionNode = MAPPER.readTree(finalRaw);
                 // Prepare the V2 definition for native rendering (issue #52)
@@ -155,35 +157,35 @@ public final class V2PdfJobController {
                         }, pdfExecutor)
                         .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-                // Spill the result to a temp file instead of holding bytes on the
-                // heap — bounds memory when several large jobs complete (issue #60)
-                java.nio.file.Path resultFile = java.nio.file.Files.createTempFile("v2pdf-" + jobId + "-", ".pdf");
-                java.nio.file.Files.write(resultFile, pdfBytes);
-                jobs.put(jobId, job.withCompleted(resultFile.toString()));
+                // Result lands under the job's artifact dir (off-heap, restart-safe)
+                Path resultFile = jobStore.jobDir(jobId).resolve("output.pdf");
+                Files.createDirectories(resultFile.getParent());
+                Files.write(resultFile, pdfBytes);
+                jobStore.save(job.withProgress(1, 0).withArtifact(resultFile.toString()));
                 log.info("Async PDF job {} completed ({} bytes)", jobId, pdfBytes.length);
             } catch (java.util.concurrent.TimeoutException e) {
-                jobs.put(jobId, job.withFailed("PDF generation timed out (30s)"));
+                jobStore.save(job.withError("PDF generation timed out (30s)"));
                 log.warn("Async PDF job {} timed out", jobId);
             } catch (Exception e) {
                 // Generic client-facing message — the exception detail stays in the log (issue #58)
-                jobs.put(jobId, job.withFailed("PDF generation failed"));
+                jobStore.save(job.withError("PDF generation failed"));
                 log.error("Async PDF job {} failed", jobId, e);
             } finally {
-                activeJobs.decrementAndGet();
+                limiter.release();
             }
         });
 
-        Principal principal = ctx.attribute("principal");
         log.info("Submitted async PDF job {} for template {} (user={})",
-                jobId, templateId, principal != null ? principal.userId() : "anonymous");
+                jobId, templateId, owner != null ? owner : "anonymous");
 
         ctx.status(HttpStatus.ACCEPTED);
         ctx.json(Map.of(
                 "jobId", jobId,
-                "status", STATUS_PENDING,
+                "status", JobStatus.PENDING.v2Name(),
                 "statusUrl", "/api/v2/pdf-jobs/" + jobId,
                 "resultUrl", "/api/v2/pdf-jobs/" + jobId + "/result"
         ));
+        return true;
     }
 
     // ---------------------------------------------------------------------------
@@ -192,17 +194,17 @@ public final class V2PdfJobController {
 
     public void getStatus(Context ctx) {
         String jobId = ctx.pathParam("jobId");
-        PdfJobRecord job = jobs.get(jobId);
+        JobRecord job = findV2Job(jobId).orElse(null);
         if (job == null || !canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
             return;
         }
 
-        Map<String, Object> response = job.error() != null
-                ? Map.of("jobId", job.jobId(), "status", job.status(), "error", job.error())
-                : Map.of("jobId", job.jobId(), "status", job.status());
-
+        Map<String, Object> response = new HashMap<>();
+        response.put("jobId", job.jobId());
+        response.put("status", job.statusEnum().v2Name());
+        if (job.errorMessage() != null) response.put("error", job.errorMessage());
         ctx.json(response);
 
         // Hint polling interval for non-terminal jobs
@@ -217,21 +219,20 @@ public final class V2PdfJobController {
 
     public void getResult(Context ctx) {
         String jobId = ctx.pathParam("jobId");
-        PdfJobRecord job = jobs.get(jobId);
+        JobRecord job = findV2Job(jobId).orElse(null);
         if (job == null || !canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Job not found"));
             return;
         }
-        if (!STATUS_COMPLETED.equals(job.status())) {
+        if (job.statusEnum() != JobStatus.COMPLETED) {
             ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "Job not completed", "status", job.status()));
+            ctx.json(Map.of("error", "Job not completed", "status", job.statusEnum().v2Name()));
             return;
         }
 
-        java.nio.file.Path resultFile = job.pdfPath() != null
-                ? java.nio.file.Path.of(job.pdfPath()) : null;
-        if (resultFile == null || !java.nio.file.Files.exists(resultFile)) {
+        Path resultFile = job.artifactPath() != null ? Path.of(job.artifactPath()) : null;
+        if (resultFile == null || !Files.exists(resultFile)) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "PDF result unavailable"));
             return;
@@ -239,7 +240,7 @@ public final class V2PdfJobController {
 
         byte[] pdfBytes;
         try {
-            pdfBytes = java.nio.file.Files.readAllBytes(resultFile);
+            pdfBytes = Files.readAllBytes(resultFile);
         } catch (java.io.IOException e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "PDF result unavailable"));
@@ -252,38 +253,22 @@ public final class V2PdfJobController {
         ctx.header("Content-Length", String.valueOf(pdfBytes.length));
         ctx.result(pdfBytes);
 
-        // Delete the temp file and drop the record after download
-        deleteQuietly(resultFile);
-        jobs.remove(jobId);
-    }
-
-    private static void deleteQuietly(java.nio.file.Path path) {
-        try {
-            if (path != null) java.nio.file.Files.deleteIfExists(path);
-        } catch (java.io.IOException ignored) { /* temp file; OS will reclaim */ }
+        // One-shot download: drop the record and its artifacts
+        jobStore.delete(job.jobId());
     }
 
     // ---------------------------------------------------------------------------
-    // Lazy eviction of expired jobs
+    // Helpers
     // ---------------------------------------------------------------------------
 
-    private void evictExpired() {
-        long cutoff = Instant.now().getEpochSecond() - TTL_SECONDS;
-        jobs.entrySet().removeIf(e -> {
-            if (e.getValue().createdAt() < cutoff) {
-                if (e.getValue().pdfPath() != null) deleteQuietly(java.nio.file.Path.of(e.getValue().pdfPath()));
-                return true;
-            }
-            return false;
-        });
+    private Optional<JobRecord> findV2Job(String jobId) {
+        return jobStore.findById(jobId)
+                .filter(j -> JobRecord.TYPE_V2_PDF.equals(j.jobType()));
     }
 
-    // ---------------------------------------------------------------------------
-    // Expose for testing
-    // ---------------------------------------------------------------------------
-
-    Optional<PdfJobRecord> findJob(String jobId) {
-        return Optional.ofNullable(jobs.get(jobId));
+    /** Exposed for testing. */
+    Optional<JobRecord> findJob(String jobId) {
+        return findV2Job(jobId);
     }
 
     /**
@@ -292,40 +277,10 @@ public final class V2PdfJobController {
      * (auth disabled) remain accessible as before. 404 — not 403 — so job IDs
      * cannot be probed for existence.
      */
-    static boolean canAccess(Context ctx, PdfJobRecord job) {
+    static boolean canAccess(Context ctx, JobRecord job) {
         if (job.owner() == null) return true;
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) return false;
         return job.owner().equals(principal.userId()) || principal.roles().contains("admin");
-    }
-
-    // ---------------------------------------------------------------------------
-    // Job record — immutable value
-    // ---------------------------------------------------------------------------
-
-    record PdfJobRecord(
-            String jobId,
-            String templateId,
-            String owner,
-            String status,
-            String pdfPath,     // temp-file path of the result (issue #60 — off-heap)
-            String error,
-            long createdAt
-    ) {
-        boolean isTerminal() {
-            return STATUS_COMPLETED.equals(status) || STATUS_FAILED.equals(status);
-        }
-
-        PdfJobRecord withStatus(String newStatus) {
-            return new PdfJobRecord(jobId, templateId, owner, newStatus, null, null, createdAt);
-        }
-
-        PdfJobRecord withCompleted(String path) {
-            return new PdfJobRecord(jobId, templateId, owner, STATUS_COMPLETED, path, null, createdAt);
-        }
-
-        PdfJobRecord withFailed(String msg) {
-            return new PdfJobRecord(jobId, templateId, owner, STATUS_FAILED, null, msg, createdAt);
-        }
     }
 }

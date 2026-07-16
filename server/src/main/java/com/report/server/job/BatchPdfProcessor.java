@@ -128,7 +128,7 @@ public final class BatchPdfProcessor {
             if (cancelFlag.get()) {
                 log.info("Job {} cancelled ({}/{} rendered)", jobId, processed.get(), itemCount);
                 JobRecord current = jobRepo.findById(jobId).orElseThrow();
-                jobRepo.save(new JobRecord(jobId, templateId, "CANCELLED",
+                jobRepo.save(new JobRecord(jobId, templateId, JobRecord.CANCELLED,
                     itemCount, processed.get(), failed.get(), "Cancelled by user",
                     current.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()));
                 return;
