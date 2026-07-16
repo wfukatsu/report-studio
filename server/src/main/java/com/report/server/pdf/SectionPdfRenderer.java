@@ -40,6 +40,18 @@ public interface SectionPdfRenderer {
     int rowsPerPage(JsonNode section);
 
     /**
+     * Number of physical pages this section needs for its data (issue #55).
+     * Default is {@code ceil(rows / rowsPerPage)}; a section that forces page
+     * breaks at group boundaries ({@code groupBy}) overrides this so each group
+     * starts on a fresh page. Only meaningful when {@link #isPaginating()}.
+     */
+    default int physicalPages(JsonNode section, JsonNode formData) {
+        int rows = countRows(section, formData);
+        int rpp = Math.max(rowsPerPage(section), 1);
+        return rows > rpp ? (int) Math.ceil((double) rows / rpp) : 1;
+    }
+
+    /**
      * Render this section onto the current page.
      *
      * @param ctx        current page context (content stream, page dimensions, page index)

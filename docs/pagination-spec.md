@@ -69,6 +69,18 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 実装: `SectionRenderHelper.renderCarryOverElements`。
 検証: `PdfCarryOverParseBackTest`。
 
+## グループ改ページ（group page-break）
+
+`detail_table` セクションに `groupBy: "fieldName"` を設定すると、行がその
+フィールド値でグループ化され（行順を保持）、**各グループが新しい物理ページから
+始まる**（グループはページを共有しない）。大きなグループはそのグループ内で
+`rowsPerPage` 単位に分割され、その後に次のグループが改ページする。
+
+`group_header` 要素（`prefix`/`suffix`/`style`）を置くと、各グループの先頭
+ページにグループ値が描画される。ページプランは
+`SectionRenderHelper.buildPagePlan` が構築し、物理ページ数は
+`SectionPdfRenderer.physicalPages` が返す。検証: `PdfGroupBreakParseBackTest`。
+
 ## splitPolicy（multi_row_table）
 
 - `forbidden`: **対応** — ユニット単位のページ割当（上記 stride 方式）に
@@ -78,7 +90,6 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 
 ## 未実装（今後のスコープ）
 
-- グループ改ページ（groupBy 境界での強制改ページ)
 - `RelativeLayoutResolver`（押し下げレイアウト）のページ下端自動改ページ
 - マージンのクリッピング強制（`pageSetup.margins` は現状データ保持のみ）
 - デザイナー側のあふれ警告 UX（フロントエンド）

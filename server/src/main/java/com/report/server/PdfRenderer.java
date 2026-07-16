@@ -145,10 +145,8 @@ public final class PdfRenderer {
             if (renderer.isPaginating()) {
                 rowsPerPage = Math.max(renderer.rowsPerPage(section), 1);
                 totalRows = (formData != null) ? renderer.countRows(section, formData) : 0;
-                if (totalRows > rowsPerPage) {
-                    totalPages = Math.max(totalPages,
-                            (int) Math.ceil((double) totalRows / rowsPerPage));
-                }
+                // physicalPages is group-aware (issue #55): each group forces a page break
+                totalPages = Math.max(totalPages, renderer.physicalPages(section, formData));
             }
             sectionParams.add(new int[]{rowsPerPage, totalRows});
         }
@@ -260,10 +258,8 @@ public final class PdfRenderer {
                         if (r.isPaginating()) {
                             rowsPerPage = Math.max(r.rowsPerPage(section), 1);
                             totalRows = (formData != null) ? r.countRows(section, formData) : 0;
-                            if (totalRows > rowsPerPage) {
-                                localCount = Math.max(localCount,
-                                        (int) Math.ceil((double) totalRows / rowsPerPage));
-                            }
+                            // physicalPages is group-aware (issue #55)
+                            localCount = Math.max(localCount, r.physicalPages(section, formData));
                         }
                         params.add(new int[]{rowsPerPage, totalRows});
                     }

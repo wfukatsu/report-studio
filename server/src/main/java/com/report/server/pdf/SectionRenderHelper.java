@@ -100,6 +100,7 @@ public final class SectionRenderHelper {
             String kind = resolveKind(el);
             if ("row_block".equals(kind)) continue;
             if ("carryover_header".equals(kind) || "carryover_footer".equals(kind)) continue;
+            if ("group_header".equals(kind)) continue; // drawn per-group by the section renderer
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
@@ -150,6 +151,27 @@ public final class SectionRenderHelper {
             if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
             JsonNode rowEl = resolveDetailRow(el, formData, rowIdx, rowsPerPage, strideMm);
+            JsonNode masked = applyMaskingToElement(rowEl, variantCtx);
+            renderElement(ctx, masked);
+        }
+    }
+
+    /**
+     * Render row_block elements for data row {@code rowIdx} placed at page slot
+     * {@code rowOnPage} (issue #55 — used by the group-aware page plan).
+     */
+    public static void renderRowAtPosition(PageContext ctx, JsonNode section, JsonNode formData,
+                                           int rowIdx, int rowOnPage, VariantContext variantCtx,
+                                           float strideMm) {
+        JsonNode elements = section.get("elements");
+        if (elements == null || !elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!"row_block".equals(resolveKind(el))) continue;
+            String elId = PdfUtils.textOf(el, "id", "");
+            boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
+            if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
+            if (!variantCtx.isVisible(elId, baseVisible)) continue;
+            JsonNode rowEl = resolveDetailRowAt(el, formData, rowIdx, rowOnPage, strideMm);
             JsonNode masked = applyMaskingToElement(rowEl, variantCtx);
             renderElement(ctx, masked);
         }
@@ -279,6 +301,17 @@ public final class SectionRenderHelper {
      */
     public static JsonNode resolveDetailRow(JsonNode el, JsonNode formData,
                                             int rowIdx, int rowsPerPage, float strideMm) {
+        return resolveDetailRowAt(el, formData, rowIdx, rowIdx % Math.max(rowsPerPage, 1), strideMm);
+    }
+
+    /**
+     * Position-explicit variant (issue #55): the value comes from data row
+     * {@code rowIdx}, but the Y offset uses {@code rowOnPage} — the row's slot
+     * on the current physical page. This lets a group's first page start at
+     * slot 0 even when its data index does not align to a rowsPerPage boundary.
+     */
+    public static JsonNode resolveDetailRowAt(JsonNode el, JsonNode formData,
+                                              int rowIdx, int rowOnPage, float strideMm) {
         JsonNode bindingRefNode = el.get("bindingRef");
         if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
         String ref = bindingRefNode.asText();
@@ -295,14 +328,14 @@ public final class SectionRenderHelper {
 
         try {
             ObjectNode copy = (ObjectNode) el.deepCopy();
-            // Offset Y by the row's position within the current page
+            // Offset Y by the row's slot on the current page
             JsonNode frame = copy.get("frame");
             if (frame != null && frame.isObject()) {
                 ObjectNode frameCopy = (ObjectNode) frame;
                 float stride = Float.isNaN(strideMm) || strideMm <= 0
                         ? PdfUtils.floatOf(frame, "height") : strideMm;
                 float baseY = PdfUtils.floatOf(frame, "y");
-                frameCopy.put("y", baseY + stride * (rowIdx % rowsPerPage));
+                frameCopy.put("y", baseY + stride * rowOnPage);
             }
             // Set the resolved value into props
             ObjectNode props = copy.has("props") && copy.get("props").isObject()
@@ -315,6 +348,80 @@ public final class SectionRenderHelper {
             return copy;
         } catch (Exception e) {
             return el;
+        }
+    }
+
+    // ── Group page-break plan (issue #55) ───────────────────────────────
+
+    /** One physical page's row slice of a paginating section. */
+    public record PageSlice(int startRow, int endRow, boolean groupFirstPage, String groupValue) {}
+
+    /**
+     * Build the per-physical-page row plan for a paginating section.
+     *
+     * <p>Without {@code groupBy}: contiguous {@code rowsPerPage} slices.
+     * With {@code groupBy}: rows are partitioned by that field's value (in row
+     * order), each group is paginated independently, and **groups never share a
+     * page** — i.e. every group starts on a fresh physical page. The first page
+     * of each group is flagged so a group header can be drawn.
+     */
+    public static java.util.List<PageSlice> buildPagePlan(JsonNode section, JsonNode formData,
+                                                          int rowsPerPage) {
+        int total = 0;
+        String groupName = findRowGroupName(section);
+        JsonNode rows = (formData != null && groupName != null) ? formData.get(groupName) : null;
+        if (rows != null && rows.isArray()) total = rows.size();
+
+        java.util.List<PageSlice> plan = new java.util.ArrayList<>();
+        int rpp = Math.max(rowsPerPage, 1);
+        String groupBy = PdfUtils.elementTextOf(section, "groupBy", "");
+
+        if (groupBy.isEmpty() || rows == null) {
+            // Flat pagination
+            if (total == 0) { plan.add(new PageSlice(0, 0, true, null)); return plan; }
+            for (int start = 0; start < total; start += rpp) {
+                plan.add(new PageSlice(start, Math.min(start + rpp, total), start == 0, null));
+            }
+            return plan;
+        }
+
+        // Grouped pagination — page breaks at each group boundary
+        int groupStart = 0;
+        while (groupStart < total) {
+            String gv = valueAt(rows, groupStart, groupBy);
+            int groupEnd = groupStart;
+            while (groupEnd < total && java.util.Objects.equals(valueAt(rows, groupEnd, groupBy), gv)) {
+                groupEnd++;
+            }
+            for (int s = groupStart; s < groupEnd; s += rpp) {
+                plan.add(new PageSlice(s, Math.min(s + rpp, groupEnd), s == groupStart, gv));
+            }
+            groupStart = groupEnd;
+        }
+        return plan.isEmpty() ? java.util.List.of(new PageSlice(0, 0, true, null)) : plan;
+    }
+
+    private static String valueAt(JsonNode rows, int idx, String field) {
+        JsonNode v = rows.get(idx).get(field);
+        return v == null || v.isNull() ? "" : v.asText("");
+    }
+
+    /**
+     * Render a group-header element ({@code kind: "group_header"}) with the
+     * current group's value, on the first page of each group (issue #55).
+     * Fields: {@code prefix}/{@code suffix} text, {@code style}.
+     */
+    public static void renderGroupHeader(PageContext ctx, JsonNode section, PageSlice slice) {
+        if (!slice.groupFirstPage() || slice.groupValue() == null) return;
+        JsonNode elements = section.get("elements");
+        if (elements == null || !elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!"group_header".equals(resolveKind(el))) continue;
+            String text = PdfUtils.elementTextOf(el, "prefix", "")
+                    + slice.groupValue()
+                    + PdfUtils.elementTextOf(el, "suffix", "");
+            renderElement(ctx, withResolvedProp(el,
+                    com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
         }
     }
 

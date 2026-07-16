@@ -50,32 +50,42 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
     }
 
     @Override
+    public int physicalPages(JsonNode section, JsonNode formData) {
+        // Group-aware page count: with groupBy, each group starts a fresh page
+        return SectionRenderHelper.buildPagePlan(section, formData, rowsPerPage(section)).size();
+    }
+
+    @Override
     public void renderPage(PageContext ctx, JsonNode section, JsonNode formData,
                            SectionRenderHelper helper, int pageIdx, int rowsPerPage, int totalRows)
             throws IOException {
-        int startRow = pageIdx * rowsPerPage;
-        // Beyond this section's own data: draw nothing (other paginating
-        // sections may still be flowing on later pages — issue #55)
-        if (pageIdx > 0 && startRow >= totalRows) return;
+        var plan = SectionRenderHelper.buildPagePlan(section, formData, rowsPerPage);
+        // Beyond this section's own pages: draw nothing (other sections may
+        // still flow on later physical pages — issue #55)
+        if (pageIdx >= plan.size()) return;
+        SectionRenderHelper.PageSlice slice = plan.get(pageIdx);
 
         boolean repeatHeader =
                 section.has("repeatHeader") && section.get("repeatHeader").asBoolean(false);
 
-        // Render non-row-block elements (column headers, decorations) on first page or when repeatHeader
+        // Column headers/decorations on the first physical page or when repeatHeader;
+        // group headers on the first page of each group (issue #55)
         if (pageIdx == 0 || repeatHeader) {
             SectionRenderHelper.renderNonRowElements(ctx, section, formData, ctx.variantCtx());
         }
+        SectionRenderHelper.renderGroupHeader(ctx, section, slice);
 
-        // Render data rows for this page's slice, advancing by the unit stride
+        // Render this page's row slice, advancing by the unit stride; each row's
+        // Y slot is its position within the slice (group pages start at slot 0)
         float[] region = SectionRenderHelper.computeRowRegion(section);
         float stride = region != null ? region[1] : Float.NaN;
-        int endRow = Math.min(startRow + rowsPerPage, totalRows);
-        for (int rowIdx = startRow; rowIdx < endRow; rowIdx++) {
-            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage,
-                    ctx.variantCtx(), stride);
+        for (int rowIdx = slice.startRow(); rowIdx < slice.endRow(); rowIdx++) {
+            SectionRenderHelper.renderRowAtPosition(ctx, section, formData,
+                    rowIdx, rowIdx - slice.startRow(), ctx.variantCtx(), stride);
         }
 
         // 繰越小計 — carried-forward / to-be-continued totals (issue #55)
-        SectionRenderHelper.renderCarryOverElements(ctx, section, formData, startRow, endRow, totalRows);
+        SectionRenderHelper.renderCarryOverElements(
+                ctx, section, formData, slice.startRow(), slice.endRow(), totalRows);
     }
 }
