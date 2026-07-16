@@ -33,12 +33,13 @@ class V2ElementParityMatrixTest {
     /** V2 types that resolve to a registered renderer today. */
     private static final Set<String> EXPECTED_SUPPORTED = Set.of(
             "text", "shape", "image", "barcode", "checkbox", "formTable",
-            "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow");
+            "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow",
+            "dataField");
 
     private static Map<String, String> buildTypeNotes() {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("text", "props.text のみ。V2 の content フィールドは未解釈（#52/#53）");
-        m.put("dataField", "レンダラーなし。書式 (numberFormatter 互換) も未実装（#53/#57）");
+        m.put("dataField", "対応（DataFieldPdfRenderer + ValueFormatter — 数値/日付/和暦/大字/住所書式、fieldKey 解決、textAlign）");
         m.put("chart", "サーバ側チャート描画なし（#53）");
         m.put("repeatingBand", "要素レンダラーなし。繰返しはセクション (detail_table) のみ（#53/#55）");
         m.put("repeatingList", "要素レンダラーなし（#53/#55）");

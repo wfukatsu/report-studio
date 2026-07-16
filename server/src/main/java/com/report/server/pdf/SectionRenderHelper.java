@@ -286,6 +286,7 @@ public final class SectionRenderHelper {
         String v2Field = switch (kind) {
             case "eraSelect" -> "dataSource";
             case "hanko" -> "binding";
+            case "dataField" -> "fieldKey";
             default -> null;
         };
         if (v2Field == null) return null;

@@ -47,6 +47,7 @@ public final class ElementPdfRendererRegistry {
         registry.register(new RevenueStampPdfRenderer());
         registry.register(new ApprovalStampRowPdfRenderer());
         registry.register(new EraSelectPdfRenderer());
+        registry.register(new DataFieldPdfRenderer());
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());
