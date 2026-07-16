@@ -351,6 +351,75 @@ public final class SectionRenderHelper {
         }
     }
 
+    // ── Split-policy support for multi_row_table (issue #55) ────────────
+
+    /** row_block elements of a section, sorted top-to-bottom by frame.y. */
+    public static java.util.List<JsonNode> sortedRowBlocks(JsonNode section) {
+        java.util.List<JsonNode> blocks = new java.util.ArrayList<>();
+        JsonNode elements = section.get("elements");
+        if (elements != null && elements.isArray()) {
+            for (JsonNode el : elements) {
+                if ("row_block".equals(resolveKind(el))) blocks.add(el);
+            }
+        }
+        blocks.sort(java.util.Comparator.comparingDouble(el -> {
+            JsonNode f = el.get("frame");
+            return f != null ? PdfUtils.floatOf(f, "y") : 0f;
+        }));
+        return blocks;
+    }
+
+    /**
+     * Render one physical row of a splittable multi_row_table (issue #55):
+     * the row_block {@code block} carries data from record {@code recordIdx} and
+     * is drawn at absolute {@code yMm} — so a logical unit's rows can straddle a
+     * page boundary ({@code splitPolicy: allowed-between-rows}).
+     */
+    public static void renderSplitRow(PageContext ctx, JsonNode block, JsonNode formData,
+                                      int recordIdx, float yMm, VariantContext variantCtx) {
+        if (!ConditionEvaluator.shouldRender(block, formData, recordIdx)) return;
+        String elId = PdfUtils.textOf(block, "id", "");
+        if (!variantCtx.isVisible(elId, PdfUtils.boolOf(block, "visible", true))) return;
+        JsonNode resolved = resolveRowValueAtY(block, formData, recordIdx, yMm);
+        renderElement(ctx, applyMaskingToElement(resolved, variantCtx));
+    }
+
+    /** Copy a row_block with record {@code recordIdx}'s value and an absolute frame.y. */
+    private static JsonNode resolveRowValueAtY(JsonNode el, JsonNode formData, int recordIdx, float yMm) {
+        JsonNode bindingRefNode = el.get("bindingRef");
+        if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
+        String ref = bindingRefNode.asText();
+        if (!ref.contains("[]")) return el;
+        String[] parts = ref.split("\\[\\]\\.");
+        if (parts.length != 2) return el;
+        JsonNode group = formData.get(parts[0]);
+        if (group == null || !group.isArray() || recordIdx >= group.size()) return el;
+        JsonNode value = group.get(recordIdx).get(parts[1]);
+        if (value == null) return el;
+        try {
+            ObjectNode copy = (ObjectNode) el.deepCopy();
+            JsonNode frame = copy.get("frame");
+            if (frame != null && frame.isObject()) ((ObjectNode) frame).put("y", yMm);
+            ObjectNode props = copy.has("props") && copy.get("props").isObject()
+                    ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+            applyValue(props, propKeyFor(resolveKind(el)), value);
+            copy.set("props", props);
+            return copy;
+        } catch (Exception e) {
+            return el;
+        }
+    }
+
+    /** Available vertical space (mm) from the topmost row_block to the section bottom, or -1. */
+    public static float computeAvailableHeight(JsonNode section) {
+        float[] region = computeRowRegion(section);
+        if (region == null) return -1;
+        float sectionY = PdfUtils.floatOf(section, "y", 0);
+        float sectionH = PdfUtils.floatOf(section, "height", 0);
+        if (sectionH <= 0) return -1;
+        return sectionY + sectionH - region[0];
+    }
+
     // ── Group page-break plan (issue #55) ───────────────────────────────
 
     /** One physical page's row slice of a paginating section. */

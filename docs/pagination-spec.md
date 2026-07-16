@@ -83,10 +83,19 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 
 ## splitPolicy（multi_row_table）
 
-- `forbidden`: **対応** — ユニット単位のページ割当（上記 stride 方式）に
-  より、ユニットは常にページ内に収まる
-- `allowed-between-rows` / `allowed-inside-unit`: **未対応** — 現状は
-  `forbidden` と同じ挙動（ページ末尾の部分ユニット描画は未実装）
+`rowUnitSize` 物理行からなる論理ユニットのページ分割方針。
+
+- `forbidden`（既定）: **対応** — ユニット単位のページ割当。1ページの容量は
+  収まる**ユニット数**（`floor(available / ユニット高)`）で、ユニットは常に
+  ページ内に収まる
+- `allowed-between-rows` / `allowed-inside-unit`: **対応** — 物理行単位の
+  ページ割当。1ページの容量は**物理行数**（`floor(available / 物理行高)`、
+  物理行高 = ユニット高 / rowUnitSize）で、ユニットの各行がページ境界を
+  またいで分割され得る（継続ページの先頭は行領域先頭から再開）。2方針は
+  離散行モデルでは同一挙動
+
+実装: `MultiRowTableSectionRenderer` ＋ `SectionRenderHelper.renderSplitRow`。
+検証: `PdfSplitPolicyParseBackTest`。
 
 ## 未実装（今後のスコープ）
 
