@@ -55,13 +55,15 @@ public final class PdfProbe {
     private final List<float[]> pageSizesMm;
     private final List<String> pageTexts;
     private final List<TextRun> runs;
+    private final List<String> pageContents;
 
     private PdfProbe(int pageCount, List<float[]> pageSizesMm,
-                     List<String> pageTexts, List<TextRun> runs) {
+                     List<String> pageTexts, List<TextRun> runs, List<String> pageContents) {
         this.pageCount = pageCount;
         this.pageSizesMm = pageSizesMm;
         this.pageTexts = pageTexts;
         this.runs = runs;
+        this.pageContents = pageContents;
     }
 
     /** Parse PDF bytes into an immutable probe. The document is closed before returning. */
@@ -69,12 +71,17 @@ public final class PdfProbe {
         List<float[]> sizes = new ArrayList<>();
         List<String> texts = new ArrayList<>();
         List<TextRun> runs = new ArrayList<>();
+        List<String> contents = new ArrayList<>();
 
         try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
             int pages = doc.getNumberOfPages();
             for (int i = 0; i < pages; i++) {
                 PDRectangle box = doc.getPage(i).getMediaBox();
                 sizes.add(new float[]{box.getWidth() * PT_TO_MM, box.getHeight() * PT_TO_MM});
+                try (var is = doc.getPage(i).getContents()) {
+                    contents.add(is == null ? ""
+                            : new String(is.readAllBytes(), java.nio.charset.StandardCharsets.ISO_8859_1));
+                }
             }
 
             PDFTextStripper stripper = new PDFTextStripper() {
@@ -100,7 +107,7 @@ public final class PdfProbe {
                 stripper.setEndPage(i);
                 texts.add(Normalizer.normalize(stripper.getText(doc), Normalizer.Form.NFKC));
             }
-            return new PdfProbe(pages, sizes, texts, runs);
+            return new PdfProbe(pages, sizes, texts, runs, contents);
         }
     }
 
@@ -134,6 +141,15 @@ public final class PdfProbe {
      */
     public boolean pageContains(int pageIndex, String needle) {
         return pageText(pageIndex).contains(nfkc(needle));
+    }
+
+    /**
+     * Decoded content-stream text of one page — raw PDF operators
+     * ({@code RG}, {@code w}, {@code d}, {@code m}/{@code l}, …) for
+     * asserting graphics that text extraction cannot see.
+     */
+    public String pageContent(int pageIndex) {
+        return pageContents.get(pageIndex);
     }
 
     // ── Text-run accessors ──────────────────────────────────────────────

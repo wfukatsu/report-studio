@@ -121,22 +121,22 @@ class PdfParseBackTest {
     @Test
     void unknownElementKind_producesNoText() throws IOException {
         // Characterization: unknown kinds fall back to an empty border box.
-        // Related gap: most V2 element types hit this path (issue #53).
+        // Related gap: several V2 element types still hit this path (issue #53).
         String json = """
             {"templates":[{
               "id":"t1","name":"Unknown",
               "sections":[{
                 "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
                 "elements":[{
-                  "id":"e1","kind":"hanko","name":"印",
-                  "frame":{"x":150,"y":30,"width":20,"height":20,"rotation":0},
-                  "props":{"text":"承認","fontSize":12}
+                  "id":"e1","kind":"revenueStamp","name":"収入印紙",
+                  "frame":{"x":150,"y":30,"width":20,"height":25,"rotation":0},
+                  "props":{"text":"収入印紙","fontSize":12}
                 }]
               }]
             }]}""";
         PdfProbe probe = render(json);
-        assertFalse(probe.pageContains(0, "承認"),
-                "hanko has no server renderer yet (#53) — update this test when implemented");
+        assertFalse(probe.pageContains(0, "収入印紙"),
+                "revenueStamp has no server renderer yet (#53) — update this test when implemented");
     }
 
     @Test

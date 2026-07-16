@@ -39,6 +39,55 @@ public final class PdfUtils {
     }
 
     /**
+     * Read a field that V2 elements store at the element top level and V1
+     * elements store in {@code props}: top level wins, then props, then default.
+     */
+    public static String elementTextOf(JsonNode el, String field, String defaultValue) {
+        String v = textOf(el, field, "");
+        if (!v.isEmpty()) return v;
+        JsonNode props = el.get("props");
+        return props != null ? textOf(props, field, defaultValue) : defaultValue;
+    }
+
+    /** Numeric variant of {@link #elementTextOf}. */
+    public static float elementFloatOf(JsonNode el, String field, float defaultValue) {
+        JsonNode v = el.get(field);
+        if (v != null && v.isNumber()) return v.floatValue();
+        JsonNode props = el.get("props");
+        return props != null ? floatOf(props, field, defaultValue) : defaultValue;
+    }
+
+    /** Boolean variant of {@link #elementTextOf}. */
+    public static boolean elementBoolOf(JsonNode el, String field, boolean defaultValue) {
+        JsonNode v = el.get(field);
+        if (v != null && v.isBoolean()) return v.asBoolean();
+        JsonNode props = el.get("props");
+        return props != null ? boolOf(props, field, defaultValue) : defaultValue;
+    }
+
+    /** Parse a {@code #RRGGBB} or {@code #RGB} hex color; fall back on anything else. */
+    public static Color parseColor(String hex, Color defaultColor) {
+        if (hex == null || hex.isEmpty() || !hex.startsWith("#")) return defaultColor;
+        try {
+            if (hex.length() == 7) {
+                return new Color(
+                        Integer.parseInt(hex.substring(1, 3), 16),
+                        Integer.parseInt(hex.substring(3, 5), 16),
+                        Integer.parseInt(hex.substring(5, 7), 16));
+            }
+            if (hex.length() == 4) {
+                int r = Integer.parseInt(hex.substring(1, 2), 16);
+                int g = Integer.parseInt(hex.substring(2, 3), 16);
+                int b = Integer.parseInt(hex.substring(3, 4), 16);
+                return new Color(r * 17, g * 17, b * 17);
+            }
+        } catch (NumberFormatException ignored) {
+            // fall through to default
+        }
+        return defaultColor;
+    }
+
+    /**
      * Truncate text to fit within maxWidth. O(n) single-pass accumulation
      * instead of O(n log n) binary search with repeated substring scans.
      */

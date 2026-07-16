@@ -41,6 +41,9 @@ public final class ElementPdfRendererRegistry {
         // Seal and signature
         registry.register(new SealBoxPdfRenderer("seal_box"));
         registry.register(new SealBoxPdfRenderer("signature_line"));
+        // V2 Japanese-form elements (issue #53)
+        registry.register(new HankoPdfRenderer());
+        registry.register(new DividerPdfRenderer());
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());
