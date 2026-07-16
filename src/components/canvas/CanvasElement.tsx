@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react'
+import { memo, useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
 import { ElementRenderer } from './ElementRenderer'
@@ -6,6 +6,7 @@ import { ElementErrorBoundary } from './ElementErrorBoundary'
 import { TextInlineEditor } from '@/elements/text/InlineEditor'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { constrainAspectRatio } from '@/lib/aspectRatioConstraint'
+import { computeOverflowWarning } from '@/lib/overflowWarning'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
 import type { ReportElement, FormTableElement, TextStyle } from '@/types'
 import { EXPAND_OVERFLOW_TOLERANCE_PX, EXPAND_PADDING_MM } from '@/elements/_blocks/constants'
@@ -89,6 +90,12 @@ export const CanvasElement = memo(function CanvasElement({
   const handleExitTableEdit = useCallback(() => {
     setTableEditMode(false)
   }, [])
+
+  // Data-overflow estimation (issue #55) — design mode only
+  const overflowWarning = useMemo(
+    () => (readonly ? null : computeOverflowWarning(element, data)),
+    [readonly, element, data],
+  )
 
   // UI-03: Track Ctrl/Meta key for locked element click-through
   const [modifierHeld, setModifierHeld] = useState(false)
@@ -362,6 +369,18 @@ export const CanvasElement = memo(function CanvasElement({
           )}
         </div>
       </ElementErrorBoundary>
+
+      {/* Data-overflow warning badge (issue #55) — records clipped by the frame */}
+      {!readonly && overflowWarning && (
+        <div
+          className="absolute top-0.5 right-0.5 pointer-events-none px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500 text-white whitespace-nowrap"
+          style={{ zIndex: 9997 }}
+          role="status"
+          title={`データ ${overflowWarning.intended} 件のうち ${overflowWarning.visible} 件のみ表示されます。要素の高さを広げるか、最大表示件数を調整してください（サーバPDF出力ではページ分割されます）`}
+        >
+          ⚠ {overflowWarning.visible}/{overflowWarning.intended}件
+        </div>
+      )}
 
       {/* Drop target highlight overlay — shown when dragging a schema field/group over this element */}
       {isDropTarget && (
