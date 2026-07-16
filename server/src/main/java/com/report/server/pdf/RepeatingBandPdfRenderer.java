@@ -62,7 +62,12 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         colX[0] = x;
         for (int i = 0; i < cols.size(); i++) colX[i + 1] = colX[i] + w * (cols.get(i).width / totalW);
 
-        float rowH = DEFAULT_ROW_H;
+        // Row height follows the element's itemHeight (mm) like the frontend;
+        // capacity math in SectionRenderHelper.bandCapacity mirrors this (issue #64)
+        float itemHeightMm = elementFloatOf(el, "itemHeight", 6f);
+        float rowH = itemHeightMm > 0 ? itemHeightMm * PdfUnits.MM_TO_PT : DEFAULT_ROW_H;
+        float headerH = elementFloatOf(el, "headerHeight", itemHeightMm) > 0
+                ? elementFloatOf(el, "headerHeight", itemHeightMm) * PdfUnits.MM_TO_PT : rowH;
         int rowCount = rows == null ? 0 : rows.size();
         if (maxItems > 0) rowCount = Math.min(rowCount, maxItems);
         float cursorTop = y;
@@ -72,19 +77,20 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
             // Header
             if (showHeader) {
                 cs.setNonStrokingColor(HEADER_BG);
-                cs.addRect(x, cursorTop - rowH, w, rowH);
+                cs.addRect(x, cursorTop - headerH, w, headerH);
                 cs.fill();
                 for (int i = 0; i < cols.size(); i++) {
                     drawCell(cs, font, cols.get(i).label, colX[i], colX[i + 1],
-                            cursorTop, rowH, "left", true, Color.BLACK);
+                            cursorTop, headerH, "left", true, Color.BLACK);
                 }
-                cursorTop -= rowH;
+                cursorTop -= headerH;
             }
 
             // Data rows
             for (int r = 0; r < rowCount; r++) {
                 JsonNode row = rows.get(r);
-                if (cursorTop - rowH < y - h) break; // clip to the box
+                // 0.5pt tolerance — exact fits must not be clipped by float drift
+                if (cursorTop - rowH < y - h - 0.5f) break; // clip to the box
                 for (int i = 0; i < cols.size(); i++) {
                     Col c = cols.get(i);
                     String text = ValueFormatter.applyFormat(row.get(c.key), c.format);

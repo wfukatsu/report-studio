@@ -148,9 +148,9 @@ public final class PdfRenderer {
                 // physicalPages is group-aware (issue #55): each group forces a page break
                 totalPages = Math.max(totalPages, renderer.physicalPages(section, formData));
             } else {
-                // Pushdown overflow of relative sections adds continuation pages (issue #55)
+                // Pushdown overflow (issue #55) and band flow (issue #64) add continuation pages
                 totalPages = Math.max(totalPages,
-                        com.report.server.pdf.SectionRenderHelper.pushdownPages(section));
+                        com.report.server.pdf.SectionRenderHelper.sectionOverflowPages(section, formData));
             }
             sectionParams.add(new int[]{rowsPerPage, totalRows});
         }
@@ -266,9 +266,9 @@ public final class PdfRenderer {
                             // physicalPages is group-aware (issue #55)
                             localCount = Math.max(localCount, r.physicalPages(section, formData));
                         } else {
-                            // Pushdown overflow of relative sections (issue #55)
+                            // Pushdown overflow (issue #55) and band flow (issue #64)
                             localCount = Math.max(localCount,
-                                    com.report.server.pdf.SectionRenderHelper.pushdownPages(section));
+                                    com.report.server.pdf.SectionRenderHelper.sectionOverflowPages(section, formData));
                         }
                         params.add(new int[]{rowsPerPage, totalRows});
                     }

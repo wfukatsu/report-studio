@@ -131,9 +131,30 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 実装: `PageContext.setClipToMargins` / `PdfRenderer.resolveClipMargins`。
 検証: `PageContextClipTest`。
 
-## 未実装（今後のスコープ）
+## V2 バンドフロー（repeatingBand / repeatingList）
 
-- V2 `repeatingBand` / `repeatingList` 要素のセクションへのマッピング（#53/#52）
+V2 の `repeatingBand` / `repeatingList` **要素**は、バインドされたレコードが
+要素枠を超える場合に**継続ページへ行をフローする**（従来は枠内クリップで欠落）。
+セクション種別は変えず、`page_base` / `free` の描画時にページごとの
+レコードウィンドウ（`[page × 容量, (page+1) × 容量)`）を要素に渡す方式 —
+罫線・ヘッダ等のバンド描画は `RepeatingBandPdfRenderer` /
+`RepeatingListPdfRenderer` のまま。
+
+- **容量**: band = `floor((枠高 − ヘッダ高) / itemHeight)`
+  （`headerHeight` 未指定時は `itemHeight`）、
+  list(vertical) = `floor((枠高 + gap) / (itemHeight + gap))`。
+  フロントのあふれ警告（`overflowWarning.ts`）と同一の式
+- **maxItems** による打ち切りは設計者の明示的な選択としてフローさせない
+  （maxItems 適用後のセットをフローする）
+- **ヘッダ**は各継続ページで繰返し描画（スライスごとに再描画されるため）
+- list の `grid` / `horizontal` レイアウトは対象外（従来どおりクリップ）
+- 静的要素は従来どおり全物理ページに繰返し描画
+- 継続ページ数は他のページ分割セクションと同様に文書ページ数の max に寄与
+  （上限 200: `SectionRenderHelper.MAX_BAND_PAGES`）
+
+実装: `SectionRenderHelper.bandCapacity / bandFlowPages / applyBandWindow`。
+検証: `PdfBandFlowParseBackTest`。
 
 デザイナー側のあふれ警告 UX はフロントエンド実装
 （`src/lib/overflowWarning.ts` + `CanvasElement` のバッジ表示）を参照。
+警告ツールチップの「サーバPDF出力ではページ分割されます」はこの機能を指す。
