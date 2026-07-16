@@ -24,8 +24,11 @@ public final class PageContext implements AutoCloseable {
     private final VariantContext variantCtx;
 
     private PDPageContentStream cs;
-    private int pageIndex = -1;
-    private int totalPages = 1;
+    private PDRectangle currentPageSize;
+    private int pageIndex = -1;      // global physical page index (for page numbers)
+    private int totalPages = 1;      // global physical page count
+    private int localPageIndex = -1; // index within the current designed page's flow
+    private int localPageCount = 1;  // physical pages of the current designed page
     private java.time.LocalDate printDate = java.time.LocalDate.now();
     private com.fasterxml.jackson.databind.JsonNode tenant;
 
@@ -37,24 +40,47 @@ public final class PageContext implements AutoCloseable {
                        VariantContext variantCtx) {
         this.doc = doc;
         this.pageSize = pageSize;
+        this.currentPageSize = pageSize;
         this.fontCache = fontCache;
         this.variantCtx = variantCtx != null ? variantCtx : VariantContext.empty();
     }
 
-    /** Start a new page. Closes the previous content stream if open. */
+    /** Start a new page at the context's default size. */
     public void newPage() throws IOException {
+        newPage(pageSize);
+    }
+
+    /**
+     * Start a new page at an explicit size (issue #52 — V2 designed pages each
+     * carry their own dimensions). Closes the previous content stream if open.
+     * {@link #pageHeight()} reflects the current page for coordinate flipping.
+     */
+    public void newPage(PDRectangle size) throws IOException {
         if (cs != null) {
             cs.close();
         }
-        PDPage page = new PDPage(pageSize);
+        PDPage page = new PDPage(size);
         doc.addPage(page);
         cs = new PDPageContentStream(doc, page);
+        currentPageSize = size;
         pageIndex++;
     }
 
     /** Set the total page count (computed before rendering begins). */
     public void setTotalPages(int total) {
         this.totalPages = total;
+    }
+
+    /**
+     * Set the local page position within the current designed page's flow
+     * (issue #52). {@code pageScope} first/last is evaluated against this, so a
+     * "last" section renders on the last physical page of its own designed
+     * page, not the last page of the whole document. The V1 path sets these
+     * equal to the global index/count, preserving prior behavior.
+     */
+    public void setLocalPage(int localIndex, int localCount) {
+        this.localPageIndex = localIndex;
+        this.localPageCount = localCount;
     }
 
     /** Override the print date (from the projection's {@code _printDate}); defaults to today. */
@@ -70,8 +96,8 @@ public final class PageContext implements AutoCloseable {
     /** Check if a section with the given pageScope should render on the current page. */
     public boolean shouldRender(String pageScope) {
         if (pageScope == null || "all".equals(pageScope)) return true;
-        if ("first".equals(pageScope)) return pageIndex == 0;
-        if ("last".equals(pageScope)) return pageIndex == totalPages - 1;
+        if ("first".equals(pageScope)) return localPageIndex <= 0;
+        if ("last".equals(pageScope)) return localPageIndex == localPageCount - 1;
         return true;
     }
 
@@ -81,7 +107,7 @@ public final class PageContext implements AutoCloseable {
     public PDDocument document() { return doc; }
     public Map<String, PDFont> fontCache() { return fontCache; }
     public VariantContext variantCtx() { return variantCtx; }
-    public float pageHeight() { return pageSize.getHeight(); }
+    public float pageHeight() { return currentPageSize.getHeight(); }
     public int pageIndex() { return pageIndex; }
     public int totalPages() { return totalPages; }
     public java.time.LocalDate printDate() { return printDate; }

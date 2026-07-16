@@ -34,6 +34,7 @@ public final class PdfRenderer {
     private static final float MM_TO_PT = com.report.server.pdf.PdfUnits.MM_TO_PT;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_TEMPLATES_PER_PROJECTION = 20;
+    private static final int MAX_PHYSICAL_PAGES = 2000; // bound runaway pages[] × pagination (issue #52)
 
     private static final ElementPdfRendererRegistry REGISTRY = ElementPdfRendererRegistry.createDefault();
     private static final ElementPdfRenderer FALLBACK = new FallbackRenderer();
@@ -162,6 +163,7 @@ public final class PdfRenderer {
 
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();
+                ctx.setLocalPage(pageIdx, totalPages); // V1: local == global (unchanged behavior)
                 for (int i = 0; i < orderedSections.size(); i++) {
                     JsonNode section = orderedSections.get(i);
                     String sectionType = resolveSectionType(section);
@@ -172,6 +174,162 @@ public final class PdfRenderer {
                 }
             }
         }
+    }
+
+    // ── V2 native rendering (issue #52) ─────────────────────────────────
+
+    /** Render a V2 {@code ReportDefinition} JSON directly to PDF bytes. */
+    public static byte[] renderDefinition(String definitionJson) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        renderDefinitionToStream(definitionJson, baos);
+        return baos.toByteArray();
+    }
+
+    /**
+     * Render a V2 {@code ReportDefinition} directly, preserving designed page
+     * boundaries (issue #52) — replaces the V2ProjectionBuilder → V1 bridge.
+     *
+     * <p>Each {@code pages[]} entry is rendered at its own size, expanded by its
+     * own data pagination; the physical page counter and {@code totalPages}
+     * accumulate across the whole document so {@code {{page}}/{{pages}}} run
+     * continuously. Reuses the section registry and SectionRenderHelper, which
+     * already understand V2 element {@code type}s.
+     *
+     * <p>Root-level control keys mirror the V1 path: {@code _formData} /
+     * {@code testData}, {@code _variantId}, {@code _printDate}, {@code _tenant}.
+     */
+    public static void renderDefinitionToStream(String definitionJson, java.io.OutputStream out)
+            throws IOException {
+        JsonNode def = MAPPER.readTree(definitionJson);
+        JsonNode formData = def.has("_formData") ? def.get("_formData") : def.get("testData");
+        String variantId = def.hasNonNull("_variantId") ? def.get("_variantId").asText(null) : null;
+
+        java.time.LocalDate printDate = null;
+        if (def.hasNonNull("_printDate")) {
+            try {
+                printDate = java.time.LocalDate.parse(def.get("_printDate").asText());
+            } catch (Exception e) {
+                log.warn("Invalid _printDate '{}', using today", def.get("_printDate").asText());
+            }
+        }
+        JsonNode tenant = def.hasNonNull("_tenant") ? def.get("_tenant") : TenantInfoProvider.get();
+
+        // Resolve the active variant from outputVariants[] (matched on id)
+        VariantContext variantCtx = VariantContext.empty();
+        if (variantId != null && !variantId.isBlank()) {
+            JsonNode variants = def.path("outputVariants");
+            if (variants.isArray()) {
+                for (JsonNode v : variants) {
+                    if (variantId.equals(v.path("id").asText(null))) {
+                        variantCtx = VariantContext.from(v);
+                        break;
+                    }
+                }
+            }
+        }
+
+        ImagePdfRenderer.clearImageCache();
+
+        try (PDDocument doc = new PDDocument()) {
+            JsonNode pages = def.path("pages");
+            if (!pages.isArray() || pages.isEmpty()) {
+                doc.addPage(new PDPage(resolvePageSizeFromSettings(def.path("pageSettings"))));
+                doc.save(out);
+                return;
+            }
+
+            // Pre-pass: per designed page, its size, ordered sections, section
+            // params, and its own physical page count. Global total = Σ.
+            java.util.List<PDRectangle> pageSizes = new java.util.ArrayList<>();
+            java.util.List<java.util.List<JsonNode>> pageSections = new java.util.ArrayList<>();
+            java.util.List<java.util.List<int[]>> pageParams = new java.util.ArrayList<>();
+            java.util.List<Integer> localCounts = new java.util.ArrayList<>();
+            int globalTotal = 0;
+
+            for (JsonNode page : pages) {
+                pageSizes.add(resolvePageSizeForPage(page, def.path("pageSettings")));
+                java.util.List<JsonNode> ordered = new java.util.ArrayList<>();
+                java.util.List<int[]> params = new java.util.ArrayList<>();
+                int localCount = 1;
+                JsonNode sections = page.path("sections");
+                if (sections.isArray()) {
+                    for (JsonNode section : sections) {
+                        ordered.add(section);
+                        SectionPdfRenderer r = SECTION_REGISTRY.getOrFallback(resolveSectionType(section));
+                        int rowsPerPage = 10, totalRows = 0;
+                        if (r.isPaginating()) {
+                            rowsPerPage = Math.max(r.rowsPerPage(section), 1);
+                            totalRows = (formData != null) ? r.countRows(section, formData) : 0;
+                            if (totalRows > rowsPerPage) {
+                                localCount = Math.max(localCount,
+                                        (int) Math.ceil((double) totalRows / rowsPerPage));
+                            }
+                        }
+                        params.add(new int[]{rowsPerPage, totalRows});
+                    }
+                }
+                pageSections.add(ordered);
+                pageParams.add(params);
+                localCounts.add(localCount);
+                globalTotal += localCount;
+                if (globalTotal > MAX_PHYSICAL_PAGES) {
+                    log.warn("Physical page count exceeds limit ({}), truncating", MAX_PHYSICAL_PAGES);
+                    break;
+                }
+            }
+
+            Map<String, PDFont> fontCache = new HashMap<>();
+            try (com.report.server.pdf.PageContext ctx = new com.report.server.pdf.PageContext(
+                    doc, pageSizes.get(0), fontCache, variantCtx)) {
+                ctx.setTotalPages(globalTotal);
+                ctx.setPrintDate(printDate);
+                ctx.setTenant(tenant);
+
+                for (int p = 0; p < pageSections.size(); p++) {
+                    PDRectangle size = pageSizes.get(p);
+                    java.util.List<JsonNode> ordered = pageSections.get(p);
+                    java.util.List<int[]> params = pageParams.get(p);
+                    int localCount = localCounts.get(p);
+                    for (int localIdx = 0; localIdx < localCount; localIdx++) {
+                        ctx.newPage(size);
+                        ctx.setLocalPage(localIdx, localCount);
+                        for (int i = 0; i < ordered.size(); i++) {
+                            JsonNode section = ordered.get(i);
+                            SectionPdfRenderer r =
+                                    SECTION_REGISTRY.getOrFallback(resolveSectionType(section));
+                            int[] prm = params.get(i);
+                            r.renderPage(ctx, section, formData, null, localIdx, prm[0], prm[1]);
+                        }
+                    }
+                }
+            }
+            doc.save(out);
+        }
+    }
+
+    /** Page size for a designed page: its own width/height (mm) wins, else the pageSettings preset. */
+    private static PDRectangle resolvePageSizeForPage(JsonNode page, JsonNode pageSettings) {
+        float wMm = PdfUtils.floatOf(page, "width", 0);
+        float hMm = PdfUtils.floatOf(page, "height", 0);
+        if (wMm > 0 && hMm > 0) {
+            return new PDRectangle(Math.min(wMm, 1000) * MM_TO_PT, Math.min(hMm, 1000) * MM_TO_PT);
+        }
+        return resolvePageSizeFromSettings(pageSettings);
+    }
+
+    /** Page size from V2 {@code pageSettings} (paperSize preset + orientation). */
+    private static PDRectangle resolvePageSizeFromSettings(JsonNode ps) {
+        if (ps == null || ps.isMissingNode()) return PDRectangle.A4;
+        String id = PdfUtils.textOf(ps, "paperSize", "A4");
+        String orient = PdfUtils.textOf(ps, "orientation", "portrait");
+        PDRectangle base = switch (id) {
+            case "A3" -> PDRectangle.A3;
+            case "A5" -> PDRectangle.A5;
+            case "Letter" -> PDRectangle.LETTER;
+            case "Legal" -> PDRectangle.LEGAL;
+            default -> PDRectangle.A4;
+        };
+        return "landscape".equals(orient) ? new PDRectangle(base.getHeight(), base.getWidth()) : base;
     }
 
     // ── Fallback renderer for unsupported kinds ─────────────────────

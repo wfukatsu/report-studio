@@ -66,27 +66,35 @@ public final class CalculationEngine {
     private static List<CalcRule> extractRules(JsonNode projection) {
         List<CalcRule> rules = new ArrayList<>();
         JsonNode templates = projection.path("templates");
-        if (!templates.isArray()) return rules;
-
-        for (JsonNode tmpl : templates) {
-            JsonNode calcRules = tmpl.path("calculationRules");
-            if (!calcRules.isArray()) continue;
-            for (JsonNode r : calcRules) {
-                if (rules.size() >= ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE) {
-                    log.warn("Expression count exceeds limit ({}), truncating",
-                            ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE);
-                    break;
-                }
-                String id = r.path("id").asText("");
-                String targetField = r.path("targetField").asText(null);
-                String expression = r.path("expression").asText(null);
-                String policy = r.path("roundingPolicy").asText("none");
-                int scale = r.path("roundingScale").asInt(0);
-                if (targetField == null || expression == null) continue;
-                rules.add(new CalcRule(id, targetField, expression, policy, scale));
+        if (templates.isArray()) {
+            // V1 projection: templates[].calculationRules[]
+            for (JsonNode tmpl : templates) {
+                collectRules(tmpl.path("calculationRules"), rules);
             }
+        } else {
+            // V2 ReportDefinition: calculationRules[] at the root (issue #52)
+            collectRules(projection.path("calculationRules"), rules);
         }
         return rules;
+    }
+
+    private static void collectRules(JsonNode calcRules, List<CalcRule> rules) {
+        if (!calcRules.isArray()) return;
+        for (JsonNode r : calcRules) {
+            if (rules.size() >= ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE) {
+                log.warn("Expression count exceeds limit ({}), truncating",
+                        ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE);
+                return;
+            }
+            String id = r.path("id").asText("");
+            // V1 projection uses "targetField"; V2 ReportDefinition uses "key" (issue #52)
+            String targetField = r.path("targetField").asText(r.path("key").asText(null));
+            String expression = r.path("expression").asText(null);
+            String policy = r.path("roundingPolicy").asText("none");
+            int scale = r.path("roundingScale").asInt(0);
+            if (targetField == null || expression == null) continue;
+            rules.add(new CalcRule(id, targetField, expression, policy, scale));
+        }
     }
 
     // ── Topological sort (Kahn's algorithm) ──────────────────────────────────

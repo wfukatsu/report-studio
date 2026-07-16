@@ -39,9 +39,18 @@ public record VariantContext(
      */
     public static VariantContext from(JsonNode variant) {
         Map<String, Boolean> vis = new HashMap<>();
+        // V1 projection: visibilityOverrides { id: bool }.
         JsonNode overrides = variant.path("visibilityOverrides");
         if (overrides.isObject()) {
             overrides.fields().forEachRemaining(e -> vis.put(e.getKey(), e.getValue().asBoolean(true)));
+        }
+        // V2 ReportDefinition: hiddenElementIds [ id, ... ] → { id: false } (issue #52).
+        JsonNode hidden = variant.path("hiddenElementIds");
+        if (hidden.isArray()) {
+            for (JsonNode idNode : hidden) {
+                String id = idNode.asText(null);
+                if (id != null && !id.isBlank()) vis.putIfAbsent(id, false);
+            }
         }
 
         Map<String, MaskingSpec> masks = new HashMap<>();
@@ -50,10 +59,12 @@ public record VariantContext(
             for (JsonNode rule : rules) {
                 String targetId = rule.path("targetElementId").asText(null);
                 if (targetId == null || targetId.isBlank()) continue;
-                String type = rule.path("maskingType").asText("hidden");
+                // maskingType (V1) || type (V2)
+                String type = rule.path("maskingType").asText(rule.path("type").asText("hidden"));
                 String replace = rule.path("replaceValue").asText("");
-                int keepFirst = rule.path("partialSpec").path("keepFirst").asInt(0);
-                int keepLast = rule.path("partialSpec").path("keepLast").asInt(0);
+                // partialSpec.keepFirst/keepLast (V1) || keepFirst/keepLast at rule level (V2)
+                int keepFirst = rule.path("partialSpec").path("keepFirst").asInt(rule.path("keepFirst").asInt(0));
+                int keepLast = rule.path("partialSpec").path("keepLast").asInt(rule.path("keepLast").asInt(0));
                 masks.put(targetId, new MaskingSpec(type, replace, keepFirst, keepLast));
             }
         }
