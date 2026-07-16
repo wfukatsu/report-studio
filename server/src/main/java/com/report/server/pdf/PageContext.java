@@ -26,6 +26,7 @@ public final class PageContext implements AutoCloseable {
     private PDPageContentStream cs;
     private int pageIndex = -1;
     private int totalPages = 1;
+    private java.time.LocalDate printDate = java.time.LocalDate.now();
 
     public PageContext(PDDocument doc, PDRectangle pageSize, Map<String, PDFont> fontCache) {
         this(doc, pageSize, fontCache, VariantContext.empty());
@@ -55,6 +56,11 @@ public final class PageContext implements AutoCloseable {
         this.totalPages = total;
     }
 
+    /** Override the print date (from the projection's {@code _printDate}); defaults to today. */
+    public void setPrintDate(java.time.LocalDate date) {
+        if (date != null) this.printDate = date;
+    }
+
     /** Check if a section with the given pageScope should render on the current page. */
     public boolean shouldRender(String pageScope) {
         if (pageScope == null || "all".equals(pageScope)) return true;
@@ -72,6 +78,7 @@ public final class PageContext implements AutoCloseable {
     public float pageHeight() { return pageSize.getHeight(); }
     public int pageIndex() { return pageIndex; }
     public int totalPages() { return totalPages; }
+    public java.time.LocalDate printDate() { return printDate; }
 
     @Override
     public void close() throws IOException {

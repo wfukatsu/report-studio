@@ -154,6 +154,9 @@ public final class SectionRenderHelper {
     /** Render a single element via the ElementPdfRendererRegistry. */
     public static void renderElement(PageContext ctx, JsonNode el) {
         try {
+            // Page numbers / print dates are only known now (issue #54)
+            el = resolveSystemValues(el, ctx);
+
             // V1 uses "kind"; V2 uses "type" — resolveKind falls back to "type"
             String kind = resolveKind(el);
 
@@ -270,6 +273,43 @@ public final class SectionRenderHelper {
         } catch (Exception e) {
             return el;
         }
+    }
+
+    // ── System values (issue #54) ───────────────────────────────────────
+
+    /**
+     * Resolve render-time system values into the element's value prop:
+     * pageNumber / currentDate elements format themselves from the page
+     * context, and legacy {@code {pageNumber}} / {@code {totalPages}} /
+     * {@code {currentDate}} bindingRefs substitute their current value.
+     */
+    private static JsonNode resolveSystemValues(JsonNode el, PageContext ctx) {
+        String kind = resolveKind(el);
+        String value = null;
+        if ("pageNumber".equals(kind)) {
+            value = SystemValueResolver.formatPageNumber(
+                    PdfUtils.elementTextOf(el, "format", "{{page}}"),
+                    PdfUtils.elementTextOf(el, "customFormat", ""),
+                    ctx.pageIndex() + 1, ctx.totalPages());
+        } else if ("currentDate".equals(kind)) {
+            value = SystemValueResolver.formatCurrentDate(
+                    PdfUtils.elementTextOf(el, "format", ""),
+                    PdfUtils.elementTextOf(el, "customFormat", ""),
+                    ctx.printDate());
+        } else {
+            JsonNode ref = el.get("bindingRef");
+            if (ref != null && ref.isTextual()) {
+                switch (ref.asText()) {
+                    case "{pageNumber}" -> value = String.valueOf(ctx.pageIndex() + 1);
+                    case "{totalPages}" -> value = String.valueOf(ctx.totalPages());
+                    case "{currentDate}" -> value = SystemValueResolver.formatCurrentDate(
+                            "yyyy/MM/dd", null, ctx.printDate());
+                    default -> { /* not a system variable */ }
+                }
+            }
+        }
+        if (value == null) return el;
+        return withResolvedProp(el, com.fasterxml.jackson.databind.node.TextNode.valueOf(value));
     }
 
     // ── Row-region geometry (issue #55) ─────────────────────────────────

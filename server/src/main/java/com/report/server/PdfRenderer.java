@@ -67,6 +67,17 @@ public final class PdfRenderer {
         // Optional _variantId: selects a variant from the template's "variants" array
         String variantId = root.has("_variantId") ? root.get("_variantId").asText(null) : null;
 
+        // Optional _printDate (ISO yyyy-MM-dd): overrides "today" for currentDate
+        // elements and {currentDate} bindings — keeps batch output deterministic (issue #54)
+        java.time.LocalDate printDate = null;
+        if (root.hasNonNull("_printDate")) {
+            try {
+                printDate = java.time.LocalDate.parse(root.get("_printDate").asText());
+            } catch (Exception e) {
+                log.warn("Invalid _printDate '{}', using today", root.get("_printDate").asText());
+            }
+        }
+
         try (PDDocument doc = new PDDocument()) {
             if (templates == null || !templates.isArray() || templates.isEmpty()) {
                 doc.addPage(new PDPage(PDRectangle.A4));
@@ -77,7 +88,7 @@ public final class PdfRenderer {
                         log.warn("Template count exceeds limit ({}), truncating", MAX_TEMPLATES_PER_PROJECTION);
                         break;
                     }
-                    renderTemplate(doc, tmpl, formData, variantId);
+                    renderTemplate(doc, tmpl, formData, variantId, printDate);
                 }
             }
 
@@ -86,7 +97,7 @@ public final class PdfRenderer {
     }
 
     private static void renderTemplate(PDDocument doc, JsonNode tmpl, JsonNode formData,
-                                        String variantId) throws IOException {
+                                        String variantId, java.time.LocalDate printDate) throws IOException {
         // Clear per-render image cache at template boundary
         ImagePdfRenderer.clearImageCache();
 
@@ -140,6 +151,7 @@ public final class PdfRenderer {
         try (com.report.server.pdf.PageContext ctx =
                  new com.report.server.pdf.PageContext(doc, pageSize, fontCache, variantCtx)) {
             ctx.setTotalPages(totalPages);
+            ctx.setPrintDate(printDate);
 
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();

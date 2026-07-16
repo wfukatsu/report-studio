@@ -34,7 +34,7 @@ class V2ElementParityMatrixTest {
     private static final Set<String> EXPECTED_SUPPORTED = Set.of(
             "text", "shape", "image", "barcode", "checkbox", "formTable",
             "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow",
-            "dataField");
+            "dataField", "pageNumber", "currentDate");
 
     private static Map<String, String> buildTypeNotes() {
         Map<String, String> m = new LinkedHashMap<>();
@@ -53,8 +53,8 @@ class V2ElementParityMatrixTest {
         m.put("hanko", "対応（HankoPdfRenderer — 円/角・二重枠・縦書き・色・binding 解決）");
         m.put("approvalStampRow", "対応（ApprovalStampRowPdfRenderer — 役職ラベル帯・セル区切り。stampSrc 画像は未対応）");
         m.put("revenueStamp", "対応（RevenueStampPdfRenderer — ラベル・金額・消印ガイド破線）");
-        m.put("pageNumber", "非対応。{pageNumber} 置換も未実装（#54）");
-        m.put("currentDate", "非対応。{currentDate} 置換も未実装（#54）");
+        m.put("pageNumber", "対応（PageContext から解決。{{page}}/{{pages}} テンプレート・{pageNumber} bindingRef）");
+        m.put("currentDate", "対応（_printDate/当日から解決。和暦・曜日・カスタムパターン）");
         m.put("divider", "対応（DividerPdfRenderer — 方向・太さ・破線・色）");
         m.put("tenantCompanyName", "テナント解決なし（#54）");
         m.put("tenantAddress", "テナント解決なし（#54）");

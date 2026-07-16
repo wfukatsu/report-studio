@@ -48,6 +48,9 @@ public final class ElementPdfRendererRegistry {
         registry.register(new ApprovalStampRowPdfRenderer());
         registry.register(new EraSelectPdfRenderer());
         registry.register(new DataFieldPdfRenderer());
+        // Auto-fields — values resolved from the page context (issue #54)
+        registry.register(new StyledTextPdfRenderer("pageNumber"));
+        registry.register(new StyledTextPdfRenderer("currentDate"));
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());

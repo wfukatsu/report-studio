@@ -140,10 +140,8 @@ class PdfParseBackTest {
     }
 
     @Test
-    void systemVariables_currentlyNotSubstituted() throws IOException {
-        // Characterization of issue #54: {pageNumber}/{totalPages}/{currentDate}
-        // bindingRefs are skipped in resolveFormData and never substituted at
-        // render time — the element renders its (empty) props.text instead.
+    void systemVariables_substituteAtRenderTime() throws IOException {
+        // Issue #54: {pageNumber} bindingRefs resolve from the page context.
         String json = """
             {"templates":[{
               "id":"t1","name":"SysVar",
@@ -159,8 +157,6 @@ class PdfParseBackTest {
             }],
             "_formData":{}}""";
         PdfProbe probe = render(json);
-        assertFalse(probe.pageText(0).matches("(?s).*\\d.*"),
-                "page number should not appear yet — update this test when #54 lands: "
-                        + probe.pageText(0));
+        assertTrue(probe.pageContains(0, "1"), probe.pageText(0));
     }
 }
