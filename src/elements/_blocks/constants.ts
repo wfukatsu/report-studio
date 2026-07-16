@@ -3,8 +3,10 @@
  * Centralizes magic numbers and configuration values.
  */
 
-/** 1mm = 3.7795275591px @ 96dpi */
-export const MM_TO_PX = 3.7795275591
+import { mmToPx } from '@/lib/paperSizes'
+
+/** 1mm = 96/25.4 ≈ 3.7795275591px @ 96dpi — single source: paperSizes.mmToPx */
+export const MM_TO_PX = mmToPx(1)
 
 /** Default font size in pt */
 export const DEFAULT_FONT_SIZE = 10

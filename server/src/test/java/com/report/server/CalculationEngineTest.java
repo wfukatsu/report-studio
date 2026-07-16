@@ -151,4 +151,49 @@ class CalculationEngineTest {
         Map<String, Object> result = CalculationEngine.apply(parse("{\"templates\":[]}"), parse("{}"));
         assertNotNull(result);
     }
+
+    // ── #57: BigDecimal rounding + AST dependency extraction ─────────────────
+
+    @Test
+    void apply_halfEvenWithScale_roundsInDecimalSpace() throws Exception {
+        JsonNode projection = parse("""
+            {"templates":[{"id":"t1","calculationRules":[
+              {"id":"r1","targetField":"unit","expression":"price / 8",
+               "roundingPolicy":"half_even","roundingScale":1}
+            ]}]}""");
+        JsonNode formData = parse("{\"price\":1234.0}");
+
+        Map<String, Object> result = CalculationEngine.apply(projection, formData);
+        // 154.25 → half_even @ scale 1 → 154.2
+        assertEquals(0, new java.math.BigDecimal("154.2")
+                .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
+    }
+
+    @Test
+    void apply_halfUpWithScale_roundsAwayFromZeroOnTie() throws Exception {
+        JsonNode projection = parse("""
+            {"templates":[{"id":"t1","calculationRules":[
+              {"id":"r1","targetField":"unit","expression":"price / 8",
+               "roundingPolicy":"half_up","roundingScale":1}
+            ]}]}""");
+        Map<String, Object> result = CalculationEngine.apply(projection, parse("{\"price\":1234.0}"));
+        // 154.25 → half_up @ scale 1 → 154.3
+        assertEquals(0, new java.math.BigDecimal("154.3")
+                .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
+    }
+
+    @Test
+    void apply_identifierInsideStringLiteral_isNotADependency() throws Exception {
+        // Regression (#57): the old regex scanner saw "b" inside the string
+        // literal of rule a, reporting a false a→b dependency; combined with
+        // the real b→a dependency it raised a bogus CircularDependencyException.
+        JsonNode projection = parse("""
+            {"templates":[{"id":"t1","calculationRules":[
+              {"id":"r1","targetField":"a","expression":"'b'"},
+              {"id":"r2","targetField":"b","expression":"a"}
+            ]}]}""");
+        Map<String, Object> result = CalculationEngine.apply(projection, parse("{}"));
+        assertEquals("b", result.get("a"));
+        assertEquals("b", result.get("b"));
+    }
 }

@@ -63,9 +63,9 @@ class PdfCalculationParseBackTest {
             {"id":"r2","targetField":"tax","expression":"subtotal * 0.1","roundingPolicy":"floor"},
             {"id":"r1","targetField":"subtotal","expression":"price * quantity","roundingPolicy":"none"}"""));
         assertTrue(probe.pageContains(0, "4500"), probe.pageText(0));
-        // KNOWN PRECISION GAP (#57): double math renders as "450.0", not "450"
-        // or a formatted currency string. Update when BigDecimal formatting lands.
-        assertTrue(probe.pageContains(0, "450.0"), probe.pageText(0));
+        // BigDecimal rounding + integral-aware stringification (#57): "450", not "450.0"
+        assertTrue(probe.pageContains(0, "450"), probe.pageText(0));
+        assertFalse(probe.pageContains(0, "450.0"), probe.pageText(0));
     }
 
     @Test
@@ -84,8 +84,31 @@ class PdfCalculationParseBackTest {
               }]
             }],
             "_formData":{"price":1234}}""");
-        // 1234 * 0.08 = 98.72 → floor → 98.0 (double formatting — #57)
-        assertTrue(probe.pageContains(0, "98.0"), probe.pageText(0));
+        // 1234 * 0.08 = 98.72 → floor → 98 (#57: BigDecimal, no ".0")
+        assertTrue(probe.pageContains(0, "98"), probe.pageText(0));
         assertFalse(probe.pageContains(0, "98.72"));
+        assertFalse(probe.pageContains(0, "98.0"));
+    }
+
+    @Test
+    void halfEvenRoundingWithScale_rendersDecimalResult() throws Exception {
+        // 1234 / 8 = 154.25 → half_even at scale 1 → 154.2 (#57)
+        PdfProbe probe = renderEnriched("""
+            {"templates":[{
+              "id":"t1","name":"HalfEven",
+              "calculationRules":[
+                {"id":"r1","targetField":"unit","expression":"price / 8",
+                 "roundingPolicy":"half_even","roundingScale":1}],
+              "sections":[{
+                "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
+                "elements":[{
+                  "id":"e1","kind":"text","name":"Unit",
+                  "frame":{"x":20,"y":20,"width":80,"height":8,"rotation":0},
+                  "bindingRef":"unit","props":{"fontSize":12}}]
+              }]
+            }],
+            "_formData":{"price":1234.0}}""");
+        assertTrue(probe.pageContains(0, "154.2"), probe.pageText(0));
+        assertFalse(probe.pageContains(0, "154.25"));
     }
 }

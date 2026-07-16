@@ -20,7 +20,7 @@ public final class SectionRenderHelper {
 
     private static final Logger log = LoggerFactory.getLogger(SectionRenderHelper.class);
 
-    public static final float MM_TO_PT = 2.835f;
+    public static final float MM_TO_PT = PdfUnits.MM_TO_PT;
     private static final float MAX_DIMENSION_PT = 2000f;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -460,10 +460,17 @@ public final class SectionRenderHelper {
     }
 
     private static void applyValue(ObjectNode props, String propKey, JsonNode value) {
-        if (value.isTextual()) props.put(propKey, value.asText());
-        else if (value.isNumber()) props.put(propKey, value.isInt()
-                ? String.valueOf(value.asInt()) : String.valueOf(value.asDouble()));
-        else if (value.isBoolean()) props.put(propKey, value.asBoolean());
+        if (value.isTextual()) {
+            props.put(propKey, value.asText());
+        } else if (value.isNumber()) {
+            // Integral values print without ".0" — BigDecimal calc results
+            // (issue #57) and JSON doubles like 450.0 both become "450"
+            double d = value.asDouble();
+            props.put(propKey, (d == Math.rint(d) && Math.abs(d) < 1e15)
+                    ? String.valueOf((long) d) : String.valueOf(d));
+        } else if (value.isBoolean()) {
+            props.put(propKey, value.asBoolean());
+        }
     }
 
     /**

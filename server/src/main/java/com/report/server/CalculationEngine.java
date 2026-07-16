@@ -50,7 +50,7 @@ public final class CalculationEngine {
         for (CalcRule rule : ordered) {
             Object value = ExpressionEngine.calculate(rule.expression(), context);
             if (value != null) {
-                value = applyRounding(value, rule.roundingPolicy());
+                value = applyRounding(value, rule.roundingPolicy(), rule.roundingScale());
             }
             context.put(rule.targetField(), value);
         }
@@ -60,7 +60,8 @@ public final class CalculationEngine {
 
     // ── Rule extraction ───────────────────────────────────────────────────────
 
-    private record CalcRule(String id, String targetField, String expression, String roundingPolicy) {}
+    private record CalcRule(String id, String targetField, String expression,
+                            String roundingPolicy, int roundingScale) {}
 
     private static List<CalcRule> extractRules(JsonNode projection) {
         List<CalcRule> rules = new ArrayList<>();
@@ -80,8 +81,9 @@ public final class CalculationEngine {
                 String targetField = r.path("targetField").asText(null);
                 String expression = r.path("expression").asText(null);
                 String policy = r.path("roundingPolicy").asText("none");
+                int scale = r.path("roundingScale").asInt(0);
                 if (targetField == null || expression == null) continue;
-                rules.add(new CalcRule(id, targetField, expression, policy));
+                rules.add(new CalcRule(id, targetField, expression, policy, scale));
             }
         }
         return rules;
@@ -149,9 +151,17 @@ public final class CalculationEngine {
 
     /**
      * Extract identifiers from an expression that match known computed fields.
-     * Simple token scan — does not parse JEXL AST.
+     * Uses the JEXL parser (issue #57) so identifiers inside string literals or
+     * quoted arguments no longer create false dependencies / false cycles;
+     * falls back to a regex token scan when the expression fails to parse.
      */
     private static Set<String> extractDependencies(String expression, Set<String> knownFields) {
+        Set<String> parsed = ExpressionEngine.extractVariables(expression);
+        if (parsed != null) {
+            Set<String> deps = new LinkedHashSet<>(parsed);
+            deps.retainAll(knownFields);
+            return deps;
+        }
         Set<String> deps = new LinkedHashSet<>();
         Matcher m = IDENT.matcher(expression);
         while (m.find()) {
@@ -163,15 +173,23 @@ public final class CalculationEngine {
 
     // ── Rounding ──────────────────────────────────────────────────────────────
 
-    private static Object applyRounding(Object value, String policy) {
-        if (!(value instanceof Number n) || "none".equals(policy)) return value;
-        double d = n.doubleValue();
-        return switch (policy) {
-            case "floor" -> Math.floor(d);
-            case "ceil" -> Math.ceil(d);
-            case "round" -> Math.round(d) * 1.0;
-            default -> d;
+    /**
+     * BigDecimal-based rounding (issue #57): monetary values are rounded in
+     * decimal space, never via double math. Policies: {@code floor},
+     * {@code ceil}, {@code round}/{@code half_up}, {@code half_even};
+     * {@code roundingScale} selects the decimal places (default 0).
+     */
+    private static Object applyRounding(Object value, String policy, int scale) {
+        if (!(value instanceof Number n) || policy == null || "none".equals(policy)) return value;
+        java.math.RoundingMode mode = switch (policy) {
+            case "floor" -> java.math.RoundingMode.FLOOR;
+            case "ceil" -> java.math.RoundingMode.CEILING;
+            case "round", "half_up" -> java.math.RoundingMode.HALF_UP;
+            case "half_even" -> java.math.RoundingMode.HALF_EVEN;
+            default -> null;
         };
+        if (mode == null) return value;
+        return new java.math.BigDecimal(n.toString()).setScale(scale, mode);
     }
 
     // ── Form data conversion ──────────────────────────────────────────────────

@@ -22,7 +22,7 @@ import static com.report.server.pdf.PdfUtils.*;
 public final class BarcodePdfRenderer implements ElementPdfRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(BarcodePdfRenderer.class);
-    private static final float MM_TO_PT = 2.835f;
+    private static final float MM_TO_PT = PdfUnits.MM_TO_PT;
 
     @Override
     public String kind() {

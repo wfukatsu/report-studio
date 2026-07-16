@@ -119,8 +119,8 @@ class PdfHankoDividerParseBackTest {
             """)));
         String content = probe.pageContent(0);
         assertTrue(content.contains("0.8 0 0 SC"), content);
-        // thickness 1mm → 2.835pt line width
-        assertTrue(content.contains("2.835 w") || content.contains("2.83 w"), content);
+        // thickness 1mm → 72/25.4 ≈ 2.83465pt line width (PdfUnits, #57)
+        assertTrue(content.contains("2.83"), content);
         // solid → no dash pattern operator with a non-empty array
         assertFalse(content.contains("] 0 d"), content);
     }
@@ -139,8 +139,8 @@ class PdfHankoDividerParseBackTest {
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(dividerJson("""
             "direction":"vertical","color":"#000000","thickness":0.3,"dashStyle":"solid"
             """)));
-        // Element x=20mm w=170mm → center x = 105mm = 297.675pt; line from y(100mm) to y(100.5mm)
+        // Element x=20mm w=170mm → center x = 105mm ≈ 297.64pt (72/25.4 exact)
         String content = probe.pageContent(0);
-        assertTrue(content.contains("297.67"), content);
+        assertTrue(content.contains("297.6"), content);
     }
 }

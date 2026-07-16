@@ -103,6 +103,30 @@ public final class ExpressionEngine {
         return evaluateWithTimeout(expr, ctx);
     }
 
+    /**
+     * Parse-only variable extraction for dependency analysis (issue #57).
+     * Returns the top-level variable names referenced by the expression, or
+     * null when it cannot be parsed (callers fall back to a token scan).
+     *
+     * <p>Uses {@code createScript} solely to obtain the parsed variable set —
+     * the script is never evaluated, so the looser script grammar carries no
+     * execution risk here.
+     */
+    public static java.util.Set<String> extractVariables(String expression) {
+        if (expression == null || expression.length() > MAX_EXPRESSION_LENGTH) return null;
+        try {
+            org.apache.commons.jexl3.JexlScript script =
+                    JEXL.createScript(translateFormulaToJexl(expression));
+            java.util.Set<String> vars = new java.util.LinkedHashSet<>();
+            for (java.util.List<String> ref : script.getVariables()) {
+                if (!ref.isEmpty()) vars.add(ref.get(0));
+            }
+            return vars;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // ── Engine construction ────────────────────────────────────────────────────
 
     private static JexlEngine buildEngine() {

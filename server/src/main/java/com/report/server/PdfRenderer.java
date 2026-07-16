@@ -31,7 +31,7 @@ import java.util.Map;
 public final class PdfRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(PdfRenderer.class);
-    private static final float MM_TO_PT = 2.835f;
+    private static final float MM_TO_PT = com.report.server.pdf.PdfUnits.MM_TO_PT;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_TEMPLATES_PER_PROJECTION = 20;
 
