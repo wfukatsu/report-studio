@@ -5,12 +5,15 @@ import { resolveField } from '@/lib/dataBinding'
 import { aggregateField } from '@/lib/aggregation'
 import { applyFormat } from '@/lib/numberFormatter'
 import { groupRecords, applyGroupedMaxItems, countGroupedRows } from '@/lib/grouping'
+import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
 
 // ---------------------------------------------------------------------------
 // Style constants & helpers
 // ---------------------------------------------------------------------------
 
-const CELL_FONT_SIZE = '2.8mm'
+// Font size in pt (issue #56) — consistent with formTable / repeatingList and
+// TextStyle.fontSize, so client preview and server output agree. 8pt ≈ 2.8mm.
+const CELL_FONT_SIZE = `${DEFAULT_CELL_FONT_SIZE_PT}pt`
 const CELL_PADDING = '0.5mm 1mm'
 const DEFAULT_BORDER_WIDTH = 0.3
 const DEFAULT_BORDER_COLOR = '#000000'
