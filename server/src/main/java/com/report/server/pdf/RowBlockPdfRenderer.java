@@ -47,7 +47,7 @@ public final class RowBlockPdfRenderer implements ElementPdfRenderer {
         if (text.isEmpty()) return;
 
         float fontSize = floatOf(props, "fontSize", DEFAULT_FONT_SIZE);
-        boolean bold = boolOf(props, "bold", false);
+        boolean bold = isBold(props);
         String fontFamily = textOf(props, "fontFamily", "");
         String align = textOf(props, "align", textOf(props, "textAlign", "left"));
         Color color = parseColor(textOf(props, "color", ""), Color.BLACK);

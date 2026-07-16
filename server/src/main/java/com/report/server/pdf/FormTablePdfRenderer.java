@@ -189,7 +189,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 // Resolve font from cell style
                 JsonNode style = cell.get("style");
                 float fontSize = style != null ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE) : DEFAULT_FONT_SIZE;
-                boolean bold = style != null && boolOf(style, "bold", false);
+                boolean bold = isBold(style);
                 String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
                 PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
 

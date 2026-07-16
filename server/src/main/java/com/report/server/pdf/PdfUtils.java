@@ -65,6 +65,21 @@ public final class PdfUtils {
         return props != null ? intOf(props, field, defaultValue) : defaultValue;
     }
 
+    /**
+     * Whether a style/props node requests bold. Recognizes both the boolean
+     * {@code bold: true} and the CSS-style {@code fontWeight: "bold"} the
+     * frontend TextStyle uses — so bold authored either way renders bold.
+     */
+    public static boolean isBold(JsonNode styleOrProps) {
+        if (styleOrProps == null) return false;
+        if (styleOrProps.path("bold").asBoolean(false)) return true;
+        String fw = textOf(styleOrProps, "fontWeight", "");
+        if ("bold".equals(fw) || "bolder".equals(fw)) return true;
+        // numeric weight ≥ 600 is bold
+        JsonNode fwNode = styleOrProps.get("fontWeight");
+        return fwNode != null && fwNode.isNumber() && fwNode.asInt() >= 600;
+    }
+
     /** Boolean variant of {@link #elementTextOf}. */
     public static boolean elementBoolOf(JsonNode el, String field, boolean defaultValue) {
         JsonNode v = el.get(field);

@@ -44,8 +44,7 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         float fontSize = firstNonZero(
                 props != null ? floatOf(props, "fontSize", 0) : 0,
                 style != null ? floatOf(style, "fontSize", 0) : 0, 12);
-        boolean bold = (props != null && props.path("bold").asBoolean(false))
-                || (style != null && style.path("bold").asBoolean(false));
+        boolean bold = isBold(props) || isBold(style);
         String fontFamily = firstNonEmpty(
                 props != null ? textOf(props, "fontFamily", "") : "",
                 style != null ? textOf(style, "fontFamily", "") : "");

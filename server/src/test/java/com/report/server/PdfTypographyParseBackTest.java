@@ -129,6 +129,16 @@ class PdfTypographyParseBackTest {
     }
 
     @Test
+    void fontWeightBold_isRecognized() throws IOException {
+        // Frontend TextStyle uses fontWeight:"bold"; the server must honor it too
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+            "content":"太字ウェイト","style":{"fontSize":12,"fontWeight":"bold"}""")));
+        PdfProbe.TextRun run = probe.findRun(0, "太字").orElseThrow();
+        assertTrue(run.fontName().contains("NotoSansJP-Bold"),
+                "fontWeight:bold should use the real Bold face, got: " + run.fontName());
+    }
+
+    @Test
     void serifBold_fallsBackToSyntheticStroke() throws IOException {
         // No serif bold face is bundled → bold serif stroke-widens the Regular serif
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""

@@ -46,7 +46,7 @@ public final class StyledTextPdfRenderer implements ElementPdfRenderer {
         JsonNode style = el.get("style");
         if (style == null && props != null) style = props.get("style");
         float fontSize = style != null ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE) : DEFAULT_FONT_SIZE;
-        boolean bold = style != null && boolOf(style, "bold", false);
+        boolean bold = isBold(style);
         String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
         String textAlign = style != null ? textOf(style, "textAlign", "left") : "left";
         Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);

@@ -35,7 +35,7 @@ public final class TextCellPdfRenderer implements ElementPdfRenderer {
         String textAlign = textOf(props, "textAlign", "left");
         float padding = 2f;
 
-        boolean bold = props.path("bold").asBoolean(false);
+        boolean bold = isBold(props);
         String fontFamily = textOf(props, "fontFamily", "");
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
         String truncated = truncateToWidth(text, font, fontSize, w - padding * 2);
