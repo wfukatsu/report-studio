@@ -219,7 +219,7 @@ class V2TemplateControllerTest {
     // ── get ───────────────────────────────────────────────────────────────────
 
     @Test
-    void get_returnsDefinitionWhenFound() throws Exception {
+    void get_returnsCanonicalEnvelopeWhenFound() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
         String envelope = buildEnvelope("t1", "テスト");
         when(repo.get("t1")).thenReturn(Optional.of(envelope));
@@ -229,8 +229,11 @@ class V2TemplateControllerTest {
         verify(ctx).contentType("application/json");
         var captor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(ctx).result(captor.capture());
-        JsonNode def = MAPPER.readTree(captor.getValue());
-        assertEquals("t1", def.path("id").asText());
+        JsonNode resource = MAPPER.readTree(captor.getValue());
+        assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
+        assertEquals("t1", resource.path("id").asText());
+        assertEquals("テスト", resource.path("name").asText());
+        assertEquals("t1", resource.path("definition").path("id").asText());
     }
 
     @Test
@@ -309,13 +312,50 @@ class V2TemplateControllerTest {
         verify(ctx).result(captor.capture());
         JsonNode result = MAPPER.readTree(captor.getValue());
         assertEquals("t1", result.path("id").asText());
+        assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, result.path("formatVersion").asInt());
+        assertEquals("t1", result.path("definition").path("id").asText());
 
         verify(repo).put(eq("t1"), argThat(json -> {
             try {
                 JsonNode env = MAPPER.readTree(json);
-                return "新名称".equals(env.path("name").asText());
+                return "新名称".equals(env.path("name").asText())
+                        && env.path("formatVersion").asInt() == TemplateEnvelope.CURRENT_FORMAT_VERSION;
             } catch (Exception e) { return false; }
         }));
+    }
+
+    @Test
+    void put_acceptsCanonicalEnvelopeBody() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        when(repo.get("t1")).thenReturn(Optional.empty());
+
+        String body = MAPPER.createObjectNode()
+            .put("formatVersion", 2)
+            .set("definition", MAPPER.createObjectNode()
+                .put("id", "t1")
+                .set("metadata", MAPPER.createObjectNode().put("documentName", "封筒経由"))).toString();
+        when(ctx.body()).thenReturn(body);
+
+        controller.put(ctx);
+
+        verify(repo).put(eq("t1"), argThat(json -> {
+            try {
+                JsonNode env = MAPPER.readTree(json);
+                return "封筒経由".equals(env.path("name").asText())
+                        && "t1".equals(env.path("definition").path("id").asText());
+            } catch (Exception e) { return false; }
+        }));
+    }
+
+    @Test
+    void put_rejectsNewerFormatVersion() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("t1");
+        when(ctx.body()).thenReturn("{\"formatVersion\":99,\"definition\":{\"id\":\"t1\"}}");
+
+        controller.put(ctx);
+
+        verify(ctx).status(HttpStatus.BAD_REQUEST);
+        verify(repo, never()).put(anyString(), anyString());
     }
 
     @Test

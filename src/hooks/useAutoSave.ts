@@ -15,6 +15,7 @@ import { useReportStore } from '@/store'
 import { saveReport } from '@/api/reportApi'
 import { isApiError } from '@/api/client'
 import { AUTOSAVE_DEBOUNCE_MS } from '@/config/constants'
+import { FORMAT_VERSION } from '@/lib/formatVersion'
 import type { ReportDefinition } from '@/types'
 
 export function useAutoSave(): void {
@@ -70,7 +71,10 @@ export function useAutoSave(): void {
       // plain string sends text/plain which may be rejected by the server.
       navigator.sendBeacon(
         `/api/v2/templates/${id}`,
-        new Blob([JSON.stringify(snap)], { type: 'application/json' }),
+        new Blob(
+          [JSON.stringify({ formatVersion: FORMAT_VERSION, definition: snap })],
+          { type: 'application/json' },
+        ),
       )
     }
     window.addEventListener('pagehide', handlePageHide)

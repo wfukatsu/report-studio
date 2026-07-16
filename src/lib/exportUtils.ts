@@ -1,7 +1,7 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { FORMAT_VERSION } from './formatVersion'
 import type { ReportDefinition } from '@/types'
-import { generateStatelessPdf } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import { formatPageNumber } from '@/elements/pageNumber/format'
 import { formatCurrentDate } from '@/elements/currentDate/format'
@@ -13,8 +13,9 @@ const EXPORT_SCALE = 2
 // JSON export / import
 // ---------------------------------------------------------------------------
 
-export const SCHEMA_VERSION = 'report-definition/v1' as const
-export const FORMAT_VERSION = 2 as const
+// Version constants live in formatVersion.ts (single source; re-exported here
+// for backwards compatibility with existing importers).
+export { SCHEMA_VERSION, FORMAT_VERSION } from './formatVersion'
 
 /**
  * Serialize a ReportDefinition to a JSON string in formatVersion: 2 envelope.
@@ -211,6 +212,10 @@ export async function exportToServerPdf(
 ): Promise<void> {
   const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
   const dataJson = (testData ?? {}) as Record<string, unknown>
+  // Dynamic import: reportApi statically imports the store, which imports the
+  // slices, which import this module — a static import here closes that cycle
+  // and breaks store initialization depending on module evaluation order.
+  const { generateStatelessPdf } = await import('@/api/reportApi')
   const blob = await generateStatelessPdf(defJson, dataJson)
   downloadBlob(blob, filename)
 }

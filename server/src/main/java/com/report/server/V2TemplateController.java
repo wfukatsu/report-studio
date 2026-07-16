@@ -26,7 +26,10 @@ import java.util.UUID;
  * </ul>
  *
  * Storage: {@code v2_definitions} table via {@link JsonBlobRepository}.
- * Envelope format: {@code {id, name, created_at, updated_at, definition: ReportDefinition}}
+ * Stored envelope: canonical envelope + server metadata
+ * {@code {formatVersion, id, name, created_at, updated_at, created_by, visibility, definition}}
+ * (see docs/template-envelope-spec.md). Blobs stored before {@code formatVersion}
+ * was introduced are read as the current version.
  */
 public final class V2TemplateController {
 
@@ -125,7 +128,8 @@ public final class V2TemplateController {
 
     /**
      * GET /api/v2/templates/{id}
-     * Returns the stored ReportDefinition JSON.
+     * Returns the canonical template envelope
+     * {@code {formatVersion, id, name, createdAt, updatedAt, visibility, definition}}.
      *
      * <p>Ownership check: if the template has a {@code created_by} field, only that user
      * (or an unauthenticated caller in dev mode) may read it. Returns 404 for both missing
@@ -149,21 +153,30 @@ public final class V2TemplateController {
             return;
         }
 
-        JsonNode definition = extractDefinition(stored.get());
-        if (definition == null) {
+        JsonNode storedEnvelope;
+        try {
+            storedEnvelope = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
+        JsonNode definition = storedEnvelope.path("definition");
+        if (definition.isMissingNode()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
             return;
         }
 
         ctx.contentType("application/json");
-        ctx.result(MAPPER.writeValueAsString(definition));
+        ctx.result(MAPPER.writeValueAsString(buildResourceEnvelope(id, storedEnvelope, definition)));
     }
 
     /**
      * PUT /api/v2/templates/{id}
-     * Body: ReportDefinition JSON
-     * Returns the updated ReportDefinition.
+     * Body: canonical envelope {@code {formatVersion: 2, definition}} — a bare
+     * ReportDefinition body is still accepted as a deprecated transport form.
+     * Returns the updated canonical envelope.
      */
     public void put(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -176,14 +189,23 @@ public final class V2TemplateController {
             return;
         }
 
-        JsonNode definition;
+        JsonNode root;
         try {
-            definition = MAPPER.readTree(body);
+            root = MAPPER.readTree(body);
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Invalid JSON"));
             return;
         }
+
+        // Unwrap the envelope (migrating v1 bodies; rejecting newer versions)
+        var unwrapped = TemplateEnvelope.unwrap(root);
+        if (unwrapped.isError()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", unwrapped.error()));
+            return;
+        }
+        JsonNode definition = unwrapped.definition();
 
         // Structural validation at the save boundary (issue #52) — the server
         // no longer stores unbounded documents that only the browser rejected
@@ -223,7 +245,7 @@ public final class V2TemplateController {
         definitionsRepo.put(id, MAPPER.writeValueAsString(envelope));
 
         ctx.contentType("application/json");
-        ctx.result(MAPPER.writeValueAsString(definition));
+        ctx.result(MAPPER.writeValueAsString(buildResourceEnvelope(id, envelope, definition)));
     }
 
     /**
@@ -444,25 +466,34 @@ public final class V2TemplateController {
         return name;
     }
 
-    private static JsonNode extractDefinition(String blob) {
-        try {
-            JsonNode node = MAPPER.readTree(blob);
-            JsonNode def = node.path("definition");
-            return def.isMissingNode() ? null : def;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     private static ObjectNode buildEnvelope(String id, String name, long createdAt, long updatedAt,
                                             JsonNode definition) {
         ObjectNode env = MAPPER.createObjectNode();
+        env.put("formatVersion", TemplateEnvelope.CURRENT_FORMAT_VERSION);
         env.put("id", id);
         env.put("name", name);
         env.put("created_at", createdAt);
         env.put("updated_at", updatedAt);
         env.set("definition", definition);
         return env;
+    }
+
+    /**
+     * Build the canonical API resource envelope
+     * {@code {formatVersion, id, name, createdAt, updatedAt, visibility, definition}}
+     * from a stored envelope (docs/template-envelope-spec.md).
+     */
+    private static ObjectNode buildResourceEnvelope(String id, JsonNode storedEnvelope,
+                                                    JsonNode definition) {
+        ObjectNode resource = MAPPER.createObjectNode();
+        resource.put("formatVersion", TemplateEnvelope.CURRENT_FORMAT_VERSION);
+        resource.put("id", id);
+        resource.put("name", storedEnvelope.path("name").asText(""));
+        resource.put("createdAt", toIso(storedEnvelope.path("created_at").asLong()));
+        resource.put("updatedAt", toIso(storedEnvelope.path("updated_at").asLong()));
+        resource.put("visibility", storedEnvelope.path("visibility").asText("private"));
+        resource.set("definition", definition);
+        return resource;
     }
 
     private static ObjectNode buildListItem(String id, String name, long createdAt, long updatedAt) {

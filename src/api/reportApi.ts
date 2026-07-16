@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { apiFetch, apiFetchBlobWithFilename, downloadBlob, isNetworkError } from './client'
 import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
+import { FORMAT_VERSION } from '@/lib/formatVersion'
 import type { ReportDefinition, TenantInfo } from '@/types'
 import { ScalarDbColumnTypeSchema, ScalarDbKeyTypeSchema } from '@/types/scalardb'
 import type { ScalarDbColumnType } from '@/types/scalardb'
@@ -56,6 +57,31 @@ const VersionListItemSchema = z.object({
   createdBy: z.string().optional(),
 }).passthrough()
 
+/**
+ * Canonical template envelope (docs/template-envelope-spec.md):
+ * `{ formatVersion, definition, ...server metadata }`.
+ * Older servers respond with the bare definition, so template resource
+ * responses are parsed as a union and unwrapped via `unwrapDefinition`.
+ */
+const TemplateEnvelopeSchema = z.object({
+  formatVersion: z.number().int(),
+  definition: ReportDefinitionSchema,
+}).passthrough()
+
+const TemplateResourceSchema = z.union([TemplateEnvelopeSchema, ReportDefinitionSchema])
+
+function unwrapDefinition(resource: unknown): ReportDefinition {
+  if (
+    resource !== null &&
+    typeof resource === 'object' &&
+    'definition' in resource &&
+    typeof (resource as Record<string, unknown>)['formatVersion'] === 'number'
+  ) {
+    return (resource as { definition: unknown }).definition as ReportDefinition
+  }
+  return resource as ReportDefinition
+}
+
 export type TemplateListItem = z.infer<typeof TemplateListItemSchema>
 export type VersionListItem = z.infer<typeof VersionListItemSchema>
 
@@ -80,7 +106,8 @@ export async function listReports(): Promise<{ items: TemplateListItem[]; total:
 }
 
 export async function getReport(id: string): Promise<ReportDefinition> {
-  return apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, ReportDefinitionSchema) as unknown as Promise<ReportDefinition>
+  const resource = await apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, TemplateResourceSchema)
+  return unwrapDefinition(resource)
 }
 
 export async function createReport(name: string): Promise<TemplateListItem> {
@@ -88,11 +115,13 @@ export async function createReport(name: string): Promise<TemplateListItem> {
 }
 
 export async function saveReport(id: string, definition: ReportDefinition): Promise<ReportDefinition> {
-  return apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, ReportDefinitionSchema, {
+  const resource = await apiFetch(`/api/v2/templates/${encodeURIComponent(id)}`, TemplateResourceSchema, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(definition),
-  }) as unknown as Promise<ReportDefinition>
+    // Canonical envelope (docs/template-envelope-spec.md)
+    body: JSON.stringify({ formatVersion: FORMAT_VERSION, definition }),
+  })
+  return unwrapDefinition(resource)
 }
 
 export async function deleteReport(id: string): Promise<void> {
@@ -299,12 +328,12 @@ export async function loadFromBackend(templateId: string, versionId?: string): P
       : `/api/v2/templates/${encodeURIComponent(templateId)}`
 
     const method = versionId ? 'POST' : undefined
-    const raw = await apiFetch(url, ReportDefinitionSchema, method ? { method } : undefined)
+    const raw = await apiFetch(url, TemplateResourceSchema, method ? { method } : undefined)
 
     // Discard if a newer load has already started
     if (generation !== useReportStore.getState().loadGeneration) return
 
-    useReportStore.getState().loadReport(raw as unknown as ReportDefinition)
+    useReportStore.getState().loadReport(unwrapDefinition(raw))
     useReportStore.getState().setCurrentTemplateId(templateId)
     useReportStore.getState().setBackendConnected(true)
     useReportStore.getState().setLoadState('idle')

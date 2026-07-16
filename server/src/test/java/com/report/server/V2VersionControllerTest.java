@@ -131,7 +131,7 @@ class V2VersionControllerTest {
     // ── restore ───────────────────────────────────────────────────────────────
 
     @Test
-    void restore_returnsDefinitionJson() throws Exception {
+    void restore_returnsCanonicalEnvelope() throws Exception {
         String defJson = "{\"id\":\"t1\",\"pages\":[]}";
         when(mockVersionRepo.getVersion("v1", "t1")).thenReturn(Optional.of(defJson));
 
@@ -140,7 +140,9 @@ class V2VersionControllerTest {
         verify(ctx).contentType("application/json");
         var captor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(ctx).result(captor.capture());
-        assertEquals(defJson, captor.getValue());
+        var resource = MAPPER.readTree(captor.getValue());
+        assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
+        assertEquals("t1", resource.path("definition").path("id").asText());
     }
 
     @Test

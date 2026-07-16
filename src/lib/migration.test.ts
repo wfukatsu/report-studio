@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { importFromJSON, migrateReport } from './migration'
+import { importFromJSON, migrateReport, detectFormatVersion } from './migration'
+import { FORMAT_VERSION } from './formatVersion'
 import type { Report, TextElement } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -276,6 +277,27 @@ describe('importFromJSON — edge cases', () => {
     expect(result.ok).toBe(true)
   })
 
+  it('accepts a formatVersion: 2 envelope', () => {
+    const definition = JSON.parse(makeValidV1Json())
+    delete definition.$schema
+    const envelope = JSON.stringify({ formatVersion: 2, exportedAt: '2026-01-01T00:00:00Z', definition })
+    const result = importFromJSON(envelope)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.definition.id).toBe('test-id')
+  })
+
+  it('rejects a formatVersion: 2 envelope without definition', () => {
+    const result = importFromJSON(JSON.stringify({ formatVersion: 2 }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain('definition がありません')
+  })
+
+  it('rejects a newer formatVersion (forward compat is not attempted)', () => {
+    const result = importFromJSON(JSON.stringify({ formatVersion: FORMAT_VERSION + 1, definition: {} }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain(`formatVersion: ${FORMAT_VERSION + 1}`)
+  })
+
   it('toMm handles unknown unit via fallback (factor 1)', () => {
     // The toMm function uses ?? 1 for unknown units
     // This is tested indirectly through migrateReport with a Report that
@@ -290,5 +312,39 @@ describe('importFromJSON — edge cases', () => {
     })
     const result = importFromJSON(reportWithPx)
     expect(result.ok).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// detectFormatVersion — version ladder detection
+// ---------------------------------------------------------------------------
+describe('detectFormatVersion', () => {
+  it('detects v2 (integer formatVersion)', () => {
+    expect(detectFormatVersion({ formatVersion: 2, definition: {} })).toBe(2)
+  })
+
+  it('detects future versions as their integer value', () => {
+    expect(detectFormatVersion({ formatVersion: 99, definition: {} })).toBe(99)
+  })
+
+  it('detects v1 ($schema marker)', () => {
+    expect(detectFormatVersion({ $schema: 'report-definition/v1', id: 'x' })).toBe(1)
+  })
+
+  it('detects v0 (legacy Report shape)', () => {
+    expect(detectFormatVersion({ id: 'r1', pages: [] })).toBe(0)
+  })
+
+  it('returns null for unknown $schema', () => {
+    expect(detectFormatVersion({ $schema: 'unknown/v99' })).toBeNull()
+  })
+
+  it('returns null for non-template objects', () => {
+    expect(detectFormatVersion({ name: 'x' })).toBeNull()
+  })
+
+  it('ignores non-integer formatVersion', () => {
+    expect(detectFormatVersion({ formatVersion: 2.5 })).toBeNull()
+    expect(detectFormatVersion({ formatVersion: '2' })).toBeNull()
   })
 })

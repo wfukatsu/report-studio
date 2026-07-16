@@ -40,7 +40,7 @@ public final class V2TemplateExportController {
     private static final Logger log = LoggerFactory.getLogger(V2TemplateExportController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = TemplateEnvelope.CURRENT_FORMAT_VERSION;
     private static final int MAX_IMPORT_BYTES = 5_000_000; // 5 MB
     private static final int MAX_NAME_LENGTH = 200;
 
@@ -149,17 +149,21 @@ public final class V2TemplateExportController {
             return;
         }
 
-        int fv = root.path("formatVersion").asInt(0);
-        if (fv != FORMAT_VERSION) {
+        // Require an explicit envelope at the import boundary; the unwrapper
+        // migrates v1 ($schema marker) bodies and rejects newer versions.
+        var unwrapped = TemplateEnvelope.unwrapStrict(root);
+        if (unwrapped.isError()) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Unsupported format version: " + fv + " (expected " + FORMAT_VERSION + ")"));
+            ctx.json(Map.of("error", unwrapped.error()));
             return;
         }
+        JsonNode definition = unwrapped.definition();
 
-        JsonNode definition = root.path("definition");
-        if (definition.isMissingNode() || !definition.isObject()) {
+        // Structural validation — same save boundary as PUT (issue #52)
+        var validationError = ReportDefinitionValidator.validate(definition);
+        if (validationError.isPresent()) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Missing 'definition' field"));
+            ctx.json(Map.of("error", validationError.get()));
             return;
         }
 
@@ -188,11 +192,13 @@ public final class V2TemplateExportController {
         String createdBy = userId;
 
         ObjectNode envNode = MAPPER.createObjectNode();
+        envNode.put("formatVersion", FORMAT_VERSION);
         envNode.put("id", newId);
         envNode.put("name", name);
         envNode.put("created_at", now);
         envNode.put("updated_at", now);
         envNode.put("created_by", createdBy);
+        envNode.put("visibility", "private");
         envNode.set("definition", newDef);
 
         definitionsRepo.put(newId, MAPPER.writeValueAsString(envNode));

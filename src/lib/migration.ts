@@ -13,7 +13,7 @@ import type {
   ReportElement,
   DataSourceDefinition,
 } from '@/types'
-import { SCHEMA_VERSION, FORMAT_VERSION } from './exportUtils'
+import { SCHEMA_VERSION, FORMAT_VERSION } from './formatVersion'
 import { ReportDefinitionSchema } from './schemas/reportDefinition'
 import { migrateJexlExpression } from './formula/jexlMigrator'
 import { sanitizeJSON } from './sanitize'
@@ -305,10 +305,53 @@ function migrateJexlExpressions(definition: ReportDefinition): ReportDefinition 
   return migrated
 }
 
+// ---------------------------------------------------------------------------
+// Format-version ladder (see docs/template-envelope-spec.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect the envelope format version of a parsed template JSON object.
+ *
+ * - `2` (or any integer `formatVersion`): the versioned envelope
+ * - `1`: bare definition marked with `$schema: "report-definition/v1"`
+ * - `0`: legacy `Report` JSON (no marker fields, has `id` + `pages[]`)
+ * - `null`: unrecognized (unknown `$schema` or not a template at all)
+ */
+export function detectFormatVersion(obj: Record<string, unknown>): number | null {
+  const fv = obj['formatVersion']
+  if (typeof fv === 'number' && Number.isInteger(fv)) return fv
+  if (obj['$schema'] === SCHEMA_VERSION) return 1
+  if (typeof obj['$schema'] === 'string' && obj['$schema'] !== '') return null
+  if (obj['id'] && Array.isArray(obj['pages'])) return 0
+  return null
+}
+
+/**
+ * Migration ladder: each entry converts version N to version N+1.
+ * Steps are applied in sequence until `FORMAT_VERSION` is reached, so a v0
+ * document walks 0 → 1 → 2. When bumping `FORMAT_VERSION`, add the
+ * corresponding step here.
+ */
+const MIGRATIONS: Record<number, (obj: Record<string, unknown>) => Record<string, unknown>> = {
+  // v0 → v1: legacy Report → ReportDefinition with the v1 $schema marker
+  0: (obj) => ({
+    ...(migrateReport(obj as unknown as Report) as unknown as Record<string, unknown>),
+    $schema: SCHEMA_VERSION,
+  }),
+  // v1 → v2: strip marker fields and wrap in the versioned envelope
+  1: (obj) => {
+    const { $schema: _schema, formatVersion: _fv, ...definition } = obj
+    return { formatVersion: 2, definition }
+  },
+}
+
 /**
  * Parse raw JSON text and return a ReportDefinition.
- * Handles both the new `$schema: "report-definition/v1"` format and the
- * legacy Report format (auto-migrated).
+ *
+ * Walks the migration ladder from the detected format version (v0 legacy
+ * Report / v1 $schema marker / v2 envelope) up to `FORMAT_VERSION`, then
+ * validates and normalizes the definition. Newer versions than
+ * `FORMAT_VERSION` are rejected (forward compatibility is not attempted).
  *
  * Returns `{ ok: true, definition }` on success or `{ ok: false, error }` on failure.
  */
@@ -331,54 +374,68 @@ export function importFromJSON(
     return { ok: false, error: err instanceof Error ? err.message : '不正なJSON構造です' }
   }
 
-  if (typeof sanitized !== 'object' || sanitized === null) {
-    return { ok: false, error: 'Invalid JSON: expected an object' }
+  if (typeof sanitized !== 'object' || sanitized === null || Array.isArray(sanitized)) {
+    return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
   }
 
   const obj = sanitized as Record<string, unknown>
+  const initialVersion = detectFormatVersion(obj)
 
-  // formatVersion: 2 envelope — unwrap and validate definition
-  if (obj['formatVersion'] === FORMAT_VERSION) {
-    const inner = obj['definition']
-    if (typeof inner !== 'object' || inner === null) {
-      return { ok: false, error: 'formatVersion: 2 エンベロープに definition がありません' }
+  if (initialVersion === null) {
+    if (typeof obj['$schema'] === 'string' && obj['$schema'] !== '') {
+      return { ok: false, error: `非対応スキーマ: ${obj['$schema']}` }
     }
+    return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
+  }
+
+  if (initialVersion > FORMAT_VERSION) {
+    return {
+      ok: false,
+      error: `このファイルは新しい形式 (formatVersion: ${initialVersion}) で作成されています。対応バージョンは ${FORMAT_VERSION} までです`,
+    }
+  }
+
+  // Walk the ladder up to the current version
+  let current = obj
+  for (let v = initialVersion; v < FORMAT_VERSION; v++) {
+    const step = MIGRATIONS[v]
+    if (!step) {
+      return { ok: false, error: `formatVersion ${v} からの移行はサポートされていません` }
+    }
+    current = step(current)
+  }
+
+  const inner = current['definition']
+  if (typeof inner !== 'object' || inner === null) {
+    return { ok: false, error: `formatVersion: ${FORMAT_VERSION} エンベロープに definition がありません` }
+  }
+
+  // Validate with the Zod schema. The v0 legacy path is exempt: migrateReport
+  // output predates ElementBase required fields (zIndex/locked/visible), and
+  // legacy imports have always been accepted best-effort without validation.
+  let definition: ReportDefinition
+  if (initialVersion === 0) {
+    definition = inner as ReportDefinition
+  } else {
     const result = ReportDefinitionSchema.safeParse(inner)
     if (!result.success) {
       const first = result.error.issues[0]
       const path = first?.path.join('.') ?? ''
       const msg = first?.message ?? 'unknown'
-      return { ok: false, error: `バリデーションエラー (${path}: ${msg})` }
+      const prefix = initialVersion === 1
+        ? 'Invalid report-definition/v1: 必須フィールドが不正または不足しています'
+        : 'バリデーションエラー'
+      return { ok: false, error: `${prefix} (${path}: ${msg})` }
     }
-    const migrated = migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition)))
-    return { ok: true, definition: migrated }
+    definition = result.data as unknown as ReportDefinition
   }
 
-  // ReportDefinition $schema: v1 format — validate with Zod schema
-  if (obj['$schema'] === SCHEMA_VERSION) {
-    const result = ReportDefinitionSchema.safeParse(obj)
-    if (!result.success) {
-      const first = result.error.issues[0]
-      const path = first?.path.join('.') ?? ''
-      const msg = first?.message ?? 'unknown'
-      return {
-        ok: false,
-        error: `Invalid report-definition/v1: 必須フィールドが不正または不足しています (${path}: ${msg})`,
-      }
-    }
-    const migrated = migrateJexlExpressions(migrateLabelToText(stripVisibilityRule(ensurePageSections(result.data as unknown as ReportDefinition))))
-    return { ok: true, definition: migrated }
+  // Content-level normalizations (idempotent)
+  let normalized = migrateLabelToText(stripVisibilityRule(ensurePageSections(definition)))
+  // JEXL → formula-v1 conversion applies to documents that predate formula-v1
+  // (v0/v1); v2 envelopes are already saved in the current expression language.
+  if (initialVersion <= 1) {
+    normalized = migrateJexlExpressions(normalized)
   }
-
-  // Reject any other $schema version — do not attempt auto-migration for unknown schemas
-  if (typeof obj['$schema'] === 'string' && obj['$schema'] !== '') {
-    return { ok: false, error: `非対応スキーマ: ${obj['$schema']}` }
-  }
-
-  // Legacy Report format (no $schema) — auto-migrate
-  if (!obj['id'] || !obj['pages'] || !Array.isArray(obj['pages'])) {
-    return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
-  }
-  const definition = migrateJexlExpressions(migrateLabelToText(migrateReport(obj as unknown as Report)))
-  return { ok: true, definition }
+  return { ok: true, definition: normalized }
 }

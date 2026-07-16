@@ -126,9 +126,13 @@ public final class V2VersionController {
             return;
         }
 
-        // Return the definition JSON so frontend can call loadFromBackend
+        // Return the canonical envelope so frontend can call loadFromBackend
+        // (docs/template-envelope-spec.md)
+        ObjectNode resource = MAPPER.createObjectNode();
+        resource.put("formatVersion", TemplateEnvelope.CURRENT_FORMAT_VERSION);
+        resource.set("definition", MAPPER.readTree(versionData.get()));
         ctx.contentType("application/json");
-        ctx.result(versionData.get());
+        ctx.result(MAPPER.writeValueAsString(resource));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
