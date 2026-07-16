@@ -425,3 +425,40 @@ describe('isSafeImageSrc — additional edge cases', () => {
     expect(isSafeImageSrc('data:text/html;base64,abc')).toBe(false)
   })
 })
+
+// ---------------------------------------------------------------------------
+// collectAutoFieldModels (issue #61) — model-driven auto-field resolution
+// ---------------------------------------------------------------------------
+
+import { collectAutoFieldModels } from './exportUtils'
+
+describe('collectAutoFieldModels', () => {
+  it('collects pageNumber and currentDate elements keyed by id', () => {
+    const def = makeDefinition({
+      pages: [{
+        id: 'p1', name: 'P1', width: 210, height: 297, background: '#fff',
+        sections: [{
+          id: 's1', sectionType: 'body', height: 297,
+          elements: [
+            { id: 'pn', type: 'pageNumber', position: { x: 0, y: 0 }, size: { width: 30, height: 8 },
+              zIndex: 1, locked: false, visible: true, format: '{{page}} / {{pages}}', style: {} },
+            { id: 'cd', type: 'currentDate', position: { x: 0, y: 0 }, size: { width: 40, height: 8 },
+              zIndex: 1, locked: false, visible: true, format: 'wareki_full', style: {} },
+            { id: 'tx', type: 'text', position: { x: 0, y: 0 }, size: { width: 40, height: 8 },
+              zIndex: 1, locked: false, visible: true, content: 'x', style: {} },
+          ],
+        }],
+      }],
+    } as Partial<ReportDefinition>)
+
+    const models = collectAutoFieldModels(def)
+    expect(models.size).toBe(2)
+    expect(models.get('pn')?.type).toBe('pageNumber')
+    expect(models.get('cd')?.type).toBe('currentDate')
+    expect(models.has('tx')).toBe(false)
+  })
+
+  it('returns an empty map when there are no auto-fields', () => {
+    expect(collectAutoFieldModels(makeDefinition()).size).toBe(0)
+  })
+})

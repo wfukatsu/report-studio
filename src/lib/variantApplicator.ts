@@ -14,7 +14,12 @@ import type { PageDef, ReportElement, OutputVariant, MaskingRule } from '@/types
 // Partial mask helper
 // ---------------------------------------------------------------------------
 
-function applyPartialMask(value: string, keepFirst?: number, keepLast?: number): string {
+/**
+ * Partial mask: keep `keepFirst` leading and `keepLast` trailing chars, star
+ * the middle. Shared with the client PDF fallback so masking is defined once
+ * (issue #61). Returns the original when the kept edges cover the whole string.
+ */
+export function applyPartialMask(value: string, keepFirst?: number, keepLast?: number): string {
   const len = value.length
   const first = keepFirst ?? 0
   const last = keepLast ?? 0

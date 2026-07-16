@@ -5,7 +5,7 @@ import { generateStatelessPdf } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import { formatPageNumber } from '@/elements/pageNumber/format'
 import { formatCurrentDate } from '@/elements/currentDate/format'
-import type { PageNumberFormat, CurrentDateFormat } from '@/types'
+import type { PageNumberElement, CurrentDateElement } from '@/types'
 
 const EXPORT_SCALE = 2
 
@@ -117,49 +117,59 @@ export function isSafeImageSrc(src: string): boolean {
 
 interface AutoFieldSnapshot { node: HTMLElement; original: string }
 
+/** Model lookup for auto-field elements, keyed by element id. */
+export type AutoFieldModels = Map<string, PageNumberElement | CurrentDateElement>
+
 /**
- * Resolve auto-field elements (pageNumber, currentDate) within a container
- * to their actual values. Returns snapshots to restore later.
+ * Resolve auto-field elements (pageNumber, currentDate) within a container to
+ * their actual values, reading the format from the element MODEL rather than
+ * reverse-mapping the rendered placeholder text (issue #61). Returns snapshots
+ * to restore later. Without a model map, the nodes are left untouched.
  */
 function resolveAutoFields(
   container: HTMLElement,
+  models: AutoFieldModels | undefined,
   pageIndex: number,
   totalPages: number,
 ): AutoFieldSnapshot[] {
   const snapshots: AutoFieldSnapshot[] = []
+  if (!models) return snapshots
 
-  // pageNumber elements
-  container.querySelectorAll<HTMLElement>('[data-element-type="pageNumber"]').forEach((el) => {
-    const textNode = el.querySelector('div div') as HTMLElement | null
-    if (!textNode) return
-    snapshots.push({ node: textNode, original: textNode.textContent ?? '' })
-    const template = textNode.textContent ?? ''
-    // Detect format from template content
-    const format = template as PageNumberFormat
-    textNode.textContent = formatPageNumber(format, template, pageIndex, totalPages)
+  const resolve = (type: string, compute: (el: PageNumberElement | CurrentDateElement) => string) => {
+    container.querySelectorAll<HTMLElement>(`[data-element-type="${type}"]`).forEach((node) => {
+      const id = node.getAttribute('data-element-id')
+      const model = id ? models.get(id) : undefined
+      if (!model) return
+      const textNode = node.querySelector('div div') as HTMLElement | null
+      if (!textNode) return
+      snapshots.push({ node: textNode, original: textNode.textContent ?? '' })
+      textNode.textContent = compute(model)
+    })
+  }
+
+  resolve('pageNumber', (el) => {
+    const pn = el as PageNumberElement
+    return formatPageNumber(pn.format, pn.customFormat, pageIndex, totalPages)
   })
-
-  // currentDate elements
-  container.querySelectorAll<HTMLElement>('[data-element-type="currentDate"]').forEach((el) => {
-    const textNode = el.querySelector('div div') as HTMLElement | null
-    if (!textNode) return
-    snapshots.push({ node: textNode, original: textNode.textContent ?? '' })
-    const template = textNode.textContent ?? ''
-    // Map placeholder back to format key
-    const formatMap: Record<string, CurrentDateFormat> = {
-      'yyyy/MM/dd': 'yyyy/MM/dd',
-      'yyyy年MM月dd日': 'yyyy年MM月dd日',
-      'yyyy-MM-dd': 'yyyy-MM-dd',
-      'MM/dd/yyyy': 'MM/dd/yyyy',
-      '{{元号}}X年MM月dd日': 'wareki_full',
-      '{{元号}}X.MM.dd': 'wareki_short',
-      'yyyy年MM月dd日 (曜日)': 'yyyy年MM月dd日 (ddd)',
-    }
-    const format = formatMap[template] ?? 'custom'
-    textNode.textContent = formatCurrentDate(format, format === 'custom' ? template : undefined)
+  resolve('currentDate', (el) => {
+    const cd = el as CurrentDateElement
+    return formatCurrentDate(cd.format, cd.customFormat)
   })
 
   return snapshots
+}
+
+/** Build an id→element lookup of the pageNumber/currentDate elements across pages. */
+export function collectAutoFieldModels(definition: ReportDefinition): AutoFieldModels {
+  const map: AutoFieldModels = new Map()
+  for (const page of definition.pages) {
+    for (const section of page.sections) {
+      for (const el of section.elements) {
+        if (el.type === 'pageNumber' || el.type === 'currentDate') map.set(el.id, el)
+      }
+    }
+  }
+  return map
 }
 
 function restoreAutoFields(snapshots: AutoFieldSnapshot[]): void {
@@ -173,8 +183,9 @@ export async function exportPageToPng(
   fileName = 'report.png',
   pageIndex = 1,
   totalPages = 1,
+  models?: AutoFieldModels,
 ): Promise<void> {
-  const snapshots = resolveAutoFields(canvasEl, pageIndex, totalPages)
+  const snapshots = resolveAutoFields(canvasEl, models, pageIndex, totalPages)
   try {
     const canvas = await html2canvas(canvasEl, { useCORS: true, scale: EXPORT_SCALE })
     const link = document.createElement('a')
@@ -207,8 +218,9 @@ export async function exportToServerPdf(
 export async function exportReportToPdf(
   pageEls: HTMLElement[],
   fileName = 'report.pdf',
+  models?: AutoFieldModels,
 ): Promise<void> {
-  const blob = await exportReportToPdfBlob(pageEls)
+  const blob = await exportReportToPdfBlob(pageEls, models)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -226,11 +238,14 @@ export async function exportReportToPdf(
  * scale=2 that would be ~280 MB; sequential rendering keeps peak usage at
  * ~14 MB (one page at a time) at the cost of slightly longer wall-clock time.
  */
-export async function exportReportToPdfBlob(pageEls: HTMLElement[]): Promise<Blob> {
+export async function exportReportToPdfBlob(
+  pageEls: HTMLElement[],
+  models?: AutoFieldModels,
+): Promise<Blob> {
   if (pageEls.length === 0) throw new Error('No pages to export')
 
   const totalPages = pageEls.length
-  const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, i + 1, totalPages))
+  const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, models, i + 1, totalPages))
   try {
     // Render first page to size the initial PDF page
     const firstCanvas = await html2canvas(pageEls[0], { useCORS: true, scale: EXPORT_SCALE })

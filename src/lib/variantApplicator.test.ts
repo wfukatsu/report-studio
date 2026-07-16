@@ -241,3 +241,25 @@ describe('applyVariant — multi-page', () => {
     expect((result[1].sections[0].elements[0] as { content: string }).content).toBe('---')
   })
 })
+
+// ---------------------------------------------------------------------------
+// applyPartialMask (shared with the client PDF fallback — issue #61)
+// ---------------------------------------------------------------------------
+
+import { applyPartialMask } from './variantApplicator'
+
+describe('applyPartialMask', () => {
+  it('keeps first and last chars, stars the middle', () => {
+    expect(applyPartialMask('1234567890', 2, 2)).toBe('12******90')
+  })
+
+  it('returns the original when kept edges cover the whole string', () => {
+    expect(applyPartialMask('123', 2, 2)).toBe('123')
+    expect(applyPartialMask('', 1, 1)).toBe('')
+  })
+
+  it('defaults missing keep counts to zero', () => {
+    expect(applyPartialMask('abcd')).toBe('****')
+    expect(applyPartialMask('abcd', 1)).toBe('a***')
+  })
+})

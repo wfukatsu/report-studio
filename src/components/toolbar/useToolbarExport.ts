@@ -5,9 +5,9 @@ import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { OutputVariant } from '@/types'
 import { useReportStore } from '@/store/reportStore'
-import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng } from '@/lib/exportUtils'
+import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng, collectAutoFieldModels } from '@/lib/exportUtils'
 import { runValidation } from '@/lib/validationRunner'
-import { applyVariant } from '@/lib/variantApplicator'
+import { applyVariant, applyPartialMask } from '@/lib/variantApplicator'
 import { resolveCurrentData } from '@/hooks/useResolvedData'
 
 interface ExportContext {
@@ -82,23 +82,20 @@ export function useToolbarExport({
         if (node) {
           const original = node.innerText
           maskedNodes.push({ node, original })
+          // Reuse the shared masking algorithm — defined once in variantApplicator (issue #61)
           if (rule.type === 'fullReplace') {
             node.innerText = rule.replaceValue ?? ''
           } else if (rule.type === 'partial') {
-            const len = original.length
-            const first = rule.keepFirst ?? 0
-            const last = rule.keepLast ?? 0
-            if (first + last < len) {
-              const suffix = last > 0 ? original.slice(len - last) : ''
-              node.innerText = original.slice(0, first) + '*'.repeat(len - first - last) + suffix
-            }
+            node.innerText = applyPartialMask(original, rule.keepFirst, rule.keepLast)
           }
         }
       }
     }
     try {
       const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-      await exportReportToPdf(els, filename)
+      // Auto-field values come from the (masked) element models, not DOM reverse-mapping (issue #61)
+      const maskedDef = { ...definition, pages: applyVariant(definition.pages, variant) }
+      await exportReportToPdf(els, filename, collectAutoFieldModels(maskedDef))
       toast.warning('ローカル生成（品質低下）でエクスポートしました')
     } catch (_err) {
       toast.error('エクスポートに失敗しました。もう一度お試しください。', { duration: 8000 })
@@ -149,7 +146,7 @@ export function useToolbarExport({
     } catch {
       try {
         const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
-        const blob = await exportReportToPdfBlob(els)
+        const blob = await exportReportToPdfBlob(els, collectAutoFieldModels(definition))
         if (openBlobUrl(blob)) {
           toast.warning('クライアントレンダリングでプレビューを生成しました（品質が低下している場合があります）')
         }
@@ -185,8 +182,9 @@ export function useToolbarExport({
     try {
       const el = canvasRefs[0]?.current
       if (el) {
+        const { definition } = useReportStore.getState()
         const pageIdx = activePage ? pages.findIndex((p) => p.id === activePage.id) + 1 : 1
-        await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length)
+        await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length, collectAutoFieldModels(definition))
       }
     } catch (_err) {
       toast.error('エクスポートに失敗しました。もう一度お試しください。', { duration: 8000 })
