@@ -44,6 +44,9 @@ public final class ElementPdfRendererRegistry {
         // V2 Japanese-form elements (issue #53)
         registry.register(new HankoPdfRenderer());
         registry.register(new DividerPdfRenderer());
+        registry.register(new RevenueStampPdfRenderer());
+        registry.register(new ApprovalStampRowPdfRenderer());
+        registry.register(new EraSelectPdfRenderer());
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());

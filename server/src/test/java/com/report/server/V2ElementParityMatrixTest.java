@@ -33,7 +33,7 @@ class V2ElementParityMatrixTest {
     /** V2 types that resolve to a registered renderer today. */
     private static final Set<String> EXPECTED_SUPPORTED = Set.of(
             "text", "shape", "image", "barcode", "checkbox", "formTable",
-            "hanko", "divider");
+            "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow");
 
     private static Map<String, String> buildTypeNotes() {
         Map<String, String> m = new LinkedHashMap<>();
@@ -48,10 +48,10 @@ class V2ElementParityMatrixTest {
         m.put("barcode", "対応（qrcode は別 kind）");
         m.put("manualEntry", "レンダラーなし（#53）");
         m.put("checkbox", "対応（CheckPdfRenderer）");
-        m.put("eraSelect", "スタンドアロン非対応。formTable セル内のみ（#53）");
-        m.put("hanko", "対応（HankoPdfRenderer — 円/角・二重枠・縦書き・色。V2 binding フィールドは未配線）");
-        m.put("approvalStampRow", "レンダラーなし（#53）");
-        m.put("revenueStamp", "レンダラーなし（#53）");
+        m.put("eraSelect", "対応（EraSelectPdfRenderer — column/row/grid-2col、dataSource 解決）");
+        m.put("hanko", "対応（HankoPdfRenderer — 円/角・二重枠・縦書き・色・binding 解決）");
+        m.put("approvalStampRow", "対応（ApprovalStampRowPdfRenderer — 役職ラベル帯・セル区切り。stampSrc 画像は未対応）");
+        m.put("revenueStamp", "対応（RevenueStampPdfRenderer — ラベル・金額・消印ガイド破線）");
         m.put("pageNumber", "非対応。{pageNumber} 置換も未実装（#54）");
         m.put("currentDate", "非対応。{currentDate} 置換も未実装（#54）");
         m.put("divider", "対応（DividerPdfRenderer — 方向・太さ・破線・色）");

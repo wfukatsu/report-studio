@@ -92,7 +92,7 @@ public final class PdfProbe {
                         String fontName = first.getFont() != null && first.getFont().getName() != null
                                 ? first.getFont().getName() : "";
                         runs.add(new TextRun(getCurrentPageNo() - 1,
-                                Normalizer.normalize(string, Normalizer.Form.NFKC),
+                                nfkc(string),
                                 first.getXDirAdj() * PT_TO_MM,
                                 first.getYDirAdj() * PT_TO_MM,
                                 first.getFontSizeInPt(),
@@ -105,7 +105,7 @@ public final class PdfProbe {
             for (int i = 1; i <= pages; i++) {
                 stripper.setStartPage(i);
                 stripper.setEndPage(i);
-                texts.add(Normalizer.normalize(stripper.getText(doc), Normalizer.Form.NFKC));
+                texts.add(nfkc(stripper.getText(doc)));
             }
             return new PdfProbe(pages, sizes, texts, runs, contents);
         }
@@ -174,8 +174,23 @@ public final class PdfProbe {
         return runs.stream().filter(r -> r.text().contains(n)).toList();
     }
 
+    /**
+     * NFKC folds Kangxi radicals (U+2F00–2FDF) back to unified ideographs, but
+     * NOT the CJK Radicals Supplement (U+2E80–2EFF) that the Noto subset's
+     * ToUnicode CMap also emits (e.g. 長→⻑). Fold the common ones by hand.
+     */
+    private static final String RADICAL_SUPPLEMENT = "⻑⻄⻘⻝⻤⻲⻯⻁⺠⻣⻭⻩⻨⻖⻗";
+    private static final String RADICAL_UNIFIED    = "長西青食鬼亀竜虎民骨歯黄麦阝雨";
+
     private static String nfkc(String s) {
-        return Normalizer.normalize(s, Normalizer.Form.NFKC);
+        String normalized = Normalizer.normalize(s, Normalizer.Form.NFKC);
+        StringBuilder sb = new StringBuilder(normalized.length());
+        for (int i = 0; i < normalized.length(); i++) {
+            char c = normalized.charAt(i);
+            int idx = RADICAL_SUPPLEMENT.indexOf(c);
+            sb.append(idx >= 0 ? RADICAL_UNIFIED.charAt(idx) : c);
+        }
+        return sb.toString();
     }
 
     // ── Expected-position helpers (renderer coordinate contract) ───────

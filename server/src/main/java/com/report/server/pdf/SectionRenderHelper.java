@@ -185,9 +185,8 @@ public final class SectionRenderHelper {
      * Detail fields (first row only): "group[].field" → _formData.group[0].field
      */
     public static JsonNode resolveFormData(JsonNode el, JsonNode formData) {
-        JsonNode bindingRefNode = el.get("bindingRef");
-        if (bindingRefNode == null || !bindingRefNode.isTextual()) return el;
-        String ref = bindingRefNode.asText();
+        String ref = resolveBindingRef(el);
+        if (ref == null) return el;
         if (ref.startsWith("{")) return el; // system variable — resolved at render time
 
         JsonNode value = null;
@@ -272,6 +271,26 @@ public final class SectionRenderHelper {
     private static String resolveKind(JsonNode el) {
         String kind = PdfUtils.textOf(el, "kind", "");
         return kind.isEmpty() ? PdfUtils.textOf(el, "type", "") : kind;
+    }
+
+    /**
+     * Resolve the element's data-binding key. V1/V2 shared elements use
+     * {@code bindingRef}; some V2 types carry their own field:
+     * eraSelect ({@code dataSource}) and hanko ({@code binding}).
+     * Returns null when the element has no binding.
+     */
+    private static String resolveBindingRef(JsonNode el) {
+        JsonNode bindingRefNode = el.get("bindingRef");
+        if (bindingRefNode != null && bindingRefNode.isTextual()) return bindingRefNode.asText();
+        String kind = resolveKind(el);
+        String v2Field = switch (kind) {
+            case "eraSelect" -> "dataSource";
+            case "hanko" -> "binding";
+            default -> null;
+        };
+        if (v2Field == null) return null;
+        JsonNode node = el.get(v2Field);
+        return node != null && node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
     }
 
     private static String propKeyFor(String kind) {

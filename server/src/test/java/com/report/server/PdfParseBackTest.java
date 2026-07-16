@@ -128,15 +128,15 @@ class PdfParseBackTest {
               "sections":[{
                 "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
                 "elements":[{
-                  "id":"e1","kind":"revenueStamp","name":"収入印紙",
-                  "frame":{"x":150,"y":30,"width":20,"height":25,"rotation":0},
-                  "props":{"text":"収入印紙","fontSize":12}
+                  "id":"e1","kind":"manualEntry","name":"記入欄",
+                  "frame":{"x":20,"y":30,"width":100,"height":20,"rotation":0},
+                  "props":{"text":"手書き記入欄","fontSize":12}
                 }]
               }]
             }]}""";
         PdfProbe probe = render(json);
-        assertFalse(probe.pageContains(0, "収入印紙"),
-                "revenueStamp has no server renderer yet (#53) — update this test when implemented");
+        assertFalse(probe.pageContains(0, "手書き記入欄"),
+                "manualEntry has no server renderer yet (#53) — update this test when implemented");
     }
 
     @Test
