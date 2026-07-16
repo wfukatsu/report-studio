@@ -97,9 +97,43 @@ Issue [#55](https://github.com/wfukatsu/report-studio/issues/55) のページネ
 実装: `MultiRowTableSectionRenderer` ＋ `SectionRenderHelper.renderSplitRow`。
 検証: `PdfSplitPolicyParseBackTest`。
 
+## 押し下げレイアウトの自動改ページ（pushdown page-overflow）
+
+`layoutMode: "relative"` のセクション（`page_base` / `free` / `repeat`）で、
+押し下げ（`props.layout.pushDown` + `anchorTo`）の解決後にセクション下端
+（`section.y + section.height`）を超えた要素は、**継続ページに自動で送られる**
+（従来はページ外に描画され欠落していた）。
+
+- 割当: 要素の解決後 Y について `page = floor((y − top) / 高さ)`、
+  描画位置は `top + (y − top) % 高さ`（折返し）
+- **下端をまたぐ要素**は、1ページに収まる高さなら次ページ先頭に繰上げ
+- **領域より背の高い要素**は移動せず、そのページでクリップされる
+- **1ページ目に収まる要素は従来どおり**（セクションが描画される全物理ページに
+  繰返し描画。`pageScope` の first/last 制御も従来どおり全体に効く —
+  `pageScope: "first"` のセクションでは継続ページの要素も描画されない点に注意）
+- 継続ページ数は他のページ分割セクションと同様に文書ページ数の max に寄与
+- 上限 100 継続ページ（`RelativeLayoutResolver.MAX_PUSHDOWN_PAGES`）
+- ジオメトリは V1 `frame` / V2 `position`+`size` の両対応
+
+実装: `RelativeLayoutResolver.paginate` ＋ `SectionRenderHelper.renderElementsPaged`。
+検証: `PdfPushdownParseBackTest` / `RelativeLayoutResolverTest`。
+
+## マージンクリッピング（opt-in）
+
+`pageSetup.clipToMargins: true`（V2 は `pageSettings.clipToMargins`）を設定すると、
+全ページの描画内容が `margins` の内側の矩形にクリップされる。既定は **false**
+（`margins` はデータ保持のみ — 既存テンプレートはマージン領域に要素を配置して
+いることがあるため、破壊的変更を避けてオプトイン）。
+
+- クリップ矩形はページごとにそのページのサイズから再計算（V2 のページ別サイズ対応）
+- マージンがページより大きい等の退化ケースではクリップを適用しない（白紙化防止）
+
+実装: `PageContext.setClipToMargins` / `PdfRenderer.resolveClipMargins`。
+検証: `PageContextClipTest`。
+
 ## 未実装（今後のスコープ）
 
-- `RelativeLayoutResolver`（押し下げレイアウト）のページ下端自動改ページ
-- マージンのクリッピング強制（`pageSetup.margins` は現状データ保持のみ）
-- デザイナー側のあふれ警告 UX（フロントエンド）
 - V2 `repeatingBand` / `repeatingList` 要素のセクションへのマッピング（#53/#52）
+
+デザイナー側のあふれ警告 UX はフロントエンド実装
+（`src/lib/overflowWarning.ts` + `CanvasElement` のバッジ表示）を参照。

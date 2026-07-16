@@ -147,6 +147,10 @@ public final class PdfRenderer {
                 totalRows = (formData != null) ? renderer.countRows(section, formData) : 0;
                 // physicalPages is group-aware (issue #55): each group forces a page break
                 totalPages = Math.max(totalPages, renderer.physicalPages(section, formData));
+            } else {
+                // Pushdown overflow of relative sections adds continuation pages (issue #55)
+                totalPages = Math.max(totalPages,
+                        com.report.server.pdf.SectionRenderHelper.pushdownPages(section));
             }
             sectionParams.add(new int[]{rowsPerPage, totalRows});
         }
@@ -158,6 +162,7 @@ public final class PdfRenderer {
             ctx.setTotalPages(totalPages);
             ctx.setPrintDate(printDate);
             ctx.setTenant(tenant);
+            ctx.setClipToMargins(resolveClipMargins(tmpl.get("pageSetup")));
 
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();
@@ -260,6 +265,10 @@ public final class PdfRenderer {
                             totalRows = (formData != null) ? r.countRows(section, formData) : 0;
                             // physicalPages is group-aware (issue #55)
                             localCount = Math.max(localCount, r.physicalPages(section, formData));
+                        } else {
+                            // Pushdown overflow of relative sections (issue #55)
+                            localCount = Math.max(localCount,
+                                    com.report.server.pdf.SectionRenderHelper.pushdownPages(section));
                         }
                         params.add(new int[]{rowsPerPage, totalRows});
                     }
@@ -280,6 +289,7 @@ public final class PdfRenderer {
                 ctx.setTotalPages(globalTotal);
                 ctx.setPrintDate(printDate);
                 ctx.setTenant(tenant);
+                ctx.setClipToMargins(resolveClipMargins(def.get("pageSettings")));
 
                 for (int p = 0; p < pageSections.size(); p++) {
                     PDRectangle size = pageSizes.get(p);
@@ -343,6 +353,24 @@ public final class PdfRenderer {
 
     // ── Section type resolution ────────────────────────────────────────
     /** V1 uses "type"; V2 uses "sectionType" — fall back accordingly. */
+    /**
+     * Resolve the opt-in margin clip box (issue #55). Returns
+     * {top, right, bottom, left} in mm when {@code clipToMargins: true} is set
+     * on the page setup/settings node, or null (no clipping — margins stay
+     * data-only, the historical behavior).
+     */
+    private static float[] resolveClipMargins(JsonNode setup) {
+        if (setup == null || !setup.path("clipToMargins").asBoolean(false)) return null;
+        JsonNode m = setup.get("margins");
+        if (m == null || !m.isObject()) return null;
+        return new float[]{
+                PdfUtils.floatOf(m, "top", 0),
+                PdfUtils.floatOf(m, "right", 0),
+                PdfUtils.floatOf(m, "bottom", 0),
+                PdfUtils.floatOf(m, "left", 0),
+        };
+    }
+
     private static String resolveSectionType(JsonNode section) {
         String type = PdfUtils.textOf(section, "type", "");
         if (!type.isEmpty()) return type;

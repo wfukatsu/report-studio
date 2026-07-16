@@ -23,6 +23,6 @@ final class PageBaseSectionRenderer implements SectionPdfRenderer {
             throws IOException {
         String pageScope = PdfUtils.textOf(section, "pageScope", "all");
         if (!ctx.shouldRender(pageScope)) return;
-        SectionRenderHelper.renderElements(ctx, section, formData, ctx.variantCtx());
+        SectionRenderHelper.renderElementsPaged(ctx, section, formData, ctx.variantCtx(), pageIdx);
     }
 }

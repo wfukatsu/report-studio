@@ -31,6 +31,7 @@ public final class PageContext implements AutoCloseable {
     private int localPageCount = 1;  // physical pages of the current designed page
     private java.time.LocalDate printDate = java.time.LocalDate.now();
     private com.fasterxml.jackson.databind.JsonNode tenant;
+    private float[] clipMarginsMm; // {top, right, bottom, left} — null = no clipping
 
     public PageContext(PDDocument doc, PDRectangle pageSize, Map<String, PDFont> fontCache) {
         this(doc, pageSize, fontCache, VariantContext.empty());
@@ -64,6 +65,30 @@ public final class PageContext implements AutoCloseable {
         cs = new PDPageContentStream(doc, page);
         currentPageSize = size;
         pageIndex++;
+        applyMarginClip(size);
+    }
+
+    /**
+     * Enable content clipping to the page margins (issue #55 — opt-in via
+     * {@code pageSetup.clipToMargins}). The clip rectangle is re-applied on
+     * every subsequent page using that page's own size.
+     *
+     * @param marginsMm {top, right, bottom, left} in mm, or null to disable
+     */
+    public void setClipToMargins(float[] marginsMm) {
+        this.clipMarginsMm = (marginsMm != null && marginsMm.length == 4) ? marginsMm : null;
+    }
+
+    private void applyMarginClip(PDRectangle size) throws IOException {
+        if (clipMarginsMm == null) return;
+        final float mmToPt = PdfUnits.MM_TO_PT;
+        float x = clipMarginsMm[3] * mmToPt;                                    // left
+        float y = clipMarginsMm[2] * mmToPt;                                    // bottom
+        float w = size.getWidth() - (clipMarginsMm[1] + clipMarginsMm[3]) * mmToPt;
+        float h = size.getHeight() - (clipMarginsMm[0] + clipMarginsMm[2]) * mmToPt;
+        if (w <= 0 || h <= 0) return; // degenerate margins — skip rather than blank the page
+        cs.addRect(x, y, w, h);
+        cs.clip();
     }
 
     /** Set the total page count (computed before rendering begins). */

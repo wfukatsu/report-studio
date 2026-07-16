@@ -104,4 +104,80 @@ class RelativeLayoutResolverTest {
         // Original must be unchanged (immutability)
         assertEquals(10f, el.get("frame").get("y").floatValue(), 0.01f);
     }
+
+    @Test
+    void applyEffectiveY_supportsV2PositionGeometry() throws Exception {
+        JsonNode el = parse("""
+            {"id":"e1","position":{"x":0,"y":10},"size":{"width":100,"height":20}}""");
+        JsonNode result = RelativeLayoutResolver.applyEffectiveY(el, Map.of("e1", 55f));
+        assertEquals(55f, result.get("position").get("y").floatValue(), 0.01f);
+    }
+
+    // ── paginate (issue #55: pushdown page-overflow) ─────────────────────
+
+    @Test
+    void paginate_allElementsFit_singlePage() throws Exception {
+        JsonNode elements = parse("""
+            [
+              {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
+              {"id":"e2","frame":{"x":0,"y":40,"width":100,"height":30},"props":{}}
+            ]""");
+        var layout = RelativeLayoutResolver.paginate(elements, 0, 100);
+        assertEquals(1, layout.pageCount());
+        assertTrue(layout.pageOf().isEmpty());
+    }
+
+    @Test
+    void paginate_pushedChainOverflows_assignsContinuationPage() throws Exception {
+        // e1 y=10 h=20; e2 anchored → effY 60, h=30 (fits page 0: 60+30=90 ≤ 100)
+        // e3 anchored to e2 → effY = 60+30+(80-40)=130 → page 1 at wrapped y=30
+        JsonNode elements = parse("""
+            [
+              {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
+              {"id":"e2","frame":{"x":0,"y":40,"width":100,"height":30},
+               "props":{"layout":{"anchorTo":"e1","pushDown":true}}},
+              {"id":"e3","frame":{"x":0,"y":80,"width":100,"height":30},
+               "props":{"layout":{"anchorTo":"e2","pushDown":true}}}
+            ]""");
+        var layout = RelativeLayoutResolver.paginate(elements, 0, 100);
+        assertEquals(2, layout.pageCount());
+        assertNull(layout.pageOf().get("e1"));
+        assertNull(layout.pageOf().get("e2"));
+        assertEquals(1, layout.pageOf().get("e3"));
+        assertEquals(30f, layout.pagedY().get("e3"), 0.01f);
+    }
+
+    @Test
+    void paginate_straddlingElement_promotedToNextPageTop() throws Exception {
+        // Static element at y=90 h=30 would cross the bottom edge (100) → next page top
+        JsonNode elements = parse("""
+            [
+              {"id":"e1","frame":{"x":0,"y":90,"width":100,"height":30},"props":{}}
+            ]""");
+        var layout = RelativeLayoutResolver.paginate(elements, 0, 100);
+        assertEquals(2, layout.pageCount());
+        assertEquals(1, layout.pageOf().get("e1"));
+        assertEquals(0f, layout.pagedY().get("e1"), 0.01f);
+    }
+
+    @Test
+    void paginate_elementTallerThanRegion_staysAndClips() throws Exception {
+        JsonNode elements = parse("""
+            [
+              {"id":"e1","frame":{"x":0,"y":0,"width":100,"height":250},"props":{}}
+            ]""");
+        var layout = RelativeLayoutResolver.paginate(elements, 0, 100);
+        assertEquals(1, layout.pageCount());
+        assertNull(layout.pageOf().get("e1"));
+    }
+
+    @Test
+    void paginate_nonPositiveRegionHeight_disablesPaging() throws Exception {
+        JsonNode elements = parse("""
+            [
+              {"id":"e1","frame":{"x":0,"y":500,"width":100,"height":30},"props":{}}
+            ]""");
+        var layout = RelativeLayoutResolver.paginate(elements, 0, 0);
+        assertEquals(1, layout.pageCount());
+    }
 }

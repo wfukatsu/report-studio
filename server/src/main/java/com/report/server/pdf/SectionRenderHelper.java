@@ -60,23 +60,59 @@ public final class SectionRenderHelper {
      */
     public static void renderElements(PageContext ctx, JsonNode section, JsonNode formData,
                                       VariantContext variantCtx) {
+        renderElementsPaged(ctx, section, formData, variantCtx, 0);
+    }
+
+    /**
+     * Render elements on a specific section-local physical page (issue #55).
+     *
+     * <p>For relative sections, pushdown chains that flow beyond the section's
+     * bottom edge are auto-paginated ({@link RelativeLayoutResolver#paginate}):
+     * an element assigned to continuation page {@code k > 0} renders only when
+     * {@code pageIdx == k}, at its wrapped Y. Elements that fit the first page
+     * keep today's behavior (drawn on every physical page the section renders
+     * on, subject to {@code pageScope}).
+     */
+    public static void renderElementsPaged(PageContext ctx, JsonNode section, JsonNode formData,
+                                           VariantContext variantCtx, int pageIdx) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
 
         boolean isRelative = "relative".equals(PdfUtils.textOf(section, "layoutMode", "absolute"));
-        Map<String, Float> effectiveY = isRelative
-                ? RelativeLayoutResolver.resolveEffectiveY(elements) : Map.of();
+        RelativeLayoutResolver.PagedLayout layout = isRelative
+                ? pushdownLayout(section) : RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
 
         for (JsonNode el : elements) {
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, 0)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
-            JsonNode withLayout = isRelative ? RelativeLayoutResolver.applyEffectiveY(el, effectiveY) : el;
+            int elementPage = layout.pageOf().getOrDefault(elId, 0);
+            if (elementPage > 0 && elementPage != pageIdx) continue;
+            JsonNode withLayout = isRelative
+                    ? RelativeLayoutResolver.applyEffectiveY(el, layout.pagedY()) : el;
             JsonNode resolved = formData != null ? resolveFormData(withLayout, formData) : withLayout;
             JsonNode masked = applyMaskingToElement(resolved, variantCtx);
             renderElement(ctx, masked);
         }
+    }
+
+    /**
+     * Pushdown page-overflow layout of a relative section (issue #55).
+     * Absolute sections and sections without a usable height are single-page.
+     */
+    public static RelativeLayoutResolver.PagedLayout pushdownLayout(JsonNode section) {
+        if (!"relative".equals(PdfUtils.textOf(section, "layoutMode", "absolute"))) {
+            return RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
+        }
+        float top = PdfUtils.floatOf(section, "y", 0);
+        float height = PdfUtils.floatOf(section, "height", 0);
+        return RelativeLayoutResolver.paginate(section.get("elements"), top, height);
+    }
+
+    /** Number of section-local physical pages the pushdown overflow needs (≥1). */
+    public static int pushdownPages(JsonNode section) {
+        return pushdownLayout(section).pageCount();
     }
 
     /**
