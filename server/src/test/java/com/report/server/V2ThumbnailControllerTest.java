@@ -86,13 +86,12 @@ class V2ThumbnailControllerTest {
     void get_returns304_whenETagMatches() throws Exception {
         when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(makeEnvelope("tpl-1")));
 
-        // Build a projection to compute the expected ETag
+        // ETag is computed from the prepared V2 definition (issue #52)
         String env = makeEnvelope("tpl-1");
         com.fasterxml.jackson.databind.JsonNode envNode = MAPPER.readTree(env);
-        String projection = V2ProjectionBuilder.build(
-                "tpl-1", envNode.path("definition"),
-                MAPPER.createObjectNode(), null);
-        String etag = ThumbnailGenerator.computeETag(projection);
+        String definitionJson = V2RenderSupport.prepare(
+                envNode.path("definition"), MAPPER.createObjectNode(), null);
+        String etag = ThumbnailGenerator.computeETag(definitionJson);
 
         when(ctx.header("If-None-Match")).thenReturn(etag);
         controller.get(ctx);

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException;
  * <p>Renders the template with empty test data, generates a JPEG thumbnail (400px wide)
  * via {@link ThumbnailGenerator}, and returns it with ETag-based cache headers.
  *
- * <p>Uses the same V2ProjectionBuilder pipeline as {@link V2PdfController}, but always
+ * <p>Renders the V2 definition natively like {@link V2PdfController}, but always
  * passes empty test data so placeholders show as blank — suitable for a preview image.
  */
 public final class V2ThumbnailController {
@@ -63,29 +63,28 @@ public final class V2ThumbnailController {
             return;
         }
 
-        // Build projection with empty test data — thumbnails show structure, not live values
-        String projectionJson;
+        // Prepare the V2 definition with empty test data — thumbnails show structure, not live values
+        String definitionJson;
         try {
-            projectionJson = V2ProjectionBuilder.build(
-                    templateId, definition, MAPPER.createObjectNode(), null);
+            definitionJson = V2RenderSupport.prepare(definition, MAPPER.createObjectNode(), null);
         } catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to build projection"));
+            ctx.json(Map.of("error", "Failed to prepare definition"));
             return;
         }
 
-        // ETag based on the projection JSON (changes when the template changes)
-        String etag = ThumbnailGenerator.computeETag(projectionJson);
+        // ETag based on the definition JSON (changes when the template changes)
+        String etag = ThumbnailGenerator.computeETag(definitionJson);
         if (etag.equals(ctx.header("If-None-Match"))) {
             ctx.status(304);
             return;
         }
 
         // Render PDF + generate thumbnail off the main thread
-        final String finalProjection = projectionJson;
+        final String finalDefinition = definitionJson;
         CompletableFuture<byte[]> future = CompletableFuture.supplyAsync(() -> {
             try {
-                byte[] pdfBytes = PdfRenderer.render(finalProjection);
+                byte[] pdfBytes = PdfRenderer.renderDefinition(finalDefinition);
                 return ThumbnailGenerator.generate(pdfBytes);
             } catch (Exception e) {
                 throw new RuntimeException("Thumbnail render failed", e);

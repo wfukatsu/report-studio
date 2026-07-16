@@ -2,7 +2,6 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  * <p>Pipeline:
  * <ol>
  *   <li>Parse and validate request body (size, depth, required fields)</li>
- *   <li>Convert V2 definition to V1 projection via {@link V2ProjectionBuilder}</li>
+ *   <li>Render the V2 definition natively (issue #52)</li>
  *   <li>Enrich with {@link CalculationEngine} (best-effort)</li>
  *   <li>Render PDF with 30-second timeout</li>
  * </ol>
@@ -85,50 +84,30 @@ public final class V2StatelessPdfController {
         JsonNode dataNode = root.has("data") && !root.get("data").isNull()
                 ? root.get("data") : null;
 
-        // Build V1 projection
-        String projectionJson;
+        // Prepare the V2 definition for native rendering (issue #52)
+        String definitionJson;
         try {
-            projectionJson = V2ProjectionBuilder.build("inline", templateNode, dataNode, null);
+            definitionJson = V2RenderSupport.prepare(templateNode, dataNode, null);
         } catch (Exception e) {
-            log.error("V2ProjectionBuilder failed for stateless PDF: {}", e.getMessage());
+            log.error("Failed to prepare V2 definition for stateless PDF: {}", e.getMessage());
             ctx.status(500);
-            ctx.json(Map.of("error", "Failed to build projection"));
+            ctx.json(Map.of("error", "Failed to prepare definition"));
             return;
         }
 
-        // Enrich with CalculationEngine (best-effort)
-        projectionJson = enrichWithCalculations(projectionJson);
-
         // Render PDF with timeout
-        renderAndRespond(ctx, projectionJson);
+        renderAndRespond(ctx, definitionJson);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private String enrichWithCalculations(String projectionJson) {
-        try {
-            ObjectNode projNode = (ObjectNode) MAPPER.readTree(projectionJson);
-            JsonNode formDataNode = projNode.path("_formData");
-            Map<String, Object> enriched = CalculationEngine.apply(
-                    projNode, formDataNode.isMissingNode() ? null : formDataNode);
-            projNode.set("_formData", MAPPER.valueToTree(enriched));
-            return MAPPER.writeValueAsString(projNode);
-        } catch (CircularDependencyException e) {
-            log.warn("Circular dependency in stateless PDF calculation: {}", e.getMessage());
-            return projectionJson;
-        } catch (Exception e) {
-            log.warn("CalculationEngine enrichment failed for stateless PDF: {}", e.getMessage());
-            return projectionJson;
-        }
-    }
-
-    private void renderAndRespond(Context ctx, String projectionJson) {
-        final String projJson = projectionJson;
+    private void renderAndRespond(Context ctx, String definitionJson) {
+        final String defJson = definitionJson;
         try {
             byte[] pdfBytes = CompletableFuture
                     .supplyAsync(() -> {
                         try {
-                            return PdfRenderer.render(projJson);
+                            return PdfRenderer.renderDefinition(defJson);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }

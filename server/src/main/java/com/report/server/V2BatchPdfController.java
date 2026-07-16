@@ -175,8 +175,8 @@ public final class V2BatchPdfController {
                     if (testData == null || testData.isMissingNode()) {
                         testData = MAPPER.createObjectNode();
                     }
-                    String projJson = V2ProjectionBuilder.build(templateId, defNode, testData, null);
-                    byte[] pdfBytes = PdfRenderer.render(projJson);
+                    String defJson = V2RenderSupport.prepare(defNode, testData, null);
+                    byte[] pdfBytes = PdfRenderer.renderDefinition(defJson);
                     // Update progress
                     BatchJobRecord cur = jobs.get(batchJobId);
                     if (cur != null) jobs.put(batchJobId, cur.incCompleted());

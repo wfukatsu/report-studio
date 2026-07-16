@@ -141,16 +141,14 @@ public final class V2PdfJobController {
             jobs.put(jobId, job.withStatus(STATUS_PROCESSING));
             try {
                 JsonNode definitionNode = MAPPER.readTree(finalRaw);
-                // V2ProjectionBuilder.build returns a projection JSON String
-                String projectionJson = V2ProjectionBuilder.build(
-                        finalTemplateId, definitionNode, finalTestData, finalVariantId);
+                // Prepare the V2 definition for native rendering (issue #52)
+                final String definitionJson = V2RenderSupport.prepare(
+                        definitionNode, finalTestData, finalVariantId);
 
-                // PdfRenderer.render takes the projection JSON String
-                final String finalProjectionJson = projectionJson;
                 byte[] pdfBytes = java.util.concurrent.CompletableFuture
                         .supplyAsync(() -> {
                             try {
-                                return PdfRenderer.render(finalProjectionJson);
+                                return PdfRenderer.renderDefinition(definitionJson);
                             } catch (Exception ex) {
                                 throw new RuntimeException(ex);
                             }

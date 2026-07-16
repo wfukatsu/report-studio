@@ -123,8 +123,8 @@ class V2ElementParityMatrixTest {
               }]
             }""";
         JsonNode def = MAPPER.readTree(definition);
-        String projection = V2ProjectionBuilder.build("tpl-1", def, null, null);
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(projection));
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(
+                V2RenderSupport.prepare(def, null, null)));
 
         assertTrue(probe.allText().contains("V2本文コンテンツ"),
                 "V2 content should render; runs:\n" + probe.dumpRuns());
@@ -133,9 +133,9 @@ class V2ElementParityMatrixTest {
     }
 
     @Test
-    void v2MultiplePages_areFlattenedToOnePdfPage() throws Exception {
-        // Characterization of #52: V2ProjectionBuilder flat-merges all
-        // pages[].sections[] into a single V1 template, losing page boundaries.
+    void v2MultiplePages_renderAsSeparatePages() throws Exception {
+        // #52: renderDefinition preserves designed page boundaries — page 2's
+        // content no longer bleeds onto page 1 (was flattened by V2ProjectionBuilder).
         String definition = """
             {
               "id":"def-2",
@@ -154,13 +154,12 @@ class V2ElementParityMatrixTest {
               ]
             }""";
         JsonNode def = MAPPER.readTree(definition);
-        String projection = V2ProjectionBuilder.build("tpl-2", def, null, null);
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(projection));
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(
+                V2RenderSupport.prepare(def, null, null)));
 
-        assertEquals(1, probe.pageCount(),
-                "V2 page boundaries preserved — the projection bridge has been fixed; "
-                        + "update this characterization test (#52)");
+        assertEquals(2, probe.pageCount(), "designed page boundaries preserved");
         assertTrue(probe.pageContains(0, "PAGE1TEXT"));
-        assertTrue(probe.pageContains(0, "PAGE2TEXT"));
+        assertFalse(probe.pageContains(0, "PAGE2TEXT"), "page 2 must not bleed onto page 1");
+        assertTrue(probe.pageContains(1, "PAGE2TEXT"));
     }
 }
