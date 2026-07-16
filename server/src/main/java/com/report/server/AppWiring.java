@@ -185,6 +185,17 @@ public final class AppWiring {
         tenantRepo = new JsonBlobRepository(factory, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
         v2TenantCtrl = new V2TenantController(tenantRepo);
+        // Tenant elements in PDFs resolve through this process-wide supplier (issue #54)
+        TenantInfoProvider.setSupplier(() -> {
+            try {
+                var stored = tenantRepo.get("singleton");
+                return stored.isPresent()
+                        ? new com.fasterxml.jackson.databind.ObjectMapper().readTree(stored.get())
+                        : null;
+            } catch (Exception e) {
+                return null;
+            }
+        });
         productRepo = new JsonBlobRepository(factory, NAMESPACE, "products");
         productRepo.ensureTable();
         productCtrl = new ProductController(productRepo);

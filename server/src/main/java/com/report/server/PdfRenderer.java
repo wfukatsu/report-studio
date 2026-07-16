@@ -78,6 +78,11 @@ public final class PdfRenderer {
             }
         }
 
+        // Tenant info for tenant* elements: projection-level _tenant overrides
+        // the process-wide provider (issue #54)
+        JsonNode tenant = root.hasNonNull("_tenant")
+                ? root.get("_tenant") : TenantInfoProvider.get();
+
         try (PDDocument doc = new PDDocument()) {
             if (templates == null || !templates.isArray() || templates.isEmpty()) {
                 doc.addPage(new PDPage(PDRectangle.A4));
@@ -88,7 +93,7 @@ public final class PdfRenderer {
                         log.warn("Template count exceeds limit ({}), truncating", MAX_TEMPLATES_PER_PROJECTION);
                         break;
                     }
-                    renderTemplate(doc, tmpl, formData, variantId, printDate);
+                    renderTemplate(doc, tmpl, formData, variantId, printDate, tenant);
                 }
             }
 
@@ -97,7 +102,8 @@ public final class PdfRenderer {
     }
 
     private static void renderTemplate(PDDocument doc, JsonNode tmpl, JsonNode formData,
-                                        String variantId, java.time.LocalDate printDate) throws IOException {
+                                        String variantId, java.time.LocalDate printDate,
+                                        JsonNode tenant) throws IOException {
         // Clear per-render image cache at template boundary
         ImagePdfRenderer.clearImageCache();
 
@@ -152,6 +158,7 @@ public final class PdfRenderer {
                  new com.report.server.pdf.PageContext(doc, pageSize, fontCache, variantCtx)) {
             ctx.setTotalPages(totalPages);
             ctx.setPrintDate(printDate);
+            ctx.setTenant(tenant);
 
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();

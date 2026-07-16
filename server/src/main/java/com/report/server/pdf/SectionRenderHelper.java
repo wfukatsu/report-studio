@@ -285,6 +285,9 @@ public final class SectionRenderHelper {
      */
     private static JsonNode resolveSystemValues(JsonNode el, PageContext ctx) {
         String kind = resolveKind(el);
+        if (kind.startsWith("tenant")) {
+            return resolveTenantElement(el, kind, ctx.tenant());
+        }
         String value = null;
         if ("pageNumber".equals(kind)) {
             value = SystemValueResolver.formatPageNumber(
@@ -309,6 +312,53 @@ public final class SectionRenderHelper {
             }
         }
         if (value == null) return el;
+        return withResolvedProp(el, com.fasterxml.jackson.databind.node.TextNode.valueOf(value));
+    }
+
+    /**
+     * Resolve V2 tenant* elements from the TenantInfo document (issue #54).
+     * Text elements fall back to the element's {@code fallback} when the
+     * tenant field is unset; tenantLogo is rewritten to an {@code image}
+     * element so ImagePdfRenderer handles the data-URI.
+     */
+    private static JsonNode resolveTenantElement(JsonNode el, String kind, JsonNode tenant) {
+        if ("tenantLogo".equals(kind)) {
+            String src = tenant != null ? PdfUtils.textOf(tenant, "logoBase64", "") : "";
+            if (src.isEmpty()) return el; // no logo — image renderer draws nothing useful; keep fallback box
+            try {
+                ObjectNode copy = (ObjectNode) el.deepCopy();
+                copy.put("kind", "image");
+                ObjectNode props = copy.has("props") && copy.get("props").isObject()
+                        ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+                props.put("src", src);
+                if (el.hasNonNull("objectFit")) props.put("objectFit", el.get("objectFit").asText());
+                if (el.hasNonNull("opacity")) props.put("opacity", el.get("opacity").asDouble());
+                copy.set("props", props);
+                return copy;
+            } catch (Exception e) {
+                return el;
+            }
+        }
+
+        String value = tenant == null ? "" : switch (kind) {
+            case "tenantCompanyName" -> PdfUtils.textOf(tenant, "companyName", "");
+            case "tenantAddress" -> {
+                boolean multiline = "multiLine".equals(PdfUtils.elementTextOf(el, "displayMode", "single"));
+                yield com.report.server.ValueFormatter.formatAddress(tenant, multiline);
+            }
+            case "tenantPhone" -> PdfUtils.textOf(tenant, "phone", "");
+            case "tenantRepresentative" -> PdfUtils.textOf(tenant, "representativeName", "");
+            case "tenantCustom" -> {
+                String fieldKey = PdfUtils.elementTextOf(el, "fieldKey", "");
+                JsonNode custom = tenant.get("custom");
+                yield custom != null && !fieldKey.isEmpty()
+                        ? PdfUtils.textOf(custom, fieldKey, "") : "";
+            }
+            default -> "";
+        };
+        if (value.isEmpty()) {
+            value = PdfUtils.elementTextOf(el, "fallback", "");
+        }
         return withResolvedProp(el, com.fasterxml.jackson.databind.node.TextNode.valueOf(value));
     }
 

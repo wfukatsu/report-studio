@@ -51,6 +51,21 @@ public final class ElementPdfRendererRegistry {
         // Auto-fields — values resolved from the page context (issue #54)
         registry.register(new StyledTextPdfRenderer("pageNumber"));
         registry.register(new StyledTextPdfRenderer("currentDate"));
+        // Tenant fields — values resolved from the TenantInfo document (issue #54);
+        // tenantLogo is rewritten to an image element in SectionRenderHelper
+        registry.register(new StyledTextPdfRenderer("tenantCompanyName"));
+        registry.register(new StyledTextPdfRenderer("tenantAddress"));
+        registry.register(new StyledTextPdfRenderer("tenantPhone"));
+        registry.register(new StyledTextPdfRenderer("tenantRepresentative"));
+        registry.register(new StyledTextPdfRenderer("tenantCustom"));
+        // tenantLogo reaches the registry only when no logo is configured
+        // (with a logo it is rewritten to "image") — draw nothing, not a fallback box
+        registry.register(new ElementPdfRenderer() {
+            @Override public String kind() { return "tenantLogo"; }
+            @Override public void render(PDPageContentStream cs, JsonNode el, float x, float y,
+                                          float w, float h, float pageHeight, PDDocument doc,
+                                          Map<String, PDFont> fontCache) { /* no logo configured */ }
+        });
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());

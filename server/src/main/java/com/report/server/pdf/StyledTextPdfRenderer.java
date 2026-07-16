@@ -52,19 +52,28 @@ public final class StyledTextPdfRenderer implements ElementPdfRenderer {
         Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
 
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
-        String truncated = truncateToWidth(text, font, fontSize, w);
-        float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
-        float tx = switch (textAlign) {
-            case "center" -> x + (w - textWidth) / 2;
-            case "right" -> x + w - textWidth;
-            default -> x;
-        };
 
-        cs.beginText();
-        cs.setFont(font, fontSize);
-        cs.setNonStrokingColor(color);
-        cs.newLineAtOffset(tx, y - fontSize);
-        cs.showText(truncated);
-        cs.endText();
+        // Multi-line values (e.g. multiLine tenant addresses) draw one line
+        // per \n with a 1.2 line-height; PDFBox showText rejects newlines.
+        String[] lines = text.split("\n", -1);
+        float lineY = y - fontSize;
+        for (String line : lines) {
+            if (!line.isEmpty()) {
+                String truncated = truncateToWidth(line, font, fontSize, w);
+                float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
+                float tx = switch (textAlign) {
+                    case "center" -> x + (w - textWidth) / 2;
+                    case "right" -> x + w - textWidth;
+                    default -> x;
+                };
+                cs.beginText();
+                cs.setFont(font, fontSize);
+                cs.setNonStrokingColor(color);
+                cs.newLineAtOffset(tx, lineY);
+                cs.showText(truncated);
+                cs.endText();
+            }
+            lineY -= fontSize * 1.2f;
+        }
     }
 }

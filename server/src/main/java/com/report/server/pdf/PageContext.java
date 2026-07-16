@@ -27,6 +27,7 @@ public final class PageContext implements AutoCloseable {
     private int pageIndex = -1;
     private int totalPages = 1;
     private java.time.LocalDate printDate = java.time.LocalDate.now();
+    private com.fasterxml.jackson.databind.JsonNode tenant;
 
     public PageContext(PDDocument doc, PDRectangle pageSize, Map<String, PDFont> fontCache) {
         this(doc, pageSize, fontCache, VariantContext.empty());
@@ -61,6 +62,11 @@ public final class PageContext implements AutoCloseable {
         if (date != null) this.printDate = date;
     }
 
+    /** Set the tenant info document used by tenant* elements (may be null). */
+    public void setTenant(com.fasterxml.jackson.databind.JsonNode tenant) {
+        this.tenant = tenant;
+    }
+
     /** Check if a section with the given pageScope should render on the current page. */
     public boolean shouldRender(String pageScope) {
         if (pageScope == null || "all".equals(pageScope)) return true;
@@ -79,6 +85,7 @@ public final class PageContext implements AutoCloseable {
     public int pageIndex() { return pageIndex; }
     public int totalPages() { return totalPages; }
     public java.time.LocalDate printDate() { return printDate; }
+    public com.fasterxml.jackson.databind.JsonNode tenant() { return tenant; }
 
     @Override
     public void close() throws IOException {

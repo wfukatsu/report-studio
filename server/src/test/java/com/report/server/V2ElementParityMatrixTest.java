@@ -34,7 +34,9 @@ class V2ElementParityMatrixTest {
     private static final Set<String> EXPECTED_SUPPORTED = Set.of(
             "text", "shape", "image", "barcode", "checkbox", "formTable",
             "hanko", "divider", "eraSelect", "revenueStamp", "approvalStampRow",
-            "dataField", "pageNumber", "currentDate");
+            "dataField", "pageNumber", "currentDate",
+            "tenantCompanyName", "tenantAddress", "tenantPhone",
+            "tenantRepresentative", "tenantLogo", "tenantCustom");
 
     private static Map<String, String> buildTypeNotes() {
         Map<String, String> m = new LinkedHashMap<>();
@@ -56,12 +58,12 @@ class V2ElementParityMatrixTest {
         m.put("pageNumber", "対応（PageContext から解決。{{page}}/{{pages}} テンプレート・{pageNumber} bindingRef）");
         m.put("currentDate", "対応（_printDate/当日から解決。和暦・曜日・カスタムパターン）");
         m.put("divider", "対応（DividerPdfRenderer — 方向・太さ・破線・色）");
-        m.put("tenantCompanyName", "テナント解決なし（#54）");
-        m.put("tenantAddress", "テナント解決なし（#54）");
-        m.put("tenantPhone", "テナント解決なし（#54）");
-        m.put("tenantRepresentative", "テナント解決なし（#54）");
-        m.put("tenantLogo", "テナント解決なし（#54）");
-        m.put("tenantCustom", "テナント解決なし（#54）");
+        m.put("tenantCompanyName", "対応（TenantInfoProvider / _tenant から解決、fallback 対応）");
+        m.put("tenantAddress", "対応（displayMode single/multiLine、formatAddress 互換）");
+        m.put("tenantPhone", "対応");
+        m.put("tenantRepresentative", "対応（representativeName）");
+        m.put("tenantLogo", "対応（logoBase64 data-URI を image 要素として描画）");
+        m.put("tenantCustom", "対応（custom[fieldKey]）");
         return m;
     }
 
