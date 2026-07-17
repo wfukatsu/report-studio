@@ -14,7 +14,7 @@ import java.util.Map;
  * Handles tenant info endpoints:
  * <ul>
  *   <li>GET /api/v2/tenant — read tenant info (returns {} if not set)</li>
- *   <li>PUT /api/v2/tenant — replace tenant info (auth required)</li>
+ *   <li>PUT /api/v2/tenant — replace tenant info (admin role required)</li>
  * </ul>
  *
  * <p>Stored as a singleton document in the {@code tenant} table with the fixed
@@ -50,7 +50,7 @@ public final class V2TenantController {
      * PUT /api/v2/tenant
      * Body: TenantInfo JSON
      * Replaces the entire tenant info document.
-     * Authentication required.
+     * Requires an authenticated principal with the "admin" role.
      */
     public void put(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");

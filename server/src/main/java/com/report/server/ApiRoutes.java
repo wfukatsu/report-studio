@@ -116,12 +116,19 @@ public final class ApiRoutes {
 
         // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
         // Runs after auth filter so principal is already resolved
-        app.before("/api/v1/admin/*", ctx -> {
-            com.report.server.auth.Principal principal = ctx.attribute("principal");
-            if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
-                throw new io.javalin.http.ForbiddenResponse("Admin role required");
-            }
-        });
+        app.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
+    }
+
+    /**
+     * Before-filter body for /api/v1/admin/*: rejects the request with 403
+     * unless the resolved principal has the "admin" role.
+     * Package-private for unit testing.
+     */
+    static void requireAdminRole(io.javalin.http.Context ctx) {
+        com.report.server.auth.Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
+            throw new io.javalin.http.ForbiddenResponse("Admin role required");
+        }
     }
 
     // ── Route groups ───────────────────────────────────────────────────────────
