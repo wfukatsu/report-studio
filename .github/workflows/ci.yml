@@ -27,12 +27,12 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      - name: Test
-        # single fork + enlarged heap: parallel jsdom workers can be OOM-killed
-        # on the shared runner, which leaves the vitest pool waiting forever
-        # (observed as an 18-minute silent hang). basic reporter prints per-file
-        # progress so any remaining hang is attributable to a specific file.
-        run: npx vitest run --reporter=basic --pool=forks --poolOptions.forks.maxForks=1
+      # DEBUG (temporary): both prior runs hung right after useEvaluator.test.ts;
+      # the next file in the no-cache (size-ordered) queue is ResponsesPanel.test.tsx.
+      # Run it alone with the hanging-process reporter to dump open handles.
+      - name: Test (debug — suspect file only)
+        timeout-minutes: 5
+        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic --reporter=hanging-process
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
