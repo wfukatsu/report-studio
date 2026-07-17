@@ -2,12 +2,18 @@
 
 [![CI](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml)
 
-ドラッグ&ドロップで帳票・フォームを設計し、PDF/PNG エクスポートや ScalarDB との連携を提供する Web アプリケーションです。
+ドラッグ&ドロップで帳票・フォームを設計し、PDF/PNG エクスポートや ScalarDB との連携を提供する Web アプリケーションです。日本のビジネス帳票（見積書・請求書・税務様式）に必要な印鑑欄・和暦・縦書き・ふりがなをネイティブサポートします。
+
+![デザイナー画面 — 御見積書テンプレートの編集](docs/images/designer.png)
+
+デザイナーの `{{fieldKey}}` トークン（左）は、ライブプレビュー（右）で実データに解決されます:
+
+![ライブプレビュー — データバインディングの解決](docs/images/live-preview.png)
 
 ## 特徴
 
 - **ビジュアルデザイン** — ドラッグ&ドロップで帳票を設計
-- **27種類の要素** — テキスト・データフィールド・グラフ・バーコード・日本語帳票専用要素（印鑑・収入印紙・承認欄・元号選択）
+- **24種類の要素** — テキスト・データフィールド・グラフ・バーコード・日本語帳票専用要素（印鑑・収入印紙・承認欄・元号選択）
 - **データバインディング** — `{{fieldKey}}` トークンによる動的データ差し込み
 - **ScalarDB 連携** — テーブルスキーマの取得とデータバインディング
 - **PDF/PNG エクスポート** — クライアントサイド・サーバーサイド両対応
@@ -28,25 +34,28 @@
 | データベース | ScalarDB 3.14 + SQLite (開発) |
 | テスト | Vitest (フロントエンド) / JUnit 5 (バックエンド) |
 
-## クイックスタート
+## クイックスタート（約 15 分）
 
 ### 前提条件
 
-- Node.js 20+
-- Java 21+
-- npm 10+
+- Node.js 20+ / npm 10+
+- JDK 21（[Temurin](https://adoptium.net/) または `brew install openjdk@21`）
+
+> **JDK のバージョンに注意:** バックエンドの Gradle は Java 21 toolchain を要求します。
+> デフォルトの `java` が 21 以外の場合は `JAVA_HOME` を JDK 21 に向けてください。
+> 例（macOS + Homebrew）: `export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`
 
 ### セットアップ
 
 ```bash
 # リポジトリのクローン
-git clone <repository-url>
-cd report-design-studio-v2
+git clone https://github.com/wfukatsu/report-studio.git
+cd report-studio
 
 # フロントエンド依存関係のインストール
 npm install
 
-# バックエンド設定ファイルのコピー
+# バックエンド設定ファイルのコピー（開発用は SQLite で追加設定不要）
 cp server/scalardb.properties.example server/scalardb.properties
 ```
 
@@ -74,6 +83,13 @@ npm run dev:backend  # バックエンド   (http://localhost:8080)
 > 設定してください。初期パスワードのまま起動するとサーバーログに警告が出ます。
 > 変更したパスワードが再起動で巻き戻ることはありません（`ADMIN_PASSWORD` を
 > 設定して再起動した場合のみリセットされます）。詳細は [SECURITY.md](./SECURITY.md) を参照。
+
+### 最初の帳票を作る
+
+1. ログイン後、ツールバーの **新規作成** をクリック
+2. テンプレート一覧から **御見積書（モダン）** を選び **変更** — 帳票がキャンバスに展開されます
+3. ツールバー右側の **プレビューを表示** で、`{{fieldKey}}` トークンがサンプルデータに解決される様子を確認
+4. **エクスポート** から PDF を出力 — サーバーサイド PDF はページ分割・和文フォント埋め込みに対応しています
 
 ## コマンド一覧
 
