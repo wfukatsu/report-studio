@@ -446,6 +446,25 @@ export async function generateStatelessPdf(
   return blob
 }
 
+/**
+ * Stateless XLSX generation (issue #118) — sends the template + data inline and
+ * returns a multi-sheet Excel workbook of the report's tabular data.
+ */
+export async function generateStatelessExcel(
+  template: Record<string, unknown>,
+  data: Record<string, unknown>,
+): Promise<Blob> {
+  const { blob } = await apiFetchBlobWithFilename(
+    '/api/v2/excel/generate',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template, data }),
+    },
+  )
+  return blob
+}
+
 // ---------------------------------------------------------------------------
 // Template duplication
 // ---------------------------------------------------------------------------

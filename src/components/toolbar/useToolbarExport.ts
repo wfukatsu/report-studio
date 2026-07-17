@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { useRef, useState } from 'react'
-import { generateStatelessPdf, generateTemplatePdf, evaluateValidate } from '@/api/reportApi'
+import { generateStatelessPdf, generateStatelessExcel, generateTemplatePdf, evaluateValidate } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
 import type { OutputVariant } from '@/types'
@@ -194,6 +194,22 @@ export function useToolbarExport({
     }
   }
 
+  const handleExportExcel = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    const { definition } = useReportStore.getState()
+    try {
+      const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
+      const dataJson = resolveCurrentData()
+      const blob = await generateStatelessExcel(defJson, dataJson)
+      downloadBlob(blob, `${reportName}.xlsx`)
+    } catch (_err) {
+      toast.error('Excel のエクスポートに失敗しました。バックエンドが起動しているか確認してください。', { duration: 8000 })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const handleExportCsv = () => {
     const { definition } = useReportStore.getState()
     const data = resolveCurrentData()
@@ -248,6 +264,7 @@ export function useToolbarExport({
     handleBackendPdf,
     handleExportPng,
     handleExportCsv,
+    handleExportExcel,
     handleValidate,
   }
 }

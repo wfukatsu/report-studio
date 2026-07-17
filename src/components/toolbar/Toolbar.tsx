@@ -128,6 +128,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     handleBackendPdf,
     handleExportPng,
     handleExportCsv,
+    handleExportExcel,
     handleValidate,
   } = useToolbarExport({
     canvasRefs,
@@ -627,6 +628,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 disabled={isExporting}
                 icon={<FileText className="w-4 h-4" />}
                 label="PDF（全ページ・サーバー生成/ベクター）"
+              />
+              <MenuButton
+                onClick={() => { void handleExportExcel(); setShowExportMenu(false) }}
+                disabled={isExporting}
+                icon={<FileSpreadsheet className="w-4 h-4" />}
+                label="Excel（帳票データ・サーバー生成）"
               />
               <MenuButton
                 onClick={() => { handleExportCsv(); setShowExportMenu(false) }}
