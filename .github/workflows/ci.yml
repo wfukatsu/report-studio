@@ -27,28 +27,13 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      # DEBUG (temporary): the suspect file hangs BEFORE collection output.
-      # Matrix of probes to localize the hang (each tolerates failure).
-      - name: Probe 1 — collection only (vitest list)
-        timeout-minutes: 4
-        continue-on-error: true
-        run: npx vitest list src/components/sidebar/ResponsesPanel.test.tsx
-
-      - name: Probe 2 — threads pool instead of forks
-        timeout-minutes: 4
-        continue-on-error: true
-        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic --pool=threads
-
-      - name: Probe 3 — sibling store test (shares most of the import graph)
-        timeout-minutes: 4
-        continue-on-error: true
-        run: npx vitest run src/store/responsesSlice.test.ts --reporter=basic
-
-      - name: Probe 4 — suspect file, forks (baseline repro)
-        timeout-minutes: 4
-        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Test
+        # threads pool: the default forks pool deadlocks on this runner for
+        # ResponsesPanel.test.tsx (worker goes silent before collection output;
+        # probe run 29557958105 — same file passes under threads, hangs under
+        # forks). basic reporter keeps per-file progress visible in the log.
+        timeout-minutes: 15
+        run: npx vitest run --reporter=basic --pool=threads
 
   backend:
     name: Backend (JUnit + golden PDF regression)
