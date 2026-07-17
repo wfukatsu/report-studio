@@ -119,6 +119,7 @@ npm run build:backend    # fat-JAR ビルド
 | `ADMIN_PASSWORD` | `changeme` | 初期管理者パスワード |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限 (IP/5分) |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓 (ミリ秒) |
+| `WEBHOOK_SECRET_KEY` | （未設定） | Webhook シークレット暗号化キー（32 バイトの Base64、例: `openssl rand -base64 32`）。未設定時は平文保存 + 起動時警告 |
 
 ## ドキュメント
 

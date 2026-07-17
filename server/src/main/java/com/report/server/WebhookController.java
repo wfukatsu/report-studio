@@ -29,10 +29,13 @@ public final class WebhookController {
 
     private final JsonBlobRepository webhookRepo;
     private final WebhookDispatcher dispatcher;
+    private final SecretCrypto crypto;
 
-    public WebhookController(JsonBlobRepository webhookRepo, WebhookDispatcher dispatcher) {
+    public WebhookController(JsonBlobRepository webhookRepo, WebhookDispatcher dispatcher,
+                             SecretCrypto crypto) {
         this.webhookRepo = webhookRepo;
         this.dispatcher = dispatcher;
+        this.crypto = crypto;
     }
 
     // ── GET /api/v1/webhooks/{templateId} ────────────────────────────────────
@@ -87,7 +90,23 @@ public final class WebhookController {
         if (req.has("secret")) {
             String secret = req.path("secret").asText(null);
             if (secret != null && !secret.equals("****")) {
-                config.put("secret", secret); // store plaintext (TODO: encrypt in production)
+                config.put("secret", secret);
+            }
+        }
+
+        // Encrypt secret at rest (AES-256-GCM). Lazy migration: a plaintext secret
+        // preserved from an earlier version is encrypted on this save once
+        // WEBHOOK_SECRET_KEY is configured.
+        String storedSecret = config.hasNonNull("secret") ? config.path("secret").asText() : null;
+        if (storedSecret != null) {
+            if (crypto.isEnabled()) {
+                if (!SecretCrypto.isEncrypted(storedSecret)) {
+                    config.put("secret", crypto.encrypt(storedSecret));
+                }
+            } else {
+                log.warn("Storing webhook secret in PLAINTEXT for template {} — set {} "
+                        + "(Base64-encoded 32 bytes) before running in production.",
+                        templateId, SecretCrypto.ENV_KEY);
             }
         }
 
@@ -120,7 +139,7 @@ public final class WebhookController {
             ctx.json(Map.of("error", "No webhook URL configured"));
             return;
         }
-        String secret = config.path("secret").asText(null);
+        String secret = crypto.decrypt(config.path("secret").asText(null));
 
         // Build test payload
         ObjectNode payload = MAPPER.createObjectNode();
@@ -149,7 +168,7 @@ public final class WebhookController {
                 JsonNode config = MAPPER.readTree(stored.get());
                 String url = config.path("url").asText(null);
                 if (url == null || url.isBlank()) return;
-                String secret = config.path("secret").asText(null);
+                String secret = crypto.decrypt(config.path("secret").asText(null));
 
                 JsonNode resp = MAPPER.readTree(responseJson);
                 ObjectNode payload = MAPPER.createObjectNode();

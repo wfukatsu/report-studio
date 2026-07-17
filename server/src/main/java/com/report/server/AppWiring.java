@@ -217,7 +217,7 @@ public final class AppWiring {
             2, 8, 60L, java.util.concurrent.TimeUnit.SECONDS,
             new java.util.concurrent.LinkedBlockingQueue<>(100),
             new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
-        webhookCtrl = new WebhookController(webhookRepo, webhookDispatcher);
+        webhookCtrl = new WebhookController(webhookRepo, webhookDispatcher, SecretCrypto.fromEnv());
         v2FormResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
