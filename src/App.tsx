@@ -43,6 +43,13 @@ export default function App() {
   const [leftTab, setLeftTab] = useState<LeftTab>('elements')
   const [rightTab, setRightTab] = useState<RightTab>('properties')
   const [showTemplateModal, setShowTemplateModal] = useState(false)
+  // Modal copy differs by entry point (#112 U-5): 新規作成/オンボーディングは
+  // 「選ぶ」、ページ設定からは「変更」。
+  const [templateModalMode, setTemplateModalMode] = useState<'new' | 'change'>('new')
+  const openTemplateModal = useCallback((mode: 'new' | 'change') => {
+    setTemplateModalMode(mode)
+    setShowTemplateModal(true)
+  }, [])
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
@@ -292,7 +299,7 @@ export default function App() {
       <Toolbar
         canvasRefs={[canvasRef]}
         containerRef={canvasContainerRef}
-        onRequestTemplateModal={() => setShowTemplateModal(true)}
+        onRequestTemplateModal={() => openTemplateModal('new')}
       />
 
       {showRestorePrompt && (
@@ -414,7 +421,7 @@ export default function App() {
               <ReportCanvas canvasRef={canvasRef} />
               {isDocumentEmpty && !onboardingDismissed && (
                 <EmptyCanvasOnboarding
-                  onOpenTemplates={() => setShowTemplateModal(true)}
+                  onOpenTemplates={() => openTemplateModal('new')}
                   onDismiss={() => setOnboardingDismissed(true)}
                 />
               )}
@@ -492,7 +499,7 @@ export default function App() {
               >
                 {rightTab === 'properties' && <PropertiesPanel />}
                 {rightTab === 'versions' && <VersionHistoryPanel />}
-                {rightTab === 'page' && <PageSettingsPanel onTemplateChange={() => setShowTemplateModal(true)} />}
+                {rightTab === 'page' && <PageSettingsPanel onTemplateChange={() => openTemplateModal('change')} />}
               </div>
             )}
           </aside>
@@ -504,8 +511,8 @@ export default function App() {
         open={showTemplateModal}
         onClose={() => setShowTemplateModal(false)}
         onSelect={handleTemplateChange}
-        title="テンプレートを変更"
-        confirmLabel="変更"
+        title={templateModalMode === 'new' ? 'テンプレートを選ぶ' : 'テンプレートを変更'}
+        confirmLabel={templateModalMode === 'new' ? '作成' : '変更'}
       />
       <SubmitResponseModal />
 

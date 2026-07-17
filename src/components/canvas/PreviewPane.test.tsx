@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { PreviewPane } from './PreviewPane'
 
@@ -63,5 +63,17 @@ describe('PreviewPane', () => {
     useReportStore.getState().addPage()
     render(<PreviewPane />)
     expect(screen.getAllByText(/\/ 2/).length).toBeGreaterThan(0)
+  })
+
+  it('toggles preview width via the widen control (#112 X-1)', () => {
+    const { container } = render(<PreviewPane />)
+    const root = container.firstElementChild as HTMLElement
+    const toggle = screen.getByRole('button', { name: 'プレビューを広げる' })
+
+    expect(root.className).toContain('flex-1')
+    fireEvent.click(toggle)
+    expect(root.className).toContain('flex-[2]')
+    // Button now offers the reverse action
+    expect(screen.getByRole('button', { name: 'プレビューを標準幅に戻す' })).toBeInTheDocument()
   })
 })
