@@ -59,6 +59,17 @@ public final class PdfRenderer {
      * Preferred for batch use to avoid heap pressure.
      */
     public static void renderToStream(String projectionJson, java.io.OutputStream out) throws IOException {
+        long startNanos = System.nanoTime();
+        boolean success = false;
+        try {
+            renderToStreamImpl(projectionJson, out);
+            success = true;
+        } finally {
+            Metrics.GLOBAL.recordPdfRender((System.nanoTime() - startNanos) / 1_000_000, success);
+        }
+    }
+
+    private static void renderToStreamImpl(String projectionJson, java.io.OutputStream out) throws IOException {
         JsonNode root = MAPPER.readTree(projectionJson);
         JsonNode templates = root.get("templates");
 

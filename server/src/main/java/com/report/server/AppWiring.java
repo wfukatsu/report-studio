@@ -89,6 +89,7 @@ public final class AppWiring {
     final JobController jobCtrl;
     final PdfController pdfCtrl;
     final ThumbnailController thumbnailCtrl;
+    final HealthController healthCtrl;
 
     // ── Executor pools ────────────────────────────────────────────────────────
     private final com.report.server.job.JobTtlReaper jobTtlReaper;
@@ -222,6 +223,7 @@ public final class AppWiring {
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         pdfCtrl = new PdfController(projRepo, pdfExecutor);
         thumbnailCtrl = new ThumbnailController(projRepo);
+        healthCtrl = new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
     }
 
     /** Gracefully shuts down all executor pools (call from Javalin serverStopping event). */

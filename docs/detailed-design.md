@@ -536,6 +536,12 @@ ScalarDB の名前空間・テーブル・カラム情報を返します。
 
 ---
 
+#### `GET /api/v1/admin/health` / `GET /api/v1/admin/metrics`
+
+運用可視性エンドポイント。詳細ヘルスチェック（ScalarDB 接続性・ジョブキュー滞留・ディスク残量、総合ステータス UP/DEGRADED/DOWN）と、プロセス累積メトリクス（PDF 生成件数/所要時間・ジョブ成功/失敗・レート制限発動数）。公開ライブネス（`GET /api/v1/health` / `GET /api/v2/health`）とは別に admin 専用で内部状態を開示します。詳細は [observability.md](observability.md)。
+
+---
+
 ### 1.11 その他の API（V1 系）
 
 | エンドポイント群 | 用途 |
