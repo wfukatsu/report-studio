@@ -59,36 +59,59 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
         JsonNode props = el.get("props");
         String src = props != null ? textOf(props, "src", "") : "";
 
-        if (src.startsWith("data:image/")) {
+        byte[] imageBytes = resolveImageBytes(src);
+        if (imageBytes != null) {
             try {
-                byte[] imageBytes = decodeDataUri(src);
                 drawImage(cs, x, y, w, h, doc, imageBytes);
                 return;
             } catch (Exception e) {
-                log.warn("Failed to render image from data URI: {}", e.getMessage());
-            }
-        } else if (src.startsWith("http://") || src.startsWith("https://")) {
-            if (!isSafeUrl(src)) {
-                log.warn("Blocked unsafe image URL (SSRF protection): {}", src);
-            } else {
-                try {
-                    // Use per-render cache to avoid duplicate fetches of the same URL
-                    Map<String, byte[]> cache = IMAGE_CACHE.get();
-                    byte[] imageBytes = cache.get(src);
-                    if (imageBytes == null) {
-                        imageBytes = fetchUrl(src);
-                        cache.put(src, imageBytes);
-                    }
-                    drawImage(cs, x, y, w, h, doc, imageBytes);
-                    return;
-                } catch (Exception e) {
-                    log.warn("Failed to fetch image from URL {}: {}", src, e.getMessage());
-                }
+                log.warn("Failed to render image: {}", e.getMessage());
             }
         }
 
         // Fallback: placeholder
         renderPlaceholder(cs, x, y, w, h);
+    }
+
+    /**
+     * Resolve an image source — Base64 data URI or SSRF-guarded HTTP/HTTPS
+     * URL — to raw bytes. URL fetches go through the per-render
+     * {@link #IMAGE_CACHE}. Returns {@code null} (never throws) when the
+     * source is unsupported, blocked, or fails to load, so callers can fall
+     * back without aborting the whole PDF. Shared with
+     * {@link ApprovalStampRowPdfRenderer} for {@code stampSrc} images.
+     */
+    static byte[] resolveImageBytes(String src) {
+        if (src == null || src.isEmpty()) return null;
+
+        if (src.startsWith("data:image/")) {
+            try {
+                return decodeDataUri(src);
+            } catch (Exception e) {
+                log.warn("Failed to decode image data URI: {}", e.getMessage());
+                return null;
+            }
+        }
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+            if (!isSafeUrl(src)) {
+                log.warn("Blocked unsafe image URL (SSRF protection): {}", src);
+                return null;
+            }
+            try {
+                // Use per-render cache to avoid duplicate fetches of the same URL
+                Map<String, byte[]> cache = IMAGE_CACHE.get();
+                byte[] imageBytes = cache.get(src);
+                if (imageBytes == null) {
+                    imageBytes = fetchUrl(src);
+                    cache.put(src, imageBytes);
+                }
+                return imageBytes;
+            } catch (Exception e) {
+                log.warn("Failed to fetch image from URL {}: {}", src, e.getMessage());
+                return null;
+            }
+        }
+        return null;
     }
 
     private static byte[] decodeDataUri(String dataUri) throws IOException {
@@ -138,8 +161,12 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
         }
     }
 
-    private static void drawImage(PDPageContentStream cs, float x, float y,
-                                  float w, float h, PDDocument doc, byte[] imageBytes) throws IOException {
+    /**
+     * Draw {@code imageBytes} aspect-fit and centred inside the box whose top-left
+     * is ({@code x}, {@code y}) in PDF coordinates ({@code y} = box top).
+     */
+    static void drawImage(PDPageContentStream cs, float x, float y,
+                          float w, float h, PDDocument doc, byte[] imageBytes) throws IOException {
         PDImageXObject image = PDImageXObject.createFromByteArray(doc, imageBytes, "embedded-image");
 
         // Draw with aspect ratio preservation

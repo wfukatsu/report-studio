@@ -54,7 +54,7 @@ class V2ElementParityMatrixTest {
         m.put("checkbox", "対応（CheckPdfRenderer）");
         m.put("eraSelect", "対応（EraSelectPdfRenderer — column/row/grid-2col、dataSource 解決）");
         m.put("hanko", "対応（HankoPdfRenderer — 円/角・二重枠・縦書き・色・binding 解決）");
-        m.put("approvalStampRow", "対応（ApprovalStampRowPdfRenderer — 役職ラベル帯・セル区切り。stampSrc 画像は未対応）");
+        m.put("approvalStampRow", "対応（ApprovalStampRowPdfRenderer — 役職ラベル帯・セル区切り・stampSrc 押印画像（80% aspect-fit・85% 不透明度））");
         m.put("revenueStamp", "対応（RevenueStampPdfRenderer — ラベル・金額・消印ガイド破線）");
         m.put("pageNumber", "対応（PageContext から解決。{{page}}/{{pages}} テンプレート・{pageNumber} bindingRef）");
         m.put("currentDate", "対応（_printDate/当日から解決。和暦・曜日・カスタムパターン）");

@@ -85,6 +85,79 @@ class PdfJapaneseStampParseBackTest {
         assertTrue(bottomY > 30f, "bottom-position label should be near y=31–35mm, got " + bottomY);
     }
 
+    // ── approvalStampRow stamp images (issue #74) ───────────────────────
+
+    /** 1×1 transparent PNG. */
+    private static final String STAMP_DATA_URI =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+            + "AAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+    private static String approvalRowWithCells(String cellsJson) {
+        return """
+            {"id":"a1","type":"approvalStampRow","name":"承認欄",
+             "position":{"x":120,"y":15},"size":{"width":45,"height":20},
+             "cells":[%s],
+             "labelPosition":"top","borderColor":"#000000","borderWidth":0.3,"cellHeight":15}"""
+                .formatted(cellsJson);
+    }
+
+    private static int countImageDraws(PdfProbe probe) {
+        String content = probe.pageContent(0);
+        int count = 0;
+        for (int i = content.indexOf(" Do"); i >= 0; i = content.indexOf(" Do", i + 1)) {
+            count++;
+        }
+        return count;
+    }
+
+    @Test
+    void approvalStampRow_rendersStampImageFromDataUri() throws IOException {
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(approvalRowWithCells("""
+            {"role":"担当","width":15,"stampSrc":"%s"},
+            {"role":"課長","width":15},
+            {"role":"部長","width":15}""".formatted(STAMP_DATA_URI)))));
+        // Stamp image → one XObject drawn via the "Do" operator
+        assertEquals(1, countImageDraws(probe), probe.pageContent(0));
+        // 85% opacity → an ExtGState is installed before the image
+        assertTrue(probe.pageContent(0).contains(" gs"), probe.pageContent(0));
+        // Labels are unaffected
+        for (String role : new String[]{"担当", "課長", "部長"}) {
+            assertTrue(probe.pageContains(0, role), "missing role: " + role);
+        }
+    }
+
+    @Test
+    void approvalStampRow_withoutStampSrc_drawsNoImage() throws IOException {
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(approvalRowWithCells("""
+            {"role":"担当","width":15},{"role":"課長","width":15},{"role":"部長","width":15}"""))));
+        assertEquals(0, countImageDraws(probe), probe.pageContent(0));
+        assertTrue(probe.pageContains(0, "担当"));
+    }
+
+    @Test
+    void approvalStampRow_invalidStampSrc_fallsBackToBlankCell() throws IOException {
+        // Malformed base64 payload must not fail the PDF — the cell just stays blank
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(approvalRowWithCells("""
+            {"role":"担当","width":15,"stampSrc":"data:image/png;base64,!!!not-base64!!!"},
+            {"role":"課長","width":15},
+            {"role":"部長","width":15}"""))));
+        assertEquals(0, countImageDraws(probe), probe.pageContent(0));
+        for (String role : new String[]{"担当", "課長", "部長"}) {
+            assertTrue(probe.pageContains(0, role), "missing role: " + role);
+        }
+    }
+
+    @Test
+    void approvalStampRow_brokenImageBytes_doNotAffectOtherCells() throws IOException {
+        // Cell 1: valid base64 that is not an image (draw fails) — cell 2: valid stamp
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(approvalRowWithCells("""
+            {"role":"担当","width":15,"stampSrc":"data:image/png;base64,aGVsbG8="},
+            {"role":"課長","width":15,"stampSrc":"%s"},
+            {"role":"部長","width":15}""".formatted(STAMP_DATA_URI)))));
+        assertEquals(1, countImageDraws(probe), probe.pageContent(0));
+        assertTrue(probe.pageContains(0, "課長"));
+    }
+
     // ── eraSelect (standalone) ──────────────────────────────────────────
 
     @Test
