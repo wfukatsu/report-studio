@@ -38,11 +38,15 @@ export const createAuthSlice: StateCreator<
     set((s) => { s.authLoading = true })
     try {
       const user = await getMe()
+      // anonymous=true means the server resolved no valid session
+      const authenticated = !user.anonymous
       set((s) => {
-        // anonymous=true means the server resolved no valid session
-        s.currentUser = user.anonymous ? null : user
+        s.currentUser = authenticated ? user : null
         s.authLoading = false
       })
+      // Fetch tenant info only after a valid session is confirmed, mirroring
+      // loginUser. Fetching before this point is a guaranteed 401.
+      if (authenticated) await get().fetchTenantInfo()
     } catch {
       // 401 = unauthenticated; anything else = network/server error
       set((s) => {
