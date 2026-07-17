@@ -9,6 +9,7 @@ jobs:
   frontend:
     name: Frontend (lint / build / test)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -27,11 +28,14 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm test -- --run
+        # basic reporter prints per-file progress so a hanging test file is
+        # identifiable in the CI log (the job-level timeout is the safety net)
+        run: npx vitest run --reporter=basic
 
   backend:
     name: Backend (JUnit + golden PDF regression)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
