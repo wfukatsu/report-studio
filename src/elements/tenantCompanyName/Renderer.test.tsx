@@ -24,7 +24,7 @@ describe('TenantCompanyNameRenderer — 差込プレースホルダ表示 (#120)
   })
 
   it('does NOT apply the placeholder style when values are resolved (parity path)', () => {
-    useReportStore.setState({ tenantInfo: { companyName: '株式会社サンプル', address: '', phone: '', representative: '', logoUrl: '', custom: {} } })
+    useReportStore.setState({ tenantInfo: { companyName: '株式会社サンプル' } })
     render(<TenantCompanyNameRenderer element={el} resolveValues={true} />)
     const node = screen.getByText('株式会社サンプル')
     expect(node).toHaveStyle({ fontStyle: 'normal' })
