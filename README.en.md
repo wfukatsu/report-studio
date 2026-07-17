@@ -147,6 +147,7 @@ npm run build:backend    # fat-JAR build
 | [Architecture](docs/architecture.md) | System structure and data flow |
 | [Design](docs/design.md) | Component design and key patterns |
 | [Detailed Design](docs/detailed-design.md) | API spec, type definitions, implementation details |
+| [Observability](docs/observability.md) | Health checks, metrics, logging |
 | [User Manual](docs/user-manual.md) | Operations and features |
 
 ## Contributing

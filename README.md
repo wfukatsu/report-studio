@@ -152,6 +152,7 @@ npm run build:backend    # fat-JAR ビルド
 | [アーキテクチャ設計](docs/architecture.md) | システム全体の構成とデータフロー |
 | [設計書](docs/design.md) | コンポーネント設計と主要パターン |
 | [詳細設計書](docs/detailed-design.md) | API仕様・型定義・実装詳細 |
+| [運用可視性](docs/observability.md) | ヘルスチェック・メトリクス・ログ |
 | [ユーザーマニュアル](docs/user-manual.md) | 操作方法と機能説明 |
 
 ## プロジェクト構造

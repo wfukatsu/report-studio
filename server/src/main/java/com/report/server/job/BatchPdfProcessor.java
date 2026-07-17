@@ -131,12 +131,14 @@ public final class BatchPdfProcessor {
                 jobRepo.save(new JobRecord(jobId, templateId, JobRecord.CANCELLED,
                     itemCount, processed.get(), failed.get(), "Cancelled by user",
                     current.createdAt(), System.currentTimeMillis(), System.currentTimeMillis()));
+                com.report.server.Metrics.GLOBAL.recordJobOutcome(JobStatus.CANCELLED);
                 return;
             }
 
             createZipArchive(jobId, outputDir);
             JobRecord finalJob = jobRepo.findById(jobId).orElseThrow();
             jobRepo.save(finalJob.withProgress(processed.get(), failed.get()).withStatus(JobRecord.COMPLETED));
+            com.report.server.Metrics.GLOBAL.recordJobOutcome(JobStatus.COMPLETED);
             log.info("Job {} completed: {}/{} success, {} failed",
                     jobId, processed.get(), itemCount, failed.get());
 
@@ -145,6 +147,7 @@ public final class BatchPdfProcessor {
             jobRepo.findById(jobId).ifPresent(j ->
                 jobRepo.save(j.withError("PDF generation failed. Check server logs for details."))
             );
+            com.report.server.Metrics.GLOBAL.recordJobOutcome(JobStatus.FAILED);
         } finally {
             cancelFlags.remove(jobId);
             ImagePdfRenderer.clearImageCache();

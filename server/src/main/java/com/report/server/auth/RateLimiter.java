@@ -72,7 +72,12 @@ public final class RateLimiter {
             }
             return new Window(existing.count() + 1, existing.windowStart());
         });
-        return current.count() <= maxAttempts;
+        boolean allowed = current.count() <= maxAttempts;
+        if (!allowed) {
+            // Observability: count rejected requests across all limiters (login, export, row writes, …).
+            com.report.server.Metrics.GLOBAL.recordRateLimitTrip();
+        }
+        return allowed;
     }
 
     /**

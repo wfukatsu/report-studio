@@ -163,6 +163,10 @@ public final class ApiRoutes {
         app.put("/api/v1/admin/server-config",        w.adminServerCtrl::putConfig);
         app.post("/api/v1/admin/server-config/test",  w.adminServerCtrl::testConfig);
         app.post("/api/v1/admin/server/restart",      w.adminServerCtrl::restart);
+        // Observability (admin only) — detailed health + process metrics.
+        // Public liveness stays on /api/v1/health and /api/v2/health.
+        app.get("/api/v1/admin/health",  w.healthCtrl::detailed);
+        app.get("/api/v1/admin/metrics", w.healthCtrl::metrics);
     }
 
     private static void registerTemplateRoutes(Javalin app, AppWiring w) {
