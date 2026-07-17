@@ -28,7 +28,6 @@ import {
   createHankoElement,
   createApprovalStampRowElement,
   createRevenueStampElement,
-  createRepeatingBandElement,
   createRepeatingBandWithDefaults,
   createRepeatingListElement,
 } from '@/lib/elementFactories'

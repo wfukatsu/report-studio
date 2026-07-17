@@ -41,26 +41,35 @@ class AdminUserControllerTest {
     }
 
     // ── admin required ────────────────────────────────────────────────────────
+    // Admin role enforcement is no longer inside the controller: it lives in the
+    // ApiRoutes before-filter for /api/v1/admin/* (ApiRoutes.requireAdminRole).
+    // These tests exercise that filter directly.
 
     @Test
-    void list_returns403ForNonAdmin() throws Exception {
+    void adminFilter_rejectsNonAdminPrincipal() {
         when(ctx.attribute("principal")).thenReturn(userPrincipal);
-        controller.list(ctx);
-        verify(ctx).status(HttpStatus.FORBIDDEN);
+        assertThrows(io.javalin.http.ForbiddenResponse.class,
+            () -> ApiRoutes.requireAdminRole(ctx));
     }
 
     @Test
-    void create_returns403ForNonAdmin() throws Exception {
-        when(ctx.attribute("principal")).thenReturn(userPrincipal);
-        controller.create(ctx);
-        verify(ctx).status(HttpStatus.FORBIDDEN);
-    }
-
-    @Test
-    void delete_returns403ForNonAdmin() throws Exception {
+    void adminFilter_rejectsMissingPrincipal() {
         when(ctx.attribute("principal")).thenReturn(null);
-        controller.delete(ctx);
-        verify(ctx).status(HttpStatus.FORBIDDEN);
+        assertThrows(io.javalin.http.ForbiddenResponse.class,
+            () -> ApiRoutes.requireAdminRole(ctx));
+    }
+
+    @Test
+    void adminFilter_rejectsAnonymousPrincipal() {
+        when(ctx.attribute("principal")).thenReturn(Principal.ANONYMOUS);
+        assertThrows(io.javalin.http.ForbiddenResponse.class,
+            () -> ApiRoutes.requireAdminRole(ctx));
+    }
+
+    @Test
+    void adminFilter_allowsAdminPrincipal() {
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
+        assertDoesNotThrow(() -> ApiRoutes.requireAdminRole(ctx));
     }
 
     // ── list ──────────────────────────────────────────────────────────────────
@@ -112,7 +121,7 @@ class AdminUserControllerTest {
         when(userRepo.findById("admin")).thenReturn(
             Optional.of(new UserRecord("admin", "管理者", "hash", Set.of("admin"))));
         when(ctx.bodyAsClass(Map.class)).thenReturn(Map.of(
-            "userId", "admin", "password", "pass"
+            "userId", "admin", "password", "password123"
         ));
 
         controller.create(ctx);

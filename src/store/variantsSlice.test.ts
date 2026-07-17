@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useReportStore } from './index'
 import type { OutputVariant, MaskingRule } from '@/types'
+import type { MaskingRuleInput } from './types'
 
 // ---------------------------------------------------------------------------
 // Helper to get typed variants from store
@@ -9,6 +10,7 @@ import type { OutputVariant, MaskingRule } from '@/types'
 function getVariants(): OutputVariant[] {
   return useReportStore.getState().definition.outputVariants as OutputVariant[]
 }
+
 
 // ---------------------------------------------------------------------------
 // Reset store between tests
@@ -134,7 +136,7 @@ describe('addMaskingRule', () => {
   it('adds a fullReplace masking rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const rules = getVariants()[0].maskingRules
     expect(rules).toHaveLength(1)
@@ -145,7 +147,7 @@ describe('addMaskingRule', () => {
   it('adds a partial masking rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-2', type: 'partial', keepFirst: 2, keepLast: 4 }
+    const rule: MaskingRuleInput = { targetElementId: 'el-2', type: 'partial', keepFirst: 2, keepLast: 4 }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const rules = getVariants()[0].maskingRules
     expect(rules[0].type).toBe('partial')
@@ -158,7 +160,7 @@ describe('addMaskingRule', () => {
   it('assigns a unique id to the new rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'X' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'X' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     useReportStore.getState().addMaskingRule(v.id, rule)
     const ids = getVariants()[0].maskingRules.map((r) => r.id)
@@ -174,7 +176,7 @@ describe('removeMaskingRule', () => {
   it('removes the masking rule with the given id', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const ruleId = getVariants()[0].maskingRules[0].id
     useReportStore.getState().removeMaskingRule(v.id, ruleId)

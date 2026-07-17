@@ -190,7 +190,7 @@ export function useBindingAnalysis(): BindingAnalysis {
                   // the formTable element (cell IDs are not addressable via selectElement)
                   const cellBase: Omit<ElementBinding, 'fieldKey'> = {
                     elementId: el.id,
-                    elementLabel: `${labelFor(el)} > ${cell.label?.trim() || cell.id}`,
+                    elementLabel: `${labelFor(el)} > ${cell.text?.trim() || cell.id}`,
                     pageId: page.id,
                   }
                   const fk = cell.fieldKey?.trim() ?? ''

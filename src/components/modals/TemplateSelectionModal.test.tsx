@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { TemplateSelectionModal } from './TemplateSelectionModal'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { createBlankDefinition } from '@/lib/templateUtils'
 import type { ReportDefinition } from '@/types'
 
 // Mock the API module
@@ -201,11 +202,7 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
   })
 
   it('loads a backend template when clicked', async () => {
-    const mockDefinition: ReportDefinition = {
-      pages: [{ id: 'p1', sections: [], settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 } }],
-      settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 },
-      outputVariants: [],
-    }
+    const mockDefinition: ReportDefinition = createBlankDefinition()
     vi.mocked(listReports).mockResolvedValue({
       items: [{ id: 'tmpl-1', name: 'バックエンドテンプレート1', updatedAt: '2024-01-01' }],
       total: 1,

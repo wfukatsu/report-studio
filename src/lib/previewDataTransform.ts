@@ -32,16 +32,16 @@ type GroupValue = FlatRow | Array<FlatRow>
  * Groups whose `groupId` is not found in the schema are skipped with a console.warn.
  * Groups whose `dataKey` is empty are skipped with a console.warn.
  *
- * The output type is `Record<string, unknown>` to accommodate both flat objects
- * (master) and arrays (detail). The canvas already handles this via
- * `mergedData[element.dataSource]` which is cast to the appropriate type per element.
+ * The output value type is `GroupValue` (flat object for master, row array for
+ * detail) — structurally the store's `LivePreviewData`, so callers can pass the
+ * result to `setLivePreviewData` without casting.
  */
 export function buildFlatDataFromResolved(
   resolved: Record<string, GroupValue>,
   schema: SchemaDefinition | undefined,
-): Record<string, unknown> {
+): Record<string, GroupValue> {
   if (!schema) return {}
-  const result: Record<string, unknown> = {}
+  const result: Record<string, GroupValue> = {}
   for (const [groupId, values] of Object.entries(resolved)) {
     const group = schema.groups.find((g) => g.id === groupId)
     if (!group) {

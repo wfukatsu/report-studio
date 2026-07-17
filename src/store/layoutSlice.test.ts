@@ -383,7 +383,7 @@ describe('setZOrder', () => {
 describe('addLayerGroup / removeLayerGroup / updateLayerGroup', () => {
   it('グループを追加・削除できる', () => {
     const pageId = activePage().id
-    store().addLayerGroup(pageId, { id: 'g1', name: 'G1', elementIds: [], visible: true, locked: false })
+    store().addLayerGroup(pageId, { id: 'g1', name: 'G1', elementIds: [], collapsed: false, visible: true, locked: false })
     expect(activePage().groups).toHaveLength(1)
     store().removeLayerGroup(pageId, 'g1')
     expect(activePage().groups).toHaveLength(0)
@@ -391,7 +391,7 @@ describe('addLayerGroup / removeLayerGroup / updateLayerGroup', () => {
 
   it('グループのプロパティを更新できる', () => {
     const pageId = activePage().id
-    store().addLayerGroup(pageId, { id: 'g1', name: 'G1', elementIds: [], visible: true, locked: false })
+    store().addLayerGroup(pageId, { id: 'g1', name: 'G1', elementIds: [], collapsed: false, visible: true, locked: false })
     store().updateLayerGroup(pageId, 'g1', { name: '更新グループ' })
     expect(activePage().groups![0].name).toBe('更新グループ')
   })

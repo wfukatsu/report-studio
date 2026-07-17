@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { parse } from '../parser'
-import { ParseError } from '../errors'
 
 describe('parser', () => {
   it('parses a number literal', () => {

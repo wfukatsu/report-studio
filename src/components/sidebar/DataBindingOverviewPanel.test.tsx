@@ -157,8 +157,8 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
   it('resolveBindings 呼び出し時に detail グループへ master のキー値が自動コピーされる', async () => {
     const { detailGroupId, masterGroupId } = setupLinkedGroups()
     const mockResolveBindings = vi.spyOn(reportApi, 'resolveBindings').mockResolvedValue({
-      resolved: [],
-      errors: [],
+      resolved: {},
+      errors: {},
     })
 
     render(<DataBindingOverviewPanel />)

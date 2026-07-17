@@ -625,6 +625,12 @@ export interface FormTableCell {
   furiganaEnabled?: boolean
   /** フリガナのデータソース */
   furiganaDataSource?: string
+  /** セル結合: マスターセルの列スパン（未定義 = 1） */
+  colspan?: number
+  /** セル結合: マスターセルの行スパン（未定義 = 1） */
+  rowspan?: number
+  /** セル結合: このセルを吸収したマスターセルの id（スレーブセル側に設定、描画時は非表示） */
+  mergedInto?: string
 }
 
 export type FormTableRowRole = 'header' | 'body' | 'footer'

@@ -1,6 +1,9 @@
 import type {
   FormTableElement,
   FormTableCellType,
+  FormTableColumn,
+  FormTableCell,
+  FormTableRow,
 } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 import {

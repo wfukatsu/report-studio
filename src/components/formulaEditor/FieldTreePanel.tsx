@@ -5,7 +5,7 @@
  * Functions tab: FunctionList component with search and category filter.
  */
 
-import { useCallback, useId, useState, useRef } from 'react'
+import { useCallback, useId, useState } from 'react'
 import type { SchemaGroup, SchemaField } from '@/types'
 import { FunctionList } from './FunctionList'
 

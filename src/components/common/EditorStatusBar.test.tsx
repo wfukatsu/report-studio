@@ -36,6 +36,9 @@ describe('EditorStatusBar', () => {
       type: 'text' as const,
       position: { x: 10.5, y: 20.3 },
       size: { width: 80.0, height: 15.5 },
+      zIndex: 0,
+      locked: false,
+      visible: true,
       content: 'Test',
       style: {},
     }
@@ -58,6 +61,9 @@ describe('EditorStatusBar', () => {
       type: 'text' as const,
       position: { x: 5.0, y: 5.0 },
       size: { width: 40.0, height: 10.0 },
+      zIndex: 0,
+      locked: false,
+      visible: true,
       content: 'Test',
       style: {},
     }
@@ -77,6 +83,9 @@ describe('EditorStatusBar', () => {
       type: 'text' as const,
       position: { x: 10.0, y: 10.0 },
       size: { width: 50.0, height: 10.0 },
+      zIndex: 0,
+      locked: false,
+      visible: true,
       content: 'A',
       style: {},
     }
@@ -85,6 +94,9 @@ describe('EditorStatusBar', () => {
       type: 'text' as const,
       position: { x: 20.0, y: 20.0 },
       size: { width: 50.0, height: 10.0 },
+      zIndex: 0,
+      locked: false,
+      visible: true,
       content: 'B',
       style: {},
     }

@@ -22,14 +22,17 @@ class V2TenantControllerTest {
     private JsonBlobRepository tenantRepo;
     private V2TenantController controller;
     private Context ctx;
-    private Principal authenticatedPrincipal;
+    /** PUT /api/v2/tenant requires the admin role, so the happy-path principal is an admin. */
+    private Principal adminPrincipal;
+    private Principal nonAdminPrincipal;
 
     @BeforeEach
     void setUp() {
         tenantRepo = mock(JsonBlobRepository.class);
         controller = new V2TenantController(tenantRepo);
         ctx = mock(Context.class);
-        authenticatedPrincipal = new Principal("user1", "testuser", java.util.Set.of());
+        adminPrincipal = new Principal("admin1", "管理者", java.util.Set.of("admin", "user"));
+        nonAdminPrincipal = new Principal("user1", "testuser", java.util.Set.of("user"));
     }
 
     // ── GET /api/v2/tenant ────────────────────────────────────────────────────
@@ -67,7 +70,7 @@ class V2TenantControllerTest {
 
     @Test
     void put_savesTenantInfoAndReturnsIt() throws Exception {
-        when(ctx.attribute("principal")).thenReturn(authenticatedPrincipal);
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         String body = """
             {"companyName":"テスト株式会社","address":"東京都"}
             """.strip();
@@ -83,31 +86,40 @@ class V2TenantControllerTest {
         assertEquals("テスト株式会社", result.path("companyName").asText());
     }
 
+    // put() delegates the admin-role predicate to ApiRoutes.requireAdminRole,
+    // which throws ForbiddenResponse (403). Unauthenticated requests are
+    // rejected with 401 by the auth before-filter, not by this controller.
+
     @Test
-    void put_returns401WhenUnauthenticated() throws Exception {
+    void put_rejectsWhenUnauthenticated() throws Exception {
         when(ctx.attribute("principal")).thenReturn(null);
         when(ctx.body()).thenReturn("{}");
 
-        controller.put(ctx);
-
-        verify(ctx).status(HttpStatus.UNAUTHORIZED);
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
         verify(tenantRepo, never()).put(any(), any());
     }
 
     @Test
-    void put_returns401ForAnonymousPrincipal() throws Exception {
+    void put_rejectsAnonymousPrincipal() throws Exception {
         when(ctx.attribute("principal")).thenReturn(Principal.ANONYMOUS);
         when(ctx.body()).thenReturn("{}");
 
-        controller.put(ctx);
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
+        verify(tenantRepo, never()).put(any(), any());
+    }
 
-        verify(ctx).status(HttpStatus.UNAUTHORIZED);
+    @Test
+    void put_returns403ForNonAdmin() throws Exception {
+        when(ctx.attribute("principal")).thenReturn(nonAdminPrincipal);
+        when(ctx.body()).thenReturn("{}");
+
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
         verify(tenantRepo, never()).put(any(), any());
     }
 
     @Test
     void put_returns400ForEmptyBody() throws Exception {
-        when(ctx.attribute("principal")).thenReturn(authenticatedPrincipal);
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         when(ctx.body()).thenReturn("");
 
         controller.put(ctx);
@@ -118,7 +130,7 @@ class V2TenantControllerTest {
 
     @Test
     void put_returns400ForInvalidJson() throws Exception {
-        when(ctx.attribute("principal")).thenReturn(authenticatedPrincipal);
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         when(ctx.body()).thenReturn("not-valid-json");
 
         controller.put(ctx);
@@ -129,7 +141,7 @@ class V2TenantControllerTest {
 
     @Test
     void put_returns400ForJsonArray() throws Exception {
-        when(ctx.attribute("principal")).thenReturn(authenticatedPrincipal);
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         when(ctx.body()).thenReturn("[1,2,3]");
 
         controller.put(ctx);
@@ -141,7 +153,7 @@ class V2TenantControllerTest {
     @Test
     void put_savedDataIsReturnedBySubsequentGet() throws Exception {
         // PUT
-        when(ctx.attribute("principal")).thenReturn(authenticatedPrincipal);
+        when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         String body = """
             {"companyName":"株式会社テスト"}
             """.strip();

@@ -68,6 +68,7 @@ const pasteSanitizer = EditorView.inputHandler.of((view, from, to, text) => {
   // NFKC normalize + strip control chars and zero-width chars
   const sanitized = text
     .normalize('NFKC')
+    // eslint-disable-next-line no-control-regex -- intentionally strips control chars from pasted text
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/[\u200B-\u200F\u2028-\u202F\uFEFF]/g, '')
   if (sanitized === text) return false
@@ -163,7 +164,7 @@ export function useFormulaEditor(options: UseFormulaEditorOptions): UseFormulaEd
 
     // Dynamic extensions slot — reconfigured when props change
     dynamicCompartment.current.of([]),
-  ], []) // eslint-disable-line react-hooks/exhaustive-deps — intentionally stable
+  ], []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally stable
 
   // ── Container ref callback — creates/destroys EditorView ────────────
 

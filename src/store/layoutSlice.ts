@@ -4,6 +4,7 @@
  */
 
 import type { StateCreator } from 'zustand'
+import { castDraft } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
 import type {
   ReportDefinition,
@@ -204,9 +205,9 @@ export const createLayoutSlice: StateCreator<
       migratedDefinition.validationRules,
     )
     set((s) => {
-      s.definition = migratedDefinition
+      s.definition = castDraft(migratedDefinition)
       s.selection = { selectedElementIds: [], activePageId: migratedPages[0]?.id ?? null }
-      s.history = [initial]
+      s.history = [castDraft(initial)]
       s.historyIndex = 0
       s.testData = mergePreviewData(migratedDefinition.dataSources)
     })
@@ -227,9 +228,9 @@ export const createLayoutSlice: StateCreator<
       definition.validationRules,
     )
     set((s) => {
-      s.definition = definition
+      s.definition = castDraft(definition)
       s.selection = { selectedElementIds: [], activePageId: definition.pages[0].id }
-      s.history = [initial]
+      s.history = [castDraft(initial)]
       s.historyIndex = 0
     })
     get().invalidateComputed()
@@ -269,7 +270,7 @@ export const createLayoutSlice: StateCreator<
       }
     }
     fitBodyToPage(page)
-    s.definition.pages.push(page)
+    s.definition.pages.push(castDraft(page))
     s.selection.activePageId = page.id
   }),
 
@@ -604,7 +605,7 @@ export const createLayoutSlice: StateCreator<
       const page = s.definition.pages.find((p) => p.id === pageId)
       if (!page) return
       if (!page.groups) page.groups = []
-      page.groups.push(group)
+      page.groups.push(castDraft(group))
     })
     get().pushHistory()
   },
@@ -651,7 +652,7 @@ export const createLayoutSlice: StateCreator<
       pg.groups = pg.groups
         .map((g) => ({ ...g, elementIds: g.elementIds.filter((id) => !selectedSet.has(id)) }))
         .filter((g) => g.elementIds.length > 0)
-      pg.groups.push(group)
+      pg.groups.push(castDraft(group))
     })
     get().pushHistory()
   },

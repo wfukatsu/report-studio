@@ -250,7 +250,6 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
   const pages = useReportStore((s) => s.definition.pages)
   const setElementSchemaBinding = useReportStore((s) => s.setElementSchemaBinding)
   const setActivePage = useReportStore((s) => s.setActivePage)
-  const selectElement = useReportStore((s) => s.selectElement)
 
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [dragState, setDragState] = useState<DragState | null>(null)
@@ -314,11 +313,6 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
   const handleDisconnect = useCallback((pageId: string, elementId: string) => {
     setElementSchemaBinding(pageId, elementId, undefined)
   }, [setElementSchemaBinding])
-
-  const handleElementNavigate = useCallback((pageId: string, elementId: string) => {
-    setActivePage(pageId)
-    selectElement(elementId)
-  }, [setActivePage, selectElement])
 
   // ---------------------------------------------------------------------------
   // Drag-connect handlers (Phase 4)

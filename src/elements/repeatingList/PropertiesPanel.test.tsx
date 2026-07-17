@@ -16,6 +16,7 @@ function makeEl(overrides?: Partial<RepeatingListElement>): RepeatingListElement
     gap: 2,
     fields: [],
     maxItems: 0,
+    pageBreak: 'none',
     ...overrides,
   }
 }

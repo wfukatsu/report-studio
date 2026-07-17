@@ -9,7 +9,6 @@
 import type { StateCreator } from 'zustand'
 import type { Me } from '@/api/reportApi'
 import { getMe, login, logout } from '@/api/reportApi'
-import { isApiError } from '@/api/client'
 import type { StoreState } from './types'
 
 export type AuthSlice = Pick<StoreState,
@@ -44,7 +43,7 @@ export const createAuthSlice: StateCreator<
         s.currentUser = user.anonymous ? null : user
         s.authLoading = false
       })
-    } catch (err) {
+    } catch {
       // 401 = unauthenticated; anything else = network/server error
       set((s) => {
         s.currentUser = null

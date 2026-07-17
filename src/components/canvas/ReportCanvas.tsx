@@ -639,23 +639,26 @@ export function ReportCanvas({
     ? flattenPageElements(page).find((e) => e.id === contextMenu.elementId) ?? null
     : null
 
+  // Ruler ticks (every 10mm) — memoized so they don't rebuild on every drag frame.
+  // Runs before the `!page` early return so hook order stays stable across renders.
+  const pageWidth = page?.width ?? 0
+  const pageHeight = page?.height ?? 0
+  const { hTicks, vTicks, gridLinePxH, gridLinePxV } = useMemo(() => {
+    const hTicks: number[] = []
+    for (let mm = 0; mm <= pageWidth; mm += 10) hTicks.push(mm)
+    const vTicks: number[] = []
+    for (let mm = 0; mm <= pageHeight; mm += 10) vTicks.push(mm)
+    const gridLinePxH: number[] = []
+    for (let mm = 0; mm <= pageWidth; mm += gridSize) gridLinePxH.push(mmToPx(mm))
+    const gridLinePxV: number[] = []
+    for (let mm = 0; mm <= pageHeight; mm += gridSize) gridLinePxV.push(mmToPx(mm))
+    return { hTicks, vTicks, gridLinePxH, gridLinePxV }
+  }, [pageWidth, pageHeight, gridSize])
+
   if (!page) return null
 
   const canvasWidthPx = mmToPx(page.width)
   const canvasHeightPx = mmToPx(page.height)
-
-  // Ruler ticks (every 10mm) — memoized so they don't rebuild on every drag frame
-  const { hTicks, vTicks, gridLinePxH, gridLinePxV } = useMemo(() => {
-    const hTicks: number[] = []
-    for (let mm = 0; mm <= page.width; mm += 10) hTicks.push(mm)
-    const vTicks: number[] = []
-    for (let mm = 0; mm <= page.height; mm += 10) vTicks.push(mm)
-    const gridLinePxH: number[] = []
-    for (let mm = 0; mm <= page.width; mm += gridSize) gridLinePxH.push(mmToPx(mm))
-    const gridLinePxV: number[] = []
-    for (let mm = 0; mm <= page.height; mm += gridSize) gridLinePxV.push(mmToPx(mm))
-    return { hTicks, vTicks, gridLinePxH, gridLinePxV }
-  }, [page.width, page.height, gridSize])
 
   const contextMenuEl = (
     <ContextMenu

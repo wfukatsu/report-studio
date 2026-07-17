@@ -7,6 +7,7 @@ function makeGroup(overrides: Partial<LayerGroup> = {}): LayerGroup {
     id: 'g1',
     name: 'Group 1',
     elementIds: [],
+    collapsed: false,
     visible: true,
     locked: false,
     ...overrides,

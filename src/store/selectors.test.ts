@@ -21,8 +21,11 @@ describe('flattenPageElements', () => {
   it('returns empty array when page has no sections', () => {
     const page: PageDef = {
       id: 'p1',
+      name: 'Page 1',
+      width: 210,
+      height: 297,
+      background: '#ffffff',
       sections: [],
-      settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 },
     }
     expect(flattenPageElements(page)).toEqual([])
   })
@@ -32,11 +35,14 @@ describe('flattenPageElements', () => {
     const el2 = createShapeElement({ id: 'el-2' })
     const page: PageDef = {
       id: 'p1',
+      name: 'Page 1',
+      width: 210,
+      height: 297,
+      background: '#ffffff',
       sections: [
-        { id: 's1', type: 'body', elements: [el1] },
-        { id: 's2', type: 'body', elements: [el2] },
+        { id: 's1', sectionType: 'body', height: 100, elements: [el1] },
+        { id: 's2', sectionType: 'body', height: 100, elements: [el2] },
       ],
-      settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 },
     }
     const result = flattenPageElements(page)
     expect(result).toHaveLength(2)
@@ -48,8 +54,11 @@ describe('flattenPageElements', () => {
     const el = createTextElement({ id: 'el-1' })
     const page: PageDef = {
       id: 'p1',
-      sections: [{ id: 's1', type: 'body', elements: [el] }],
-      settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 },
+      name: 'Page 1',
+      width: 210,
+      height: 297,
+      background: '#ffffff',
+      sections: [{ id: 's1', sectionType: 'body', height: 100, elements: [el] }],
     }
     const result = flattenPageElements(page)
     expect(result).toHaveLength(1)
@@ -59,8 +68,11 @@ describe('flattenPageElements', () => {
   it('returns empty array for page with empty sections', () => {
     const page: PageDef = {
       id: 'p1',
-      sections: [{ id: 's1', type: 'body', elements: [] }],
-      settings: { paperSize: 'A4', orientation: 'portrait', marginTop: 10, marginBottom: 10, marginLeft: 10, marginRight: 10 },
+      name: 'Page 1',
+      width: 210,
+      height: 297,
+      background: '#ffffff',
+      sections: [{ id: 's1', sectionType: 'body', height: 100, elements: [] }],
     }
     expect(flattenPageElements(page)).toEqual([])
   })
@@ -91,7 +103,7 @@ describe('selectActivePageId', () => {
     const fakeState = {
       selection: { activePageId: null, selectedElementIds: [] },
       definition: { pages: [] },
-    } as Parameters<typeof selectActivePageId>[0]
+    } as unknown as Parameters<typeof selectActivePageId>[0]
     expect(selectActivePageId(fakeState)).toBeNull()
   })
 })
@@ -122,7 +134,7 @@ describe('selectActivePage', () => {
     const fakeState = {
       selection: { activePageId: undefined, selectedElementIds: [] },
       definition: { pages: [] },
-    } as Parameters<typeof selectActivePage>[0]
+    } as unknown as Parameters<typeof selectActivePage>[0]
     expect(selectActivePage(fakeState)).toBeNull()
   })
 })
@@ -167,7 +179,7 @@ describe('selectSelectedElements', () => {
     const fakeState = {
       selection: { activePageId: null, selectedElementIds: ['el-1'] },
       definition: { pages: [] },
-    } as Parameters<typeof selectSelectedElements>[0]
+    } as unknown as Parameters<typeof selectSelectedElements>[0]
     expect(selectSelectedElements(fakeState)).toEqual([])
   })
 

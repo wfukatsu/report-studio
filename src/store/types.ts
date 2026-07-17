@@ -24,6 +24,16 @@ import type {
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
 import type { Me, UserSummary, UserRole, ServerConfig, SchemaListItem } from '@/api/reportApi'
 
+/**
+ * Omit that distributes over union members. Plain `Omit<MaskingRule, 'id'>`
+ * collapses the union to its common keys, dropping the per-variant fields
+ * (replaceValue / keepFirst / keepLast) from type checking.
+ */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never
+
+/** addMaskingRule input — a MaskingRule without its id, per union member. */
+export type MaskingRuleInput = DistributiveOmit<MaskingRule, 'id'>
+
 // ---------------------------------------------------------------------------
 // Alignment / Z-order enums (moved from reportStore for shared use)
 // ---------------------------------------------------------------------------
@@ -268,7 +278,7 @@ export interface StoreState {
   removeVariant: (variantId: string) => void
   updateVariant: (variantId: string, patch: Partial<Pick<OutputVariant, 'name' | 'targetAudience'>>) => void
   toggleElementHidden: (variantId: string, elementId: string) => void
-  addMaskingRule: (variantId: string, rule: Omit<MaskingRule, 'id'>) => void
+  addMaskingRule: (variantId: string, rule: MaskingRuleInput) => void
   removeMaskingRule: (variantId: string, ruleId: string) => void
   replaceMaskingRule: (variantId: string, rule: MaskingRule) => void
   cleanupVariantRefsForElement: (elementId: string) => void
@@ -276,7 +286,7 @@ export interface StoreState {
   // ── Schema slice actions ──────────────────────────────────────────────────
   addSchemaGroup: (role: 'master' | 'detail') => void
   removeSchemaGroup: (groupId: string) => void
-  updateSchemaGroup: (groupId: string, patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey'>>) => void
+  updateSchemaGroup: (groupId: string, patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>) => void
   addSchemaField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
   removeSchemaField: (groupId: string, fieldId: string) => void
   updateSchemaField: (groupId: string, fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void

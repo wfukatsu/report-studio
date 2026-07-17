@@ -66,22 +66,19 @@ function evaluateSingleCondition(
   rowIndex?: number,
 ): boolean {
   const raw = resolveFieldValue(data, condition.fieldPath, rowIndex)
-
-  // Nullary operators — no value needed
-  if (condition.operator === 'empty') return raw == null || raw === ''
-  if (condition.operator === 'not_empty') return raw != null && raw !== ''
-
-  // Valued operators
-  const { value } = condition
   const str = String(raw ?? '')
 
   switch (condition.operator) {
-    case 'equals':       return String(value) === str
-    case 'not_equals':   return String(value) !== str
-    case 'contains':     return str.includes(String(value))
-    case 'not_contains': return !str.includes(String(value))
-    case 'greater_than': return Number(raw) > Number(value)
-    case 'less_than':    return Number(raw) < Number(value)
+    // Nullary operators — no value needed
+    case 'empty':        return raw == null || raw === ''
+    case 'not_empty':    return raw != null && raw !== ''
+    // Valued operators
+    case 'equals':       return String(condition.value) === str
+    case 'not_equals':   return String(condition.value) !== str
+    case 'contains':     return str.includes(String(condition.value))
+    case 'not_contains': return !str.includes(String(condition.value))
+    case 'greater_than': return Number(raw) > Number(condition.value)
+    case 'less_than':    return Number(raw) < Number(condition.value)
     default: {
       // Exhaustiveness check — catches unhandled operators at compile time
       const _exhaustive: never = condition

@@ -24,7 +24,7 @@ function makeShapeElement(id: string): ReportElement {
   return {
     id,
     type: 'shape' as const,
-    shapeType: 'rect',
+    shape: 'rectangle' as const,
     position: { x: 0, y: 0 },
     size: { width: 20, height: 20 },
     zIndex: 0,

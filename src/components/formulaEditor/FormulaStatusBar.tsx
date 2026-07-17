@@ -5,7 +5,6 @@
  * instead of setInterval polling to read validation state from CodeMirror.
  */
 
-import { useState } from 'react'
 import type { FormulaValidationState } from '@/lib/formula/editor/formulaLinter'
 import type { SchemaFieldType } from '@/types'
 

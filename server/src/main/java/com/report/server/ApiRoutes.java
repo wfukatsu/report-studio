@@ -116,12 +116,30 @@ public final class ApiRoutes {
 
         // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
         // Runs after auth filter so principal is already resolved
-        app.before("/api/v1/admin/*", ctx -> {
-            com.report.server.auth.Principal principal = ctx.attribute("principal");
-            if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
-                throw new io.javalin.http.ForbiddenResponse("Admin role required");
-            }
-        });
+        registerAdminRoleFilter(app);
+    }
+
+    /**
+     * Registers the admin-role before-filter on /api/v1/admin/*.
+     * Package-private so AdminRoleFilterWiringTest can exercise the real
+     * registration (path pattern + handler) over HTTP — the controllers
+     * behind these routes perform no role check of their own.
+     */
+    static void registerAdminRoleFilter(Javalin app) {
+        app.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
+    }
+
+    /**
+     * Rejects the request with 403 unless the resolved principal has the
+     * "admin" role. Single source of truth for the admin-role predicate —
+     * used by the /api/v1/admin/* before-filter and by controllers that
+     * guard individual admin-only endpoints (e.g. V2TenantController.put).
+     */
+    static void requireAdminRole(io.javalin.http.Context ctx) {
+        com.report.server.auth.Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous() || !principal.roles().contains("admin")) {
+            throw new io.javalin.http.ForbiddenResponse("Admin role required");
+        }
     }
 
     // ── Route groups ───────────────────────────────────────────────────────────

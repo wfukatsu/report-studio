@@ -21,7 +21,9 @@ import java.util.stream.Collectors;
  *   <li>DELETE /api/v1/admin/users/{id}    — delete user (cannot delete self)</li>
  * </ul>
  *
- * All endpoints require the "admin" role; returns 403 otherwise.
+ * All endpoints require the "admin" role. The role check is NOT performed
+ * here — it is enforced by the /api/v1/admin/* before-filter registered in
+ * ApiRoutes.registerAdminRoleFilter (pinned by AdminRoleFilterWiringTest).
  */
 public final class AdminUserController {
 

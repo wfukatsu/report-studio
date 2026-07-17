@@ -18,7 +18,6 @@ describe('usePreviewData', () => {
     const ds: DataSourceDefinition = {
       id: 'ds1',
       name: 'Test',
-      type: 'static',
       fields: { name: '田中', age: 30 },
     }
     useReportStore.getState().setDataSource(ds)

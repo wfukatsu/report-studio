@@ -25,7 +25,6 @@ import {
   calltips,
   createFormulaCompletionSource,
   createFormulaLinter,
-  formulaValidationField,
   setValidation,
 } from '@/lib/formula/editor'
 import type { FormulaValidationState } from '@/lib/formula/editor'

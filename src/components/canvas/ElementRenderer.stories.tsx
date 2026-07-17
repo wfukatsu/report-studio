@@ -148,7 +148,9 @@ export const Table: Story = {
         ['Item A', '¥1,000', '2026-01-01'],
         ['Item B', '¥2,500', '2026-01-02'],
       ],
-    } as ReportElement,
+      // Legacy 'table' type (removed from the union) — this story exercises the
+      // deprecation-warning path in ElementRenderer
+    } as unknown as ReportElement,
   },
 }
 
