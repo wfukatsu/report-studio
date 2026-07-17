@@ -116,7 +116,13 @@ export function ResponsesPanel() {
   const fetchResponses = useCallback(async (force = false) => {
     if (!currentTemplateId || !backendConnected) return
     const now = Date.now()
-    if (!force && now - responsesCacheTime < CACHE_TTL_MS && responses.length > 0) return
+    // Cache is valid whenever a fetch has completed within the TTL —
+    // including an EMPTY result (cacheTime === 0 means "never fetched" /
+    // explicitly invalidated). Requiring responses.length > 0 here caused an
+    // infinite refetch loop for templates with zero responses: every fetch
+    // restamped cacheTime, recreating this callback and re-firing the
+    // fetch-on-mount effect.
+    if (!force && responsesCacheTime > 0 && now - responsesCacheTime < CACHE_TTL_MS) return
 
     setResponsesLoading(true)
     setLoadError(null)
@@ -130,7 +136,7 @@ export function ResponsesPanel() {
     } finally {
       if (mountedRef.current) setResponsesLoading(false)
     }
-  }, [currentTemplateId, backendConnected, responsesCacheTime, responses.length,
+  }, [currentTemplateId, backendConnected, responsesCacheTime,
       setResponsesLoading, setResponses])
 
   // Auto-fetch on mount and when templateId changes

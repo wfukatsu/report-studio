@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (lint / build / test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Test
+        # vitest 3 (pool rewrite) — vitest 2.1.9 workers deadlocked
+        # intermittently on this runner regardless of pool (forks and threads),
+        # always right before ResponsesPanel.test.tsx started. basic reporter
+        # keeps per-file progress visible; the step timeout is the safety net.
+        timeout-minutes: 15
+        run: npx vitest run --reporter=basic
+
+  backend:
+    name: Backend (JUnit + golden PDF regression)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare ScalarDB config
+        run: cp server/scalardb.properties.example server/scalardb.properties
+
+      - name: Test
+        working-directory: server
+        run: ./gradlew test
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: server/build/reports/tests/test/
+          retention-days: 7

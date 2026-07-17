@@ -229,11 +229,15 @@ describe('DbConnectionTab — non-destructive namespace browsing', () => {
     expect(group.fields[0].dbColumnName).toBe('full_name')
 
     // But the table select should now show the audit namespace's tables.
-    const tableSelect = screen.getByLabelText(/テーブル/)
-    // Audit has one table "events" — which should now be selectable.
-    expect(
-      Array.from((tableSelect as HTMLSelectElement).options).map((o) => o.value),
-    ).toContain('events')
+    // The table list loads asynchronously after the namespace change — wait
+    // for it instead of asserting synchronously (flaky on slow CI runners).
+    await waitFor(() => {
+      const tableSelect = screen.getByLabelText(/テーブル/)
+      // Audit has one table "events" — which should now be selectable.
+      expect(
+        Array.from((tableSelect as HTMLSelectElement).options).map((o) => o.value),
+      ).toContain('events')
+    })
   })
 
   it('only writes to the store when a table is actually picked', async () => {

@@ -1,5 +1,7 @@
 # Report Design Studio V2
 
+[![CI](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml)
+
 ドラッグ&ドロップで帳票・フォームを設計し、PDF/PNG エクスポートや ScalarDB との連携を提供する Web アプリケーションです。
 
 ## 特徴
