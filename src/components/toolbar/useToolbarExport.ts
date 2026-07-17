@@ -9,6 +9,7 @@ import { exportReportToPdf, exportReportToPdfBlob, exportPageToPng, collectAutoF
 import { runValidation } from '@/lib/validationRunner'
 import { applyVariant, applyPartialMask } from '@/lib/variantApplicator'
 import { resolveCurrentData } from '@/hooks/useResolvedData'
+import { buildReportCsv } from '@/lib/reportCsvExport'
 
 interface ExportContext {
   canvasRefs: React.RefObject<HTMLDivElement | null>[]
@@ -193,6 +194,22 @@ export function useToolbarExport({
     }
   }
 
+  const handleExportCsv = () => {
+    const { definition } = useReportStore.getState()
+    const data = resolveCurrentData()
+    const csv = buildReportCsv(definition, data)
+    if (!csv) {
+      toast.warning('CSV に出力できるデータがありません。データバインドまたはサンプルデータを設定してください。', { duration: 6000 })
+      return
+    }
+    try {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      downloadBlob(blob, `${reportName}.csv`)
+    } catch (_err) {
+      toast.error('CSV のエクスポートに失敗しました。', { duration: 8000 })
+    }
+  }
+
   const handleValidate = async () => {
     if (isValidating) return
     const { definition, testData, currentTemplateId } = useReportStore.getState()
@@ -230,6 +247,7 @@ export function useToolbarExport({
     handleFullPreviewPdf,
     handleBackendPdf,
     handleExportPng,
+    handleExportCsv,
     handleValidate,
   }
 }
