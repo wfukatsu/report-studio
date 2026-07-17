@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react'
+import { memo, useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
 import { ElementRenderer } from './ElementRenderer'
@@ -71,8 +71,8 @@ export const CanvasElement = memo(function CanvasElement({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: element.id,
-    // Disable drag while editing so pointer events reach the contenteditable
-    disabled: element.locked || readonly || editing,
+    // Disable drag while editing so pointer events reach the contenteditable / cell grid
+    disabled: element.locked || readonly || editing || tableEditMode,
   })
 
   // Exit table edit mode when element is deselected
@@ -343,7 +343,7 @@ export const CanvasElement = memo(function CanvasElement({
         })
       }}
       // Remove dnd-kit listeners from DOM while editing so pointer events reach the editor
-      {...(!readonly && !element.locked && !editing ? { ...listeners, ...attributes } : {})}
+      {...(!readonly && !element.locked && !editing && !tableEditMode ? { ...listeners, ...attributes } : {})}
       role={editing ? 'textbox' : 'button'}
       tabIndex={readonly ? -1 : 0}
       aria-label={element.name ? `${element.name} (${element.type})` : element.type}
@@ -358,7 +358,13 @@ export const CanvasElement = memo(function CanvasElement({
             overflow: textFit === 'expandFrame' ? 'visible' : undefined,
           }}
         >
-          {editing && element.type === 'text' ? (
+          {tableEditMode && element.type === 'formTable' ? (
+            <FormTableEditor
+              element={element as FormTableElement}
+              onChange={handleTableChange}
+              onExitEditMode={handleExitTableEdit}
+            />
+          ) : editing && element.type === 'text' ? (
             <TextInlineEditor
               element={element}
               onCommit={handleInlineCommit}
