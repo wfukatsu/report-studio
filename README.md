@@ -128,4 +128,6 @@ report-design-studio-v2/
 
 ## ライセンス
 
-本リポジトリのライセンスについては、管理者にお問い合わせください。
+[Apache License 2.0](./LICENSE)
+
+サードパーティ依存のライセンス監査結果は [docs/license-audit.md](./docs/license-audit.md) を参照してください。

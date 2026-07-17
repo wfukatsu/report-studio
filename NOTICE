@@ -1,0 +1,14 @@
+Report Studio
+Copyright 2026 Wataru Fukatsu
+
+This product includes software developed by third parties under their own
+licenses. See docs/license-audit.md for the dependency license audit.
+
+This product depends on ScalarDB (https://github.com/scalar-labs/scalardb),
+licensed under the Apache License, Version 2.0.
+Copyright Scalar, Inc.
+
+This product bundles the Noto Sans JP and Noto Serif JP fonts
+(server/src/main/resources/fonts/), licensed under the SIL Open Font
+License, Version 1.1. Copyright The Noto Project Authors
+(https://github.com/notofonts/noto-cjk).
