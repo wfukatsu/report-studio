@@ -28,9 +28,13 @@ jobs:
         run: npm run build
 
       - name: Test
-        # basic reporter prints per-file progress so a hanging test file is
-        # identifiable in the CI log (the job-level timeout is the safety net)
-        run: npx vitest run --reporter=basic
+        # single fork + enlarged heap: parallel jsdom workers can be OOM-killed
+        # on the shared runner, which leaves the vitest pool waiting forever
+        # (observed as an 18-minute silent hang). basic reporter prints per-file
+        # progress so any remaining hang is attributable to a specific file.
+        run: npx vitest run --reporter=basic --pool=forks --poolOptions.forks.maxForks=1
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
   backend:
     name: Backend (JUnit + golden PDF regression)
