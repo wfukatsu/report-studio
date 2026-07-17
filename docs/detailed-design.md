@@ -1,15 +1,26 @@
 # 詳細設計書
 
 **システム名:** Report Design Studio V2  
-**作成日:** 2026-04-12
+**作成日:** 2026-04-12  
+**最終更新:** 2026-07-17
+
+> **2026-07-17 更新:** API サーフェスを現行実装（エンベロープ形式・バッチ PDF ジョブ・ScalarDB 行操作・管理 API 等）に追随し、型定義・ストアアクション・エクスポート形式・環境変数の記述を更新。
 
 ---
 
-## 1. API 仕様 (V2)
+## 1. API 仕様
 
 ベース URL: `http://localhost:8080`  
 認証: Cookie `session_id` (HttpOnly, SameSite=Lax, 24時間TTL)  
 コンテンツタイプ: `application/json`
+
+認証・認可の原則:
+- `/api/v1/public/*`・`/api/v1/auth/*`・health 以外の **全エンドポイントは認証必須**（before-filter で強制）
+- `/api/v1/admin/*` は **admin ロール必須**（before-filter で強制。個別ハンドラのチェックに依存しない）
+- 状態変更メソッド（POST/PUT/PATCH/DELETE）は **CSRF Origin 検証**の対象
+
+テンプレートの入出力形式（正準エンベロープ `{ formatVersion: 2, definition }`）は
+[template-envelope-spec.md](template-envelope-spec.md) が正。
 
 ---
 
@@ -71,15 +82,8 @@
 
 #### `GET /api/v2/templates`
 
-テンプレート一覧を返します。
-
-**クエリパラメータ:**
-| パラメータ | 型 | 説明 |
-|-----------|---|------|
-| `page` | int | ページ番号 (デフォルト: 1) |
-| `limit` | int | 件数 (デフォルト: 20, 最大: 100) |
-| `category` | string | カテゴリフィルタ |
-| `q` | string | 名前検索 |
+テンプレート一覧を返します。既定では自分がオーナーのテンプレートのみを返し、
+`visibility` クエリパラメータ（`public` / `shared`）で公開範囲フィルタを切り替えます。
 
 **レスポンス (200):**
 ```json
@@ -88,15 +92,13 @@
     {
       "id": "uuid",
       "name": "見積書",
-      "category": "受注",
-      "tags": ["invoice", "quotation"],
       "createdAt": "2026-04-01T09:00:00Z",
-      "updatedAt": "2026-04-12T10:00:00Z"
+      "updatedAt": "2026-07-17T10:00:00Z",
+      "visibility": "private",
+      "isOwner": true
     }
   ],
-  "total": 5,
-  "page": 1,
-  "limit": 20
+  "total": 5
 }
 ```
 
@@ -106,7 +108,7 @@
 
 新規テンプレートを作成します。
 
-**リクエスト:** `ReportDefinition` オブジェクト (JSON)
+**リクエスト:** 正準エンベロープ (JSON)
 
 **レスポンス (201):**
 ```json
@@ -119,7 +121,7 @@
 
 テンプレートの完全定義を返します。
 
-**レスポンス (200):** `ReportDefinition` オブジェクト
+**レスポンス (200):** 正準エンベロープ（リソース表現 — `id`, `name`, `createdAt`, `updatedAt`, `visibility` 付き）
 
 ---
 
@@ -127,9 +129,11 @@
 
 テンプレートを上書き保存します (完全置換)。
 
-**リクエスト:** `ReportDefinition` オブジェクト
+**リクエスト:** 正準エンベロープ（裸の `ReportDefinition` も非推奨形式として受理 — 旧クライアント互換）
 
-**レスポンス (200):** `{ "id": "uuid" }`
+保存前に `ReportDefinitionValidator` による構造バリデーション（上限値チェック）が実行されます。
+
+**レスポンス (200):** 正準エンベロープ（リソース表現）
 
 ---
 
@@ -146,6 +150,25 @@
 テンプレートを複製します。
 
 **レスポンス (201):** `{ "id": "新しいUUID" }`
+
+---
+
+#### `POST /api/v2/templates/{id}/copy` / `PUT /api/v2/templates/{id}/visibility`
+
+テンプレートのコピー作成と、公開範囲（visibility）の変更を行います。
+
+---
+
+#### `GET /api/v2/templates/{id}/export` / `POST /api/v2/templates/import`
+
+エンベロープ形式でのエクスポート（`exportedAt` 付き）とインポート。
+インポートは**正準エンベロープ必須**（裸の定義は 400）。
+
+---
+
+#### `GET /api/v2/templates/{id}/thumbnail`
+
+テンプレートのサムネイル画像を返します。
 
 ---
 
@@ -179,7 +202,7 @@
 
 指定バージョンに復元します。
 
-**レスポンス (200):** `{ "restored": true }`
+**レスポンス (200):** 正準エンベロープ（`formatVersion` + `definition`）
 
 ---
 
@@ -274,6 +297,12 @@
 
 ---
 
+#### `GET /api/v2/templates/{id}/responses/{rid}` / `DELETE ...`
+
+個別回答の取得・削除。
+
+---
+
 #### `GET /api/v2/templates/{id}/responses/{rid}/pdf`
 
 回答を PDF として出力します。
@@ -294,9 +323,11 @@
 
 ### 1.6 PDF 生成 API
 
+サーバ PDF は全 24 要素タイプの描画とページ分割に対応します（→ [pagination-spec.md](pagination-spec.md)）。
+
 #### `POST /api/v2/pdf/generate`
 
-テンプレート ID 不要の静的 PDF 生成。
+テンプレート ID 不要のステートレス PDF 生成（デザイナーのエクスポートが使用する主経路）。
 
 **リクエスト:**
 ```json
@@ -311,9 +342,16 @@
 
 ---
 
+#### `POST /api/v2/templates/{id}/pdf`
+
+保存済みテンプレートからの同期 PDF 生成。
+
+---
+
 #### `POST /api/v2/pdf-jobs`
 
-非同期 PDF ジョブを開始します。
+非同期 PDF ジョブを開始します。ジョブは投入ユーザーを所有者として記録し、
+状態参照・結果取得は**所有者のみ**に許可されます（Issue #58）。
 
 **レスポンス (202):** `{ "jobId": "uuid", "status": "pending" }`
 
@@ -328,7 +366,8 @@
 { "jobId": "uuid", "status": "completed", "progress": 100 }
 ```
 
-`status`: `pending` | `processing` | `completed` | `failed`
+`status`: `pending` | `processing` | `completed` | `failed` | `cancelled`
+（統一ステータス語彙。V2 API は小文字表現 — → [job-infrastructure.md](job-infrastructure.md)）
 
 ---
 
@@ -337,6 +376,13 @@
 完了した PDF をダウンロードします。
 
 **レスポンス (200):** `Content-Type: application/pdf`
+
+---
+
+#### `POST /api/v2/pdf-jobs/batch` / `GET .../batch/{id}` / `GET .../batch/{id}/result`
+
+複数レコードの一括 PDF 生成ジョブ。結果は ZIP でダウンロードします
+（結果はヒープではなくファイルへストリーミング — → [job-infrastructure.md](job-infrastructure.md)）。
 
 ---
 
@@ -374,7 +420,7 @@
 
 ---
 
-### 1.8 ScalarDB カタログ API
+### 1.8 ScalarDB 連携 API
 
 #### `GET /api/v2/scalardb/catalog`
 
@@ -402,7 +448,41 @@ ScalarDB の名前空間・テーブル・カラム情報を返します。
 
 ---
 
-### 1.9 ユーザー管理 API (管理者専用)
+#### `POST /api/v2/scalardb/tables`
+
+テーブルを作成します（データブラウザから利用）。
+
+---
+
+#### `GET/POST/PUT/DELETE /api/v2/scalardb/tables/{ns}/{table}/rows`
+
+テーブル行のスキャン・挿入・更新・削除（データブラウザタブの行編集が使用）。
+
+---
+
+#### `POST /api/v2/templates/{id}/resolve-bindings`
+
+テンプレートのスキーマバインディングを ScalarDB データで解決して返します。
+
+---
+
+#### `POST /api/v2/schemas/infer`
+
+サンプルデータからスキーマを推論します。
+
+---
+
+### 1.9 スキーマライブラリ API
+
+#### `GET/POST /api/v2/schemas`, `GET/PUT/DELETE /api/v2/schemas/{id}`
+
+再利用可能なデータスキーマの CRUD。旧パス `/api/v2/schema-library` は 301 リダイレクトされます。
+
+---
+
+### 1.10 管理 API (admin ロール専用)
+
+`/api/v1/admin/*` 全体が before-filter で admin ロールを要求します。
 
 #### `GET /api/v1/admin/users`
 
@@ -436,14 +516,42 @@ ScalarDB の名前空間・テーブル・カラム情報を返します。
 
 ---
 
+#### `GET/PUT /api/v1/admin/server-config`, `POST .../server-config/test`, `POST /api/v1/admin/server/restart`
+
+サーバー設定（ScalarDB 接続等）の取得・更新・接続テストと再起動（管理タブの「サーバー設定」が使用）。
+
+---
+
+### 1.11 その他の API（V1 系）
+
+| エンドポイント群 | 用途 |
+|-----------------|------|
+| `GET/POST/PATCH/DELETE /api/v1/templates*` | V1 テンプレート一覧・メタデータ（サムネイル `/thumbnail`、エクスポート/インポート/複製含む） |
+| `GET/PUT /api/v1/templates/{id}/designer-projection` | デザイナープロジェクション |
+| `GET/POST/PATCH/DELETE /api/v1/templates/{id}/versions*` | V1 バージョン管理 |
+| `GET/PUT /api/v1/schemas/{id}`, `POST /api/v1/schemas` | V1 スキーマ |
+| `GET/PUT /api/v1/binding-trees/{id}` | バインディングツリー |
+| `GET/POST /api/v1/public/forms/{id}/*` | 公開フォーム（認証不要。verify / projection / submit） |
+| `GET/POST/DELETE /api/v1/templates/{id}/responses*`, `/api/v1/responses/{id}` | V1 フォーム回答 |
+| `POST/GET/DELETE /api/v1/jobs*` | V1 バッチジョブ（→ [job-infrastructure.md](job-infrastructure.md)） |
+| `POST /api/v1/templates/{id}/pdf` | V1 PDF 生成 |
+| `GET/PUT /api/v1/webhooks/{templateId}`, `POST .../test` | Webhook 設定（送信は SSRF ガード + HMAC-SHA256 署名付き） |
+| `GET/PUT /api/v1/sequences/{templateId}` | 採番設定 |
+| `GET/POST/PUT/DELETE /api/v1/products*`, `POST /api/v1/products/import` | 商品マスタ CRUD + CSV インポート |
+
+---
+
 ## 2. 型定義
 
 ### 2.1 ReportDefinition
 
+交換・永続化時は正準エンベロープ `{ formatVersion: 2, definition }` に包まれます
+（旧 `$schema: "report-definition/v1"` マーカーは formatVersion 1 としてマイグレーションされる
+— → [template-envelope-spec.md](template-envelope-spec.md)）。
+
 ```typescript
 interface ReportDefinition {
   id: string
-  $schema?: string              // "report-definition/v1"
   metadata: {
     documentName: string
     category?: string
@@ -460,18 +568,24 @@ interface ReportDefinition {
     marginBottom: number        // mm
     marginLeft: number          // mm
     backgroundColor?: string    // "#ffffff"
+    clipToMargins?: boolean     // opt-in マージンクリッピング (→ pagination-spec.md)
   }
+  defaultTextStyle: TextStyle
+  templateVariables: TemplateVariable[]
+  calculationRules: CalculationRule[]
+  dataSources: DataSourceDefinition[]
+  outputVariants: OutputVariant[]
+  submissionModels: SubmissionModel[]
+  validationRules: ValidationRule[]
   pages: PageDef[]
   schema?: SchemaDefinition
-  calculationRules?: CalculationRule[]
-  validationRules?: ValidationRule[]
-  outputVariants?: OutputVariant[]
   masterHeader?: Section
   masterFooter?: Section
-  defaultTextStyle?: TextStyle
-  formSettings?: FormSettings
+  formulaLanguage?: 'jexl' | 'formula-v1'
 }
 ```
+
+構造上限値（ページ数・要素数・文字列長など）は `schemas/report-definition-limits.json` が単一ソースで、フロント（Zod）とサーバ（`ReportDefinitionValidator`）の両方が参照します。
 
 ### 2.2 PageDef
 
@@ -649,6 +763,8 @@ interface SingleCondition {
 - `label` → `text` に自動変換 (ElementRenderer)
 - `table` → `formTable` に移行を警告表示
 
+**サーバ PDF パリティ:** 上記 24 タイプすべてがサーバ PDF（`ElementPdfRendererRegistry`）で描画可能です。パリティは `V2ElementParityMatrixTest` により保証されます（Issue #53）。
+
 ### 3.2 共通プロパティ (ElementBase)
 
 ```typescript
@@ -790,50 +906,59 @@ formatNumber(123, { type: 'kanji', kanjiStyle: 'uppercase' })
 
 | アクション | 引数 | 説明 |
 |-----------|------|------|
-| `addPage` | `(after?: string)` | ページ追加 |
+| `addPage` | `(name?)` | ページ追加 |
 | `removePage` | `(pageId)` | ページ削除 |
 | `renamePage` | `(pageId, name)` | ページ名変更 |
-| `reorderPages` | `(newOrder: string[])` | ページ並び替え |
+| `updatePageBackground` | `(pageId, background)` | ページ背景色変更 |
+| `updateSectionHeight` | `(pageId, sectionId, heightMm)` | セクション高さ変更 |
 | `addElement` | `(pageId, element, sectionId?)` | 要素追加 (→ 履歴) |
 | `updateElement` | `(pageId, elementId, patch)` | 要素更新 (→ 履歴) |
 | `moveElement` | `(pageId, elementId, pos)` | 要素移動 (履歴なし) |
 | `resizeElement` | `(pageId, elementId, size)` | 要素リサイズ (履歴なし) |
-| `removeElement` | `(pageId, elementId[])` | 要素削除 (→ 履歴) |
+| `removeElement` | `(pageId, elementId)` | 要素削除 (→ 履歴) |
 | `duplicateElement` | `(pageId, elementId)` | 要素複製 (→ 履歴) |
 | `selectElement` | `(elementId, multi?)` | 要素選択 |
-| `clearSelection` | `()` | 選択解除 |
-| `setActivePageId` | `(pageId)` | アクティブページ変更 |
+| `selectAll` / `clearSelection` / `setSelectionIds` | | 全選択 / 選択解除 / 選択 ID 設定 |
+| `setActivePage` | `(pageId)` | アクティブページ変更 |
 | `alignElements` | `(pageId, ids, type)` | 要素整列 |
-| `groupSelectedElements` | `(pageId)` | グループ化 |
-| `ungroupElements` | `(pageId, groupId)` | グループ解除 |
+| `groupSelectedElements` | `(pageId, name)` | グループ化 |
+| `leaveGroup` | `(pageId, elementId)` | グループから離脱 |
+| `addLayerGroup` / `removeLayerGroup` / `updateLayerGroup` | | レイヤーグループ操作 |
+| `reorderElements` | `(pageId, sectionId, orderedIds)` | 要素の並び替え |
 | `setZOrder` | `(pageId, elementId, action)` | 前後順序変更 |
-| `setDataSource` | `(dataSource)` | テストデータ設定 |
-| `loadReport` | `(definition)` | テンプレート読み込み |
+| `setDataSource` / `updateTestData` | | テストデータ設定 / 個別値更新 |
+| `loadReport` / `loadLegacyReport` | `(definition)` | テンプレート読み込み（旧形式は変換） |
 | `newReport` | `()` | 新規レポート作成 |
-| `setPageSettings` | `(settings)` | 用紙設定変更 |
-| `setMasterHeader` | `(section?)` | マスターヘッダー設定 |
-| `setMasterFooter` | `(section?)` | マスターフッター設定 |
+| `exportReportJSON` / `importReportJSON` | | JSON 入出力（エンベロープ形式） |
+| `updateSettings` | `(settings)` | 用紙設定変更 |
+| `updateMetadata` / `setReportName` / `updateDefaultTextStyle` | | メタデータ・既定スタイル |
+| `setMasterHeader` / `setMasterFooter` | `(section \| null)` | マスターヘッダー/フッター設定 |
 
 ### 5.2 UI スライスアクション
 
 | アクション | 説明 |
 |-----------|------|
+| `setActiveTab(tab)` | トップナビのタブ切り替え (`design`/`binding`/`templates`/`responses`/`databrowser`/`admin`) |
 | `setPreviewMode(bool)` | プレビューモード切り替え |
-| `setEditorZoom(number)` | エディタズーム設定 (0.5〜2.0) |
-| `setPreviewZoom(number)` | プレビューズーム設定 |
-| `setShowGrid(bool)` | グリッド表示切り替え |
-| `setSnapToGrid(bool)` | グリッドスナップ切り替え |
-| `setShowTrimMarks(bool)` | トンボ表示切り替え |
-| `setShowMarginGuide(bool)` | 余白ガイド表示切り替え |
-| `setGridSize(number)` | グリッドサイズ (mm) |
-| `copyElements(elements)` | クリップボードにコピー |
-| `pasteElements(pageId)` | クリップボードから貼り付け |
-| `setHeaderEditMode(bool)` | H/F 編集モード切り替え |
-| `setLivePreviewEnabled(bool)` | ライブプレビューパネル表示 |
+| `setZoom` / `setEditorZoom` / `setPreviewZoom` | ズーム設定 |
+| `toggleGrid()` / `toggleSnapToGrid()` | グリッド表示 / スナップ切り替え |
+| `toggleTrimMarks()` / `toggleMarginGuide()` | トンボ / 余白ガイド切り替え |
+| `toggleHeaderEditMode()` / `setHeaderEditMode(bool)` | H/F 編集モード |
+| `toggleLivePreview()` / `setLivePreviewEnabled(bool)` | ライブプレビューパネル |
 | `setCurrentTemplateId(id?)` | 現在のテンプレート ID |
 | `setBackendConnected(bool)` | バックエンド接続状態 |
+| `setLoadState` / `setSaveState` | ロード・保存状態表示 |
 
-### 5.3 認証スライスアクション
+### 5.3 クリップボードスライスアクション
+
+| アクション | 説明 |
+|-----------|------|
+| `copyElements(pageId, elementIds)` | クリップボードにコピー |
+| `cutElements(pageId, elementIds)` | 切り取り |
+| `pasteElements(pageId)` | 貼り付け |
+| `copyStyle(pageId, elementId)` / `pasteStyle(pageId, elementIds)` | スタイルのコピー/貼り付け |
+
+### 5.4 認証スライスアクション
 
 | アクション | 説明 |
 |-----------|------|
@@ -841,18 +966,18 @@ formatNumber(123, { type: 'kanji', kanjiStyle: 'uppercase' })
 | `loginUser(userId, password)` | ログイン (→ fetchTenantInfo) |
 | `logoutUser()` | ログアウト (LocalStorage クリア) |
 
-### 5.4 計算・バリデーションスライスアクション
+### 5.5 計算・バリデーションスライスアクション
 
 | アクション | 説明 |
 |-----------|------|
 | `addCalculationRule(rule)` | 計算ルール追加 |
-| `updateCalculationRule(id, patch)` | 計算ルール更新 |
-| `removeCalculationRule(id)` | 計算ルール削除 |
+| `updateCalculationRule(key, patch)` | 計算ルール更新 (key で特定) |
+| `removeCalculationRule(key)` | 計算ルール削除 |
 | `addValidationRule(rule)` | バリデーションルール追加 |
 | `updateValidationRule(id, patch)` | バリデーションルール更新 |
 | `removeValidationRule(id)` | バリデーションルール削除 |
-| `evaluateCalculations(testData)` | バックエンド計算評価 |
-| `evaluateValidations(testData)` | バックエンドバリデーション評価 |
+
+バックエンド評価の結果は `computedSlice` の `setComputedResults` / `setComputedViolations` に格納されます。
 
 ---
 
@@ -880,28 +1005,35 @@ formatNumber(123, { type: 'kanji', kanjiStyle: 'uppercase' })
 
 ## 7. ファイルインポート/エクスポート形式
 
-### JSON エクスポート形式
+### JSON エクスポート形式（正準エンベロープ）
 
 ```json
 {
-  "$schema": "report-definition/v1",
-  "exportedAt": "2026-04-12T10:00:00.000Z",
-  "id": "uuid",
-  "metadata": { ... },
-  "pageSettings": { ... },
-  "pages": [ ... ],
-  "schema": { ... },
-  "calculationRules": [ ... ],
-  "validationRules": [ ... ]
+  "formatVersion": 2,
+  "exportedAt": "2026-07-17T10:00:00.000Z",
+  "definition": {
+    "id": "uuid",
+    "metadata": { ... },
+    "pageSettings": { ... },
+    "pages": [ ... ],
+    "schema": { ... },
+    "calculationRules": [ ... ],
+    "validationRules": [ ... ]
+  }
 }
 ```
 
+詳細（文脈ごとの拡張フィールド・前方互換ポリシー）は [template-envelope-spec.md](template-envelope-spec.md) を参照。
+
 ### インポート
 
-`importFromJSON(json)` が旧フォーマットを変換します:
+`importFromJSON(json)` が `detectFormatVersion()` で形式を判別し、マイグレーションラダー
+（v0 旧 `Report` → v1 裸の定義 → v2 エンベロープ）を一段ずつ適用した後、
+Zod バリデーションと内容正規化を行います:
 - `page.elements` (旧) → `page.sections[0].elements` (新) に自動移行
 - `label` タイプ → `text` タイプに自動変換
 - `table` タイプ → `formTable` に警告付きで変換
+- `formatVersion` が現行値より大きいファイルは常に拒否（部分読み込みしない）
 
 ---
 
@@ -990,8 +1122,11 @@ npm run dev:full
 
 # 5. ブラウザでアクセス
 # → http://localhost:5173
-# → admin / changeme でログイン
+# → admin / changeme (初期値) でログイン
 ```
+
+> **JDK バージョン:** バックエンドの Gradle は Java 21 toolchain を要求します。
+> デフォルトの `java` が 21 以外の場合は `JAVA_HOME` を JDK 21 に向けてください。
 
 ### 環境変数設定 (本番/テスト用)
 
@@ -1000,4 +1135,13 @@ npm run dev:full
 export ADMIN_PASSWORD="secure-password"
 export LOGIN_RATE_LIMIT_MAX=100          # テスト時は上限を緩和
 export LOGIN_RATE_LIMIT_WINDOW_MS=60000  # 1分窓に短縮
+export ALLOWED_ORIGIN="https://example.com"  # 本番オリジン (CSRF/CORS 許可)
 ```
+
+**`ADMIN_PASSWORD` の挙動（非破壊）:**
+- admin ユーザーが存在しない場合: `ADMIN_PASSWORD`（未設定時は既定値 `changeme`）で作成
+- admin が既に存在する場合: `ADMIN_PASSWORD` が**明示的に設定されているときだけ**その値にリセット（ロックアウト復旧用）。未設定なら変更しない — UI からのパスワード変更が再起動で巻き戻ることはありません
+
+### CI
+
+GitHub Actions（`.github/workflows/ci.yml`）が push / PR ごとにフロントエンド（lint・型チェック・Vitest 3）とバックエンド（JUnit）のテストを実行します。

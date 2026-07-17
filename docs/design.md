@@ -1,7 +1,10 @@
 # 設計書
 
 **システム名:** Report Design Studio V2  
-**作成日:** 2026-04-12
+**作成日:** 2026-04-12  
+**最終更新:** 2026-07-17
+
+> **2026-07-17 更新:** ストアスライス構成（13 slices + dataBrowserStore）、JEXL サンドボックスの実装方式、サーバ PDF 優先のエクスポート設計、テンプレートエンベロープ/ジョブ基盤/ページネーション各仕様へのリンクを実装に追随。
 
 ---
 
@@ -32,8 +35,9 @@ Immer の `produce` を経由した Zustand ストアミューテーションの
 テスタビリティを確保しつつ、設定の複雑化を防ぐ。
 
 **サンドボックス式評価**  
-JEXL 計算式は Math 関数のみ許可するホワイトリスト方式のサンドボックスで実行する。  
-タイムアウト (500ms)、式の長さ制限 (500文字)、式の数制限 (50個) を設ける。
+JEXL 計算式はホワイトリスト方式のサンドボックス（`JexlPermissions.ClassPermissions` — `JexlFunctions` の独自関数と数学関数のみ許可、それ以外のクラスアクセスは全面禁止）で実行する。  
+タイムアウト (500ms)、式の長さ制限 (500文字)、ネスト深さ制限 (16)、式の数制限 (50個) を設ける。  
+金額計算は BigDecimal ベースで浮動小数点誤差を排除する（`CalculationEngine` / `JexlFunctions`）。
 
 **ScalarDB 抽象化**  
 全データアクセスは ScalarDB API 経由。SQLite / PostgreSQL / MySQL など任意の JDBC DB に透過的に対応する。
@@ -55,18 +59,23 @@ export const useReportStore = create<StoreState>()(
     return {
       ...createLayoutSlice(...a),    // ページ・要素・選択
       ...createHistorySlice(...a),   // Undo/Redo
-      ...createUISlice(...a),        // プレビュー・ズーム・グリッド
+      ...createUISlice(...a),        // アクティブタブ・プレビュー・ズーム・グリッド
+      ...createClipboardSlice(...a), // 要素/スタイルのコピー・貼り付け
       ...createAuthSlice(...a),      // 認証
+      ...createAdminSlice(...a),     // 管理タブ（ユーザー管理・サーバー設定）
       ...createTenantSlice(...a),    // テナント情報
       ...createSchemaSlice(...a),    // データスキーマ
       ...createRulesSlice(...a),     // 計算・バリデーションルール
       ...createVariantsSlice(...a),  // 出力バリアント
       ...createResponsesSlice(...a), // フォーム回答
+      ...createProductSlice(...a),   // 商品マスタ
       ...createComputedSlice(...a),  // 計算結果キャッシュ
     }
   }) as ImmerStateCreator)
 )
 ```
+
+データブラウザタブは独立した `useDataBrowserStore`（`src/store/dataBrowserStore.ts`）を使用し、メインストアと状態を共有しない。トップナビの 6 タブ（デザイン/バインド/テンプレート管理/回答/データブラウザ/管理）は `uiSlice.activeTab` で切り替える。
 
 #### 状態更新パターン
 
@@ -135,14 +144,14 @@ interface TextElement extends ElementBase {
   furigana?: FuriganaConfig
 }
 
-// ... 全27型が同パターンで定義
+// ... 全24型が同パターンで定義
 
 export type ReportElement =
   | TextElement
   | DataFieldElement
   | ChartElement
   | RepeatingBandElement
-  // ... 27型の Union
+  // ... 24型の Union
 ```
 
 #### Renderer 実装パターン
@@ -299,39 +308,38 @@ const pixelX = element.x * MM_TO_PX * zoom
 
 ### 2.5 エクスポート設計
 
-#### クライアントサイド PDF
+**サーバーサイド PDF が正**（Issue #61）。ベクターテキスト・ページ分割・Noto フォント埋め込みに対応し、フロントエンドの全 24 要素タイプをサーバ側でネイティブ描画する。クライアントサイド PDF（html2canvas + jsPDF）はバックエンド未接続時のフォールバックとして残る。
+
+#### サーバーサイド PDF（推奨経路）
 
 ```typescript
 // src/lib/exportUtils.ts
-async function exportReportToPdf(
-  canvasRef: RefObject<HTMLDivElement>,
+export async function exportToServerPdf(
   definition: ReportDefinition,
-  pageIndices: number[]
+  testData: Record<string, unknown> | null,
+  filename = 'report.pdf',
 ): Promise<void> {
-  const { width, height } = definition.pageSettings
-  const pdf = new jsPDF({
-    unit: 'mm',
-    format: [width, height],
-    orientation: height > width ? 'portrait' : 'landscape'
-  })
-
-  for (const [i, pageIdx] of pageIndices.entries()) {
-    const pageEl = canvasRef.current?.querySelector(`[data-page="${pageIdx}"]`)
-    if (!pageEl) continue
-
-    const canvas = await html2canvas(pageEl as HTMLElement, {
-      scale: 2,           // 解像度2倍
-      useCORS: true,
-      backgroundColor: definition.pages[pageIdx].background ?? '#ffffff'
-    })
-
-    if (i > 0) pdf.addPage()
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height)
-  }
-
-  pdf.save(`${definition.metadata.documentName ?? 'report'}.pdf`)
+  const { generateStatelessPdf } = await import('@/api/reportApi')
+  // POST /api/v2/pdf/generate — definition + data をそのまま送る
+  const blob = await generateStatelessPdf(defJson, dataJson)
+  downloadBlob(blob, filename)
 }
 ```
+
+サーバ側の描画エンジン構成とページ分割の仕様は [architecture.md §4.4](architecture.md) と [pagination-spec.md](pagination-spec.md) を参照。
+
+#### クライアントサイド PDF（フォールバック）
+
+```typescript
+// src/lib/exportUtils.ts — ページ DOM を html2canvas でラスタライズし jsPDF に貼り付ける
+export async function exportReportToPdf(
+  pageEls: HTMLElement[],
+  fileName = 'report.pdf',
+  models?: AutoFieldModels,   // ページ番号・日付等の自動フィールドをモデル駆動で解決
+): Promise<void>
+```
+
+出力バリアントのマスキングは両経路で共通のロジックを通る（モデル駆動の自動フィールド + 共有マスキング）。
 
 #### 画像セキュリティフィルタ
 
@@ -362,27 +370,25 @@ function isSafeImageSrc(src: string): boolean {
 ### 3.1 ExpressionEngine 設計
 
 ```java
-// サンドボックス設定
-JexlSandbox sandbox = new JexlSandbox(false);  // デフォルト全禁止
-sandbox.allow("java.lang.Math");               // Math のみ許可
+// サンドボックス設定 (Issue #58 で JexlPermissions 方式に強化)
+// JexlFunctions のホワイトリスト以外のクラスアクセスを全面禁止
+JexlPermissions permissions =
+        new JexlPermissions.ClassPermissions(JexlFunctions.class);
 
 JexlEngine jexl = new JexlBuilder()
-    .sandbox(sandbox)
+    .permissions(permissions)
     .create();
 
-// タイムアウト付き評価
-ExecutorService exec = Executors.newSingleThreadExecutor();
-Future<Object> future = exec.submit(() -> script.execute(ctx));
-Object result = future.get(500, TimeUnit.MILLISECONDS);  // 500ms タイムアウト
+// タイムアウト付き評価 (TIMEOUT_MS = 500)
+// 追加ガード: 式長 <= 500 文字、ネスト深さ <= 16、式数 <= 50/テンプレート
 ```
-
-**許可されている関数:**
-`Math.abs`, `Math.ceil`, `Math.floor`, `Math.round`, `Math.max`, `Math.min`, `Math.pow`, `Math.sqrt`
 
 **独自関数 (JexlFunctions):**
 `sum(array)`, `count(array)`, `avg(array)`, `min(array)`, `max(array)`,  
 `round(n, decimals)`, `concat(...)`, `formatDate(date, pattern)`,  
 `formatNumber(n, pattern)`, `ifExpr(cond, a, b)`
+
+金額を扱う集計・丸めは **BigDecimal ベース**で実装されている（Issue #57 — 浮動小数点の 2 進誤差による 1 円ズレを排除）。
 
 ### 3.2 RateLimiter 設計
 
@@ -448,6 +454,29 @@ public class TemplateRepository {
 }
 ```
 
+JSON ドキュメントを保持する多くのテーブル（`v2_definitions`, `tenant`, `products`, `webhooks` 等）は、この形の実装を共通化した `JsonBlobRepository` を経由する。
+
+### 3.4 テンプレートエンベロープ設計
+
+テンプレートの交換・永続化は正準エンベロープ `{ formatVersion: 2, definition }` に統一されている（Issue #52）。サーバは `TemplateEnvelope.unwrap()` で旧形式をマイグレーションラダーで引き上げ、保存境界では `ReportDefinitionValidator` が構造上限値（`schemas/report-definition-limits.json` — フロント Zod と共有の単一ソース）を検証する。
+
+詳細仕様は **[template-envelope-spec.md](template-envelope-spec.md)** が正。
+
+### 3.5 PDF レンダラー構成
+
+サーバ PDF は 2 段のレジストリで構成される:
+
+- `SectionPdfRendererRegistry` — セクション種別（`page_base` / `detail_table` / `multi_row_table` / `free`）ごとのページ計画と描画。ページ分割・繰越小計・グループ改ページ・押し下げ自動改ページ・V2 バンドフローの仕様は **[pagination-spec.md](pagination-spec.md)** が正
+- `ElementPdfRendererRegistry` — 要素種別ごとの描画。フロントエンドの全 24 要素タイプをカバーし、`V2ElementParityMatrixTest` がパリティを保証（Issue #53）
+
+和文タイポグラフィ（Issue #56）は `FontProvider` が同梱の Noto Sans JP Regular/Bold・Noto Serif JP を埋め込み、折返し・縦書き・ふりがな・太字描画をサーバ側で行う。システム変数（ページ番号・日付・和暦）とテナント情報は `SystemValueResolver` / `TenantInfoProvider` がサーバ側で解決する（Issue #54）。
+
+### 3.6 ジョブ基盤設計
+
+V1/V2 のジョブスタックは単一の `JobStore` 抽象（実装 `JobRepository` = ScalarDB メタデータ + ファイルシステム成果物）に統合されている（Issue #60）。統一ステータス語彙・TTL 回収・再起動時 reconcile・同時実行制限を含む詳細は **[job-infrastructure.md](job-infrastructure.md)** が正。
+
+ジョブは投入 Principal を所有者として記録し、状態参照・結果ダウンロードを所有者に限定する（Issue #58）。
+
 ---
 
 ## 4. セクション構造設計
@@ -482,36 +511,27 @@ Section {
 ### ReportDefinition の主要フィールド
 
 ```typescript
+// src/types/index.ts (現行)
 interface ReportDefinition {
   id: string
-  metadata: {
-    documentName: string
-    category?: string
-    tags?: string[]
-    description?: string
-    createdAt: string
-    updatedAt: string
-  }
-  pageSettings: {
-    width: number        // mm (A4縦 = 210)
-    height: number       // mm (A4縦 = 297)
-    marginTop: number
-    marginRight: number
-    marginBottom: number
-    marginLeft: number
-    backgroundColor?: string
-  }
+  metadata: Metadata                 // documentName / category / tags / ...
+  pageSettings: PageSettings         // width / height / margin* / clipToMargins
+  defaultTextStyle: TextStyle
+  templateVariables: TemplateVariable[]
+  calculationRules: CalculationRule[]
+  dataSources: DataSourceDefinition[]
+  outputVariants: OutputVariant[]
+  submissionModels: SubmissionModel[]
+  validationRules: ValidationRule[]
   pages: PageDef[]
   schema?: SchemaDefinition          // データスキーマ定義
-  calculationRules?: CalculationRule[]  // 計算ルール
-  validationRules?: ValidationRule[]    // バリデーションルール
-  outputVariants?: OutputVariant[]      // 出力バリアント
-  masterHeader?: Section
+  masterHeader?: Section             // addPage 時に全ページへ複製
   masterFooter?: Section
-  defaultTextStyle?: TextStyle
-  formSettings?: FormSettings
+  formulaLanguage?: FormulaLanguage  // 'jexl' (レガシー) | 'formula-v1'
 }
 ```
+
+ファイル・API・ストレージ間の受け渡しは常にエンベロープ `{ formatVersion: 2, definition }` で行う（→ [template-envelope-spec.md](template-envelope-spec.md)）。
 
 ---
 
@@ -542,11 +562,12 @@ interface SingleCondition {
 
 | テスト種別 | ツール | 対象 |
 |-----------|--------|------|
-| Unit | Vitest | ユーティリティ関数・ストアスライス |
-| Component | Vitest + @testing-library/react | レンダラー・プロパティパネル |
-| Integration | Vitest | API クライアント・モーダル |
+| Unit | Vitest 3 | ユーティリティ関数・ストアスライス |
+| Component | Vitest 3 + @testing-library/react | レンダラー・プロパティパネル |
+| Integration | Vitest 3 | API クライアント・モーダル |
 
-**カバレッジ閾値:** 80%（設定: `vitest.config.ts`）
+**カバレッジ閾値:** 80%（設定: `vitest.config.ts`）  
+**CI:** GitHub Actions（`.github/workflows/ci.yml`）が push/PR ごとに lint・型チェック・フロント/バックエンドテストを実行（CI では threads プールで実行）
 
 ```bash
 # 単一ファイルのテスト
@@ -559,9 +580,10 @@ npx vitest run src/lib/dataBinding.test.ts
 |-----------|--------|------|
 | Unit | JUnit 5 + Mockito | コントローラ・エンジン |
 | Integration | JUnit 5 | リポジトリ (SQLite インメモリ) |
+| PDF 検証 | JUnit 5 | パースバックテスト（生成 PDF を解析して座標・文言を検証）+ ゴールデンテンプレート・パリティマトリクス（`V2ElementParityMatrixTest`） |
 
 ```bash
-./gradlew test
+npm run test:backend   # (= ./gradlew test)
 ```
 
 ---
