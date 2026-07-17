@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { TemplateSelectionModal } from './TemplateSelectionModal'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { BUILTIN_TEMPLATES, SAMPLE_CATEGORY } from '@/templates/builtinTemplates'
 import { createBlankDefinition } from '@/lib/templateUtils'
 import type { ReportDefinition } from '@/types'
 
@@ -334,5 +334,32 @@ describe('TemplateSelectionModal — エクスポート/インポート', () => 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('Invalid format'),
     )
+  })
+})
+
+describe('TemplateSelectionModal — 検証・サンプルの出し分け (#109)', () => {
+  const sample = BUILTIN_TEMPLATES.find((t) => t.category === SAMPLE_CATEGORY)
+
+  it('hides developer/QA sample templates by default', () => {
+    if (!sample) return // no sample templates registered — nothing to assert
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    expect(screen.queryByText(sample.name)).not.toBeInTheDocument()
+    expect(screen.getByText('検証・サンプルを表示')).toBeInTheDocument()
+  })
+
+  it('reveals sample templates when the toggle is turned on', () => {
+    if (!sample) return
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    fireEvent.click(screen.getByText('検証・サンプルを表示'))
+    expect(screen.getByText(sample.name)).toBeInTheDocument()
+    expect(screen.getByText('検証・サンプルを隠す')).toBeInTheDocument()
+  })
+
+  it('hides them again when toggled back off', () => {
+    if (!sample) return
+    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
+    fireEvent.click(screen.getByText('検証・サンプルを表示'))
+    fireEvent.click(screen.getByText('検証・サンプルを隠す'))
+    expect(screen.queryByText(sample.name)).not.toBeInTheDocument()
   })
 })

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings } from 'lucide-react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings, FlaskConical } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { BUILTIN_TEMPLATES, SAMPLE_CATEGORY } from '@/templates/builtinTemplates'
 
 import { loadBuiltinTemplate, createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
@@ -67,6 +67,8 @@ export function TemplateSelectionModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([])
+  // Developer/QA templates are hidden by default (#109); this toggle reveals them.
+  const [showSamples, setShowSamples] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -82,20 +84,31 @@ export function TemplateSelectionModal({
     [prefs],
   )
 
-  // Compute categories and tags from all templates
+  // Hide developer/QA (検証・サンプル) templates unless explicitly revealed (#109).
+  const displayBuiltins = useMemo(
+    () => showSamples ? visibleBuiltins : visibleBuiltins.filter((t) => t.category !== SAMPLE_CATEGORY),
+    [visibleBuiltins, showSamples],
+  )
+  // Whether any sample templates exist at all (controls toggle visibility).
+  const hasSampleTemplates = useMemo(
+    () => visibleBuiltins.some((t) => t.category === SAMPLE_CATEGORY),
+    [visibleBuiltins],
+  )
+
+  // Compute categories and tags from currently displayed templates
   const allCategories = useMemo(
-    () => collectCategories([...visibleBuiltins, ...backendTemplates]),
-    [visibleBuiltins, backendTemplates],
+    () => collectCategories([...displayBuiltins, ...backendTemplates]),
+    [displayBuiltins, backendTemplates],
   )
   const allTags = useMemo(
-    () => collectTags([...visibleBuiltins, ...backendTemplates]),
-    [visibleBuiltins, backendTemplates],
+    () => collectTags([...displayBuiltins, ...backendTemplates]),
+    [displayBuiltins, backendTemplates],
   )
 
   // Filter builtin templates
   const filteredBuiltins = useMemo(
-    () => filterTemplates(visibleBuiltins, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
-    [visibleBuiltins, searchQuery, selectedCategory, selectedFilterTags],
+    () => filterTemplates(displayBuiltins, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
+    [displayBuiltins, searchQuery, selectedCategory, selectedFilterTags],
   )
 
   // Filter backend templates
@@ -272,6 +285,7 @@ export function TemplateSelectionModal({
     setSearchQuery('')
     setSelectedCategory(null)
     setSelectedFilterTags([])
+    setShowSamples(false)
     setDeleteConfirmId(null)
     setRenamingId(null)
     setManagerOpen(false)
@@ -375,6 +389,31 @@ export function TemplateSelectionModal({
                   <X className="w-3 h-3" />
                 </button>
               )}
+            </div>
+          )}
+          {/* Developer/QA templates toggle — hidden by default (#109) */}
+          {hasSampleTemplates && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowSamples((v) => {
+                    const next = !v
+                    // Leaving the sample view: drop a now-hidden category filter.
+                    if (!next && selectedCategory === SAMPLE_CATEGORY) setSelectedCategory(null)
+                    return next
+                  })
+                }}
+                aria-pressed={showSamples}
+                className={`flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
+                  showSamples
+                    ? 'bg-primary/10 text-primary border-primary/30'
+                    : 'bg-background text-muted-foreground hover:text-foreground border-border'
+                }`}
+                title="開発者向けの検証・サンプルテンプレートの表示を切り替えます"
+              >
+                <FlaskConical className="w-3 h-3" />
+                {showSamples ? '検証・サンプルを隠す' : '検証・サンプルを表示'}
+              </button>
             </div>
           )}
         </div>
