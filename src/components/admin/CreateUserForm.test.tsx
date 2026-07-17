@@ -97,4 +97,18 @@ describe('CreateUserForm — submission', () => {
     await waitFor(() => expect(userIdInput().value).toBe(''))
     expect(passwordInput(container).value).toBe('')
   })
+
+  it('keeps entered values and does not throw when onSubmit rejects', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('server down'))
+    const { container } = renderForm(onSubmit)
+    fireEvent.change(userIdInput(), { target: { value: 'user2' } })
+    fireEvent.change(passwordInput(container), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ 追加' }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    // Rejection is swallowed by handleCreate; the button re-enables and values persist for retry
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ 追加' })).not.toBeDisabled())
+    expect(userIdInput().value).toBe('user2')
+    expect(passwordInput(container).value).toBe('password123')
+  })
 })

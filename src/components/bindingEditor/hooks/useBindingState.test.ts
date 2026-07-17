@@ -424,6 +424,48 @@ describe('useBindingState — bulk generation', () => {
     expect(result.current.bulkItems).toEqual([{ name: '備考', type: 'string' }])
   })
 
+  it('side=schema: runBulk creates dataField elements bound to each unplaced field and clears the request', () => {
+    const { groupId, fieldIds } = addGroupWithFields('master', [
+      { key: 'name', label: '顧客名' },
+      { key: 'memo', label: '備考' },
+    ])
+    addElementToPage(makeElement({ id: 'e1', name: '顧客名' })) // matches field label → skipped
+
+    const { result } = renderHook(() => useBindingState())
+    act(() => result.current.setBulk({ side: 'schema', groupId }))
+    act(() => result.current.runBulk())
+
+    const pageId = useReportStore.getState().definition.pages[0].id
+    const elements = useReportStore.getState().definition.pages
+      .find((p) => p.id === pageId)!.sections!
+      .flatMap((s) => s.elements)
+
+    // One new dataField for 備考 (顧客名 already placed → skipped)
+    const generated = elements.filter((e) => e.type === 'dataField' && e.id !== 'e1')
+    expect(generated).toHaveLength(1)
+    expect(generated[0]).toMatchObject({
+      type: 'dataField',
+      fieldKey: 'memo',
+      schemaBinding: { fieldId: fieldIds[1] },
+    })
+    expect(result.current.bulk).toBeNull()
+  })
+
+  it('side=schema: runBulk is a no-op when there is no active page', () => {
+    const { groupId } = addGroupWithFields('master', [{ key: 'name', label: '顧客名' }])
+    act(() => { useReportStore.setState((s) => { s.selection.activePageId = null }) })
+
+    const { result } = renderHook(() => useBindingState())
+    act(() => result.current.setBulk({ side: 'schema', groupId }))
+    act(() => result.current.runBulk())
+
+    const elements = useReportStore.getState().definition.pages[0].sections!
+      .flatMap((s) => s.elements)
+    expect(elements.filter((e) => e.type === 'dataField')).toHaveLength(0)
+    // Request stays open (guard returned early before setBulk(null))
+    expect(result.current.bulk).not.toBeNull()
+  })
+
   it('returns no bulk items when the group does not exist', () => {
     addElementToPage(makeElement({ id: 'e1', name: 'x' }))
     const { result } = renderHook(() => useBindingState())

@@ -40,6 +40,10 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
       setPassword('')
       setRole('user')
       setFieldErrors({})
+    } catch {
+      // Submission failed — the caller surfaces the error (toast/inline).
+      // Swallow here so the click handler never produces an unhandled rejection,
+      // and keep the entered values so the user can retry.
     } finally {
       setCreating(false)
     }
