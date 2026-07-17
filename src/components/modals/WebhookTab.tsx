@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useReportStore } from '@/store'
 import { getWebhookConfig, updateWebhookConfig, testWebhook } from '@/api/reportApi'
 import type { WebhookConfig } from '@/api/reportApi'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
+import { classifyError, type UserFacingError } from '@/lib/userFacingError'
 
 export function WebhookTab() {
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
@@ -10,13 +12,22 @@ export function WebhookTab() {
   const [testing, setTesting] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [loadError, setLoadError] = useState<UserFacingError | null>(null)
+
+  const loadConfig = useCallback(async () => {
+    if (!currentTemplateId) return
+    setLoadError(null)
+    try {
+      const cfg = await getWebhookConfig(currentTemplateId)
+      setConfig({ url: cfg.url ?? '', secret: cfg.secret ?? '' })
+    } catch (err) {
+      setLoadError(classifyError(err))
+    }
+  }, [currentTemplateId])
 
   useEffect(() => {
-    if (!currentTemplateId) return
-    getWebhookConfig(currentTemplateId)
-      .then(cfg => setConfig({ url: cfg.url ?? '', secret: cfg.secret ?? '' }))
-      .catch(() => {})
-  }, [currentTemplateId])
+    loadConfig()
+  }, [loadConfig])
 
   const handleSave = async () => {
     if (!currentTemplateId || saving) return
@@ -67,6 +78,10 @@ export function WebhookTab() {
           <code className="bg-muted px-1 rounded">https://</code> のみ有効。プライベートIPは拒否されます。
         </p>
       </div>
+
+      {loadError && (
+        <InlineErrorBanner error={loadError} onRetry={loadConfig} />
+      )}
 
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium">Webhook URL</label>

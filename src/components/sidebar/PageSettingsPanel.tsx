@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { getSequenceConfig, updateSequenceConfig } from '@/api/reportApi'
 import type { SequenceConfig } from '@/api/reportApi'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
+import { classifyError, type UserFacingError } from '@/lib/userFacingError'
+import { getErrorCopy } from '@/lib/userFacingErrorMessages'
 import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
@@ -18,13 +22,24 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const [seqOpen, setSeqOpen] = useState(false)
   const [seqConfig, setSeqConfig] = useState<SequenceConfig | null>(null)
   const [seqSaving, setSeqSaving] = useState(false)
+  const [seqLoadError, setSeqLoadError] = useState<UserFacingError | null>(null)
   const activePage = useReportStore(selectActivePage)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
 
+  const loadSeqConfig = useCallback(async () => {
+    if (!currentTemplateId) return
+    setSeqLoadError(null)
+    try {
+      setSeqConfig(await getSequenceConfig(currentTemplateId))
+    } catch (err) {
+      setSeqLoadError(classifyError(err))
+    }
+  }, [currentTemplateId])
+
   useEffect(() => {
-    if (!currentTemplateId || !seqOpen) return
-    getSequenceConfig(currentTemplateId).then(setSeqConfig).catch(() => {})
-  }, [currentTemplateId, seqOpen])
+    if (!seqOpen) return
+    loadSeqConfig()
+  }, [seqOpen, loadSeqConfig])
 
   const handleSeqSave = async () => {
     if (!currentTemplateId || !seqConfig || seqSaving) return
@@ -32,7 +47,10 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
     try {
       const updated = await updateSequenceConfig(currentTemplateId, seqConfig)
       setSeqConfig(updated)
-    } catch { /* ignore */ }
+    } catch (err) {
+      const copy = getErrorCopy(classifyError(err).code)
+      toast.error('採番設定の保存に失敗しました', { description: copy.hint, duration: 6000 })
+    }
     finally { setSeqSaving(false) }
   }
   const renamePage = useReportStore((s) => s.renamePage)
@@ -345,6 +363,9 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               <p className="text-[10px] text-muted-foreground">
                 フォーム送信時に自動採番。帳票テキスト内で <code className="bg-muted px-0.5 rounded">{`{{documentNumber}}`}</code> を使用。
               </p>
+              {seqLoadError && (
+                <InlineErrorBanner error={seqLoadError} onRetry={loadSeqConfig} />
+              )}
               {seqConfig && (
                 <>
                   <div className="grid grid-cols-3 gap-1">
