@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePageId, selectActivePage, flattenPageElements } from '@/store/reportStore'
 import { Toolbar } from '@/components/toolbar/Toolbar'
@@ -17,6 +17,7 @@ import { SubmitResponseModal } from '@/components/modals/SubmitResponseModal'
 import { LivePreviewPanel } from '@/components/preview/PreviewModal'
 import { PreviewPane } from '@/components/canvas/PreviewPane'
 import { EditorStatusBar } from '@/components/common/EditorStatusBar'
+import { EmptyCanvasOnboarding } from '@/components/canvas/EmptyCanvasOnboarding'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { getAutoSaveKey, LEGACY_AUTOSAVE_KEY } from '@/lib/autoSaveKey'
@@ -47,6 +48,7 @@ export default function App() {
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
   const [showTemplateChangeConfirm, setShowTemplateChangeConfirm] = useState(false)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [pendingTemplateDefinition, setPendingTemplateDefinition] = useState<Parameters<typeof loadReport>[0] | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
@@ -58,6 +60,11 @@ export default function App() {
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
 
   const definition = useReportStore((s) => s.definition)
+  // Document is "empty" when no page has any element — drives the onboarding overlay.
+  const isDocumentEmpty = useMemo(
+    () => definition.pages.every((p) => flattenPageElements(p).length === 0),
+    [definition.pages],
+  )
   const importReportJSON = useReportStore((s) => s.importReportJSON)
   const historyIndex = useReportStore((s) => s.historyIndex)
   const undo = useReportStore((s) => s.undo)
@@ -141,6 +148,12 @@ export default function App() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  // Reset onboarding dismissal when the logged-in user changes, so each user
+  // gets the empty-canvas guidance once per session.
+  useEffect(() => {
+    setOnboardingDismissed(false)
+  }, [currentUser?.userId])
 
   const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
   const newReport = useReportStore((s) => s.newReport)
@@ -399,8 +412,14 @@ export default function App() {
 
           {/* Canvas Area */}
           <main className="flex-1 overflow-hidden bg-muted/10 flex flex-col">
-            <div ref={canvasContainerRef} className="flex-1 overflow-hidden">
+            <div ref={canvasContainerRef} className="relative flex-1 overflow-hidden">
               <ReportCanvas canvasRef={canvasRef} />
+              {isDocumentEmpty && !onboardingDismissed && (
+                <EmptyCanvasOnboarding
+                  onOpenTemplates={() => setShowTemplateModal(true)}
+                  onDismiss={() => setOnboardingDismissed(true)}
+                />
+              )}
             </div>
             <EditorStatusBar containerRef={canvasContainerRef} />
           </main>
