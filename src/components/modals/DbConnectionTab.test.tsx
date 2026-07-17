@@ -93,6 +93,26 @@ function getGroup(groupId: string) {
   return useReportStore.getState().definition.schema!.groups.find((g) => g.id === groupId)!
 }
 
+/**
+ * Generous timeout for CI runners — the default 1s waitFor/findBy budget has
+ * proven flaky under load (options populate asynchronously after a
+ * namespace/table change).
+ */
+const WAIT = { timeout: 5000 }
+
+/**
+ * Wait until the table <select> options include `value`, then return the
+ * select. Table options load asynchronously after a namespace change —
+ * selecting a table before its option exists races the catalog fetch.
+ */
+async function waitForTableOption(value: string): Promise<HTMLSelectElement> {
+  await waitFor(() => {
+    const sel = screen.getByLabelText(/テーブル/) as HTMLSelectElement
+    expect(Array.from(sel.options).map((o) => o.value)).toContain(value)
+  }, WAIT)
+  return screen.getByLabelText(/テーブル/) as HTMLSelectElement
+}
+
 // ---------------------------------------------------------------------------
 // Suites
 // ---------------------------------------------------------------------------
@@ -154,9 +174,9 @@ describe('DbConnectionTab — happy path binding flow', () => {
 
     // Wait for the catalog to load.
     const nsSelect = await screen.findByLabelText(/ネームスペース/)
-    const tableSelect = screen.getByLabelText(/テーブル/)
 
     fireEvent.change(nsSelect, { target: { value: 'app' } })
+    const tableSelect = await waitForTableOption('users')
     fireEvent.change(tableSelect, { target: { value: 'users' } })
 
     await waitFor(() => {
@@ -173,11 +193,12 @@ describe('DbConnectionTab — happy path binding flow', () => {
 
     const nsSelect = await screen.findByLabelText(/ネームスペース/)
     fireEvent.change(nsSelect, { target: { value: 'app' } })
-    fireEvent.change(screen.getByLabelText(/テーブル/), { target: { value: 'users' } })
+    const tableSelect = await waitForTableOption('users')
+    fireEvent.change(tableSelect, { target: { value: 'users' } })
 
     // Field column selects: one per field, labelled by the field's display name.
     // Use role="combobox" + name to find them unambiguously.
-    const nameColSelect = await screen.findByLabelText(/氏名.*DB カラム|DB カラム.*氏名/)
+    const nameColSelect = await screen.findByLabelText(/氏名.*DB カラム|DB カラム.*氏名/, {}, WAIT)
     fireEvent.change(nameColSelect, { target: { value: 'full_name' } })
 
     await waitFor(() => {
@@ -229,15 +250,8 @@ describe('DbConnectionTab — non-destructive namespace browsing', () => {
     expect(group.fields[0].dbColumnName).toBe('full_name')
 
     // But the table select should now show the audit namespace's tables.
-    // The table list loads asynchronously after the namespace change — wait
-    // for it instead of asserting synchronously (flaky on slow CI runners).
-    await waitFor(() => {
-      const tableSelect = screen.getByLabelText(/テーブル/)
-      // Audit has one table "events" — which should now be selectable.
-      expect(
-        Array.from((tableSelect as HTMLSelectElement).options).map((o) => o.value),
-      ).toContain('events')
-    })
+    // Audit has one table "events" — which should now be selectable.
+    await waitForTableOption('events')
   })
 
   it('only writes to the store when a table is actually picked', async () => {
@@ -254,9 +268,8 @@ describe('DbConnectionTab — non-destructive namespace browsing', () => {
     expect(getGroup(groupId).tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
 
     // …then pick its table. NOW the store is written.
-    fireEvent.change(screen.getByLabelText(/テーブル/), {
-      target: { value: 'events' },
-    })
+    const tableSelect = await waitForTableOption('events')
+    fireEvent.change(tableSelect, { target: { value: 'events' } })
     await waitFor(() => {
       expect(getGroup(groupId).tableMeta).toEqual({
         namespace: 'audit', tableName: 'events',
@@ -308,7 +321,7 @@ describe('DbConnectionTab — stale binding preservation', () => {
     render(<DbConnectionTab />)
     await screen.findByLabelText(/ネームスペース/)
 
-    const tableSelect = screen.getByLabelText(/テーブル/) as HTMLSelectElement
+    const tableSelect = await waitForTableOption('renamed_away')
     const stale = Array.from(tableSelect.options).find((o) => o.value === 'renamed_away')
     expect(stale).toBeDefined()
     expect(stale!.disabled).toBe(true)
@@ -344,9 +357,8 @@ describe('DbConnectionTab — rebind semantics', () => {
     await screen.findByLabelText(/ネームスペース/)
 
     // Rebind to a different table in the same namespace.
-    fireEvent.change(screen.getByLabelText(/テーブル/), {
-      target: { value: 'orders' },
-    })
+    const tableSelect = await waitForTableOption('orders')
+    fireEvent.change(tableSelect, { target: { value: 'orders' } })
 
     await waitFor(() => {
       const group = getGroup(groupId)
@@ -377,7 +389,7 @@ describe('DbConnectionTab — stale column handling', () => {
     render(<DbConnectionTab />)
 
     // Wait for the catalog fetch to complete and the field select to mount.
-    const nameColSelect = await screen.findByLabelText(/氏名.*DB カラム|DB カラム.*氏名/)
+    const nameColSelect = await screen.findByLabelText(/氏名.*DB カラム|DB カラム.*氏名/, {}, WAIT)
 
     // A synthetic disabled <option> with the stale value must exist.
     const staleOption = Array.from(
