@@ -27,12 +27,26 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      # DEBUG (temporary): both prior runs hung right after useEvaluator.test.ts;
-      # the next file in the no-cache (size-ordered) queue is ResponsesPanel.test.tsx.
-      # Run it alone with the hanging-process reporter to dump open handles.
-      - name: Test (debug — suspect file only)
-        timeout-minutes: 5
-        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic --reporter=hanging-process
+      # DEBUG (temporary): the suspect file hangs BEFORE collection output.
+      # Matrix of probes to localize the hang (each tolerates failure).
+      - name: Probe 1 — collection only (vitest list)
+        timeout-minutes: 4
+        continue-on-error: true
+        run: npx vitest list src/components/sidebar/ResponsesPanel.test.tsx
+
+      - name: Probe 2 — threads pool instead of forks
+        timeout-minutes: 4
+        continue-on-error: true
+        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic --pool=threads
+
+      - name: Probe 3 — sibling store test (shares most of the import graph)
+        timeout-minutes: 4
+        continue-on-error: true
+        run: npx vitest run src/store/responsesSlice.test.ts --reporter=basic
+
+      - name: Probe 4 — suspect file, forks (baseline repro)
+        timeout-minutes: 4
+        run: npx vitest run src/components/sidebar/ResponsesPanel.test.tsx --reporter=basic
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
