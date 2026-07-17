@@ -2,7 +2,7 @@ import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import type { CurrentDateElement, CurrentDateFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
 import { formatCurrentDate } from './format'
-import { FONT_FAMILIES } from '@/elements/_blocks/constants'
+import { FONT_FAMILIES, FONT_FAMILY_LABELS } from '@/elements/_blocks/constants'
 
 const FORMAT_OPTIONS: { value: CurrentDateFormat; label: string }[] = [
   { value: 'yyyy/MM/dd',             label: 'yyyy/MM/dd' },
@@ -57,7 +57,7 @@ export function CurrentDatePropertiesPanel({ el, onChange }: Props) {
       <PropSection title="スタイル">
         <PropRow label="フォント">
           <select className="border rounded px-2 py-1 text-xs w-full bg-background" value={style.fontFamily ?? 'sans-serif'} onChange={(e) => onStyle({ fontFamily: e.target.value })}>
-            {FONT_FAMILIES.map((f) => <option key={f} value={f}>{f}</option>)}
+            {FONT_FAMILIES.map((f) => <option key={f} value={f}>{FONT_FAMILY_LABELS[f] ?? f}</option>)}
           </select>
         </PropRow>
         <PropRow label="サイズ">

@@ -8,9 +8,9 @@ import {
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
-  Grid3X3, Magnet, Crosshair, ArrowUpToLine, ArrowDownToLine, ScanLine,
+  ArrowUpToLine, ArrowDownToLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
-  Layers, ChevronDown, PanelTop, FolderOpen, Save, FilePlus,
+  Layers, ChevronDown, FolderOpen, Save, FilePlus,
   ShieldCheck, ShieldAlert, Database, RefreshCw, User,
   Paintbrush, PaintBucket, Download,
 } from 'lucide-react'
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
 import { FitWidthIcon, FitPageIcon } from '@/components/common/zoomUtils'
 import { Tooltip } from '@/components/common/Tooltip'
+import { ToolbarViewMenu } from './ToolbarViewMenu'
 
 interface Props {
   canvasRefs: React.RefObject<HTMLDivElement | null>[]
@@ -433,43 +434,24 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
         <Divider />
 
-        <ToolbarButton onClick={toggleGrid} active={showGrid} title="グリッド表示切替">
-          <Grid3X3 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton onClick={toggleSnapToGrid} active={snapToGrid} title="グリッドにスナップ">
-          <Magnet className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton onClick={toggleTrimMarks} active={showTrimMarks} title="トンボ表示切替">
-          <Crosshair className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton onClick={toggleMarginGuide} active={showMarginGuide} title="余白ガイド表示切替">
-          <ScanLine className="w-4 h-4" />
-        </ToolbarButton>
-
-        <Divider />
-
-        <ToolbarButton
-          onClick={toggleHeaderEditMode}
-          active={headerEditMode}
-          disabled={!masterHeader && !masterFooter}
-          title="ヘッダー/フッター編集モード"
-        >
-          <PanelTop className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={handleToggleMasterHeader}
-          active={!!masterHeader}
-          title={masterHeader ? 'マスターヘッダーを削除' : 'マスターヘッダーを作成'}
-        >
-          <ArrowUpToLine className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={handleToggleMasterFooter}
-          active={!!masterFooter}
-          title={masterFooter ? 'マスターフッターを削除' : 'マスターフッターを作成'}
-        >
-          <ArrowDownToLine className="w-4 h-4" />
-        </ToolbarButton>
+        {/* Advanced view/layout tools consolidated behind one dropdown (#111) */}
+        <ToolbarViewMenu
+          showGrid={showGrid}
+          toggleGrid={toggleGrid}
+          snapToGrid={snapToGrid}
+          toggleSnapToGrid={toggleSnapToGrid}
+          showTrimMarks={showTrimMarks}
+          toggleTrimMarks={toggleTrimMarks}
+          showMarginGuide={showMarginGuide}
+          toggleMarginGuide={toggleMarginGuide}
+          headerEditMode={headerEditMode}
+          toggleHeaderEditMode={toggleHeaderEditMode}
+          canEditHeaderFooter={!!masterHeader || !!masterFooter}
+          hasMasterHeader={!!masterHeader}
+          onToggleMasterHeader={handleToggleMasterHeader}
+          hasMasterFooter={!!masterFooter}
+          onToggleMasterFooter={handleToggleMasterFooter}
+        />
 
         <div className="flex-1" />
 

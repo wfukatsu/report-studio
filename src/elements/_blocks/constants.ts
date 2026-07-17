@@ -30,6 +30,26 @@ export const FONT_FAMILIES = [
   'Yu Mincho',
 ] as const
 
+/**
+ * Business-friendly Japanese labels for font families (#111). Keeps the CSS
+ * family value intact while showing 明朝／ゴシック vocabulary the non-technical
+ * persona recognizes instead of technical values like `sans-serif`.
+ */
+export const FONT_FAMILY_LABELS: Record<(typeof FONT_FAMILIES)[number], string> = {
+  'sans-serif': 'ゴシック体（標準）',
+  'serif': '明朝体（標準）',
+  'monospace': '等幅',
+  'Noto Sans JP': 'Noto Sans JP（ゴシック）',
+  'Noto Serif JP': 'Noto Serif JP（明朝）',
+  'BIZ UDPGothic': 'BIZ UDP ゴシック',
+  'BIZ UDPMincho': 'BIZ UDP 明朝',
+  'Meiryo': 'メイリオ（ゴシック）',
+  'MS Gothic': 'MS ゴシック',
+  'MS Mincho': 'MS 明朝',
+  'Yu Gothic': '游ゴシック',
+  'Yu Mincho': '游明朝',
+}
+
 /** Default chart color palette */
 export const DEFAULT_CHART_COLORS = [
   '#8884d8',
