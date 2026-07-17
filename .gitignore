@@ -35,3 +35,7 @@ server/build/
 server/.gradle/
 server/data/
 server/scalardb.properties
+
+# Internal product-strategy artifacts (not for the public repo)
+reports/
+work/

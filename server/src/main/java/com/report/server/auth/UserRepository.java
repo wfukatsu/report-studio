@@ -30,6 +30,11 @@ public final class UserRepository {
         this.blob = new JsonBlobRepository(factory, NAMESPACE, TABLE);
     }
 
+    /** Package-private for tests — inject a prepared blob repository. */
+    UserRepository(JsonBlobRepository blob) {
+        this.blob = blob;
+    }
+
     public void ensureTable() {
         blob.ensureTable();
     }
@@ -81,24 +86,44 @@ public final class UserRepository {
     private static final String DEFAULT_PASSWORD = "changeme";
 
     /**
-     * Ensure a default admin user exists with a known password.
-     * Password is read from ADMIN_PASSWORD env var, defaulting to "changeme".
-     * If the admin user already exists, the password is reset to match.
+     * Ensure a default admin user exists.
+     *
+     * <ul>
+     *   <li>admin が存在しない場合: ADMIN_PASSWORD 環境変数（未設定時は既定値
+     *       "changeme"）で作成する</li>
+     *   <li>admin が既に存在する場合: ADMIN_PASSWORD が明示的に設定されている
+     *       ときだけパスワードをその値へリセットする（ロックアウト復旧用）。
+     *       未設定なら一切変更しない — UI からのパスワード変更が再起動で
+     *       巻き戻らないようにするため</li>
+     * </ul>
      */
     public void ensureDefaultUser() {
-        String envPassword = System.getenv("ADMIN_PASSWORD");
-        String password = (envPassword != null && !envPassword.isBlank())
-                ? envPassword
-                : DEFAULT_PASSWORD;
+        ensureDefaultUser(System.getenv("ADMIN_PASSWORD"));
+    }
 
+    /** Package-private for tests — env value injected as a parameter. */
+    void ensureDefaultUser(String envPassword) {
+        boolean envSet = envPassword != null && !envPassword.isBlank();
+        boolean adminExists = findById("admin").isPresent();
+
+        if (adminExists && !envSet) {
+            log.info("Admin user exists — leaving credentials untouched");
+            return;
+        }
+
+        String password = envSet ? envPassword : DEFAULT_PASSWORD;
         String hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray());
         UserRecord admin = new UserRecord("admin", "管理者", hashedPassword, Set.of("admin", "user"));
         save(admin);
 
-        if (DEFAULT_PASSWORD.equals(password)) {
-            log.info("Admin user ready (password: {})", DEFAULT_PASSWORD);
+        if (envSet) {
+            log.info(adminExists
+                    ? "Admin password reset from ADMIN_PASSWORD env var"
+                    : "Admin user created (password from ADMIN_PASSWORD env var)");
         } else {
-            log.info("Admin user ready (password from ADMIN_PASSWORD env var)");
+            log.warn("SECURITY: admin user created with the default password '{}'. "
+                    + "Set the ADMIN_PASSWORD environment variable (or change the password "
+                    + "from the admin UI) before exposing this server.", DEFAULT_PASSWORD);
         }
     }
 }
