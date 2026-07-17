@@ -101,7 +101,7 @@ npm run build            # 型チェック + ビルド (dist/)
 npm run lint             # ESLint
 npm test                 # テスト実行 (watch モード)
 npm test -- --run        # テスト一回実行
-npm run test:coverage    # カバレッジレポート (80% 閾値)
+npm run test:coverage    # カバレッジレポート (ラチェット閾値 — 現状値を下回ると失敗)
 ```
 
 ### バックエンド

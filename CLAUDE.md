@@ -11,7 +11,7 @@ npm run build        # Type-check + build to dist/
 npm run lint         # ESLint
 npm test             # Run tests (watch mode)
 npm test -- --run    # Run tests once
-npm run test:coverage  # Coverage report (80% threshold)
+npm run test:coverage  # Coverage report (ratchet thresholds — fails on regression)
 npm run storybook    # Storybook component explorer (http://localhost:6006)
 ```
 
