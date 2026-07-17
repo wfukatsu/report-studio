@@ -105,6 +105,18 @@ describe('ResponsesPanel — connected with template', () => {
     await waitFor(() => expect(screen.getByText('回答がまだありません。')).toBeInTheDocument())
   })
 
+  it('fetches exactly once for an empty result (no refetch loop)', async () => {
+    // Regression: an empty list used to fail the cache-freshness guard
+    // (responses.length > 0), so every fetch re-triggered the mount effect —
+    // an infinite request loop that starved the event loop under
+    // already-resolved mocks (CI hang) and hammered the backend in production.
+    mockList.mockResolvedValue(makeList([]))
+    render(<ResponsesPanel />)
+    await waitFor(() => expect(screen.getByText('回答がまだありません。')).toBeInTheDocument())
+    await new Promise((r) => setTimeout(r, 50))
+    expect(mockList).toHaveBeenCalledTimes(1)
+  })
+
   it('shows R3-compliant error banner when fetch fails (no raw HTTP / English text)', async () => {
     mockList.mockRejectedValueOnce(new ApiError(503, null, 'HTTP 503: Service Unavailable'))
     render(<ResponsesPanel />)
