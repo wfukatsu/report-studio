@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * Authentication controller with session-based login/logout.
@@ -45,11 +46,18 @@ public final class AuthController {
     private final RateLimiter loginRateLimiter = new RateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
     private final ConcurrentHashMap<String, SessionEntry> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService evictionScheduler;
+    private final LongSupplier clock;
 
     private record SessionEntry(Principal principal, long expiresAt) {}
 
     public AuthController(UserRepository userRepo) {
+        this(userRepo, System::currentTimeMillis);
+    }
+
+    /** Package-private for tests — inject a controllable clock. */
+    AuthController(UserRepository userRepo, LongSupplier clock) {
         this.userRepo = userRepo;
+        this.clock = clock;
         evictionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = Thread.ofVirtual().unstarted(r);
             t.setName("session-eviction");
@@ -78,7 +86,7 @@ public final class AuthController {
     }
 
     private void evictExpiredSessions() {
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
         int removed = 0;
         for (var it = sessions.entrySet().iterator(); it.hasNext(); ) {
             if (now > it.next().getValue().expiresAt()) {
@@ -100,7 +108,7 @@ public final class AuthController {
         if (sessionId == null) return Principal.ANONYMOUS;
         SessionEntry entry = sessions.get(sessionId);
         if (entry == null) return Principal.ANONYMOUS;
-        if (System.currentTimeMillis() > entry.expiresAt()) {
+        if (clock.getAsLong() > entry.expiresAt()) {
             sessions.remove(sessionId);
             return Principal.ANONYMOUS;
         }
@@ -147,7 +155,7 @@ public final class AuthController {
 
         String sessionId = UUID.randomUUID().toString();
         Principal principal = new Principal(user.userId(), user.displayName(), user.roles());
-        sessions.put(sessionId, new SessionEntry(principal, System.currentTimeMillis() + SESSION_TTL_MS));
+        sessions.put(sessionId, new SessionEntry(principal, clock.getAsLong() + SESSION_TTL_MS));
 
         Cookie cookie = new Cookie(SESSION_COOKIE, sessionId);
         cookie.setMaxAge(86400);

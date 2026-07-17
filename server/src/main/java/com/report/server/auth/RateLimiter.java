@@ -2,6 +2,7 @@ package com.report.server.auth;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 /**
  * Fixed-window rate limiter with automatic cleanup of expired entries.
@@ -20,6 +21,7 @@ public final class RateLimiter {
 
     private final int maxAttempts;
     private final long windowMs;
+    private final LongSupplier clock;
 
     private record Window(int count, long windowStart) {}
 
@@ -38,10 +40,16 @@ public final class RateLimiter {
      * @param windowMs    window duration in milliseconds
      */
     public RateLimiter(int maxAttempts, long windowMs) {
+        this(maxAttempts, windowMs, System::currentTimeMillis);
+    }
+
+    /** Package-private for tests — inject a controllable clock. */
+    RateLimiter(int maxAttempts, long windowMs, LongSupplier clock) {
         if (maxAttempts <= 0) throw new IllegalArgumentException("maxAttempts must be > 0");
         if (windowMs <= 0) throw new IllegalArgumentException("windowMs must be > 0");
         this.maxAttempts = maxAttempts;
         this.windowMs = windowMs;
+        this.clock = clock;
     }
 
     /**
@@ -51,7 +59,7 @@ public final class RateLimiter {
      * @return true if allowed, false if rate limited
      */
     public boolean isAllowed(String key) {
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
 
         // Periodic cleanup of expired windows
         if (callCount.incrementAndGet() % CLEANUP_INTERVAL == 0) {

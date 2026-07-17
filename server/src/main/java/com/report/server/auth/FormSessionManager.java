@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * Manages form access sessions (password-protected public forms).
@@ -23,8 +24,15 @@ public final class FormSessionManager {
 
     private final ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService evictionScheduler;
+    private final LongSupplier clock;
 
     public FormSessionManager() {
+        this(System::currentTimeMillis);
+    }
+
+    /** Package-private for tests — inject a controllable clock. */
+    FormSessionManager(LongSupplier clock) {
+        this.clock = clock;
         evictionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = Thread.ofVirtual().unstarted(r);
             t.setName("form-session-eviction");
@@ -61,7 +69,7 @@ public final class FormSessionManager {
         byte[] bytes = new byte[TOKEN_BYTES];
         RANDOM.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        sessions.put(token, new Session(templateId, System.currentTimeMillis() + SESSION_TTL_MS));
+        sessions.put(token, new Session(templateId, clock.getAsLong() + SESSION_TTL_MS));
         return token;
     }
 
@@ -74,7 +82,7 @@ public final class FormSessionManager {
         if (token == null) return null;
         Session session = sessions.get(token);
         if (session == null) return null;
-        if (System.currentTimeMillis() > session.expiresAt()) {
+        if (clock.getAsLong() > session.expiresAt()) {
             sessions.remove(token);
             return null;
         }
@@ -83,7 +91,7 @@ public final class FormSessionManager {
 
     /** Remove expired sessions. Called by the background scheduler. */
     void cleanExpired() {
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
         sessions.entrySet().removeIf(e -> now > e.getValue().expiresAt());
     }
 }
