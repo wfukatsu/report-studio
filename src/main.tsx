@@ -1,11 +1,15 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import '@/index.css'
 import { AppShell } from '@/components/layout/AppShell'
-import { DataBrowserPage } from '@/pages/DataBrowserPage'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
+
+// データブラウザは独立ページなので遅延ロードし、初期バンドルから切り離す。
+const DataBrowserPage = lazy(() =>
+  import('@/pages/DataBrowserPage').then((m) => ({ default: m.DataBrowserPage })),
+)
 
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('Root element not found')
@@ -16,7 +20,14 @@ createRoot(rootEl).render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<AppShell />} />
-          <Route path="/data-browser" element={<DataBrowserPage />} />
+          <Route
+            path="/data-browser"
+            element={
+              <Suspense fallback={null}>
+                <DataBrowserPage />
+              </Suspense>
+            }
+          />
         </Routes>
       </BrowserRouter>
       <Toaster position="bottom-center" richColors duration={8000} />

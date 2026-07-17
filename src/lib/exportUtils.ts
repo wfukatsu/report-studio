@@ -2,7 +2,6 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { FORMAT_VERSION } from './formatVersion'
 import type { ReportDefinition } from '@/types'
-import { downloadBlob } from '@/api/client'
 import { formatPageNumber } from '@/elements/pageNumber/format'
 import { formatCurrentDate } from '@/elements/currentDate/format'
 import type { PageNumberElement, CurrentDateElement } from '@/types'
@@ -199,25 +198,6 @@ export async function exportPageToPng(
   } finally {
     restoreAutoFields(snapshots)
   }
-}
-
-/**
- * Export via server-side PDF generation (high quality, vector text).
- * Falls back to client-side html2canvas if the backend is unavailable.
- */
-export async function exportToServerPdf(
-  definition: ReportDefinition,
-  testData: Record<string, unknown> | null,
-  filename = 'report.pdf',
-): Promise<void> {
-  const defJson = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>
-  const dataJson = (testData ?? {}) as Record<string, unknown>
-  // Dynamic import: reportApi statically imports the store, which imports the
-  // slices, which import this module — a static import here closes that cycle
-  // and breaks store initialization depending on module evaluation order.
-  const { generateStatelessPdf } = await import('@/api/reportApi')
-  const blob = await generateStatelessPdf(defJson, dataJson)
-  downloadBlob(blob, filename)
 }
 
 export async function exportReportToPdf(
