@@ -9,6 +9,7 @@ import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl, listPublicReports, copyTemplate } from '@/api/reportApi'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { TemplateManagerModal } from './TemplateManagerModal'
+import { TemplateThumbnail } from './TemplateThumbnail'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
@@ -389,34 +390,43 @@ export function TemplateSelectionModal({
               {/* Blank option */}
               <button
                 onClick={() => handleSelectBuiltin(null)}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors text-sm ${
+                className={`flex flex-col rounded-lg border-2 transition-colors text-sm overflow-hidden text-left ${
                   selectedBuiltinId === null && selectedDefinition !== null
                     ? 'border-primary bg-primary/5'
                     : 'border-border bg-card hover:bg-accent'
                 }`}
               >
-                <FileText className="w-8 h-8 text-muted-foreground" />
-                <span className="text-xs font-medium">空白</span>
-                <span className="text-[10px] text-muted-foreground">白紙から作成</span>
+                <div
+                  className="w-full flex flex-col items-center justify-center gap-1.5 bg-muted/40 border-b border-dashed"
+                  style={{ aspectRatio: '210 / 297' }}
+                >
+                  <FileText className="w-7 h-7 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">白紙から作成</span>
+                </div>
+                <p className="px-2 py-1.5 font-medium text-xs">空白</p>
               </button>
 
               {filteredBuiltins.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => handleSelectBuiltin(t.id)}
-                  className={`flex flex-col items-start gap-1 p-3 rounded-lg border-2 transition-colors text-sm ${
+                  title={t.description ?? t.name}
+                  className={`flex flex-col rounded-lg border-2 transition-colors text-sm overflow-hidden text-left ${
                     selectedBuiltinId === t.id
                       ? 'border-primary bg-primary/5'
                       : 'border-border bg-card hover:bg-accent'
                   }`}
                 >
-                  <p className="font-medium text-xs">{t.name}</p>
-                  {t.description && (
-                    <p className="text-[10px] text-muted-foreground leading-snug">{t.description}</p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground mt-auto">
-                    {t.definition.pages.length}ページ · {t.definition.pageSettings?.paperSize ?? 'A4'}
-                  </p>
+                  {/* Wireframe thumbnail of the first page */}
+                  <div className="w-full border-b bg-white">
+                    <TemplateThumbnail definition={t.definition} />
+                  </div>
+                  <div className="px-2 py-1.5">
+                    <p className="font-medium text-xs truncate">{t.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {t.definition.pages.length}ページ · {t.definition.pageSettings?.paperSize ?? 'A4'}
+                    </p>
+                  </div>
                 </button>
               ))}
             </div>
