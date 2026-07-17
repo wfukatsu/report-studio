@@ -28,12 +28,12 @@ jobs:
         run: npm run build
 
       - name: Test
-        # threads pool: the default forks pool deadlocks on this runner for
-        # ResponsesPanel.test.tsx (worker goes silent before collection output;
-        # probe run 29557958105 — same file passes under threads, hangs under
-        # forks). basic reporter keeps per-file progress visible in the log.
+        # vitest 3 (pool rewrite) — vitest 2.1.9 workers deadlocked
+        # intermittently on this runner regardless of pool (forks and threads),
+        # always right before ResponsesPanel.test.tsx started. basic reporter
+        # keeps per-file progress visible; the step timeout is the safety net.
         timeout-minutes: 15
-        run: npx vitest run --reporter=basic --pool=threads
+        run: npx vitest run --reporter=basic
 
   backend:
     name: Backend (JUnit + golden PDF regression)
