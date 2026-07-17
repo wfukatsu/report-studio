@@ -51,6 +51,7 @@ public final class AppWiring {
     final V2SchemaInferController v2SchemaInferCtrl;
     final V2PdfJobController v2PdfJobCtrl;
     final V2StatelessPdfController v2StatelessPdfCtrl;
+    final V2StatelessExcelController v2StatelessExcelCtrl;
     final V2ScalarDbCatalogController v2ScalarDbCatalogCtrl;
     final V2ScalarDbTableController v2ScalarDbTableCtrl;
     final V2BindingResolveController v2BindingResolveCtrl;
@@ -183,6 +184,7 @@ public final class AppWiring {
         v2SchemaInferCtrl = new V2SchemaInferController();
         v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, jobRepo, pdfExecutor);
         v2StatelessPdfCtrl = new V2StatelessPdfController(pdfExecutor);
+        v2StatelessExcelCtrl = new V2StatelessExcelController();
         v2ScalarDbCatalogCtrl = new V2ScalarDbCatalogController(factory);
         v2ScalarDbTableCtrl = new V2ScalarDbTableController(factory);
         v2BindingResolveCtrl = new V2BindingResolveController(factory, v2DefinitionsRepo);

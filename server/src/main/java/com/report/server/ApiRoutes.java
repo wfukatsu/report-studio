@@ -276,6 +276,9 @@ public final class ApiRoutes {
         // V2 stateless PDF generation
         app.post("/api/v2/pdf/generate", w.v2StatelessPdfCtrl::generate);
 
+        // V2 stateless XLSX generation (issue #118)
+        app.post("/api/v2/excel/generate", w.v2StatelessExcelCtrl::generate);
+
         // V2 async PDF jobs
         app.post("/api/v2/pdf-jobs", w.v2PdfJobCtrl::submit);
         app.get("/api/v2/pdf-jobs/{jobId}", w.v2PdfJobCtrl::getStatus);
