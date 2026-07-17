@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml)
 
+📖 **English**: see [README.en.md](./README.en.md).
+
 ドラッグ&ドロップで帳票・フォームを設計し、PDF/PNG エクスポートや ScalarDB との連携を提供する Web アプリケーションです。日本のビジネス帳票（見積書・請求書・税務様式）に必要な印鑑欄・和暦・縦書き・ふりがなをネイティブサポートします。
 
 ![デザイナー画面 — 御見積書テンプレートの編集](docs/images/designer.png)
@@ -91,6 +93,28 @@ npm run dev:backend  # バックエンド   (http://localhost:8080)
 3. ツールバー右側の **プレビューを表示** で、`{{fieldKey}}` トークンがサンプルデータに解決される様子を確認
 4. **エクスポート** から PDF を出力 — サーバーサイド PDF はページ分割・和文フォント埋め込みに対応しています
 
+## Docker でのクイックスタート
+
+Node.js や JDK を用意せず、フロントエンド + バックエンド + SQLite をワンコマンドで起動できます
+（要 [Docker](https://docs.docker.com/get-docker/) / Docker Compose）。
+
+```bash
+git clone https://github.com/wfukatsu/report-studio.git
+cd report-studio
+
+docker compose up --build
+```
+
+起動後、ブラウザで **http://localhost:8080** を開き、`admin` / `changeme` でログインします。
+
+- **データ永続化**: SQLite データベースは名前付きボリューム `report-studio-data` に保存され、コンテナ再作成後も残ります。停止は `docker compose down`（データ保持）、データも消す場合は `docker compose down -v`。
+- **ポート変更**: 8080 が使用中なら `APP_PORT=8090 docker compose up --build`（`ALLOWED_ORIGIN` は自動で追従します）。
+- **初期パスワード**: 公開用途では初回起動前に `ADMIN_PASSWORD=... docker compose up --build` で変更してください。
+
+> nginx が静的アセットを配信し `/api` をバックエンドへ同一オリジンでリバースプロキシするため、
+> ブラウザからは単一オリジンに見えます（CORS 不要・Cookie/CSRF が素直に機能）。構成の詳細は
+> [`docker-compose.yml`](./docker-compose.yml) と [`docker/nginx.conf`](./docker/nginx.conf) を参照。
+
 ## コマンド一覧
 
 ### フロントエンド
@@ -148,6 +172,13 @@ report-design-studio-v2/
 ├── docs/                   # ドキュメント
 └── CLAUDE.md               # Claude Code 向け開発ガイド
 ```
+
+## コントリビューション
+
+開発環境のセットアップ・ブランチ運用・PR 規約・テスト方針は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
+バグ報告・機能提案・PR を歓迎します。セキュリティ脆弱性は公開 Issue ではなく [SECURITY.md](./SECURITY.md) の手順で報告してください。
+
+Report Studio を利用している場合は、ぜひ [ADOPTERS.md](./ADOPTERS.md) への追加をご検討ください（自己申告ベース・テレメトリなし）。
 
 ## ライセンス
 
