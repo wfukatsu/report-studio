@@ -170,11 +170,9 @@ export default function App() {
     }
   }, [currentUser, setCurrentTemplateId, newReport])
 
-  // Fetch tenant info on mount (best-effort; elements show fallback if unavailable)
-  const fetchTenantInfo = useReportStore((s) => s.fetchTenantInfo)
-  useEffect(() => {
-    fetchTenantInfo()
-  }, [fetchTenantInfo])
+  // Tenant info is fetched by the auth flow (checkAuth on session-restore,
+  // loginUser on login) — see authSlice. Fetching here on bare mount would run
+  // before authentication and log a guaranteed 401.
 
   // Ensure __productMaster__ system group exists in schema on mount
   const ensureProductMasterGroup = useReportStore((s) => s.ensureProductMasterGroup)

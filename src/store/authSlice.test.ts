@@ -89,6 +89,24 @@ describe('authSlice — checkAuth', () => {
     await pending
     expect(useReportStore.getState().authLoading).toBe(false)
   })
+
+  it('fetches tenant info after restoring a valid session', async () => {
+    vi.mocked(getMe).mockResolvedValueOnce(ADMIN)
+    vi.mocked(getTenantInfo).mockResolvedValueOnce(TENANT as never)
+
+    await useReportStore.getState().checkAuth()
+
+    expect(getTenantInfo).toHaveBeenCalledTimes(1)
+    expect(useReportStore.getState().tenantInfo).toEqual(TENANT)
+  })
+
+  it('does not fetch tenant info for an anonymous session', async () => {
+    vi.mocked(getMe).mockResolvedValueOnce({ userId: '', displayName: '', roles: [], anonymous: true })
+
+    await useReportStore.getState().checkAuth()
+
+    expect(getTenantInfo).not.toHaveBeenCalled()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -104,7 +122,7 @@ describe('authSlice — loginUser', () => {
 
     expect(login).toHaveBeenCalledWith('admin', 'secret')
     expect(useReportStore.getState().currentUser).toEqual(ADMIN)
-    // Tenant info must be re-fetched: the mount-time fetch happens pre-auth (401)
+    // Tenant info must be fetched as part of the login flow (no pre-auth mount fetch)
     expect(getTenantInfo).toHaveBeenCalledTimes(1)
     expect(useReportStore.getState().tenantInfo).toEqual(TENANT)
   })

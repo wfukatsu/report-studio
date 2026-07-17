@@ -11,6 +11,7 @@ import type { StateCreator } from 'zustand'
 import type { TenantInfo } from '@/types'
 import type { StoreState } from './types'
 import { getTenantInfo, putTenantInfo } from '@/api/reportApi'
+import { isApiError } from '@/api/client'
 
 export type TenantSlice = Pick<StoreState,
   | 'tenantInfo'
@@ -37,7 +38,11 @@ export const createTenantSlice: StateCreator<
         s.tenantLoading = false
       })
     } catch (err) {
-      console.error('[tenantSlice] fetchTenantInfo failed:', err)
+      // 401/403 before login is expected (session not established yet) — not an
+      // error worth surfacing to the console. Only log genuinely unexpected failures.
+      if (!(isApiError(err) && (err.status === 401 || err.status === 403))) {
+        console.error('[tenantSlice] fetchTenantInfo failed:', err)
+      }
       set((s) => { s.tenantLoading = false })
     }
   },
