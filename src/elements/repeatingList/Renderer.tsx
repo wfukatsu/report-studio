@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import type { RepeatingListElement, RepeatingListField } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
-import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
+import { DEFAULT_CELL_FONT_SIZE_PT, FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
 
 // ---------------------------------------------------------------------------
 // Shared card component
@@ -32,7 +32,7 @@ function ItemCard({
         <div key={fi} style={{ position: 'absolute', left: `${f.x}mm`, top: `${f.y}mm`, width: `${f.width}mm`, height: `${f.height}mm`, fontSize: f.style?.fontSize ? `${f.style.fontSize}pt` : `${DEFAULT_CELL_FONT_SIZE_PT}pt`, fontWeight: f.style?.fontWeight, color: f.style?.color ?? '#374151', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
           {record
             ? (f.isLabel ? f.key : resolveField(record, f.key))
-            : (f.isLabel ? f.key : `{{${f.key}}}`)}
+            : (f.isLabel ? f.key : <span style={FIELD_PLACEHOLDER_STYLE}>{`{{${f.key}}}`}</span>)}
         </div>
       ))}
     </div>
