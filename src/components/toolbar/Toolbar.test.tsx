@@ -75,10 +75,14 @@ describe('Toolbar — Undo/Redo', () => {
   })
 })
 
-describe('Toolbar — グリッド・スナップ', () => {
+describe('Toolbar — グリッド・スナップ（表示オプションメニュー）', () => {
+  // Advanced view tools now live behind the 表示オプション dropdown (#111).
+  const openViewMenu = () => fireEvent.click(screen.getByRole('button', { name: '表示オプション' }))
+
   it('toggles grid on click', () => {
     renderToolbar()
-    const gridBtn = screen.getByRole('button', { name: 'グリッド表示切替' })
+    openViewMenu()
+    const gridBtn = screen.getByRole('menuitemcheckbox', { name: 'グリッドを表示' })
     const beforeState = useReportStore.getState().showGrid
     fireEvent.click(gridBtn)
     expect(useReportStore.getState().showGrid).toBe(!beforeState)
@@ -86,7 +90,8 @@ describe('Toolbar — グリッド・スナップ', () => {
 
   it('toggles snap to grid on click', () => {
     renderToolbar()
-    const snapBtn = screen.getByRole('button', { name: 'グリッドにスナップ' })
+    openViewMenu()
+    const snapBtn = screen.getByRole('menuitemcheckbox', { name: 'グリッドにスナップ' })
     const beforeState = useReportStore.getState().snapToGrid
     fireEvent.click(snapBtn)
     expect(useReportStore.getState().snapToGrid).toBe(!beforeState)
@@ -94,7 +99,8 @@ describe('Toolbar — グリッド・スナップ', () => {
 
   it('toggles trim marks on click', () => {
     renderToolbar()
-    const trimBtn = screen.getByRole('button', { name: 'トンボ表示切替' })
+    openViewMenu()
+    const trimBtn = screen.getByRole('menuitemcheckbox', { name: 'トンボを表示' })
     const beforeState = useReportStore.getState().showTrimMarks
     fireEvent.click(trimBtn)
     expect(useReportStore.getState().showTrimMarks).toBe(!beforeState)
@@ -201,17 +207,21 @@ describe('Toolbar — ズームコントロール', () => {
   })
 })
 
-describe('Toolbar — マスターヘッダー/フッター', () => {
-  it('creates master header when header button is clicked', () => {
+describe('Toolbar — マスターヘッダー/フッター（表示オプションメニュー）', () => {
+  const openViewMenu = () => fireEvent.click(screen.getByRole('button', { name: '表示オプション' }))
+
+  it('creates master header when header item is clicked', () => {
     renderToolbar()
-    const headerBtn = screen.getByRole('button', { name: 'マスターヘッダーを作成' })
+    openViewMenu()
+    const headerBtn = screen.getByRole('menuitemcheckbox', { name: 'マスターヘッダーを作成' })
     fireEvent.click(headerBtn)
     expect(useReportStore.getState().definition.masterHeader).not.toBeNull()
   })
 
-  it('creates master footer when footer button is clicked', () => {
+  it('creates master footer when footer item is clicked', () => {
     renderToolbar()
-    const footerBtn = screen.getByRole('button', { name: 'マスターフッターを作成' })
+    openViewMenu()
+    const footerBtn = screen.getByRole('menuitemcheckbox', { name: 'マスターフッターを作成' })
     fireEvent.click(footerBtn)
     expect(useReportStore.getState().definition.masterFooter).not.toBeNull()
   })

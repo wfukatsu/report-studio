@@ -8,9 +8,9 @@ import {
   TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon,
   WritingHorizontalIcon, WritingVerticalIcon,
 } from '@/elements/_base/TextVerticalAlignIcons'
-import { FONT_FAMILIES, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT } from '../constants'
+import { FONT_FAMILIES, FONT_FAMILY_LABELS, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT } from '../constants'
 
-const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: f }))
+const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: FONT_FAMILY_LABELS[f] ?? f }))
 
 const TEXT_FIT_OPTIONS = [
   { value: 'clip', label: 'なし（はみ出し非表示）' },
