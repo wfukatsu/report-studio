@@ -4,7 +4,7 @@ import { useToolbarExport } from './useToolbarExport'
 import { useToolbarFile } from './useToolbarFile'
 import { ToolbarDialogs } from './ToolbarDialogs'
 import {
-  Undo2, Redo2, Eye, FileImage, FileText,
+  Undo2, Redo2, Eye, FileImage, FileText, FileSpreadsheet,
   ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   BringToFront, SendToBack, Copy, Clipboard, Scissors,
@@ -126,6 +126,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     handleFullPreviewPdf,
     handleBackendPdf,
     handleExportPng,
+    handleExportCsv,
     handleValidate,
   } = useToolbarExport({
     canvasRefs,
@@ -640,16 +641,22 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           {showExportMenu && (
             <div role="menu" className="absolute top-full right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[200px] py-1" onKeyDown={handleMenuKeyDown}>
               <MenuButton
-                onClick={() => { handleExportPng(); setShowExportMenu(false) }}
-                disabled={isExporting}
-                icon={<FileImage className="w-4 h-4" />}
-                label="PNG（現在のページ）"
-              />
-              <MenuButton
                 onClick={() => { void handleExportPdf(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileText className="w-4 h-4" />}
-                label="PDF（全ページ）"
+                label="PDF（全ページ・サーバー生成/ベクター）"
+              />
+              <MenuButton
+                onClick={() => { handleExportCsv(); setShowExportMenu(false) }}
+                disabled={isExporting}
+                icon={<FileSpreadsheet className="w-4 h-4" />}
+                label="CSV（帳票データ）"
+              />
+              <MenuButton
+                onClick={() => { handleExportPng(); setShowExportMenu(false) }}
+                disabled={isExporting}
+                icon={<FileImage className="w-4 h-4" />}
+                label="PNG（現在のページ・画像）"
               />
               {hasTemplateId && backendConnected && (
                 <>
@@ -658,7 +665,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                     onClick={() => { handleBackendPdf(); setShowExportMenu(false) }}
                     disabled={isExporting}
                     icon={<FileText className="w-4 h-4" />}
-                    label="PDF（サーバー生成）"
+                    label="PDF（保存版テンプレートから）"
                   />
                 </>
               )}
