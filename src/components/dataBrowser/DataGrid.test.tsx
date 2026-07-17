@@ -96,6 +96,20 @@ describe('DataGrid — ScalarDB table source', () => {
     expect(screen.getByRole('button', { name: '再試行' })).toBeInTheDocument()
   })
 
+  it('re-fetches when the 再試行 button is clicked after an error', async () => {
+    mockScan.mockRejectedValueOnce(new Error('connection refused'))
+    render(<DataGrid source={TABLE_SOURCE} />)
+    await screen.findByText('データの読み込みに失敗しました')
+    expect(mockScan).toHaveBeenCalledTimes(1)
+
+    // Next call succeeds
+    mockScan.mockResolvedValueOnce(scanResponse())
+    fireEvent.click(screen.getByRole('button', { name: '再試行' }))
+
+    expect(await screen.findByText('Alpha')).toBeInTheDocument()
+    expect(mockScan).toHaveBeenCalledTimes(2)
+  })
+
   it('shows an empty message when the table has no rows', async () => {
     mockScan.mockResolvedValueOnce(scanResponse({ rows: [], total: 0 }))
     render(<DataGrid source={TABLE_SOURCE} />)

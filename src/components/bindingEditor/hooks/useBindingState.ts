@@ -20,6 +20,7 @@ import type {
 } from '../types'
 import { isBindableType } from '../types'
 import { isSystemGroup } from '@/store/schemaSlice'
+import { createDataFieldFromSchema } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 
 export function useBindingState() {
@@ -28,8 +29,10 @@ export function useBindingState() {
   // -----------------------------------------------------------------------
   const schema = useReportStore((s) => s.definition.schema)
   const pages = useReportStore((s) => s.definition.pages)
+  const activePageId = useReportStore((s) => s.selection.activePageId)
 
   // Store actions
+  const addElement = useReportStore((s) => s.addElement)
   const addSchemaGroup = useReportStore((s) => s.addSchemaGroup)
   const removeSchemaGroup = useReportStore((s) => s.removeSchemaGroup)
   const updateSchemaGroup = useReportStore((s) => s.updateSchemaGroup)
@@ -383,8 +386,20 @@ export function useBindingState() {
     if (!group) return
 
     if (bulk.side === 'schema') {
-      // Items are schema fields → create template elements (not directly possible from store)
-      // For now, this is a no-op placeholder; template element creation requires canvas integration
+      // Items are schema fields → create dataField elements on the active page,
+      // pre-bound to each field. No active page → nothing to place onto.
+      if (!activePageId) return
+      const existingNames = new Set(allElements.map((e) => e.elementLabel))
+      const fieldsToPlace = group.fields.filter((f) => !existingNames.has(f.label || f.key))
+      fieldsToPlace.forEach((f, i) => {
+        const el = createDataFieldFromSchema({
+          fieldId: f.id,
+          fieldKey: f.key,
+          fieldLabel: f.label || f.key,
+        })
+        // Stack vertically so newly generated fields don't fully overlap
+        addElement(activePageId, { ...el, position: { x: 13, y: 13 + i * 10 } })
+      })
     } else {
       // Items are element names → create schema fields in the group
       for (const item of bulkItems) {
@@ -396,7 +411,7 @@ export function useBindingState() {
       }
     }
     setBulk(null)
-  }, [bulk, bulkItems, schema?.groups, addSchemaField])
+  }, [bulk, bulkItems, schema?.groups, addSchemaField, addElement, activePageId, allElements])
 
   // -----------------------------------------------------------------------
   // Schema state flags (based on user groups only)

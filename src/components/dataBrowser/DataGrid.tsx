@@ -269,7 +269,7 @@ export function DataGrid({ source }: Props) {
           description={errorMsg}
           action={
             <button
-              onClick={() => setPage(currentPage)}
+              onClick={reload}
               className="px-3 py-1.5 text-xs border rounded hover:bg-accent"
             >
               再試行

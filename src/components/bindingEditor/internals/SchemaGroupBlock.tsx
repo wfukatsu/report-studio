@@ -212,7 +212,9 @@ const FieldCard = memo(function FieldCard({
   const color = getGroupColor(groupIndex)
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       ref={(el) => fieldRef(field.id, el)}
       data-field-id={field.id}
       className={cn(
@@ -234,6 +236,12 @@ const FieldCard = memo(function FieldCard({
         !isSelected && !isHovered && !isDraggingElement && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
       )}
       onClick={() => onConnect?.(field.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onConnect?.(field.id)
+        }
+      }}
       onPointerDown={(e) => onFieldDragStart(e, field.id)}
       onPointerMove={onDragMove}
       onPointerUp={() => { if (isDraggingElement) onDropOnField(field.id) }}
@@ -288,7 +296,7 @@ const FieldCard = memo(function FieldCard({
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
-    </button>
+    </div>
   )
 })
 
