@@ -1185,6 +1185,13 @@ export interface SchemaDefinitionPayload {
   [key: string]: unknown
 }
 
+/**
+ * Accepted definition input for create/update. `SchemaDefinition` is included
+ * explicitly because interfaces have no implicit index signature and would
+ * otherwise force callers to spread into a fresh object literal.
+ */
+export type SchemaDefinitionInput = SchemaDefinition | SchemaDefinitionPayload
+
 const SchemaEnvelopeSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1221,7 +1228,7 @@ export async function getSchema(id: string): Promise<SchemaEnvelope> {
 
 export async function createSchema(
   name: string,
-  definition: SchemaDefinitionPayload,
+  definition: SchemaDefinitionInput,
   visibility: 'private' | 'shared' = 'private',
 ): Promise<{ id: string; name: string; updatedAt: number }> {
   return apiFetch('/api/v2/schemas', SchemaCreateResponseSchema, jsonBody({
@@ -1236,7 +1243,7 @@ export async function updateSchema(
   params: {
     name: string
     visibility: 'private' | 'shared'
-    definition: SchemaDefinitionPayload
+    definition: SchemaDefinitionInput
     updatedAt?: number | null
   },
 ): Promise<{ status: string; id: string; updatedAt: number }> {

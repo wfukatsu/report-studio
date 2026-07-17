@@ -132,7 +132,7 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
     const detailGroupId = useReportStore.getState().definition.schema!.groups[1].id
     useReportStore.getState().addSchemaField(detailGroupId, { key: 'orderId', label: '注文ID', type: 'string', dbColumnName: 'customer_id' } as import('@/types').SchemaField)
     useReportStore.getState().bindGroupToTable(detailGroupId, { namespace: 'app', tableName: 'orders' })
-    useReportStore.getState().updateSchemaGroup(detailGroupId, { label: '注文', linkedMasterGroupId: masterGroupId } as Partial<Pick<import('@/types').SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>)
+    useReportStore.getState().updateSchemaGroup(detailGroupId, { label: '注文', linkedMasterGroupId: masterGroupId })
 
     return { masterGroupId, detailGroupId }
   }

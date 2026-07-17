@@ -86,25 +86,25 @@ class V2TenantControllerTest {
         assertEquals("テスト株式会社", result.path("companyName").asText());
     }
 
+    // put() delegates the admin-role predicate to ApiRoutes.requireAdminRole,
+    // which throws ForbiddenResponse (403). Unauthenticated requests are
+    // rejected with 401 by the auth before-filter, not by this controller.
+
     @Test
-    void put_returns401WhenUnauthenticated() throws Exception {
+    void put_rejectsWhenUnauthenticated() throws Exception {
         when(ctx.attribute("principal")).thenReturn(null);
         when(ctx.body()).thenReturn("{}");
 
-        controller.put(ctx);
-
-        verify(ctx).status(HttpStatus.UNAUTHORIZED);
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
         verify(tenantRepo, never()).put(any(), any());
     }
 
     @Test
-    void put_returns401ForAnonymousPrincipal() throws Exception {
+    void put_rejectsAnonymousPrincipal() throws Exception {
         when(ctx.attribute("principal")).thenReturn(Principal.ANONYMOUS);
         when(ctx.body()).thenReturn("{}");
 
-        controller.put(ctx);
-
-        verify(ctx).status(HttpStatus.UNAUTHORIZED);
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
         verify(tenantRepo, never()).put(any(), any());
     }
 
@@ -113,9 +113,7 @@ class V2TenantControllerTest {
         when(ctx.attribute("principal")).thenReturn(nonAdminPrincipal);
         when(ctx.body()).thenReturn("{}");
 
-        controller.put(ctx);
-
-        verify(ctx).status(HttpStatus.FORBIDDEN);
+        assertThrows(io.javalin.http.ForbiddenResponse.class, () -> controller.put(ctx));
         verify(tenantRepo, never()).put(any(), any());
     }
 

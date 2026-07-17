@@ -53,17 +53,11 @@ public final class V2TenantController {
      * Requires an authenticated principal with the "admin" role.
      */
     public void put(Context ctx) throws Exception {
+        // Single source of truth for the admin-role predicate (throws 403).
+        // Unauthenticated requests are already rejected with 401 by the
+        // auth before-filter in ApiRoutes, so no separate 401 branch here.
+        ApiRoutes.requireAdminRole(ctx);
         Principal principal = ctx.attribute("principal");
-        if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
-            return;
-        }
-        if (!principal.roles().contains("admin")) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Admin role required"));
-            return;
-        }
 
         String body = ctx.body();
         if (body == null || body.isBlank()) {

@@ -62,7 +62,7 @@ export const createVariantsSlice: StateCreator<
   addMaskingRule: (variantId, rule) => set((s) => {
     const variant = (s.definition.outputVariants as OutputVariant[]).find((v) => v.id === variantId)
     if (!variant) return
-    const newRule = { ...rule, id: uuidv4() } as MaskingRule
+    const newRule: MaskingRule = { ...rule, id: uuidv4() }
     variant.maskingRules.push(newRule)
   }),
 

@@ -6,7 +6,6 @@ import { BindingPanel } from './BindingPanel'
 import { resolveBindings } from '@/api/reportApi'
 import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
 import type { ElementBinding } from '@/hooks/useBindingAnalysis'
-import type { LivePreviewData } from '@/store/types'
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -180,9 +179,7 @@ function LivePreviewSection() {
       )
       if (controller.signal.aborted) return
 
-      // buildFlatDataFromResolved returns Record<string, unknown> to cover both
-      // master (flat object) and detail (array) group shapes — see its doc comment
-      const flatData = buildFlatDataFromResolved(response.resolved, schema) as LivePreviewData
+      const flatData = buildFlatDataFromResolved(response.resolved, schema)
       setLivePreviewData(flatData)
       setPreviewState({ status: 'ready' })
     } catch (e) {
