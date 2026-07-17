@@ -3,6 +3,7 @@ import type { TenantPhoneElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
 import { resolveStyle } from '@/lib/styleUtils'
+import { FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
 
 interface Props { element: TenantPhoneElement; resolveValues?: boolean; defaultStyle?: TextStyle }
 
@@ -10,5 +11,6 @@ export const TenantPhoneRenderer = memo(function TenantPhoneRenderer({ element: 
   const phone = useReportStore((s) => s.tenantInfo?.phone)
   const value = resolveValues ? (phone ?? el.fallback ?? '（電話番号未設定）') : '{{電話番号}}'
 
-  return <TextContent text={value} style={resolveStyle(el.style, defaultStyle ?? {})} />
+  const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
+  return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />
 })

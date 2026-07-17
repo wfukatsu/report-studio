@@ -50,6 +50,14 @@ export const FONT_FAMILY_LABELS: Record<(typeof FONT_FAMILIES)[number], string> 
   'Yu Mincho': '游明朝',
 }
 
+/**
+ * Muted style for unresolved data-binding placeholders shown in the editor (#120).
+ * Signals "this is a fill-in field, not finished text" to non-technical users.
+ * Applied only in design mode (resolveValues=false) so preview/PDF parity is unaffected.
+ */
+export const FIELD_PLACEHOLDER_COLOR = '#6b7280'
+export const FIELD_PLACEHOLDER_STYLE = { color: FIELD_PLACEHOLDER_COLOR, fontStyle: 'italic' as const }
+
 /** Default chart color palette */
 export const DEFAULT_CHART_COLORS = [
   '#8884d8',

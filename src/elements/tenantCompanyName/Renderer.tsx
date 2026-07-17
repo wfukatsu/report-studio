@@ -3,6 +3,7 @@ import type { TenantCompanyNameElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
 import { resolveStyle } from '@/lib/styleUtils'
+import { FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
 
 interface Props {
   element: TenantCompanyNameElement
@@ -20,5 +21,6 @@ export const TenantCompanyNameRenderer = memo(function TenantCompanyNameRenderer
     ? (companyName ?? el.fallback ?? '（会社名未設定）')
     : '{{会社名}}'
 
-  return <TextContent text={value} style={resolveStyle(el.style, defaultStyle ?? {})} />
+  const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
+  return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />
 })

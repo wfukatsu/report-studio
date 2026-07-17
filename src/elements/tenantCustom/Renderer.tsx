@@ -3,6 +3,7 @@ import type { TenantCustomElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
 import { resolveStyle } from '@/lib/styleUtils'
+import { FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
 
 interface Props {
   element: TenantCustomElement
@@ -20,5 +21,6 @@ export const TenantCustomRenderer = memo(function TenantCustomRenderer({
     ? (fieldValue ?? el.fallback ?? (el.fieldKey ? `（${el.fieldKey} 未設定）` : '（キー未設定）'))
     : `{{${el.fieldKey || 'fieldKey'}}}`
 
-  return <TextContent text={value} style={resolveStyle(el.style, defaultStyle ?? {})} />
+  const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
+  return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />
 })
