@@ -306,7 +306,7 @@ export const ERROR_MESSAGES: Record<UserFacingErrorCode, { title: string; hint: 
 
 ## Documentation / Operational Notes
 
-- README / docs/manual.md：表示文言が変わる箇所のスクリーンショットがあれば差し替え（U3 の DB 接続エラー画像）。
+- README / docs/user-manual.md（旧 docs/manual.md — 2026-07 に統合）：表示文言が変わる箇所のスクリーンショットがあれば差し替え（U3 の DB 接続エラー画像）。
 - `docs/solutions/ui-bugs/`：U1（Tooltip 修正）と U2（autosave キー誤り）は完了後に solution doc を追加（institutional memory）。
 - リリースノート：UX 修正としてユーザー向けに 1 行ずつ。
 
