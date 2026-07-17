@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.exception.transaction.CommitConflictException;
+import com.scalar.db.exception.transaction.CrudConflictException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
@@ -168,11 +169,14 @@ public final class SequenceController {
                 log.info("Sequence {} → {} for template {}", counter, docNumber, templateId);
                 return docNumber;
 
-            } catch (CommitConflictException e) {
-                // OCC conflict — retry
+            } catch (CommitConflictException | CrudConflictException e) {
+                // Transient OCC conflict (read-phase CrudConflict or commit-phase
+                // CommitConflict) — abort and retry with a fresh transaction.
                 lastException = e;
                 try { if (tx != null) tx.abort(); } catch (Exception ignored) {}
             } catch (Exception e) {
+                // Non-transient failure (e.g. UnknownTransactionStatusException, where the
+                // commit outcome is undecided and a blind retry could double-count) — rethrow.
                 try { if (tx != null) tx.abort(); } catch (Exception ignored) {}
                 throw e;
             }

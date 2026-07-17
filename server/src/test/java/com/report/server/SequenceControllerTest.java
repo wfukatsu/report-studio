@@ -6,6 +6,7 @@ import com.report.server.auth.Principal;
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.exception.transaction.CommitConflictException;
+import com.scalar.db.exception.transaction.CrudConflictException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -314,6 +315,24 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(any(), eq("tpl_1"))).thenReturn(Optional.of(config));
         doThrow(new CommitConflictException("conflict", "tx-1")).when(tx).commit();
+
+        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+
+        assertEquals("INV-0010", docNumber);
+        verify(tx).abort();
+        verify(tx2).commit();
+    }
+
+    @Test
+    void nextAndStamp_retriesOnCrudConflictAndSucceeds() throws Exception {
+        // A read-phase CrudConflictException is also a transient OCC conflict and must be retried.
+        String config = "{\"prefix\":\"INV-\",\"digits\":4,\"counter\":9,\"resetYear\":0}";
+        DistributedTransaction tx2 = mock(DistributedTransaction.class);
+        when(txManager.start()).thenReturn(tx, tx2);
+        when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
+        // First attempt: conflict during the in-tx read; second attempt: succeeds.
+        when(seqRepo.getWithinTx(tx, "tpl_1")).thenThrow(new CrudConflictException("conflict", "tx-1"));
+        when(seqRepo.getWithinTx(tx2, "tpl_1")).thenReturn(Optional.of(config));
 
         String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
 

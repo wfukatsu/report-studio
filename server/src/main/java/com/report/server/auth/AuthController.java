@@ -115,7 +115,20 @@ public final class AuthController {
         return entry.principal();
     }
 
-    /** POST /api/v1/auth/login — authenticate with userId + password */
+    /**
+     * POST /api/v1/auth/login — authenticate with userId + password.
+     *
+     * <p><b>Rate limiting:</b> attempts are throttled per client IP. A successful
+     * login clears that IP's counter (see {@link RateLimiter#reset}), so the limit
+     * targets failed attempts and does not throttle genuine repeat logins — including
+     * several users behind a shared/NAT IP.
+     *
+     * <p><b>Single active session (intentional):</b> a successful login invalidates
+     * every existing session of the same user. This is a deliberate security posture —
+     * one active session per user — and therefore does <em>not</em> support the same
+     * account being signed in on multiple devices simultaneously; the most recent
+     * login always wins.
+     */
     public void login(Context ctx) {
         // Rate limit by IP
         String clientIp = ctx.ip();
@@ -150,7 +163,12 @@ public final class AuthController {
             return;
         }
 
-        // Invalidate existing sessions for this user
+        // Successful auth — forgive this IP's rate-limit counter so repeat/genuine
+        // logins (incl. shared-IP users) are not throttled by earlier attempts.
+        loginRateLimiter.reset(clientIp);
+
+        // Single-session policy: invalidate any existing sessions for this user
+        // (intentional — see method Javadoc; most recent login wins).
         sessions.entrySet().removeIf(e -> userId.equals(e.getValue().principal().userId()));
 
         String sessionId = UUID.randomUUID().toString();

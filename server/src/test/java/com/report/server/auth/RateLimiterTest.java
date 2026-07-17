@@ -80,6 +80,47 @@ class RateLimiterTest {
         assertFalse(rl.isAllowed("b"));
     }
 
+    // ── Explicit reset (forgive on success) ──────────────────────────────────
+
+    @Test
+    void resetClearsTheKeysCounter() {
+        RateLimiter rl = limiter(5);
+        for (int i = 0; i < 5; i++) rl.isAllowed("ip");
+        assertFalse(rl.isAllowed("ip"), "6th attempt rejected before reset");
+
+        rl.reset("ip");
+
+        // Full budget is available again after a reset (e.g. a successful login)
+        for (int i = 0; i < 5; i++) {
+            assertTrue(rl.isAllowed("ip"), "attempt " + (i + 1) + " should be allowed after reset");
+        }
+        assertFalse(rl.isAllowed("ip"));
+    }
+
+    @Test
+    void resetOnlyAffectsTheGivenKey() {
+        RateLimiter rl = limiter(2);
+        rl.isAllowed("a");
+        rl.isAllowed("b");
+        rl.reset("a");
+
+        // "a" forgiven → fresh budget; "b" untouched
+        assertTrue(rl.isAllowed("a"));
+        assertTrue(rl.isAllowed("a"));
+        assertFalse(rl.isAllowed("a"));
+        assertTrue(rl.isAllowed("b")); // b had 1 prior attempt, 2nd still allowed
+        assertFalse(rl.isAllowed("b"));
+    }
+
+    @Test
+    void resetOnUnknownKeyIsNoop() {
+        RateLimiter rl = limiter(2);
+        rl.reset("never-seen"); // must not throw
+        assertTrue(rl.isAllowed("never-seen"));
+        assertTrue(rl.isAllowed("never-seen"));
+        assertFalse(rl.isAllowed("never-seen"));
+    }
+
     // ── Window reset ─────────────────────────────────────────────────────────
 
     @Test
