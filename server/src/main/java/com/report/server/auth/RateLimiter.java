@@ -75,6 +75,18 @@ public final class RateLimiter {
         return current.count() <= maxAttempts;
     }
 
+    /**
+     * Clear the counter for the given key.
+     *
+     * <p>Used to forgive a key's accumulated attempts after a legitimate outcome —
+     * e.g. a successful login — so that brute-force protection targets failed
+     * attempts rather than throttling genuine users (notably several users behind
+     * a shared/NAT IP).
+     */
+    public void reset(String key) {
+        windows.remove(key);
+    }
+
     /** Remove expired windows to prevent unbounded memory growth. */
     private void cleanExpired(long now) {
         windows.entrySet().removeIf(e -> now - e.getValue().windowStart() >= windowMs);

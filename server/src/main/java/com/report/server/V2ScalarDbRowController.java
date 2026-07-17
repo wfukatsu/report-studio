@@ -42,6 +42,16 @@ import java.util.regex.Pattern;
  *
  * <p>System namespaces ({@code report_studio}, {@code scalardb}, {@code coordinator})
  * are write-protected — requests targeting them receive 403.
+ *
+ * <p><b>Missing-row semantics (intentional asymmetry):</b>
+ * <ul>
+ *   <li>{@code PUT} (update) reads before writing and returns <b>404</b> when the target
+ *       row does not exist — an update is only meaningful against an existing row.</li>
+ *   <li>{@code DELETE} is <b>idempotent</b>: it returns <b>204</b> whether or not the row
+ *       existed. ScalarDB's {@code delete} does not require a prior read, and idempotent
+ *       delete is standard REST semantics (repeating the call converges to the same state).</li>
+ * </ul>
+ * This asymmetry is deliberate; callers must not infer prior existence from a 204.
  */
 public final class V2ScalarDbRowController {
 
@@ -184,6 +194,10 @@ public final class V2ScalarDbRowController {
 
     // ── DELETE — physical delete ────────────────────────────────────────────
 
+    /**
+     * Idempotent delete: returns 204 regardless of whether the row existed
+     * (see class Javadoc for the deliberate update/delete asymmetry).
+     */
     public void deleteRow(Context ctx) {
         String correlationId = CorrelationId.generate();
         RequestContext rc = validateRequest(ctx, correlationId);

@@ -240,6 +240,38 @@ class AuthControllerTest {
         assertEquals("admin", capturedJson(otherIp).get("userId"));
     }
 
+    @Test
+    void loginRateLimit_successfulLoginResetsTheCounter() {
+        // 4 failed attempts accumulate...
+        for (int i = 0; i < 4; i++) {
+            controller.login(loginContext("admin", "wrong-pw", "10.9.9.9"));
+        }
+        // ...a 5th (successful) login is still within budget and forgives the IP.
+        Context success = loginContext("admin", PASSWORD, "10.9.9.9");
+        controller.login(success);
+        verify(success).cookie(any(Cookie.class));
+
+        // Counter reset: a fresh run of failed attempts from the same IP is allowed
+        // again (would be 429 on the 6th cumulative attempt without the reset).
+        for (int i = 0; i < 5; i++) {
+            Context ctx = loginContext("admin", "wrong-pw", "10.9.9.9");
+            controller.login(ctx);
+            verify(ctx).status(HttpStatus.UNAUTHORIZED);
+            verify(ctx, never()).status(HttpStatus.TOO_MANY_REQUESTS);
+        }
+    }
+
+    @Test
+    void loginRateLimit_repeatedSuccessfulLoginsNeverThrottled() {
+        // Genuine repeat logins (e.g. many users behind one NAT IP) must not hit 429.
+        for (int i = 0; i < 10; i++) {
+            Context ctx = loginContext("admin", PASSWORD, "10.9.9.9");
+            controller.login(ctx);
+            verify(ctx, never()).status(HttpStatus.TOO_MANY_REQUESTS);
+            verify(ctx).cookie(any(Cookie.class));
+        }
+    }
+
     // ── Session resolution / TTL ─────────────────────────────────────────────
 
     @Test
