@@ -1,0 +1,48 @@
+# Report Design Studio — one-command local stack (frontend + backend + SQLite).
+#
+#   docker compose up --build
+#
+# Then open http://localhost:8080 and log in as admin / changeme.
+# (Set ADMIN_PASSWORD below before the first run to avoid the default password.)
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      # SQLite on the persisted volume; ScalarDB tables are auto-created on startup.
+      SCALARDB_CONTACT_POINTS: jdbc:sqlite:/data/report-studio.db
+      # Must match the URL you open in the browser (used by the CSRF Origin check).
+      ALLOWED_ORIGIN: http://localhost:${APP_PORT:-8080}
+      # Initial admin password. Change this before the first start for anything
+      # beyond local experimentation. Cookies stay non-Secure on plain-HTTP localhost.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+    volumes:
+      - report-studio-data:/data
+    expose:
+      - "8080"
+    healthcheck:
+      # Port 8080 only starts listening after all ScalarDB tables are initialized,
+      # so a successful TCP connect is a good readiness signal. bash + /dev/tcp keeps
+      # this dependency-free (no curl/wget in the slim JRE image).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  report-studio-data:

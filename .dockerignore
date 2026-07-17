@@ -1,0 +1,28 @@
+# Shared by both the frontend (Dockerfile) and backend (server/Dockerfile) builds,
+# which use the repository root as their build context. Only exclude heavy or
+# machine-local artifacts — do NOT exclude server/ or schemas/ (the backend needs them).
+
+.git
+.github
+node_modules
+dist
+coverage
+storybook-static
+.playwright-mcp
+
+# Gradle / Java build outputs and local DB
+server/build
+server/.gradle
+server/data
+**/*.db
+**/*.db-journal
+
+# Editor / OS cruft
+.DS_Store
+.idea
+.vscode
+*.log
+
+# Local env overrides (compose reads .env itself; images should not bake secrets)
+.env
+.env.local
