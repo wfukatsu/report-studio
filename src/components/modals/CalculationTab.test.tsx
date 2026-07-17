@@ -344,7 +344,7 @@ describe('CalculationTab — 変数参照パネル', () => {
     useReportStore.getState().addSchemaGroup('master')
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
     useReportStore.getState().addSchemaField(groupId, {
-      id: 'f1', key: 'price', label: '単価', type: 'number',
+      key: 'price', label: '単価', type: 'number',
     })
 
     render(<CalculationTab />)
@@ -374,7 +374,7 @@ describe('CalculationTab — 変数参照パネル', () => {
     useReportStore.getState().addSchemaGroup('master')
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
     useReportStore.getState().addSchemaField(groupId, {
-      id: 'f1', key: 'price', label: '単価', type: 'number',
+      key: 'price', label: '単価', type: 'number',
     })
 
     render(<CalculationTab />)

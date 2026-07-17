@@ -273,6 +273,23 @@ const RuleRow = memo(function RuleRow({
   )
   const isDuplicateKey = duplicateKeySet.has(rule.key)
 
+  // Hoisted out of the isFocused-conditional JSX — hooks must run on every render
+  const dynamicExtensions = useMemo((): Extension[] => [
+    createFormulaLinter({
+      currentKey: rule.key,
+      peerRuleExpressions,
+    }),
+    EditorView.updateListener.of((update) => {
+      for (const tr of update.transactions) {
+        for (const effect of tr.effects) {
+          if (effect.is(setValidation)) {
+            setValidationState(effect.value)
+          }
+        }
+      }
+    }),
+  ], [rule.key, peerRuleExpressions])
+
   async function handleTest() {
     setTesting(true)
     setTestResult(null)
@@ -353,21 +370,7 @@ const RuleRow = memo(function RuleRow({
           >
             <FormulaEditor
               initialValue={rule.expression}
-              dynamicExtensions={useMemo((): Extension[] => [
-                createFormulaLinter({
-                  currentKey: rule.key,
-                  peerRuleExpressions,
-                }),
-                EditorView.updateListener.of((update) => {
-                  for (const tr of update.transactions) {
-                    for (const effect of tr.effects) {
-                      if (effect.is(setValidation)) {
-                        setValidationState(effect.value)
-                      }
-                    }
-                  }
-                }),
-              ], [rule.key, peerRuleExpressions])}
+              dynamicExtensions={dynamicExtensions}
               onChange={(val) => onUpdate({ expression: val })}
               onBlur={() => setIsFocused(false)}
               editorRef={editorRef}

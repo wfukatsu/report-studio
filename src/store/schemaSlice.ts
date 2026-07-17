@@ -156,7 +156,9 @@ export const createSchemaSlice: StateCreator<
         const res = await updateSchema(state.schemaId, {
           name: state.schemaName || '新しいスキーマ',
           visibility: state.schemaVisibility,
-          definition,
+          // spread: interface SchemaDefinition lacks the implicit index signature
+          // SchemaDefinitionPayload requires
+          definition: { ...definition },
           updatedAt: state.schemaUpdatedAt,
         })
         set((s) => { s.schemaUpdatedAt = res.updatedAt })
@@ -165,7 +167,7 @@ export const createSchemaSlice: StateCreator<
         set((s) => { s.schemaPendingCreate = true })
         const res = await createSchema(
           state.schemaName || '新しいスキーマ',
-          definition,
+          { ...definition },
           state.schemaVisibility,
         )
         set((s) => {

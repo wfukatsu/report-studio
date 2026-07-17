@@ -133,7 +133,6 @@ describe('ConditionalDisplayEditor — カスタム fieldOptions', () => {
     renderEditor(
       { logic: 'and', conditions: [{ id: 'c1', fieldPath: '', operator: 'equals', value: '' }] },
       vi.fn(),
-      // @ts-expect-error passing 4th positional arg via wrapper
     )
     // Without fieldOptions, expect a text input
     expect(screen.getByRole('textbox', { name: 'フィールドパス' })).toBeInTheDocument()

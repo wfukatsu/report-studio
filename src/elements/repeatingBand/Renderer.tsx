@@ -793,7 +793,7 @@ function FlatBandRenderer({
       {/* Fixed mode: spacer with column dividers pushes footer to bottom */}
       {isFixed && hasFooter && (
         <div style={{ flex: 1, display: 'flex' }}>
-          {el.fields.map((f, i) => (
+          {el.fields.map((_, i) => (
             <div key={i} style={{ width: colPcts[i], borderRight: i < el.fields.length - 1 ? cbs : undefined }} />
           ))}
         </div>
@@ -934,7 +934,7 @@ function GroupedBandRenderer({
 
       {el.footerLayout !== 'compact' && hasFooter && (
         <div style={{ flex: 1, display: 'flex' }}>
-          {el.fields.map((f, i) => (
+          {el.fields.map((_, i) => (
             <div key={i} style={{ width: colPcts[i], borderRight: i < el.fields.length - 1 ? cbs : undefined }} />
           ))}
         </div>

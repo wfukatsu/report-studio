@@ -94,11 +94,15 @@ describe('updateSchemaGroup', () => {
     expect(getGroups()[0].label).toBe('マスター')
   })
 
+  // SchemaPanel passes linkedMasterGroupId through updateSchemaGroup with this
+  // widened patch type (see SchemaPanel.tsx onUpdateGroup)
+  type GroupPatch = Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>
+
   it('Phase 3.5: linkedMasterGroupId を設定できる', () => {
     useReportStore.getState().addSchemaGroup('master')
     useReportStore.getState().addSchemaGroup('detail')
     const [masterGroup, detailGroup] = getGroups()
-    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id })
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id } as GroupPatch)
     expect(getGroups()[1].linkedMasterGroupId).toBe(masterGroup.id)
   })
 
@@ -106,8 +110,8 @@ describe('updateSchemaGroup', () => {
     useReportStore.getState().addSchemaGroup('master')
     useReportStore.getState().addSchemaGroup('detail')
     const [masterGroup, detailGroup] = getGroups()
-    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id })
-    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: undefined })
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: masterGroup.id } as GroupPatch)
+    useReportStore.getState().updateSchemaGroup(detailGroup.id, { linkedMasterGroupId: undefined } as GroupPatch)
     expect(getGroups()[1].linkedMasterGroupId).toBeUndefined()
   })
 })

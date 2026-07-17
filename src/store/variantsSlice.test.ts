@@ -10,6 +10,14 @@ function getVariants(): OutputVariant[] {
   return useReportStore.getState().definition.outputVariants as OutputVariant[]
 }
 
+/**
+ * Distributive Omit over the MaskingRule union — plain `Omit<MaskingRule, 'id'>`
+ * collapses the union to its common keys, dropping replaceValue/keepFirst/keepLast.
+ */
+type MaskingRuleInput = MaskingRule extends infer R
+  ? R extends MaskingRule ? Omit<R, 'id'> : never
+  : never
+
 // ---------------------------------------------------------------------------
 // Reset store between tests
 // ---------------------------------------------------------------------------
@@ -134,7 +142,7 @@ describe('addMaskingRule', () => {
   it('adds a fullReplace masking rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const rules = getVariants()[0].maskingRules
     expect(rules).toHaveLength(1)
@@ -145,7 +153,7 @@ describe('addMaskingRule', () => {
   it('adds a partial masking rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-2', type: 'partial', keepFirst: 2, keepLast: 4 }
+    const rule: MaskingRuleInput = { targetElementId: 'el-2', type: 'partial', keepFirst: 2, keepLast: 4 }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const rules = getVariants()[0].maskingRules
     expect(rules[0].type).toBe('partial')
@@ -158,7 +166,7 @@ describe('addMaskingRule', () => {
   it('assigns a unique id to the new rule', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'X' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'X' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     useReportStore.getState().addMaskingRule(v.id, rule)
     const ids = getVariants()[0].maskingRules.map((r) => r.id)
@@ -174,7 +182,7 @@ describe('removeMaskingRule', () => {
   it('removes the masking rule with the given id', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    const rule: Omit<MaskingRule, 'id'> = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
+    const rule: MaskingRuleInput = { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' }
     useReportStore.getState().addMaskingRule(v.id, rule)
     const ruleId = getVariants()[0].maskingRules[0].id
     useReportStore.getState().removeMaskingRule(v.id, ruleId)
@@ -184,7 +192,7 @@ describe('removeMaskingRule', () => {
   it('does nothing when rule id does not exist', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' })
+    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' } as MaskingRuleInput)
     useReportStore.getState().removeMaskingRule(v.id, 'bad-rule-id')
     expect(getVariants()[0].maskingRules).toHaveLength(1)
   })
@@ -198,7 +206,7 @@ describe('replaceMaskingRule', () => {
   it('replaces the rule at the matching id', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'old' })
+    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'old' } as MaskingRuleInput)
     const ruleId = getVariants()[0].maskingRules[0].id
     const updated: MaskingRule = { id: ruleId, targetElementId: 'el-1', type: 'fullReplace', replaceValue: 'new' }
     useReportStore.getState().replaceMaskingRule(v.id, updated)
@@ -209,7 +217,7 @@ describe('replaceMaskingRule', () => {
   it('can switch a rule from fullReplace to partial', () => {
     useReportStore.getState().addVariant('v1')
     const [v] = getVariants()
-    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' })
+    useReportStore.getState().addMaskingRule(v.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' } as MaskingRuleInput)
     const ruleId = getVariants()[0].maskingRules[0].id
     const updated: MaskingRule = { id: ruleId, targetElementId: 'el-1', type: 'partial', keepFirst: 3, keepLast: 2 }
     useReportStore.getState().replaceMaskingRule(v.id, updated)
@@ -237,7 +245,7 @@ describe('cleanupVariantRefsForElement', () => {
   it('removes masking rules targeting the element across all variants', () => {
     useReportStore.getState().addVariant('v1')
     const [v1] = getVariants()
-    useReportStore.getState().addMaskingRule(v1.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' })
+    useReportStore.getState().addMaskingRule(v1.id, { targetElementId: 'el-1', type: 'fullReplace', replaceValue: '***' } as MaskingRuleInput)
     useReportStore.getState().cleanupVariantRefsForElement('el-1')
     expect(getVariants()[0].maskingRules).toHaveLength(0)
   })
@@ -246,7 +254,7 @@ describe('cleanupVariantRefsForElement', () => {
     useReportStore.getState().addVariant('v1')
     const [v1] = getVariants()
     useReportStore.getState().toggleElementHidden(v1.id, 'el-keep')
-    useReportStore.getState().addMaskingRule(v1.id, { targetElementId: 'el-keep', type: 'fullReplace', replaceValue: '***' })
+    useReportStore.getState().addMaskingRule(v1.id, { targetElementId: 'el-keep', type: 'fullReplace', replaceValue: '***' } as MaskingRuleInput)
     useReportStore.getState().cleanupVariantRefsForElement('el-remove')
     expect(getVariants()[0].hiddenElementIds).toContain('el-keep')
     expect(getVariants()[0].maskingRules).toHaveLength(1)

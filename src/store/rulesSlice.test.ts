@@ -75,7 +75,7 @@ describe('removeCalculationRule', () => {
 
 describe('addValidationRule', () => {
   it('バリデーションルールを追加できる', () => {
-    const rule: ValidationRule = { id: 'v1', name: 'Rule 1', condition: 'x > 0', message: 'err', severity: 'error' }
+    const rule: ValidationRule = { id: 'v1', condition: 'x > 0', message: 'err', severity: 'error' }
     useReportStore.getState().addValidationRule(rule)
     expect(getValRules()).toHaveLength(1)
     expect(getValRules()[0].id).toBe('v1')
@@ -84,13 +84,13 @@ describe('addValidationRule', () => {
 
 describe('updateValidationRule', () => {
   it('id が一致するルールを更新する', () => {
-    useReportStore.getState().addValidationRule({ id: 'v1', name: 'Rule', condition: 'x', message: '', severity: 'error' })
+    useReportStore.getState().addValidationRule({ id: 'v1', condition: 'x', message: '', severity: 'error' })
     useReportStore.getState().updateValidationRule('v1', { message: '更新メッセージ' })
     expect(getValRules()[0].message).toBe('更新メッセージ')
   })
 
   it('存在しない id は無視する', () => {
-    useReportStore.getState().addValidationRule({ id: 'v1', name: 'Rule', condition: 'x', message: 'orig', severity: 'error' })
+    useReportStore.getState().addValidationRule({ id: 'v1', condition: 'x', message: 'orig', severity: 'error' })
     useReportStore.getState().updateValidationRule('v99', { message: '変更' })
     expect(getValRules()[0].message).toBe('orig')
   })
@@ -98,8 +98,8 @@ describe('updateValidationRule', () => {
 
 describe('removeValidationRule', () => {
   it('id が一致するルールを削除する', () => {
-    useReportStore.getState().addValidationRule({ id: 'v1', name: 'R1', condition: 'x', message: '', severity: 'error' })
-    useReportStore.getState().addValidationRule({ id: 'v2', name: 'R2', condition: 'y', message: '', severity: 'warning' })
+    useReportStore.getState().addValidationRule({ id: 'v1', condition: 'x', message: '', severity: 'error' })
+    useReportStore.getState().addValidationRule({ id: 'v2', condition: 'y', message: '', severity: 'warning' })
     useReportStore.getState().removeValidationRule('v1')
     expect(getValRules()).toHaveLength(1)
     expect(getValRules()[0].id).toBe('v2')

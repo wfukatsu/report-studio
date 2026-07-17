@@ -242,7 +242,7 @@ describe('CreateTableForm — client-side duplicate column name validation', () 
 
 describe('CreateTableForm — submit button disabled during in-flight', () => {
   it('disables the submit button while the POST is in-flight', async () => {
-    let resolvePost: (value: unknown) => void
+    let resolvePost: (value: Awaited<ReturnType<typeof reportApi.createScalarDbTable>>) => void
     vi.spyOn(reportApi, 'createScalarDbTable').mockImplementation(
       () => new Promise((r) => { resolvePost = r }),
     )

@@ -5,7 +5,6 @@ import type { ValidationRule } from '@/types'
 function makeRule(overrides: Partial<ValidationRule> = {}): ValidationRule {
   return {
     id: 'r1',
-    name: 'Rule 1',
     condition: 'x > 0',
     message: '違反',
     severity: 'error',

@@ -18,7 +18,12 @@ function makeTemplate(overrides: Partial<Template> = {}): Template {
         sections: [],
       },
     ],
-    settings: {},
+    settings: {
+      paperSize: 'A4',
+      orientation: 'portrait',
+      margin: { top: 10, right: 10, bottom: 10, left: 10 },
+      unit: 'mm',
+    },
     ...overrides,
   }
 }

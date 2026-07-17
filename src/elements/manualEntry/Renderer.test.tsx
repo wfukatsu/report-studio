@@ -157,7 +157,7 @@ describe('ManualEntryRenderer — uncovered branches', () => {
   })
 
   it('furigana zone with labelPosition=left uses row flex direction', () => {
-    const { container } = render(
+    render(
       <ManualEntryRenderer
         element={makeElement({ furiganaEnabled: true, labelPosition: 'left', label: '氏名' })}
       />,

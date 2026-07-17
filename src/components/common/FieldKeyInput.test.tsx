@@ -56,7 +56,6 @@ describe('FieldKeyInput', () => {
       key: 'order_id',
       label: '注文ID',
       type: 'string',
-      required: true,
     })
 
     const onChange = vi.fn()
@@ -74,7 +73,6 @@ describe('FieldKeyInput', () => {
       key: 'amount',
       label: '金額',
       type: 'number',
-      required: false,
     })
 
     const onChange = vi.fn()

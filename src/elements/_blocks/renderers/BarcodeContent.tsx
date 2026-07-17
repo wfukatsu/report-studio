@@ -5,11 +5,11 @@ import { MM_TO_PX } from '../constants'
 import type { BarcodeKind } from '@/types'
 
 /** JsBarcode format mapping — JAN13 is EAN-13 in Japanese naming */
-const FORMAT_MAP: Record<Exclude<BarcodeKind, 'qr'>, string> = {
+const FORMAT_MAP = {
   code128: 'CODE128',
   code39: 'CODE39',
   jan13: 'EAN13',
-}
+} as const satisfies Record<Exclude<BarcodeKind, 'qr'>, string>
 
 /** Default placeholder values per barcode kind */
 const DEFAULT_VALUES: Record<BarcodeKind, string> = {

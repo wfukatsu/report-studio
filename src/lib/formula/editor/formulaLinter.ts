@@ -133,7 +133,8 @@ export function createFormulaLinter(options?: {
         }
 
         let resultType: SchemaFieldType | null = null
-        let previewValue: unknown = null
+        // Sync dispatch always sends null — the async evaluate path dispatches the real value
+        const previewValue: unknown = null
 
         try {
           const ast = parse(doc)
@@ -162,9 +163,10 @@ export function createFormulaLinter(options?: {
             }
           }
 
-          // Infer result type from AST
+          // Infer result type from AST (literal kinds are string/number/boolean — dates
+          // only enter formulas via field references, never as literals)
           if (ast.type === 'literal') {
-            resultType = ast.value.kind === 'date' ? 'date' : (ast.value.kind as SchemaFieldType)
+            resultType = ast.value.kind
           } else if (ast.type === 'binary_op') {
             resultType = 'number'
           } else if (ast.type === 'comparison' || ast.type === 'logical') {

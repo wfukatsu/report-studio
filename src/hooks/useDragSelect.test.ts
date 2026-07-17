@@ -15,6 +15,7 @@ function makeSection(elements: { id: string; x: number; y: number; w: number; h:
       name: e.id,
       position: { x: e.x, y: e.y },
       size: { width: e.w, height: e.h },
+      zIndex: 0,
       visible: true,
       locked: false,
       printable: true,
@@ -26,7 +27,7 @@ function makeSection(elements: { id: string; x: number; y: number; w: number; h:
 
 // Helper to create fake pointer events
 function makePointerEvent(
-  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  _type: 'pointerdown' | 'pointermove' | 'pointerup',
   x: number,
   y: number,
   target: HTMLElement = document.createElement('div'),

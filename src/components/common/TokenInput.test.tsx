@@ -60,7 +60,6 @@ describe('TokenInput', () => {
       key: 'customer_name',
       label: '顧客名',
       type: 'string',
-      required: false,
     })
 
     const onChange = vi.fn()
@@ -79,7 +78,6 @@ describe('TokenInput', () => {
       key: 'field_a',
       label: 'Field A',
       type: 'string',
-      required: false,
     })
 
     const onChange = vi.fn()
@@ -102,7 +100,6 @@ describe('TokenInput', () => {
       key: 'customer_name',
       label: '顧客名',
       type: 'string',
-      required: false,
     })
 
     const onChange = vi.fn()
@@ -132,7 +129,6 @@ describe('TokenInput', () => {
       key: 'field_b',
       label: 'Field B',
       type: 'string',
-      required: false,
     })
 
     const onChange = vi.fn()
@@ -161,9 +157,9 @@ describe('TokenInput — uncovered branch coverage', () => {
 
   it('hides dropdown when text does not contain {{ trigger', () => {
     // Seed schema so dropdown CAN appear
-    useReportStore.getState().addSchemaGroup('g1')
+    useReportStore.getState().addSchemaGroup('master')
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
-    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: 'Name', type: 'string', required: false })
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: 'Name', type: 'string' })
 
     const onChange = vi.fn()
     render(<TokenInput value="" onChange={onChange} />)
@@ -179,10 +175,10 @@ describe('TokenInput — uncovered branch coverage', () => {
   })
 
   it('filters options by query after {{ trigger', () => {
-    useReportStore.getState().addSchemaGroup('g1')
+    useReportStore.getState().addSchemaGroup('master')
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
-    useReportStore.getState().addSchemaField(groupId, { key: 'firstName', label: 'First Name', type: 'string', required: false })
-    useReportStore.getState().addSchemaField(groupId, { key: 'lastName', label: 'Last Name', type: 'string', required: false })
+    useReportStore.getState().addSchemaField(groupId, { key: 'firstName', label: 'First Name', type: 'string' })
+    useReportStore.getState().addSchemaField(groupId, { key: 'lastName', label: 'Last Name', type: 'string' })
 
     render(<TokenInput value="" onChange={vi.fn()} />)
     const textarea = screen.getByRole('textbox')

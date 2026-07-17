@@ -80,9 +80,9 @@ function lbl(
   style?: Partial<TextStyle>,
 ): ReportElement {
   return {
-    id: uuidv4(), type: 'label',
+    id: uuidv4(), type: 'text',
     position: { x, y }, size: { width: w, height: h },
-    zIndex: nextZ(), locked: true, visible: true, text,
+    zIndex: nextZ(), locked: true, visible: true, content: text,
     style: { fontSize: 8.5, textAlign: 'left', verticalAlign: 'middle', color: '#000000', ...style },
   }
 }

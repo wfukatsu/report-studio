@@ -51,9 +51,9 @@ export const SortableLayerRow = React.memo(function SortableLayerRow({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : 1,
+        ...(indent > 0 ? { paddingLeft: `${indent * 16}px` } : undefined),
       }}
       className="flex items-center"
-      style={indent > 0 ? { paddingLeft: `${indent * 16}px` } : undefined}
     >
       {/* Drag handle */}
       <button

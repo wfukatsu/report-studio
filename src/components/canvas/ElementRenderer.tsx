@@ -82,7 +82,7 @@ export const ElementRenderer = memo(function ElementRenderer({
   // Memoize the set of calculation output keys so that isDataEmptyInPreview
   // never hides a field whose value is produced by a calculation rule.
   const calcOutputKeys = useReportStore(useShallow((s) => {
-    const keys = s.definition.calculationRules.map((r) => r.outputKey)
+    const keys = s.definition.calculationRules.map((r) => r.key)
     return new Set(keys)
   }))
 

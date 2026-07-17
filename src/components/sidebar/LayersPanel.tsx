@@ -521,7 +521,7 @@ function SectionDndContainer({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        announcements={announcements}
+        accessibility={{ announcements }}
         onDragStart={({ active }) => {
           setActiveId(String(active.id))
           setLocalOrder(section.elements.map((e) => e.id))

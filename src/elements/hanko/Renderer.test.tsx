@@ -68,9 +68,9 @@ describe('HankoRenderer — circle shape', () => {
 })
 
 describe('HankoRenderer — rect shape', () => {
-  it('renders rect elements for square shape', () => {
+  it('renders rect elements for rectangle shape', () => {
     const { container } = render(
-      <HankoRenderer element={makeElement({ shape: 'square' })} />,
+      <HankoRenderer element={makeElement({ shape: 'rectangle' })} />,
     )
     const rects = container.querySelectorAll('rect')
     expect(rects.length).toBeGreaterThan(0)

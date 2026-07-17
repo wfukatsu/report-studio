@@ -3,6 +3,7 @@
  */
 
 import type { StateCreator } from 'zustand'
+import { castDraft } from 'immer'
 import type { StoreState, HistoryEntry } from './types'
 import type { PageDef, SchemaDefinition, CalculationRule, ValidationRule } from '@/types'
 
@@ -80,7 +81,7 @@ export const createHistorySlice: StateCreator<
       definition.validationRules,
     )
     set((s) => {
-      s.history = result.history
+      s.history = castDraft(result.history)
       s.historyIndex = result.historyIndex
     })
   },
@@ -91,7 +92,7 @@ export const createHistorySlice: StateCreator<
     const entry = history[historyIndex - 1]
     set((s) => {
       // structuredClone is safe here — entry values are plain JS objects (not immer Proxies)
-      s.definition.pages = structuredClone(entry.pages)
+      s.definition.pages = castDraft(structuredClone(entry.pages))
       if (entry.schema !== undefined) s.definition.schema = structuredClone(entry.schema)
       if (entry.calculationRules !== undefined) s.definition.calculationRules = structuredClone(entry.calculationRules)
       if (entry.validationRules !== undefined) s.definition.validationRules = structuredClone(entry.validationRules)
@@ -104,7 +105,7 @@ export const createHistorySlice: StateCreator<
     if (historyIndex >= history.length - 1) return
     const entry = history[historyIndex + 1]
     set((s) => {
-      s.definition.pages = structuredClone(entry.pages)
+      s.definition.pages = castDraft(structuredClone(entry.pages))
       if (entry.schema !== undefined) s.definition.schema = structuredClone(entry.schema)
       if (entry.calculationRules !== undefined) s.definition.calculationRules = structuredClone(entry.calculationRules)
       if (entry.validationRules !== undefined) s.definition.validationRules = structuredClone(entry.validationRules)

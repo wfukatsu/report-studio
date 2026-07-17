@@ -132,7 +132,7 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
     const detailGroupId = useReportStore.getState().definition.schema!.groups[1].id
     useReportStore.getState().addSchemaField(detailGroupId, { key: 'orderId', label: '注文ID', type: 'string', dbColumnName: 'customer_id' } as import('@/types').SchemaField)
     useReportStore.getState().bindGroupToTable(detailGroupId, { namespace: 'app', tableName: 'orders' })
-    useReportStore.getState().updateSchemaGroup(detailGroupId, { label: '注文', linkedMasterGroupId: masterGroupId })
+    useReportStore.getState().updateSchemaGroup(detailGroupId, { label: '注文', linkedMasterGroupId: masterGroupId } as Partial<Pick<import('@/types').SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>)
 
     return { masterGroupId, detailGroupId }
   }
@@ -157,8 +157,8 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
   it('resolveBindings 呼び出し時に detail グループへ master のキー値が自動コピーされる', async () => {
     const { detailGroupId, masterGroupId } = setupLinkedGroups()
     const mockResolveBindings = vi.spyOn(reportApi, 'resolveBindings').mockResolvedValue({
-      resolved: [],
-      errors: [],
+      resolved: {},
+      errors: {},
     })
 
     render(<DataBindingOverviewPanel />)

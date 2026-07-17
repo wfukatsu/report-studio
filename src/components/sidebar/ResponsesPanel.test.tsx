@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { ResponsesPanel } from './ResponsesPanel'
-import type { FormResponseSummary } from '@/lib/schemas/formResponse'
+import type { FormResponseList, FormResponseSummary } from '@/lib/schemas/formResponse'
 
 vi.mock('@/api/reportApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/reportApi')>()
@@ -37,8 +37,16 @@ const makeSummary = (id: string): FormResponseSummary => ({
   summary: [`${id}: value`],
 })
 
+const makeList = (items: FormResponseSummary[]): FormResponseList => ({
+  items,
+  total: items.length,
+  offset: 0,
+  limit: 50,
+  hasMore: false,
+})
+
 const SAMPLE_RESPONSES = [makeSummary('r1'), makeSummary('r2')]
-const SAMPLE_LIST = { items: SAMPLE_RESPONSES, total: 2 }
+const SAMPLE_LIST = makeList(SAMPLE_RESPONSES)
 
 beforeEach(() => {
   useReportStore.getState().newReport()
@@ -92,7 +100,7 @@ describe('ResponsesPanel — connected with template', () => {
   })
 
   it('shows empty state when no responses', async () => {
-    mockList.mockResolvedValue({ items: [], total: 0 })
+    mockList.mockResolvedValue(makeList([]))
     render(<ResponsesPanel />)
     await waitFor(() => expect(screen.getByText('回答がまだありません。')).toBeInTheDocument())
   })
@@ -134,7 +142,7 @@ describe('ResponsesPanel — connected with template', () => {
   })
 
   it('export CSV button is disabled when no responses', async () => {
-    mockList.mockResolvedValue({ items: [], total: 0 })
+    mockList.mockResolvedValue(makeList([]))
     render(<ResponsesPanel />)
     await waitFor(() => screen.getByText('回答がまだありません。'))
     expect(screen.getByRole('button', { name: /CSV/ })).toBeDisabled()
