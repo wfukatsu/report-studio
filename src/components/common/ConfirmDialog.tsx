@@ -9,6 +9,13 @@ interface ConfirmDialogProps {
   confirmVariant?: 'danger' | 'default'
   onConfirm: () => void
   onCancel: () => void
+  /**
+   * Optional non-destructive middle action, e.g. "保存して続行". When provided it
+   * renders as the primary (autofocused) button and the destructive confirm is
+   * demoted, so the safe path is the default choice (#160).
+   */
+  secondaryLabel?: string
+  onSecondary?: () => void
 }
 
 export function ConfirmDialog({
@@ -19,6 +26,8 @@ export function ConfirmDialog({
   confirmVariant = 'default',
   onConfirm,
   onCancel,
+  secondaryLabel,
+  onSecondary,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
@@ -69,6 +78,11 @@ export function ConfirmDialog({
     setTimeout(() => openerRef.current?.focus(), 0)
   }
 
+  const handleSecondary = () => {
+    onSecondary?.()
+    setTimeout(() => openerRef.current?.focus(), 0)
+  }
+
   if (!open) return null
 
   const confirmClass = confirmVariant === 'danger'
@@ -102,12 +116,27 @@ export function ConfirmDialog({
             キャンセル
           </button>
           <button
-            ref={confirmButtonRef}
+            ref={secondaryLabel ? undefined : confirmButtonRef}
             onClick={handleConfirm}
-            className={`px-3 py-1.5 text-xs rounded-md ${confirmClass}`}
+            className={`px-3 py-1.5 text-xs rounded-md ${
+              secondaryLabel
+                // When a safe secondary action exists, demote the destructive
+                // button to a quiet outline so it isn't the visual default (#160).
+                ? 'border hover:bg-accent'
+                : confirmClass
+            }`}
           >
             {confirmLabel}
           </button>
+          {secondaryLabel && (
+            <button
+              ref={confirmButtonRef}
+              onClick={handleSecondary}
+              className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {secondaryLabel}
+            </button>
+          )}
         </footer>
       </div>
     </div>

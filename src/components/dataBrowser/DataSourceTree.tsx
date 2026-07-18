@@ -21,6 +21,9 @@ type TemplatesState =
   | { status: 'error'; error: UserFacingError }
   | { status: 'ok'; items: { id: string; name: string }[] }
 
+/** Namespaces that hold internal app tables, not user business data. */
+const SYSTEM_NAMESPACES = new Set(['report_studio', 'scalardb', 'coordinator'])
+
 function nodeKey(node: DataSourceNode): string {
   if (node.kind === 'scalardb-table') return `scalardb:${node.namespace}.${node.table}`
   if (node.kind === 'product-master') return 'product-master'
@@ -37,6 +40,9 @@ export function DataSourceTree({ onSelect, selected }: Props) {
   const [templates, setTemplates] = useState<TemplatesState>({ status: 'loading' })
   const [scalarDbOpen, setScalarDbOpen] = useState(true)
   const [responsesOpen, setResponsesOpen] = useState(true)
+  // System namespaces (report_studio 等) start collapsed so business data isn't
+  // buried under internal tables; user namespaces start expanded (#167).
+  const [collapsedNs, setCollapsedNs] = useState<Set<string>>(() => new Set())
   const [catalogTick, setCatalogTick] = useState(0)
   const [templatesTick, setTemplatesTick] = useState(0)
 
@@ -87,20 +93,63 @@ export function DataSourceTree({ onSelect, selected }: Props) {
             hint="データ連携タブで設定"
           />
         )}
-        {catalog.status === 'ok' && catalog.namespaces.map((ns) =>
-          ns.tables.map((tbl) => {
-            const node: DataSourceNode = { kind: 'scalardb-table', namespace: ns.name, table: tbl.name }
-            return (
-              <TreeLeaf
-                key={nodeKey(node)}
-                label={`${ns.name}.${tbl.name}`}
-                active={isSameNode(selected, node)}
-                onClick={() => onSelect(node)}
-                icon={<Database className="w-3 h-3 opacity-60" />}
-              />
-            )
+        {catalog.status === 'ok' && [...catalog.namespaces]
+          // User business namespaces first, internal ones (report_studio 等) last.
+          .sort((a, b) => {
+            const sa = SYSTEM_NAMESPACES.has(a.name) ? 1 : 0
+            const sb = SYSTEM_NAMESPACES.has(b.name) ? 1 : 0
+            return sa - sb || a.name.localeCompare(b.name)
           })
-        )}
+          .map((ns) => {
+            const isSystem = SYSTEM_NAMESPACES.has(ns.name)
+            const collapsed = collapsedNs.has(ns.name) || (isSystem && !collapsedNs.has(`open:${ns.name}`))
+            const toggle = () => setCollapsedNs((prev) => {
+              const next = new Set(prev)
+              if (isSystem) {
+                // System namespaces default-collapsed: track an explicit open marker.
+                if (next.has(`open:${ns.name}`)) next.delete(`open:${ns.name}`)
+                else next.add(`open:${ns.name}`)
+              } else {
+                if (next.has(ns.name)) next.delete(ns.name)
+                else next.add(ns.name)
+              }
+              return next
+            })
+            return (
+              <div key={ns.name}>
+                <button
+                  onClick={toggle}
+                  className="flex items-center gap-1.5 w-full px-2 py-1 text-left text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  aria-expanded={!collapsed}
+                >
+                  {collapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+                  <span className="truncate flex-1">{ns.name}</span>
+                  {isSystem && (
+                    <span className="text-[9px] px-1 py-px rounded bg-muted text-muted-foreground shrink-0" title="内部管理テーブル（通常は編集不要）">
+                      システム
+                    </span>
+                  )}
+                  <span className="text-[9px] text-muted-foreground/60 shrink-0">{ns.tables.length}</span>
+                </button>
+                {!collapsed && (
+                  <div className="pl-2">
+                    {ns.tables.map((tbl) => {
+                      const node: DataSourceNode = { kind: 'scalardb-table', namespace: ns.name, table: tbl.name }
+                      return (
+                        <TreeLeaf
+                          key={nodeKey(node)}
+                          label={tbl.name}
+                          active={isSameNode(selected, node)}
+                          onClick={() => onSelect(node)}
+                          icon={<Database className="w-3 h-3 opacity-60" />}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
       </TreeSection>
 
       {/* Product Master — fixed node */}

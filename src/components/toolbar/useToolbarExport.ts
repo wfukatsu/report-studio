@@ -67,8 +67,12 @@ export function useToolbarExport({
       const blob = await generateStatelessPdf(defJson, dataJson)
       downloadBlob(blob, filename)
       return
-    } catch {
-      console.warn('Server-side PDF failed, falling back to client-side rendering')
+    } catch (err) {
+      // Server-side (vector) generation failed — we fall back to client-side
+      // html2canvas rendering, which rasterizes the page (lower quality, larger
+      // file, non-selectable text). Surface why so the user can decide whether the
+      // degraded PDF is acceptable to send onward (#166).
+      console.warn('Server-side PDF failed, falling back to client-side rendering', err)
     }
 
     const hiddenNodes: HTMLElement[] = []
@@ -97,7 +101,11 @@ export function useToolbarExport({
       // Auto-field values come from the (masked) element models, not DOM reverse-mapping (issue #61)
       const maskedDef = { ...definition, pages: applyVariant(definition.pages, variant) }
       await exportReportToPdf(els, filename, collectAutoFieldModels(maskedDef))
-      toast.warning('ローカル生成（品質低下）でエクスポートしました')
+      toast.warning(
+        'サーバー生成に失敗したため、簡易PDF（画像ベース・画質低下）で出力しました。'
+        + '取引先に送る前に内容をご確認ください。バックエンドの起動状態もご確認ください。',
+        { duration: 10000 },
+      )
     } catch (_err) {
       toast.error('エクスポートに失敗しました。もう一度お試しください。', { duration: 8000 })
     } finally {

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 
 export function SchemaFieldsTab() {
   const schema = useReportStore((s) => s.definition.schema)
+  const setActiveTab = useReportStore((s) => s.setActiveTab)
 
   const userGroups = useMemo(
     () => (schema?.groups ?? []).filter((g) => !isSystemGroup(g.id)),
@@ -28,8 +29,16 @@ export function SchemaFieldsTab() {
         <p className="text-xs text-muted-foreground">
           スキーマが未定義です。
           <br />
-          バインドタブでグループとフィールドを定義してください。
+          グループとフィールドを定義するとここに表示されます。
         </p>
+        {/* Give the empty state an actionable next step instead of just naming
+            the tab the user has to go find (#167). */}
+        <button
+          onClick={() => setActiveTab('binding')}
+          className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          バインドタブを開く
+        </button>
       </div>
     )
   }

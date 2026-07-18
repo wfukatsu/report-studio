@@ -38,7 +38,10 @@ function buildDeliveryNote() {
   const env = clone(read(join(TPL, 'invoice.json')))
   const def = env.definition
   def.id = sid('sample-forms/delivery-note')
-  def.metadata = { ...(def.metadata || {}), name: '納品書', description: '納品書（明細・数量・金額）。demo.delivery_* にライブバインド。' }
+  // Override BOTH documentName (canonical, drives the server-side list name) and
+  // name — spreading the invoice metadata would otherwise inherit its stale
+  // documentName='御請求書' and mislabel this template (#155).
+  def.metadata = { ...(def.metadata || {}), documentName: '納品書', name: '納品書', description: '納品書（明細・数量・金額）。demo.delivery_* にライブバインド。' }
 
   const els = def.pages[0].sections[0].elements
 

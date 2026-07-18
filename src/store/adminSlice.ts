@@ -48,7 +48,11 @@ export const createAdminSlice: StateCreator<
         set((s) => { s.adminUsers = users; s.adminUsersLoading = false })
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
+      // Abort is expected when a newer fetch supersedes this one (e.g. StrictMode
+      // double-mount). Guard on the signal itself, not just DOMException/AbortError,
+      // because apiFetch may wrap the abort into a generic Error — letting a stale
+      // rejection through would paint an error banner over freshly-loaded data (#156).
+      if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) return
       set((s) => {
         s.adminUsersError = 'ユーザー一覧の取得に失敗しました'
         s.adminUsersLoading = false

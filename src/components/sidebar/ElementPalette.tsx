@@ -104,6 +104,45 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
 
 let placementOffset = 0
 
+interface Rect { x: number; y: number; width: number; height: number }
+
+function rectsOverlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x
+    && a.y < b.y + b.height && a.y + a.height > b.y
+}
+
+/**
+ * Finds a placement near (startX, startY) that doesn't overlap any existing
+ * element, cascading downward (then wrapping to a new column) until a free slot
+ * is found. Falls back to the original position if the page is too crowded so a
+ * click always adds *something* the user can then drag (#159).
+ */
+function findFreeSlot(
+  startX: number, startY: number, width: number, height: number,
+  existing: Array<{ position: { x: number; y: number }; size: { width: number; height: number } }>,
+  pageWidth: number, pageHeight: number,
+  margins: { top: number; right: number; bottom: number; left: number },
+): { x: number; y: number } {
+  const occupied: Rect[] = existing.map((e) => ({
+    x: e.position.x, y: e.position.y, width: e.size.width, height: e.size.height,
+  }))
+  const step = Math.max(6, height / 2)
+  const bottomLimit = pageHeight - margins.bottom
+  let x = startX
+  let y = startY
+  for (let i = 0; i < 60; i++) {
+    const candidate: Rect = { x, y, width, height }
+    if (!occupied.some((r) => rectsOverlap(candidate, r))) return { x, y }
+    y += step
+    if (y + height > bottomLimit) {
+      // Column full — restart near the top, shifted right by a column.
+      y = Math.max(5, margins.top)
+      x = Math.min(x + width * 0.5 + 8, Math.max(5, pageWidth - margins.right - width))
+    }
+  }
+  return { x: startX, y: startY }
+}
+
 export function ElementPalette() {
   const activePageId = useReportStore(selectActivePageId)
   const activePage = useReportStore(selectActivePage)
@@ -143,9 +182,18 @@ export function ElementPalette() {
       posX = margins.left
       posY = Math.max(5, (pageHeight / 3) + offset)
     } else {
-      // Default: near center of page
-      posX = Math.max(5, (pageWidth - el.size.width) / 2 + offset)
+      // Default: near center of page, then nudge to a free slot so consecutive
+      // adds don't stack on top of each other / existing elements (#159). The
+      // small cascade offset alone left elements heavily overlapping.
+      posX = Math.max(5, (pageWidth - size.width) / 2 + offset)
       posY = Math.max(5, (pageHeight / 3) + offset) // 1/3 down from top
+      const placed = findFreeSlot(
+        posX, posY, size.width, size.height,
+        (activePage?.sections ?? []).flatMap((s) => s.elements),
+        pageWidth, pageHeight, margins,
+      )
+      posX = placed.x
+      posY = placed.y
     }
 
     const positioned = { ...el, position: { x: posX, y: posY }, size }

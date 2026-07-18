@@ -10,6 +10,9 @@ import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
+/** Default/placeholder document names not worth pre-filling in the save dialog (#158). */
+const PLACEHOLDER_TEMPLATE_NAMES = new Set(['Untitled Report', '新しいテンプレート', ''])
+
 interface Props {
   reportName: string
   sourceTemplateName?: string
@@ -95,7 +98,9 @@ export function ToolbarDialogs({
         open={showSaveDialog}
         onSave={onSaveNew}
         onCancel={onCancelSave}
-        defaultName={reportName}
+        // Don't pre-fill the placeholder name — start empty so the user gives the
+        // template a real name instead of saving a wall of "Untitled Report"s (#158).
+        defaultName={PLACEHOLDER_TEMPLATE_NAMES.has(reportName) ? '' : reportName}
         saving={isSavingNew}
       />
 

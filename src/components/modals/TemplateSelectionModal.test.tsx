@@ -13,6 +13,10 @@ vi.mock('@/api/reportApi', () => ({
   duplicateReport: vi.fn(),
   exportTemplate: vi.fn(),
   importTemplate: vi.fn(),
+  deleteReport: vi.fn(),
+  saveReport: vi.fn(),
+  copyTemplate: vi.fn(),
+  listPublicReports: vi.fn(),
   getTemplateThumbnailUrl: vi.fn((id: string) => `/api/v2/templates/${id}/thumbnail`),
 }))
 vi.mock('@/api/client', () => ({
@@ -21,7 +25,7 @@ vi.mock('@/api/client', () => ({
   apiFetchBlobWithFilename: vi.fn(),
 }))
 
-import { listReports, getReport, exportTemplate, importTemplate } from '@/api/reportApi'
+import { listReports, getReport, exportTemplate, importTemplate, listPublicReports } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 
 const onClose = vi.fn()
@@ -32,6 +36,10 @@ beforeEach(() => {
   onClose.mockClear()
   onSelect.mockClear()
   vi.clearAllMocks()
+  // The modal auto-fetches both lists on open (#157); default them to empty so
+  // tests that don't care about server templates don't hit undefined mocks.
+  vi.mocked(listReports).mockResolvedValue({ items: [], total: 0 })
+  vi.mocked(listPublicReports).mockResolvedValue({ items: [], total: 0 })
 })
 
 describe('TemplateSelectionModal — 非表示', () => {
@@ -106,6 +114,9 @@ describe('TemplateSelectionModal — テンプレート選択', () => {
     fireEvent.click(screen.getByText('空白'))
     fireEvent.click(screen.getByText('作成'))
     expect(onSelect).toHaveBeenCalledTimes(1)
+    // Blank start binds to no template (null) so the first save creates a new
+    // one instead of overwriting the previously open template (#152).
+    expect(onSelect.mock.calls[0][1]).toBeNull()
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -155,7 +166,7 @@ describe('TemplateSelectionModal — バックエンド未接続', () => {
   it('does not show backend templates section when not connected', () => {
     useReportStore.getState().setBackendConnected(false)
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    expect(screen.queryByText('バックエンドテンプレート')).not.toBeInTheDocument()
+    expect(screen.queryByText('自分のテンプレート')).not.toBeInTheDocument()
   })
 })
 
@@ -164,26 +175,28 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     useReportStore.getState().setBackendConnected(true)
   })
 
-  it('shows backend templates section when connected', () => {
+  it('shows backend templates section when connected', async () => {
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    expect(screen.getByText('バックエンドテンプレート')).toBeInTheDocument()
-    expect(screen.getByText('一覧を取得')).toBeInTheDocument()
+    expect(screen.getByText('自分のテンプレート')).toBeInTheDocument()
+    // "一覧を取得" briefly shows a spinner during the auto-fetch, so wait for it.
+    expect(await screen.findByText('一覧を取得')).toBeInTheDocument()
   })
 
-  it('shows empty state for backend templates initially', () => {
+  it('shows empty state for backend templates when none exist', async () => {
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    expect(screen.getByText('「一覧を取得」でテンプレートを読み込めます。')).toBeInTheDocument()
+    // Auto-fetch (#157) resolves to the empty default → the "no saved templates" hint.
+    expect(await screen.findByText('保存済みのテンプレートはまだありません。')).toBeInTheDocument()
   })
 
-  it('fetches backend templates when button is clicked', async () => {
+  it('auto-fetches backend templates on open', async () => {
     vi.mocked(listReports).mockResolvedValue({
       items: [{ id: 'tmpl-1', name: 'バックエンドテンプレート1', updatedAt: '2024-01-01' }],
       total: 1,
     })
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
 
+    // No manual "一覧を取得" click needed — the list loads on open (#157).
     await waitFor(() => {
       expect(screen.getByText('バックエンドテンプレート1')).toBeInTheDocument()
     })
@@ -193,7 +206,6 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     vi.mocked(listReports).mockRejectedValue(new Error('Network error'))
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument()
@@ -210,7 +222,6 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     vi.mocked(getReport).mockResolvedValue(mockDefinition)
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
 
     await waitFor(() => {
       expect(screen.getByText('バックエンドテンプレート1')).toBeInTheDocument()
@@ -219,7 +230,8 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     fireEvent.click(screen.getByText('バックエンドテンプレート1'))
 
     await waitFor(() => {
-      expect(onSelect).toHaveBeenCalledWith(mockDefinition)
+      // Loading a backend template threads its id so saves bind to it (#152).
+      expect(onSelect).toHaveBeenCalledWith(mockDefinition, 'tmpl-1')
     })
   })
 
@@ -231,7 +243,6 @@ describe('TemplateSelectionModal — バックエンド接続時', () => {
     vi.mocked(getReport).mockRejectedValue(new Error('Load error'))
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
 
     await waitFor(() => {
       expect(screen.getByText('バックエンドテンプレート1')).toBeInTheDocument()
@@ -265,7 +276,6 @@ describe('TemplateSelectionModal — エクスポート/インポート', () => 
     vi.mocked(downloadBlob).mockReturnValue(undefined)
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
     await waitFor(() => expect(screen.getByText('テンプレートA')).toBeInTheDocument())
 
     fireEvent.click(screen.getByLabelText('テンプレートA をエクスポート'))
@@ -278,7 +288,6 @@ describe('TemplateSelectionModal — エクスポート/インポート', () => 
     vi.mocked(exportTemplate).mockRejectedValueOnce(new Error('Server error'))
 
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('一覧を取得'))
     await waitFor(() => expect(screen.getByText('テンプレートA')).toBeInTheDocument())
 
     fireEvent.click(screen.getByLabelText('テンプレートA をエクスポート'))

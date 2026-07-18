@@ -235,7 +235,12 @@ public final class V2TemplateController {
             } catch (Exception ignored) { /* use current time */ }
         }
 
-        String name = definition.path("metadata").path("documentName").asText("").strip();
+        // Canonical name lives in metadata.documentName. Fall back to metadata.name
+        // for templates authored with that (non-canonical) field so the list/tab
+        // display name stays in sync with the actual document (#155).
+        JsonNode meta = definition.path("metadata");
+        String name = meta.path("documentName").asText("").strip();
+        if (name.isEmpty()) name = meta.path("name").asText("").strip();
         if (name.isEmpty()) name = DEFAULT_NAME;
         if (name.length() > MAX_NAME_LENGTH) name = name.substring(0, MAX_NAME_LENGTH);
 

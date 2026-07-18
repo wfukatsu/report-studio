@@ -260,6 +260,7 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}/responses/export", w.v2ResponseExportCtrl::export);
         app.get("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::get);
         app.delete("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::delete);
+        app.patch("/api/v2/templates/{id}/responses/{rid}/status", w.v2FormResponseCtrl::updateStatus);
         app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.v2ResponsePdfCtrl::generatePdf);
 
         // V2 template export/import/thumbnail

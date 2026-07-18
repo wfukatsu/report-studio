@@ -29,6 +29,7 @@ import {
   DuplicateReportResultSchema,
   type FormResponse,
   type FormResponseList,
+  type ReportStatus,
 } from '@/lib/schemas/formResponse'
 import { useReportStore } from '@/store'
 
@@ -43,6 +44,12 @@ const TemplateListItemSchema = z.object({
   createdAt: z.string().optional(),
   category: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  // The server list endpoint emits visibility (private|shared|public) and ownership
+  // — model them so the management UI can display/act on them (#162). The API
+  // accepts all three visibilities, so the type must include 'public' (previously
+  // the list type only allowed private|shared, an inconsistency with updateVisibility).
+  visibility: z.enum(['private', 'shared', 'public']).optional(),
+  isOwner: z.boolean().optional(),
 }).passthrough()
 
 const TemplateListSchema = z.object({
@@ -89,9 +96,9 @@ export type VersionListItem = z.infer<typeof VersionListItemSchema>
 // Helper: JSON body init
 // ---------------------------------------------------------------------------
 
-function jsonBody(body: unknown): RequestInit {
+function jsonBody(body: unknown, method: string = 'POST'): RequestInit {
   return {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }
@@ -387,6 +394,19 @@ export async function deleteResponse(templateId: string, responseId: string): Pr
     `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}`,
     z.undefined(),
     { method: 'DELETE' },
+  )
+}
+
+/** Update the document lifecycle status of an issued report (#163). */
+export async function updateResponseStatus(
+  templateId: string,
+  responseId: string,
+  status: ReportStatus,
+): Promise<{ id: string; status: ReportStatus }> {
+  return apiFetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}/status`,
+    z.object({ id: z.string(), status: z.enum(['draft', 'issued', 'sent', 'void']) }),
+    jsonBody({ status }, 'PATCH'),
   )
 }
 

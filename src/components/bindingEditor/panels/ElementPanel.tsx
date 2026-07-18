@@ -5,10 +5,11 @@
  * Includes operation guidance bar and visual distinction for bound/unbound.
  */
 
-import { memo, useCallback, useState } from 'react'
-import { Layers, Search, X } from 'lucide-react'
+import { memo, useCallback, useMemo, useState } from 'react'
+import { Layers, Search, X, Info } from 'lucide-react'
 import { ElementGroupBlock } from '../internals/ElementGroupBlock'
 import type { BindingState } from '../hooks/useBindingState'
+import { useReportStore } from '@/store/reportStore'
 
 interface ElementPanelProps {
   readonly bs: BindingState
@@ -24,6 +25,24 @@ export const ElementPanel = memo(function ElementPanel({
   elementRef,
 }: ElementPanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Repeating containers (formTable / repeatingBand / repeatingList) bind to a
+  // whole array via their data source, not the single-field connection this panel
+  // models, so they don't appear in the element list. Surface a note when the
+  // template has any, so their absence reads as "bound differently", not "missing"
+  // (#161).
+  const pages = useReportStore((s) => s.definition.pages)
+  const repeatingCount = useMemo(() => {
+    let n = 0
+    for (const p of pages) {
+      for (const s of p.sections ?? []) {
+        for (const el of s.elements ?? []) {
+          if (el.type === 'formTable' || el.type === 'repeatingBand' || el.type === 'repeatingList') n++
+        }
+      }
+    }
+    return n
+  }, [pages])
 
   const handleConnect = useCallback(
     (pageId: string, elementId: string) => bs.connect(pageId, elementId),
@@ -123,6 +142,16 @@ export const ElementPanel = memo(function ElementPanel({
           ))
         )}
       </div>
+
+      {/* Repeating-container note (#161) */}
+      {repeatingCount > 0 && (
+        <div className="border-t px-3 py-2 text-[11px] text-muted-foreground flex items-start gap-1.5 shrink-0">
+          <Info className="w-3.5 h-3.5 mt-px shrink-0" />
+          <span>
+            テーブル・繰り返し要素（{repeatingCount}個）は、明細グループを行にドラッグするか、デザイン画面のプロパティで「データソース」を設定してバインドします。
+          </span>
+        </div>
+      )}
 
       {/* Selection/drag status bar */}
       {bs.selectedFieldId && !bs.isDragging && (

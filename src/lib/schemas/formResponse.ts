@@ -18,11 +18,16 @@ export interface FormResponseList {
   aggregationTruncated?: boolean
 }
 
+/** Document lifecycle status (#163). */
+export type ReportStatus = 'draft' | 'issued' | 'sent' | 'void'
+export const REPORT_STATUSES: readonly ReportStatus[] = ['draft', 'issued', 'sent', 'void']
+
 export interface FormResponseSummary {
   id: string
   templateId: string
   submittedAt: number
   submittedBy: string
+  status?: ReportStatus
   summary: string[]
 }
 
@@ -31,6 +36,7 @@ export const FormResponseSummarySchema = z.object({
   templateId: z.string(),
   submittedAt: z.number(),
   submittedBy: z.string(),
+  status: z.enum(['draft', 'issued', 'sent', 'void']).optional(),
   summary: z.array(z.string()),
 }) satisfies z.ZodType<FormResponseSummary>
 
