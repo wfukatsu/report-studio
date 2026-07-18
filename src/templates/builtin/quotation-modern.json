@@ -1618,13 +1618,6 @@
           "dataKey": "customer",
           "fields": [
             {
-              "id": "ddb6d474-43cb-5632-e19e-ec41423bfe37",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "qm-f-cust-name",
               "key": "customerName",
               "label": "顧客名",
@@ -1656,7 +1649,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "quomod_header"
-          }
+          },
+          "linkedMasterGroupId": "qm-grp-doc"
         },
         {
           "id": "qm-grp-items",
@@ -1720,13 +1714,6 @@
           "dataKey": "summary",
           "fields": [
             {
-              "id": "662f66a7-d432-5f07-aa99-8eaf7d0f92f7",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "qm-f-subtotal",
               "key": "subtotal",
               "label": "小計",
@@ -1772,7 +1759,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "quomod_header"
-          }
+          },
+          "linkedMasterGroupId": "qm-grp-doc"
         }
       ]
     }

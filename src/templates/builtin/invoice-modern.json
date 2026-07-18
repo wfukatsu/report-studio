@@ -1815,13 +1815,6 @@
           "dataKey": "customer",
           "fields": [
             {
-              "id": "ddb6d474-43cb-5632-e19e-ec41423bfe37",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "inv-f-cust-name",
               "key": "customerName",
               "label": "顧客名",
@@ -1853,7 +1846,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "invmod_header"
-          }
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         },
         {
           "id": "inv-grp-items",
@@ -1917,13 +1911,6 @@
           "dataKey": "summary",
           "fields": [
             {
-              "id": "662f66a7-d432-5f07-aa99-8eaf7d0f92f7",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "inv-f-subtotal",
               "key": "subtotal",
               "label": "小計",
@@ -1969,7 +1956,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "invmod_header"
-          }
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         },
         {
           "id": "inv-grp-bank",
@@ -1977,13 +1965,6 @@
           "role": "master",
           "dataKey": "bankAccount",
           "fields": [
-            {
-              "id": "9e6c1828-4232-05d4-3ed4-e0848baebd69",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
             {
               "id": "inv-f-bank-name",
               "key": "bankName",
@@ -2030,7 +2011,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "invmod_header"
-          }
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         }
       ]
     }

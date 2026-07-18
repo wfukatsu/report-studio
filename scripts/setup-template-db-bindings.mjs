@@ -220,15 +220,17 @@ function bindTemplate(id, def) {
     const gp = prefixFor(g.dataKey)
     const isPrimary = g.id === primary.id
 
-    // Aux master groups need a key field so the preview panel can supply doc_no.
-    if (!isPrimary && !g.fields.some((f) => f.dbColumnName === 'doc_no')) {
-      g.fields.unshift({
-        id: stableId(`fld-${g.dataKey}-docNo`),
-        key: 'docNo', label: '書類番号（キー）', type: 'string', dbColumnName: 'doc_no',
-      })
+    // Aux master groups share the header's partition key (doc_no). Rather than
+    // exposing a synthetic "書類番号（キー）" field on 顧客情報/集計情報/…（which
+    // reads as noise to a designer, #133), link them to the primary group so the
+    // preview panel auto-fills doc_no from it — exactly how detail groups work.
+    if (!isPrimary) {
+      // Drop any synthetic key field left by an earlier generation (idempotency).
+      g.fields = g.fields.filter((f) => f.key !== 'docNo')
+      g.linkedMasterGroupId = primary.id
     }
+
     for (const f of g.fields) {
-      if (f.dbColumnName === 'doc_no') continue // synthetic / already the PK
       const col = isPrimary && f.key === cfg.pkFieldKey ? 'doc_no' : `${gp}_${snake(f.key)}`
       f.dbColumnName = col
       headerCols.set(col, colType(f.type))

@@ -1702,13 +1702,6 @@
           "dataKey": "customer",
           "fields": [
             {
-              "id": "ddb6d474-43cb-5632-e19e-ec41423bfe37",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "po-f-cust-name",
               "key": "customerName",
               "label": "顧客名",
@@ -1740,7 +1733,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "pomod_header"
-          }
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         },
         {
           "id": "po-grp-items",
@@ -1804,13 +1798,6 @@
           "dataKey": "summary",
           "fields": [
             {
-              "id": "662f66a7-d432-5f07-aa99-8eaf7d0f92f7",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "po-f-subtotal",
               "key": "subtotal",
               "label": "小計",
@@ -1856,7 +1843,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "pomod_header"
-          }
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         },
         {
           "id": "po-grp-delivery",
@@ -1864,13 +1852,6 @@
           "role": "master",
           "dataKey": "delivery",
           "fields": [
-            {
-              "id": "ae9d2fd2-0e70-f393-ec74-e5a6f8059fa4",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
             {
               "id": "po-f-del-date",
               "key": "deliveryDate",
@@ -1896,7 +1877,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "pomod_header"
-          }
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         }
       ]
     }

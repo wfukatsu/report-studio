@@ -2169,13 +2169,6 @@
           "dataKey": "customer",
           "fields": [
             {
-              "id": "ddb6d474-43cb-5632-e19e-ec41423bfe37",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
-            {
               "id": "37661519-630a-ae82-14a9-217286c58e6e",
               "key": "name",
               "label": "名称",
@@ -2200,7 +2193,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "quobasic_header"
-          }
+          },
+          "linkedMasterGroupId": "1df51745-ebba-d373-66b8-c62b3268dbd8"
         },
         {
           "id": "8be8f317-08ea-9d88-5420-566b450d13f3",
@@ -2208,13 +2202,6 @@
           "role": "master",
           "dataKey": "sender",
           "fields": [
-            {
-              "id": "54149f3d-bc99-3c3b-a680-504da97d7e1d",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
             {
               "id": "a1aba4a4-5bff-fccc-7710-dd96918ad782",
               "key": "name",
@@ -2254,7 +2241,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "quobasic_header"
-          }
+          },
+          "linkedMasterGroupId": "1df51745-ebba-d373-66b8-c62b3268dbd8"
         },
         {
           "id": "4ff54e90-27e0-e058-0c9c-046c3febba20",
@@ -2262,13 +2250,6 @@
           "role": "master",
           "dataKey": "summary",
           "fields": [
-            {
-              "id": "662f66a7-d432-5f07-aa99-8eaf7d0f92f7",
-              "key": "docNo",
-              "label": "書類番号（キー）",
-              "type": "string",
-              "dbColumnName": "doc_no"
-            },
             {
               "id": "004b70e1-b844-d8fb-d4d7-d1f669d7201c",
               "key": "totalAmountIncTax",
@@ -2322,7 +2303,8 @@
           "tableMeta": {
             "namespace": "demo",
             "tableName": "quobasic_header"
-          }
+          },
+          "linkedMasterGroupId": "1df51745-ebba-d373-66b8-c62b3268dbd8"
         },
         {
           "id": "4c61bc18-7817-3b0e-ee71-3baa2068fdfe",
