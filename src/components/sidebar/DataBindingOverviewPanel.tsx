@@ -230,6 +230,9 @@ function LivePreviewSection() {
               tableMeta: g.tableMeta,
               fields: g.fields.map((f) => ({ id: f.id, key: f.key, dbColumnName: f.dbColumnName })),
             })),
+            // #144: forward named relations so the backend can enrich detail rows
+            // with per-row product lookups.
+            relations: schema.relations,
           },
           partitionKeys: autoFilledPartitionKeys,
         },

@@ -16,6 +16,7 @@ import type {
   SchemaGroup,
   SchemaField,
   SchemaDefinition,
+  SchemaRelation,
   ScalarDbTableMeta,
   OutputVariant,
   MaskingRule,
@@ -318,6 +319,12 @@ export interface StoreState {
   ) => void
   /** Replace the entire schema definition (used by schema inference). */
   setSchema: (schema: SchemaDefinition) => void
+  /** #144: add a named relation object to the schema. */
+  addSchemaRelation: (relation: Omit<SchemaRelation, 'id'>) => void
+  /** #144: remove a named relation by id. */
+  removeSchemaRelation: (relationId: string) => void
+  /** #144: patch a named relation's editable fields. */
+  updateSchemaRelation: (relationId: string, patch: Partial<Omit<SchemaRelation, 'id'>>) => void
   /**
    * Phase 2: bind an element to a schema field by fieldId, or remove the binding.
    * @param fieldId pass `undefined` to remove the binding

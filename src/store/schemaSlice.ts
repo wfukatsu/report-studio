@@ -5,7 +5,7 @@
 
 import type { StateCreator } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import type { SchemaGroup, SchemaField } from '@/types'
+import type { SchemaGroup, SchemaField, SchemaRelation } from '@/types'
 import type { StoreState } from './types'
 import { listSchemas, getSchema, createSchema, updateSchema, deleteSchema as deleteSchemaApi } from '@/api/reportApi'
 import { isApiError } from '@/api/client'
@@ -66,6 +66,9 @@ export type SchemaSlice = Pick<StoreState,
   | 'setSchema'
   | 'setElementSchemaBinding'
   | 'ensureProductMasterGroup'
+  | 'addSchemaRelation'
+  | 'removeSchemaRelation'
+  | 'updateSchemaRelation'
   | 'schemaId'
   | 'schemaName'
   | 'schemaVisibility'
@@ -356,5 +359,26 @@ export const createSchemaSlice: StateCreator<
     if (!exists) {
       s.definition.schema.groups.push(buildProductMasterGroup())
     }
+  }),
+
+  // ── #144: named relation objects ──────────────────────────────────────────
+
+  addSchemaRelation: (relation) => set((s) => {
+    if (!s.definition.schema) s.definition.schema = { groups: [] }
+    if (!s.definition.schema.relations) s.definition.schema.relations = []
+    const newRelation: SchemaRelation = { ...relation, id: uuidv4() }
+    s.definition.schema.relations.push(newRelation)
+  }),
+
+  removeSchemaRelation: (relationId) => set((s) => {
+    const relations = s.definition.schema?.relations
+    if (!relations) return
+    s.definition.schema!.relations = relations.filter((r) => r.id !== relationId)
+  }),
+
+  updateSchemaRelation: (relationId, patch) => set((s) => {
+    const relation = s.definition.schema?.relations?.find((r) => r.id === relationId)
+    if (!relation) return
+    Object.assign(relation, patch)
   }),
 })

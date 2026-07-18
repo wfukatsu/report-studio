@@ -14,12 +14,16 @@
  * - unlinked detail groups get an explicit error state (no silent cartesian product).
  * - shared-key inference (#143) surfaces one-click "承認" suggestions.
  * - double-click a detail node to edit its parent-master link inline.
+ * - #144: named lookup relations drive per-row product enrichment; validation
+ *   errors (join-key mismatch, cycles) are surfaced, and detail groups with a
+ *   product_code column can create/remove a named lookup relation.
  */
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Sparkles, Boxes } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Sparkles, Boxes, Link2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { SchemaGroup } from '@/types'
+import type { SchemaGroup, SchemaRelation } from '@/types'
+import { SYSTEM_GROUP_PRODUCT_MASTER } from '@/store/systemGroups'
 import {
   buildRelationshipEdges,
   detailGroups,
@@ -27,13 +31,21 @@ import {
   inferRelationships,
   masterGroups,
   productMasterGroup,
+  PRODUCT_FK_COLUMN,
 } from './relationshipGraph'
+import { validateRelations } from './relationshipValidation'
 
 interface RelationshipViewProps {
   /** Full schema groups, INCLUDING the product master system group. */
   readonly groups: readonly SchemaGroup[]
   /** Set/clear a group's parent-master link (linkedMasterGroupId). */
   readonly onSetLinkedMaster: (groupId: string, masterGroupId: string | undefined) => void
+  /** #144: named relation objects (optional). */
+  readonly relations?: readonly SchemaRelation[]
+  /** #144: create a named relation (enables the "＋ルックアップ" affordance). */
+  readonly onAddRelation?: (relation: Omit<SchemaRelation, 'id'>) => void
+  /** #144: remove a named relation by id. */
+  readonly onRemoveRelation?: (relationId: string) => void
 }
 
 interface Line {
@@ -51,6 +63,9 @@ const PRODUCT_NODE = '__product__'
 export const RelationshipView = memo(function RelationshipView({
   groups,
   onSetLinkedMaster,
+  relations,
+  onAddRelation,
+  onRemoveRelation,
 }: RelationshipViewProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -67,6 +82,34 @@ export const RelationshipView = memo(function RelationshipView({
   const product = useMemo(() => productMasterGroup(groups), [groups])
   const edges = useMemo(() => buildRelationshipEdges(groups), [groups])
   const suggestions = useMemo(() => inferRelationships(groups), [groups])
+
+  // #144: named lookup relations + design-time validation.
+  const lookupRelations = useMemo(
+    () => (relations ?? []).filter((r) => r.kind === 'lookup'),
+    [relations],
+  )
+  const validationErrors = useMemo(
+    () => validateRelations(groups, relations),
+    [groups, relations],
+  )
+  /** The product FK column on a detail group, if any (drives the "＋ルックアップ" affordance). */
+  const productFkColumn = useCallback(
+    (group: SchemaGroup) =>
+      group.fields.find((f) => f.dbColumnName === PRODUCT_FK_COLUMN)?.dbColumnName,
+    [],
+  )
+  const handleAddLookup = useCallback(
+    (detailId: string, fromColumn: string) => {
+      onAddRelation?.({
+        name: 'product',
+        from: detailId,
+        to: SYSTEM_GROUP_PRODUCT_MASTER,
+        on: { fromColumn, toColumn: 'code' },
+        kind: 'lookup',
+      })
+    },
+    [onAddRelation],
+  )
 
   const setNodeRef = useCallback((id: string, el: HTMLElement | null) => {
     if (el) nodeRefs.current.set(id, el)
@@ -160,6 +203,23 @@ export const RelationshipView = memo(function RelationshipView({
 
       {!collapsed && (
         <div className="px-3 pb-2.5">
+          {/* #144: relation validation errors (join-key mismatch, cycles, dangling) */}
+          {validationErrors.length > 0 && (
+            <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
+                <span className="text-[10px] font-medium text-red-700">
+                  関係定義に問題があります（{validationErrors.length} 件）
+                </span>
+              </div>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {validationErrors.map((e, i) => (
+                  <li key={i} className="text-[10px] text-red-600 leading-tight">{e.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* #143: inferred-relationship approval bar */}
           {suggestions.length > 0 && (
             <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5">
@@ -297,6 +357,44 @@ export const RelationshipView = memo(function RelationshipView({
                           </div>
                         )
                       )}
+                      {/* #144: named product lookup relation (create / show / remove) */}
+                      {(() => {
+                        const fkCol = productFkColumn(d)
+                        if (!fkCol || !product) return null
+                        const rel = lookupRelations.find(
+                          (r) => r.from === d.id && r.to === SYSTEM_GROUP_PRODUCT_MASTER,
+                        )
+                        if (rel) {
+                          return (
+                            <div className="mt-1 flex items-center gap-1 text-[9px] text-amber-600">
+                              <Link2 className="w-2.5 h-2.5 shrink-0" />
+                              <span className="font-mono truncate">{rel.name}</span>
+                              {onRemoveRelation && (
+                                <button
+                                  className="text-amber-400 hover:text-red-500 shrink-0"
+                                  onClick={(e) => { e.stopPropagation(); onRemoveRelation(rel.id) }}
+                                  title="ルックアップ関係を削除"
+                                  aria-label={`${d.label || d.id} のルックアップを削除`}
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </div>
+                          )
+                        }
+                        if (onAddRelation) {
+                          return (
+                            <button
+                              className="mt-1 flex items-center gap-1 text-[9px] text-amber-600 hover:text-amber-800 border border-dashed border-amber-300 rounded px-1 py-0.5"
+                              onClick={(e) => { e.stopPropagation(); handleAddLookup(d.id, fkCol) }}
+                              aria-label={`${d.label || d.id} に商品ルックアップを追加`}
+                            >
+                              ＋ 商品ルックアップ
+                            </button>
+                          )
+                        }
+                        return null
+                      })()}
                     </div>
                   )
                 })}
