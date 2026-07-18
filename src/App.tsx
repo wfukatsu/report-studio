@@ -439,7 +439,10 @@ export default function App() {
           <main className="flex-1 overflow-hidden bg-muted/10 flex flex-col">
             <div ref={canvasContainerRef} className="relative flex-1 overflow-hidden">
               <ReportCanvas canvasRef={canvasRef} />
-              {isDocumentEmpty && !onboardingDismissed && (
+              {/* Suppress the onboarding overlay while a restore prompt is showing so
+                  the two "start here" affordances don't stack (#175). Once the user
+                  acts on the restore banner it clears and onboarding can reappear. */}
+              {isDocumentEmpty && !onboardingDismissed && !showRestorePrompt && (
                 <EmptyCanvasOnboarding
                   onOpenTemplates={() => openTemplateModal('new')}
                   onDismiss={() => setOnboardingDismissed(true)}

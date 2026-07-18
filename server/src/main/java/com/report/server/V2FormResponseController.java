@@ -206,6 +206,9 @@ public final class V2FormResponseController {
         int limit = Math.min(parseIntParam(ctx.queryParam("limit"), DEFAULT_LIMIT), MAX_LIMIT);
         if (offset < 0) offset = 0;
         boolean includeAggregation = "true".equals(ctx.queryParam("aggregate"));
+        // Optional status filter (#172): ?status=draft|issued|sent|void
+        String statusFilter = ctx.queryParam("status");
+        if (statusFilter != null && !VALID_STATUSES.contains(statusFilter)) statusFilter = null;
 
         List<String> allJson;
         try {
@@ -227,18 +230,6 @@ public final class V2FormResponseController {
             return;
         }
 
-        // Parse and sort by submittedAt descending
-        List<V2ResponseAggregator.ResponseEntry> entries = allJson.stream()
-            .map(this::parseToEntry)
-            .filter(Objects::nonNull)
-            .sorted(Comparator.comparingLong(V2ResponseAggregator.ResponseEntry::submittedAt).reversed())
-            .toList();
-
-        int total = entries.size();
-        int fromIndex = Math.min(offset, total);
-        int toIndex = Math.min(fromIndex + limit, total);
-        List<V2ResponseAggregator.ResponseEntry> page = entries.subList(fromIndex, toIndex);
-
         // Map id → status from the raw JSON (status isn't carried on ResponseEntry).
         // Legacy responses saved before #163 have no status → treated as DEFAULT_STATUS.
         Map<String, String> statusById = new HashMap<>();
@@ -248,6 +239,21 @@ public final class V2FormResponseController {
                 statusById.put(n.path("id").asText(), n.path("status").asText(DEFAULT_STATUS));
             } catch (Exception ignored) { /* skip unparseable */ }
         }
+
+        // Parse, optionally filter by status (#172), and sort by submittedAt descending
+        final String finalStatusFilter = statusFilter;
+        List<V2ResponseAggregator.ResponseEntry> entries = allJson.stream()
+            .map(this::parseToEntry)
+            .filter(Objects::nonNull)
+            .filter(e -> finalStatusFilter == null
+                || finalStatusFilter.equals(statusById.getOrDefault(e.id(), DEFAULT_STATUS)))
+            .sorted(Comparator.comparingLong(V2ResponseAggregator.ResponseEntry::submittedAt).reversed())
+            .toList();
+
+        int total = entries.size();
+        int fromIndex = Math.min(offset, total);
+        int toIndex = Math.min(fromIndex + limit, total);
+        List<V2ResponseAggregator.ResponseEntry> page = entries.subList(fromIndex, toIndex);
 
         // Build response items (summary only in list view)
         List<Map<String, Object>> items = new ArrayList<>();
@@ -504,18 +510,29 @@ public final class V2FormResponseController {
     private static List<String> buildSummary(JsonNode data) {
         List<String> summary = new ArrayList<>();
         if (data == null || !data.isObject()) return summary;
-        var fields = data.fields();
-        int count = 0;
-        while (fields.hasNext() && count < SUMMARY_FIELD_COUNT) {
-            var field = fields.next();
-            String value = field.getValue().isTextual()
-                ? field.getValue().asText()
-                : field.getValue().toString();
-            if (value.length() > 50) value = value.substring(0, 50) + "...";
-            summary.add(field.getKey() + ": " + value);
-            count++;
-        }
+        // Flatten nested objects to dot-notation leaves so the summary shows the
+        // actual value (customer.customerName: 評価商事) instead of a raw JSON blob
+        // (customer: {"customerName":"評価商事"}) — #170.
+        collectLeafSummaries(data, "", summary);
         return summary;
+    }
+
+    /** Depth-first flatten of leaf (scalar) values into "a.b.c: value" lines, capped. */
+    private static void collectLeafSummaries(JsonNode node, String prefix, List<String> out) {
+        var fields = node.fields();
+        while (fields.hasNext() && out.size() < SUMMARY_FIELD_COUNT) {
+            var field = fields.next();
+            String key = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
+            JsonNode value = field.getValue();
+            if (value.isObject()) {
+                collectLeafSummaries(value, key, out);
+            } else {
+                String text = value.isTextual() ? value.asText()
+                    : value.isArray() ? value.size() + "件" : value.asText();
+                if (text.length() > 50) text = text.substring(0, 50) + "...";
+                out.add(key + ": " + text);
+            }
+        }
     }
 
     /** Recursively check nesting depth to prevent deeply nested payloads. */
