@@ -17,6 +17,35 @@ describe('BUILTIN_TEMPLATES', () => {
       }
     }
   })
+
+  // #144: the coded "modern" templates ship a named product lookup relation that
+  // must survive the Zod import boundary (guards the "silently stripped" caveat).
+  it('coded modern templates carry a product lookup relation that round-trips', () => {
+    for (const id of ['invoice-modern', 'quotation-modern', 'purchase-order-modern']) {
+      const t = BUILTIN_TEMPLATES.find((x) => x.id === id)
+      expect(t, id).toBeDefined()
+      const parsed = ReportDefinitionSchema.parse(t!.definition)
+      const rel = parsed.schema?.relations?.find((r) => r.kind === 'lookup')
+      expect(rel, `${id} lookup relation`).toMatchObject({
+        name: 'product',
+        to: '__productMaster__',
+        on: { fromColumn: 'product_code', toColumn: 'code' },
+        kind: 'lookup',
+      })
+      // The relation's `from` points at the template's detail group.
+      const detail = parsed.schema?.groups.find((g) => g.role === 'detail')
+      expect(rel!.from).toBe(detail?.id)
+    }
+  })
+
+  it('free-text quotation templates declare no lookup relation', () => {
+    for (const id of ['quotation-basic-invoice', 'quotation-discount-invoice', 'quotation-english']) {
+      const t = BUILTIN_TEMPLATES.find((x) => x.id === id)
+      expect(t, id).toBeDefined()
+      const parsed = ReportDefinitionSchema.parse(t!.definition)
+      expect(parsed.schema?.relations ?? [], id).toHaveLength(0)
+    }
+  })
 })
 
 describe('element-showcase template', () => {
