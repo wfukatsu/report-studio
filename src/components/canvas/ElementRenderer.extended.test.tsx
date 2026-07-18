@@ -20,6 +20,7 @@ import {
   createRevenueStampElement,
   createRepeatingBandElement,
   createRepeatingListElement,
+  createFormTableElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 
@@ -216,6 +217,28 @@ describe('ElementRenderer — repeatingList', () => {
     }
     const { container } = render(<ElementRenderer element={el} data={data} />)
     expect(container.firstChild).not.toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FormTable element — readonly gate parity with repeatingBand / repeatingList
+// ---------------------------------------------------------------------------
+
+describe('ElementRenderer — formTable readonly gate', () => {
+  const data = { items: [{ itemName: '商品A', amount: 2000 }] }
+
+  it('shows the design-preview badge in editor mode even when data is bound (readonly=false)', () => {
+    const el = createFormTableElement({ id: 'ft-design', dataSource: 'items' } as Partial<ReportElement>)
+    render(<ElementRenderer element={el} data={data} readonly={false} />)
+    // Design preview renders the "帳票テーブル · <dataSource>" hint badge
+    expect(screen.getByText('帳票テーブル · items')).toBeInTheDocument()
+  })
+
+  it('renders live rows (no design badge) in preview mode (readonly=true)', () => {
+    const el = createFormTableElement({ id: 'ft-live', dataSource: 'items' } as Partial<ReportElement>)
+    const { container } = render(<ElementRenderer element={el} data={data} readonly={true} />)
+    expect(container.querySelector('*')).not.toBeNull()
+    expect(screen.queryByText('帳票テーブル · items')).toBeNull()
   })
 })
 

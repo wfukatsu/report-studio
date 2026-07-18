@@ -53,4 +53,22 @@ describe('ChartRenderer', () => {
     const { container } = render(<ChartRenderer element={makeElement({ title: '売上' })} />)
     expect(container.textContent).toContain('売上')
   })
+
+  it('shows a サンプル badge in design mode when using hardcoded sample data', () => {
+    const { container } = render(<ChartRenderer element={makeElement()} sampleHint />)
+    expect(container.textContent).toContain('サンプル')
+  })
+
+  it('hides the サンプル badge when the chart is bound to real data', () => {
+    const data = { sales: [{ name: 'Jan', value: 100 }] }
+    const { container } = render(
+      <ChartRenderer element={makeElement({ dataBinding: 'sales' })} data={data} sampleHint />,
+    )
+    expect(container.textContent).not.toContain('サンプル')
+  })
+
+  it('hides the サンプル badge in preview mode (sampleHint falsy) even without binding', () => {
+    const { container } = render(<ChartRenderer element={makeElement()} />)
+    expect(container.textContent).not.toContain('サンプル')
+  })
 })

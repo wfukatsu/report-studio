@@ -71,4 +71,40 @@ describe('DataFieldRenderer', () => {
     // Without format, raw value is converted to string
     expect(screen.getByText('1000')).toBeInTheDocument()
   })
+
+  it('adds a design-mode sample hint under a resolved value when sampleHint=true', () => {
+    const { container } = render(
+      <DataFieldRenderer
+        element={makeElement({ fieldKey: 'name' })}
+        data={{ name: 'Taro' }}
+        sampleHint
+      />,
+    )
+    expect(screen.getByText('Taro')).toBeInTheDocument()
+    const hint = container.querySelector('span[aria-hidden]')
+    expect(hint).not.toBeNull()
+    expect((hint as HTMLElement).style.borderBottom).toContain('dotted')
+  })
+
+  it('does not add the sample hint in preview mode (sampleHint falsy)', () => {
+    const { container } = render(
+      <DataFieldRenderer
+        element={makeElement({ fieldKey: 'name' })}
+        data={{ name: 'Taro' }}
+      />,
+    )
+    expect(container.querySelector('span[aria-hidden]')).toBeNull()
+  })
+
+  it('does not add the sample hint to an empty placeholder even when sampleHint=true', () => {
+    const { container } = render(
+      <DataFieldRenderer
+        element={makeElement({ fieldKey: 'missing' })}
+        data={{}}
+        sampleHint
+      />,
+    )
+    // Empty resolution already shows a grey-italic placeholder; no dotted hint
+    expect(container.querySelector('span[aria-hidden]')).toBeNull()
+  })
 })

@@ -58,6 +58,23 @@ export const FONT_FAMILY_LABELS: Record<(typeof FONT_FAMILIES)[number], string> 
 export const FIELD_PLACEHOLDER_COLOR = '#6b7280'
 export const FIELD_PLACEHOLDER_STYLE = { color: FIELD_PLACEHOLDER_COLOR, fontStyle: 'italic' as const }
 
+/**
+ * Design-mode hint for data-resolved values (sample / computed) shown in the editor (#b).
+ * A subtle dotted underline signals "this value comes from data and will change with the
+ * real record" — distinguishing it from static literal text. Applied only in design mode
+ * (sampleHint = !readonly) so preview / PDF parity is unaffected. Light blue matches the
+ * "data-bound" badges used by repeatingBand / formTable design previews.
+ */
+export const SAMPLE_VALUE_HINT_COLOR = '#93c5fd'
+export const SAMPLE_VALUE_HINT_STYLE = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  borderBottom: `0.3mm dotted ${SAMPLE_VALUE_HINT_COLOR}`,
+  pointerEvents: 'none' as const,
+}
+
 /** Default chart color palette */
 export const DEFAULT_CHART_COLORS = [
   '#8884d8',

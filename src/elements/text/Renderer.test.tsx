@@ -45,6 +45,36 @@ describe('TextRenderer', () => {
     expect(container.firstChild).toBeInTheDocument()
   })
 
+  it('adds a design-mode sample hint to data-driven text when sampleHint=true', () => {
+    const { container } = render(
+      <TextRenderer
+        element={makeElement({ content: 'Dear {{name}}' })}
+        data={{ name: 'Alice' }}
+        sampleHint
+      />,
+    )
+    expect(screen.getByText('Dear Alice')).toBeInTheDocument()
+    expect(container.querySelector('span[aria-hidden]')).not.toBeNull()
+  })
+
+  it('does not add the sample hint to static literal text', () => {
+    const { container } = render(
+      <TextRenderer element={makeElement({ content: 'Hello World' })} sampleHint />,
+    )
+    // No {{token}} → not data-driven → no hint even in design mode
+    expect(container.querySelector('span[aria-hidden]')).toBeNull()
+  })
+
+  it('does not add the sample hint in preview mode (sampleHint falsy)', () => {
+    const { container } = render(
+      <TextRenderer
+        element={makeElement({ content: 'Dear {{name}}' })}
+        data={{ name: 'Alice' }}
+      />,
+    )
+    expect(container.querySelector('span[aria-hidden]')).toBeNull()
+  })
+
   it('applies font size from style', () => {
     const { container } = render(
       <TextRenderer element={makeElement({ style: { fontSize: 5, fontWeight: 'bold', color: '#ff0000', textAlign: 'center' } })} />,
