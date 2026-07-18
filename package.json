@@ -18,6 +18,8 @@
     "test:coverage": "vitest run --coverage",
     "test:backend": "cd server && ./gradlew test",
     "generate:schema": "vite-node scripts/generate-json-schema.ts",
+    "build:samples": "node scripts/sample-forms/build.mjs",
+    "seed:samples": "node scripts/sample-forms/seed.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

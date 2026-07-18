@@ -1,0 +1,605 @@
+{
+  "namespace": "demo",
+  "tables": [
+    {
+      "namespace": "demo",
+      "tableName": "invmod_header",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_issue_date",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_registration_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_payment_terms",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_notes",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_customer_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_postal_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_address",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_contact_person",
+          "type": "TEXT"
+        },
+        {
+          "name": "sum_subtotal",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_total_inc_tax",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "bank_bank_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "bank_branch_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "bank_account_type",
+          "type": "TEXT"
+        },
+        {
+          "name": "bank_account_number",
+          "type": "TEXT"
+        },
+        {
+          "name": "bank_account_holder",
+          "type": "TEXT"
+        },
+        {
+          "name": "bank_payment_due_date",
+          "type": "TEXT"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+          "doc_no": "INV-2026-0031",
+          "doc_issue_date": "2026年4月18日",
+          "doc_registration_no": "T1234567890123",
+          "doc_notes": "お振込手数料はお客様ご負担にてお願い申し上げます。",
+          "cust_customer_name": "株式会社サンプル商事",
+          "cust_postal_code": "100-0001",
+          "cust_address": "東京都千代田区千代田1-1-1 サンプルビル3F",
+          "cust_contact_person": "山田太郎",
+          "sum_subtotal": 140000,
+          "sum_tax10_base": 140000,
+          "sum_tax10_amount": 14000,
+          "sum_tax8_base": 0,
+          "sum_tax8_amount": 0,
+          "sum_total_inc_tax": 154000,
+          "bank_bank_name": "みずほ銀行",
+          "bank_branch_name": "丸の内支店",
+          "bank_account_type": "普通",
+          "bank_account_number": "1234567",
+          "bank_account_holder": "カ）サンプルショウジ",
+          "bank_payment_due_date": "2026年5月31日"
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "invmod_items",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "line_no",
+          "type": "INT"
+        },
+        {
+          "name": "product_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_item_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_quantity",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_unit",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_unit_price",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_amount",
+          "type": "DOUBLE"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [
+        "line_no"
+      ],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+          "line_no": 1,
+          "product_code": "W-001",
+          "item_item_name": "ウィジェットA",
+          "item_quantity": 10,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 50000
+        },
+        {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+          "line_no": 2,
+          "product_code": "W-002",
+          "item_item_name": "ウィジェットB",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 8000,
+          "item_amount": 40000
+        },
+        {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+          "line_no": 3,
+          "product_code": "S-001",
+          "item_item_name": "設置作業費",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 30000,
+          "item_amount": 30000
+        },
+        {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+          "line_no": 4,
+          "product_code": "M-001",
+          "item_item_name": "保守サポート（年間）",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 20000,
+          "item_amount": 20000
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "quomod_header",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_issue_date",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_registration_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_valid_until",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_delivery_terms",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_payment_terms",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_notes",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_customer_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_postal_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_address",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_contact_person",
+          "type": "TEXT"
+        },
+        {
+          "name": "sum_subtotal",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_total_inc_tax",
+          "type": "DOUBLE"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
+          "doc_no": "QT-2026-0042",
+          "doc_issue_date": "2026年4月18日",
+          "doc_registration_no": "T1234567890123",
+          "doc_valid_until": "2026年5月18日",
+          "doc_delivery_terms": "受注後2週間以内",
+          "doc_payment_terms": "月末締め翌月末払い",
+          "doc_notes": "本見積書の有効期限は発行日より30日間です。",
+          "cust_customer_name": "株式会社サンプル商事",
+          "cust_postal_code": "100-0001",
+          "cust_address": "東京都千代田区千代田1-1-1 サンプルビル3F",
+          "cust_contact_person": "山田太郎",
+          "sum_subtotal": 140000,
+          "sum_tax10_base": 140000,
+          "sum_tax10_amount": 14000,
+          "sum_tax8_base": 0,
+          "sum_tax8_amount": 0,
+          "sum_total_inc_tax": 154000
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "quomod_items",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "line_no",
+          "type": "INT"
+        },
+        {
+          "name": "product_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_item_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_quantity",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_unit",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_unit_price",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_amount",
+          "type": "DOUBLE"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [
+        "line_no"
+      ],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
+          "line_no": 1,
+          "product_code": "W-001",
+          "item_item_name": "ウィジェットA",
+          "item_quantity": 10,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 50000
+        },
+        {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
+          "line_no": 2,
+          "product_code": "W-002",
+          "item_item_name": "ウィジェットB",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 8000,
+          "item_amount": 40000
+        },
+        {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
+          "line_no": 3,
+          "product_code": "S-001",
+          "item_item_name": "設置作業費",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 30000,
+          "item_amount": 30000
+        },
+        {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
+          "line_no": 4,
+          "product_code": "M-001",
+          "item_item_name": "保守サポート（年間）",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 20000,
+          "item_amount": 20000
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "pomod_header",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_issue_date",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_registration_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_payment_terms",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_notes",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_customer_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_postal_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_address",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_contact_person",
+          "type": "TEXT"
+        },
+        {
+          "name": "sum_subtotal",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax10_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_base",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_tax8_amount",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "sum_total_inc_tax",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "dlv_delivery_date",
+          "type": "TEXT"
+        },
+        {
+          "name": "dlv_delivery_address",
+          "type": "TEXT"
+        },
+        {
+          "name": "dlv_delivery_contact",
+          "type": "TEXT"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
+          "doc_no": "PO-2026-0015",
+          "doc_issue_date": "2026年4月18日",
+          "doc_registration_no": "T1234567890123",
+          "doc_payment_terms": "月末締め翌月末払い",
+          "doc_notes": "納品時に検品を行います。不良品は交換対応をお願いします。",
+          "cust_customer_name": "株式会社サンプル商事",
+          "cust_postal_code": "100-0001",
+          "cust_address": "東京都千代田区千代田1-1-1 サンプルビル3F",
+          "cust_contact_person": "山田太郎",
+          "sum_subtotal": 140000,
+          "sum_tax10_base": 140000,
+          "sum_tax10_amount": 14000,
+          "sum_tax8_base": 0,
+          "sum_tax8_amount": 0,
+          "sum_total_inc_tax": 154000,
+          "dlv_delivery_date": "2026年5月10日",
+          "dlv_delivery_address": "東京都港区芝公園4-2-8 東京タワー倉庫",
+          "dlv_delivery_contact": "佐藤花子"
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "pomod_items",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "line_no",
+          "type": "INT"
+        },
+        {
+          "name": "product_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_item_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_quantity",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_unit",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_unit_price",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_amount",
+          "type": "DOUBLE"
+        }
+      ],
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [
+        "line_no"
+      ],
+      "secondaryIndexes": [],
+      "rows": [
+        {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
+          "line_no": 1,
+          "product_code": "W-001",
+          "item_item_name": "ウィジェットA",
+          "item_quantity": 10,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 50000
+        },
+        {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
+          "line_no": 2,
+          "product_code": "W-002",
+          "item_item_name": "ウィジェットB",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 8000,
+          "item_amount": 40000
+        },
+        {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
+          "line_no": 3,
+          "product_code": "S-001",
+          "item_item_name": "設置作業費",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 30000,
+          "item_amount": 30000
+        },
+        {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
+          "line_no": 4,
+          "product_code": "M-001",
+          "item_item_name": "保守サポート（年間）",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 20000,
+          "item_amount": 20000
+        }
+      ]
+    }
+  ]
+}
