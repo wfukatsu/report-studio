@@ -89,6 +89,15 @@ Data binding in elements uses `{{fieldKey}}` tokens in text content and dot-nota
 
 `ReportCanvas` wraps elements in `@dnd-kit/core`'s `DndContext`. `CanvasElement` is both draggable (via `useDraggable`) and resizable (custom pointer-event logic for 8 resize handles). When `readonly=true` (preview mode), drag and resize are disabled.
 
+### Design vs Preview rendering
+
+One flag drives every design-vs-preview difference: **`readonly`** (`false` = design/editor canvas, `true` = live preview pane / preview modal / PDF-PNG export). It is a **prop threaded down the tree** (`ReportCanvas` → `SectionContainer` → `CanvasElement` → `ElementRenderer`), *not* the `uiSlice.previewMode` store boolean. Both modes resolve against the **same** `data` (`useResolvedData`: `dataOverride ?? livePreviewData ?? sampleData`), so per-field *values* are identical — only presentation differs. `ElementRenderer` gates the differences:
+
+- **Empty-binding suppression** (`readonly` only): `isDataEmptyInPreview` (`src/lib/previewUtils.ts`) returns `null` for bound elements that resolve empty (empty `dataField`/`text`, empty `repeatingBand`/`chart` array). In the editor these show placeholders instead; calc-output keys and `fallbackText` fields are never hidden.
+- **Repeating containers** — `repeatingBand`, `repeatingList`, **and `formTable`** all take `records` only when `readonly && element.dataSource`. In the editor `records` is `undefined` → each renderer shows its *design preview* (faded mock rows, `{{fieldKey}}` cells, blue `… · <dataSource>` badge); in preview they render live rows. Keep the three in sync — `formTable` was previously ungated (showed live rows in the editor); do not reintroduce that asymmetry.
+- **Auto/tenant fields** — `pageNumber`, `currentDate`, and the `tenant*` text elements get `resolveValues={readonly}`: editor shows a literal token/format placeholder (`{{会社名}}`, `yyyy/MM/dd`), preview shows the resolved value (or a `（…未設定）` fallback). `tenantLogo` reads `tenantInfo` in both modes (no `resolveValues`).
+- **Design-mode sample hints** (`sampleHint={!readonly}`, editor only, non-destructive — absent from preview/export): `dataField` and data-driven `text` (content contains a `{{token}}`) get a subtle dotted underline; an unbound `chart` showing hardcoded `SAMPLE_DATA` gets a "サンプル" badge. Shared style: `SAMPLE_VALUE_HINT_STYLE` / `SAMPLE_VALUE_HINT_COLOR` in `_blocks/constants.ts`. Empty placeholders (already grey-italic) and static literal text get no hint.
+
 ### Export
 
 `src/lib/exportUtils.ts` renders canvas DOM nodes via `html2canvas` then either saves as PNG or assembles a `jsPDF` PDF from all pages.
