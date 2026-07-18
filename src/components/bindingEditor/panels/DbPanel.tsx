@@ -124,6 +124,13 @@ export const DbPanel = memo(function DbPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Plain-language purpose line — DB binding is an advanced, optional step (#128) */}
+        {!isLoading && !fetchError && groups.length > 0 && (
+          <p className="px-3 py-2 text-[10px] text-muted-foreground border-b bg-muted/10">
+            各項目をデータベースの列に対応づけると、実データでプレビューできます。
+            <span className="text-muted-foreground/70">（任意・上級者向け）</span>
+          </p>
+        )}
         {isLoading && (
           <div className="flex items-center justify-center h-20">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />

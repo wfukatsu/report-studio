@@ -4,6 +4,7 @@
  */
 import type { ScalarDbCatalogTable } from '@/api/reportApi'
 import type { SchemaField } from '@/types'
+import { keyTypeLabel } from '@/lib/scalardbLabels'
 
 export interface FieldColumnMapProps {
   groupId: string
@@ -67,12 +68,15 @@ function FieldColumnRow({ groupId, field, table, onColumnChange }: FieldColumnRo
         className="text-xs border border-border rounded px-2 py-1 bg-background"
       >
         <option value="">(未選択)</option>
-        {table.columns.map((c) => (
-          <option key={c.name} value={c.name}>
-            {c.name}
-            {c.keyType ? ` [${c.keyType}]` : ''}
-          </option>
-        ))}
+        {table.columns.map((c) => {
+          const kt = keyTypeLabel(c.keyType)
+          return (
+            <option key={c.name} value={c.name}>
+              {c.name}
+              {kt ? `（${kt}）` : ''}
+            </option>
+          )
+        })}
         {/* Synthetic disabled option preserves a stale dbColumnName */}
         {!columnExists && (
           <option value={current} disabled>

@@ -15,6 +15,7 @@ import type {
 } from '@/api/reportApi'
 import type { SchemaGroup, ScalarDbTableMeta } from '@/types'
 import { cn } from '@/lib/utils'
+import { groupRoleLabel } from '@/lib/scalardbLabels'
 import { FieldColumnMap } from './FieldColumnMap'
 
 export interface GroupBindingSectionProps {
@@ -142,13 +143,13 @@ export const GroupBindingSection = memo(function GroupBindingSection({
           {group.label}
           <span
             className={cn(
-              'ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide',
+              'ml-2 px-1.5 py-0.5 rounded text-[9px] tracking-wide',
               group.role === 'master'
                 ? 'bg-primary/10 text-primary'
                 : 'bg-muted text-muted-foreground',
             )}
           >
-            {group.role}
+            {groupRoleLabel(group.role)}
           </span>
         </h4>
         {group.tableMeta && (
