@@ -59,9 +59,14 @@ function buildColumns(group: SchemaGroup): ColumnRow[] {
     if (idx === 0) keyRole = 'partition'
     else if (group.role === 'detail' && idx === 1) keyRole = 'clustering'
 
+    // Suggest the column name from the field key; fall back to col_N for legacy
+    // fields whose key is blank (e.g. Japanese-named fields created before the
+    // key-fallback fix) so the name input is never empty (#161).
+    const suggestedName = field.key?.trim() ? field.key : `col_${idx + 1}`
+
     return {
       fieldId: field.id,
-      name: field.key,
+      name: suggestedName,
       type: SCHEMA_FIELD_TYPE_TO_SCALARDB_COLUMN_TYPE[field.type as Exclude<SchemaFieldType, 'array'>],
       keyRole,
     }

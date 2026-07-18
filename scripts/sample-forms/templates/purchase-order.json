@@ -7,8 +7,9 @@
       "documentName": "御注文書",
       "version": "1.0",
       "reportType": "general",
-      "description": "Created: 2026-04-16T13:39:43.106Z | Updated: 2026-04-16T13:39:43.106Z",
-      "sourceTemplateId": "purchase-order-modern"
+      "description": "発注書（明細・納期・納入場所）。demo.pomod_* にライブバインド。",
+      "sourceTemplateId": "purchase-order-modern",
+      "name": "御注文書"
     },
     "pageSettings": {
       "paperSize": "A4",
@@ -1390,7 +1391,7 @@
                 "type": "text",
                 "position": {
                   "x": 10,
-                  "y": 231
+                  "y": 233
                 },
                 "size": {
                   "width": 24,
@@ -1413,7 +1414,7 @@
                 "type": "dataField",
                 "position": {
                   "x": 34,
-                  "y": 231
+                  "y": 233
                 },
                 "size": {
                   "width": 70,
@@ -1889,19 +1890,7 @@
           "linkedMasterGroupId": "po-grp-doc"
         }
       ],
-      "relations": [
-        {
-          "id": "7e3805e1-d824-eb22-665b-74d264307645",
-          "name": "product",
-          "from": "po-grp-items",
-          "to": "__productMaster__",
-          "on": {
-            "fromColumn": "product_code",
-            "toColumn": "code"
-          },
-          "kind": "lookup"
-        }
-      ]
+      "relations": []
     }
   }
 }

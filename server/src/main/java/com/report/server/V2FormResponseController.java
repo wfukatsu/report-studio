@@ -43,6 +43,10 @@ public final class V2FormResponseController {
     private static final int SUMMARY_FIELD_COUNT = 3;
     private static final int MAX_NEST_DEPTH = 8;
 
+    /** Document lifecycle statuses (#163). draft → issued → sent, or void at any point. */
+    static final String DEFAULT_STATUS = "issued";
+    static final java.util.Set<String> VALID_STATUSES = java.util.Set.of("draft", "issued", "sent", "void");
+
     private final JsonBlobRepository responseRepo;
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter submitLimiter;
@@ -141,6 +145,8 @@ public final class V2FormResponseController {
         response.set("data", data);
         response.put("submittedAt", now);
         response.put("submittedBy", principal.userId()); // server-stamped
+        // Document lifecycle status (#163). A newly submitted response is "issued".
+        response.put("status", DEFAULT_STATUS);
 
         try {
             // If sequence controller is configured, use single atomic TX (seq + response)
@@ -200,6 +206,9 @@ public final class V2FormResponseController {
         int limit = Math.min(parseIntParam(ctx.queryParam("limit"), DEFAULT_LIMIT), MAX_LIMIT);
         if (offset < 0) offset = 0;
         boolean includeAggregation = "true".equals(ctx.queryParam("aggregate"));
+        // Optional status filter (#172): ?status=draft|issued|sent|void
+        String statusFilter = ctx.queryParam("status");
+        if (statusFilter != null && !VALID_STATUSES.contains(statusFilter)) statusFilter = null;
 
         List<String> allJson;
         try {
@@ -221,10 +230,23 @@ public final class V2FormResponseController {
             return;
         }
 
-        // Parse and sort by submittedAt descending
+        // Map id → status from the raw JSON (status isn't carried on ResponseEntry).
+        // Legacy responses saved before #163 have no status → treated as DEFAULT_STATUS.
+        Map<String, String> statusById = new HashMap<>();
+        for (String json : allJson) {
+            try {
+                JsonNode n = MAPPER.readTree(json);
+                statusById.put(n.path("id").asText(), n.path("status").asText(DEFAULT_STATUS));
+            } catch (Exception ignored) { /* skip unparseable */ }
+        }
+
+        // Parse, optionally filter by status (#172), and sort by submittedAt descending
+        final String finalStatusFilter = statusFilter;
         List<V2ResponseAggregator.ResponseEntry> entries = allJson.stream()
             .map(this::parseToEntry)
             .filter(Objects::nonNull)
+            .filter(e -> finalStatusFilter == null
+                || finalStatusFilter.equals(statusById.getOrDefault(e.id(), DEFAULT_STATUS)))
             .sorted(Comparator.comparingLong(V2ResponseAggregator.ResponseEntry::submittedAt).reversed())
             .toList();
 
@@ -241,6 +263,7 @@ public final class V2FormResponseController {
             item.put("templateId", entry.templateId());
             item.put("submittedAt", entry.submittedAt());
             item.put("submittedBy", entry.submittedBy());
+            item.put("status", statusById.getOrDefault(entry.id(), DEFAULT_STATUS));
             item.put("summary", buildSummary(entry.data()));
             items.add(item);
         }
@@ -356,6 +379,82 @@ public final class V2FormResponseController {
         ctx.json(Map.of("deleted", true, "id", responseId));
     }
 
+    // ── status (#163) ──────────────────────────────────────────────────────────
+
+    /**
+     * PATCH /api/v2/templates/{id}/responses/{rid}/status
+     * Body: {@code {"status": "draft"|"issued"|"sent"|"void"}}
+     *
+     * <p>Updates the document lifecycle status of an issued report. Same access
+     * rule as delete: template owner or original submitter.
+     */
+    public void updateStatus(Context ctx) {
+        String templateId = RequestValidator.validateId(ctx);
+        String responseId = RequestValidator.validateId(ctx, "rid");
+        if (templateId == null || responseId == null) return;
+
+        Principal principal = ctx.attribute("principal");
+
+        String newStatus;
+        try {
+            JsonNode body = MAPPER.readTree(ctx.body());
+            newStatus = body.path("status").asText("");
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid JSON"));
+            return;
+        }
+        if (!VALID_STATUSES.contains(newStatus)) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid status. Allowed: " + VALID_STATUSES));
+            return;
+        }
+
+        Optional<String> stored = responseRepo.get(responseId);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Response not found"));
+            return;
+        }
+
+        ObjectNode node;
+        try {
+            node = (ObjectNode) MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to read response"));
+            return;
+        }
+
+        if (!templateId.equals(node.path("templateId").asText(""))) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Response not found"));
+            return;
+        }
+
+        // Same access rule as delete: template owner or original submitter.
+        String submittedBy = node.path("submittedBy").asText("");
+        String templateOwner = getTemplateOwner(templateId);
+        boolean isSubmitter = principal.userId().equals(submittedBy);
+        boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
+        if (!isSubmitter && !isOwner) {
+            ctx.status(HttpStatus.FORBIDDEN);
+            ctx.json(Map.of("error", "Access denied"));
+            return;
+        }
+
+        node.put("status", newStatus);
+        try {
+            responseRepo.put(responseId, MAPPER.writeValueAsString(node), templateId);
+        } catch (Exception e) {
+            log.error("Failed to update status for response {}", responseId, e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to update status"));
+            return;
+        }
+        ctx.json(Map.of("id", responseId, "status", newStatus));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
@@ -411,18 +510,29 @@ public final class V2FormResponseController {
     private static List<String> buildSummary(JsonNode data) {
         List<String> summary = new ArrayList<>();
         if (data == null || !data.isObject()) return summary;
-        var fields = data.fields();
-        int count = 0;
-        while (fields.hasNext() && count < SUMMARY_FIELD_COUNT) {
-            var field = fields.next();
-            String value = field.getValue().isTextual()
-                ? field.getValue().asText()
-                : field.getValue().toString();
-            if (value.length() > 50) value = value.substring(0, 50) + "...";
-            summary.add(field.getKey() + ": " + value);
-            count++;
-        }
+        // Flatten nested objects to dot-notation leaves so the summary shows the
+        // actual value (customer.customerName: 評価商事) instead of a raw JSON blob
+        // (customer: {"customerName":"評価商事"}) — #170.
+        collectLeafSummaries(data, "", summary);
         return summary;
+    }
+
+    /** Depth-first flatten of leaf (scalar) values into "a.b.c: value" lines, capped. */
+    private static void collectLeafSummaries(JsonNode node, String prefix, List<String> out) {
+        var fields = node.fields();
+        while (fields.hasNext() && out.size() < SUMMARY_FIELD_COUNT) {
+            var field = fields.next();
+            String key = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
+            JsonNode value = field.getValue();
+            if (value.isObject()) {
+                collectLeafSummaries(value, key, out);
+            } else {
+                String text = value.isTextual() ? value.asText()
+                    : value.isArray() ? value.size() + "件" : value.asText();
+                if (text.length() > 50) text = text.substring(0, 50) + "...";
+                out.add(key + ": " + text);
+            }
+        }
     }
 
     /** Recursively check nesting depth to prevent deeply nested payloads. */

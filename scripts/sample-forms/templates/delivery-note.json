@@ -2,13 +2,14 @@
   "formatVersion": 2,
   "exportedAt": "2026-04-16T13:39:43.107Z",
   "definition": {
-    "id": "e1236ad2-7245-48e8-afa2-1fcfc413c829",
+    "id": "2b7af6f0-06ec-51e2-8cab-f9e00366a170",
     "metadata": {
-      "documentName": "御請求書",
+      "documentName": "納品書",
       "version": "1.0",
       "reportType": "general",
-      "description": "Created: 2026-04-16T13:39:43.107Z | Updated: 2026-04-16T13:39:43.107Z",
-      "sourceTemplateId": "invoice-modern"
+      "description": "納品書（明細・数量・金額）。demo.delivery_* にライブバインド。",
+      "sourceTemplateId": "invoice-modern",
+      "name": "納品書"
     },
     "pageSettings": {
       "paperSize": "A4",
@@ -27,28 +28,20 @@
     "dataSources": [
       {
         "id": "0de93f94-2f1b-41f8-913a-6ec139e60346",
-        "name": "請求書サンプルデータ",
+        "name": "納品書サンプルデータ",
         "fields": {
           "document": {
-            "documentNo": "INV-2026-0031",
+            "documentNo": "DLV-2026-0021",
             "issueDate": "2026年4月18日",
-            "registrationNo": "T1234567890123",
-            "notes": "お振込手数料はお客様ご負担にてお願い申し上げます。",
-            "reportId": "ac011a7c-01e5-2d61-5a22-6a6faf86040e"
+            "notes": "御照査の上、ご査収ください。",
+            "reportId": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
+            "deliveryDate": "2026年4月20日"
           },
           "customer": {
             "customerName": "株式会社サンプル商事",
             "postalCode": "100-0001",
             "address": "東京都千代田区千代田1-1-1 サンプルビル3F",
             "contactPerson": "山田太郎"
-          },
-          "bankAccount": {
-            "paymentDueDate": "2026年5月31日",
-            "bankName": "みずほ銀行",
-            "branchName": "丸の内支店",
-            "accountType": "普通",
-            "accountNumber": "1234567",
-            "accountHolder": "カ）サンプルショウジ"
           },
           "summary": {
             "subtotal": 140000,
@@ -125,7 +118,7 @@
                 "zIndex": 3,
                 "locked": true,
                 "visible": true,
-                "content": "御 請 求 書",
+                "content": "納 品 書",
                 "style": {
                   "fontSize": 20,
                   "textAlign": "left",
@@ -133,7 +126,7 @@
                   "color": "#1a1a1a",
                   "fontWeight": "bold"
                 },
-                "name": "御 請 求 書"
+                "name": "納 品 書"
               },
               {
                 "id": "32673a8f-8383-4265-9aec-2516d2be3cb7",
@@ -246,7 +239,7 @@
                 "zIndex": 3,
                 "locked": true,
                 "visible": true,
-                "content": "請求番号:",
+                "content": "納品番号:",
                 "style": {
                   "fontSize": 8,
                   "textAlign": "left",
@@ -342,14 +335,14 @@
                 "zIndex": 3,
                 "locked": true,
                 "visible": true,
-                "content": "登録番号:",
+                "content": "納品日:",
                 "style": {
                   "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#666666"
                 },
-                "name": "登録番号:"
+                "name": "納品日:"
               },
               {
                 "id": "81430b3c-198a-443f-8c1c-22966b1b1a0e",
@@ -365,16 +358,16 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "document.registrationNo",
-                "fallbackText": "T1234567890123",
-                "label": "T1234567890123",
+                "fieldKey": "document.deliveryDate",
+                "fallbackText": "2026年4月18日",
+                "label": "2026年4月18日",
                 "style": {
                   "fontSize": 8,
                   "textAlign": "left",
                   "verticalAlign": "middle",
                   "color": "#1a1a1a"
                 },
-                "name": "登録番号"
+                "name": "納品日"
               },
               {
                 "id": "6ce00e5d-1bed-4437-8af1-056a9f9e2365",
@@ -623,7 +616,7 @@
                 "zIndex": 3,
                 "locked": true,
                 "visible": true,
-                "content": "ご請求金額（税込）",
+                "content": "納品金額合計（税込）",
                 "style": {
                   "fontSize": 8.5,
                   "textAlign": "left",
@@ -1201,344 +1194,11 @@
                 "name": "合計金額（税込）"
               },
               {
-                "id": "6696a5b1-7ede-4d65-8c33-8acade2567a9",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 210
-                },
-                "size": {
-                  "width": 26,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "お支払期限:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#3b82f6",
-                  "fontWeight": "bold"
-                },
-                "name": "お支払期限:"
-              },
-              {
-                "id": "b76362c3-4765-4234-82a0-f0c6ddb007a7",
-                "type": "dataField",
-                "position": {
-                  "x": 36,
-                  "y": 210
-                },
-                "size": {
-                  "width": 60,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.paymentDueDate",
-                "fallbackText": "2026年5月31日",
-                "label": "2026年5月31日",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a",
-                  "fontWeight": "bold"
-                },
-                "name": "お支払期限"
-              },
-              {
-                "id": "7b6c4e1c-98b9-48aa-b666-971ad64b12c0",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 220
-                },
-                "size": {
-                  "width": 30,
-                  "height": 5
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "振込先口座",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#3b82f6",
-                  "fontWeight": "bold"
-                },
-                "name": "振込先口座"
-              },
-              {
-                "id": "c6fefcff-fb82-4642-af1c-8d8c67630ed5",
-                "type": "shape",
-                "position": {
-                  "x": 10,
-                  "y": 225
-                },
-                "size": {
-                  "width": 100,
-                  "height": 0.1
-                },
-                "zIndex": 1,
-                "locked": true,
-                "visible": true,
-                "shape": "line",
-                "stroke": "#3b82f6",
-                "strokeWidth": 0.3,
-                "name": "区切り線"
-              },
-              {
-                "id": "7531f8c1-3f44-4f3b-b288-9cd0b8ac2fdd",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 226
-                },
-                "size": {
-                  "width": 24,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "銀行名:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#666666"
-                },
-                "name": "銀行名:"
-              },
-              {
-                "id": "a33cb33c-f1a0-4f28-ade0-054a6f520d99",
-                "type": "dataField",
-                "position": {
-                  "x": 34,
-                  "y": 226
-                },
-                "size": {
-                  "width": 70,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.bankName",
-                "fallbackText": "みずほ銀行",
-                "label": "みずほ銀行",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a"
-                },
-                "name": "銀行名"
-              },
-              {
-                "id": "0c8c6d7e-aca3-4635-8b51-5536fad5f1bd",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 232
-                },
-                "size": {
-                  "width": 24,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "支店名:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#666666"
-                },
-                "name": "支店名:"
-              },
-              {
-                "id": "892df2a5-af2d-4c7d-943c-d074a0eb6ad6",
-                "type": "dataField",
-                "position": {
-                  "x": 34,
-                  "y": 232
-                },
-                "size": {
-                  "width": 70,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.branchName",
-                "fallbackText": "丸の内支店",
-                "label": "丸の内支店",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a"
-                },
-                "name": "支店名"
-              },
-              {
-                "id": "ba585a34-913f-4d2d-9d11-0cd4c656fd03",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 238
-                },
-                "size": {
-                  "width": 24,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "口座種別:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#666666"
-                },
-                "name": "口座種別:"
-              },
-              {
-                "id": "14226a99-208f-4460-b326-81f42fb88e0b",
-                "type": "dataField",
-                "position": {
-                  "x": 34,
-                  "y": 238
-                },
-                "size": {
-                  "width": 70,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.accountType",
-                "fallbackText": "普通",
-                "label": "普通",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a"
-                },
-                "name": "口座種別"
-              },
-              {
-                "id": "94b068b1-df8d-46cb-a02e-3bfd3a6c8ba3",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 244
-                },
-                "size": {
-                  "width": 24,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "口座番号:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#666666"
-                },
-                "name": "口座番号:"
-              },
-              {
-                "id": "935b7dec-74bf-4333-961d-59d6081a47cc",
-                "type": "dataField",
-                "position": {
-                  "x": 34,
-                  "y": 244
-                },
-                "size": {
-                  "width": 70,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.accountNumber",
-                "fallbackText": "1234567",
-                "label": "1234567",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a"
-                },
-                "name": "口座番号"
-              },
-              {
-                "id": "12a47c62-88a5-4074-8566-add2c9c54b83",
-                "type": "text",
-                "position": {
-                  "x": 10,
-                  "y": 250
-                },
-                "size": {
-                  "width": 24,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": true,
-                "visible": true,
-                "content": "口座名義:",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#666666"
-                },
-                "name": "口座名義:"
-              },
-              {
-                "id": "31627a40-c72b-4f5e-a90a-8474e681edae",
-                "type": "dataField",
-                "position": {
-                  "x": 34,
-                  "y": 250
-                },
-                "size": {
-                  "width": 70,
-                  "height": 6
-                },
-                "zIndex": 3,
-                "locked": false,
-                "visible": true,
-                "fieldKey": "bankAccount.accountHolder",
-                "fallbackText": "カ）サンプルショウジ",
-                "label": "カ）サンプルショウジ",
-                "style": {
-                  "fontSize": 8,
-                  "textAlign": "left",
-                  "verticalAlign": "middle",
-                  "color": "#1a1a1a"
-                },
-                "name": "口座名義"
-              },
-              {
                 "id": "740d6fe9-59a4-42eb-b87a-e3ae9ac07fc7",
                 "type": "shape",
                 "position": {
                   "x": 10,
-                  "y": 259
+                  "y": 213
                 },
                 "size": {
                   "width": 190,
@@ -1558,7 +1218,7 @@
                 "type": "text",
                 "position": {
                   "x": 12,
-                  "y": 259
+                  "y": 213
                 },
                 "size": {
                   "width": 20,
@@ -1582,7 +1242,7 @@
                 "type": "dataField",
                 "position": {
                   "x": 12,
-                  "y": 265
+                  "y": 219
                 },
                 "size": {
                   "width": 186,
@@ -1763,7 +1423,7 @@
     "schema": {
       "groups": [
         {
-          "id": "inv-grp-doc",
+          "id": "dlv-grp-doc",
           "label": "請求情報",
           "role": "master",
           "dataKey": "document",
@@ -1790,18 +1450,11 @@
               "dbColumnName": "doc_issue_date"
             },
             {
-              "id": "inv-f-reg-no",
-              "key": "registrationNo",
-              "label": "登録番号",
-              "type": "string",
-              "dbColumnName": "doc_registration_no"
-            },
-            {
-              "id": "inv-f-payment-terms",
-              "key": "paymentTerms",
-              "label": "支払条件",
-              "type": "string",
-              "dbColumnName": "doc_payment_terms"
+              "id": "dlv-f-delivery-date",
+              "key": "deliveryDate",
+              "label": "納品日",
+              "type": "date",
+              "dbColumnName": "doc_delivery_date"
             },
             {
               "id": "inv-f-notes",
@@ -1813,11 +1466,11 @@
           ],
           "tableMeta": {
             "namespace": "demo",
-            "tableName": "invmod_header"
+            "tableName": "delivery_header"
           }
         },
         {
-          "id": "inv-grp-customer",
+          "id": "dlv-grp-customer",
           "label": "顧客情報",
           "role": "master",
           "dataKey": "customer",
@@ -1853,12 +1506,12 @@
           ],
           "tableMeta": {
             "namespace": "demo",
-            "tableName": "invmod_header"
+            "tableName": "delivery_header"
           },
-          "linkedMasterGroupId": "inv-grp-doc"
+          "linkedMasterGroupId": "dlv-grp-doc"
         },
         {
-          "id": "inv-grp-items",
+          "id": "dlv-grp-items",
           "label": "明細",
           "role": "detail",
           "dataKey": "items",
@@ -1908,12 +1561,12 @@
           ],
           "tableMeta": {
             "namespace": "demo",
-            "tableName": "invmod_items"
+            "tableName": "delivery_items"
           },
-          "linkedMasterGroupId": "inv-grp-doc"
+          "linkedMasterGroupId": "dlv-grp-doc"
         },
         {
-          "id": "inv-grp-summary",
+          "id": "dlv-grp-summary",
           "label": "集計情報",
           "role": "master",
           "dataKey": "summary",
@@ -1963,79 +1616,12 @@
           ],
           "tableMeta": {
             "namespace": "demo",
-            "tableName": "invmod_header"
+            "tableName": "delivery_header"
           },
-          "linkedMasterGroupId": "inv-grp-doc"
-        },
-        {
-          "id": "inv-grp-bank",
-          "label": "振込先",
-          "role": "master",
-          "dataKey": "bankAccount",
-          "fields": [
-            {
-              "id": "inv-f-bank-name",
-              "key": "bankName",
-              "label": "銀行名",
-              "type": "string",
-              "dbColumnName": "bank_bank_name"
-            },
-            {
-              "id": "inv-f-branch",
-              "key": "branchName",
-              "label": "支店名",
-              "type": "string",
-              "dbColumnName": "bank_branch_name"
-            },
-            {
-              "id": "inv-f-acc-type",
-              "key": "accountType",
-              "label": "口座種別",
-              "type": "string",
-              "dbColumnName": "bank_account_type"
-            },
-            {
-              "id": "inv-f-acc-no",
-              "key": "accountNumber",
-              "label": "口座番号",
-              "type": "string",
-              "dbColumnName": "bank_account_number"
-            },
-            {
-              "id": "inv-f-acc-holder",
-              "key": "accountHolder",
-              "label": "口座名義",
-              "type": "string",
-              "dbColumnName": "bank_account_holder"
-            },
-            {
-              "id": "inv-f-due-date",
-              "key": "paymentDueDate",
-              "label": "支払期限",
-              "type": "date",
-              "dbColumnName": "bank_payment_due_date"
-            }
-          ],
-          "tableMeta": {
-            "namespace": "demo",
-            "tableName": "invmod_header"
-          },
-          "linkedMasterGroupId": "inv-grp-doc"
+          "linkedMasterGroupId": "dlv-grp-doc"
         }
       ],
-      "relations": [
-        {
-          "id": "315282c4-db32-699f-0043-d8ccf6cbae47",
-          "name": "product",
-          "from": "inv-grp-items",
-          "to": "__productMaster__",
-          "on": {
-            "fromColumn": "product_code",
-            "toColumn": "code"
-          },
-          "kind": "lookup"
-        }
-      ]
+      "relations": []
     }
   }
 }

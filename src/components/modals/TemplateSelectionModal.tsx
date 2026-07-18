@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings, FlaskConical } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { BUILTIN_TEMPLATES, SAMPLE_CATEGORY } from '@/templates/builtinTemplates'
@@ -17,8 +18,16 @@ import type { ReportDefinition } from '@/types'
 interface TemplateSelectionModalProps {
   open: boolean
   onClose: () => void
-  /** Called with the chosen definition after confirmation */
-  onSelect: (definition: ReportDefinition) => void
+  /**
+   * Called with the chosen definition after confirmation.
+   * `sourceTemplateId` is the server template id this definition should be
+   * bound to for subsequent saves: the id of a loaded/copied server template,
+   * or `null` for a blank/builtin start (so the next save creates a NEW
+   * template instead of overwriting whatever was open before). Threading this
+   * through the callback is what keeps "白紙から作成 → 保存" from clobbering the
+   * previously open template (#152).
+   */
+  onSelect: (definition: ReportDefinition, sourceTemplateId: string | null) => void
   /** Title shown in the modal header */
   title?: string
   /** Label for the confirm button */
@@ -141,15 +150,44 @@ export function TemplateSelectionModal({
     }
   }, [])
 
+  // Auto-load the server template lists when the modal opens so users don't have
+  // to hunt for a "一覧を取得" button — the templates are what most people came for
+  // (#157). Runs once per open; the fetch handlers guard their own loading state.
+  useEffect(() => {
+    if (!open || !backendConnected) return
+    void handleFetchBackend()
+    void handleFetchPublic()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, backendConnected])
+
+  // This modal is always mounted (returns null when closed), so its transient
+  // in-flight flags survive open→close. A loadingId left set — e.g. the modal
+  // closed by a deferred load behind the unsaved-changes confirm — would make the
+  // `if (loadingId) return` guard silently swallow every subsequent open, with no
+  // error, until a full reload. Clear the flags whenever the modal closes (#154).
+  useEffect(() => {
+    if (open) return
+    setLoadingId(null)
+    setCopyingId(null)
+    setDuplicatingId(null)
+    setExportingId(null)
+    setImporting(false)
+  }, [open])
+
   const handleCopyTemplate = async (id: string) => {
     setCopyingId(id)
     try {
       const result = await copyTemplate(id)
       const definition = await getReport(result.id)
-      onSelect(definition)
+      // A copy is a persisted, user-owned template: bind saves to the new copy's
+      // id so the next 保存 updates it rather than creating yet another (#152).
+      onSelect(definition, result.id)
       onClose()
     } catch {
+      // Toast too, not just the in-modal banner: on the deferred path the modal
+      // may already be closing, which would hide a banner-only error (#154).
       setBackendLoadError('テンプレートのコピーに失敗しました')
+      toast.error('テンプレートのコピーに失敗しました', { duration: 8000 })
     } finally {
       setCopyingId(null)
     }
@@ -161,12 +199,14 @@ export function TemplateSelectionModal({
     setBackendLoadError(null)
     try {
       const definition = await getReport(id)
-      onSelect(definition)
-      // Ensure currentTemplateId is set so Webhook/Sequence tabs work
-      useReportStore.getState().setCurrentTemplateId(id)
+      // Bind saves to this template's id (also lets Webhook/Sequence tabs work).
+      // App.tsx applies the id atomically with loadReport, including across the
+      // unsaved-changes confirm gate — do NOT set it out-of-band here.
+      onSelect(definition, id)
       handleClose()
     } catch {
       setBackendLoadError('テンプレートの読み込みに失敗しました')
+      toast.error('テンプレートの読み込みに失敗しました', { duration: 8000 })
     } finally {
       setLoadingId(null)
     }
@@ -274,7 +314,10 @@ export function TemplateSelectionModal({
 
   const handleConfirm = () => {
     if (selectedDefinition) {
-      onSelect(selectedDefinition)
+      // Blank / builtin start: no server template backs it yet, so clear the
+      // bound id (null) — the first 保存 must create a NEW template rather than
+      // overwrite whatever was open before (#152).
+      onSelect(selectedDefinition, null)
       onClose()
     }
   }
@@ -477,7 +520,7 @@ export function TemplateSelectionModal({
               <div className="border-t my-1" />
               <div className="flex items-center justify-between mb-3 mt-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  バックエンドテンプレート
+                  自分のテンプレート
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -525,7 +568,7 @@ export function TemplateSelectionModal({
               {backendLoadState === 'idle' && backendTemplates.length === 0 && (
                 <div className="flex flex-col items-center gap-1.5 py-4 text-center">
                   <FolderOpen className="w-5 h-5 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">「一覧を取得」でテンプレートを読み込めます。</p>
+                  <p className="text-xs text-muted-foreground">保存済みのテンプレートはまだありません。</p>
                 </div>
               )}
 

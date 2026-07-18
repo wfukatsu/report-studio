@@ -51,7 +51,13 @@ describe('createChartElement', () => {
 
 describe('createDataFieldElement', () => {
   it('type が dataField', () => expect(createDataFieldElement().type).toBe('dataField'))
-  it('fieldKey が設定されている', () => expect((createDataFieldElement() as { fieldKey: string }).fieldKey).toBe('field.key'))
+  it('fieldKey が field.value* 形式で設定される', () =>
+    expect((createDataFieldElement() as { fieldKey: string }).fieldKey).toMatch(/^field\.value\d+$/))
+  it('連続追加で fieldKey が重複しない (#176)', () => {
+    const a = (createDataFieldElement() as { fieldKey: string }).fieldKey
+    const b = (createDataFieldElement() as { fieldKey: string }).fieldKey
+    expect(a).not.toBe(b)
+  })
 })
 
 describe('createManualEntryField', () => {

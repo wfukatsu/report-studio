@@ -21,6 +21,7 @@ import { EmptyCanvasOnboarding } from '@/components/canvas/EmptyCanvasOnboarding
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import { getAutoSaveKey, LEGACY_AUTOSAVE_KEY } from '@/lib/autoSaveKey'
+import { saveReport } from '@/api/reportApi'
 import { ChevronLeft, ChevronRight, LayoutTemplate, Layers, BookOpen, Database } from 'lucide-react'
 
 type LeftTab = 'elements' | 'pages' | 'layers' | 'schema'
@@ -57,6 +58,11 @@ export default function App() {
   const [showTemplateChangeConfirm, setShowTemplateChangeConfirm] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [pendingTemplateDefinition, setPendingTemplateDefinition] = useState<Parameters<typeof loadReport>[0] | null>(null)
+  // Server template id the pending definition should bind to once the user
+  // confirms discarding unsaved changes (null = blank/builtin start). Kept
+  // alongside pendingTemplateDefinition so the id is applied atomically with
+  // loadReport across the confirm gate (#152).
+  const [pendingTemplateSourceId, setPendingTemplateSourceId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const canvasContainerRef = useRef<HTMLDivElement>(null)
 
@@ -91,13 +97,18 @@ export default function App() {
   const activePage = useReportStore(selectActivePage)
   const loadReport = useReportStore((s) => s.loadReport)
   const _ensureProductMasterGroup = useReportStore((s) => s.ensureProductMasterGroup)
-  const handleTemplateChange = useCallback((definition: Parameters<typeof loadReport>[0]) => {
+  const handleTemplateChange = useCallback((definition: Parameters<typeof loadReport>[0], sourceTemplateId: string | null) => {
     if (historyIndex > 0) {
       setPendingTemplateDefinition(definition)
+      setPendingTemplateSourceId(sourceTemplateId)
       setShowTemplateChangeConfirm(true)
       return
     }
     loadReport(definition)
+    // Bind subsequent saves to the chosen template (or null for a blank/builtin
+    // start, so 保存 creates a new template instead of overwriting the previously
+    // open one — #152). Applied together with loadReport, never out-of-band.
+    useReportStore.getState().setCurrentTemplateId(sourceTemplateId)
     _ensureProductMasterGroup()
     setShowTemplateModal(false)
   }, [loadReport, _ensureProductMasterGroup, historyIndex])
@@ -134,8 +145,13 @@ export default function App() {
     }
   }, [currentUser])
 
-  // Check for restore on mount — intentionally runs once; historyIndex is a
-  // mount-time check only, not a reactive dependency.
+  // Check for a restorable autosave once per user, AFTER authentication resolves.
+  // The autosave key is user-scoped (getAutoSaveKey(userId)); running this on bare
+  // mount — before checkAuth populates currentUser — always computed a null key and
+  // silently skipped the prompt, so unsaved work was never offered for restore on
+  // reload (#160). Gate on currentUser?.userId and guard with a ref so it fires
+  // exactly once per user session.
+  const restoreCheckedForRef = useRef<string | null>(null)
   useEffect(() => {
     // Best-effort cleanup of any pre-multiuser unkeyed draft so it cannot
     // resurface as a phantom restore prompt for the wrong user.
@@ -143,12 +159,16 @@ export default function App() {
     // every active session has remounted at least once after the multiuser
     // autosave key migration. Track via review-feedback ticket.
     try { localStorage.removeItem(LEGACY_AUTOSAVE_KEY) } catch { /* storage disabled */ }
-    const key = getAutoSaveKey(currentUser?.userId)
+    const uid = currentUser?.userId ?? null
+    if (!uid || restoreCheckedForRef.current === uid) return
+    restoreCheckedForRef.current = uid
+    const key = getAutoSaveKey(uid)
     const saved = key ? localStorage.getItem(key) : null
-    if (saved && historyIndex === 0) {
+    // Read historyIndex at check-time (pristine editor only); it is not a dep.
+    if (saved && useReportStore.getState().historyIndex === 0) {
       setShowRestorePrompt(true)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentUser?.userId])
 
   // Authenticate on mount — restores existing session or flags as unauthenticated
   const checkAuth = useReportStore((s) => s.checkAuth)
@@ -419,7 +439,10 @@ export default function App() {
           <main className="flex-1 overflow-hidden bg-muted/10 flex flex-col">
             <div ref={canvasContainerRef} className="relative flex-1 overflow-hidden">
               <ReportCanvas canvasRef={canvasRef} />
-              {isDocumentEmpty && !onboardingDismissed && (
+              {/* Suppress the onboarding overlay while a restore prompt is showing so
+                  the two "start here" affordances don't stack (#175). Once the user
+                  acts on the restore banner it clears and onboarding can reappear. */}
+              {isDocumentEmpty && !onboardingDismissed && !showRestorePrompt && (
                 <EmptyCanvasOnboarding
                   onOpenTemplates={() => openTemplateModal('new')}
                   onDismiss={() => setOnboardingDismissed(true)}
@@ -519,19 +542,47 @@ export default function App() {
       <ConfirmDialog
         open={showTemplateChangeConfirm}
         title="未保存の変更があります"
-        message="テンプレートを変更すると現在の変更が失われます。続けますか？"
-        confirmLabel="変更"
+        message="編集中のテンプレートに未保存の変更があります。破棄して別のテンプレートを開きますか？"
+        confirmLabel="破棄して開く"
         confirmVariant="danger"
-        onConfirm={() => {
+        // Offer a non-destructive "save first" path when an existing server
+        // template is open (has an id to save to). A blank/unsaved-new draft has
+        // no id, so only the discard path is shown there (#160).
+        secondaryLabel={useReportStore.getState().currentTemplateId ? '保存して開く' : undefined}
+        onSecondary={async () => {
+          const { currentTemplateId, definition } = useReportStore.getState()
+          if (currentTemplateId) {
+            try {
+              await saveReport(currentTemplateId, definition)
+              toast.success('保存しました')
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : '保存に失敗しました', { duration: 8000 })
+              return // keep the dialog open so the user doesn't lose the pending switch
+            }
+          }
           if (pendingTemplateDefinition) {
             loadReport(pendingTemplateDefinition)
+            useReportStore.getState().setCurrentTemplateId(pendingTemplateSourceId)
             _ensureProductMasterGroup()
             setShowTemplateModal(false)
           }
           setShowTemplateChangeConfirm(false)
           setPendingTemplateDefinition(null)
+          setPendingTemplateSourceId(null)
         }}
-        onCancel={() => { setShowTemplateChangeConfirm(false); setPendingTemplateDefinition(null) }}
+        onConfirm={() => {
+          if (pendingTemplateDefinition) {
+            loadReport(pendingTemplateDefinition)
+            // Apply the bound id atomically with the deferred load (#152).
+            useReportStore.getState().setCurrentTemplateId(pendingTemplateSourceId)
+            _ensureProductMasterGroup()
+            setShowTemplateModal(false)
+          }
+          setShowTemplateChangeConfirm(false)
+          setPendingTemplateDefinition(null)
+          setPendingTemplateSourceId(null)
+        }}
+        onCancel={() => { setShowTemplateChangeConfirm(false); setPendingTemplateDefinition(null); setPendingTemplateSourceId(null) }}
       />
 
     </div>

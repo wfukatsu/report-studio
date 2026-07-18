@@ -1,20 +1,10 @@
 /**
  * ビルトインテンプレート一覧
  *
- * JSONファイルから ReportDefinition を読み込み、
- * テンプレートメタデータ（名前・カテゴリ・タグ）を付与する。
+ * 同梱テンプレートはすべて削除済み。空のレジストリを公開する。
+ * テンプレートはサーバに保存されたもの（公開テンプレート）を利用する。
  */
-import { ReportDefinitionSchema } from '@/lib/schemas/reportDefinition'
 import type { ReportDefinition } from '@/types'
-
-// ---------------------------------------------------------------------------
-// JSON ファイル読み込み（Vite import.meta.glob — eager で同期読み込み）
-// ---------------------------------------------------------------------------
-
-const templateModules = import.meta.glob('./builtin/*.json', { eager: true }) as Record<
-  string,
-  { formatVersion: number; definition: unknown; default?: unknown }
->
 
 // ---------------------------------------------------------------------------
 // BuiltinEntry 型定義
@@ -37,49 +27,7 @@ export interface BuiltinEntry {
 export const SAMPLE_CATEGORY = '検証・サンプル'
 
 // ---------------------------------------------------------------------------
-// テンプレートメタデータ（JSON ファイルは純粋な ReportDefinition のみ）
+// ビルトインテンプレートは存在しない（すべて削除済み）
 // ---------------------------------------------------------------------------
 
-const BUILTIN_META: Omit<BuiltinEntry, 'definition'>[] = [
-  { id: 'quotation-modern', name: '御見積書（モダン）', category: 'business', tags: ['modern', 'invoice'] },
-  { id: 'purchase-order-modern', name: '御注文書', category: 'business', tags: ['modern', 'invoice'] },
-  { id: 'invoice-modern', name: '御請求書', category: 'business', tags: ['modern', 'invoice'] },
-  { id: 'quotation-basic-invoice', name: '見積書（インボイス対応）' },
-  { id: 'quotation-discount-invoice', name: '見積書（値引対応・インボイス対応）' },
-  { id: 'quotation-english', name: 'Quotation (English)' },
-  { id: 'fuyou-kojo-r7', name: '扶養控除等（異動）申告書（令和7年分）' },
-  { id: 'element-showcase', name: '帳票エンジン ショーケース', category: SAMPLE_CATEGORY,
-    description: '全要素タイプ・和暦/大字・縦書き/ふりがな/太字・テナント情報・複数ページを網羅した検証テンプレート' },
-  { id: 'binding-editor-sample', name: 'バインドエディタ検証用納品書', category: SAMPLE_CATEGORY },
-]
-
-// ---------------------------------------------------------------------------
-// ビルドして公開
-// ---------------------------------------------------------------------------
-
-function loadBuiltinEntries(): BuiltinEntry[] {
-  const entries: BuiltinEntry[] = []
-  for (const meta of BUILTIN_META) {
-    const key = `./builtin/${meta.id}.json`
-    const mod = templateModules[key]
-    if (!mod) {
-      console.error(`[builtinTemplates] Missing JSON file for: ${meta.id}`)
-      continue
-    }
-    // import.meta.glob with eager:true exposes fields both at top level and under .default
-    const envelope = (mod.formatVersion !== undefined) ? mod : (mod.default as typeof mod)
-    if (!envelope || envelope.formatVersion !== 2 || !envelope.definition) {
-      console.error(`[builtinTemplates] Invalid envelope for: ${meta.id}`)
-      continue
-    }
-    const result = ReportDefinitionSchema.safeParse(envelope.definition)
-    if (!result.success) {
-      console.error(`[builtinTemplates] Zod validation failed for: ${meta.id}`, result.error)
-      continue
-    }
-    entries.push({ ...meta, definition: result.data as ReportDefinition })
-  }
-  return entries
-}
-
-export const BUILTIN_TEMPLATES: BuiltinEntry[] = loadBuiltinEntries()
+export const BUILTIN_TEMPLATES: BuiltinEntry[] = []

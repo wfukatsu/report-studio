@@ -1,0 +1,831 @@
+{
+  "formatVersion": 2,
+  "definition": {
+    "id": "988a82a5-48e9-1099-2d11-f6806d2b74dc",
+    "metadata": {
+      "documentName": "領収書",
+      "name": "領収書",
+      "version": "1.0",
+      "reportType": "general",
+      "sourceTemplateId": "receipt",
+      "description": "領収書（宛名・金額・但し書き・内訳・収入印紙欄）。demo.receipt_* にライブバインド。"
+    },
+    "pageSettings": {
+      "paperSize": "A4",
+      "orientation": "portrait",
+      "margins": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      },
+      "unit": "mm"
+    },
+    "defaultTextStyle": {},
+    "pages": [
+      {
+        "id": "66f52079-8b4a-7f06-5be7-8ed1eb6bbfaa",
+        "name": "ページ 1",
+        "background": "#ffffff",
+        "width": 210,
+        "height": 297,
+        "sections": [
+          {
+            "id": "ef6d9eef-20ac-e60f-4a9b-810aaf8f202c",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "efba07db-710b-d961-81cc-363a034889f2",
+                "type": "text",
+                "position": {
+                  "x": 55,
+                  "y": 14
+                },
+                "size": {
+                  "width": 100,
+                  "height": 12
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "領 収 書",
+                "name": "領 収 書",
+                "style": {
+                  "fontSize": 22,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "textAlign": "center",
+                  "letterSpacing": 4
+                }
+              },
+              {
+                "id": "ae6be484-35ec-0f99-da44-3a2eef6c4432",
+                "type": "shape",
+                "position": {
+                  "x": 60,
+                  "y": 27
+                },
+                "size": {
+                  "width": 90,
+                  "height": 0.4
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#333333",
+                "strokeWidth": 0.4,
+                "name": "区切り線"
+              },
+              {
+                "id": "042d1efe-230b-bf1e-1829-f072673f5988",
+                "type": "text",
+                "position": {
+                  "x": 130,
+                  "y": 34
+                },
+                "size": {
+                  "width": 22,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "領収番号:",
+                "name": "領収番号:",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a",
+                  "textAlign": "left"
+                }
+              },
+              {
+                "id": "1877b63e-ebfa-8f13-da74-2b54012105a5",
+                "type": "dataField",
+                "position": {
+                  "x": 152,
+                  "y": 34
+                },
+                "size": {
+                  "width": 48,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.documentNo",
+                "fallbackText": "RCP-2026-0007",
+                "label": "RCP-2026-0007",
+                "name": "領収番号",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "2beca463-4413-1640-c31b-0626ad11de49",
+                "type": "text",
+                "position": {
+                  "x": 130,
+                  "y": 39
+                },
+                "size": {
+                  "width": 22,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "発行日:",
+                "name": "発行日:",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a",
+                  "textAlign": "left"
+                }
+              },
+              {
+                "id": "c9bf97f4-42bb-95fd-b606-6b54b88fde6e",
+                "type": "dataField",
+                "position": {
+                  "x": 152,
+                  "y": 39
+                },
+                "size": {
+                  "width": 48,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.issueDate",
+                "fallbackText": "2026年4月20日",
+                "label": "2026年4月20日",
+                "name": "発行日",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "411ee5fd-998e-adcf-b556-4c23ae8537e0",
+                "type": "dataField",
+                "position": {
+                  "x": 12,
+                  "y": 40
+                },
+                "size": {
+                  "width": 95,
+                  "height": 8
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.customerName",
+                "fallbackText": "株式会社サンプル商事",
+                "label": "株式会社サンプル商事",
+                "name": "宛名",
+                "style": {
+                  "fontSize": 14,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "ce42ff37-08b3-1d85-7a24-2ece5269f014",
+                "type": "text",
+                "position": {
+                  "x": 108,
+                  "y": 42
+                },
+                "size": {
+                  "width": 10,
+                  "height": 7
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "様",
+                "name": "様",
+                "style": {
+                  "fontSize": 12,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "0ccea52d-fa83-ceea-b53e-3877b232ddd8",
+                "type": "shape",
+                "position": {
+                  "x": 12,
+                  "y": 49
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.3
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#888888",
+                "strokeWidth": 0.3,
+                "name": "区切り線"
+              },
+              {
+                "id": "c41585ee-f3f6-0ca5-b706-7e4288576ada",
+                "type": "shape",
+                "position": {
+                  "x": 12,
+                  "y": 58
+                },
+                "size": {
+                  "width": 186,
+                  "height": 16
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f5f7fa",
+                "stroke": "#333333",
+                "strokeWidth": 0.4,
+                "borderRadius": 1,
+                "name": "金額ボックス"
+              },
+              {
+                "id": "c1fd06de-780f-b9e0-e99a-46057a5e4b93",
+                "type": "text",
+                "position": {
+                  "x": 16,
+                  "y": 58
+                },
+                "size": {
+                  "width": 30,
+                  "height": 16
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "金 額",
+                "name": "金 額",
+                "style": {
+                  "fontSize": 12,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "verticalAlign": "middle"
+                }
+              },
+              {
+                "id": "380f2fcb-61af-bd93-a17d-7051a5288286",
+                "type": "dataField",
+                "position": {
+                  "x": 46,
+                  "y": 58
+                },
+                "size": {
+                  "width": 150,
+                  "height": 16
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.totalIncTax",
+                "fallbackText": "¥154,000",
+                "label": "¥154,000",
+                "name": "領収金額（税込）",
+                "style": {
+                  "fontSize": 20,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "textAlign": "right",
+                  "verticalAlign": "middle"
+                },
+                "format": {
+                  "type": "currency_jpy"
+                }
+              },
+              {
+                "id": "31716d00-7c0f-48c7-c8b2-3e52821a9774",
+                "type": "text",
+                "position": {
+                  "x": 12,
+                  "y": 80
+                },
+                "size": {
+                  "width": 12,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "但し",
+                "name": "但し",
+                "style": {
+                  "fontSize": 9,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "3e886180-be7a-d4cb-8724-5143fe68dff6",
+                "type": "dataField",
+                "position": {
+                  "x": 24,
+                  "y": 80
+                },
+                "size": {
+                  "width": 120,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.proviso",
+                "fallbackText": "システム開発費用として",
+                "label": "システム開発費用として",
+                "name": "但し書き",
+                "style": {
+                  "fontSize": 9,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "46e96bab-d3d2-0991-7b87-5ba351a2813a",
+                "type": "text",
+                "position": {
+                  "x": 12,
+                  "y": 88
+                },
+                "size": {
+                  "width": 120,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "上記正に領収いたしました。",
+                "name": "上記正に領収いたしました。",
+                "style": {
+                  "fontSize": 9,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "ececffe0-5018-fb6c-5ca7-9878387c6662",
+                "type": "shape",
+                "position": {
+                  "x": 12,
+                  "y": 100
+                },
+                "size": {
+                  "width": 90,
+                  "height": 20
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "stroke": "#cccccc",
+                "strokeWidth": 0.3,
+                "borderRadius": 0,
+                "name": "内訳ボックス"
+              },
+              {
+                "id": "c97a16b5-6ba9-88f1-f63b-e1c516b796c5",
+                "type": "text",
+                "position": {
+                  "x": 14,
+                  "y": 101
+                },
+                "size": {
+                  "width": 30,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "内訳",
+                "name": "内訳",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "e98c5fa3-09c4-2b00-81f4-0d200e466674",
+                "type": "text",
+                "position": {
+                  "x": 16,
+                  "y": 108
+                },
+                "size": {
+                  "width": 40,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "税抜金額",
+                "name": "税抜金額",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "9a6ddec7-35e8-9ea7-2ac6-c56e4ea0700f",
+                "type": "dataField",
+                "position": {
+                  "x": 60,
+                  "y": 108
+                },
+                "size": {
+                  "width": 38,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.subtotal",
+                "fallbackText": "¥140,000",
+                "label": "¥140,000",
+                "name": "税抜金額",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a",
+                  "textAlign": "right"
+                },
+                "format": {
+                  "type": "currency_jpy"
+                }
+              },
+              {
+                "id": "2bb420a7-f6ef-7f40-69ae-269ef137a9f8",
+                "type": "text",
+                "position": {
+                  "x": 16,
+                  "y": 113
+                },
+                "size": {
+                  "width": 40,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "消費税",
+                "name": "消費税",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "cad7c67b-1217-83f1-c706-449a7c5a26a5",
+                "type": "dataField",
+                "position": {
+                  "x": 60,
+                  "y": 113
+                },
+                "size": {
+                  "width": 38,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.taxAmount",
+                "fallbackText": "¥14,000",
+                "label": "¥14,000",
+                "name": "消費税額",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a",
+                  "textAlign": "right"
+                },
+                "format": {
+                  "type": "currency_jpy"
+                }
+              },
+              {
+                "id": "e6b54d41-3a11-14f3-2e21-9e1f34993fa3",
+                "type": "shape",
+                "position": {
+                  "x": 150,
+                  "y": 100
+                },
+                "size": {
+                  "width": 30,
+                  "height": 30
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "stroke": "#bbbbbb",
+                "strokeWidth": 0.3,
+                "borderRadius": 0,
+                "name": "収入印紙欄"
+              },
+              {
+                "id": "21df28a4-d0e5-8255-c5ad-e2a9aa354db7",
+                "type": "text",
+                "position": {
+                  "x": 150,
+                  "y": 112
+                },
+                "size": {
+                  "width": 30,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "収入印紙",
+                "name": "収入印紙",
+                "style": {
+                  "fontSize": 7,
+                  "color": "#999999",
+                  "textAlign": "center"
+                }
+              },
+              {
+                "id": "412ec92e-52ba-f5ac-3bf2-d00305c67ea9",
+                "type": "shape",
+                "position": {
+                  "x": 120,
+                  "y": 140
+                },
+                "size": {
+                  "width": 78,
+                  "height": 0.3
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#888888",
+                "strokeWidth": 0.3,
+                "name": "区切り線"
+              },
+              {
+                "id": "edc7d3fc-f304-7b6f-071b-738c7158b40d",
+                "type": "tenantLogo",
+                "position": {
+                  "x": 173,
+                  "y": 142
+                },
+                "size": {
+                  "width": 25,
+                  "height": 15
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社ロゴ"
+              },
+              {
+                "id": "34ad0de2-8e3a-3516-fca7-0d4fc3d1d631",
+                "type": "tenantCompanyName",
+                "position": {
+                  "x": 118,
+                  "y": 143
+                },
+                "size": {
+                  "width": 52,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社名",
+                "style": {
+                  "fontSize": 10,
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "b8dd5e33-e923-6007-3f2c-6931853a3239",
+                "type": "tenantAddress",
+                "position": {
+                  "x": 118,
+                  "y": 148
+                },
+                "size": {
+                  "width": 80,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社住所",
+                "style": {
+                  "fontSize": 7
+                }
+              },
+              {
+                "id": "21fd929e-ab16-77b0-a958-93c953ca2a72",
+                "type": "tenantPhone",
+                "position": {
+                  "x": 118,
+                  "y": 152
+                },
+                "size": {
+                  "width": 80,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社電話",
+                "style": {
+                  "fontSize": 7
+                }
+              },
+              {
+                "id": "64d5bcfd-b2a8-bc8f-374f-62ffebd6532a",
+                "type": "text",
+                "position": {
+                  "x": 118,
+                  "y": 158
+                },
+                "size": {
+                  "width": 20,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "登録番号:",
+                "name": "登録番号:",
+                "style": {
+                  "fontSize": 7,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "cd81177b-18d5-4de7-dac8-db7db6e09bfb",
+                "type": "dataField",
+                "position": {
+                  "x": 138,
+                  "y": 158
+                },
+                "size": {
+                  "width": 50,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.registrationNo",
+                "fallbackText": "T1234567890123",
+                "label": "T1234567890123",
+                "name": "登録番号",
+                "style": {
+                  "fontSize": 7,
+                  "color": "#1a1a1a"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "schema": {
+      "relations": [],
+      "groups": [
+        {
+          "id": "rcp-grp-doc",
+          "dataKey": "document",
+          "label": "書類情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "receipt_header"
+          },
+          "fields": [
+            {
+              "id": "rcp-f-report-id",
+              "key": "reportId",
+              "label": "帳票ID",
+              "type": "string",
+              "dbColumnName": "report_id"
+            },
+            {
+              "id": "rcp-f-doc-no",
+              "key": "documentNo",
+              "label": "領収番号",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "rcp-f-issue-date",
+              "key": "issueDate",
+              "label": "発行日",
+              "type": "date",
+              "dbColumnName": "doc_issue_date"
+            },
+            {
+              "id": "rcp-f-proviso",
+              "key": "proviso",
+              "label": "但し書き",
+              "type": "string",
+              "dbColumnName": "doc_proviso"
+            },
+            {
+              "id": "rcp-f-reg-no",
+              "key": "registrationNo",
+              "label": "登録番号",
+              "type": "string",
+              "dbColumnName": "doc_registration_no"
+            }
+          ]
+        },
+        {
+          "id": "rcp-grp-cust",
+          "dataKey": "customer",
+          "label": "顧客情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "receipt_header"
+          },
+          "linkedMasterGroupId": "rcp-grp-doc",
+          "fields": [
+            {
+              "id": "rcp-f-cust-name",
+              "key": "customerName",
+              "label": "宛名",
+              "type": "string",
+              "dbColumnName": "cust_customer_name"
+            }
+          ]
+        },
+        {
+          "id": "rcp-grp-sum",
+          "dataKey": "summary",
+          "label": "集計情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "receipt_header"
+          },
+          "linkedMasterGroupId": "rcp-grp-doc",
+          "fields": [
+            {
+              "id": "rcp-f-subtotal",
+              "key": "subtotal",
+              "label": "税抜金額",
+              "type": "number",
+              "dbColumnName": "sum_subtotal"
+            },
+            {
+              "id": "rcp-f-tax",
+              "key": "taxAmount",
+              "label": "消費税額",
+              "type": "number",
+              "dbColumnName": "sum_tax_amount"
+            },
+            {
+              "id": "rcp-f-total",
+              "key": "totalIncTax",
+              "label": "合計(税込)",
+              "type": "number",
+              "dbColumnName": "sum_total_inc_tax"
+            }
+          ]
+        }
+      ]
+    },
+    "dataSources": [
+      {
+        "id": "579ae4ea-696d-79ba-7088-896f271d5427",
+        "name": "領収書サンプルデータ",
+        "type": null,
+        "fields": {
+          "document": {
+            "reportId": "05790fb1-d19d-e675-6676-de5d1ff3cebf",
+            "documentNo": "RCP-2026-0007",
+            "issueDate": "2026年4月20日",
+            "proviso": "システム開発費用として",
+            "registrationNo": "T1234567890123"
+          },
+          "customer": {
+            "customerName": "株式会社サンプル商事"
+          },
+          "summary": {
+            "subtotal": 140000,
+            "taxAmount": 14000,
+            "totalIncTax": 154000
+          }
+        }
+      }
+    ],
+    "calculationRules": [],
+    "validationRules": [],
+    "outputVariants": [],
+    "templateVariables": [],
+    "submissionModels": []
+  }
+}

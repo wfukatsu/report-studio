@@ -4,18 +4,36 @@
  * Backend templates can be deleted and renamed.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2, Trash2, Pencil, FolderOpen, AlertCircle, Eye, EyeOff, RotateCcw } from 'lucide-react'
 import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
-import { listReports, getReport, saveReport, deleteReport } from '@/api/reportApi'
+import { listReports, getReport, saveReport, deleteReport, updateVisibility } from '@/api/reportApi'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
 import { TagInput } from '@/components/common/TagInput'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { collectCategories } from '@/lib/templateFilter'
+
+// Visibility display helpers for the management list (#162).
+const VISIBILITY_LABEL: Record<'private' | 'shared' | 'public', string> = {
+  private: '個人', shared: '共有', public: '公開',
+}
+const VISIBILITY_BADGE: Record<'private' | 'shared' | 'public', string> = {
+  private: 'bg-muted text-muted-foreground',
+  shared: 'bg-amber-50 text-amber-600',
+  public: 'bg-blue-50 text-blue-600',
+}
+
+/** Compact "最終更新" formatting; tolerates missing/invalid timestamps. */
+function formatUpdatedAt(iso?: string): string {
+  if (!iso) return '—'
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return '—'
+  return new Date(t).toLocaleDateString('ja-JP', { year: '2-digit', month: '2-digit', day: '2-digit' })
+}
 
 interface Props {
   open: boolean
@@ -69,6 +87,10 @@ export function TemplateManagerContent() {
     }
   }, [])
 
+  // Auto-load the list on mount so the management view isn't blank until the user
+  // finds the "一覧を取得" button (#162).
+  useEffect(() => { void handleFetch() }, [handleFetch])
+
   const handleDelete = async (id: string) => {
     setDeletingId(id)
     setError(null)
@@ -100,6 +122,20 @@ export function TemplateManagerContent() {
     }
   }
 
+  const handleCycleVisibility = async (id: string, current: 'private' | 'shared' | 'public') => {
+    const next = current === 'private' ? 'shared' : current === 'shared' ? 'public' : 'private'
+    setSavingId(id)
+    setError(null)
+    try {
+      await updateVisibility(id, next)
+      await handleFetch()
+    } catch {
+      setError('公開範囲の変更に失敗しました')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const handleUpdateMetadata = async (id: string, patch: Partial<ReportDefinition['metadata']>) => {
     setSavingId(id)
     setError(null)
@@ -126,7 +162,9 @@ export function TemplateManagerContent() {
             </div>
           )}
 
-          {/* Builtin templates */}
+          {/* Builtin templates — hidden entirely when none are bundled (the built-in
+              set was removed), so no empty "ビルトインテンプレート" header lingers (#162). */}
+          {BUILTIN_TEMPLATES.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               ビルトインテンプレート
@@ -221,19 +259,20 @@ export function TemplateManagerContent() {
               })}
             </div>
           </div>
+          )}
 
           {/* Backend templates */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                バックエンドテンプレート
+                保存済みテンプレート
               </p>
               <button
                 onClick={handleFetch}
                 disabled={loadState === 'loading'}
                 className="text-xs text-primary hover:underline disabled:opacity-50"
               >
-                {loadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin inline" /> : '一覧を取得'}
+                {loadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin inline" /> : '更新'}
               </button>
             </div>
 
@@ -243,7 +282,7 @@ export function TemplateManagerContent() {
                 <p className="text-xs text-muted-foreground">
                   {hasFetched
                     ? 'テンプレートがありません。'
-                    : '「一覧を取得」でテンプレートを読み込めます。'}
+                    : '読み込み中...'}
                 </p>
               </div>
             )}
@@ -328,6 +367,19 @@ export function TemplateManagerContent() {
                         }
                       </div>
                     )}
+
+                    {/* Visibility (click to cycle private→shared→public) + updated time (#162) */}
+                    <button
+                      onClick={() => handleCycleVisibility(t.id, t.visibility ?? 'private')}
+                      disabled={savingId === t.id}
+                      className={`shrink-0 w-14 text-center text-[10px] px-1 py-0.5 rounded disabled:opacity-50 ${VISIBILITY_BADGE[t.visibility ?? 'private']}`}
+                      title="クリックで公開範囲を変更（個人→共有→公開）"
+                    >
+                      {VISIBILITY_LABEL[t.visibility ?? 'private']}
+                    </button>
+                    <span className="shrink-0 w-24 text-[10px] text-muted-foreground text-right tabular-nums" title="最終更新">
+                      {formatUpdatedAt(t.updatedAt)}
+                    </span>
 
                     {/* Actions */}
                     <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
