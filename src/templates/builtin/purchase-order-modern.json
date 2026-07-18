@@ -34,7 +34,8 @@
             "issueDate": "2026年4月18日",
             "registrationNo": "T1234567890123",
             "paymentTerms": "月末締め翌月末払い",
-            "notes": "納品時に検品を行います。不良品は交換対応をお願いします。"
+            "notes": "納品時に検品を行います。不良品は交換対応をお願いします。",
+            "reportId": "70bb126a-12f9-c789-b91b-909459e5e2e3"
           },
           "customer": {
             "customerName": "株式会社サンプル商事",
@@ -1655,6 +1656,13 @@
           "dataKey": "document",
           "fields": [
             {
+              "id": "935313f2-15e9-202c-4507-ad8c851c2988",
+              "key": "reportId",
+              "label": "帳票ID",
+              "type": "string",
+              "dbColumnName": "report_id"
+            },
+            {
               "id": "po-f-doc-no",
               "key": "documentNo",
               "label": "注文番号",
@@ -1747,7 +1755,7 @@
               "key": "itemCode",
               "label": "品番",
               "type": "string",
-              "dbColumnName": "item_item_code"
+              "dbColumnName": "product_code"
             },
             {
               "id": "po-f-name",

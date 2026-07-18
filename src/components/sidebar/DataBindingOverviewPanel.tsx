@@ -14,14 +14,14 @@ import type { ElementBinding } from '@/hooks/useBindingAnalysis'
  * Seed the ライブプレビュー partition-key inputs from the template's sample data
  * so a freshly-loaded DB-bound template resolves with a single click.
  *
- * The built-in business templates share one partition-key column (`doc_no`):
- * the primary master group holds its real value; every other bound group (aux
- * masters and the detail group) reaches it via `linkedMasterGroupId` and is
- * auto-filled at refresh time. We read the value from the sample data (the
- * primary group's PK field) and pre-fill `doc_no` on the primary group.
- * Templates that don't follow this convention get no defaults (unchanged).
+ * The built-in business templates share one partition-key column (`report_id`,
+ * the surrogate key): the primary master group holds its real value; every other
+ * bound group (aux masters and the detail group) reaches it via
+ * `linkedMasterGroupId` and is auto-filled at refresh time. We read the value
+ * from the sample data (the primary group's key field) and pre-fill `report_id`
+ * on the primary group. Templates that don't follow this get no defaults.
  */
-const SHARED_PK_COLUMN = 'doc_no'
+const SHARED_PK_COLUMN = 'report_id'
 function computeDefaultPartitionKeys(
   schema: SchemaDefinition,
   sampleData: Record<string, unknown>,

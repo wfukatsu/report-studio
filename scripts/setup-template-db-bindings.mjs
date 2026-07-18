@@ -189,27 +189,45 @@ function bindTemplate(id, def) {
   const primary = groups.find((g) => g.role === 'master' && g.fields.some((f) => f.key === cfg.pkFieldKey))
   if (!primary) throw new Error(`${id}: primary group with pk field "${cfg.pkFieldKey}" not found`)
 
-  const headerCols = new Map() // colName → type   (doc_no added first)
-  headerCols.set('doc_no', 'TEXT')
-  const itemCols = new Map()
-
   const sample = def.dataSources?.[0]?.fields ?? {}
-  const headerRow = { doc_no: String(sample[primary.dataKey]?.[cfg.pkFieldKey] ?? '') }
+  const docNo = String(sample[primary.dataKey]?.[cfg.pkFieldKey] ?? '')
+  // Surrogate report identity — a stable UUID per document, distinct from the
+  // human-facing doc_no (a unique business attribute, not the key).
+  const reportId = stableId(`report-${cfg.prefix}-${docNo}`)
+
+  const headerCols = new Map() // colName → type
+  headerCols.set('report_id', 'TEXT') // PK (surrogate)
+  headerCols.set('doc_no', 'TEXT')    // unique business number
+  const itemCols = new Map()
+  const headerRow = { report_id: reportId, doc_no: docNo }
   const itemRows = []
+
+  // Expose report_id on the primary group as the key field, and mirror it into
+  // the sample data so the preview panel pre-fills it.
+  if (!primary.fields.some((f) => f.key === 'reportId')) {
+    primary.fields.unshift({
+      id: stableId(`fld-${primary.dataKey}-reportId`),
+      key: 'reportId', label: '帳票ID', type: 'string', dbColumnName: 'report_id',
+    })
+  }
+  sample[primary.dataKey] = { ...(sample[primary.dataKey] ?? {}), reportId }
 
   for (const g of groups) {
     if (g.role === 'detail') {
       g.tableMeta = { namespace: NAMESPACE, tableName: itemsTable }
       g.linkedMasterGroupId = primary.id
+      // A coded line item references the shared product master by product_code
+      // (FK); name/price are snapshotted for historical accuracy.
+      const itemCol = (key) => (key === 'itemCode' ? 'product_code' : `item_${snake(key)}`)
       for (const f of g.fields) {
-        const col = `item_${snake(f.key)}`
+        const col = itemCol(f.key)
         f.dbColumnName = col
         itemCols.set(col, colType(f.type))
       }
       const rows = sample[g.dataKey] ?? []
       rows.forEach((r, i) => {
-        const row = { doc_no: headerRow.doc_no, line_no: i + 1 }
-        for (const f of g.fields) if (r[f.key] !== undefined) row[`item_${snake(f.key)}`] = r[f.key]
+        const row = { report_id: reportId, line_no: i + 1 }
+        for (const f of g.fields) if (r[f.key] !== undefined) row[itemCol(f.key)] = r[f.key]
         itemRows.push(row)
       })
       continue
@@ -220,22 +238,22 @@ function bindTemplate(id, def) {
     const gp = prefixFor(g.dataKey)
     const isPrimary = g.id === primary.id
 
-    // Aux master groups share the header's partition key (doc_no). Rather than
-    // exposing a synthetic "書類番号（キー）" field on 顧客情報/集計情報/…（which
-    // reads as noise to a designer, #133), link them to the primary group so the
-    // preview panel auto-fills doc_no from it — exactly how detail groups work.
+    // Aux master groups share the header's key. Link them to the primary so the
+    // preview panel auto-fills report_id (no synthetic key field on the group, #133).
     if (!isPrimary) {
-      // Drop any synthetic key field left by an earlier generation (idempotency).
-      g.fields = g.fields.filter((f) => f.key !== 'docNo')
+      g.fields = g.fields.filter((f) => f.key !== 'docNo') // idempotency: drop old synthetic key
       g.linkedMasterGroupId = primary.id
     }
 
     for (const f of g.fields) {
-      const col = isPrimary && f.key === cfg.pkFieldKey ? 'doc_no' : `${gp}_${snake(f.key)}`
+      let col
+      if (f.key === 'reportId') col = 'report_id'
+      else if (isPrimary && f.key === cfg.pkFieldKey) col = 'doc_no'
+      else col = `${gp}_${snake(f.key)}`
       f.dbColumnName = col
-      headerCols.set(col, colType(f.type))
+      if (col !== 'report_id' && col !== 'doc_no') headerCols.set(col, colType(f.type))
       const v = sample[g.dataKey]?.[f.key]
-      if (v !== undefined && col !== 'doc_no') headerRow[col] = v
+      if (v !== undefined && col !== 'report_id' && col !== 'doc_no') headerRow[col] = v
     }
   }
 
@@ -243,16 +261,16 @@ function bindTemplate(id, def) {
     {
       namespace: NAMESPACE, tableName: headerTable,
       columns: [...headerCols].map(([name, type]) => ({ name, type })),
-      partitionKeys: ['doc_no'], clusteringKeys: [], secondaryIndexes: [],
+      partitionKeys: ['report_id'], clusteringKeys: [], secondaryIndexes: [],
       rows: [headerRow],
     },
     {
       namespace: NAMESPACE, tableName: itemsTable,
       columns: [
-        { name: 'doc_no', type: 'TEXT' }, { name: 'line_no', type: 'INT' },
+        { name: 'report_id', type: 'TEXT' }, { name: 'line_no', type: 'INT' },
         ...[...itemCols].map(([name, type]) => ({ name, type })),
       ],
-      partitionKeys: ['doc_no'], clusteringKeys: ['line_no'], secondaryIndexes: [],
+      partitionKeys: ['report_id'], clusteringKeys: ['line_no'], secondaryIndexes: [],
       rows: itemRows,
     },
   ]

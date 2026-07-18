@@ -36,7 +36,8 @@
             "validUntil": "2026年5月18日",
             "deliveryTerms": "受注後2週間以内",
             "paymentTerms": "月末締め翌月末払い",
-            "notes": "本見積書の有効期限は発行日より30日間です。"
+            "notes": "本見積書の有効期限は発行日より30日間です。",
+            "reportId": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567"
           },
           "customer": {
             "customerName": "株式会社サンプル商事",
@@ -1557,6 +1558,13 @@
           "dataKey": "document",
           "fields": [
             {
+              "id": "935313f2-15e9-202c-4507-ad8c851c2988",
+              "key": "reportId",
+              "label": "帳票ID",
+              "type": "string",
+              "dbColumnName": "report_id"
+            },
+            {
               "id": "qm-f-doc-no",
               "key": "documentNo",
               "label": "見積番号",
@@ -1663,7 +1671,7 @@
               "key": "itemCode",
               "label": "品番",
               "type": "string",
-              "dbColumnName": "item_item_code"
+              "dbColumnName": "product_code"
             },
             {
               "id": "qm-f-name",
