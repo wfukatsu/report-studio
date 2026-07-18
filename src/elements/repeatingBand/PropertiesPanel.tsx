@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { RepeatingBandElement, RepeatingBandField, RepeatingBandTotal, CalculationFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 import { useReportStore } from '@/store'
-import { isSystemGroup } from '@/store/schemaSlice'
+import { isSystemGroup } from '@/store/systemGroups'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
