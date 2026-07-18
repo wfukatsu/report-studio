@@ -502,6 +502,19 @@
                         "array",
                         "image"
                       ]
+                    },
+                    "dbColumnName": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                    },
+                    "computed": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "expression": {
+                      "type": "string",
+                      "maxLength": 500
                     }
                   },
                   "required": [
@@ -511,6 +524,28 @@
                     "type"
                   ]
                 }
+              },
+              "tableMeta": {
+                "type": "object",
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                  },
+                  "tableName": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                  }
+                },
+                "required": [
+                  "namespace",
+                  "tableName"
+                ]
+              },
+              "linkedMasterGroupId": {
+                "type": "string"
               }
             },
             "required": [

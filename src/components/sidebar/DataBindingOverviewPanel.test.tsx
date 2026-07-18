@@ -184,6 +184,75 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
   })
 })
 
+// ---------------------------------------------------------------------------
+// Partition-key pre-fill from sample data (connected built-in templates)
+// ---------------------------------------------------------------------------
+
+describe('DataBindingOverviewPanel — サンプルデータからのパーティションキー自動入力', () => {
+  it('DBバインド済みテンプレート読込時に doc_no がサンプル値で自動入力される', async () => {
+    mockAnalysis({ hasDataSource: true })
+    const store = useReportStore.getState()
+    store.addSchemaGroup('master')
+    const gid = useReportStore.getState().definition.schema!.groups[0].id
+    store.updateSchemaGroup(gid, { dataKey: 'document' })
+    store.addSchemaField(gid, { key: 'number', label: '番号', type: 'string', dbColumnName: 'doc_no' } as import('@/types').SchemaField)
+    store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'invmod_header' })
+    useReportStore.setState((s) => {
+      s.definition.dataSources = [{ id: 'ds1', name: 's', fields: { document: { number: 'INV-2026-0031' } } }]
+    })
+    store.setCurrentTemplateId('tmpl-connected')
+
+    render(<DataBindingOverviewPanel />)
+
+    await vi.waitFor(() => {
+      const input = screen.getByPlaceholderText('値を入力...') as HTMLInputElement
+      expect(input.value).toBe('INV-2026-0031')
+    })
+  })
+})
+
+describe('DataBindingOverviewPanel — 親リンクのマスターグループ（#133）', () => {
+  it('linkedMasterGroupId を持つマスターグループは "(自動: ...)" 表示で手動入力を隠す', () => {
+    mockAnalysis({ hasDataSource: true })
+    const store = useReportStore.getState()
+    store.setCurrentTemplateId('tmpl-1')
+    // primary master group (holds the shared PK)
+    store.addSchemaGroup('master')
+    const primaryId = useReportStore.getState().definition.schema!.groups[0].id
+    store.addSchemaField(primaryId, { key: 'documentNo', label: '番号', type: 'string', dbColumnName: 'doc_no' } as import('@/types').SchemaField)
+    store.bindGroupToTable(primaryId, { namespace: 'demo', tableName: 'header' })
+    // aux master group linked to the primary
+    store.addSchemaGroup('master')
+    const auxId = useReportStore.getState().definition.schema!.groups[1].id
+    store.addSchemaField(auxId, { key: 'name', label: '顧客名', type: 'string', dbColumnName: 'cust_name' } as import('@/types').SchemaField)
+    store.bindGroupToTable(auxId, { namespace: 'demo', tableName: 'header' })
+    store.updateSchemaGroup(auxId, { linkedMasterGroupId: primaryId })
+
+    render(<DataBindingOverviewPanel />)
+
+    // Aux group shows the auto-fill hint, not manual inputs
+    expect(screen.getByText(/自動:/)).toBeInTheDocument()
+    // Only the primary group's PK input remains
+    expect(screen.queryAllByPlaceholderText('値を入力...')).toHaveLength(1)
+  })
+})
+
+describe('DataBindingOverviewPanel — 未保存テンプレートの接続案内（#134）', () => {
+  it('DBバインドはあるが currentTemplateId が無い場合、保存を促すメッセージを表示', () => {
+    mockAnalysis({ hasDataSource: true })
+    const store = useReportStore.getState()
+    store.setCurrentTemplateId(null) // unsaved template — no server id
+    store.addSchemaGroup('master')
+    const gid = useReportStore.getState().definition.schema!.groups[0].id
+    store.addSchemaField(gid, { key: 'documentNo', label: '番号', type: 'string', dbColumnName: 'doc_no' } as import('@/types').SchemaField)
+    store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'header' })
+
+    render(<DataBindingOverviewPanel />)
+
+    expect(screen.getByText(/まだ保存されていません/)).toBeInTheDocument()
+  })
+})
+
 describe('DataBindingOverviewPanel — クリックで要素選択', () => {
   it('calls selectElement and setActivePage when unbound element row is clicked', () => {
     const selectElement = vi.spyOn(useReportStore.getState(), 'selectElement')

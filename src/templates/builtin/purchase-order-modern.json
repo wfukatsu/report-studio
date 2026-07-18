@@ -56,10 +56,38 @@
             "totalIncTax": 154000
           },
           "items": [
-            {"itemCode": "W-001", "itemName": "ウィジェットA", "quantity": 10, "unit": "個", "unitPrice": 5000, "amount": 50000},
-            {"itemCode": "W-002", "itemName": "ウィジェットB", "quantity": 5, "unit": "個", "unitPrice": 8000, "amount": 40000},
-            {"itemCode": "S-001", "itemName": "設置作業費", "quantity": 1, "unit": "式", "unitPrice": 30000, "amount": 30000},
-            {"itemCode": "M-001", "itemName": "保守サポート（年間）", "quantity": 1, "unit": "式", "unitPrice": 20000, "amount": 20000}
+            {
+              "itemCode": "W-001",
+              "itemName": "ウィジェットA",
+              "quantity": 10,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 50000
+            },
+            {
+              "itemCode": "W-002",
+              "itemName": "ウィジェットB",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 8000,
+              "amount": 40000
+            },
+            {
+              "itemCode": "S-001",
+              "itemName": "設置作業費",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 30000,
+              "amount": 30000
+            },
+            {
+              "itemCode": "M-001",
+              "itemName": "保守サポート（年間）",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 20000,
+              "amount": 20000
+            }
           ]
         }
       }
@@ -1630,33 +1658,42 @@
               "id": "po-f-doc-no",
               "key": "documentNo",
               "label": "注文番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_no"
             },
             {
               "id": "po-f-issue-date",
               "key": "issueDate",
               "label": "発行日",
-              "type": "date"
+              "type": "date",
+              "dbColumnName": "doc_issue_date"
             },
             {
               "id": "po-f-reg-no",
               "key": "registrationNo",
               "label": "登録番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_registration_no"
             },
             {
               "id": "po-f-payment-terms",
               "key": "paymentTerms",
               "label": "支払条件",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_payment_terms"
             },
             {
               "id": "po-f-notes",
               "key": "notes",
               "label": "備考",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_notes"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "pomod_header"
+          }
         },
         {
           "id": "po-grp-customer",
@@ -1668,27 +1705,36 @@
               "id": "po-f-cust-name",
               "key": "customerName",
               "label": "顧客名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_customer_name"
             },
             {
               "id": "po-f-postal",
               "key": "postalCode",
               "label": "郵便番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_postal_code"
             },
             {
               "id": "po-f-address",
               "key": "address",
               "label": "住所",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_address"
             },
             {
               "id": "po-f-contact",
               "key": "contactPerson",
               "label": "担当者",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_contact_person"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "pomod_header"
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         },
         {
           "id": "po-grp-items",
@@ -1700,39 +1746,50 @@
               "id": "po-f-code",
               "key": "itemCode",
               "label": "品番",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_item_code"
             },
             {
               "id": "po-f-name",
               "key": "itemName",
               "label": "品名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_item_name"
             },
             {
               "id": "po-f-qty",
               "key": "quantity",
               "label": "数量",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_quantity"
             },
             {
               "id": "po-f-unit",
               "key": "unit",
               "label": "単位",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_unit"
             },
             {
               "id": "po-f-price",
               "key": "unitPrice",
               "label": "単価",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_unit_price"
             },
             {
               "id": "po-f-amount",
               "key": "amount",
               "label": "金額",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_amount"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "pomod_items"
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         },
         {
           "id": "po-grp-summary",
@@ -1744,39 +1801,50 @@
               "id": "po-f-subtotal",
               "key": "subtotal",
               "label": "小計",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_subtotal"
             },
             {
               "id": "po-f-tax10-base",
               "key": "tax10Base",
               "label": "10%対象",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax10_base"
             },
             {
               "id": "po-f-tax10-amt",
               "key": "tax10Amount",
               "label": "消費税(10%)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax10_amount"
             },
             {
               "id": "po-f-tax8-base",
               "key": "tax8Base",
               "label": "8%対象",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax8_base"
             },
             {
               "id": "po-f-tax8-amt",
               "key": "tax8Amount",
               "label": "消費税(8%)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax8_amount"
             },
             {
               "id": "po-f-total",
               "key": "totalIncTax",
               "label": "合計(税込)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_total_inc_tax"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "pomod_header"
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         },
         {
           "id": "po-grp-delivery",
@@ -1788,21 +1856,29 @@
               "id": "po-f-del-date",
               "key": "deliveryDate",
               "label": "納期",
-              "type": "date"
+              "type": "date",
+              "dbColumnName": "dlv_delivery_date"
             },
             {
               "id": "po-f-del-addr",
               "key": "deliveryAddress",
               "label": "納品先住所",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "dlv_delivery_address"
             },
             {
               "id": "po-f-del-contact",
               "key": "deliveryContact",
               "label": "納品先担当者",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "dlv_delivery_contact"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "pomod_header"
+          },
+          "linkedMasterGroupId": "po-grp-doc"
         }
       ]
     }

@@ -58,10 +58,38 @@
             "totalIncTax": 154000
           },
           "items": [
-            {"itemCode": "W-001", "itemName": "ウィジェットA", "quantity": 10, "unit": "個", "unitPrice": 5000, "amount": 50000},
-            {"itemCode": "W-002", "itemName": "ウィジェットB", "quantity": 5, "unit": "個", "unitPrice": 8000, "amount": 40000},
-            {"itemCode": "S-001", "itemName": "設置作業費", "quantity": 1, "unit": "式", "unitPrice": 30000, "amount": 30000},
-            {"itemCode": "M-001", "itemName": "保守サポート（年間）", "quantity": 1, "unit": "式", "unitPrice": 20000, "amount": 20000}
+            {
+              "itemCode": "W-001",
+              "itemName": "ウィジェットA",
+              "quantity": 10,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 50000
+            },
+            {
+              "itemCode": "W-002",
+              "itemName": "ウィジェットB",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 8000,
+              "amount": 40000
+            },
+            {
+              "itemCode": "S-001",
+              "itemName": "設置作業費",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 30000,
+              "amount": 30000
+            },
+            {
+              "itemCode": "M-001",
+              "itemName": "保守サポート（年間）",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 20000,
+              "amount": 20000
+            }
           ]
         }
       }
@@ -1743,33 +1771,42 @@
               "id": "inv-f-doc-no",
               "key": "documentNo",
               "label": "請求番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_no"
             },
             {
               "id": "inv-f-issue-date",
               "key": "issueDate",
               "label": "発行日",
-              "type": "date"
+              "type": "date",
+              "dbColumnName": "doc_issue_date"
             },
             {
               "id": "inv-f-reg-no",
               "key": "registrationNo",
               "label": "登録番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_registration_no"
             },
             {
               "id": "inv-f-payment-terms",
               "key": "paymentTerms",
               "label": "支払条件",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_payment_terms"
             },
             {
               "id": "inv-f-notes",
               "key": "notes",
               "label": "備考",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "doc_notes"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "invmod_header"
+          }
         },
         {
           "id": "inv-grp-customer",
@@ -1781,27 +1818,36 @@
               "id": "inv-f-cust-name",
               "key": "customerName",
               "label": "顧客名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_customer_name"
             },
             {
               "id": "inv-f-postal",
               "key": "postalCode",
               "label": "郵便番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_postal_code"
             },
             {
               "id": "inv-f-address",
               "key": "address",
               "label": "住所",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_address"
             },
             {
               "id": "inv-f-contact",
               "key": "contactPerson",
               "label": "担当者",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "cust_contact_person"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "invmod_header"
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         },
         {
           "id": "inv-grp-items",
@@ -1813,39 +1859,50 @@
               "id": "inv-f-code",
               "key": "itemCode",
               "label": "品番",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_item_code"
             },
             {
               "id": "inv-f-name",
               "key": "itemName",
               "label": "品名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_item_name"
             },
             {
               "id": "inv-f-qty",
               "key": "quantity",
               "label": "数量",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_quantity"
             },
             {
               "id": "inv-f-unit",
               "key": "unit",
               "label": "単位",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "item_unit"
             },
             {
               "id": "inv-f-price",
               "key": "unitPrice",
               "label": "単価",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_unit_price"
             },
             {
               "id": "inv-f-amount",
               "key": "amount",
               "label": "金額",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "item_amount"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "invmod_items"
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         },
         {
           "id": "inv-grp-summary",
@@ -1857,39 +1914,50 @@
               "id": "inv-f-subtotal",
               "key": "subtotal",
               "label": "小計",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_subtotal"
             },
             {
               "id": "inv-f-tax10-base",
               "key": "tax10Base",
               "label": "10%対象",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax10_base"
             },
             {
               "id": "inv-f-tax10-amt",
               "key": "tax10Amount",
               "label": "消費税(10%)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax10_amount"
             },
             {
               "id": "inv-f-tax8-base",
               "key": "tax8Base",
               "label": "8%対象",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax8_base"
             },
             {
               "id": "inv-f-tax8-amt",
               "key": "tax8Amount",
               "label": "消費税(8%)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_tax8_amount"
             },
             {
               "id": "inv-f-total",
               "key": "totalIncTax",
               "label": "合計(税込)",
-              "type": "number"
+              "type": "number",
+              "dbColumnName": "sum_total_inc_tax"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "invmod_header"
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         },
         {
           "id": "inv-grp-bank",
@@ -1901,39 +1969,50 @@
               "id": "inv-f-bank-name",
               "key": "bankName",
               "label": "銀行名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "bank_bank_name"
             },
             {
               "id": "inv-f-branch",
               "key": "branchName",
               "label": "支店名",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "bank_branch_name"
             },
             {
               "id": "inv-f-acc-type",
               "key": "accountType",
               "label": "口座種別",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "bank_account_type"
             },
             {
               "id": "inv-f-acc-no",
               "key": "accountNumber",
               "label": "口座番号",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "bank_account_number"
             },
             {
               "id": "inv-f-acc-holder",
               "key": "accountHolder",
               "label": "口座名義",
-              "type": "string"
+              "type": "string",
+              "dbColumnName": "bank_account_holder"
             },
             {
               "id": "inv-f-due-date",
               "key": "paymentDueDate",
               "label": "支払期限",
-              "type": "date"
+              "type": "date",
+              "dbColumnName": "bank_payment_due_date"
             }
-          ]
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "invmod_header"
+          },
+          "linkedMasterGroupId": "inv-grp-doc"
         }
       ]
     }
