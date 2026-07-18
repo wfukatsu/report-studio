@@ -752,3 +752,54 @@ describe('deleteSchema', () => {
     expect(useReportStore.getState().schemaName).toBe('')
   })
 })
+
+// ---------------------------------------------------------------------------
+// #144: named relation actions
+// ---------------------------------------------------------------------------
+
+function getRelations() {
+  return useReportStore.getState().definition.schema?.relations ?? []
+}
+
+const LOOKUP = {
+  name: 'product', from: 'items', to: '__productMaster__',
+  on: { fromColumn: 'product_code', toColumn: 'code' }, kind: 'lookup' as const,
+}
+
+describe('addSchemaRelation / removeSchemaRelation / updateSchemaRelation (#144)', () => {
+  it('adds a relation with a generated id', () => {
+    useReportStore.getState().addSchemaRelation(LOOKUP)
+    const rels = getRelations()
+    expect(rels).toHaveLength(1)
+    expect(rels[0].id).toBeTruthy()
+    expect(rels[0].name).toBe('product')
+    expect(rels[0].kind).toBe('lookup')
+  })
+
+  it('initializes schema + relations array when absent', () => {
+    // newReport leaves schema undefined until first mutation
+    useReportStore.getState().addSchemaRelation(LOOKUP)
+    expect(useReportStore.getState().definition.schema?.relations).toHaveLength(1)
+  })
+
+  it('removes a relation by id', () => {
+    useReportStore.getState().addSchemaRelation(LOOKUP)
+    const id = getRelations()[0].id
+    useReportStore.getState().removeSchemaRelation(id)
+    expect(getRelations()).toHaveLength(0)
+  })
+
+  it('updates a relation in place', () => {
+    useReportStore.getState().addSchemaRelation(LOOKUP)
+    const id = getRelations()[0].id
+    useReportStore.getState().updateSchemaRelation(id, { name: 'renamed' })
+    expect(getRelations()[0].name).toBe('renamed')
+  })
+
+  it('is a no-op when removing/updating an unknown relation id', () => {
+    useReportStore.getState().addSchemaRelation(LOOKUP)
+    expect(() => useReportStore.getState().removeSchemaRelation('ghost')).not.toThrow()
+    expect(() => useReportStore.getState().updateSchemaRelation('ghost', { name: 'x' })).not.toThrow()
+    expect(getRelations()).toHaveLength(1)
+  })
+})

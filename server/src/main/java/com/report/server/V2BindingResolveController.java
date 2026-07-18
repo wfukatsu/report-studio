@@ -168,6 +168,11 @@ public final class V2BindingResolveController {
             return;
         }
 
+        // ── #144: named relations (for per-row lookup enrichment) ────────────
+        JsonNode relationsNode = schemaNode.path("relations");
+        // Report date drives product price resolution (same source as the product master group).
+        java.time.LocalDate reportDate = parseReportDate(partitionKeysNode.path("__reportDate__").asText(null));
+
         // ── Per-group resolution ──────────────────────────────────────────────
         ObjectNode resolved = MAPPER.createObjectNode();
         ObjectNode errors = MAPPER.createObjectNode();
@@ -256,10 +261,12 @@ public final class V2BindingResolveController {
 
             // ── ScalarDB resolution — route by role ─────────────────────────
             if ("detail".equals(role)) {
+                // #144: collect lookup relations FROM this group TO the product master.
+                List<JsonNode> lookupRelations = collectProductLookups(relationsNode, groupId);
                 // Phase 2.5: Scan → array of rows
                 resolveDetailGroup(
                         groupId, namespace, tableName, colToFieldKey, computedFields, pkNode,
-                        MAX_DETAIL_ROWS, resolved, errors, correlationId, userId
+                        MAX_DETAIL_ROWS, lookupRelations, reportDate, resolved, errors, correlationId, userId
                 );
             } else {
                 // Phase 2: Get → single row
@@ -341,6 +348,76 @@ public final class V2BindingResolveController {
         errors.putNull(groupId);
     }
 
+    // ── #144: per-row product lookup enrichment ───────────────────────────────
+
+    /** Parse an optional ISO date string, tolerating null/garbage (returns null). */
+    private static java.time.LocalDate parseReportDate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return java.time.LocalDate.parse(s);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Collect the lookup relations that enrich {@code groupId} from the product
+     * master. Only {@code kind=lookup} relations with {@code from=groupId} and
+     * {@code to=__productMaster__} qualify; each must carry an identifier
+     * {@code name} and {@code on.fromColumn}. Returns an empty list otherwise.
+     */
+    private static List<JsonNode> collectProductLookups(JsonNode relationsNode, String groupId) {
+        List<JsonNode> out = new ArrayList<>();
+        if (relationsNode == null || !relationsNode.isArray()) return out;
+        for (JsonNode rel : relationsNode) {
+            if (!"lookup".equals(rel.path("kind").asText(null))) continue;
+            if (!groupId.equals(rel.path("from").asText(null))) continue;
+            if (!SYSTEM_GROUP_PRODUCT_MASTER.equals(rel.path("to").asText(null))) continue;
+            String name = rel.path("name").asText(null);
+            String fromColumn = rel.path("on").path("fromColumn").asText(null);
+            if (!isValidIdentifier(name) || !isValidIdentifier(fromColumn)) continue;
+            out.add(rel);
+        }
+        return out;
+    }
+
+    /**
+     * Enrich a resolved detail row in place with product master fields for each
+     * applicable lookup relation. The row's join value is read via the relation's
+     * {@code on.fromColumn} (mapped to its fieldKey), looked up by product code,
+     * and the product's fields are added under the {@code name_} prefix
+     * (e.g. {@code product_name}). A missing product yields a {@code name_ _stale}
+     * marker rather than an error, mirroring the product master group behaviour.
+     */
+    private void enrichRowWithProductLookups(
+            ObjectNode rowNode,
+            List<JsonNode> lookupRelations,
+            Map<String, String> colToFieldKey,
+            java.time.LocalDate reportDate) {
+
+        if (lookupRelations == null || lookupRelations.isEmpty() || productCtrl == null) return;
+
+        for (JsonNode rel : lookupRelations) {
+            String name = rel.path("name").asText(null);
+            String fromColumn = rel.path("on").path("fromColumn").asText(null);
+            String joinFieldKey = colToFieldKey.get(fromColumn);
+            if (joinFieldKey == null) continue; // the join column wasn't among the resolved fields
+
+            JsonNode codeNode = rowNode.get(joinFieldKey);
+            if (codeNode == null || codeNode.isNull()) continue;
+            String code = codeNode.asText(null);
+            if (code == null || code.isBlank()) continue;
+
+            var productOpt = productCtrl.findByCode(code);
+            if (productOpt.isEmpty()) {
+                rowNode.put(name + "_" + "_stale", true);
+                continue;
+            }
+            ObjectNode prow = productNodeToRow(productOpt.get(), reportDate);
+            prow.fields().forEachRemaining(e -> rowNode.set(name + "_" + e.getKey(), e.getValue()));
+        }
+    }
+
     /** Converts a product JsonNode to a flat row object for resolve-bindings output. */
     private ObjectNode productNodeToRow(com.fasterxml.jackson.databind.JsonNode product,
                                         java.time.LocalDate reportDate) {
@@ -383,6 +460,8 @@ public final class V2BindingResolveController {
             List<Map.Entry<String, String>> computedFields,
             JsonNode pkNode,
             int maxRows,
+            List<JsonNode> lookupRelations,
+            java.time.LocalDate reportDate,
             ObjectNode resolved,
             ObjectNode errors,
             String correlationId,
@@ -449,6 +528,9 @@ public final class V2BindingResolveController {
                         putTypedValue(rowNode, fieldKey, colName, row, meta);
                     }
                 }
+                // #144: per-row product lookup enrichment (before computed fields so
+                // a computed field may reference a looked-up value like product_unitPrice).
+                enrichRowWithProductLookups(rowNode, lookupRelations, colToFieldKey, reportDate);
                 // Phase 3: evaluate computed fields for this row
                 evaluateComputedFields(rowNode, computedFields, correlationId);
                 arrayNode.add(rowNode);

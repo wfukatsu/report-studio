@@ -7,7 +7,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { RelationshipView } from './RelationshipView'
 import { SYSTEM_GROUP_PRODUCT_MASTER } from '@/store/systemGroups'
 import { PRODUCT_FK_COLUMN, HEADER_KEY_COLUMN } from './relationshipGraph'
-import type { SchemaGroup, SchemaField } from '@/types'
+import type { SchemaGroup, SchemaField, SchemaRelation } from '@/types'
 
 function field(key: string, dbColumnName?: string): SchemaField {
   return { id: `f-${key}-${dbColumnName ?? ''}`, key, label: key, type: 'string', ...(dbColumnName ? { dbColumnName } : {}) }
@@ -90,5 +90,58 @@ describe('RelationshipView (#141/#142/#143)', () => {
     expect(screen.getByText(/lookup 元/)).toBeInTheDocument()
     fireEvent.click(screen.getByText('関係ビュー'))
     expect(screen.queryByText(/lookup 元/)).not.toBeInTheDocument()
+  })
+})
+
+describe('RelationshipView — named lookup relations & validation (#144)', () => {
+  const productLookup: SchemaRelation = {
+    id: 'rel1', name: 'product', from: 'items', to: SYSTEM_GROUP_PRODUCT_MASTER,
+    on: { fromColumn: PRODUCT_FK_COLUMN, toColumn: 'code' }, kind: 'lookup',
+  }
+
+  it('offers "＋ 商品ルックアップ" on a detail group with a product_code column', () => {
+    const onAddRelation = vi.fn()
+    render(<RelationshipView groups={schema()} onSetLinkedMaster={vi.fn()} onAddRelation={onAddRelation} />)
+    fireEvent.click(screen.getByLabelText('明細 に商品ルックアップを追加'))
+    expect(onAddRelation).toHaveBeenCalledWith({
+      name: 'product',
+      from: 'items',
+      to: SYSTEM_GROUP_PRODUCT_MASTER,
+      on: { fromColumn: PRODUCT_FK_COLUMN, toColumn: 'code' },
+      kind: 'lookup',
+    })
+  })
+
+  it('shows the named relation and removes it on click when one exists', () => {
+    const onRemoveRelation = vi.fn()
+    render(
+      <RelationshipView
+        groups={schema()}
+        relations={[productLookup]}
+        onSetLinkedMaster={vi.fn()}
+        onRemoveRelation={onRemoveRelation}
+      />,
+    )
+    // No add button when the relation already exists.
+    expect(screen.queryByLabelText('明細 に商品ルックアップを追加')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('明細 のルックアップを削除'))
+    expect(onRemoveRelation).toHaveBeenCalledWith('rel1')
+  })
+
+  it('surfaces a validation error banner for a join-key mismatch', () => {
+    const bad: SchemaRelation = { ...productLookup, on: { fromColumn: 'nonexistent_col', toColumn: 'code' } }
+    render(<RelationshipView groups={schema()} relations={[bad]} onSetLinkedMaster={vi.fn()} />)
+    expect(screen.getByText(/関係定義に問題があります/)).toBeInTheDocument()
+    expect(screen.getByText(/結合キー不整合/)).toBeInTheDocument()
+  })
+
+  it('shows no validation banner for a well-formed relation', () => {
+    render(<RelationshipView groups={schema()} relations={[productLookup]} onSetLinkedMaster={vi.fn()} />)
+    expect(screen.queryByText(/関係定義に問題があります/)).not.toBeInTheDocument()
+  })
+
+  it('does not offer the add button when onAddRelation is not provided', () => {
+    render(<RelationshipView groups={schema()} onSetLinkedMaster={vi.fn()} />)
+    expect(screen.queryByLabelText('明細 に商品ルックアップを追加')).not.toBeInTheDocument()
   })
 })

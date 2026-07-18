@@ -87,8 +87,26 @@ const SchemaGroupSchema = z.object({
   linkedMasterGroupId: z.string().optional(),
 })
 
+/**
+ * #144: named relationship object. Explicitly modeled (not passthrough) so it
+ * survives the template import boundary, same as tableMeta/dbColumnName.
+ */
+const SchemaRelationSchema = z.object({
+  id: z.string(),
+  // Doubles as the flat key prefix for looked-up fields → identifier chars only.
+  name: z.string().max(64).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます'),
+  from: z.string(),
+  to: z.string(),
+  on: z.object({
+    fromColumn: DbIdentifierSchema,
+    toColumn: DbIdentifierSchema,
+  }),
+  kind: z.enum(['lookup', 'master-detail']),
+})
+
 const SchemaDefinitionSchema = z.object({
   groups: z.array(SchemaGroupSchema).max(20),
+  relations: z.array(SchemaRelationSchema).max(40).optional(),
 })
 
 // ---------------------------------------------------------------------------

@@ -388,6 +388,93 @@ class V2BindingResolveControllerTest {
         verify(tx).commit();
     }
 
+    // ── #144: per-row product lookup enrichment ────────────────────────────────
+
+    /** Builds a Scan mock returning one detail row with a product_code column. */
+    private DistributedTransaction mockDetailScanWithProductCode(String productCode) throws Exception {
+        DistributedTransactionAdmin admin = mock(DistributedTransactionAdmin.class);
+        TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product_code", DataType.TEXT);
+        when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
+        when(factory.getTransactionAdmin()).thenReturn(admin);
+
+        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
+        DistributedTransaction tx = mock(DistributedTransaction.class);
+        when(mgr.start()).thenReturn(tx);
+        Result row = mock(Result.class);
+        when(row.isNull(anyString())).thenReturn(false);
+        when(row.getText("product_code")).thenReturn(productCode);
+        when(tx.scan(any(Scan.class))).thenReturn(List.of(row));
+        when(factory.getTransactionManager()).thenReturn(mgr);
+        return tx;
+    }
+
+    /** Request body: detail group with a product_code field + a lookup relation to the product master. */
+    private String detailBodyWithLookup() {
+        return """
+            {"schema":{
+               "groups":[{"id":"grp1","role":"detail","tableMeta":{"namespace":"default","tableName":"order_items"},
+                 "fields":[{"id":"f0","key":"pk_key","dbColumnName":"order_id"},
+                           {"id":"f1","key":"itemCode","dbColumnName":"product_code"}]}],
+               "relations":[{"id":"rel1","name":"product","from":"grp1","to":"__productMaster__",
+                 "on":{"fromColumn":"product_code","toColumn":"code"},"kind":"lookup"}]
+             },
+             "partitionKeys":{"grp1":{"order_id":"ORD-001"}}}
+            """;
+    }
+
+    @Test
+    void detailGroup_perRowProductLookup_enrichesRowWithPrefixedFields() throws Exception {
+        String envelope = makeEnvelope("test-user", "default", "order_items");
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+        mockDetailScanWithProductCode("W-001");
+
+        // ProductController returns a product for code W-001.
+        ProductController productCtrl = mock(ProductController.class);
+        JsonNode product = MAPPER.readTree("""
+            {"id":"p1","code":"W-001","name":"ワイヤレスマウス","unitPrice":2980,
+             "category":"周辺機器","taxType":"standard","stockCount":10,"unit":"個","manufacturer":"ACME","description":""}
+            """);
+        when(productCtrl.findByCode("W-001")).thenReturn(Optional.of(product));
+        controller.setProductController(productCtrl);
+
+        when(ctx.body()).thenReturn(detailBodyWithLookup());
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        JsonNode row0 = resp.path("resolved").path("grp1").get(0);
+        // The row keeps its own columns AND gains product_* fields from the lookup.
+        assertEquals("W-001", row0.path("itemCode").asText());
+        assertEquals("ワイヤレスマウス", row0.path("product_name").asText());
+        assertEquals(2980, row0.path("product_unitPrice").asInt());
+        assertEquals("周辺機器", row0.path("product_category").asText());
+        assertTrue(resp.path("errors").path("grp1").isNull());
+    }
+
+    @Test
+    void detailGroup_perRowProductLookup_missingProductMarksStaleWithoutError() throws Exception {
+        String envelope = makeEnvelope("test-user", "default", "order_items");
+        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
+        mockDetailScanWithProductCode("GHOST");
+
+        ProductController productCtrl = mock(ProductController.class);
+        when(productCtrl.findByCode("GHOST")).thenReturn(Optional.empty());
+        controller.setProductController(productCtrl);
+
+        when(ctx.body()).thenReturn(detailBodyWithLookup());
+        controller.resolve(ctx);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(ctx).result(captor.capture());
+        JsonNode resp = MAPPER.readTree(captor.getValue());
+        JsonNode row0 = resp.path("resolved").path("grp1").get(0);
+        // Missing product → stale marker, not an error; the row still resolves.
+        assertTrue(row0.path("product__stale").asBoolean());
+        assertFalse(row0.has("product_name"));
+        assertTrue(resp.path("errors").path("grp1").isNull());
+    }
+
     @Test
     void detailGroup_emptyScanReturnsEmptyArray() throws Exception {
         String envelope = makeEnvelope("test-user", "default", "order_items");

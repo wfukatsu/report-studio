@@ -133,6 +133,8 @@ export function BindingEditor() {
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
   const [savingToLibrary, setSavingToLibrary] = useState(false)
   const dataSources = useReportStore((s) => s.definition.dataSources)
+  const addSchemaRelation = useReportStore((s) => s.addSchemaRelation)
+  const removeSchemaRelation = useReportStore((s) => s.removeSchemaRelation)
 
   const handleSaveToLibrary = useCallback(async () => {
     const name = window.prompt('スキーマの名前を入力してください:', '')
@@ -184,15 +186,18 @@ export function BindingEditor() {
       {/* Schema Library Modal */}
       <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
 
-      {/* Relationship view (#141/#142/#143) — model-view of master/detail/product,
-          with product master exposed as a lookup source and shared-key inference.
-          Uses the full schema (incl. the product master system group). */}
+      {/* Relationship view (#141/#142/#143/#144) — model-view of master/detail/product,
+          with product master exposed as a lookup source, shared-key inference, and
+          named lookup relations + validation. Uses the full schema. */}
       {bs.hasSchema && (
         <RelationshipView
           groups={bs.schema?.groups ?? []}
+          relations={bs.schema?.relations}
           onSetLinkedMaster={(groupId, masterId) =>
             bs.updateSchemaGroup(groupId, { linkedMasterGroupId: masterId })
           }
+          onAddRelation={addSchemaRelation}
+          onRemoveRelation={removeSchemaRelation}
         />
       )}
 

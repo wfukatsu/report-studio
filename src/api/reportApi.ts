@@ -779,6 +779,15 @@ export interface ResolveBindingsRequest {
       tableMeta?: { namespace: string; tableName: string }
       fields: Array<{ id: string; key: string; dbColumnName?: string }>
     }>
+    /** #144: named relation objects — drives per-row product lookup enrichment. */
+    relations?: Array<{
+      id: string
+      name: string
+      from: string
+      to: string
+      on: { fromColumn: string; toColumn: string }
+      kind: 'lookup' | 'master-detail'
+    }>
   }
   /** Partition key values per group: { groupId → { columnName → value } } */
   partitionKeys: Record<string, Record<string, string>>

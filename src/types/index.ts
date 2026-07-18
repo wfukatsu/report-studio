@@ -211,8 +211,37 @@ export interface SchemaGroup {
   linkedMasterGroupId?: string
 }
 
+/**
+ * #144: a first-class, named relationship between two schema groups.
+ *
+ * Complements the implicit `linkedMasterGroupId` (master→detail) and the
+ * `product_code` column convention (detail→product) with an explicit,
+ * persisted object. `kind: 'lookup'` relations drive per-row enrichment
+ * (a live join at resolve time); `kind: 'master-detail'` relations mirror the
+ * structural link for documentation/validation.
+ */
+export interface SchemaRelation {
+  id: string
+  /**
+   * Display name; also used as the flat key prefix for looked-up fields, so it
+   * must be identifier chars (^[a-zA-Z_][a-zA-Z0-9_]*$). e.g. `product` →
+   * enriched keys `product_name`, `product_unitPrice`.
+   */
+  name: string
+  /** Source group id — the group whose rows are enriched (usually a detail group). */
+  from: string
+  /** Target group id — the lookup source (e.g. the product master system group). */
+  to: string
+  /** Join columns: the `from`-side dbColumn matched against the `to`-side key column. */
+  on: { fromColumn: string; toColumn: string }
+  /** 'lookup' = per-row enrichment (live join); 'master-detail' = structural link. */
+  kind: 'lookup' | 'master-detail'
+}
+
 export interface SchemaDefinition {
   groups: SchemaGroup[]
+  /** #144: named relationship objects (optional; additive to linkedMasterGroupId). */
+  relations?: SchemaRelation[]
 }
 
 // ---------------------------------------------------------------------------
