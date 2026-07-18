@@ -85,6 +85,25 @@ Schema groups and fields are defined in `schemaSlice`. Fields bind to displayed 
 
 Data binding in elements uses `{{fieldKey}}` tokens in text content and dot-notation keys in `dataField` elements (e.g. `customer.name`). `useDataResolver` hook handles field resolution + format application at render time.
 
+**Schema paths are 2-level only** (`dataKey.fieldKey`, both `^[a-zA-Z_][a-zA-Z0-9_]*$`). A 3-level element `fieldKey` like `quotation.customer.name` renders fine from nested sample JSON but is **not** DB-bindable — `buildFlatDataFromResolved` stores each group's resolved row at `data[dataKey]`, so nested paths never reconstruct. Keep template `dataField` keys flat (`customer.name`, not `quotation.customer.name`).
+
+**Important Zod caveat**: `SchemaFieldSchema` / `SchemaGroupSchema` / `ScalarDbTableMetaSchema` in `src/lib/schemas/reportDefinition.ts` explicitly allow `dbColumnName` / `computed` / `expression` / `tableMeta` / `linkedMasterGroupId` (they are *not* `.passthrough()` — the rest of the file is). If you add a new schema-binding field to the store type, add it here too or it is silently **stripped** on template import (built-in load, API round-trip). Run `npm run generate:schema` after any change to keep `schemas/report-definition.schema.json` in sync (a test enforces this).
+
+#### Built-in business templates → `demo` ScalarDB namespace
+
+The six business templates ship pre-bound to real demo tables so the "ライブプレビュー" panel works out of the box:
+
+| Template | Header table (master groups) | Items table (detail) |
+|----------|------------------------------|----------------------|
+| invoice-modern / quotation-modern / purchase-order-modern | `demo.{invmod,quomod,pomod}_header` | `demo.{…}_items` |
+| quotation-{basic,discount,english}-invoice | `demo.{quobasic,quodisc,quoeng}_header` | `demo.{…}_items` |
+
+- All master groups of a template share one `_header` row (PK `doc_no`); each aux master group carries a synthetic `docNo` key field mapped to `doc_no` so the preview panel can supply the partition key. The detail (`items`) group binds to `_items` (PK `doc_no`, CK `line_no`) and auto-fills its FK via `linkedMasterGroupId`. Date fields are stored as `TEXT` (their pre-formatted display string) so live rows render identically to the sample data.
+- **Regenerate bindings**: `npm run setup:template-bindings` — rewrites the six `src/templates/builtin/*.json` (adds/flattens schema, sets `tableMeta`/`dbColumnName`) and emits `scripts/demo-db-seed.json`. Idempotent.
+- **Seed everything**: with the backend up, `npm run seed:demo` runs two steps (also available separately):
+  - `seed:demo-tables` — logs in as `admin`, creates the 12 tables via `POST /api/v2/scalardb/tables` and upserts rows (DELETE-then-INSERT, re-runnable). Raw SQLite writes are wrong — rows must go through ScalarDB's transactional layer.
+  - `seed:demo-templates` — **this is what makes the bindings "connected"**. A built-in loaded straight from JSON has no server id, so `currentTemplateId` is null, the ライブプレビュー panel never shows, and resolve-bindings refuses templates it can't find server-side. This step persists the six templates into `v2_definitions` as admin-owned **public** templates (idempotent via gitignored `server/data/demo-template-ids.json`). Load one from the テンプレート modal → 公開テンプレート list: `getReport` sets `currentTemplateId`, the binding editor shows every field wired to its `demo.*` column, and the ライブプレビュー panel pre-fills `doc_no` from the sample data (`DataBindingOverviewPanel.computeDefaultPartitionKeys`) so one click on 更新 fetches live rows.
+
 ### Canvas editing
 
 `ReportCanvas` wraps elements in `@dnd-kit/core`'s `DndContext`. `CanvasElement` is both draggable (via `useDraggable`) and resizable (custom pointer-event logic for 8 resize handles). When `readonly=true` (preview mode), drag and resize are disabled.

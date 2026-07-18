@@ -1,11 +1,47 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { useBindingAnalysis } from '@/hooks/useBindingAnalysis'
+import { usePreviewData } from '@/hooks/usePreviewData'
 import { DataSourcePanel } from './DataSourcePanel'
 import { BindingPanel } from './BindingPanel'
 import { resolveBindings } from '@/api/reportApi'
 import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
+import { resolveField } from '@/lib/dataBinding'
+import type { SchemaDefinition } from '@/types'
 import type { ElementBinding } from '@/hooks/useBindingAnalysis'
+
+/**
+ * Seed the ライブプレビュー partition-key inputs from the template's sample data
+ * so a freshly-loaded DB-bound template resolves with a single click.
+ *
+ * The built-in business templates share one partition-key column (`doc_no`)
+ * across every bound group — the primary master group holds its real value, aux
+ * master groups reach it via a synthetic key field, and the detail group via
+ * `linkedMasterGroupId`. We read that value from the sample data (the primary
+ * group's PK field) and pre-fill `doc_no` for every bound group. Templates that
+ * don't follow this convention get no defaults (unchanged behaviour).
+ */
+const SHARED_PK_COLUMN = 'doc_no'
+function computeDefaultPartitionKeys(
+  schema: SchemaDefinition,
+  sampleData: Record<string, unknown>,
+): Record<string, Record<string, string>> {
+  const primary = schema.groups.find(
+    (g) => g.role === 'master' && g.tableMeta
+      && g.fields.some((f) => f.dbColumnName === SHARED_PK_COLUMN && f.key !== 'docNo'),
+  )
+  const pkField = primary?.fields.find((f) => f.dbColumnName === SHARED_PK_COLUMN && f.key !== 'docNo')
+  if (!primary || !pkField) return {}
+  const value = resolveField(sampleData, `${primary.dataKey}.${pkField.key}`)
+  if (!value) return {}
+  const defaults: Record<string, Record<string, string>> = {}
+  for (const g of schema.groups) {
+    if (g.tableMeta && g.fields.some((f) => f.dbColumnName === SHARED_PK_COLUMN)) {
+      defaults[g.id] = { [SHARED_PK_COLUMN]: value }
+    }
+  }
+  return defaults
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -121,6 +157,16 @@ function LivePreviewSection() {
   // partitionKeys: { [groupId]: { [columnName]: value } }
   const [partitionKeys, setPartitionKeys] = useState<Record<string, Record<string, string>>>({})
   const abortRef = useRef<AbortController | null>(null)
+  const sampleData = usePreviewData()
+
+  // Seed partition-key inputs from sample data when a new template loads, so a
+  // DB-bound template can be resolved with one click. Keyed on the loaded
+  // template id — user edits within a template are preserved.
+  useEffect(() => {
+    if (!currentTemplateId || !schema) return
+    setPartitionKeys(computeDefaultPartitionKeys(schema, sampleData))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on template change
+  }, [currentTemplateId])
 
   // Only show master groups with tableMeta bound
   const boundMasterGroups = schema?.groups.filter(

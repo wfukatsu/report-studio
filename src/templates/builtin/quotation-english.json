@@ -29,32 +29,54 @@
         "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
         "name": "Quotation Sample Data",
         "fields": {
-          "quotation": {
+          "document": {
             "issueDate": "April 18, 2026",
             "number": "QT-2026-0042",
             "registrationNo": "T1234567890123",
-            "validUntil": "May 18, 2026",
-            "customer": {
-              "name": "Sample Trading Co., Ltd.",
-              "address": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan"
-            },
-            "sender": {
-              "name": "Scalar, Inc.",
-              "address": "Shinjuku Mitsui Building, 2-1-1 Nishi-Shinjuku, Shinjuku-ku, Tokyo, Japan",
-              "tel": "+81-3-1234-5678",
-              "email": "info@example.com",
-              "contact": "Hanako Sato"
-            },
-            "subtotal": 1400.00,
-            "tax10Amount": 140.00,
+            "validUntil": "May 18, 2026"
+          },
+          "customer": {
+            "name": "Sample Trading Co., Ltd.",
+            "address": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan"
+          },
+          "sender": {
+            "name": "Scalar, Inc.",
+            "address": "Shinjuku Mitsui Building, 2-1-1 Nishi-Shinjuku, Shinjuku-ku, Tokyo, Japan",
+            "tel": "+81-3-1234-5678",
+            "email": "info@example.com",
+            "contact": "Hanako Sato"
+          },
+          "summary": {
+            "subtotal": 1400,
+            "tax10Amount": 140,
             "tax8Amount": 0,
-            "total": 1540.00
+            "total": 1540
           },
           "items": [
-            {"quantity": 10, "description": "Widget A", "unitPrice": 50.00, "amount": 500.00},
-            {"quantity": 5, "description": "Widget B", "unitPrice": 80.00, "amount": 400.00},
-            {"quantity": 1, "description": "Installation Service", "unitPrice": 300.00, "amount": 300.00},
-            {"quantity": 1, "description": "Annual Maintenance Support", "unitPrice": 200.00, "amount": 200.00}
+            {
+              "quantity": 10,
+              "description": "Widget A",
+              "unitPrice": 50,
+              "amount": 500
+            },
+            {
+              "quantity": 5,
+              "description": "Widget B",
+              "unitPrice": 80,
+              "amount": 400
+            },
+            {
+              "quantity": 1,
+              "description": "Installation Service",
+              "unitPrice": 300,
+              "amount": 300
+            },
+            {
+              "quantity": 1,
+              "description": "Annual Maintenance Support",
+              "unitPrice": 200,
+              "amount": 200
+            }
           ]
         }
       }
@@ -89,7 +111,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.sender.name",
+                "fieldKey": "sender.name",
                 "fallbackText": "●●● Co., Ltd.",
                 "label": "●●● Co., Ltd.",
                 "style": {
@@ -115,7 +137,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.sender.address",
+                "fieldKey": "sender.address",
                 "fallbackText": "1-2-3 △△△△, ●●-ku, Tokyo, Japan",
                 "label": "1-2-3 △△△△, ●●-ku, Tokyo, Japan",
                 "style": {
@@ -163,7 +185,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.sender.tel",
+                "fieldKey": "sender.tel",
                 "fallbackText": "00-0000-0000",
                 "label": "00-0000-0000",
                 "style": {
@@ -211,7 +233,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.sender.email",
+                "fieldKey": "sender.email",
                 "fallbackText": "●●●@example.com",
                 "label": "●●●@example.com",
                 "style": {
@@ -283,7 +305,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.issueDate",
+                "fieldKey": "document.issueDate",
                 "fallbackText": "4/1/2025",
                 "label": "4/1/2025",
                 "style": {
@@ -331,7 +353,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.number",
+                "fieldKey": "document.number",
                 "fallbackText": "M-12345678",
                 "label": "M-12345678",
                 "style": {
@@ -379,7 +401,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.registrationNo",
+                "fieldKey": "document.registrationNo",
                 "fallbackText": "TXXXXXXXXXXXXX",
                 "label": "TXXXXXXXXXXXXX",
                 "style": {
@@ -428,7 +450,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.customer.name",
+                "fieldKey": "customer.name",
                 "fallbackText": "△△△△ Co., Ltd.",
                 "label": "△△△△ Co., Ltd.",
                 "style": {
@@ -453,7 +475,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.customer.address",
+                "fieldKey": "customer.address",
                 "fallbackText": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan",
                 "label": "Gate City Ohsaki East Tower, 1-11-2 Osaki, Shinagawa-ku, Tokyo, Japan",
                 "style": {
@@ -501,7 +523,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.validUntil",
+                "fieldKey": "document.validUntil",
                 "fallbackText": "5/31/2025",
                 "label": "5/31/2025",
                 "style": {
@@ -549,7 +571,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.sender.contact",
+                "fieldKey": "sender.contact",
                 "fallbackText": "Taro Adobe",
                 "label": "Taro Adobe",
                 "style": {
@@ -902,7 +924,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.subtotal",
+                "fieldKey": "summary.subtotal",
                 "format": {
                   "type": "currency_usd"
                 },
@@ -974,7 +996,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.tax10Amount",
+                "fieldKey": "summary.tax10Amount",
                 "format": {
                   "type": "currency_usd"
                 },
@@ -1046,7 +1068,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.tax8Amount",
+                "fieldKey": "summary.tax8Amount",
                 "format": {
                   "type": "currency_usd"
                 },
@@ -1118,7 +1140,7 @@
                 "zIndex": 3,
                 "locked": false,
                 "visible": true,
-                "fieldKey": "quotation.total",
+                "fieldKey": "summary.total",
                 "format": {
                   "type": "currency_usd"
                 },
@@ -1338,6 +1360,225 @@
           }
         ]
       }
-    ]
+    ],
+    "schema": {
+      "groups": [
+        {
+          "id": "1df51745-ebba-d373-66b8-c62b3268dbd8",
+          "label": "書類情報",
+          "role": "master",
+          "dataKey": "document",
+          "fields": [
+            {
+              "id": "f353277f-bfd6-0075-20e2-06054ecd1c1e",
+              "key": "issueDate",
+              "label": "発行日",
+              "type": "string",
+              "dbColumnName": "doc_issue_date"
+            },
+            {
+              "id": "54b995ee-c1b6-4ee5-dd58-579cce2acb08",
+              "key": "number",
+              "label": "書類番号",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "2d8bf9b4-0f91-9458-f9af-fa226be5ca77",
+              "key": "registrationNo",
+              "label": "登録番号",
+              "type": "string",
+              "dbColumnName": "doc_registration_no"
+            },
+            {
+              "id": "3f8f0fb0-0b87-fac6-bb1c-1382369e3c78",
+              "key": "validUntil",
+              "label": "有効期限",
+              "type": "string",
+              "dbColumnName": "doc_valid_until"
+            }
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "quoeng_header"
+          }
+        },
+        {
+          "id": "15332d8f-88dc-08b0-8c50-eead7eba3fa0",
+          "label": "顧客情報",
+          "role": "master",
+          "dataKey": "customer",
+          "fields": [
+            {
+              "id": "ddb6d474-43cb-5632-e19e-ec41423bfe37",
+              "key": "docNo",
+              "label": "書類番号（キー）",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "37661519-630a-ae82-14a9-217286c58e6e",
+              "key": "name",
+              "label": "名称",
+              "type": "string",
+              "dbColumnName": "cust_name"
+            },
+            {
+              "id": "e26438f4-313a-a14c-f07a-730b0db99f45",
+              "key": "address",
+              "label": "住所",
+              "type": "string",
+              "dbColumnName": "cust_address"
+            }
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "quoeng_header"
+          }
+        },
+        {
+          "id": "8be8f317-08ea-9d88-5420-566b450d13f3",
+          "label": "発行元情報",
+          "role": "master",
+          "dataKey": "sender",
+          "fields": [
+            {
+              "id": "54149f3d-bc99-3c3b-a680-504da97d7e1d",
+              "key": "docNo",
+              "label": "書類番号（キー）",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "a1aba4a4-5bff-fccc-7710-dd96918ad782",
+              "key": "name",
+              "label": "名称",
+              "type": "string",
+              "dbColumnName": "snd_name"
+            },
+            {
+              "id": "a02530a1-631e-5e16-4d96-3928a277c28b",
+              "key": "address",
+              "label": "住所",
+              "type": "string",
+              "dbColumnName": "snd_address"
+            },
+            {
+              "id": "028843ca-3601-e59a-4433-2d50c75be910",
+              "key": "tel",
+              "label": "電話番号",
+              "type": "string",
+              "dbColumnName": "snd_tel"
+            },
+            {
+              "id": "359ed16e-8ca5-c642-b58c-886be4e9b632",
+              "key": "email",
+              "label": "メール",
+              "type": "string",
+              "dbColumnName": "snd_email"
+            },
+            {
+              "id": "e503cb7b-5a8a-9ea3-0c53-06f5f090ce68",
+              "key": "contact",
+              "label": "担当者",
+              "type": "string",
+              "dbColumnName": "snd_contact"
+            }
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "quoeng_header"
+          }
+        },
+        {
+          "id": "4ff54e90-27e0-e058-0c9c-046c3febba20",
+          "label": "集計情報",
+          "role": "master",
+          "dataKey": "summary",
+          "fields": [
+            {
+              "id": "662f66a7-d432-5f07-aa99-8eaf7d0f92f7",
+              "key": "docNo",
+              "label": "書類番号（キー）",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "6af65c1c-09f6-a022-a7a5-521a1a651d55",
+              "key": "subtotal",
+              "label": "小計",
+              "type": "number",
+              "dbColumnName": "sum_subtotal"
+            },
+            {
+              "id": "868d6dc3-7dc5-30b4-1cec-f0c2f204334c",
+              "key": "tax10Amount",
+              "label": "10%消費税",
+              "type": "number",
+              "dbColumnName": "sum_tax10_amount"
+            },
+            {
+              "id": "418d31c3-5096-86c0-56f1-58f53d52039b",
+              "key": "tax8Amount",
+              "label": "8%消費税",
+              "type": "number",
+              "dbColumnName": "sum_tax8_amount"
+            },
+            {
+              "id": "06c97116-6bb9-9e78-6ac3-4b97366d16d8",
+              "key": "total",
+              "label": "合計",
+              "type": "number",
+              "dbColumnName": "sum_total"
+            }
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "quoeng_header"
+          }
+        },
+        {
+          "id": "4c61bc18-7817-3b0e-ee71-3baa2068fdfe",
+          "label": "明細",
+          "role": "detail",
+          "dataKey": "items",
+          "fields": [
+            {
+              "id": "99751d47-2a40-0ad6-6c06-aab2a8dd2f1f",
+              "key": "quantity",
+              "label": "数量",
+              "type": "number",
+              "dbColumnName": "item_quantity"
+            },
+            {
+              "id": "7bd8912f-488b-02ab-c3bf-f35dd900428f",
+              "key": "description",
+              "label": "品名",
+              "type": "string",
+              "dbColumnName": "item_description"
+            },
+            {
+              "id": "2a2e6a55-842d-924c-ed94-a24a2abe556d",
+              "key": "unitPrice",
+              "label": "単価",
+              "type": "number",
+              "dbColumnName": "item_unit_price"
+            },
+            {
+              "id": "c52d385b-536c-cd2c-6d48-4e9b7276d4e0",
+              "key": "amount",
+              "label": "金額",
+              "type": "number",
+              "dbColumnName": "item_amount"
+            }
+          ],
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "quoeng_items"
+          },
+          "linkedMasterGroupId": "1df51745-ebba-d373-66b8-c62b3268dbd8"
+        }
+      ]
+    }
   }
 }

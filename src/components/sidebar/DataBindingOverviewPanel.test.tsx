@@ -184,6 +184,33 @@ describe('DataBindingOverviewPanel — Phase 3.5: 親グループリンク自動
   })
 })
 
+// ---------------------------------------------------------------------------
+// Partition-key pre-fill from sample data (connected built-in templates)
+// ---------------------------------------------------------------------------
+
+describe('DataBindingOverviewPanel — サンプルデータからのパーティションキー自動入力', () => {
+  it('DBバインド済みテンプレート読込時に doc_no がサンプル値で自動入力される', async () => {
+    mockAnalysis({ hasDataSource: true })
+    const store = useReportStore.getState()
+    store.addSchemaGroup('master')
+    const gid = useReportStore.getState().definition.schema!.groups[0].id
+    store.updateSchemaGroup(gid, { dataKey: 'document' })
+    store.addSchemaField(gid, { key: 'number', label: '番号', type: 'string', dbColumnName: 'doc_no' } as import('@/types').SchemaField)
+    store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'invmod_header' })
+    useReportStore.setState((s) => {
+      s.definition.dataSources = [{ id: 'ds1', name: 's', fields: { document: { number: 'INV-2026-0031' } } }]
+    })
+    store.setCurrentTemplateId('tmpl-connected')
+
+    render(<DataBindingOverviewPanel />)
+
+    await vi.waitFor(() => {
+      const input = screen.getByPlaceholderText('値を入力...') as HTMLInputElement
+      expect(input.value).toBe('INV-2026-0031')
+    })
+  })
+})
+
 describe('DataBindingOverviewPanel — クリックで要素選択', () => {
   it('calls selectElement and setActivePage when unbound element row is clicked', () => {
     const selectElement = vi.spyOn(useReportStore.getState(), 'selectElement')
