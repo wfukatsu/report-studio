@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { RepeatingBandElement, RepeatingBandField, RepeatingBandTotal, CalculationFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
+import { useReportStore } from '@/store'
+import { isSystemGroup } from '@/store/schemaSlice'
+import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Border presets
@@ -61,6 +64,64 @@ const FORMAT_OPTIONS = [
   { value: 'kanji_numeral', label: '大字 (壱百万)' },
 ] as const
 
+/**
+ * #140: data-source picker — a dropdown of real detail (array) schema groups,
+ * replacing the old free-text input that had to string-match a group's dataKey.
+ * Surfaces an explicit error when nothing is selected or the value points at a
+ * non-existent group (avoids a silently empty band).
+ */
+function DataSourceSelect({ el, onChange }: Props) {
+  const schema = useReportStore((s) => s.definition.schema)
+  const detailGroups = useMemo(
+    () =>
+      (schema?.groups ?? [])
+        .filter((g) => !isSystemGroup(g.id) && g.role === 'detail')
+        .map((g) => ({ dataKey: g.dataKey, label: g.label || g.dataKey })),
+    [schema],
+  )
+
+  const current = el.dataSource ?? ''
+  const matches = detailGroups.some((g) => g.dataKey === current)
+  const isError = !current || !matches
+  const noDetailGroups = detailGroups.length === 0
+
+  return (
+    <PropRow label="データソース (明細グループ)">
+      <div className="w-full">
+        <select
+          className={cn(
+            'border rounded px-2 py-1 text-xs w-full bg-background',
+            isError && 'border-red-300 text-red-600',
+          )}
+          value={current}
+          onChange={(e) => onChange({ dataSource: e.target.value })}
+          aria-label="データソース (明細グループ)"
+        >
+          <option value="">未選択…</option>
+          {detailGroups.map((g) => (
+            <option key={g.dataKey} value={g.dataKey}>
+              {g.label}（{g.dataKey}）
+            </option>
+          ))}
+          {/* Preserve an unknown/legacy value so it isn't silently discarded. */}
+          {current && !matches && <option value={current}>不明: {current}</option>}
+        </select>
+        {noDetailGroups ? (
+          <p className="mt-0.5 text-[10px] leading-tight text-amber-600">
+            明細グループがありません。スキーマに明細（detail）グループを追加してください。
+          </p>
+        ) : isError ? (
+          <p className="mt-0.5 text-[10px] leading-tight text-red-500">
+            {current
+              ? `「${current}」に一致する明細グループがありません。`
+              : 'データソースが未選択です。繰り返す明細グループを選択してください。'}
+          </p>
+        ) : null}
+      </div>
+    </PropRow>
+  )
+}
+
 /** Collapsible border detail settings */
 function BorderDetailSettings({ el, onChange }: Props) {
   const [open, setOpen] = useState(false)
@@ -117,9 +178,7 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
         <div className="rounded bg-blue-50 border border-blue-200 px-2 py-1.5 text-[10px] text-blue-700 leading-snug">
           バンド内のフィールドがデータ配列の件数分、縦に繰り返されます。
         </div>
-        <PropRow label="データソース (配列フィールドキー)">
-          <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background font-mono" value={el.dataSource} placeholder="例: items, records" onChange={(e) => onChange({ dataSource: e.target.value })} />
-        </PropRow>
+        <DataSourceSelect el={el} onChange={onChange} />
         <PropRow label="1行の高さ"><NumInput value={el.itemHeight} onChange={(v) => onChange({ itemHeight: v })} min={3} step={0.5} unit="mm" /></PropRow>
         <PropRow label="最大件数 (0=無制限)"><NumInput value={el.maxItems} onChange={(v) => onChange({ maxItems: Math.max(0, v) })} min={0} /></PropRow>
         <div className="flex gap-4">

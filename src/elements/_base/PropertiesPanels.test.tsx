@@ -16,6 +16,7 @@ import { HankoPropertiesPanel } from '@/elements/hanko/PropertiesPanel'
 import { ApprovalStampRowPropertiesPanel } from '@/elements/approvalStampRow/PropertiesPanel'
 import { RevenueStampPropertiesPanel } from '@/elements/revenueStamp/PropertiesPanel'
 import { RepeatingBandPropertiesPanel } from '@/elements/repeatingBand/PropertiesPanel'
+import { useReportStore } from '@/store'
 import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/PropertiesPanel'
 import {
   createTextElement,
@@ -673,12 +674,24 @@ describe('RepeatingBandPropertiesPanel', () => {
     expect(container.firstChild).not.toBeNull()
   })
 
-  it('calls onChange when data source changes', () => {
+  it('calls onChange when data source changes (#140: dropdown of detail groups)', () => {
+    // The dataSource is now a dropdown sourced from real detail schema groups.
+    useReportStore.setState((s) => ({
+      definition: {
+        ...s.definition,
+        schema: {
+          groups: [
+            { id: 'orders', label: '注文明細', role: 'detail', dataKey: 'orders', fields: [] },
+          ],
+        },
+      },
+    }))
     const el = createRepeatingBandWithDefaults() as RepeatingBandElement
     const onChange = vi.fn()
     render(<RepeatingBandPropertiesPanel el={el} onChange={onChange} />)
-    const dataSrcInputs = screen.getAllByPlaceholderText('例: items, records')
-    fireEvent.change(dataSrcInputs[0], { target: { value: 'orders' } })
+    fireEvent.change(screen.getByLabelText('データソース (明細グループ)'), {
+      target: { value: 'orders' },
+    })
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dataSource: 'orders' }))
   })
 
