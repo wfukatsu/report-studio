@@ -150,6 +150,7 @@ export const SchemaPanel = memo(function SchemaPanel({
               boundFieldIds={bs.boundFieldIds}
               masterGroups={masterGroups}
               onSetLinkedMaster={handleSetLinkedMaster}
+              onUpdateGroup={bs.updateSchemaGroup}
               addingField={bs.addingFieldGroupId === group.id}
               onToggle={onToggleGroup}
               onAddField={handleAddField}
