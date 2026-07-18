@@ -23,6 +23,7 @@ function renderBlock(
   group: SchemaGroup,
   masterGroups: readonly MasterGroupOption[],
   onSetLinkedMaster = vi.fn(),
+  onUpdateGroup = vi.fn(),
 ) {
   const noop = () => {}
   render(
@@ -33,6 +34,7 @@ function renderBlock(
       boundFieldIds={new Set()}
       masterGroups={masterGroups}
       onSetLinkedMaster={onSetLinkedMaster}
+      onUpdateGroup={onUpdateGroup}
       addingField={false}
       onToggle={noop}
       onAddField={noop}
@@ -50,7 +52,18 @@ function renderBlock(
       onHoverField={noop}
     />,
   )
-  return { onSetLinkedMaster }
+  return { onSetLinkedMaster, onUpdateGroup }
+}
+
+function makeMasterGroup(patch: Partial<SchemaGroup> = {}): SchemaGroup {
+  return {
+    id: 'header',
+    label: 'ヘッダ',
+    role: 'master',
+    dataKey: 'header',
+    fields: [{ id: 'f1', key: 'docNo', label: '番号', type: 'string' }],
+    ...patch,
+  }
 }
 
 const MASTERS: MasterGroupOption[] = [
@@ -113,5 +126,72 @@ describe('SchemaGroupBlock — 親マスター relationship (#138)', () => {
     )
     expect(screen.queryByText('親マスター')).not.toBeInTheDocument()
     expect(screen.queryByText(/リンクできるマスターがありません/)).not.toBeInTheDocument()
+  })
+})
+
+describe('SchemaGroupBlock — inline group edit (#139)', () => {
+  it('enters edit mode from the pencil and prefills current values', () => {
+    renderBlock(makeMasterGroup(), MASTERS)
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    expect((screen.getByLabelText('グループ名称') as HTMLInputElement).value).toBe('ヘッダ')
+    expect((screen.getByLabelText('データキー') as HTMLInputElement).value).toBe('header')
+    expect((screen.getByLabelText('グループの種別') as HTMLSelectElement).value).toBe('master')
+  })
+
+  it('saves edited label / dataKey / role via onUpdateGroup', () => {
+    const { onUpdateGroup } = renderBlock(makeMasterGroup(), MASTERS)
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    fireEvent.change(screen.getByLabelText('グループ名称'), { target: { value: '請求ヘッダ' } })
+    fireEvent.change(screen.getByLabelText('データキー'), { target: { value: 'invoice_header' } })
+    fireEvent.click(screen.getByLabelText('グループを保存'))
+    expect(onUpdateGroup).toHaveBeenCalledWith('header', {
+      label: '請求ヘッダ',
+      dataKey: 'invoice_header',
+      role: 'master',
+    })
+  })
+
+  it('sanitizes spaces and non-word chars in dataKey to the 2-level key grammar', () => {
+    const { onUpdateGroup } = renderBlock(makeMasterGroup(), MASTERS)
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    fireEvent.change(screen.getByLabelText('データキー'), { target: { value: 'line items 2!' } })
+    fireEvent.click(screen.getByLabelText('グループを保存'))
+    // spaces → "_", "!" dropped, starts with a letter → valid
+    expect(onUpdateGroup).toHaveBeenCalledWith('header', expect.objectContaining({ dataKey: 'line_items_2' }))
+  })
+
+  it('falls back to the original dataKey when the input cannot start a valid key', () => {
+    const { onUpdateGroup } = renderBlock(makeMasterGroup(), MASTERS)
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    fireEvent.change(screen.getByLabelText('データキー'), { target: { value: '123' } })
+    fireEvent.click(screen.getByLabelText('グループを保存'))
+    // A key can't start with a digit → keep the existing dataKey rather than break it
+    expect(onUpdateGroup).toHaveBeenCalledWith('header', expect.objectContaining({ dataKey: 'header' }))
+  })
+
+  it('clears linkedMasterGroupId when a detail group is switched to master', () => {
+    const { onUpdateGroup } = renderBlock(
+      makeDetailGroup({ linkedMasterGroupId: 'header' }),
+      MASTERS,
+    )
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    fireEvent.change(screen.getByLabelText('グループの種別'), { target: { value: 'master' } })
+    fireEvent.click(screen.getByLabelText('グループを保存'))
+    expect(onUpdateGroup).toHaveBeenCalledWith('items', {
+      label: '明細',
+      dataKey: 'items',
+      role: 'master',
+      linkedMasterGroupId: undefined,
+    })
+  })
+
+  it('cancel discards edits without calling onUpdateGroup', () => {
+    const { onUpdateGroup } = renderBlock(makeMasterGroup(), MASTERS)
+    fireEvent.click(screen.getByLabelText('グループを編集'))
+    fireEvent.change(screen.getByLabelText('グループ名称'), { target: { value: 'X' } })
+    fireEvent.click(screen.getByLabelText('編集をキャンセル'))
+    expect(onUpdateGroup).not.toHaveBeenCalled()
+    // Back to display mode.
+    expect(screen.queryByLabelText('グループ名称')).not.toBeInTheDocument()
   })
 })
