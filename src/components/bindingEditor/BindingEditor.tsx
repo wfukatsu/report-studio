@@ -152,6 +152,13 @@ export function BindingEditor() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
+      {/* Role descriptor — states what this surface is for (#129) */}
+      <div className="px-3 py-1 border-b bg-muted/5 shrink-0">
+        <span className="text-[10px] text-muted-foreground">
+          テンプレート要素とデータ項目（スキーマ）を結線し、必要ならDBに接続します。実データの確認はデザイン画面の「データ」パネルで行えます。
+        </span>
+      </div>
+
       {/* Schema library action bar */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/10 shrink-0">
         <span className="text-xs text-muted-foreground">スキーマライブラリ:</span>
@@ -176,10 +183,11 @@ export function BindingEditor() {
       {/* Schema Library Modal */}
       <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
 
-      {/* Bulk generate bar (conditional) */}
-      {bs.bulk && bs.bulkItems.length > 0 && (
+      {/* Bulk generate bar — shown while a bulk request is pending. Renders even
+          with zero items so the trigger gives feedback instead of a silent no-op. */}
+      {bs.bulk && (
         <BulkGenerateBar
-          sourceLabel={bs.bulk.side === 'schema' ? 'テンプレート要素' : 'スキーマフィールド'}
+          title={bs.bulk.side === 'schema' ? '未配置フィールドから要素を生成' : '要素からスキーマ項目を生成'}
           items={bs.bulkItems}
           onGenerate={bs.runBulk}
           onCancel={() => bs.setBulk(null)}

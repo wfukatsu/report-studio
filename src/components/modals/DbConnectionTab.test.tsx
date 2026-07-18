@@ -424,13 +424,9 @@ describe('DbConnectionTab — unbind (解除)', () => {
     render(<DbConnectionTab />)
     await screen.findByLabelText(/ネームスペース/)
 
-    // 解除ボタンは確認ダイアログを経由する
+    // 解除は即時実行（確認ダイアログ無し・undo トーストが安全網）
     fireEvent.click(screen.getByRole('button', { name: /解除/ }))
-    // 確認ダイアログが表示されるのを待ち、確認ボタンをクリック
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument()
-    })
-    fireEvent.click(screen.getByRole('button', { name: /解除する/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
     await waitFor(() => {
       const group = getGroup(groupId)

@@ -137,6 +137,81 @@ describe('BindingEditor — クリック接続/解除', () => {
   })
 })
 
+describe('BindingEditor — 一括生成（フィールド→要素）', () => {
+  function pageElements(pageId: string) {
+    return useReportStore.getState().definition.pages
+      .find((p) => p.id === pageId)!.sections!.flatMap((s) => s.elements)
+  }
+
+  it('ヘッダーの一括生成ボタンから未配置フィールドの要素を生成する', () => {
+    const { fieldId, pageId } = setupSchemaAndElements()
+    render(<BindingEditor />)
+
+    // Trigger is exposed in the group header (previously wired but never rendered)
+    fireEvent.click(screen.getByLabelText('フィールドから要素を一括生成'))
+
+    // Bar appears with the field that has no matching element yet (顧客名)
+    expect(screen.getByText('未配置フィールドから要素を生成')).toBeInTheDocument()
+    const before = pageElements(pageId).length
+
+    fireEvent.click(screen.getByText('生成する'))
+
+    const after = pageElements(pageId)
+    expect(after.length).toBe(before + 1)
+    // The generated element is pre-bound to the source field
+    expect(after.some((e) => e.schemaBinding?.fieldId === fieldId)).toBe(true)
+  })
+
+  it('生成対象が無い場合はフィードバックを出す（サイレントな無反応にしない）', () => {
+    const { pageId } = setupSchemaAndElements()
+    // Rename an element so the field (顧客名) already has a matching element label
+    useReportStore.getState().updateElement(pageId, 'el-1', { name: '顧客名' })
+    render(<BindingEditor />)
+
+    fireEvent.click(screen.getByLabelText('フィールドから要素を一括生成'))
+    expect(screen.getByText(/生成できる項目はありません/)).toBeInTheDocument()
+  })
+})
+
+describe('BindingEditor — 列未割当の警告（#130）', () => {
+  it('DB接続済みグループで列未割当のフィールドに警告を表示する', () => {
+    const { groupId } = setupSchemaAndElements()
+    useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
+    render(<BindingEditor />)
+    expect(screen.getByLabelText('DBカラム未割当')).toBeInTheDocument()
+  })
+
+  it('列を割り当てると警告が消える', () => {
+    const { groupId, fieldId } = setupSchemaAndElements()
+    useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
+    useReportStore.getState().updateSchemaField(groupId, fieldId, { dbColumnName: 'name' })
+    render(<BindingEditor />)
+    expect(screen.queryByLabelText('DBカラム未割当')).not.toBeInTheDocument()
+  })
+
+  it('DB未接続のグループでは警告を出さない', () => {
+    setupSchemaAndElements()
+    render(<BindingEditor />)
+    expect(screen.queryByLabelText('DBカラム未割当')).not.toBeInTheDocument()
+  })
+})
+
+describe('BindingEditor — フィールド追加時の型選択', () => {
+  it('追加フォームで選んだ型で新しいフィールドが作られる', () => {
+    const { groupId } = setupSchemaAndElements()
+    render(<BindingEditor />)
+
+    fireEvent.click(screen.getByText('フィールド追加'))
+    fireEvent.change(screen.getByPlaceholderText('フィールド名'), { target: { value: 'quantity' } })
+    fireEvent.change(screen.getByLabelText('フィールドの型'), { target: { value: 'number' } })
+    fireEvent.click(screen.getByText('追加'))
+
+    const group = useReportStore.getState().definition.schema!.groups.find((g) => g.id === groupId)!
+    const added = group.fields.find((f) => f.key === 'quantity')
+    expect(added).toMatchObject({ key: 'quantity', label: 'quantity', type: 'number' })
+  })
+})
+
 describe('BindingEditor — 計算フィールドダイアログ連携', () => {
   it('opens the dialog for the group and adds a computed number field on save', async () => {
     const { groupId } = setupSchemaAndElements()

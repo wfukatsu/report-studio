@@ -6,7 +6,7 @@
  */
 
 import { memo, useCallback, useState } from 'react'
-import { Plus, Link, Search, X } from 'lucide-react'
+import { Plus, Link, Search, X, MousePointerClick, Hand } from 'lucide-react'
 import { SchemaGroupBlock } from '../internals/SchemaGroupBlock'
 import { NoSchemaPanel } from '../internals/NoSchemaPanel'
 import type { BindingState } from '../hooks/useBindingState'
@@ -72,14 +72,21 @@ export const SchemaPanel = memo(function SchemaPanel({
 
   return (
     <div className="flex flex-col h-full overflow-hidden border-x">
-      {/* Header */}
+      {/* Header + operation guide — two connection methods, made discoverable (#131) */}
       <div className="px-3 py-2.5 border-b bg-muted/30 shrink-0">
         <p className="text-xs font-semibold text-foreground">
           スキーマフィールド
         </p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">
-          フィールドをクリックで選択、ドラッグで要素に接続
-        </p>
+        <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <MousePointerClick className="w-3 h-3 shrink-0 text-blue-500" />
+            フィールドをクリック → 左の要素をクリックで接続
+          </span>
+          <span className="flex items-center gap-1">
+            <Hand className="w-3 h-3 shrink-0 text-blue-500" />
+            フィールドを要素へドラッグしても接続できます
+          </span>
+        </div>
       </div>
 
       {/* Search filter (P4-14) */}

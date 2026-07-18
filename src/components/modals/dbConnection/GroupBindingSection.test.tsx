@@ -8,11 +8,14 @@
  * - Store write semantics (table selection writes; namespace change does not)
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import type { ScalarDbCatalog } from '@/api/reportApi'
 import type { SchemaGroup } from '@/types'
 import { GroupBindingSection } from './GroupBindingSection'
+import { toast } from 'sonner'
+
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -172,27 +175,53 @@ describe('GroupBindingSection — 解除 button', () => {
     expect(screen.getByRole('button', { name: /解除/i })).toBeInTheDocument()
   })
 
-  it('clicking 解除 shows confirm dialog, then clears tableMeta on confirm', async () => {
+  it('解除は確認ダイアログ無しで即時にテーブル連携を外す', () => {
     const groupId = useReportStore.getState().definition.schema!.groups[0].id
     useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
 
     const group = makeGroup({ id: groupId, tableMeta: { namespace: 'app', tableName: 'users' } })
     renderSection(group)
 
-    // 解除ボタンクリック → 確認ダイアログが表示される
     fireEvent.click(screen.getByRole('button', { name: /解除/i }))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
 
-    // 「解除する」ボタンで確定
-    fireEvent.click(screen.getByRole('button', { name: /解除する/ }))
+    // No blocking confirm dialog — the undo toast is the safety net instead
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema!.groups[0].tableMeta).toBeUndefined()
 
-    // Store must have tableMeta cleared
-    const stored = useReportStore.getState().definition.schema!.groups[0].tableMeta
-    expect(stored).toBeUndefined()
-
-    // Namespace select should reset to (未選択)
+    // Namespace select resets to (未選択)
     const nsSelect = screen.getByRole('combobox', { name: /ネームスペース/i })
     expect((nsSelect as HTMLSelectElement).value).toBe('')
+  })
+
+  it('解除の「元に戻す」で tableMeta とカラムマッピングが復元される（非破壊）', () => {
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    // Bind with a column mapping: field f2 (name) → email
+    useReportStore.getState().bindGroupToTableWithColumns(
+      groupId,
+      { namespace: 'app', tableName: 'users' },
+      [{ fieldId: 'f2', dbColumnName: 'email' }],
+    )
+    const bound = useReportStore.getState().definition.schema!.groups[0]
+
+    renderSection(bound as SchemaGroup)
+    vi.mocked(toast.success).mockClear()
+    fireEvent.click(screen.getByRole('button', { name: /解除/i }))
+
+    // Store cleared destructively...
+    const cleared = useReportStore.getState().definition.schema!.groups[0]
+    expect(cleared.tableMeta).toBeUndefined()
+    expect(cleared.fields.find((f) => f.id === 'f2')!.dbColumnName).toBeUndefined()
+
+    // ...but an undo action is offered
+    expect(toast.success).toHaveBeenCalledTimes(1)
+    const opts = vi.mocked(toast.success).mock.calls[0][1] as { action: { label: string; onClick: () => void } }
+    expect(opts.action.label).toBe('元に戻す')
+
+    // Undo fully restores the table binding and the column mapping
+    act(() => opts.action.onClick())
+    const restored = useReportStore.getState().definition.schema!.groups[0]
+    expect(restored.tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
+    expect(restored.fields.find((f) => f.id === 'f2')!.dbColumnName).toBe('email')
   })
 })
 

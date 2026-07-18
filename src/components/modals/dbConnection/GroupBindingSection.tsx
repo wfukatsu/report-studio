@@ -6,6 +6,7 @@
  * for unbound groups (wired via the onShowCreate / showCreateForm props).
  */
 import { memo, useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type {
   ScalarDbCatalog,
@@ -14,8 +15,8 @@ import type {
 } from '@/api/reportApi'
 import type { SchemaGroup, ScalarDbTableMeta } from '@/types'
 import { cn } from '@/lib/utils'
+import { groupRoleLabel } from '@/lib/scalardbLabels'
 import { FieldColumnMap } from './FieldColumnMap'
-import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 export interface GroupBindingSectionProps {
   group: SchemaGroup
@@ -38,6 +39,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
   createFormSlot,
 }: GroupBindingSectionProps) {
   const bindGroupToTable = useReportStore((s) => s.bindGroupToTable)
+  const bindGroupToTableWithColumns = useReportStore((s) => s.bindGroupToTableWithColumns)
   const updateSchemaField = useReportStore((s) => s.updateSchemaField)
 
   const boundNamespace = group.tableMeta?.namespace ?? ''
@@ -101,13 +103,26 @@ export const GroupBindingSection = memo(function GroupBindingSection({
     [bindGroupToTable, group.id, pendingNamespace],
   )
 
-  const [showUnbindConfirm, setShowUnbindConfirm] = useState(false)
+  // Non-destructive unbind: snapshot the current binding, clear it, and offer a
+  // one-click "元に戻す" that fully restores the table + column mappings. This
+  // replaces the old blocking confirm dialog — the undo toast is the safety net.
+  const handleUnbind = useCallback(() => {
+    const prevTableMeta = group.tableMeta
+    if (!prevTableMeta) return
+    const prevColumns = group.fields
+      .filter((f) => f.dbColumnName)
+      .map((f) => ({ fieldId: f.id, dbColumnName: f.dbColumnName as string }))
 
-  const handleUnbindConfirmed = useCallback(() => {
     bindGroupToTable(group.id, undefined)
     setPendingNamespace('')
-    setShowUnbindConfirm(false)
-  }, [bindGroupToTable, group.id])
+
+    toast.success(`「${group.label}」のテーブル連携を解除しました`, {
+      action: {
+        label: '元に戻す',
+        onClick: () => bindGroupToTableWithColumns(group.id, prevTableMeta, prevColumns),
+      },
+    })
+  }, [bindGroupToTable, bindGroupToTableWithColumns, group.id, group.label, group.tableMeta, group.fields])
 
   const handleColumnChange = useCallback(
     (fieldId: string, nextColumnName: string) => {
@@ -128,35 +143,26 @@ export const GroupBindingSection = memo(function GroupBindingSection({
           {group.label}
           <span
             className={cn(
-              'ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide',
+              'ml-2 px-1.5 py-0.5 rounded text-[9px] tracking-wide',
               group.role === 'master'
                 ? 'bg-primary/10 text-primary'
                 : 'bg-muted text-muted-foreground',
             )}
           >
-            {group.role}
+            {groupRoleLabel(group.role)}
           </span>
         </h4>
         {group.tableMeta && (
           <button
             type="button"
-            onClick={() => setShowUnbindConfirm(true)}
+            onClick={handleUnbind}
             className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
+            title="テーブル連携を解除（解除後に「元に戻す」で復元できます）"
           >
             解除
           </button>
         )}
       </header>
-
-      <ConfirmDialog
-        open={showUnbindConfirm}
-        title="テーブル連携を解除"
-        message={`「${group.label}」のテーブル連携（${group.tableMeta?.tableName ?? ''}）を解除しますか？フィールドのカラムマッピングもすべて失われます。`}
-        confirmLabel="解除する"
-        confirmVariant="danger"
-        onConfirm={handleUnbindConfirmed}
-        onCancel={() => setShowUnbindConfirm(false)}
-      />
 
       {/* Namespace + table selects */}
       <div className="grid grid-cols-2 gap-3">
