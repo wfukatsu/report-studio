@@ -14,13 +14,10 @@ import { isApiError } from '@/api/client'
 // System group constants
 // ---------------------------------------------------------------------------
 
-/** ID of the product master system group — must match backend constant */
-export const SYSTEM_GROUP_PRODUCT_MASTER = '__productMaster__'
-
-/** Returns true for system-reserved group IDs (double-underscore pattern). */
-export function isSystemGroup(id: string): boolean {
-  return id === SYSTEM_GROUP_PRODUCT_MASTER
-}
+// Re-exported from a dependency-free leaf module so lightweight consumers can
+// import them without creating a store import cycle.
+export { SYSTEM_GROUP_PRODUCT_MASTER, isSystemGroup } from './systemGroups'
+import { SYSTEM_GROUP_PRODUCT_MASTER, isSystemGroup } from './systemGroups'
 
 /** Stable field IDs for the product master system group (hardcoded for binding stability). */
 const PRODUCT_MASTER_FIELD_IDS = {

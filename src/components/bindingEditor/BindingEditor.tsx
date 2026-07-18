@@ -19,6 +19,7 @@ import { DbPanel } from './panels/DbPanel'
 import { ConnectionLines } from './internals/ConnectionLines'
 import { SummaryBar } from './internals/SummaryBar'
 import { BulkGenerateBar } from './internals/BulkGenerateBar'
+import { RelationshipView } from './internals/RelationshipView'
 import { SchemaLibraryModal } from '@/components/modals/SchemaLibraryModal'
 import { saveToSchemaLibrary } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
@@ -182,6 +183,18 @@ export function BindingEditor() {
 
       {/* Schema Library Modal */}
       <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
+
+      {/* Relationship view (#141/#142/#143) — model-view of master/detail/product,
+          with product master exposed as a lookup source and shared-key inference.
+          Uses the full schema (incl. the product master system group). */}
+      {bs.hasSchema && (
+        <RelationshipView
+          groups={bs.schema?.groups ?? []}
+          onSetLinkedMaster={(groupId, masterId) =>
+            bs.updateSchemaGroup(groupId, { linkedMasterGroupId: masterId })
+          }
+        />
+      )}
 
       {/* Bulk generate bar — shown while a bulk request is pending. Renders even
           with zero items so the trigger gives feedback instead of a silent no-op. */}
