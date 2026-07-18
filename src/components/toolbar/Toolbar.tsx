@@ -166,7 +166,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     handleNew: handleNewFn,
     handleUpdateFromBuiltin,
     handleOpenLocal,
-    handleOpenServer,
     handleFileChange,
     handleToggleMasterHeader,
     handleToggleMasterFooter,
@@ -249,10 +248,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <FilePlus className="w-4 h-4" />
         </ToolbarButton>
         <div className="relative flex items-center" ref={openMenuRef}>
-          {/* Primary "開く" opens the server template list (the common case) when
-              connected; local-file import stays available in the dropdown (#157). */}
+          {/* Primary "開く" opens the template picker that can actually LOAD a
+              template into the editor (TemplateSelectionModal). Routing this to the
+              management-only modal made "開く" unable to open anything (#169). The
+              unsaved-changes guard fires at the load step (handleTemplateChange). */}
           <ToolbarButton
-            onClick={backendConnected ? handleOpenServer : handleOpenLocal}
+            onClick={backendConnected ? (onRequestTemplateModal ?? handleOpenLocal) : handleOpenLocal}
             title={backendConnected ? 'サーバーのテンプレートを開く' : '開く'}
           >
             <FolderOpen className="w-4 h-4" />
@@ -274,7 +275,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               <button
                 className={cn('w-full text-left px-3 py-1.5 text-sm', backendConnected ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed')}
                 disabled={!backendConnected}
-                onClick={() => { handleOpenServer(); setShowOpenMenu(false) }}
+                onClick={() => { onRequestTemplateModal?.(); setShowOpenMenu(false) }}
               >
                 サーバーから開く
               </button>
