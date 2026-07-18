@@ -27,6 +27,11 @@ import { createHash } from 'node:crypto'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BUILTIN_DIR = join(__dirname, '..', 'src', 'templates', 'builtin')
 const NAMESPACE = 'demo'
+// #144: product master system group id — must match the frontend constant
+// (src/store/systemGroups.ts) and the backend (V2BindingResolveController).
+const SYSTEM_GROUP_PRODUCT_MASTER = '__productMaster__'
+// FK column a coded line item uses to reference the shared product master.
+const PRODUCT_FK_COLUMN = 'product_code'
 
 // Deterministic uuid-ish id from a seed string (stable across runs).
 function stableId(seed) {
@@ -212,17 +217,32 @@ function bindTemplate(id, def) {
   }
   sample[primary.dataKey] = { ...(sample[primary.dataKey] ?? {}), reportId }
 
+  // #144: the product lookup relation, built when a detail group carries a
+  // product_code FK column (coded line items only — free-text templates skip it).
+  let productLookupRelation = null
+
   for (const g of groups) {
     if (g.role === 'detail') {
       g.tableMeta = { namespace: NAMESPACE, tableName: itemsTable }
       g.linkedMasterGroupId = primary.id
       // A coded line item references the shared product master by product_code
       // (FK); name/price are snapshotted for historical accuracy.
-      const itemCol = (key) => (key === 'itemCode' ? 'product_code' : `item_${snake(key)}`)
+      const itemCol = (key) => (key === 'itemCode' ? PRODUCT_FK_COLUMN : `item_${snake(key)}`)
       for (const f of g.fields) {
         const col = itemCol(f.key)
         f.dbColumnName = col
         itemCols.set(col, colType(f.type))
+      }
+      // Declare the named product lookup relation for coded line items (#144).
+      if (itemCols.has(PRODUCT_FK_COLUMN)) {
+        productLookupRelation = {
+          id: stableId(`rel-product-${cfg.prefix}`),
+          name: 'product',
+          from: g.id,
+          to: SYSTEM_GROUP_PRODUCT_MASTER,
+          on: { fromColumn: PRODUCT_FK_COLUMN, toColumn: 'code' },
+          kind: 'lookup',
+        }
       }
       const rows = sample[g.dataKey] ?? []
       rows.forEach((r, i) => {
@@ -256,6 +276,10 @@ function bindTemplate(id, def) {
       if (v !== undefined && col !== 'report_id' && col !== 'doc_no') headerRow[col] = v
     }
   }
+
+  // #144: attach (or clear, for idempotency) the named product lookup relation.
+  if (productLookupRelation) def.schema.relations = [productLookupRelation]
+  else delete def.schema.relations
 
   const tables = [
     {

@@ -1770,6 +1770,19 @@
           },
           "linkedMasterGroupId": "qm-grp-doc"
         }
+      ],
+      "relations": [
+        {
+          "id": "45f54607-df7d-0fe5-eac7-7973a2970575",
+          "name": "product",
+          "from": "qm-grp-items",
+          "to": "__productMaster__",
+          "on": {
+            "fromColumn": "product_code",
+            "toColumn": "code"
+          },
+          "kind": "lookup"
+        }
       ]
     }
   }

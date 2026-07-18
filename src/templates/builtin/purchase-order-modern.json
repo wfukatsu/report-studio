@@ -1888,6 +1888,19 @@
           },
           "linkedMasterGroupId": "po-grp-doc"
         }
+      ],
+      "relations": [
+        {
+          "id": "7e3805e1-d824-eb22-665b-74d264307645",
+          "name": "product",
+          "from": "po-grp-items",
+          "to": "__productMaster__",
+          "on": {
+            "fromColumn": "product_code",
+            "toColumn": "code"
+          },
+          "kind": "lookup"
+        }
       ]
     }
   }

@@ -2022,6 +2022,19 @@
           },
           "linkedMasterGroupId": "inv-grp-doc"
         }
+      ],
+      "relations": [
+        {
+          "id": "315282c4-db32-699f-0043-d8ccf6cbae47",
+          "name": "product",
+          "from": "inv-grp-items",
+          "to": "__productMaster__",
+          "on": {
+            "fromColumn": "product_code",
+            "toColumn": "code"
+          },
+          "kind": "lookup"
+        }
       ]
     }
   }
