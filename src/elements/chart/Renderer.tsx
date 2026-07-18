@@ -5,6 +5,8 @@ import { ChartContent } from '@/elements/_blocks/renderers/ChartContent'
 interface Props {
   element: ChartElement
   data?: Record<string, unknown>
+  /** Design mode (!readonly): badge the chart when it is showing hardcoded sample data. */
+  sampleHint?: boolean
 }
 
 /** Sample data shown in design mode when no dataBinding is set */
@@ -15,8 +17,8 @@ const SAMPLE_DATA = [
   { name: 'D', value: 10 },
 ]
 
-export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {} }: Props) {
-  const records = useMemo(() => {
+export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {}, sampleHint }: Props) {
+  const { records, isSample } = useMemo(() => {
     if (el.dataBinding) {
       const bound = data[el.dataBinding]
       // Validate that the bound value is an array of plain objects before
@@ -29,18 +31,31 @@ export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {
         bound[0] !== null &&
         !Array.isArray(bound[0])
       ) {
-        return bound as Record<string, unknown>[]
+        return { records: bound as Record<string, unknown>[], isSample: false }
       }
       // Fall back to sample data if the binding resolves to a non-record array
       if (Array.isArray(bound) && bound.length === 0) {
-        return bound as Record<string, unknown>[]
+        return { records: bound as Record<string, unknown>[], isSample: false }
       }
     }
-    return SAMPLE_DATA
+    return { records: SAMPLE_DATA as Record<string, unknown>[], isSample: true }
   }, [el.dataBinding, data])
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {sampleHint && isSample && (
+        <div
+          style={{
+            position: 'absolute', top: 0, right: 0, zIndex: 2,
+            background: '#93c5fd', color: '#ffffff',
+            fontSize: '2mm', fontWeight: 'bold', letterSpacing: '0.05em',
+            padding: '0.5mm 1.5mm', borderBottomLeftRadius: '1mm',
+            pointerEvents: 'none',
+          }}
+        >
+          サンプル
+        </div>
+      )}
       {el.title && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0,

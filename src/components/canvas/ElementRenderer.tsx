@@ -111,11 +111,11 @@ export const ElementRenderer = memo(function ElementRenderer({
   if (isEmptyInPreview) return null
 
   switch (element.type) {
-    case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
-    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} />
+    case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} sampleHint={!readonly} />
+    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} sampleHint={!readonly} />
     case 'image':           return <ImageRenderer element={element} />
     case 'shape':           return <ShapeRenderer element={element} />
-    case 'chart':           return <ChartRenderer element={element} data={mergedData} />
+    case 'chart':           return <ChartRenderer element={element} data={mergedData} sampleHint={!readonly} />
     case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
     case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
     case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
@@ -135,7 +135,11 @@ export const ElementRenderer = memo(function ElementRenderer({
       return <RepeatingListRenderer element={element} records={listRecords} />
     }
     case 'formTable': {
-      const tableRecords = element.dataSource
+      // Editor mode: show design preview (placeholders). Preview mode: show live data.
+      // Gated on `readonly` for parity with repeatingBand / repeatingList — otherwise a
+      // data-bound table would render live rows in the design canvas while the other two
+      // repeating containers show placeholders.
+      const tableRecords = readonly && element.dataSource
         ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
         : undefined
       return <FormTableRenderer element={element} records={tableRecords} />
