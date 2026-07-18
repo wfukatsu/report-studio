@@ -39,17 +39,21 @@ beforeEach(() => {
 })
 
 describe('DataSourceTree — ScalarDB catalog', () => {
-  it('renders namespace.table leaves after loading', async () => {
+  it('renders tables grouped under their namespace after loading', async () => {
     render(<DataSourceTree onSelect={vi.fn()} selected={null} />)
-    expect(await screen.findByText('sales.orders')).toBeInTheDocument()
-    expect(screen.getByText('sales.customers')).toBeInTheDocument()
-    expect(screen.getByText('hr.employees')).toBeInTheDocument()
+    // Tables render by name under a namespace header (grouping — #167).
+    expect(await screen.findByText('orders')).toBeInTheDocument()
+    expect(screen.getByText('customers')).toBeInTheDocument()
+    expect(screen.getByText('employees')).toBeInTheDocument()
+    // Namespace group headers are present.
+    expect(screen.getByText('sales')).toBeInTheDocument()
+    expect(screen.getByText('hr')).toBeInTheDocument()
   })
 
   it('emits a scalardb-table node when a table is clicked', async () => {
     const onSelect = vi.fn()
     render(<DataSourceTree onSelect={onSelect} selected={null} />)
-    fireEvent.click(await screen.findByText('sales.orders'))
+    fireEvent.click(await screen.findByText('orders'))
     expect(onSelect).toHaveBeenCalledWith({
       kind: 'scalardb-table',
       namespace: 'sales',
@@ -68,18 +72,18 @@ describe('DataSourceTree — ScalarDB catalog', () => {
     render(<DataSourceTree onSelect={vi.fn()} selected={null} />)
     const retry = await screen.findByRole('button', { name: '再試行' })
     fireEvent.click(retry)
-    expect(await screen.findByText('sales.orders')).toBeInTheDocument()
+    expect(await screen.findByText('orders')).toBeInTheDocument()
     expect(mockCatalog).toHaveBeenCalledTimes(2)
   })
 
   it('collapses the ScalarDB section on header toggle', async () => {
     render(<DataSourceTree onSelect={vi.fn()} selected={null} />)
-    await screen.findByText('sales.orders')
+    await screen.findByText('orders')
     const header = screen.getByRole('button', { name: /ScalarDB テーブル/ })
     expect(header).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(header)
     expect(header).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByText('sales.orders')).not.toBeInTheDocument()
+    expect(screen.queryByText('orders')).not.toBeInTheDocument()
   })
 })
 

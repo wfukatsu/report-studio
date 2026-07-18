@@ -560,6 +560,21 @@ interface InlineAddFieldProps {
   readonly onCancel: () => void
 }
 
+/**
+ * Derive a valid field key (matching the schema grammar ^[a-zA-Z_][a-zA-Z0-9_]*$)
+ * from a human label. A Japanese label like "タイトル" sanitizes to an empty
+ * string, which previously left the field key blank — breaking data binding and
+ * leaving the "create table" column name empty (#161). Fall back to a generated
+ * key so every field always has a usable, valid key.
+ */
+function deriveFieldKey(label: string): string {
+  const slug = label.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+  if (slug && /^[a-zA-Z_]/.test(slug)) return slug
+  if (slug) return `f_${slug}` // starts with a digit → prefix to satisfy the grammar
+  const rand = (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}`).replace(/-/g, '').slice(0, 6)
+  return `field_${rand}`
+}
+
 /** Field types offerable at inline-add time (計算フィールドは fx ダイアログ経由) */
 const ADD_FIELD_TYPES: readonly { value: SchemaFieldType; label: string }[] = [
   { value: 'string', label: '文字' },
@@ -575,8 +590,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
   const handleSubmit = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    const key = trimmed.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
-    onAdd(groupId, { key, label: trimmed, type } as Omit<SchemaField, 'id'>)
+    onAdd(groupId, { key: deriveFieldKey(trimmed), label: trimmed, type } as Omit<SchemaField, 'id'>)
     setName('')
   }
 

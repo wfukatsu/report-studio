@@ -166,7 +166,13 @@ public final class V2BatchPdfController {
     /** Renders each response and streams the resulting ZIP to the job's artifact path. */
     private Path generateBatchZip(String batchJobId, String templateId, String rawDef,
                                   List<String> responseIds, String userId) throws Exception {
-        JsonNode definitionNode = MAPPER.readTree(rawDef);
+        // The stored blob is an envelope {created_by, definition:{pages,...}, ...}.
+        // renderDefinition expects the inner ReportDefinition (it reads `pages`
+        // from the root), so unwrap `.definition` — passing the whole envelope
+        // renders a single blank page (~534B) and the job still reports success
+        // (#153). Fall back to the node itself for bare-definition blobs.
+        JsonNode envelope = MAPPER.readTree(rawDef);
+        JsonNode definitionNode = envelope.has("definition") ? envelope.path("definition") : envelope;
         String dateStr = DateTimeFormatter.ofPattern("yyyyMMdd")
                 .withZone(java.time.ZoneOffset.UTC)
                 .format(Instant.now());

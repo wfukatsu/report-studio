@@ -142,7 +142,11 @@ public final class V2PdfJobController {
         pdfExecutor.submit(() -> {
             jobStore.save(job.withStatus(JobStatus.PROCESSING));
             try {
-                JsonNode definitionNode = MAPPER.readTree(finalRaw);
+                // Unwrap the stored envelope {definition:{pages,...}} — renderDefinition
+                // reads `pages` from the root, so passing the whole envelope renders a
+                // blank page (#153). Fall back to the node itself for bare-definition blobs.
+                JsonNode envelope = MAPPER.readTree(finalRaw);
+                JsonNode definitionNode = envelope.has("definition") ? envelope.path("definition") : envelope;
                 // Prepare the V2 definition for native rendering (issue #52)
                 final String definitionJson = V2RenderSupport.prepare(
                         definitionNode, finalTestData, finalVariantId);

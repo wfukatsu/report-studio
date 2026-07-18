@@ -4,7 +4,7 @@
   "definition": {
     "id": "2b7af6f0-06ec-51e2-8cab-f9e00366a170",
     "metadata": {
-      "documentName": "御請求書",
+      "documentName": "納品書",
       "version": "1.0",
       "reportType": "general",
       "description": "納品書（明細・数量・金額）。demo.delivery_* にライブバインド。",

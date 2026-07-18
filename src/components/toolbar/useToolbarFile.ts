@@ -188,7 +188,10 @@ export function useToolbarFile({
       setId(created.id)
       setShowSaveDialog(false)
       setSaveState('saved')
-      toast.success('テンプレートを保存しました')
+      // New templates are private by default — say so and name it, so the user
+      // knows where it went and that it isn't shared yet (#158). Visibility can be
+      // changed later from テンプレート管理.
+      toast.success(`「${name}」を個人テンプレートとして保存しました`)
     } catch (err) {
       setSaveState('error')
       toast.error(err instanceof Error ? err.message : '保存に失敗しました', { duration: 8000 })

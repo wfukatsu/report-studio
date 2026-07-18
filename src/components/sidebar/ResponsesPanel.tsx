@@ -18,10 +18,23 @@ import { useReportStore } from '@/store'
 import {
   listResponses, deleteResponse, exportResponses, getResponsePdf,
   submitBatchPdfJob, getBatchPdfStatus, downloadBatchPdfResult,
+  updateResponseStatus,
 } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import { CACHE_TTL_MS } from '@/store/responsesSlice'
-import type { FormResponseSummary } from '@/lib/schemas/formResponse'
+import type { FormResponseSummary, ReportStatus } from '@/lib/schemas/formResponse'
+import { REPORT_STATUSES } from '@/lib/schemas/formResponse'
+
+// Document status display (#163). Cycle order matches REPORT_STATUSES.
+const STATUS_LABEL: Record<ReportStatus, string> = {
+  draft: '下書き', issued: '発行済', sent: '送付済', void: '無効',
+}
+const STATUS_BADGE: Record<ReportStatus, string> = {
+  draft: 'bg-gray-100 text-gray-600',
+  issued: 'bg-blue-50 text-blue-600',
+  sent: 'bg-green-50 text-green-600',
+  void: 'bg-red-50 text-red-500 line-through',
+}
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 import { classifyError, type UserFacingError } from '@/lib/userFacingError'
@@ -163,6 +176,23 @@ export function ResponsesPanel() {
     setDeleteTarget(response)
   }, [])
 
+  // Cycle the document status (下書き→発行済→送付済→無効→…) with an optimistic
+  // update; refetch on failure to resync (#163).
+  const handleCycleStatus = useCallback(async (response: FormResponseSummary) => {
+    if (!currentTemplateId) return
+    const current = (response.status ?? 'issued') as ReportStatus
+    const idx = REPORT_STATUSES.indexOf(current)
+    const next = REPORT_STATUSES[(idx + 1) % REPORT_STATUSES.length]
+    const prev = useReportStore.getState().responses
+    setResponses(prev.map((r) => (r.id === response.id ? { ...r, status: next } : r)), responsesTotal)
+    try {
+      await updateResponseStatus(currentTemplateId, response.id, next)
+    } catch {
+      toast.error('ステータスの更新に失敗しました', { duration: 6000 })
+      void fetchResponses(true)
+    }
+  }, [currentTemplateId, responsesTotal, setResponses, fetchResponses])
+
   const handleExport = useCallback(async (format: 'csv' | 'excel') => {
     if (!currentTemplateId || isExporting) return
     setIsExporting(true)
@@ -265,6 +295,19 @@ export function ResponsesPanel() {
         </div>
       )}
 
+      {/* Select-all — quick path to batch-output every response (#164) */}
+      {responses.length > 0 && (
+        <label className="flex items-center gap-1.5 px-3 py-1.5 border-b border-gray-100 text-xs text-gray-600 cursor-pointer shrink-0">
+          <input
+            type="checkbox"
+            checked={selectedIds.size === responses.length && responses.length > 0}
+            ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < responses.length }}
+            onChange={(e) => setSelectedIds(e.target.checked ? new Set(responses.map((r) => r.id)) : new Set())}
+          />
+          すべて選択（一括PDF用）
+        </label>
+      )}
+
       {/* Export buttons */}
       <div className="flex gap-2 p-3 border-b border-gray-100 shrink-0">
         <button
@@ -306,10 +349,23 @@ export function ResponsesPanel() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — explain how to create responses so the batch-PDF feature
+          (which only appears once responses exist) is discoverable (#167). */}
       {!responsesLoading && !loadError && responses.length === 0 && (
-        <div className="p-6 text-center text-sm text-gray-500">
-          回答がまだありません。
+        <div className="p-6 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
+          <p>回答がまだありません。</p>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            「回答を送信」からデータを登録すると、ここに一覧表示され、
+            <br />
+            複数選択して一括PDF出力できます。
+          </p>
+          <button
+            onClick={openSubmitResponseModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Send className="w-3.5 h-3.5" />
+            回答を送信
+          </button>
         </div>
       )}
 
@@ -331,8 +387,17 @@ export function ResponsesPanel() {
               />
             <div className="flex items-start justify-between gap-2 flex-1">
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-gray-500 mb-0.5">
-                  {formatDate(resp.submittedAt)} — {resp.submittedBy}
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <button
+                    onClick={() => handleCycleStatus(resp)}
+                    className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${STATUS_BADGE[(resp.status ?? 'issued') as ReportStatus]}`}
+                    title="クリックでステータスを変更（下書き→発行済→送付済→無効）"
+                  >
+                    {STATUS_LABEL[(resp.status ?? 'issued') as ReportStatus]}
+                  </button>
+                  <span className="text-xs text-gray-500 truncate">
+                    {formatDate(resp.submittedAt)} — {resp.submittedBy}
+                  </span>
                 </div>
                 {resp.summary.length > 0 && (
                   <ul className="text-xs text-gray-700 space-y-0.5">

@@ -249,7 +249,12 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <FilePlus className="w-4 h-4" />
         </ToolbarButton>
         <div className="relative flex items-center" ref={openMenuRef}>
-          <ToolbarButton onClick={handleOpenLocal} title="開く">
+          {/* Primary "開く" opens the server template list (the common case) when
+              connected; local-file import stays available in the dropdown (#157). */}
+          <ToolbarButton
+            onClick={backendConnected ? handleOpenServer : handleOpenLocal}
+            title={backendConnected ? 'サーバーのテンプレートを開く' : '開く'}
+          >
             <FolderOpen className="w-4 h-4" />
           </ToolbarButton>
           <button
@@ -627,7 +632,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 onClick={() => { void handleExportPdf(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileText className="w-4 h-4" />}
-                label="PDF（全ページ・サーバー生成/ベクター）"
+                label="PDF（現在の編集内容・高品質）"
+                title="いま編集中の内容をサーバーでベクターPDF化します（推奨）"
               />
               <MenuButton
                 onClick={() => { void handleExportExcel(); setShowExportMenu(false) }}
@@ -654,7 +660,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                     onClick={() => { handleBackendPdf(); setShowExportMenu(false) }}
                     disabled={isExporting}
                     icon={<FileText className="w-4 h-4" />}
-                    label="PDF（保存版テンプレートから）"
+                    label="PDF（サーバー保存版から再生成）"
+                    title="サーバーに保存済みのテンプレート定義からPDFを再生成します（未保存の編集は反映されません）"
                   />
                 </>
               )}
@@ -747,12 +754,13 @@ function GroupDivider() {
   return <div className="w-px h-6 bg-border/60 mx-2 shrink-0" />
 }
 
-function MenuButton({ onClick, disabled, icon, label }: { onClick: () => void; disabled?: boolean; icon: React.ReactNode; label: string }) {
+function MenuButton({ onClick, disabled, icon, label, title }: { onClick: () => void; disabled?: boolean; icon: React.ReactNode; label: string; title?: string }) {
   return (
     <button
       role="menuitem"
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {icon}
