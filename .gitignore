@@ -30,6 +30,9 @@ Thumbs.db
 coverage/
 .gstack/
 
+# Browser QA artifacts (Playwright/browse skill snapshots + console logs)
+.playwright-mcp/
+
 # Backend (Java/Gradle)
 server/build/
 server/.gradle/
