@@ -33,7 +33,8 @@
             "issueDate": "April 18, 2026",
             "number": "QT-2026-0042",
             "registrationNo": "T1234567890123",
-            "validUntil": "May 18, 2026"
+            "validUntil": "May 18, 2026",
+            "reportId": "086b085f-3fb3-4284-5433-66df3a47aa25"
           },
           "customer": {
             "name": "Sample Trading Co., Ltd.",
@@ -1369,6 +1370,13 @@
           "role": "master",
           "dataKey": "document",
           "fields": [
+            {
+              "id": "935313f2-15e9-202c-4507-ad8c851c2988",
+              "key": "reportId",
+              "label": "帳票ID",
+              "type": "string",
+              "dbColumnName": "report_id"
+            },
             {
               "id": "f353277f-bfd6-0075-20e2-06054ecd1c1e",
               "key": "issueDate",

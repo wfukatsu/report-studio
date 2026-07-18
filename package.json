@@ -19,9 +19,10 @@
     "test:backend": "cd server && ./gradlew test",
     "generate:schema": "vite-node scripts/generate-json-schema.ts",
     "setup:template-bindings": "node scripts/setup-template-db-bindings.mjs",
+    "seed:demo-products": "node scripts/seed-demo-products.mjs",
     "seed:demo-tables": "node scripts/seed-demo-scalardb.mjs",
     "seed:demo-templates": "node scripts/seed-demo-templates.mjs",
-    "seed:demo": "node scripts/seed-demo-scalardb.mjs && node scripts/seed-demo-templates.mjs",
+    "seed:demo": "node scripts/seed-demo-products.mjs && node scripts/seed-demo-scalardb.mjs && node scripts/seed-demo-templates.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

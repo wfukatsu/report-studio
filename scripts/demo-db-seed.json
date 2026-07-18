@@ -6,6 +6,10 @@
       "tableName": "invmod_header",
       "columns": [
         {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
           "name": "doc_no",
           "type": "TEXT"
         },
@@ -91,12 +95,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
           "doc_no": "INV-2026-0031",
           "doc_issue_date": "2026年4月18日",
           "doc_registration_no": "T1234567890123",
@@ -125,7 +130,7 @@
       "tableName": "invmod_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -133,7 +138,7 @@
           "type": "INT"
         },
         {
-          "name": "item_item_code",
+          "name": "product_code",
           "type": "TEXT"
         },
         {
@@ -158,7 +163,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -166,9 +171,9 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "INV-2026-0031",
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
           "line_no": 1,
-          "item_item_code": "W-001",
+          "product_code": "W-001",
           "item_item_name": "ウィジェットA",
           "item_quantity": 10,
           "item_unit": "個",
@@ -176,9 +181,9 @@
           "item_amount": 50000
         },
         {
-          "doc_no": "INV-2026-0031",
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
           "line_no": 2,
-          "item_item_code": "W-002",
+          "product_code": "W-002",
           "item_item_name": "ウィジェットB",
           "item_quantity": 5,
           "item_unit": "個",
@@ -186,9 +191,9 @@
           "item_amount": 40000
         },
         {
-          "doc_no": "INV-2026-0031",
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
           "line_no": 3,
-          "item_item_code": "S-001",
+          "product_code": "S-001",
           "item_item_name": "設置作業費",
           "item_quantity": 1,
           "item_unit": "式",
@@ -196,9 +201,9 @@
           "item_amount": 30000
         },
         {
-          "doc_no": "INV-2026-0031",
+          "report_id": "ac011a7c-01e5-2d61-5a22-6a6faf86040e",
           "line_no": 4,
-          "item_item_code": "M-001",
+          "product_code": "M-001",
           "item_item_name": "保守サポート（年間）",
           "item_quantity": 1,
           "item_unit": "式",
@@ -211,6 +216,10 @@
       "namespace": "demo",
       "tableName": "quomod_header",
       "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
         {
           "name": "doc_no",
           "type": "TEXT"
@@ -281,12 +290,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
           "doc_no": "QT-2026-0042",
           "doc_issue_date": "2026年4月18日",
           "doc_registration_no": "T1234567890123",
@@ -312,7 +322,7 @@
       "tableName": "quomod_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -320,7 +330,7 @@
           "type": "INT"
         },
         {
-          "name": "item_item_code",
+          "name": "product_code",
           "type": "TEXT"
         },
         {
@@ -345,7 +355,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -353,9 +363,9 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
           "line_no": 1,
-          "item_item_code": "W-001",
+          "product_code": "W-001",
           "item_item_name": "ウィジェットA",
           "item_quantity": 10,
           "item_unit": "個",
@@ -363,9 +373,9 @@
           "item_amount": 50000
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
           "line_no": 2,
-          "item_item_code": "W-002",
+          "product_code": "W-002",
           "item_item_name": "ウィジェットB",
           "item_quantity": 5,
           "item_unit": "個",
@@ -373,9 +383,9 @@
           "item_amount": 40000
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
           "line_no": 3,
-          "item_item_code": "S-001",
+          "product_code": "S-001",
           "item_item_name": "設置作業費",
           "item_quantity": 1,
           "item_unit": "式",
@@ -383,9 +393,9 @@
           "item_amount": 30000
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "0bb2aac9-149e-4b2d-7d48-50b3a40e0567",
           "line_no": 4,
-          "item_item_code": "M-001",
+          "product_code": "M-001",
           "item_item_name": "保守サポート（年間）",
           "item_quantity": 1,
           "item_unit": "式",
@@ -398,6 +408,10 @@
       "namespace": "demo",
       "tableName": "pomod_header",
       "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
         {
           "name": "doc_no",
           "type": "TEXT"
@@ -472,12 +486,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
           "doc_no": "PO-2026-0015",
           "doc_issue_date": "2026年4月18日",
           "doc_registration_no": "T1234567890123",
@@ -504,7 +519,7 @@
       "tableName": "pomod_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -512,7 +527,7 @@
           "type": "INT"
         },
         {
-          "name": "item_item_code",
+          "name": "product_code",
           "type": "TEXT"
         },
         {
@@ -537,7 +552,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -545,9 +560,9 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "PO-2026-0015",
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
           "line_no": 1,
-          "item_item_code": "W-001",
+          "product_code": "W-001",
           "item_item_name": "ウィジェットA",
           "item_quantity": 10,
           "item_unit": "個",
@@ -555,9 +570,9 @@
           "item_amount": 50000
         },
         {
-          "doc_no": "PO-2026-0015",
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
           "line_no": 2,
-          "item_item_code": "W-002",
+          "product_code": "W-002",
           "item_item_name": "ウィジェットB",
           "item_quantity": 5,
           "item_unit": "個",
@@ -565,9 +580,9 @@
           "item_amount": 40000
         },
         {
-          "doc_no": "PO-2026-0015",
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
           "line_no": 3,
-          "item_item_code": "S-001",
+          "product_code": "S-001",
           "item_item_name": "設置作業費",
           "item_quantity": 1,
           "item_unit": "式",
@@ -575,9 +590,9 @@
           "item_amount": 30000
         },
         {
-          "doc_no": "PO-2026-0015",
+          "report_id": "70bb126a-12f9-c789-b91b-909459e5e2e3",
           "line_no": 4,
-          "item_item_code": "M-001",
+          "product_code": "M-001",
           "item_item_name": "保守サポート（年間）",
           "item_quantity": 1,
           "item_unit": "式",
@@ -590,6 +605,10 @@
       "namespace": "demo",
       "tableName": "quobasic_header",
       "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
         {
           "name": "doc_no",
           "type": "TEXT"
@@ -664,12 +683,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "23f93d97-dbdc-ab3b-dad6-3f9b84308ed8",
           "doc_no": "M-20260418",
           "doc_issue_date": "2026年4月18日",
           "doc_registration_no": "T1234567890123",
@@ -696,7 +716,7 @@
       "tableName": "quobasic_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -721,7 +741,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -729,7 +749,7 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "M-20260418",
+          "report_id": "23f93d97-dbdc-ab3b-dad6-3f9b84308ed8",
           "line_no": 1,
           "item_item_name": "ウィジェットA",
           "item_quantity": 10,
@@ -737,7 +757,7 @@
           "item_amount": 50000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "23f93d97-dbdc-ab3b-dad6-3f9b84308ed8",
           "line_no": 2,
           "item_item_name": "ウィジェットB",
           "item_quantity": 5,
@@ -745,7 +765,7 @@
           "item_amount": 40000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "23f93d97-dbdc-ab3b-dad6-3f9b84308ed8",
           "line_no": 3,
           "item_item_name": "設置作業費",
           "item_quantity": 1,
@@ -753,7 +773,7 @@
           "item_amount": 30000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "23f93d97-dbdc-ab3b-dad6-3f9b84308ed8",
           "line_no": 4,
           "item_item_name": "保守サポート（年間）",
           "item_quantity": 1,
@@ -766,6 +786,10 @@
       "namespace": "demo",
       "tableName": "quodisc_header",
       "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
         {
           "name": "doc_no",
           "type": "TEXT"
@@ -844,12 +868,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "6b717060-a82f-350c-d3b5-e868832ed1b8",
           "doc_no": "M-20260418",
           "doc_issue_date": "2026年4月18日",
           "doc_registration_no": "T1234567890123",
@@ -877,7 +902,7 @@
       "tableName": "quodisc_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -906,7 +931,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -914,7 +939,7 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "M-20260418",
+          "report_id": "6b717060-a82f-350c-d3b5-e868832ed1b8",
           "line_no": 1,
           "item_item_name": "ウィジェットA",
           "item_quantity": 10,
@@ -923,7 +948,7 @@
           "item_amount": 50000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "6b717060-a82f-350c-d3b5-e868832ed1b8",
           "line_no": 2,
           "item_item_name": "ウィジェットB",
           "item_quantity": 5,
@@ -932,7 +957,7 @@
           "item_amount": 40000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "6b717060-a82f-350c-d3b5-e868832ed1b8",
           "line_no": 3,
           "item_item_name": "設置作業費",
           "item_quantity": 1,
@@ -941,7 +966,7 @@
           "item_amount": 25000
         },
         {
-          "doc_no": "M-20260418",
+          "report_id": "6b717060-a82f-350c-d3b5-e868832ed1b8",
           "line_no": 4,
           "item_item_name": "保守サポート（年間）",
           "item_quantity": 1,
@@ -955,6 +980,10 @@
       "namespace": "demo",
       "tableName": "quoeng_header",
       "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
         {
           "name": "doc_no",
           "type": "TEXT"
@@ -1017,12 +1046,13 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [],
       "secondaryIndexes": [],
       "rows": [
         {
+          "report_id": "086b085f-3fb3-4284-5433-66df3a47aa25",
           "doc_no": "QT-2026-0042",
           "doc_issue_date": "April 18, 2026",
           "doc_registration_no": "T1234567890123",
@@ -1046,7 +1076,7 @@
       "tableName": "quoeng_items",
       "columns": [
         {
-          "name": "doc_no",
+          "name": "report_id",
           "type": "TEXT"
         },
         {
@@ -1071,7 +1101,7 @@
         }
       ],
       "partitionKeys": [
-        "doc_no"
+        "report_id"
       ],
       "clusteringKeys": [
         "line_no"
@@ -1079,7 +1109,7 @@
       "secondaryIndexes": [],
       "rows": [
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "086b085f-3fb3-4284-5433-66df3a47aa25",
           "line_no": 1,
           "item_quantity": 10,
           "item_description": "Widget A",
@@ -1087,7 +1117,7 @@
           "item_amount": 500
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "086b085f-3fb3-4284-5433-66df3a47aa25",
           "line_no": 2,
           "item_quantity": 5,
           "item_description": "Widget B",
@@ -1095,7 +1125,7 @@
           "item_amount": 400
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "086b085f-3fb3-4284-5433-66df3a47aa25",
           "line_no": 3,
           "item_quantity": 1,
           "item_description": "Installation Service",
@@ -1103,7 +1133,7 @@
           "item_amount": 300
         },
         {
-          "doc_no": "QT-2026-0042",
+          "report_id": "086b085f-3fb3-4284-5433-66df3a47aa25",
           "line_no": 4,
           "item_quantity": 1,
           "item_description": "Annual Maintenance Support",
