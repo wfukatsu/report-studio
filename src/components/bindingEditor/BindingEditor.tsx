@@ -176,10 +176,11 @@ export function BindingEditor() {
       {/* Schema Library Modal */}
       <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
 
-      {/* Bulk generate bar (conditional) */}
-      {bs.bulk && bs.bulkItems.length > 0 && (
+      {/* Bulk generate bar — shown while a bulk request is pending. Renders even
+          with zero items so the trigger gives feedback instead of a silent no-op. */}
+      {bs.bulk && (
         <BulkGenerateBar
-          sourceLabel={bs.bulk.side === 'schema' ? 'テンプレート要素' : 'スキーマフィールド'}
+          title={bs.bulk.side === 'schema' ? '未配置フィールドから要素を生成' : '要素からスキーマ項目を生成'}
           items={bs.bulkItems}
           onGenerate={bs.runBulk}
           onCancel={() => bs.setBulk(null)}

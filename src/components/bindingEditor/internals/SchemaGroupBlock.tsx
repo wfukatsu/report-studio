@@ -11,11 +11,11 @@
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw,
+  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
-import type { SchemaGroup, SchemaField } from '@/types'
+import type { SchemaGroup, SchemaField, SchemaFieldType } from '@/types'
 
 interface SchemaGroupBlockProps {
   readonly group: SchemaGroup
@@ -51,7 +51,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   onAddField,
   onRemoveField,
   onSetAddingField,
-  onBulkGenerate: _onBulkGenerate,
+  onBulkGenerate,
   onOpenComputedDialog,
   onConnect,
   fieldRef,
@@ -70,35 +70,50 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
 
   return (
     <div className="mb-1">
-      {/* Group header */}
-      <button
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
-        onClick={handleToggle}
-        data-schemagroup-id={group.id}
+      {/* Group header — toggle button + bulk-generate trigger as siblings
+          (a button cannot nest inside a button) */}
+      <div
+        className="flex items-center rounded-md hover:bg-muted/50 transition-colors"
         style={{ borderLeft: `3px solid ${color}` }}
       >
-        {expanded
-          ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-          : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-        <span className="truncate font-medium">{group.label || group.id}</span>
-        <span className={cn(
-          'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 flex items-center gap-0.5',
-          group.role === 'master'
-            ? 'bg-blue-50 text-blue-600 border border-blue-200'
-            : 'bg-amber-50 text-amber-600 border border-amber-200',
-        )}>
-          {group.role === 'detail' && <RefreshCw className="w-2.5 h-2.5" />}
-          {group.role === 'master' ? 'マスター' : '↻ 明細'}
-        </span>
-        {group.role === 'detail' && group.dataKey && (
-          <span className="font-mono text-[9px] bg-amber-50 text-amber-500 px-1 rounded">
-            {group.dataKey}
+        <button
+          className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-foreground"
+          onClick={handleToggle}
+          data-schemagroup-id={group.id}
+        >
+          {expanded
+            ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+          <span className="truncate font-medium">{group.label || group.id}</span>
+          <span className={cn(
+            'text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 flex items-center gap-0.5',
+            group.role === 'master'
+              ? 'bg-blue-50 text-blue-600 border border-blue-200'
+              : 'bg-amber-50 text-amber-600 border border-amber-200',
+          )}>
+            {group.role === 'detail' && <RefreshCw className="w-2.5 h-2.5" />}
+            {group.role === 'master' ? 'マスター' : '↻ 明細'}
           </span>
+          {group.role === 'detail' && group.dataKey && (
+            <span className="font-mono text-[9px] bg-amber-50 text-amber-500 px-1 rounded">
+              {group.dataKey}
+            </span>
+          )}
+          <span className="ml-auto font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-px rounded-full">
+            {boundCount}/{group.fields.length}
+          </span>
+        </button>
+        {onBulkGenerate && group.fields.length > 0 && (
+          <button
+            className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
+            onClick={() => onBulkGenerate(group.id)}
+            title="このグループのフィールドから、まだ配置されていない要素をキャンバスに一括生成"
+            aria-label="フィールドから要素を一括生成"
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+          </button>
         )}
-        <span className="ml-auto font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-px rounded-full">
-          {boundCount}/{group.fields.length}
-        </span>
-      </button>
+      </div>
 
       {/* Field cards */}
       {expanded && (
@@ -310,14 +325,23 @@ interface InlineAddFieldProps {
   readonly onCancel: () => void
 }
 
+/** Field types offerable at inline-add time (計算フィールドは fx ダイアログ経由) */
+const ADD_FIELD_TYPES: readonly { value: SchemaFieldType; label: string }[] = [
+  { value: 'string', label: '文字' },
+  { value: 'number', label: '数値' },
+  { value: 'date', label: '日付' },
+  { value: 'boolean', label: '真偽' },
+]
+
 function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
   const [name, setName] = useState('')
+  const [type, setType] = useState<SchemaFieldType>('string')
 
   const handleSubmit = () => {
     const trimmed = name.trim()
     if (!trimmed) return
     const key = trimmed.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
-    onAdd(groupId, { key, label: trimmed, type: 'string' } as Omit<SchemaField, 'id'>)
+    onAdd(groupId, { key, label: trimmed, type } as Omit<SchemaField, 'id'>)
     setName('')
   }
 
@@ -325,7 +349,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
     <div className="flex items-center gap-1.5 w-full">
       <input
         autoFocus
-        className="flex-1 text-xs border rounded-md px-2.5 py-1.5 bg-background font-mono"
+        className="flex-1 min-w-0 text-xs border rounded-md px-2.5 py-1.5 bg-background font-mono"
         placeholder="フィールド名"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -334,10 +358,21 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
           if (e.key === 'Escape') onCancel()
         }}
       />
-      <button className="text-xs text-[#6366f1] font-medium px-1.5" onClick={handleSubmit}>
+      <select
+        className="shrink-0 text-xs border rounded-md px-1.5 py-1.5 bg-background"
+        value={type}
+        onChange={(e) => setType(e.target.value as SchemaFieldType)}
+        aria-label="フィールドの型"
+        title="フィールドの型"
+      >
+        {ADD_FIELD_TYPES.map((t) => (
+          <option key={t.value} value={t.value}>{t.label}</option>
+        ))}
+      </select>
+      <button className="text-xs text-[#6366f1] font-medium px-1.5 shrink-0" onClick={handleSubmit}>
         追加
       </button>
-      <button className="text-muted-foreground hover:text-foreground p-0.5" onClick={onCancel}>
+      <button className="text-muted-foreground hover:text-foreground p-0.5 shrink-0" onClick={onCancel}>
         <X className="w-3.5 h-3.5" />
       </button>
     </div>
