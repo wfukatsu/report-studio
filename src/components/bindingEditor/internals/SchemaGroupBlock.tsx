@@ -11,17 +11,34 @@
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle,
+  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle, Link2, Pencil, Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
 import type { SchemaGroup, SchemaField, SchemaFieldType } from '@/types'
+
+/** Minimal shape of a master-group candidate offered in the 親マスター picker. */
+export interface MasterGroupOption {
+  readonly id: string
+  readonly label: string
+}
+
+/** #139: editable group-header fields. */
+export type GroupMetaPatch = Partial<
+  Pick<SchemaGroup, 'label' | 'dataKey' | 'role' | 'linkedMasterGroupId'>
+>
 
 interface SchemaGroupBlockProps {
   readonly group: SchemaGroup
   readonly groupIndex: number
   readonly expanded: boolean
   readonly boundFieldIds: ReadonlySet<string>
+  /** #138: master groups this detail group may link to (excludes system groups). */
+  readonly masterGroups: readonly MasterGroupOption[]
+  /** #138: set/clear this detail group's parent-master relationship (linkedMasterGroupId). */
+  readonly onSetLinkedMaster: (groupId: string, masterGroupId: string | undefined) => void
+  /** #139: inline-edit the group's label / dataKey / role. */
+  readonly onUpdateGroup: (groupId: string, patch: GroupMetaPatch) => void
   readonly addingField: boolean
   readonly onToggle: (groupId: string) => void
   readonly onAddField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
@@ -46,6 +63,9 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   groupIndex,
   expanded,
   boundFieldIds,
+  masterGroups,
+  onSetLinkedMaster,
+  onUpdateGroup,
   addingField,
   onToggle,
   onAddField,
@@ -64,18 +84,27 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   hoveredFieldId,
   onHoverField,
 }: SchemaGroupBlockProps) {
+  const [editing, setEditing] = useState(false)
   const handleToggle = useCallback(() => onToggle(group.id), [onToggle, group.id])
   const boundCount = group.fields.filter((f) => boundFieldIds.has(f.id)).length
   const color = getGroupColor(groupIndex)
 
   return (
     <div className="mb-1">
-      {/* Group header — toggle button + bulk-generate trigger as siblings
-          (a button cannot nest inside a button) */}
+      {/* Group header — toggle button + edit/bulk-generate triggers as siblings
+          (a button cannot nest inside a button). #139: pencil toggles inline edit. */}
       <div
         className="flex items-center rounded-md hover:bg-muted/50 transition-colors"
         style={{ borderLeft: `3px solid ${color}` }}
       >
+        {editing ? (
+          <InlineGroupEdit
+            group={group}
+            onSave={onUpdateGroup}
+            onClose={() => setEditing(false)}
+          />
+        ) : (
+        <>
         <button
           className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-foreground"
           onClick={handleToggle}
@@ -113,7 +142,28 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
             <Wand2 className="w-3.5 h-3.5" />
           </button>
         )}
+        <button
+          className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
+          onClick={() => setEditing(true)}
+          title="グループの名称・データキー・種別を編集"
+          aria-label="グループを編集"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        </>
+        )}
       </div>
+
+      {/* #138: parent-master relationship picker + unset-relationship error.
+          Always visible for detail groups so the error is discoverable even
+          when the group is collapsed (avoids the silent cartesian-product trap). */}
+      {group.role === 'detail' && (
+        <DetailRelationBand
+          group={group}
+          masterGroups={masterGroups}
+          onSetLinkedMaster={onSetLinkedMaster}
+        />
+      )}
 
       {/* Field cards */}
       {expanded && (
@@ -183,6 +233,81 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
             )}
           </div>
         </>
+      )}
+    </div>
+  )
+})
+
+// ---------------------------------------------------------------------------
+// DetailRelationBand — #138: 親マスター picker + unset-relationship error
+// ---------------------------------------------------------------------------
+
+interface DetailRelationBandProps {
+  readonly group: SchemaGroup
+  readonly masterGroups: readonly MasterGroupOption[]
+  readonly onSetLinkedMaster: (groupId: string, masterGroupId: string | undefined) => void
+}
+
+const DetailRelationBand = memo(function DetailRelationBand({
+  group,
+  masterGroups,
+  onSetLinkedMaster,
+}: DetailRelationBandProps) {
+  // A detail group is never itself a master, but guard against self-links anyway.
+  const candidates = masterGroups.filter((m) => m.id !== group.id)
+  const linkedId = group.linkedMasterGroupId
+  const linkedExists = !!linkedId && candidates.some((m) => m.id === linkedId)
+  // Relationship required only when there IS a master to link to. Set but dangling
+  // (points to a removed group) is treated as unset — surface it, don't hide it.
+  const isError = candidates.length > 0 && !linkedExists
+
+  if (candidates.length === 0) {
+    return (
+      <div className="ml-2 mt-0.5 flex items-center gap-1 px-2 py-1 text-[10px] text-muted-foreground/80">
+        <Link2 className="w-3 h-3 shrink-0 opacity-60" />
+        リンクできるマスターがありません
+      </div>
+    )
+  }
+
+  return (
+    <div className="ml-2 mt-0.5">
+      <div
+        className={cn(
+          'flex items-center gap-1.5 px-2 py-1 rounded-md',
+          isError ? 'bg-red-50 border border-red-200' : 'bg-muted/40',
+        )}
+      >
+        {isError
+          ? <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" />
+          : <Link2 className="w-3 h-3 shrink-0 text-muted-foreground" />}
+        <span
+          className={cn(
+            'text-[10px] shrink-0',
+            isError ? 'text-red-600 font-medium' : 'text-muted-foreground',
+          )}
+        >
+          親マスター
+        </span>
+        <select
+          className={cn(
+            'flex-1 min-w-0 text-[11px] border rounded px-1.5 py-0.5 bg-background',
+            isError && 'border-red-300 text-red-600',
+          )}
+          value={linkedExists ? linkedId : ''}
+          onChange={(e) => onSetLinkedMaster(group.id, e.target.value || undefined)}
+          aria-label={`${group.label || group.id} の親マスター`}
+        >
+          <option value="">未設定…</option>
+          {candidates.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
+          ))}
+        </select>
+      </div>
+      {isError && (
+        <p className="px-2 pt-0.5 text-[9px] leading-tight text-red-500">
+          関係が未設定です。明細行が親マスターに紐付かないため、実データで正しく解決されません。
+        </p>
       )}
     </div>
   )
@@ -330,6 +455,100 @@ const FieldCard = memo(function FieldCard({
     </div>
   )
 })
+
+// ---------------------------------------------------------------------------
+// InlineGroupEdit — #139: edit label / dataKey / role in the group header
+// ---------------------------------------------------------------------------
+
+interface InlineGroupEditProps {
+  readonly group: SchemaGroup
+  readonly onSave: (groupId: string, patch: GroupMetaPatch) => void
+  readonly onClose: () => void
+}
+
+/** Sanitize a dataKey to the schema's 2-level key grammar: ^[a-zA-Z_][a-zA-Z0-9_]*$ */
+function sanitizeDataKey(raw: string): string {
+  const stripped = raw.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+  return /^[a-zA-Z_]/.test(stripped) ? stripped : ''
+}
+
+function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
+  const [label, setLabel] = useState(group.label)
+  const [dataKey, setDataKey] = useState(group.dataKey)
+  const [role, setRole] = useState(group.role)
+
+  const handleSave = () => {
+    const nextKey = sanitizeDataKey(dataKey) || group.dataKey
+    const patch: GroupMetaPatch = {
+      label: label.trim() || group.label,
+      dataKey: nextKey,
+      role,
+    }
+    // A master group has no parent-master link — drop a stale relationship on
+    // detail→master so it can't resurface if the role is later flipped back.
+    if (role === 'master' && group.linkedMasterGroupId) {
+      patch.linkedMasterGroupId = undefined
+    }
+    onSave(group.id, patch)
+    onClose()
+  }
+
+  return (
+    <div className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5">
+      <input
+        autoFocus
+        className="flex-1 min-w-0 text-xs border rounded-md px-2 py-1 bg-background"
+        placeholder="グループ名称"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
+          if (e.key === 'Enter') handleSave()
+          if (e.key === 'Escape') onClose()
+        }}
+        aria-label="グループ名称"
+      />
+      <input
+        className="w-24 shrink-0 text-xs border rounded-md px-2 py-1 bg-background font-mono"
+        placeholder="dataKey"
+        value={dataKey}
+        onChange={(e) => setDataKey(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
+          if (e.key === 'Enter') handleSave()
+          if (e.key === 'Escape') onClose()
+        }}
+        aria-label="データキー"
+      />
+      <select
+        className="shrink-0 text-xs border rounded-md px-1.5 py-1 bg-background"
+        value={role}
+        onChange={(e) => setRole(e.target.value as SchemaGroup['role'])}
+        aria-label="グループの種別"
+        title="グループの種別"
+      >
+        <option value="master">マスター</option>
+        <option value="detail">明細</option>
+      </select>
+      <button
+        className="text-[#00C853] hover:text-[#00C853]/80 p-0.5 shrink-0"
+        onClick={handleSave}
+        title="保存"
+        aria-label="グループを保存"
+      >
+        <Check className="w-3.5 h-3.5" />
+      </button>
+      <button
+        className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+        onClick={onClose}
+        title="キャンセル"
+        aria-label="編集をキャンセル"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // InlineAddField
