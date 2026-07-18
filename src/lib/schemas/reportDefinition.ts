@@ -45,6 +45,9 @@ const SchemaFieldTypeSchema = z.enum(['string', 'number', 'date', 'boolean', 'ar
 /** Field keys that could escape the prototype chain — blocked at import boundary (SEC-01) */
 const FORBIDDEN_FIELD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
+/** ScalarDB column identifier — same rule the backend enforces (^[a-zA-Z_][a-zA-Z0-9_]*$) */
+const DbIdentifierSchema = z.string().max(128).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます')
+
 const SchemaFieldSchema = z.object({
   id: z.string(),
   key: z.string()
@@ -57,6 +60,19 @@ const SchemaFieldSchema = z.object({
   label: z.string().max(200),
   type: SchemaFieldTypeSchema,
   itemType: SchemaFieldTypeSchema.optional(),
+  // Phase 1 DB binding: the ScalarDB column this field maps to. Present only when
+  // the containing group's tableMeta is set. Must survive the import boundary so
+  // built-in templates can ship pre-bound to demo tables (see builtin/*.json).
+  dbColumnName: DbIdentifierSchema.optional(),
+  // Phase 3 computed field: value derived from a JEXL expression, not a DB column.
+  computed: z.literal(true).optional(),
+  expression: z.string().max(500).optional(),
+})
+
+/** ScalarDB table binding on a schema group — `undefined` means "unlinked". */
+const ScalarDbTableMetaSchema = z.object({
+  namespace: DbIdentifierSchema,
+  tableName: DbIdentifierSchema,
 })
 
 const SchemaGroupSchema = z.object({
@@ -65,6 +81,10 @@ const SchemaGroupSchema = z.object({
   role: z.enum(['master', 'detail']),
   dataKey: z.string().max(128),
   fields: z.array(SchemaFieldSchema).max(200),
+  // Phase 1 DB binding: the ScalarDB table this group is bound to.
+  tableMeta: ScalarDbTableMetaSchema.optional(),
+  // Phase 3.5: links a detail group to its master group for FK auto-fill.
+  linkedMasterGroupId: z.string().optional(),
 })
 
 const SchemaDefinitionSchema = z.object({

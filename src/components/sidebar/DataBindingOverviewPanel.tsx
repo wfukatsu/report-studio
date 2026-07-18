@@ -1,11 +1,43 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { useBindingAnalysis } from '@/hooks/useBindingAnalysis'
+import { usePreviewData } from '@/hooks/usePreviewData'
 import { DataSourcePanel } from './DataSourcePanel'
 import { BindingPanel } from './BindingPanel'
 import { resolveBindings } from '@/api/reportApi'
 import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
+import { resolveField } from '@/lib/dataBinding'
+import type { SchemaDefinition } from '@/types'
 import type { ElementBinding } from '@/hooks/useBindingAnalysis'
+
+/**
+ * Seed the ライブプレビュー partition-key inputs from the template's sample data
+ * so a freshly-loaded DB-bound template resolves with a single click.
+ *
+ * The built-in business templates share one partition-key column (`doc_no`):
+ * the primary master group holds its real value; every other bound group (aux
+ * masters and the detail group) reaches it via `linkedMasterGroupId` and is
+ * auto-filled at refresh time. We read the value from the sample data (the
+ * primary group's PK field) and pre-fill `doc_no` on the primary group.
+ * Templates that don't follow this convention get no defaults (unchanged).
+ */
+const SHARED_PK_COLUMN = 'doc_no'
+function computeDefaultPartitionKeys(
+  schema: SchemaDefinition,
+  sampleData: Record<string, unknown>,
+): Record<string, Record<string, string>> {
+  // The primary group is the one whose own field maps to the shared PK column.
+  const primary = schema.groups.find(
+    (g) => g.role === 'master' && g.tableMeta && !g.linkedMasterGroupId
+      && g.fields.some((f) => f.dbColumnName === SHARED_PK_COLUMN),
+  )
+  const pkField = primary?.fields.find((f) => f.dbColumnName === SHARED_PK_COLUMN)
+  if (!primary || !pkField) return {}
+  const value = resolveField(sampleData, `${primary.dataKey}.${pkField.key}`)
+  if (!value) return {}
+  // Seed the primary group; linked groups are auto-filled from it at refresh.
+  return { [primary.id]: { [SHARED_PK_COLUMN]: value } }
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -121,6 +153,16 @@ function LivePreviewSection() {
   // partitionKeys: { [groupId]: { [columnName]: value } }
   const [partitionKeys, setPartitionKeys] = useState<Record<string, Record<string, string>>>({})
   const abortRef = useRef<AbortController | null>(null)
+  const sampleData = usePreviewData()
+
+  // Seed partition-key inputs from sample data when a new template loads, so a
+  // DB-bound template can be resolved with one click. Keyed on the loaded
+  // template id — user edits within a template are preserved.
+  useEffect(() => {
+    if (!currentTemplateId || !schema) return
+    setPartitionKeys(computeDefaultPartitionKeys(schema, sampleData))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on template change
+  }, [currentTemplateId])
 
   // Only show master groups with tableMeta bound
   const boundMasterGroups = schema?.groups.filter(
@@ -132,8 +174,22 @@ function LivePreviewSection() {
     (g) => g.role === 'detail' && g.tableMeta && g.fields.some((f) => f.dbColumnName),
   ) ?? []
 
-  if (!currentTemplateId || (boundMasterGroups.length === 0 && boundDetailGroups.length === 0)) {
-    return null
+  const hasBoundGroups = boundMasterGroups.length > 0 || boundDetailGroups.length > 0
+  // No DB bindings at all → nothing to preview.
+  if (!hasBoundGroups) return null
+
+  // #134: the template is DB-bound but not yet persisted (e.g. a built-in opened
+  // straight from the gallery). Explain why live preview is unavailable instead
+  // of silently hiding the panel, so the behaviour is consistent with saved ones.
+  if (!currentTemplateId) {
+    return (
+      <Section title="ライブプレビュー" icon="⚡">
+        <div className="px-3 py-2 text-[10px] text-muted-foreground leading-relaxed">
+          このテンプレートはデータベースに接続されていますが、まだ保存されていません。
+          実データでプレビューするには、まずテンプレートを保存してください。
+        </div>
+      </Section>
+    )
   }
 
   function handleKeyChange(groupId: string, colName: string, value: string) {
@@ -151,10 +207,12 @@ function LivePreviewSection() {
     setPreviewState({ status: 'loading' })
 
     try {
-      // Phase 3.5: auto-fill detail group partition keys from linked master group values
+      // Auto-fill partition keys from the linked master group. Applies to detail
+      // groups (Phase 3.5) AND aux master groups that share the header's key via
+      // linkedMasterGroupId (#133) — so only the primary group needs a value.
       const autoFilledPartitionKeys = { ...partitionKeys }
       for (const group of schema.groups) {
-        if (group.role === 'detail' && group.linkedMasterGroupId) {
+        if (group.linkedMasterGroupId) {
           const masterPk = partitionKeys[group.linkedMasterGroupId]
           if (masterPk) {
             autoFilledPartitionKeys[group.id] = { ...masterPk, ...autoFilledPartitionKeys[group.id] }
@@ -203,6 +261,11 @@ function LivePreviewSection() {
         </p>
 
         {boundMasterGroups.map((group) => {
+          // Aux master groups linked to the primary get their key auto-filled (#133) —
+          // show the "(自動: …)" hint and no manual inputs, like detail groups.
+          const linkedMaster = group.linkedMasterGroupId
+            ? schema?.groups.find((g) => g.id === group.linkedMasterGroupId)
+            : null
           // Show fields that have dbColumnName as partition key candidates
           const keyFields = group.fields.filter((f) => f.dbColumnName)
           if (keyFields.length === 0) return null
@@ -215,8 +278,13 @@ function LivePreviewSection() {
                     ({group.tableMeta.namespace}.{group.tableMeta.tableName})
                   </span>
                 )}
+                {linkedMaster && (
+                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label="自動入力">
+                    (自動: {linkedMaster.label || linkedMaster.id})
+                  </span>
+                )}
               </div>
-              {keyFields.map((field) => (
+              {!linkedMaster && keyFields.map((field) => (
                 <div key={field.id} className="flex items-center gap-1.5">
                   <label className="text-[10px] text-muted-foreground w-24 truncate shrink-0" title={field.dbColumnName}>
                     {field.dbColumnName}
