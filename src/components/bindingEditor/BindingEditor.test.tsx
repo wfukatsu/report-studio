@@ -173,6 +173,29 @@ describe('BindingEditor — 一括生成（フィールド→要素）', () => {
   })
 })
 
+describe('BindingEditor — 列未割当の警告（#130）', () => {
+  it('DB接続済みグループで列未割当のフィールドに警告を表示する', () => {
+    const { groupId } = setupSchemaAndElements()
+    useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
+    render(<BindingEditor />)
+    expect(screen.getByLabelText('DBカラム未割当')).toBeInTheDocument()
+  })
+
+  it('列を割り当てると警告が消える', () => {
+    const { groupId, fieldId } = setupSchemaAndElements()
+    useReportStore.getState().bindGroupToTable(groupId, { namespace: 'app', tableName: 'users' })
+    useReportStore.getState().updateSchemaField(groupId, fieldId, { dbColumnName: 'name' })
+    render(<BindingEditor />)
+    expect(screen.queryByLabelText('DBカラム未割当')).not.toBeInTheDocument()
+  })
+
+  it('DB未接続のグループでは警告を出さない', () => {
+    setupSchemaAndElements()
+    render(<BindingEditor />)
+    expect(screen.queryByLabelText('DBカラム未割当')).not.toBeInTheDocument()
+  })
+})
+
 describe('BindingEditor — フィールド追加時の型選択', () => {
   it('追加フォームで選んだ型で新しいフィールドが作られる', () => {
     const { groupId } = setupSchemaAndElements()

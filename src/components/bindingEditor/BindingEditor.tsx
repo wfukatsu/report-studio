@@ -152,6 +152,13 @@ export function BindingEditor() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
+      {/* Role descriptor — states what this surface is for (#129) */}
+      <div className="px-3 py-1 border-b bg-muted/5 shrink-0">
+        <span className="text-[10px] text-muted-foreground">
+          テンプレート要素とデータ項目（スキーマ）を結線し、必要ならDBに接続します。実データの確認はデザイン画面の「データ」パネルで行えます。
+        </span>
+      </div>
+
       {/* Schema library action bar */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/10 shrink-0">
         <span className="text-xs text-muted-foreground">スキーマライブラリ:</span>

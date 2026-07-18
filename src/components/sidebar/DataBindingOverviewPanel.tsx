@@ -311,6 +311,7 @@ function LivePreviewSection() {
 export function DataBindingOverviewPanel() {
   const selectElement = useReportStore((s) => s.selectElement)
   const setActivePage = useReportStore((s) => s.setActivePage)
+  const setActiveTab = useReportStore((s) => s.setActiveTab)
   const { hasDataSource, unboundElements, fieldMappings, missingInSampleElements } = useBindingAnalysis()
 
   const handleSelect = useCallback((elementId: string, pageId: string) => {
@@ -320,6 +321,21 @@ export function DataBindingOverviewPanel() {
 
   return (
     <div className="divide-y text-xs">
+      {/* Role descriptor + deep-link — clarifies this panel vs the バインド tab (#129) */}
+      <div className="px-3 py-2 bg-muted/10">
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          このパネルはデータの値の確認・編集用です。要素とデータ項目の結線は
+          <button
+            type="button"
+            className="text-blue-600 hover:underline mx-0.5 font-medium"
+            onClick={() => setActiveTab('binding')}
+          >
+            バインド画面
+          </button>
+          で設定します。
+        </p>
+      </div>
+
       {/* DataSource definition (always visible) */}
       <CollapsibleSection title="データソース" defaultOpen={!hasDataSource}>
         <DataSourcePanel />

@@ -11,7 +11,7 @@
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2,
+  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
@@ -133,6 +133,9 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
                   field={field}
                   groupId={group.id}
                   groupIndex={groupIndex}
+                  // #130: group is DB-connected but this field has no column → won't
+                  // resolve from live data. Surface it instead of failing silently.
+                  warnUnmapped={!!group.tableMeta && !field.dbColumnName && !field.computed}
                   isBound={boundFieldIds.has(field.id)}
                   isSelected={selectedFieldId === field.id}
                   isHovered={hoveredFieldId === field.id}
@@ -193,6 +196,7 @@ interface FieldCardProps {
   readonly field: SchemaField
   readonly groupId: string
   readonly groupIndex: number
+  readonly warnUnmapped: boolean
   readonly isBound: boolean
   readonly isSelected: boolean
   readonly isHovered: boolean
@@ -211,6 +215,7 @@ const FieldCard = memo(function FieldCard({
   field,
   groupId,
   groupIndex,
+  warnUnmapped,
   isBound,
   isSelected,
   isHovered,
@@ -284,6 +289,17 @@ const FieldCard = memo(function FieldCard({
       <span className="flex-1 truncate font-mono font-medium text-foreground">
         {field.label || field.key}
       </span>
+
+      {/* #130: unmapped-in-bound-group warning */}
+      {warnUnmapped && (
+        <span
+          className="shrink-0 text-amber-500"
+          title="このグループはデータベースに接続されていますが、この項目はまだ列に割り当てられていないため、実データでは表示されません。"
+          aria-label="DBカラム未割当"
+        >
+          <AlertTriangle className="w-3 h-3" />
+        </span>
+      )}
 
       {/* Field path */}
       <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[130px] ml-auto">
