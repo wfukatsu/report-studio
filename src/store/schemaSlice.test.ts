@@ -491,6 +491,25 @@ describe('setElementSchemaBinding', () => {
       .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-sb-2')!
     expect(el.schemaBinding).toBeUndefined()
   })
+
+  it('dataField の fieldKey を dataKey.key に同期し、解除時に空にする', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().updateSchemaGroup(groupId, { dataKey: 'customer' })
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: '氏名', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, makeDataFieldEl('el-fk-sync'))
+    const getEl = () => useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-fk-sync') as { fieldKey?: string }
+
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-fk-sync', fieldId)
+    expect(getEl().fieldKey).toBe('customer.name')
+
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-fk-sync', undefined)
+    expect(getEl().fieldKey).toBe('')
+  })
 })
 
 // ---------------------------------------------------------------------------

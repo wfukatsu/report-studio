@@ -323,12 +323,26 @@ export const createSchemaSlice: StateCreator<
    * Pass undefined to remove the binding.
    */
   setElementSchemaBinding: (pageId, elementId, fieldId) => set((s) => {
+    // Resolve the bound field's dot-path so a dataField's `fieldKey` (which is
+    // what the renderer actually resolves) stays in sync with the binding.
+    let fieldPath = ''
+    if (fieldId !== undefined) {
+      for (const g of s.definition.schema?.groups ?? []) {
+        const f = g.fields.find((ff) => ff.id === fieldId)
+        if (f) { fieldPath = g.dataKey ? `${g.dataKey}.${f.key}` : f.key; break }
+      }
+    }
     for (const page of s.definition.pages) {
       if (page.id !== pageId) continue
       for (const section of page.sections ?? []) {
         for (const el of section.elements) {
           if (el.id !== elementId) continue
           el.schemaBinding = fieldId !== undefined ? { fieldId } : undefined
+          // dataField renders from `fieldKey`; keep it consistent with the
+          // editor binding so connect/disconnect affect the output and stick.
+          if (el.type === 'dataField') {
+            (el as typeof el & { fieldKey?: string }).fieldKey = fieldId !== undefined ? fieldPath : ''
+          }
           return
         }
       }

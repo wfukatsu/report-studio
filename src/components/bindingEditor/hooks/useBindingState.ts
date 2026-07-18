@@ -80,6 +80,22 @@ export function useBindingState() {
   )
 
   // -----------------------------------------------------------------------
+  // Derived: schema field path → fieldId. Lets the editor recognise the
+  // fieldKey-based bindings that templates ship with (e.g. a dataField whose
+  // `fieldKey` is "document.documentNo"), not just explicit `schemaBinding`.
+  // -----------------------------------------------------------------------
+  const fieldPathToId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const group of userSchemaGroups) {
+      for (const field of group.fields) {
+        const path = group.dataKey ? `${group.dataKey}.${field.key}` : field.key
+        if (path && !map.has(path)) map.set(path, field.id)
+      }
+    }
+    return map
+  }, [userSchemaGroups])
+
+  // -----------------------------------------------------------------------
   // Derived: field lookup map (before elementGroups — needed for grouping)
   // -----------------------------------------------------------------------
   const fieldMap = useMemo(() => {
@@ -128,19 +144,25 @@ export function useBindingState() {
           }
         }
 
+        // Prefer an explicit schemaBinding; otherwise fall back to matching the
+        // element's fieldKey (what actually drives rendering) to a schema field.
+        const fieldKey = (el as ReportElement & { fieldKey?: string }).fieldKey
+        const boundFieldId = el.schemaBinding?.fieldId
+          ?? (fieldKey ? fieldPathToId.get(fieldKey) : undefined)
+
         result.push({
           pageId: page.id,
           elementId: el.id,
           elementLabel: el.name?.trim() || el.type,
           elementType: el.type,
-          boundFieldId: el.schemaBinding?.fieldId,
+          boundFieldId,
           repeatContainerId: container?.id,
           repeatDataSource: container?.dataSource,
         })
       }
     }
     return result
-  }, [pages])
+  }, [pages, fieldPathToId])
 
   const elementGroups: ElementGroup[] = useMemo(() =>
     pages

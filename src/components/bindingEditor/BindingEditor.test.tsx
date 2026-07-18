@@ -173,6 +173,31 @@ describe('BindingEditor — 一括生成（フィールド→要素）', () => {
   })
 })
 
+describe('BindingEditor — fieldKey 結線の認識', () => {
+  it('schemaBinding が無くても fieldKey がスキーマのパスと一致する要素をバインド済みと認識する', () => {
+    const store = useReportStore.getState()
+    store.addSchemaGroup('master')
+    const gid = useReportStore.getState().definition.schema!.groups[0].id
+    store.updateSchemaGroup(gid, { dataKey: 'customer' })
+    store.addSchemaField(gid, { key: 'name', label: '氏名', type: 'string' })
+
+    const pageId = useReportStore.getState().definition.pages[0].id
+    store.addElement(pageId, {
+      id: 'el-fk', type: 'dataField', name: '氏名欄',
+      position: { x: 0, y: 0 }, size: { width: 50, height: 10 },
+      zIndex: 1, visible: true, locked: false,
+      fieldKey: 'customer.name', // template-style binding, no schemaBinding
+      style: {},
+    } as unknown as ReportElement)
+
+    render(<BindingEditor />)
+
+    // The element is recognised as bound → 1/1 解決済み, no 未バインド badge
+    expect(screen.getByText('1/1 解決済み')).toBeInTheDocument()
+    expect(screen.queryByText(/未バインド/)).not.toBeInTheDocument()
+  })
+})
+
 describe('BindingEditor — 列未割当の警告（#130）', () => {
   it('DB接続済みグループで列未割当のフィールドに警告を表示する', () => {
     const { groupId } = setupSchemaAndElements()
