@@ -109,6 +109,7 @@ public final class V2ResponseExportController {
         allKeys.add("id");
         allKeys.add("submittedAt");
         allKeys.add("submittedBy");
+        allKeys.add("status"); // document lifecycle status (#171)
 
         for (String json : jsonList) {
             try {
@@ -160,6 +161,7 @@ public final class V2ResponseExportController {
                     case "id" -> resp.id();
                     case "submittedAt" -> String.valueOf(resp.submittedAt());
                     case "submittedBy" -> resp.submittedBy();
+                    case "status" -> resp.status();
                     default -> resp.dataValue(key);
                 };
                 csv.append(escapeCsvField(value));
@@ -204,6 +206,7 @@ public final class V2ResponseExportController {
                         case "id" -> resp.id();
                         case "submittedAt" -> String.valueOf(resp.submittedAt());
                         case "submittedBy" -> resp.submittedBy();
+                        case "status" -> resp.status();
                         default -> resp.dataValue(key);
                     };
                     // Always STRING type — prevents formula execution in Excel
@@ -246,12 +249,15 @@ public final class V2ResponseExportController {
             String id,
             long submittedAt,
             String submittedBy,
+            String status,
             Map<String, String> data
     ) {
         static ParsedResponse from(JsonNode node) {
             String id = node.path("id").asText("");
             long submittedAt = node.path("submittedAt").asLong(0);
             String submittedBy = node.path("submittedBy").asText("");
+            // Document lifecycle status; default for legacy responses (#171).
+            String status = node.path("status").asText("issued");
             Map<String, String> data = new LinkedHashMap<>();
             JsonNode dataNode = node.path("data");
             if (dataNode.isObject()) {
@@ -260,7 +266,7 @@ public final class V2ResponseExportController {
                     data.put(e.getKey(), v);
                 });
             }
-            return new ParsedResponse(id, submittedAt, submittedBy, data);
+            return new ParsedResponse(id, submittedAt, submittedBy, status, data);
         }
 
         String dataValue(String key) {

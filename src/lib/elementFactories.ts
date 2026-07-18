@@ -79,7 +79,14 @@ export function createChartElement(overrides?: Partial<ReportElement>): ReportEl
   } as ReportElement
 }
 
+// Monotonic per-session counter so successive "データフィールド" adds get distinct
+// default keys (field.value1, field.value2, …) instead of all sharing field.key,
+// which silently bound every field to the same data (#176). Both segments satisfy
+// the 2-level key grammar ^[a-zA-Z_][a-zA-Z0-9_]*$.
+let dataFieldKeySeq = 0
+
 export function createDataFieldElement(overrides?: Partial<ReportElement>): ReportElement {
+  dataFieldKeySeq += 1
   return {
     id: uuidv4(),
     type: 'dataField',
@@ -88,7 +95,7 @@ export function createDataFieldElement(overrides?: Partial<ReportElement>): Repo
     zIndex: 1,
     visible: true,
     locked: false,
-    fieldKey: 'field.key',
+    fieldKey: `field.value${dataFieldKeySeq}`,
     label: 'フィールド',
     style: { fontSize: 10, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     fallbackText: '',

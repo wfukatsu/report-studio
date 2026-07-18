@@ -9,7 +9,7 @@
  * - XSS: all dynamic values rendered via textContent (no innerHTML)
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react'
 import {
   RefreshCw, Download, FileText, Trash2, Loader2, Send
 } from 'lucide-react'
@@ -72,6 +72,23 @@ export function ResponsesPanel() {
   const [batchState, setBatchState] = useState<'idle' | 'submitting' | 'polling'>('idle')
   const [batchProgress, setBatchProgress] = useState<{ completed: number; total: number } | null>(null)
   const cancelBatchRef = useRef<{ canceled: boolean } | null>(null)
+  // Status filter (#172) and bulk-status busy flag (#173). null = すべて.
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | null>(null)
+  const [bulkStatusBusy, setBulkStatusBusy] = useState(false)
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const r of responses) {
+      const s = r.status ?? 'issued'
+      counts[s] = (counts[s] ?? 0) + 1
+    }
+    return counts
+  }, [responses])
+
+  const visibleResponses = useMemo(
+    () => (statusFilter ? responses.filter((r) => (r.status ?? 'issued') === statusFilter) : responses),
+    [responses, statusFilter],
+  )
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -193,6 +210,23 @@ export function ResponsesPanel() {
     }
   }, [currentTemplateId, responsesTotal, setResponses, fetchResponses])
 
+  // Bulk status change over the selected responses (#173). Loops the tested single
+  // PATCH endpoint; refetches at the end to resync (and pick up any partial failure).
+  const handleBulkStatus = useCallback(async (next: ReportStatus) => {
+    if (!currentTemplateId || selectedIds.size === 0 || bulkStatusBusy) return
+    setBulkStatusBusy(true)
+    let failed = 0
+    for (const id of selectedIds) {
+      try { await updateResponseStatus(currentTemplateId, id, next) } catch { failed++ }
+    }
+    setBulkStatusBusy(false)
+    setSelectedIds(new Set())
+    invalidateResponsesCache()
+    await fetchResponses(true)
+    if (failed > 0) toast.error(`${failed}件のステータス更新に失敗しました`, { duration: 6000 })
+    else toast.success(`${selectedIds.size}件を「${STATUS_LABEL[next]}」に変更しました`)
+  }, [currentTemplateId, selectedIds, bulkStatusBusy, invalidateResponsesCache, fetchResponses])
+
   const handleExport = useCallback(async (format: 'csv' | 'excel') => {
     if (!currentTemplateId || isExporting) return
     setIsExporting(true)
@@ -274,19 +308,51 @@ export function ResponsesPanel() {
         </div>
       </div>
 
-      {/* Batch PDF bar */}
+      {/* Status filter chips (#172) */}
+      {responses.length > 0 && (
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-gray-100 shrink-0 flex-wrap">
+          <button
+            onClick={() => setStatusFilter(null)}
+            className={`text-[10px] px-1.5 py-0.5 rounded border ${statusFilter === null ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent border-border'}`}
+          >
+            すべて {responses.length}
+          </button>
+          {REPORT_STATUSES.filter((s) => (statusCounts[s] ?? 0) > 0).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(statusFilter === s ? null : s)}
+              className={`text-[10px] px-1.5 py-0.5 rounded border ${statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent border-border'}`}
+            >
+              {STATUS_LABEL[s]} {statusCounts[s]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Batch action bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b bg-primary/5 shrink-0">
-          <span className="text-xs text-muted-foreground flex-1">{selectedIds.size}件選択中</span>
+        <div className="flex items-center gap-2 px-3 py-2 border-b bg-primary/5 shrink-0 flex-wrap">
+          <span className="text-xs text-muted-foreground">{selectedIds.size}件選択中</span>
           {batchState === 'polling' && batchProgress && (
             <span className="text-xs text-muted-foreground">
               {batchProgress.completed}/{batchProgress.total} 完了
             </span>
           )}
+          {/* Bulk status change (#173) */}
+          <select
+            aria-label="選択をまとめてステータス変更"
+            value=""
+            disabled={bulkStatusBusy}
+            onChange={(e) => { const v = e.target.value as ReportStatus; if (v) void handleBulkStatus(v) }}
+            className="text-xs px-1.5 py-1 rounded border bg-background disabled:opacity-60"
+          >
+            <option value="">ステータス変更…</option>
+            {REPORT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}にする</option>)}
+          </select>
           <button
             onClick={handleBatchPdf}
             disabled={batchState !== 'idle'}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-60 ml-auto"
           >
             {batchState !== 'idle' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
             一括PDF
@@ -295,16 +361,16 @@ export function ResponsesPanel() {
         </div>
       )}
 
-      {/* Select-all — quick path to batch-output every response (#164) */}
-      {responses.length > 0 && (
+      {/* Select-all — selects the currently visible (filtered) responses (#164/#172) */}
+      {visibleResponses.length > 0 && (
         <label className="flex items-center gap-1.5 px-3 py-1.5 border-b border-gray-100 text-xs text-gray-600 cursor-pointer shrink-0">
           <input
             type="checkbox"
-            checked={selectedIds.size === responses.length && responses.length > 0}
-            ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < responses.length }}
-            onChange={(e) => setSelectedIds(e.target.checked ? new Set(responses.map((r) => r.id)) : new Set())}
+            checked={visibleResponses.every((r) => selectedIds.has(r.id))}
+            ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && !visibleResponses.every((r) => selectedIds.has(r.id)) }}
+            onChange={(e) => setSelectedIds(e.target.checked ? new Set(visibleResponses.map((r) => r.id)) : new Set())}
           />
-          すべて選択（一括PDF用）
+          表示中をすべて選択{statusFilter ? `（${STATUS_LABEL[statusFilter]}）` : ''}
         </label>
       )}
 
@@ -375,7 +441,7 @@ export function ResponsesPanel() {
         aria-label="フォーム回答一覧"
         className="flex-1 overflow-y-auto divide-y divide-gray-100"
       >
-        {responses.map((resp) => (
+        {visibleResponses.map((resp) => (
           <li key={resp.id} className="p-3 hover:bg-gray-50">
             <div className="flex items-start gap-2">
               <input

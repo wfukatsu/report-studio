@@ -113,6 +113,14 @@ async function api(method, path, { body, raw = false, formData } = {}) {
   }
   const setCookie = res.headers.get('set-cookie')
   if (setCookie) saveCookie(setCookie)
+  // Friendly auth errors instead of a raw HTTP dump (#174). 401 on `login`
+  // itself means bad credentials, not a missing session.
+  if (res.status === 401 && path !== '/api/v1/auth/login') {
+    die('ログインしていません。`report-studio login` を実行してください（セッション切れの可能性もあります）。')
+  }
+  if (res.status === 403) {
+    die('権限がありません。この操作には別の権限（管理者など）が必要です。')
+  }
   if (raw) return res
   const text = await res.text()
   let json
@@ -312,6 +320,25 @@ async function cmdResponseStatus(templateId, responseId, status) {
   out(`✓ ステータスを更新しました: ${res.id} → ${res.status}`)
 }
 
+async function cmdResponsesSetStatus(templateId, status) {
+  if (!templateId || !status) die('使い方: responses set-status <templateId> <status> --ids id1,id2,...  または --status-from <old>')
+  if (!flags.ids && !flags['status-from']) die('--ids <カンマ区切り> か --status-from <既存ステータス> を指定してください')
+  let ids
+  if (flags.ids) {
+    ids = String(flags.ids).split(',').map((s) => s.trim()).filter(Boolean)
+  } else {
+    const res = await api('GET', `/api/v2/templates/${encodeURIComponent(templateId)}/responses?status=${encodeURIComponent(flags['status-from'])}`)
+    ids = (res.items || []).map((r) => r.id)
+  }
+  if (ids.length === 0) die('対象の回答がありません。')
+  let ok = 0
+  for (const id of ids) {
+    const r = await api('PATCH', `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(id)}/status`, { body: { status } })
+    if (r?.status === status) ok++
+  }
+  out(`✓ ${ok}/${ids.length} 件を ${status} に変更しました`)
+}
+
 async function cmdJobsList() {
   const res = await api('GET', '/api/v1/jobs')
   const jobs = Array.isArray(res) ? res : (res.jobs || [])
@@ -375,7 +402,8 @@ function printHelp() {
 
 回答・ステータス:
   responses list <id>         回答一覧（ステータス付き）
-  responses status <id> <rid> <draft|issued|sent|void>   ステータス変更
+  responses status <id> <rid> <draft|issued|sent|void>   単体ステータス変更
+  responses set-status <id> <status> --ids a,b  または --status-from <old>   一括変更
 
 ジョブ:
   jobs list                   ジョブ一覧
@@ -419,6 +447,7 @@ async function main() {
     case 'responses':
       if (sub === 'list') return cmdResponsesList(positionals[2])
       if (sub === 'status') return cmdResponseStatus(positionals[2], positionals[3], positionals[4])
+      if (sub === 'set-status') return cmdResponsesSetStatus(positionals[2], positionals[3])
       return die(`不明なサブコマンド: responses ${sub ?? ''}`)
     case 'jobs':
       if (sub === 'list') return cmdJobsList()
