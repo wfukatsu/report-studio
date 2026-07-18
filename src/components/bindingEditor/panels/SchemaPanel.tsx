@@ -5,7 +5,7 @@
  * Includes search filter and operation guidance.
  */
 
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { Plus, Link, Search, X, MousePointerClick, Hand } from 'lucide-react'
 import { SchemaGroupBlock } from '../internals/SchemaGroupBlock'
 import { NoSchemaPanel } from '../internals/NoSchemaPanel'
@@ -40,6 +40,22 @@ export const SchemaPanel = memo(function SchemaPanel({
   const handleBulkGenerate = useCallback(
     (groupId: string) => bs.setBulk({ side: 'schema', groupId }),
     [bs.setBulk],
+  )
+
+  // #138: master-group candidates for the detail groups' 親マスター picker.
+  // bs.schemaGroups already excludes system groups (e.g. product master).
+  const masterGroups = useMemo(
+    () =>
+      bs.schemaGroups
+        .filter((g) => g.role === 'master')
+        .map((g) => ({ id: g.id, label: g.label || g.id })),
+    [bs.schemaGroups],
+  )
+
+  const handleSetLinkedMaster = useCallback(
+    (groupId: string, masterGroupId: string | undefined) =>
+      bs.updateSchemaGroup(groupId, { linkedMasterGroupId: masterGroupId }),
+    [bs.updateSchemaGroup],
   )
 
   const handleHoverField = useCallback(
@@ -132,6 +148,8 @@ export const SchemaPanel = memo(function SchemaPanel({
               groupIndex={index}
               expanded={expandedGroups.has(group.id)}
               boundFieldIds={bs.boundFieldIds}
+              masterGroups={masterGroups}
+              onSetLinkedMaster={handleSetLinkedMaster}
               addingField={bs.addingFieldGroupId === group.id}
               onToggle={onToggleGroup}
               onAddField={handleAddField}

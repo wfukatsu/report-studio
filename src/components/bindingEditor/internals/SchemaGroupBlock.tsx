@@ -11,17 +11,27 @@
 
 import { memo, useCallback, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle,
+  ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle, Link2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
 import type { SchemaGroup, SchemaField, SchemaFieldType } from '@/types'
+
+/** Minimal shape of a master-group candidate offered in the 親マスター picker. */
+export interface MasterGroupOption {
+  readonly id: string
+  readonly label: string
+}
 
 interface SchemaGroupBlockProps {
   readonly group: SchemaGroup
   readonly groupIndex: number
   readonly expanded: boolean
   readonly boundFieldIds: ReadonlySet<string>
+  /** #138: master groups this detail group may link to (excludes system groups). */
+  readonly masterGroups: readonly MasterGroupOption[]
+  /** #138: set/clear this detail group's parent-master relationship (linkedMasterGroupId). */
+  readonly onSetLinkedMaster: (groupId: string, masterGroupId: string | undefined) => void
   readonly addingField: boolean
   readonly onToggle: (groupId: string) => void
   readonly onAddField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
@@ -46,6 +56,8 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   groupIndex,
   expanded,
   boundFieldIds,
+  masterGroups,
+  onSetLinkedMaster,
   addingField,
   onToggle,
   onAddField,
@@ -115,6 +127,17 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
         )}
       </div>
 
+      {/* #138: parent-master relationship picker + unset-relationship error.
+          Always visible for detail groups so the error is discoverable even
+          when the group is collapsed (avoids the silent cartesian-product trap). */}
+      {group.role === 'detail' && (
+        <DetailRelationBand
+          group={group}
+          masterGroups={masterGroups}
+          onSetLinkedMaster={onSetLinkedMaster}
+        />
+      )}
+
       {/* Field cards */}
       {expanded && (
         <>
@@ -183,6 +206,81 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
             )}
           </div>
         </>
+      )}
+    </div>
+  )
+})
+
+// ---------------------------------------------------------------------------
+// DetailRelationBand — #138: 親マスター picker + unset-relationship error
+// ---------------------------------------------------------------------------
+
+interface DetailRelationBandProps {
+  readonly group: SchemaGroup
+  readonly masterGroups: readonly MasterGroupOption[]
+  readonly onSetLinkedMaster: (groupId: string, masterGroupId: string | undefined) => void
+}
+
+const DetailRelationBand = memo(function DetailRelationBand({
+  group,
+  masterGroups,
+  onSetLinkedMaster,
+}: DetailRelationBandProps) {
+  // A detail group is never itself a master, but guard against self-links anyway.
+  const candidates = masterGroups.filter((m) => m.id !== group.id)
+  const linkedId = group.linkedMasterGroupId
+  const linkedExists = !!linkedId && candidates.some((m) => m.id === linkedId)
+  // Relationship required only when there IS a master to link to. Set but dangling
+  // (points to a removed group) is treated as unset — surface it, don't hide it.
+  const isError = candidates.length > 0 && !linkedExists
+
+  if (candidates.length === 0) {
+    return (
+      <div className="ml-2 mt-0.5 flex items-center gap-1 px-2 py-1 text-[10px] text-muted-foreground/80">
+        <Link2 className="w-3 h-3 shrink-0 opacity-60" />
+        リンクできるマスターがありません
+      </div>
+    )
+  }
+
+  return (
+    <div className="ml-2 mt-0.5">
+      <div
+        className={cn(
+          'flex items-center gap-1.5 px-2 py-1 rounded-md',
+          isError ? 'bg-red-50 border border-red-200' : 'bg-muted/40',
+        )}
+      >
+        {isError
+          ? <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" />
+          : <Link2 className="w-3 h-3 shrink-0 text-muted-foreground" />}
+        <span
+          className={cn(
+            'text-[10px] shrink-0',
+            isError ? 'text-red-600 font-medium' : 'text-muted-foreground',
+          )}
+        >
+          親マスター
+        </span>
+        <select
+          className={cn(
+            'flex-1 min-w-0 text-[11px] border rounded px-1.5 py-0.5 bg-background',
+            isError && 'border-red-300 text-red-600',
+          )}
+          value={linkedExists ? linkedId : ''}
+          onChange={(e) => onSetLinkedMaster(group.id, e.target.value || undefined)}
+          aria-label={`${group.label || group.id} の親マスター`}
+        >
+          <option value="">未設定…</option>
+          {candidates.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
+          ))}
+        </select>
+      </div>
+      {isError && (
+        <p className="px-2 pt-0.5 text-[9px] leading-tight text-red-500">
+          関係が未設定です。明細行が親マスターに紐付かないため、実データで正しく解決されません。
+        </p>
       )}
     </div>
   )
