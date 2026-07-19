@@ -100,7 +100,13 @@ export interface CheckboxElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![チェックボックス の設定例](../_media/checkbox.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![チェックボックス のプレビュー表示](../_media/checkbox-preview.png)
 
 ## 関連要素
 

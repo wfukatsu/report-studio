@@ -196,7 +196,13 @@ Renderer は `records` prop の有無で分岐します（`RepeatingBandRenderer
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![繰り返しバンド の設定例](../_media/repeatingBand.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![繰り返しバンド のプレビュー表示](../_media/repeatingBand-preview.png)
 
 ## 関連要素
 

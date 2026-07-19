@@ -118,7 +118,13 @@ export interface PageNumberElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![ページ番号 の設定例](../_media/pageNumber.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![ページ番号 のプレビュー表示](../_media/pageNumber-preview.png)
 
 ## 関連要素
 

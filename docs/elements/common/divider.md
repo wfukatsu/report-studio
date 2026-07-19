@@ -99,7 +99,13 @@ export interface DividerElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![区切り線 の設定例](../_media/divider.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![区切り線 のプレビュー表示](../_media/divider-preview.png)
 
 ## 関連要素
 

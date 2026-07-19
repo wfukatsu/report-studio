@@ -102,7 +102,13 @@ export interface ImageElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![画像 の設定例](../_media/image.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![画像 のプレビュー表示](../_media/image-preview.png)
 
 ## 関連要素
 

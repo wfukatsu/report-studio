@@ -91,7 +91,13 @@ Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![カスタムフィールド の設定例](../_media/tenantCustom.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![カスタムフィールド のプレビュー表示](../_media/tenantCustom-preview.png)
 
 ## 関連要素
 

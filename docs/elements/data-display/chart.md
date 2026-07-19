@@ -110,7 +110,13 @@ export interface ChartElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![グラフ の設定例](../_media/chart.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![グラフ のプレビュー表示](../_media/chart-preview.png)
 
 ## 関連要素
 

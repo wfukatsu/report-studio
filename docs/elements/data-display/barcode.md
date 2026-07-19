@@ -99,7 +99,13 @@ export interface BarcodeElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![バーコード / QRコード の設定例](../_media/barcode.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![バーコード / QRコード のプレビュー表示](../_media/barcode-preview.png)
 
 ## 関連要素
 

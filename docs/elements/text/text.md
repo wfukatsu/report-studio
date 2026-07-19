@@ -168,7 +168,13 @@ export function createTextElement(overrides?: Partial<ReportElement>): ReportEle
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![テキスト の設定例](../_media/text.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![テキスト のプレビュー表示](../_media/text-preview.png)
 
 ## 関連要素
 

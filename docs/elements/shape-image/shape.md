@@ -111,7 +111,13 @@ export interface ShapeElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![図形 の設定例](../_media/shape.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![図形 のプレビュー表示](../_media/shape-preview.png)
 
 ## 関連要素
 

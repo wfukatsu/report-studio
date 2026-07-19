@@ -114,7 +114,13 @@ export interface ApprovalStampRowElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![多段印鑑欄 の設定例](../_media/approvalStampRow.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![多段印鑑欄 のプレビュー表示](../_media/approvalStampRow-preview.png)
 
 ## 関連要素
 

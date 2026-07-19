@@ -91,7 +91,13 @@ export interface EraSelectElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![元号選択 の設定例](../_media/eraSelect.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![元号選択 のプレビュー表示](../_media/eraSelect-preview.png)
 
 ## 関連要素
 

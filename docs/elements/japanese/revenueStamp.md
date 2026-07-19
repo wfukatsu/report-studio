@@ -91,7 +91,13 @@ export interface RevenueStampElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![収入印紙欄 の設定例](../_media/revenueStamp.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![収入印紙欄 のプレビュー表示](../_media/revenueStamp-preview.png)
 
 ## 関連要素
 
