@@ -75,7 +75,7 @@ export type LoadState = 'idle' | 'loading' | 'error'
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 /** Top-level navigation tabs */
-export type AppTab = 'design' | 'binding' | 'templates' | 'responses' | 'databrowser' | 'admin'
+export type AppTab = 'design' | 'binding' | 'templates' | 'responses' | 'documents' | 'databrowser' | 'jobs' | 'admin'
 
 /** @deprecated — DataManagementTab replaced by BindingEditor. Kept for migration. */
 export type DataSection = 'datasource' | 'schema' | 'calculation' | 'validation' | 'responses' | 'databrowser'

@@ -104,12 +104,15 @@ public final class SequenceController {
      * @param responseRepo the response repository — used to save documentNumber in the same TX
      * @param responseId the response to stamp
      * @param responseJson the current response JSON — will have documentNumber added
+     * @param groupKey the group key (templateId) to preserve on the stamped response so it
+     *                 remains visible to {@code listByGroupKey}
      * @return the formatted document number, or null if unconfigured
      */
     public String nextAndStamp(String templateId,
                                 JsonBlobRepository responseRepo,
                                 String responseId,
-                                String responseJson) throws Exception {
+                                String responseJson,
+                                String groupKey) throws Exception {
         // Fast path: check if sequence is configured at all (without locking)
         Optional<String> configOpt = seqRepo.get(templateId);
         if (configOpt.isEmpty()) return null;
@@ -160,10 +163,12 @@ public final class SequenceController {
                 // Write updated sequence within same TX
                 seqRepo.putWithinTx(tx, templateId, MAPPER.writeValueAsString(config));
 
-                // Write response with documentNumber stamped within same TX
+                // Write response with documentNumber stamped within same TX.
+                // Preserve the group key so the numbered response is not dropped from
+                // listByGroupKey (the group-key-less putWithinTx would null it out).
                 ObjectNode respNode = (ObjectNode) MAPPER.readTree(responseJson);
                 respNode.put("documentNumber", docNumber);
-                responseRepo.putWithinTx(tx, responseId, MAPPER.writeValueAsString(respNode));
+                responseRepo.putWithinTx(tx, responseId, MAPPER.writeValueAsString(respNode), groupKey);
 
                 tx.commit();
                 log.info("Sequence {} → {} for template {}", counter, docNumber, templateId);

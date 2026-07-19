@@ -207,7 +207,7 @@ class SequenceControllerTest {
     void nextAndStamp_unconfigured_returnsNullWithoutTransaction() throws Exception {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.empty());
 
-        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertNull(result);
         verify(txManager, never()).start();
@@ -218,7 +218,7 @@ class SequenceControllerTest {
         // Only bookkeeping fields — not "configured" in the format sense
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of("{\"counter\":3,\"resetYear\":0}"));
 
-        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertNull(result);
         verify(txManager, never()).start();
@@ -230,7 +230,7 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
-        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{\"fields\":{}}");
+        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{\"fields\":{}}", "tpl_1");
 
         assertEquals("INV-0042-T", docNumber);
 
@@ -241,7 +241,7 @@ class SequenceControllerTest {
 
         // Response stamped with documentNumber in the same TX
         ArgumentCaptor<String> savedResp = ArgumentCaptor.forClass(String.class);
-        verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), savedResp.capture());
+        verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), savedResp.capture(), eq("tpl_1"));
         assertEquals("INV-0042-T", MAPPER.readTree(savedResp.getValue()).get("documentNumber").asText());
 
         verify(tx).commit();
@@ -259,9 +259,9 @@ class SequenceControllerTest {
             return null;
         }).when(seqRepo).putWithinTx(any(), eq("tpl_1"), anyString());
 
-        assertEquals("NO-001", controller.nextAndStamp("tpl_1", responseRepo, "r1", "{}"));
-        assertEquals("NO-002", controller.nextAndStamp("tpl_1", responseRepo, "r2", "{}"));
-        assertEquals("NO-003", controller.nextAndStamp("tpl_1", responseRepo, "r3", "{}"));
+        assertEquals("NO-001", controller.nextAndStamp("tpl_1", responseRepo, "r1", "{}", "tpl_1"));
+        assertEquals("NO-002", controller.nextAndStamp("tpl_1", responseRepo, "r2", "{}", "tpl_1"));
+        assertEquals("NO-003", controller.nextAndStamp("tpl_1", responseRepo, "r3", "{}", "tpl_1"));
     }
 
     @Test
@@ -269,7 +269,7 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of("{\"prefix\":\"INV-\",\"counter\":1}"));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.empty());
 
-        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String result = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertNull(result);
         verify(tx).abort();
@@ -284,7 +284,7 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
-        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertEquals("A-0001", docNumber, "counter must restart at 1 in a new year");
         ArgumentCaptor<String> savedSeq = ArgumentCaptor.forClass(String.class);
@@ -302,7 +302,7 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
-        assertEquals("A-0251", controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}"));
+        assertEquals("A-0251", controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
     }
 
     // ── OCC retry ────────────────────────────────────────────────────────────
@@ -316,7 +316,7 @@ class SequenceControllerTest {
         when(seqRepo.getWithinTx(any(), eq("tpl_1"))).thenReturn(Optional.of(config));
         doThrow(new CommitConflictException("conflict", "tx-1")).when(tx).commit();
 
-        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertEquals("INV-0010", docNumber);
         verify(tx).abort();
@@ -334,7 +334,7 @@ class SequenceControllerTest {
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenThrow(new CrudConflictException("conflict", "tx-1"));
         when(seqRepo.getWithinTx(tx2, "tpl_1")).thenReturn(Optional.of(config));
 
-        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}");
+        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
 
         assertEquals("INV-0010", docNumber);
         verify(tx).abort();
@@ -349,7 +349,7 @@ class SequenceControllerTest {
         doThrow(new CommitConflictException("conflict", "tx-1")).when(tx).commit();
 
         RuntimeException e = assertThrows(RuntimeException.class,
-                () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}"));
+                () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
 
         assertTrue(e.getMessage().contains("OCC conflict unresolved"));
         verify(tx, times(5)).commit();
@@ -365,7 +365,7 @@ class SequenceControllerTest {
                 .when(seqRepo).putWithinTx(eq(tx), eq("tpl_1"), anyString());
 
         assertThrows(IllegalStateException.class,
-                () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}"));
+                () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
 
         verify(tx).abort();
         verify(tx, never()).commit();

@@ -102,6 +102,10 @@ public final class ApiRoutes {
                 return;
             }
             var principal = w.authCtrl.resolveFromRequest(ctx);
+            if (principal.isAnonymous()) {
+                // Fall back to Bearer PAT auth for CLI / CI clients (#195)
+                principal = w.apiTokenCtrl.resolveFromBearer(ctx);
+            }
             ctx.attribute("principal", principal);
             if (principal.isAnonymous()) {
                 throw new io.javalin.http.UnauthorizedResponse("Authentication required");
@@ -144,6 +148,10 @@ public final class ApiRoutes {
         app.post("/api/v1/auth/login", w.authCtrl::login);
         app.post("/api/v1/auth/logout", w.authCtrl::logout);
         app.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
+        // Personal Access Tokens (#195) — session-authenticated management
+        app.post("/api/v1/auth/tokens", w.apiTokenCtrl::create);
+        app.get("/api/v1/auth/tokens", w.apiTokenCtrl::list);
+        app.delete("/api/v1/auth/tokens/{id}", w.apiTokenCtrl::revoke);
     }
 
     private static void registerAdminRoutes(Javalin app, AppWiring w) {
@@ -208,7 +216,11 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::get);
         app.delete("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::delete);
         app.patch("/api/v2/templates/{id}/responses/{rid}/status", w.formResponseCtrl::updateStatus);
+        app.get("/api/v2/templates/{id}/responses/{rid}/audit", w.formResponseCtrl::getAudit);
         app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.responsePdfCtrl::generatePdf);
+
+        // Cross-template issued-documents view (#190)
+        app.get("/api/v2/documents", w.formResponseCtrl::listDocuments);
 
         // V2 template export/import/thumbnail
         app.get("/api/v2/templates/{id}/export", w.exportCtrl::export);
@@ -229,8 +241,11 @@ public final class ApiRoutes {
 
         // V2 async PDF jobs
         app.post("/api/v2/pdf-jobs", w.pdfJobCtrl::submit);
+        // Unified job listing + cancel across all job types (issue #191)
+        app.get("/api/v2/pdf-jobs", w.jobCtrl::listUnified);
         app.get("/api/v2/pdf-jobs/{jobId}", w.pdfJobCtrl::getStatus);
         app.get("/api/v2/pdf-jobs/{jobId}/result", w.pdfJobCtrl::getResult);
+        app.delete("/api/v2/pdf-jobs/{jobId}", w.jobCtrl::cancelUnified);
 
         // V2 ScalarDB catalog (namespaces → tables → columns) for schema binding UI
         app.get("/api/v2/scalardb/catalog", w.scalarDbCatalogCtrl::getCatalog);

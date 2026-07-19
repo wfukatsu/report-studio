@@ -53,6 +53,7 @@ public final class FormResponseController {
     private SequenceController sequenceCtrl; // injected lazily
     private WebhookController webhookCtrl;   // injected lazily
     private java.util.concurrent.ExecutorService webhookExecutor;
+    private StatusAuditRepository statusAuditRepo; // injected lazily (#188)
 
     public FormResponseController(
             JsonBlobRepository responseRepo,
@@ -66,6 +67,11 @@ public final class FormResponseController {
     /** Inject sequence controller after construction (avoids circular dependency). */
     public void setSequenceController(SequenceController ctrl) {
         this.sequenceCtrl = ctrl;
+    }
+
+    /** Inject the status-transition audit store after construction (#188). */
+    public void setStatusAuditRepository(StatusAuditRepository repo) {
+        this.statusAuditRepo = repo;
     }
 
     /** Inject webhook controller after construction. */
@@ -152,7 +158,7 @@ public final class FormResponseController {
             // If sequence controller is configured, use single atomic TX (seq + response)
             if (sequenceCtrl != null) {
                 String responseJson = MAPPER.writeValueAsString(response);
-                String docNumber = sequenceCtrl.nextAndStamp(templateId, responseRepo, responseId, responseJson);
+                String docNumber = sequenceCtrl.nextAndStamp(templateId, responseRepo, responseId, responseJson, templateId);
                 if (docNumber == null) {
                     // No sequence configured — save response normally
                     responseRepo.put(responseId, responseJson, templateId);
@@ -167,6 +173,9 @@ public final class FormResponseController {
             ctx.json(Map.of("error", "Failed to save response"));
             return;
         }
+
+        // Record initial issuance in the status-transition audit trail (#188)
+        recordAudit(responseId, templateId, null, DEFAULT_STATUS, principal.userId());
 
         // Async webhook dispatch (non-blocking, failure does NOT affect response)
         if (webhookCtrl != null && webhookExecutor != null) {
@@ -443,16 +452,197 @@ public final class FormResponseController {
             return;
         }
 
+        String oldStatus = node.path("status").asText(DEFAULT_STATUS);
         node.put("status", newStatus);
+
+        // Assign a document number when transitioning to "issued" if the template has a
+        // sequence configured and no number has been assigned yet (#189). Numbering is
+        // otherwise done at submit time; this covers the draft → issued flow.
+        String assignedNumber = null;
+        boolean savedBySequence = false;
+        boolean needsNumber = "issued".equals(newStatus)
+                && node.path("documentNumber").asText("").isEmpty();
         try {
-            responseRepo.put(responseId, MAPPER.writeValueAsString(node), templateId);
+            if (needsNumber && sequenceCtrl != null) {
+                assignedNumber = sequenceCtrl.nextAndStamp(
+                        templateId, responseRepo, responseId, MAPPER.writeValueAsString(node), templateId);
+                if (assignedNumber != null) {
+                    node.put("documentNumber", assignedNumber);
+                    savedBySequence = true; // response persisted inside the sequence TX
+                }
+            }
+            if (!savedBySequence) {
+                responseRepo.put(responseId, MAPPER.writeValueAsString(node), templateId);
+            }
         } catch (Exception e) {
             log.error("Failed to update status for response {}", responseId, e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "Failed to update status"));
             return;
         }
-        ctx.json(Map.of("id", responseId, "status", newStatus));
+
+        // Append to the status-transition audit trail (#188)
+        recordAudit(responseId, templateId, oldStatus, newStatus, principal.userId());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", responseId);
+        result.put("status", newStatus);
+        if (assignedNumber != null) result.put("documentNumber", assignedNumber);
+        ctx.json(result);
+    }
+
+    // ── audit trail (#188) ──────────────────────────────────────────────────────
+
+    /**
+     * GET /api/v2/templates/{id}/responses/{rid}/audit
+     * Returns the status-transition history (from/to/by/at), newest first.
+     */
+    public void getAudit(Context ctx) {
+        String templateId = RequestValidator.validateId(ctx);
+        String responseId = RequestValidator.validateId(ctx, "rid");
+        if (templateId == null || responseId == null) return;
+
+        Principal principal = ctx.attribute("principal");
+
+        // Access is governed by the response itself: template owner or original submitter.
+        Optional<String> stored = responseRepo.get(responseId);
+        if (stored.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Response not found"));
+            return;
+        }
+        JsonNode node;
+        try { node = MAPPER.readTree(stored.get()); }
+        catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to read response"));
+            return;
+        }
+        if (!templateId.equals(node.path("templateId").asText(""))) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Response not found"));
+            return;
+        }
+        String submittedBy = node.path("submittedBy").asText("");
+        String templateOwner = getTemplateOwner(templateId);
+        boolean isSubmitter = principal.userId().equals(submittedBy);
+        boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
+        if (!isSubmitter && !isOwner) {
+            ctx.status(HttpStatus.FORBIDDEN);
+            ctx.json(Map.of("error", "Access denied"));
+            return;
+        }
+
+        List<Map<String, Object>> entries = statusAuditRepo == null
+                ? List.of()
+                : statusAuditRepo.listForResponse(responseId);
+        ctx.json(Map.of("responseId", responseId, "entries", entries));
+    }
+
+    /** Append a status-transition record. Never throws — audit is best-effort. */
+    private void recordAudit(String responseId, String templateId, String from, String to, String by) {
+        if (statusAuditRepo == null) return;
+        try {
+            statusAuditRepo.append(responseId, templateId, from, to, by);
+        } catch (Exception e) {
+            log.warn("Failed to record status audit for response {}: {}", responseId, e.getMessage());
+        }
+    }
+
+    // ── cross-template documents (#190) ─────────────────────────────────────────
+
+    /**
+     * GET /api/v2/documents[?status=&templateId=&offset=&limit=]
+     * Cross-template list of issued documents (form responses). Only documents whose
+     * template the caller owns, or that the caller submitted, are returned.
+     */
+    public void listDocuments(Context ctx) {
+        Principal principal = ctx.attribute("principal");
+
+        String statusFilter = ctx.queryParam("status");
+        if (statusFilter != null && !VALID_STATUSES.contains(statusFilter)) statusFilter = null;
+        String templateFilter = ctx.queryParam("templateId");
+        int offset = Math.max(0, parseIntParam(ctx.queryParam("offset"), 0));
+        int limit = Math.min(parseIntParam(ctx.queryParam("limit"), DEFAULT_LIMIT), MAX_LIMIT);
+
+        List<String> allJson;
+        try {
+            allJson = responseRepo.list();
+        } catch (Exception e) {
+            log.error("Failed to list documents", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to list documents"));
+            return;
+        }
+
+        // Cache template envelope lookups (owner + display name) by templateId.
+        Map<String, JsonNode> envCache = new HashMap<>();
+        Set<String> unknownTemplates = new HashSet<>();
+
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (String json : allJson) {
+            JsonNode node;
+            try { node = MAPPER.readTree(json); }
+            catch (Exception ignored) { continue; }
+
+            String tid = node.path("templateId").asText("");
+            if (tid.isEmpty()) continue;
+            if (templateFilter != null && !templateFilter.equals(tid)) continue;
+            if (unknownTemplates.contains(tid)) continue;
+
+            String status = node.path("status").asText(DEFAULT_STATUS);
+            if (statusFilter != null && !statusFilter.equals(status)) continue;
+
+            JsonNode env = envCache.get(tid);
+            if (env == null && !envCache.containsKey(tid)) {
+                env = loadDefinitionEnvelope(tid).orElse(null);
+                envCache.put(tid, env);
+                if (env == null) { unknownTemplates.add(tid); continue; }
+            }
+            if (env == null) continue;
+
+            // Access: template owner or original submitter (legacy owner-less templates are open).
+            String createdBy = env.path("created_by").asText("");
+            boolean isOwner = !createdBy.isEmpty() && principal.userId().equals(createdBy);
+            boolean isSubmitter = principal.userId().equals(node.path("submittedBy").asText(""));
+            if (!createdBy.isEmpty() && !isOwner && !isSubmitter) continue;
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", node.path("id").asText());
+            item.put("templateId", tid);
+            item.put("templateName", templateDisplayName(env, tid));
+            item.put("status", status);
+            item.put("documentNumber", node.path("documentNumber").asText(""));
+            item.put("submittedAt", node.path("submittedAt").asLong());
+            item.put("submittedBy", node.path("submittedBy").asText(""));
+            item.put("summary", buildSummary(node.path("data")));
+            items.add(item);
+        }
+
+        items.sort((a, b) -> Long.compare(
+                ((Number) b.getOrDefault("submittedAt", 0L)).longValue(),
+                ((Number) a.getOrDefault("submittedAt", 0L)).longValue()));
+
+        int total = items.size();
+        int fromIndex = Math.min(offset, total);
+        int toIndex = Math.min(fromIndex + limit, total);
+        List<Map<String, Object>> page = items.subList(fromIndex, toIndex);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("items", page);
+        result.put("total", total);
+        result.put("offset", offset);
+        result.put("limit", limit);
+        result.put("hasMore", offset + limit < total);
+        ctx.json(result);
+    }
+
+    /** Best-effort human-readable template name from the stored envelope. */
+    private static String templateDisplayName(JsonNode env, String fallbackId) {
+        String name = env.path("name").asText("");
+        if (name.isEmpty()) name = env.path("definition").path("name").asText("");
+        if (name.isEmpty()) name = env.path("report").path("name").asText("");
+        return name.isEmpty() ? fallbackId : name;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

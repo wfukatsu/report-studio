@@ -5,6 +5,8 @@ import App from '@/App'
 import { BindingEditor } from '@/components/bindingEditor/BindingEditor'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
 import { ResponsesPanel } from '@/components/sidebar/ResponsesPanel'
+import { IssuedDocumentsPanel } from '@/components/tabs/IssuedDocumentsPanel'
+import { JobHistoryPanel } from '@/components/tabs/JobHistoryPanel'
 import { DataSourceTree } from '@/components/dataBrowser/DataSourceTree'
 import { DataGrid } from '@/components/dataBrowser/DataGrid'
 import { EmptyState } from '@/components/dataBrowser/EmptyState'
@@ -23,7 +25,9 @@ const TABS: readonly TopNavItem[] = [
   { kind: 'separator' },
   { id: 'templates', label: 'テンプレート管理' },
   { id: 'responses', label: '回答' },
+  { id: 'documents', label: '発行済み帳票' },
   { id: 'databrowser', label: 'データブラウザ' },
+  { id: 'jobs',      label: 'ジョブ' },
   { kind: 'separator' },
   { id: 'admin',     label: '管理' },
 ]
@@ -90,6 +94,30 @@ export function AppShell() {
           <div className="max-w-3xl w-full">
             <ResponsesPanel />
           </div>
+        </div>
+      )}
+
+      {/* Issued Documents tab (cross-template) */}
+      {activeTab === 'documents' && (
+        <div
+          role="tabpanel"
+          id="top-panel-documents"
+          aria-labelledby="top-tab-documents"
+          className="flex flex-1 overflow-hidden"
+        >
+          <IssuedDocumentsPanel />
+        </div>
+      )}
+
+      {/* Job History tab */}
+      {activeTab === 'jobs' && (
+        <div
+          role="tabpanel"
+          id="top-panel-jobs"
+          aria-labelledby="top-tab-jobs"
+          className="flex flex-1 overflow-hidden"
+        >
+          <JobHistoryPanel />
         </div>
       )}
 

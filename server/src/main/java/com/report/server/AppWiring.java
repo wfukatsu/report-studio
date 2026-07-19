@@ -66,6 +66,7 @@ public final class AppWiring {
     final BatchPdfController batchPdfCtrl;
     final JsonBlobRepository sequenceRepo;
     final SequenceController sequenceCtrl;
+    final StatusAuditRepository statusAuditRepo;
     final JsonBlobRepository webhookRepo;
     final WebhookDispatcher webhookDispatcher;
     final WebhookController webhookCtrl;
@@ -77,6 +78,8 @@ public final class AppWiring {
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
+    final JsonBlobRepository apiTokenRepo;
+    final ApiTokenController apiTokenCtrl;
     final GenericJsonController bindingCtrl;
     final PublicFormController publicFormCtrl;
     final JobController jobCtrl;
@@ -144,6 +147,10 @@ public final class AppWiring {
 
         // Controllers
         authCtrl = new AuthController(userRepo);
+        // API token (PAT) authentication (#195)
+        apiTokenRepo = new JsonBlobRepository(factory, NAMESPACE, "api_tokens");
+        apiTokenRepo.ensureTable();
+        apiTokenCtrl = new ApiTokenController(authCtrl, userRepo, apiTokenRepo);
         bindingCtrl = new GenericJsonController(bindingTreeRepo, "binding-tree", "{}");
         formSessionManager = new FormSessionManager();
         publicFormCtrl = new PublicFormController(
@@ -195,6 +202,10 @@ public final class AppWiring {
         sequenceRepo.ensureTable();
         sequenceCtrl = new SequenceController(sequenceRepo);
         formResponseCtrl.setSequenceController(sequenceCtrl);
+        // Status-transition audit trail (#188)
+        statusAuditRepo = new StatusAuditRepository(new JsonBlobRepository(factory, NAMESPACE, "status_audit"));
+        statusAuditRepo.ensureTable();
+        formResponseCtrl.setStatusAuditRepository(statusAuditRepo);
         webhookRepo = new JsonBlobRepository(factory, NAMESPACE, "webhooks");
         webhookRepo.ensureTable();
         webhookDispatcher = new WebhookDispatcher();

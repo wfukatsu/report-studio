@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2, FileDown } from 'lucide-react'
+import { BulkExportModal } from './BulkExportModal'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
 import type { Product } from '@/types'
@@ -70,8 +71,17 @@ export function DataGrid({ source }: Props) {
   const [reloadKey, setReloadKey] = useState(0)
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
+  // Bulk PDF export from DB rows (#193). Only for sources whose rows are real data
+  // maps (ScalarDB tables, product master) — form-responses rows carry only summaries.
+  const supportsBulkPdf = source.kind === 'scalardb-table' || source.kind === 'product-master'
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
+  const [showBulkExport, setShowBulkExport] = useState(false)
+
   // Stable source key — prevents useEffect firing on object re-creation
   const sourceKey = toSourceKey(source)
+
+  // Clear selection whenever the view changes (source / page / reload / search).
+  useEffect(() => { setSelectedRows(new Set()) }, [sourceKey, currentPage, reloadKey, searchQuery])
 
   // Load data when source or page changes
   useEffect(() => {
@@ -292,6 +302,16 @@ export function DataGrid({ source }: Props) {
             truncated={source.kind === 'scalardb-table' && (scalarDbData?.truncated ?? false)}
           />
         </div>
+        {supportsBulkPdf && displayRows.length > 0 && (
+          <button
+            onClick={() => setShowBulkExport(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent mr-2 shrink-0"
+            title="選択した行（未選択なら表示中の全行）を一括PDF出力"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            一括PDF{selectedRows.size > 0 ? `（${selectedRows.size}）` : ''}
+          </button>
+        )}
         {isWritable && (
           <button
             onClick={() => setShowCreateModal(true)}
@@ -312,6 +332,17 @@ export function DataGrid({ source }: Props) {
           <table className="w-full text-xs min-w-max" aria-label="データグリッド">
             <thead className="bg-muted/40 sticky top-0">
               <tr>
+                {supportsBulkPdf && (
+                  <th className="w-8 px-2 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label="表示中をすべて選択"
+                      checked={displayRows.length > 0 && selectedRows.size === displayRows.length}
+                      ref={(el) => { if (el) el.indeterminate = selectedRows.size > 0 && selectedRows.size < displayRows.length }}
+                      onChange={(e) => setSelectedRows(e.target.checked ? new Set(displayRows.map((_, i) => i)) : new Set())}
+                    />
+                  </th>
+                )}
                 {columns.map((col) => (
                   <th
                     key={col}
@@ -347,6 +378,20 @@ export function DataGrid({ source }: Props) {
                   }}
                   className="hover:bg-muted/30 cursor-pointer group"
                 >
+                  {supportsBulkPdf && (
+                    <td className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`行 ${i + 1} を選択`}
+                        checked={selectedRows.has(i)}
+                        onChange={() => setSelectedRows((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(i)) next.delete(i); else next.add(i)
+                          return next
+                        })}
+                      />
+                    </td>
+                  )}
                   {columns.map((col) => {
                     const isEditing = editingCell?.rowIndex === i && editingCell?.column === col
                     const isKey = keyColumns.has(col)
@@ -458,6 +503,19 @@ export function DataGrid({ source }: Props) {
             onClose={() => setEditModalRow(null)}
           />
         </>
+      )}
+
+      {/* Bulk PDF export from DB rows (#193) */}
+      {supportsBulkPdf && (
+        <BulkExportModal
+          open={showBulkExport}
+          rows={
+            (selectedRows.size > 0
+              ? displayRows.filter((_, i) => selectedRows.has(i))
+              : displayRows) as Record<string, unknown>[]
+          }
+          onClose={() => setShowBulkExport(false)}
+        />
       )}
 
       {/* Delete confirmation */}

@@ -1030,11 +1030,39 @@ export interface BatchPdfStatus {
 export async function submitBatchPdfJob(
   templateId: string,
   responseIds: string[],
+  opts: { filenameTemplate?: string } = {},
 ): Promise<{ batchJobId: string; totalCount: number; status: string; statusUrl: string }> {
   const res = await fetch('/api/v2/pdf-jobs/batch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ templateId, responseIds }),
+    body: JSON.stringify({
+      templateId,
+      responseIds,
+      ...(opts.filenameTemplate ? { filenameTemplate: opts.filenameTemplate } : {}),
+    }),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Batch job submit failed: ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Batch PDF from arbitrary data rows (DB-row-driven bulk export, #193).
+ * Each row is a data object rendered against the template.
+ */
+export async function submitBatchPdfJobFromRows(
+  templateId: string,
+  rows: Record<string, unknown>[],
+  opts: { filenameTemplate?: string } = {},
+): Promise<{ batchJobId: string; totalCount: number; status: string; statusUrl: string }> {
+  const res = await fetch('/api/v2/pdf-jobs/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      templateId,
+      rows,
+      ...(opts.filenameTemplate ? { filenameTemplate: opts.filenameTemplate } : {}),
+    }),
     credentials: 'include',
   })
   if (!res.ok) throw new Error(`Batch job submit failed: ${res.status}`)
@@ -1056,6 +1084,143 @@ export async function downloadBatchPdfResult(batchJobId: string, filename: strin
   if (!res.ok) throw new Error(`Download failed: ${res.status}`)
   const blob = await res.blob()
   downloadBlob(blob, filename)
+}
+
+// ---------------------------------------------------------------------------
+// Unified job history (issue #191/#192)
+// ---------------------------------------------------------------------------
+
+export interface JobSummary {
+  jobId: string
+  jobType: string // V1_BATCH | V2_PDF | V2_BATCH
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  templateId: string
+  total: number
+  completed: number
+  failed: number
+  error?: string
+  createdAt: number
+  updatedAt: number
+  completedAt: number
+}
+
+/** List every job (all types), newest first — the job-history browser feed. */
+export async function listJobs(): Promise<JobSummary[]> {
+  const res = await fetch('/api/v2/pdf-jobs', { credentials: 'include' })
+  if (!res.ok) throw new Error(`Failed to list jobs: ${res.status}`)
+  return res.json()
+}
+
+/** Cancel a running job or delete a terminal one (any job type). */
+export async function cancelJob(jobId: string): Promise<void> {
+  const res = await fetch(`/api/v2/pdf-jobs/${encodeURIComponent(jobId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Failed to cancel job: ${res.status}`)
+}
+
+// ---------------------------------------------------------------------------
+// Issued documents — cross-template view (issue #190)
+// ---------------------------------------------------------------------------
+
+export interface IssuedDocument {
+  id: string
+  templateId: string
+  templateName: string
+  status: ReportStatus
+  documentNumber: string
+  submittedAt: number
+  submittedBy: string
+  summary: string[]
+}
+
+export interface IssuedDocumentList {
+  items: IssuedDocument[]
+  total: number
+  offset: number
+  limit: number
+  hasMore: boolean
+}
+
+/** Cross-template list of issued documents (form responses), optionally filtered. */
+export async function listDocuments(
+  opts: { status?: ReportStatus; templateId?: string; offset?: number; limit?: number } = {},
+): Promise<IssuedDocumentList> {
+  const params = new URLSearchParams({
+    offset: String(opts.offset ?? 0),
+    limit: String(opts.limit ?? 100),
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.templateId ? { templateId: opts.templateId } : {}),
+  })
+  const res = await fetch(`/api/v2/documents?${params}`, { credentials: 'include' })
+  if (!res.ok) throw new Error(`Failed to list documents: ${res.status}`)
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// Status-transition audit trail (issue #188)
+// ---------------------------------------------------------------------------
+
+export interface AuditEntry {
+  id: string
+  from: string | null
+  to: string
+  by: string
+  at: number
+}
+
+/** Fetch the status-transition history of a response, newest first. */
+export async function getResponseAudit(
+  templateId: string,
+  responseId: string,
+): Promise<AuditEntry[]> {
+  const res = await fetch(
+    `/api/v2/templates/${encodeURIComponent(templateId)}/responses/${encodeURIComponent(responseId)}/audit`,
+    { credentials: 'include' },
+  )
+  if (!res.ok) throw new Error(`Failed to fetch audit: ${res.status}`)
+  const body = (await res.json()) as { entries?: AuditEntry[] }
+  return body.entries ?? []
+}
+
+// ---------------------------------------------------------------------------
+// Personal Access Tokens (issue #195)
+// ---------------------------------------------------------------------------
+
+export interface ApiTokenSummary {
+  id: string
+  label: string
+  preview: string
+  createdAt: number
+  lastUsedAt: number
+}
+
+/** Create a PAT. The plaintext `token` is returned exactly once. */
+export async function createApiToken(label: string): Promise<ApiTokenSummary & { token: string }> {
+  const res = await fetch('/api/v1/auth/tokens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label }),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Failed to create token: ${res.status}`)
+  return res.json()
+}
+
+export async function listApiTokens(): Promise<ApiTokenSummary[]> {
+  const res = await fetch('/api/v1/auth/tokens', { credentials: 'include' })
+  if (!res.ok) throw new Error(`Failed to list tokens: ${res.status}`)
+  const body = (await res.json()) as { tokens?: ApiTokenSummary[] }
+  return body.tokens ?? []
+}
+
+export async function revokeApiToken(id: string): Promise<void> {
+  const res = await fetch(`/api/v1/auth/tokens/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Failed to revoke token: ${res.status}`)
 }
 
 // ---------------------------------------------------------------------------
