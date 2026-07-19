@@ -15,6 +15,12 @@ The designer's `{{fieldKey}}` tokens (left) resolve to real data in the live pre
 
 ![Live preview — data binding resolution](docs/images/live-preview.png)
 
+### Workflow at a glance
+
+Log in → pick a template → edit → preview → bind → export → responses/status — captured from an actual session. See the [user manual](docs/user-manual.md) for a step-by-step guide.
+
+![Report Studio walkthrough](docs/images/manual/walkthrough.gif)
+
 ## Features
 
 - **Visual design** — drag-and-drop report layout
