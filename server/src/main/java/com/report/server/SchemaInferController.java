@@ -22,9 +22,9 @@ import java.util.*;
  *  - Value types: number, boolean, string (fallback), array (nested arrays kept as "array")
  *  - Objects are treated as "string" (JSON.stringify in binding context)
  */
-public final class V2SchemaInferController {
+public final class SchemaInferController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2SchemaInferController.class);
+    private static final Logger log = LoggerFactory.getLogger(SchemaInferController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 1_000_000; // 1 MB
     private static final int MAX_FIELDS = 200;

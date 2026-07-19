@@ -52,9 +52,9 @@ import java.util.Map;
  * <p><b>Column mapping is name-based, never positional.</b>
  * (see docs/solutions/integration-issues/scalardb-column-ordering-positional-binding-mismatch.md)
  */
-public final class V2ScalarDbScanController {
+public final class ScalarDbScanController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ScalarDbScanController.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalarDbScanController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static final int MAX_SCAN_ROWS = 10_000;
@@ -64,12 +64,12 @@ public final class V2ScalarDbScanController {
     private final RateLimiter rateLimiter;
 
     /** Production constructor: 20 scans per minute per user. */
-    public V2ScalarDbScanController(TransactionFactory factory) {
+    public ScalarDbScanController(TransactionFactory factory) {
         this(factory, new RateLimiter(20, 60_000L));
     }
 
     /** Package-private for testing with custom rate limiter. */
-    V2ScalarDbScanController(TransactionFactory factory, RateLimiter rateLimiter) {
+    ScalarDbScanController(TransactionFactory factory, RateLimiter rateLimiter) {
         this.factory = factory;
         this.rateLimiter = rateLimiter;
     }

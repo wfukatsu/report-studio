@@ -201,7 +201,7 @@ const SubGroupBlock = memo(function SubGroupBlock({
 })
 
 // ---------------------------------------------------------------------------
-// ElementSlot — v1-style card with bound/unbound visual distinction
+// ElementSlot — legacy-editor-style card with bound/unbound visual distinction
 // ---------------------------------------------------------------------------
 
 interface ElementSlotProps {

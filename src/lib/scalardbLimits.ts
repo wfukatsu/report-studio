@@ -8,7 +8,7 @@
  * Source of truth: server/src/main/java/com/report/server/ScalarDbLimits.java
  */
 
-/** Maximum columns per table (matches V2SchemaInferController.MAX_FIELDS). */
+/** Maximum columns per table (matches SchemaInferController.MAX_FIELDS). */
 export const MAX_COLUMNS_PER_TABLE = 200
 
 /** Maximum number of partition key columns. */

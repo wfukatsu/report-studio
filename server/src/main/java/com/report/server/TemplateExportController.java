@@ -35,9 +35,9 @@ import java.util.UUID;
  * On import, the definition gets a brand-new top-level ID and all page/element IDs are
  * regenerated so importing the same file twice cannot collide.
  */
-public final class V2TemplateExportController {
+public final class TemplateExportController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2TemplateExportController.class);
+    private static final Logger log = LoggerFactory.getLogger(TemplateExportController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final int FORMAT_VERSION = TemplateEnvelope.CURRENT_FORMAT_VERSION;
@@ -47,7 +47,7 @@ public final class V2TemplateExportController {
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter importLimiter;
 
-    public V2TemplateExportController(JsonBlobRepository definitionsRepo, RateLimiter importLimiter) {
+    public TemplateExportController(JsonBlobRepository definitionsRepo, RateLimiter importLimiter) {
         this.definitionsRepo = definitionsRepo;
         this.importLimiter = importLimiter;
     }
@@ -71,7 +71,7 @@ public final class V2TemplateExportController {
 
         // Ownership check — consistent with get() / put() / delete() / duplicate().
         // Returns 404 (not 403) to prevent template ID enumeration.
-        if (!V2TemplateController.isOwner(ctx, stored.get())) {
+        if (!TemplateController.isOwner(ctx, stored.get())) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
             return;

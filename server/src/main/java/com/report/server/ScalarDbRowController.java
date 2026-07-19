@@ -53,9 +53,9 @@ import java.util.regex.Pattern;
  * </ul>
  * This asymmetry is deliberate; callers must not infer prior existence from a 204.
  */
-public final class V2ScalarDbRowController {
+public final class ScalarDbRowController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ScalarDbRowController.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalarDbRowController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
     private static final int MAX_BODY_BYTES = 65_536; // 64 KB
@@ -73,11 +73,11 @@ public final class V2ScalarDbRowController {
     private record CachedMeta(TableMetadata meta, long cachedAt) {}
     private final ConcurrentHashMap<String, CachedMeta> metadataCache = new ConcurrentHashMap<>();
 
-    public V2ScalarDbRowController(TransactionFactory factory) {
+    public ScalarDbRowController(TransactionFactory factory) {
         this(factory, new RateLimiter(60, 60_000L));
     }
 
-    V2ScalarDbRowController(TransactionFactory factory, RateLimiter rateLimiter) {
+    ScalarDbRowController(TransactionFactory factory, RateLimiter rateLimiter) {
         this.factory = factory;
         this.rateLimiter = rateLimiter;
     }

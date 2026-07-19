@@ -51,12 +51,12 @@ import java.util.regex.Pattern;
  *   <li>Rate-limited per authenticated user ID ({@code 3 req / 10 s}).
  * </ul>
  */
-public final class V2BindingResolveController {
+public final class BindingResolveController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2BindingResolveController.class);
+    private static final Logger log = LoggerFactory.getLogger(BindingResolveController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** Same identifier regex as V2ScalarDbTableController — keep in sync. */
+    /** Same identifier regex as ScalarDbTableController — keep in sync. */
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     /** Structural limits — align with ScalarDbLimits and frontend */
@@ -74,12 +74,12 @@ public final class V2BindingResolveController {
     private final RateLimiter rateLimiter;
     private ProductController productCtrl;
 
-    public V2BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
+    public BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
         this(factory, definitionsRepo, new RateLimiter(3, 10_000L));
     }
 
     /** Package-private constructor for testing. */
-    V2BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo, RateLimiter rateLimiter) {
+    BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo, RateLimiter rateLimiter) {
         this.factory = factory;
         this.definitionsRepo = definitionsRepo;
         this.rateLimiter = rateLimiter;
@@ -138,7 +138,7 @@ public final class V2BindingResolveController {
             ctx.json(Map.of("error", "Template not found"));
             return;
         }
-        if (!V2TemplateController.isOwner(ctx, storedOpt.get())) {
+        if (!TemplateController.isOwner(ctx, storedOpt.get())) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
             return;

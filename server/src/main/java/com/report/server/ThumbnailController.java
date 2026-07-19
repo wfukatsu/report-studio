@@ -19,19 +19,19 @@ import java.util.concurrent.TimeoutException;
  * <p>Renders the template with empty test data, generates a JPEG thumbnail (400px wide)
  * via {@link ThumbnailGenerator}, and returns it with ETag-based cache headers.
  *
- * <p>Renders the V2 definition natively like {@link V2PdfController}, but always
+ * <p>Renders the V2 definition natively like {@link PdfController}, but always
  * passes empty test data so placeholders show as blank — suitable for a preview image.
  */
-public final class V2ThumbnailController {
+public final class ThumbnailController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ThumbnailController.class);
+    private static final Logger log = LoggerFactory.getLogger(ThumbnailController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long TIMEOUT_SECONDS = 20;
 
     private final JsonBlobRepository definitionsRepo;
     private final ExecutorService pdfExecutor;
 
-    public V2ThumbnailController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
+    public ThumbnailController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
         this.definitionsRepo = definitionsRepo;
         this.pdfExecutor = pdfExecutor;
     }

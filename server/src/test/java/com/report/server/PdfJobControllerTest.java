@@ -15,13 +15,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2PdfJobControllerTest {
+class PdfJobControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository definitionsRepo;
     private ExecutorService executor;
-    private V2PdfJobController controller;
+    private PdfJobController controller;
     private Context ctx;
     private Object capturedJson;
     private int capturedStatus = 200;
@@ -30,7 +30,7 @@ class V2PdfJobControllerTest {
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
         executor = Executors.newSingleThreadExecutor();
-        controller = new V2PdfJobController(definitionsRepo,
+        controller = new PdfJobController(definitionsRepo,
                 new com.report.server.testsupport.InMemoryJobStore(), executor);
 
         ctx = mock(Context.class);

@@ -15,7 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class V2StatelessExcelControllerTest {
+class StatelessExcelControllerTest {
 
     private static final ObjectMapper M = new ObjectMapper();
 
@@ -45,14 +45,14 @@ class V2StatelessExcelControllerTest {
 
     @Test
     void collectDataSourceKeys_findsRepeatingBandSource() throws Exception {
-        List<String> keys = V2StatelessExcelController.collectDataSourceKeys(templateWithBand("items"));
+        List<String> keys = StatelessExcelController.collectDataSourceKeys(templateWithBand("items"));
         assertEquals(List.of("items"), keys);
     }
 
     @Test
     void collectDataSourceKeys_emptyWhenNoRepeatingElement() throws Exception {
         JsonNode tpl = json("{ \"pages\": [ { \"sections\": [ { \"elements\": [ { \"type\": \"text\" } ] } ] } ] }");
-        assertTrue(V2StatelessExcelController.collectDataSourceKeys(tpl).isEmpty());
+        assertTrue(StatelessExcelController.collectDataSourceKeys(tpl).isEmpty());
     }
 
     // ── workbook contents ────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ class V2StatelessExcelControllerTest {
               "items": [ { "code": "A", "qty": 2 }, { "code": "B", "qty": 3 } ] }
             """);
 
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, data))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
             assertEquals(List.of("項目", "items"), sheetNames(wb));
 
             Sheet fields = wb.getSheet("項目");
@@ -89,7 +89,7 @@ class V2StatelessExcelControllerTest {
     void buildWorkbook_unionsKeysAcrossRows() throws Exception {
         JsonNode tpl = templateWithBand("rows");
         JsonNode data = json("{ \"rows\": [ { \"a\": 1 }, { \"a\": 2, \"b\": 9 } ] }");
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, data))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
             Sheet s = wb.getSheet("rows");
             assertEquals("a", s.getRow(0).getCell(0).getStringCellValue());
             assertEquals("b", s.getRow(0).getCell(1).getStringCellValue());
@@ -103,7 +103,7 @@ class V2StatelessExcelControllerTest {
     void buildWorkbook_cellsAreStringTypeToPreventFormulaExecution() throws Exception {
         JsonNode tpl = templateWithBand("items");
         JsonNode data = json("{ \"items\": [ { \"formula\": \"=SUM(A1:A9)\" } ] }");
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, data))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
             Cell cell = wb.getSheet("items").getRow(1).getCell(0);
             assertEquals(CellType.STRING, cell.getCellType());
             assertEquals("=SUM(A1:A9)", cell.getStringCellValue());
@@ -116,7 +116,7 @@ class V2StatelessExcelControllerTest {
         JsonNode data = json("""
             { "other": [ { "x": 1 } ], "items": [ { "code": "A" } ] }
             """);
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, data))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
             // items (dataSource-referenced) must come before other
             assertEquals(List.of("items", "other"), sheetNames(wb));
         }
@@ -125,7 +125,7 @@ class V2StatelessExcelControllerTest {
     @Test
     void buildWorkbook_emptyDataProducesPlaceholderSheet() throws Exception {
         JsonNode tpl = templateWithBand("items");
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, json("{}")))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, json("{}")))) {
             assertEquals(1, wb.getNumberOfSheets());
             assertEquals("データ", wb.getSheetName(0));
         }
@@ -135,7 +135,7 @@ class V2StatelessExcelControllerTest {
     void buildWorkbook_serializesNestedValuesAsJson() throws Exception {
         JsonNode tpl = templateWithBand("items");
         JsonNode data = json("{ \"items\": [ { \"meta\": { \"k\": 1 } } ] }");
-        try (XSSFWorkbook wb = read(V2StatelessExcelController.buildWorkbook(tpl, data))) {
+        try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
             assertEquals("{\"k\":1}", wb.getSheet("items").getRow(1).getCell(0).getStringCellValue());
         }
     }

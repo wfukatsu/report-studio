@@ -30,15 +30,9 @@ public final class ApiRoutes {
     public static void register(Javalin app, AppWiring w) {
         registerMiddleware(app, w);
         registerAuthRoutes(app, w);
-        registerTemplateRoutes(app, w);
-        registerProjectionRoutes(app, w);
-        registerVersionRoutes(app, w);
-        registerSchemaRoutes(app, w);
         registerBindingTreeRoutes(app, w);
         registerPublicFormRoutes(app, w);
-        registerResponseRoutes(app, w);
         registerJobRoutes(app, w);
-        registerPdfRoute(app, w);
         registerV2Routes(app, w);
         registerAdminRoutes(app, w);
         registerV2SchemaRoutes(app, w);
@@ -133,7 +127,7 @@ public final class ApiRoutes {
      * Rejects the request with 403 unless the resolved principal has the
      * "admin" role. Single source of truth for the admin-role predicate —
      * used by the /api/v1/admin/* before-filter and by controllers that
-     * guard individual admin-only endpoints (e.g. V2TenantController.put).
+     * guard individual admin-only endpoints (e.g. TenantController.put).
      */
     static void requireAdminRole(io.javalin.http.Context ctx) {
         com.report.server.auth.Principal principal = ctx.attribute("principal");
@@ -169,41 +163,6 @@ public final class ApiRoutes {
         app.get("/api/v1/admin/metrics", w.healthCtrl::metrics);
     }
 
-    private static void registerTemplateRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/templates", w.templateCtrl::list);
-        app.post("/api/v1/templates", w.templateCtrl::create);
-        app.patch("/api/v1/templates/{id}", w.templateCtrl::patch);
-        app.delete("/api/v1/templates/{id}", w.templateCtrl::delete);
-
-        app.get("/api/v1/templates/{id}/export", w.exportCtrl::export);
-        app.post("/api/v1/templates/import", w.exportCtrl::importTemplate);
-        app.post("/api/v1/templates/{id}/duplicate", w.exportCtrl::duplicate);
-        app.post("/api/v1/templates/{id}/export-submission", w.submissionExportCtrl::export);
-
-        // Thumbnail (on-the-fly with ETag caching)
-        app.get("/api/v1/templates/{id}/thumbnail", w.thumbnailCtrl::get);
-    }
-
-    private static void registerProjectionRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/templates/{id}/designer-projection", w.projCtrl::get);
-        app.put("/api/v1/templates/{id}/designer-projection", w.projCtrl::put);
-    }
-
-    private static void registerVersionRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/templates/{id}/versions", w.versionCtrl::list);
-        app.post("/api/v1/templates/{id}/versions", w.versionCtrl::create);
-        app.get("/api/v1/templates/{id}/versions/{vid}", w.versionCtrl::get);
-        app.patch("/api/v1/templates/{id}/versions/{vid}", w.versionCtrl::updateLabel);
-        app.delete("/api/v1/templates/{id}/versions/{vid}", w.versionCtrl::delete);
-        app.post("/api/v1/templates/{id}/versions/{vid}/restore", w.versionCtrl::restore);
-    }
-
-    private static void registerSchemaRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/schemas/{id}", w.schemaCtrl::get);
-        app.put("/api/v1/schemas/{id}", w.schemaCtrl::put);
-        app.post("/api/v1/schemas", w.schemaCreateCtrl::create);
-    }
-
     private static void registerBindingTreeRoutes(Javalin app, AppWiring w) {
         app.get("/api/v1/binding-trees/{id}", w.bindingCtrl::get);
         app.put("/api/v1/binding-trees/{id}", w.bindingCtrl::put);
@@ -216,14 +175,6 @@ public final class ApiRoutes {
         app.post("/api/v1/public/forms/{id}/submit", w.publicFormCtrl::submitResponse);
     }
 
-    private static void registerResponseRoutes(Javalin app, AppWiring w) {
-        app.post("/api/v1/templates/{id}/responses", w.responseCtrl::submit);
-        app.get("/api/v1/templates/{id}/responses", w.responseCtrl::list);
-        app.get("/api/v1/templates/{id}/responses/export", w.responseCtrl::export);
-        app.get("/api/v1/responses/{id}", w.responseCtrl::get);
-        app.delete("/api/v1/responses/{id}", w.responseCtrl::delete);
-    }
-
     private static void registerJobRoutes(Javalin app, AppWiring w) {
         app.post("/api/v1/jobs", w.jobCtrl::submit);
         app.get("/api/v1/jobs", w.jobCtrl::list);
@@ -232,77 +183,73 @@ public final class ApiRoutes {
         app.delete("/api/v1/jobs/{id}", w.jobCtrl::cancel);
     }
 
-    private static void registerPdfRoute(Javalin app, AppWiring w) {
-        app.post("/api/v1/templates/{id}/pdf", w.pdfCtrl::generate);
-    }
-
     // ── V2 routes ─────────────────────────────────────────────────────────────
 
     private static void registerV2Routes(Javalin app, AppWiring w) {
         app.get("/api/v2/health", ctx -> ctx.status(204));
-        app.get("/api/v2/templates", w.v2TemplateCtrl::list);
-        app.post("/api/v2/templates", w.v2TemplateCtrl::create);
-        app.get("/api/v2/templates/{id}", w.v2TemplateCtrl::get);
-        app.put("/api/v2/templates/{id}", w.v2TemplateCtrl::put);
-        app.delete("/api/v2/templates/{id}", w.v2TemplateCtrl::delete);
-        app.post("/api/v2/templates/{id}/duplicate", w.v2TemplateCtrl::duplicate);
-        app.put("/api/v2/templates/{id}/visibility", w.v2TemplateCtrl::updateVisibility);
-        app.post("/api/v2/templates/{id}/copy", w.v2TemplateCtrl::copy);
-        app.post("/api/v2/templates/{id}/evaluate", w.v2EvalCtrl::evaluate);
-        app.post("/api/v2/templates/{id}/validate", w.v2EvalCtrl::validate);
-        app.get("/api/v2/templates/{id}/versions", w.v2VersionCtrl::list);
-        app.post("/api/v2/templates/{id}/versions", w.v2VersionCtrl::create);
-        app.post("/api/v2/templates/{id}/versions/{vid}/restore", w.v2VersionCtrl::restore);
+        app.get("/api/v2/templates", w.templateCtrl::list);
+        app.post("/api/v2/templates", w.templateCtrl::create);
+        app.get("/api/v2/templates/{id}", w.templateCtrl::get);
+        app.put("/api/v2/templates/{id}", w.templateCtrl::put);
+        app.delete("/api/v2/templates/{id}", w.templateCtrl::delete);
+        app.post("/api/v2/templates/{id}/duplicate", w.templateCtrl::duplicate);
+        app.put("/api/v2/templates/{id}/visibility", w.templateCtrl::updateVisibility);
+        app.post("/api/v2/templates/{id}/copy", w.templateCtrl::copy);
+        app.post("/api/v2/templates/{id}/evaluate", w.evalCtrl::evaluate);
+        app.post("/api/v2/templates/{id}/validate", w.evalCtrl::validate);
+        app.get("/api/v2/templates/{id}/versions", w.versionCtrl::list);
+        app.post("/api/v2/templates/{id}/versions", w.versionCtrl::create);
+        app.post("/api/v2/templates/{id}/versions/{vid}/restore", w.versionCtrl::restore);
 
         // V2 form responses
-        app.post("/api/v2/templates/{id}/responses", w.v2FormResponseCtrl::submit);
-        app.get("/api/v2/templates/{id}/responses", w.v2FormResponseCtrl::list);
-        app.get("/api/v2/templates/{id}/responses/export", w.v2ResponseExportCtrl::export);
-        app.get("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::get);
-        app.delete("/api/v2/templates/{id}/responses/{rid}", w.v2FormResponseCtrl::delete);
-        app.patch("/api/v2/templates/{id}/responses/{rid}/status", w.v2FormResponseCtrl::updateStatus);
-        app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.v2ResponsePdfCtrl::generatePdf);
+        app.post("/api/v2/templates/{id}/responses", w.formResponseCtrl::submit);
+        app.get("/api/v2/templates/{id}/responses", w.formResponseCtrl::list);
+        app.get("/api/v2/templates/{id}/responses/export", w.responseExportCtrl::export);
+        app.get("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::get);
+        app.delete("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::delete);
+        app.patch("/api/v2/templates/{id}/responses/{rid}/status", w.formResponseCtrl::updateStatus);
+        app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.responsePdfCtrl::generatePdf);
 
         // V2 template export/import/thumbnail
-        app.get("/api/v2/templates/{id}/export", w.v2ExportCtrl::export);
-        app.post("/api/v2/templates/import", w.v2ExportCtrl::importTemplate);
-        app.get("/api/v2/templates/{id}/thumbnail", w.v2ThumbnailCtrl::get);
+        app.get("/api/v2/templates/{id}/export", w.exportCtrl::export);
+        app.post("/api/v2/templates/import", w.exportCtrl::importTemplate);
+        app.get("/api/v2/templates/{id}/thumbnail", w.thumbnailCtrl::get);
 
         // V2 template PDF generation
-        app.post("/api/v2/templates/{id}/pdf", w.v2PdfCtrl::generate);
+        app.post("/api/v2/templates/{id}/pdf", w.pdfCtrl::generate);
 
         // V2 schema inference
-        app.post("/api/v2/schemas/infer", w.v2SchemaInferCtrl::infer);
+        app.post("/api/v2/schemas/infer", w.schemaInferCtrl::infer);
 
         // V2 stateless PDF generation
-        app.post("/api/v2/pdf/generate", w.v2StatelessPdfCtrl::generate);
+        app.post("/api/v2/pdf/generate", w.statelessPdfCtrl::generate);
 
         // V2 stateless XLSX generation (issue #118)
-        app.post("/api/v2/excel/generate", w.v2StatelessExcelCtrl::generate);
+        app.post("/api/v2/excel/generate", w.statelessExcelCtrl::generate);
 
         // V2 async PDF jobs
-        app.post("/api/v2/pdf-jobs", w.v2PdfJobCtrl::submit);
-        app.get("/api/v2/pdf-jobs/{jobId}", w.v2PdfJobCtrl::getStatus);
-        app.get("/api/v2/pdf-jobs/{jobId}/result", w.v2PdfJobCtrl::getResult);
+        app.post("/api/v2/pdf-jobs", w.pdfJobCtrl::submit);
+        app.get("/api/v2/pdf-jobs/{jobId}", w.pdfJobCtrl::getStatus);
+        app.get("/api/v2/pdf-jobs/{jobId}/result", w.pdfJobCtrl::getResult);
 
         // V2 ScalarDB catalog (namespaces → tables → columns) for schema binding UI
-        app.get("/api/v2/scalardb/catalog", w.v2ScalarDbCatalogCtrl::getCatalog);
+        app.get("/api/v2/scalardb/catalog", w.scalarDbCatalogCtrl::getCatalog);
         // V2 ScalarDB table creation (Phase 1.5)
-        app.post("/api/v2/scalardb/tables", w.v2ScalarDbTableCtrl::createTable);
+        app.post("/api/v2/scalardb/tables", w.scalarDbTableCtrl::createTable);
         // Phase 2: resolve actual ScalarDB row data for live preview
-        app.post("/api/v2/templates/{id}/resolve-bindings", w.v2BindingResolveCtrl::resolve);
+        app.post("/api/v2/templates/{id}/resolve-bindings", w.bindingResolveCtrl::resolve);
 
         // Tenant info — shared organization settings
-        app.get("/api/v2/tenant", w.v2TenantCtrl::get);
-        app.put("/api/v2/tenant", w.v2TenantCtrl::put);
+        app.get("/api/v2/tenant", w.tenantCtrl::get);
+        app.put("/api/v2/tenant", w.tenantCtrl::put);
 
         // Data Browser — ScalarDB full-table scan (read-only, authenticated users)
-        app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbScanCtrl::scanRows);
+        app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbScanCtrl::scanRows);
 
         // Data Browser — ScalarDB row CRUD (authenticated users, system namespaces protected)
-        app.post("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::insertRow);
-        app.put("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::updateRow);
-        app.delete("/api/v2/scalardb/tables/{ns}/{table}/rows", w.v2ScalarDbRowCtrl::deleteRow);
+        app.post("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::insertRow);
+        app.put("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::updateRow);
+        app.delete("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::deleteRow);
 
         // Webhooks
         app.get("/api/v1/webhooks/{templateId}", w.webhookCtrl::getConfig);
@@ -314,9 +261,9 @@ public final class ApiRoutes {
         app.put("/api/v1/sequences/{templateId}", w.sequenceCtrl::putConfig);
 
         // Batch PDF generation
-        app.post("/api/v2/pdf-jobs/batch", w.v2BatchPdfCtrl::submitBatch);
-        app.get("/api/v2/pdf-jobs/batch/{id}", w.v2BatchPdfCtrl::getStatus);
-        app.get("/api/v2/pdf-jobs/batch/{id}/result", w.v2BatchPdfCtrl::getResult);
+        app.post("/api/v2/pdf-jobs/batch", w.batchPdfCtrl::submitBatch);
+        app.get("/api/v2/pdf-jobs/batch/{id}", w.batchPdfCtrl::getStatus);
+        app.get("/api/v2/pdf-jobs/batch/{id}/result", w.batchPdfCtrl::getResult);
 
         // Product Master — tenant-wide product catalog
         app.get("/api/v1/products", w.productCtrl::list);

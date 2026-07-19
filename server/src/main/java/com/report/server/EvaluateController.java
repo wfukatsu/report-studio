@@ -27,7 +27,7 @@ import java.util.Map;
  *
  * <p>Rate limiting: 10 requests per 10 seconds per client IP (JEXL evaluation is CPU-intensive).
  */
-public final class V2EvaluateController {
+public final class EvaluateController {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -40,12 +40,12 @@ public final class V2EvaluateController {
     /** 10 req / 10 s per IP — JEXL evaluation is CPU-intensive. */
     private final RateLimiter rateLimiter;
 
-    V2EvaluateController() {
+    EvaluateController() {
         this(new RateLimiter(10, 10_000L));
     }
 
     /** Package-private constructor for testing with a custom rate limiter. */
-    V2EvaluateController(RateLimiter rateLimiter) {
+    EvaluateController(RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
     }
 

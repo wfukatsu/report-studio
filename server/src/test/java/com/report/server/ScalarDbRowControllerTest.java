@@ -40,14 +40,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link V2ScalarDbRowController} — insert/update/delete row
+ * Unit tests for {@link ScalarDbRowController} — insert/update/delete row
  * paths, auth/rate-limit gating, protected-namespace rejection, key
  * validation and transaction failure mapping.
  *
  * <p>Uses the hand-rolled Mockito {@link Context} pattern from
- * {@link V2ScalarDbTableControllerTest} / {@link V2ScalarDbCatalogControllerTest}.
+ * {@link ScalarDbTableControllerTest} / {@link ScalarDbCatalogControllerTest}.
  */
-class V2ScalarDbRowControllerTest {
+class ScalarDbRowControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Principal USER = new Principal("user1", "User One", Set.of("user"));
@@ -57,7 +57,7 @@ class V2ScalarDbRowControllerTest {
     private DistributedTransactionManager txManager;
     private DistributedTransaction tx;
     private RateLimiter rateLimiter;
-    private V2ScalarDbRowController controller;
+    private ScalarDbRowController controller;
     private Context ctx;
 
     @BeforeEach
@@ -73,7 +73,7 @@ class V2ScalarDbRowControllerTest {
         when(txManager.start()).thenReturn(tx);
         when(rateLimiter.isAllowed(anyString())).thenReturn(true);
 
-        controller = new V2ScalarDbRowController(factory, rateLimiter);
+        controller = new ScalarDbRowController(factory, rateLimiter);
 
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenReturn(ctx);

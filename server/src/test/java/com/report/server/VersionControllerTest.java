@@ -14,21 +14,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2VersionControllerTest {
+class VersionControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private V2VersionController.V2VersionRepository mockVersionRepo;
+    private VersionController.V2VersionRepository mockVersionRepo;
     private JsonBlobRepository mockDefinitionsRepo;
-    private V2VersionController controller;
+    private VersionController controller;
     private Context ctx;
 
     @BeforeEach
     void setUp() {
-        mockVersionRepo = mock(V2VersionController.V2VersionRepository.class);
+        mockVersionRepo = mock(VersionController.V2VersionRepository.class);
         mockDefinitionsRepo = mock(JsonBlobRepository.class);
         // Package-private constructor accepting pre-built mock repository
-        controller = new V2VersionController(mockVersionRepo, mockDefinitionsRepo);
+        controller = new VersionController(mockVersionRepo, mockDefinitionsRepo);
         ctx = mock(Context.class);
         when(ctx.pathParam("id")).thenReturn("t1");
         when(ctx.pathParam("vid")).thenReturn("v1");
@@ -40,8 +40,8 @@ class V2VersionControllerTest {
     void list_returnsVersionsAsArray() throws Exception {
         long ts1 = 1_000_000L, ts2 = 2_000_000L;
         when(mockVersionRepo.listVersions("t1")).thenReturn(List.of(
-                new V2VersionController.V2VersionRepository.VersionMeta("v2", "t1", ts2, null),
-                new V2VersionController.V2VersionRepository.VersionMeta("v1", "t1", ts1, "user@example.com")
+                new VersionController.V2VersionRepository.VersionMeta("v2", "t1", ts2, null),
+                new VersionController.V2VersionRepository.VersionMeta("v1", "t1", ts1, "user@example.com")
         ));
 
         controller.list(ctx);
@@ -59,7 +59,7 @@ class V2VersionControllerTest {
     @Test
     void list_omitsCreatedByWhenNull() throws Exception {
         when(mockVersionRepo.listVersions("t1")).thenReturn(List.of(
-                new V2VersionController.V2VersionRepository.VersionMeta("v1", "t1", 1000L, null)
+                new VersionController.V2VersionRepository.VersionMeta("v1", "t1", 1000L, null)
         ));
 
         controller.list(ctx);

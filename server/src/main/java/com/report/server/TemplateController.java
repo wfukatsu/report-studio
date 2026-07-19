@@ -31,9 +31,9 @@ import java.util.UUID;
  * (see docs/template-envelope-spec.md). Blobs stored before {@code formatVersion}
  * was introduced are read as the current version.
  */
-public final class V2TemplateController {
+public final class TemplateController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2TemplateController.class);
+    private static final Logger log = LoggerFactory.getLogger(TemplateController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_NAME_LENGTH = 200;
     private static final String DEFAULT_NAME = "新しいテンプレート";
@@ -41,7 +41,7 @@ public final class V2TemplateController {
 
     private final JsonBlobRepository definitionsRepo;
 
-    public V2TemplateController(JsonBlobRepository definitionsRepo) {
+    public TemplateController(JsonBlobRepository definitionsRepo) {
         this.definitionsRepo = definitionsRepo;
     }
 
@@ -427,7 +427,7 @@ public final class V2TemplateController {
      * <p>Callers should return HTTP 404 (not 403) on {@code false} to prevent template ID
      * enumeration attacks.
      */
-    /** Package-private to allow reuse from sibling controllers (e.g., V2TemplateExportController). */
+    /** Package-private to allow reuse from sibling controllers (e.g., TemplateExportController). */
     static boolean isOwner(Context ctx, String storedEnvelopeJson) {
         Principal principal = ctx.attribute("principal");
         if (principal == null) return true;  // unauthenticated / dev mode — allow all

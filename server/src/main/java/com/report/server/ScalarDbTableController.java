@@ -60,20 +60,20 @@ import java.util.regex.Pattern;
  * exception path generates a correlation ID, logs the full exception server-side,
  * and returns only the generic message + {@code "correlationId"} to the client.
  */
-public final class V2ScalarDbTableController {
+public final class ScalarDbTableController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ScalarDbTableController.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalarDbTableController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Identifier regex — ASCII only, must start with letter or underscore. */
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
-    /** Maximum request body size (1 MB). Matches V2SchemaInferController. */
+    /** Maximum request body size (1 MB). Matches SchemaInferController. */
     private static final int MAX_BODY_BYTES = 1_048_576;
 
     private final TransactionFactory factory;
 
-    public V2ScalarDbTableController(TransactionFactory factory) {
+    public ScalarDbTableController(TransactionFactory factory) {
         this.factory = factory;
     }
 

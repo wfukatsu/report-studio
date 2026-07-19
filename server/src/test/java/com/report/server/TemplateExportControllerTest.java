@@ -16,18 +16,18 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class V2TemplateExportControllerTest {
+class TemplateExportControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository definitionsRepo;
-    private V2TemplateExportController controller;
+    private TemplateExportController controller;
     private Context ctx;
 
     @BeforeEach
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
-        controller = new V2TemplateExportController(definitionsRepo, new RateLimiter(100, 60_000L));
+        controller = new TemplateExportController(definitionsRepo, new RateLimiter(100, 60_000L));
         ctx = mock(Context.class);
         when(ctx.pathParam("id")).thenReturn("tpl-1");
     }

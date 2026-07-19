@@ -21,16 +21,16 @@ import java.util.Map;
  * id {@code "singleton"}. Uses {@link JsonBlobRepository} exactly like
  * {@code schemas} and {@code binding_trees}.
  */
-public final class V2TenantController {
+public final class TenantController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2TenantController.class);
+    private static final Logger log = LoggerFactory.getLogger(TenantController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String SINGLETON_ID = "singleton";
     private static final String EMPTY_JSON = "{}";
 
     private final JsonBlobRepository tenantRepo;
 
-    public V2TenantController(JsonBlobRepository tenantRepo) {
+    public TenantController(JsonBlobRepository tenantRepo) {
         this.tenantRepo = tenantRepo;
     }
 

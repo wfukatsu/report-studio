@@ -26,13 +26,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2BindingResolveControllerTest {
+class BindingResolveControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TransactionFactory factory;
     private JsonBlobRepository definitionsRepo;
-    private V2BindingResolveController controller;
+    private BindingResolveController controller;
     private Context ctx;
     private Principal principal;
 
@@ -41,7 +41,7 @@ class V2BindingResolveControllerTest {
         factory = mock(TransactionFactory.class);
         definitionsRepo = mock(JsonBlobRepository.class);
         // Unlimited rate limiter for tests
-        controller = new V2BindingResolveController(factory, definitionsRepo, new RateLimiter(1000, 60_000L));
+        controller = new BindingResolveController(factory, definitionsRepo, new RateLimiter(1000, 60_000L));
         ctx = mock(Context.class);
         principal = mock(Principal.class);
         when(principal.userId()).thenReturn("test-user");

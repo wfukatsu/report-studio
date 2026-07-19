@@ -37,30 +37,30 @@ class V2PdfJobOwnershipTest {
 
     @Test
     void ownerCanAccessOwnJob() {
-        assertTrue(V2PdfJobController.canAccess(ctxWith(user("alice")), job("alice")));
+        assertTrue(PdfJobController.canAccess(ctxWith(user("alice")), job("alice")));
     }
 
     @Test
     void otherUserCannotAccessJob() {
-        assertFalse(V2PdfJobController.canAccess(ctxWith(user("mallory")), job("alice")));
+        assertFalse(PdfJobController.canAccess(ctxWith(user("mallory")), job("alice")));
     }
 
     @Test
     void anonymousCannotAccessOwnedJob() {
-        assertFalse(V2PdfJobController.canAccess(ctxWith(null), job("alice")));
+        assertFalse(PdfJobController.canAccess(ctxWith(null), job("alice")));
         Principal anon = mock(Principal.class);
         when(anon.isAnonymous()).thenReturn(true);
-        assertFalse(V2PdfJobController.canAccess(ctxWith(anon), job("alice")));
+        assertFalse(PdfJobController.canAccess(ctxWith(anon), job("alice")));
     }
 
     @Test
     void adminCanAccessAnyJob() {
-        assertTrue(V2PdfJobController.canAccess(ctxWith(user("root", "admin")), job("alice")));
+        assertTrue(PdfJobController.canAccess(ctxWith(user("root", "admin")), job("alice")));
     }
 
     @Test
     void anonymouslySubmittedJob_remainsAccessible() {
         // owner == null → auth-disabled deployments keep working
-        assertTrue(V2PdfJobController.canAccess(ctxWith(null), job(null)));
+        assertTrue(PdfJobController.canAccess(ctxWith(null), job(null)));
     }
 }

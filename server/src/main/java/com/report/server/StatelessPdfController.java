@@ -30,16 +30,16 @@ import java.util.concurrent.TimeoutException;
  *   <li>Render PDF with 30-second timeout</li>
  * </ol>
  */
-public final class V2StatelessPdfController {
+public final class StatelessPdfController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2StatelessPdfController.class);
+    private static final Logger log = LoggerFactory.getLogger(StatelessPdfController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int TIMEOUT_SECONDS = 30;
     private static final int MAX_BODY_BYTES = 512 * 1024; // 512KB
 
     private final ExecutorService pdfExecutor;
 
-    public V2StatelessPdfController(ExecutorService pdfExecutor) {
+    public StatelessPdfController(ExecutorService pdfExecutor) {
         this.pdfExecutor = pdfExecutor;
     }
 

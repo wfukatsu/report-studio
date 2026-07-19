@@ -3,7 +3,7 @@
  *
  * Shared by CreateTableForm (client-side inline feedback) and
  * createScalarDbTable (early rejection before POST). The Java backend
- * duplicates this regex in V2ScalarDbTableController with a matching test
+ * duplicates this regex in ScalarDbTableController with a matching test
  * to prevent drift.
  *
  * Rule: ASCII letters, digits, underscores; must start with a letter or

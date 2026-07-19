@@ -156,7 +156,7 @@ public final class WebhookController {
     // ── Package-private: dispatch for form response submission ────────────────
 
     /**
-     * Dispatch webhook asynchronously for a form response. Called from V2FormResponseController.
+     * Dispatch webhook asynchronously for a form response. Called from FormResponseController.
      * Does NOT block — dispatch happens in the provided executor.
      */
     public void dispatchAsync(String templateId, String responseId, String responseJson,

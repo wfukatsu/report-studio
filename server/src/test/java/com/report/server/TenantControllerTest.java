@@ -15,12 +15,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2TenantControllerTest {
+class TenantControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository tenantRepo;
-    private V2TenantController controller;
+    private TenantController controller;
     private Context ctx;
     /** PUT /api/v2/tenant requires the admin role, so the happy-path principal is an admin. */
     private Principal adminPrincipal;
@@ -29,7 +29,7 @@ class V2TenantControllerTest {
     @BeforeEach
     void setUp() {
         tenantRepo = mock(JsonBlobRepository.class);
-        controller = new V2TenantController(tenantRepo);
+        controller = new TenantController(tenantRepo);
         ctx = mock(Context.class);
         adminPrincipal = new Principal("admin1", "管理者", java.util.Set.of("admin", "user"));
         nonAdminPrincipal = new Principal("user1", "testuser", java.util.Set.of("user"));

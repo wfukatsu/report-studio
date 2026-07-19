@@ -33,16 +33,16 @@ import java.util.*;
  *   <li>Excel cells always use {@code CellType.STRING} to prevent formula execution</li>
  * </ul>
  */
-public final class V2ResponseExportController {
+public final class ResponseExportController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ResponseExportController.class);
+    private static final Logger log = LoggerFactory.getLogger(ResponseExportController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final JsonBlobRepository responseRepo;
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter exportLimiter;
 
-    public V2ResponseExportController(
+    public ResponseExportController(
             JsonBlobRepository responseRepo,
             JsonBlobRepository definitionsRepo,
             RateLimiter exportLimiter) {
@@ -150,7 +150,7 @@ public final class V2ResponseExportController {
         List<String> keys = new ArrayList<>(allKeys);
         StringBuilder csv = new StringBuilder();
         csv.append('\uFEFF'); // UTF-8 BOM for Excel compatibility
-        csv.append(String.join(",", keys.stream().map(V2ResponseExportController::escapeCsvField).toList()));
+        csv.append(String.join(",", keys.stream().map(ResponseExportController::escapeCsvField).toList()));
         csv.append("\r\n");
 
         for (ParsedResponse resp : responses) {

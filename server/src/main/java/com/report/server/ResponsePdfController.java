@@ -21,7 +21,7 @@ import java.util.concurrent.TimeoutException;
  *
  * <p>GET /api/v2/templates/{id}/responses/{rid}/pdf
  *
- * <p>Uses the same native renderer as {@link V2PdfController} / {@link V2BatchPdfController}
+ * <p>Uses the same native renderer as {@link PdfController} / {@link BatchPdfController}
  * ({@link V2RenderSupport#prepare} + {@link PdfRenderer#renderDefinition}) with the
  * response's {@code data} as the form data. Previously this endpoint rendered a
  * bespoke ASCII-only key-value dump that stripped all Japanese and ignored the
@@ -31,9 +31,9 @@ import java.util.concurrent.TimeoutException;
  * projection (prevents SSRF / injection via crafted projection). PDF generation
  * runs on the {@code pdfExecutor} thread pool with a 30-second timeout.
  */
-public final class V2ResponsePdfController {
+public final class ResponsePdfController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ResponsePdfController.class);
+    private static final Logger log = LoggerFactory.getLogger(ResponsePdfController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int TIMEOUT_SECONDS = 30;
 
@@ -41,7 +41,7 @@ public final class V2ResponsePdfController {
     private final JsonBlobRepository definitionsRepo;
     private final ExecutorService pdfExecutor;
 
-    public V2ResponsePdfController(
+    public ResponsePdfController(
             JsonBlobRepository responseRepo,
             JsonBlobRepository definitionsRepo,
             ExecutorService pdfExecutor) {

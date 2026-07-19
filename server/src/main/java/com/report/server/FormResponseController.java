@@ -29,9 +29,9 @@ import java.util.*;
  *   <li>Delete requires ownership of the template OR the response itself</li>
  * </ul>
  */
-public final class V2FormResponseController {
+public final class FormResponseController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2FormResponseController.class);
+    private static final Logger log = LoggerFactory.getLogger(FormResponseController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final int DEFAULT_LIMIT = 50;
@@ -54,7 +54,7 @@ public final class V2FormResponseController {
     private WebhookController webhookCtrl;   // injected lazily
     private java.util.concurrent.ExecutorService webhookExecutor;
 
-    public V2FormResponseController(
+    public FormResponseController(
             JsonBlobRepository responseRepo,
             JsonBlobRepository definitionsRepo,
             RateLimiter submitLimiter) {

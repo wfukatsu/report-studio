@@ -28,21 +28,21 @@ import java.util.*;
  * Versions store the full ReportDefinition JSON. {@code versionNumber} uses
  * {@link System#currentTimeMillis()} for uniqueness in a single-user tool.
  */
-public final class V2VersionController {
+public final class VersionController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2VersionController.class);
+    private static final Logger log = LoggerFactory.getLogger(VersionController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final V2VersionRepository versionRepo;
     private final JsonBlobRepository definitionsRepo;
 
     /** Production constructor — creates its own V2VersionRepository. */
-    public V2VersionController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
+    public VersionController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
         this(new V2VersionRepository(factory), definitionsRepo);
     }
 
     /** Package-private constructor for testing — accepts pre-built repository. */
-    V2VersionController(V2VersionRepository versionRepo, JsonBlobRepository definitionsRepo) {
+    VersionController(V2VersionRepository versionRepo, JsonBlobRepository definitionsRepo) {
         this.versionRepo = versionRepo;
         this.definitionsRepo = definitionsRepo;
     }

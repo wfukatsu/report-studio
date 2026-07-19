@@ -38,9 +38,9 @@ import java.util.concurrent.TimeUnit;
  * to FAILED like every other job type. The V2 API keeps its historical
  * lowercase status vocabulary as a compatibility layer.
  */
-public final class V2PdfJobController {
+public final class PdfJobController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2PdfJobController.class);
+    private static final Logger log = LoggerFactory.getLogger(PdfJobController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Jobs expire this long after submission (reaped by JobTtlReaper). */
@@ -55,7 +55,7 @@ public final class V2PdfJobController {
     private final ExecutorService pdfExecutor;
     private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
-    public V2PdfJobController(JsonBlobRepository definitionsRepo, JobStore jobStore,
+    public PdfJobController(JsonBlobRepository definitionsRepo, JobStore jobStore,
                               ExecutorService pdfExecutor) {
         this.definitionsRepo = definitionsRepo;
         this.jobStore = jobStore;

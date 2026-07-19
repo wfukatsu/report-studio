@@ -12,18 +12,18 @@ import java.util.concurrent.Executors;
 
 import static org.mockito.Mockito.*;
 
-class V2ThumbnailControllerTest {
+class ThumbnailControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository definitionsRepo;
-    private V2ThumbnailController controller;
+    private ThumbnailController controller;
     private Context ctx;
 
     @BeforeEach
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
-        controller = new V2ThumbnailController(definitionsRepo,
+        controller = new ThumbnailController(definitionsRepo,
                 Executors.newSingleThreadExecutor());
         ctx = mock(Context.class);
         when(ctx.pathParam("id")).thenReturn("tpl-1");

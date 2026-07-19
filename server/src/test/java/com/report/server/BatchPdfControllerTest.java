@@ -20,13 +20,13 @@ import static org.mockito.Mockito.*;
  * Validation and status behavior of the batch PDF job endpoints on the
  * unified job store (issue #60).
  */
-class V2BatchPdfControllerTest {
+class BatchPdfControllerTest {
 
     private JsonBlobRepository definitionsRepo;
     private JsonBlobRepository responseRepo;
     private InMemoryJobStore jobStore;
     private ExecutorService executor;
-    private V2BatchPdfController controller;
+    private BatchPdfController controller;
     private Context ctx;
     private Object capturedJson;
     private int capturedStatus = 200;
@@ -37,7 +37,7 @@ class V2BatchPdfControllerTest {
         responseRepo = mock(JsonBlobRepository.class);
         jobStore = new InMemoryJobStore();
         executor = Executors.newSingleThreadExecutor();
-        controller = new V2BatchPdfController(definitionsRepo, responseRepo, jobStore, executor);
+        controller = new BatchPdfController(definitionsRepo, responseRepo, jobStore, executor);
 
         ctx = mock(Context.class);
         when(ctx.status(any(HttpStatus.class))).thenAnswer(inv -> {

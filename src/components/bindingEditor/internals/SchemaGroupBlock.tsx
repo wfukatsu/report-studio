@@ -1,7 +1,8 @@
 /**
- * SchemaGroupBlock — v1-style schema field group.
+ * SchemaGroupBlock — legacy-editor-style schema field group.
  *
- * Visual style matches v1:
+ * Visual style matches the legacy binding editor
+ * (the pre-Zustand generation — unrelated to the HTTP API v1/v2):
  * - Field cards with ring shadow, monospace font
  * - Hover: translateX(-2px) + elevated shadow
  * - Bound fields: indigo ring + indigo dot
@@ -213,7 +214,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
               />
             ) : (
               <>
-                {/* v1-style dashed add button */}
+                {/* legacy-editor-style dashed add button */}
                 <button
                   className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-[#00C853] hover:border-[#00C853]/50 hover:bg-[#00C853]/5 w-full ml-4 py-1.5 border-2 border-dashed border-border/30 rounded-md transition-colors"
                   onClick={() => onSetAddingField(group.id)}
@@ -314,7 +315,7 @@ const DetailRelationBand = memo(function DetailRelationBand({
 })
 
 // ---------------------------------------------------------------------------
-// FieldCard — v1-style with ring shadow, monospace name, hover lift
+// FieldCard — legacy-editor-style with ring shadow, monospace name, hover lift
 // ---------------------------------------------------------------------------
 
 interface FieldCardProps {
@@ -364,7 +365,7 @@ const FieldCard = memo(function FieldCard({
       data-field-id={field.id}
       className={cn(
         'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left select-none cursor-grab group transition-all',
-        // v1 style: ring shadow + computed border
+        // legacy-editor style: ring shadow + computed border
         field.computed
           ? 'bg-[#6366f1]/5 border-l-[3px] border-l-[#6366f1]/40'
           : 'bg-background',
@@ -376,7 +377,7 @@ const FieldCard = memo(function FieldCard({
         isSelected && 'ring-2 ring-[#6366f1] shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_2px_8px_rgba(99,102,241,0.15)]',
         // Drop target highlight (when dragging an element)
         isDraggingElement && 'hover:ring-2 hover:ring-[#00C853] hover:bg-[#00C853]/5',
-        // Hover lift (v1: translateX(-2px))
+        // Hover lift (legacy: translateX(-2px))
         isHovered && !isSelected && !isDraggingElement && '-translate-x-0.5 shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
         !isSelected && !isHovered && !isDraggingElement && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
       )}
@@ -394,7 +395,7 @@ const FieldCard = memo(function FieldCard({
       onMouseLeave={() => onHoverField(null)}
       title={`${field.key} — クリックで選択、ドラッグで要素に接続`}
     >
-      {/* Binding dot (v1: 8px circle) */}
+      {/* Binding dot (legacy: 8px circle) */}
       <span
         className="w-2 h-2 rounded-full shrink-0 transition-colors"
         style={{
@@ -410,7 +411,7 @@ const FieldCard = memo(function FieldCard({
         </span>
       )}
 
-      {/* Field name (v1: monospace, 550 weight) */}
+      {/* Field name (legacy: monospace, 550 weight) */}
       <span className="flex-1 truncate font-mono font-medium text-foreground">
         {field.label || field.key}
       </span>

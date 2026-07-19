@@ -20,18 +20,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link V2ScalarDbCatalogController}.
+ * Unit tests for {@link ScalarDbCatalogController}.
  *
  * <p>Uses the hand-rolled Mockito {@link Context} pattern established by
- * {@link V2SchemaInferControllerTest}. No {@code JavalinTest}.
+ * {@link SchemaInferControllerTest}. No {@code JavalinTest}.
  */
-class V2ScalarDbCatalogControllerTest {
+class ScalarDbCatalogControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TransactionFactory factory;
     private DistributedTransactionAdmin admin;
-    private V2ScalarDbCatalogController controller;
+    private ScalarDbCatalogController controller;
     private Context ctx;
     private Object capturedJson;
 
@@ -41,7 +41,7 @@ class V2ScalarDbCatalogControllerTest {
         admin = mock(DistributedTransactionAdmin.class);
         when(factory.getTransactionAdmin()).thenReturn(admin);
 
-        controller = new V2ScalarDbCatalogController(factory);
+        controller = new ScalarDbCatalogController(factory);
         ctx = mock(Context.class);
         doAnswer(inv -> {
             capturedJson = inv.getArguments()[0];

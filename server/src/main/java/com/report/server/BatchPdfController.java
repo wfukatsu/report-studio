@@ -45,9 +45,9 @@ import java.util.zip.ZipOutputStream;
  * Partial failures produce a ZIP of successful PDFs + summary.json.
  * All-fail → failed job with no ZIP.
  */
-public final class V2BatchPdfController {
+public final class BatchPdfController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2BatchPdfController.class);
+    private static final Logger log = LoggerFactory.getLogger(BatchPdfController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static final int MAX_BATCH_SIZE = 50;
@@ -62,7 +62,7 @@ public final class V2BatchPdfController {
     private final ExecutorService pdfExecutor;
     private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
-    public V2BatchPdfController(JsonBlobRepository definitionsRepo,
+    public BatchPdfController(JsonBlobRepository definitionsRepo,
                                  JsonBlobRepository responseRepo,
                                  JobStore jobStore,
                                  ExecutorService pdfExecutor) {

@@ -18,14 +18,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2FormResponseControllerTest {
+class FormResponseControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository responseRepo;
     private JsonBlobRepository definitionsRepo;
     private RateLimiter submitLimiter;
-    private V2FormResponseController controller;
+    private FormResponseController controller;
     private Context ctx;
     private Principal principal;
 
@@ -34,7 +34,7 @@ class V2FormResponseControllerTest {
         responseRepo = mock(JsonBlobRepository.class);
         definitionsRepo = mock(JsonBlobRepository.class);
         submitLimiter = mock(RateLimiter.class);
-        controller = new V2FormResponseController(responseRepo, definitionsRepo, submitLimiter);
+        controller = new FormResponseController(responseRepo, definitionsRepo, submitLimiter);
         ctx = mock(Context.class);
         principal = new Principal("user-1", "Test User", java.util.Set.of("user"));
         when(ctx.attribute("principal")).thenReturn(principal);

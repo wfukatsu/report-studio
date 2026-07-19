@@ -26,16 +26,16 @@ import java.util.concurrent.TimeoutException;
  *   <li>Render the definition natively ({@link PdfRenderer#renderDefinition}) with a 30-second timeout</li>
  * </ol>
  */
-public final class V2PdfController {
+public final class PdfController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2PdfController.class);
+    private static final Logger log = LoggerFactory.getLogger(PdfController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int TIMEOUT_SECONDS = 30;
 
     private final JsonBlobRepository definitionsRepo;
     private final ExecutorService pdfExecutor;
 
-    public V2PdfController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
+    public PdfController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
         this.definitionsRepo = definitionsRepo;
         this.pdfExecutor = pdfExecutor;
     }

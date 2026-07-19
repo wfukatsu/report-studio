@@ -7,7 +7,7 @@
  * - `listVersions` / `createVersion` are called here (not in a hook) because:
  *   - version list is on-demand, not reactive
  *   - operations are one-shot (button click), not lifecycle-driven
- * - Graceful empty state when V1 backend is not yet running (shows connect hint).
+ * - Graceful empty state when the backend is not yet running (shows connect hint).
  */
 
 import { useState, useCallback } from 'react'
@@ -96,7 +96,7 @@ export function VersionHistoryPanel() {
           バージョン履歴
         </p>
         <p className="text-xs text-muted-foreground">
-          バックエンドに接続されていません。V1バックエンドを起動するとバージョン管理が使用できます。
+          バックエンドに接続されていません。バックエンドを起動するとバージョン管理が使用できます。
         </p>
       </div>
     )

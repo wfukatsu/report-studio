@@ -55,13 +55,13 @@ import java.util.Set;
  * listing failure always means "ScalarDB is unreachable" — there is no 400-class
  * input this endpoint can reject (it takes no body and no path params).
  */
-public final class V2ScalarDbCatalogController {
+public final class ScalarDbCatalogController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2ScalarDbCatalogController.class);
+    private static final Logger log = LoggerFactory.getLogger(ScalarDbCatalogController.class);
 
     private final TransactionFactory factory;
 
-    public V2ScalarDbCatalogController(TransactionFactory factory) {
+    public ScalarDbCatalogController(TransactionFactory factory) {
         this.factory = factory;
     }
 

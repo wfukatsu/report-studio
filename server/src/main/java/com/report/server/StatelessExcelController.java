@@ -40,9 +40,9 @@ import java.util.Map;
  *
  * <p>Security: all cells use {@link CellType#STRING} to prevent formula execution.
  */
-public final class V2StatelessExcelController {
+public final class StatelessExcelController {
 
-    private static final Logger log = LoggerFactory.getLogger(V2StatelessExcelController.class);
+    private static final Logger log = LoggerFactory.getLogger(StatelessExcelController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 512 * 1024; // 512KB — matches stateless PDF
 

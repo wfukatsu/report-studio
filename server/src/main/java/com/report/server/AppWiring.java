@@ -38,32 +38,32 @@ public final class AppWiring {
     // ── V2 repositories and controllers ───────────────────────────────────────
     final JsonBlobRepository v2DefinitionsRepo;
     final JsonBlobRepository v2ResponseRepo;
-    final V2TemplateController v2TemplateCtrl;
+    final TemplateController templateCtrl;
     final SchemaLibraryController schemaLibraryCtrl;
-    final V2EvaluateController v2EvalCtrl;
-    final V2VersionController v2VersionCtrl;
-    final V2FormResponseController v2FormResponseCtrl;
-    final V2ResponseExportController v2ResponseExportCtrl;
-    final V2ResponsePdfController v2ResponsePdfCtrl;
-    final V2PdfController v2PdfCtrl;
-    final V2TemplateExportController v2ExportCtrl;
-    final V2ThumbnailController v2ThumbnailCtrl;
-    final V2SchemaInferController v2SchemaInferCtrl;
-    final V2PdfJobController v2PdfJobCtrl;
-    final V2StatelessPdfController v2StatelessPdfCtrl;
-    final V2StatelessExcelController v2StatelessExcelCtrl;
-    final V2ScalarDbCatalogController v2ScalarDbCatalogCtrl;
-    final V2ScalarDbTableController v2ScalarDbTableCtrl;
-    final V2BindingResolveController v2BindingResolveCtrl;
+    final EvaluateController evalCtrl;
+    final VersionController versionCtrl;
+    final FormResponseController formResponseCtrl;
+    final ResponseExportController responseExportCtrl;
+    final ResponsePdfController responsePdfCtrl;
+    final PdfController pdfCtrl;
+    final TemplateExportController exportCtrl;
+    final ThumbnailController thumbnailCtrl;
+    final SchemaInferController schemaInferCtrl;
+    final PdfJobController pdfJobCtrl;
+    final StatelessPdfController statelessPdfCtrl;
+    final StatelessExcelController statelessExcelCtrl;
+    final ScalarDbCatalogController scalarDbCatalogCtrl;
+    final ScalarDbTableController scalarDbTableCtrl;
+    final BindingResolveController bindingResolveCtrl;
     final JsonBlobRepository tenantRepo;
-    final V2TenantController v2TenantCtrl;
+    final TenantController tenantCtrl;
 
     // ── Product Master ─────────────────────────────────────────────────────────
     final JsonBlobRepository productRepo;
     final ProductController productCtrl;
-    final V2ScalarDbScanController v2ScalarDbScanCtrl;
-    final V2ScalarDbRowController v2ScalarDbRowCtrl;
-    final V2BatchPdfController v2BatchPdfCtrl;
+    final ScalarDbScanController scalarDbScanCtrl;
+    final ScalarDbRowController scalarDbRowCtrl;
+    final BatchPdfController batchPdfCtrl;
     final JsonBlobRepository sequenceRepo;
     final SequenceController sequenceCtrl;
     final JsonBlobRepository webhookRepo;
@@ -77,19 +77,9 @@ public final class AppWiring {
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
-    final TemplateController templateCtrl;
-    final ProjectionController projCtrl;
-    final GenericJsonController schemaCtrl;
-    final SchemaController schemaCreateCtrl;
     final GenericJsonController bindingCtrl;
-    final TemplateExportController exportCtrl;
-    final FormResponseController responseCtrl;
     final PublicFormController publicFormCtrl;
-    final SubmissionExportController submissionExportCtrl;
-    final VersionController versionCtrl;
     final JobController jobCtrl;
-    final PdfController pdfCtrl;
-    final ThumbnailController thumbnailCtrl;
     final HealthController healthCtrl;
 
     // ── Executor pools ────────────────────────────────────────────────────────
@@ -154,43 +144,35 @@ public final class AppWiring {
 
         // Controllers
         authCtrl = new AuthController(userRepo);
-        templateCtrl = new TemplateController(templateList, projRepo, schemaRepo, bindingTreeRepo);
-        projCtrl = new ProjectionController(projRepo, versionRepo);
-        schemaCtrl = new GenericJsonController(schemaRepo, "schema", "{}");
-        schemaCreateCtrl = new SchemaController(schemaRepo);
         bindingCtrl = new GenericJsonController(bindingTreeRepo, "binding-tree", "{}");
-        exportCtrl = new TemplateExportController(templateList, projRepo, schemaRepo, bindingTreeRepo);
-        responseCtrl = new FormResponseController(responseRepo);
         formSessionManager = new FormSessionManager();
         publicFormCtrl = new PublicFormController(
             templateList, projRepo, responseRepo, formSessionManager, new RateLimiter());
-        submissionExportCtrl = new SubmissionExportController(projRepo);
-        versionCtrl = new VersionController(versionRepo, projRepo);
-        v2TemplateCtrl = new V2TemplateController(v2DefinitionsRepo);
+        templateCtrl = new TemplateController(v2DefinitionsRepo);
 
         // Schema Library
         final JsonBlobRepository schemaLibraryRepo = new JsonBlobRepository(factory, NAMESPACE, "schema_library");
         schemaLibraryRepo.ensureTable();
         schemaLibraryCtrl = new SchemaLibraryController(schemaLibraryRepo);
-        v2EvalCtrl = new V2EvaluateController();
-        v2VersionCtrl = new V2VersionController(factory, v2DefinitionsRepo);
-        v2VersionCtrl.ensureTable();
-        v2FormResponseCtrl = new V2FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
-        v2ResponseExportCtrl = new V2ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
-        v2ResponsePdfCtrl = new V2ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
-        v2PdfCtrl = new V2PdfController(v2DefinitionsRepo, pdfExecutor);
-        v2ExportCtrl = new V2TemplateExportController(v2DefinitionsRepo, new RateLimiter(10, 60_000L));
-        v2ThumbnailCtrl = new V2ThumbnailController(v2DefinitionsRepo, pdfExecutor);
-        v2SchemaInferCtrl = new V2SchemaInferController();
-        v2PdfJobCtrl = new V2PdfJobController(v2DefinitionsRepo, jobRepo, pdfExecutor);
-        v2StatelessPdfCtrl = new V2StatelessPdfController(pdfExecutor);
-        v2StatelessExcelCtrl = new V2StatelessExcelController();
-        v2ScalarDbCatalogCtrl = new V2ScalarDbCatalogController(factory);
-        v2ScalarDbTableCtrl = new V2ScalarDbTableController(factory);
-        v2BindingResolveCtrl = new V2BindingResolveController(factory, v2DefinitionsRepo);
+        evalCtrl = new EvaluateController();
+        versionCtrl = new VersionController(factory, v2DefinitionsRepo);
+        versionCtrl.ensureTable();
+        formResponseCtrl = new FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
+        responseExportCtrl = new ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
+        responsePdfCtrl = new ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
+        pdfCtrl = new PdfController(v2DefinitionsRepo, pdfExecutor);
+        exportCtrl = new TemplateExportController(v2DefinitionsRepo, new RateLimiter(10, 60_000L));
+        thumbnailCtrl = new ThumbnailController(v2DefinitionsRepo, pdfExecutor);
+        schemaInferCtrl = new SchemaInferController();
+        pdfJobCtrl = new PdfJobController(v2DefinitionsRepo, jobRepo, pdfExecutor);
+        statelessPdfCtrl = new StatelessPdfController(pdfExecutor);
+        statelessExcelCtrl = new StatelessExcelController();
+        scalarDbCatalogCtrl = new ScalarDbCatalogController(factory);
+        scalarDbTableCtrl = new ScalarDbTableController(factory);
+        bindingResolveCtrl = new BindingResolveController(factory, v2DefinitionsRepo);
         tenantRepo = new JsonBlobRepository(factory, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
-        v2TenantCtrl = new V2TenantController(tenantRepo);
+        tenantCtrl = new TenantController(tenantRepo);
         // Tenant elements in PDFs resolve through this process-wide supplier (issue #54)
         TenantInfoProvider.setSupplier(() -> {
             try {
@@ -205,14 +187,14 @@ public final class AppWiring {
         productRepo = new JsonBlobRepository(factory, NAMESPACE, "products");
         productRepo.ensureTable();
         productCtrl = new ProductController(productRepo);
-        v2BindingResolveCtrl.setProductController(productCtrl);
-        v2ScalarDbScanCtrl = new V2ScalarDbScanController(factory);
-        v2ScalarDbRowCtrl = new V2ScalarDbRowController(factory);
-        v2BatchPdfCtrl = new V2BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
+        bindingResolveCtrl.setProductController(productCtrl);
+        scalarDbScanCtrl = new ScalarDbScanController(factory);
+        scalarDbRowCtrl = new ScalarDbRowController(factory);
+        batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
         sequenceRepo = new JsonBlobRepository(factory, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();
         sequenceCtrl = new SequenceController(sequenceRepo);
-        v2FormResponseCtrl.setSequenceController(sequenceCtrl);
+        formResponseCtrl.setSequenceController(sequenceCtrl);
         webhookRepo = new JsonBlobRepository(factory, NAMESPACE, "webhooks");
         webhookRepo.ensureTable();
         webhookDispatcher = new WebhookDispatcher();
@@ -221,10 +203,8 @@ public final class AppWiring {
             new java.util.concurrent.LinkedBlockingQueue<>(100),
             new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         webhookCtrl = new WebhookController(webhookRepo, webhookDispatcher, SecretCrypto.fromEnv());
-        v2FormResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
+        formResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
-        pdfCtrl = new PdfController(projRepo, pdfExecutor);
-        thumbnailCtrl = new ThumbnailController(projRepo);
         healthCtrl = new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
     }
 

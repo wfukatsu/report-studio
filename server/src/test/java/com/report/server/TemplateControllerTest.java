@@ -14,18 +14,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2TemplateControllerTest {
+class TemplateControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonBlobRepository repo;
-    private V2TemplateController controller;
+    private TemplateController controller;
     private Context ctx;
 
     @BeforeEach
     void setUp() {
         repo = mock(JsonBlobRepository.class);
-        controller = new V2TemplateController(repo);
+        controller = new TemplateController(repo);
         ctx = mock(Context.class);
     }
 
@@ -465,7 +465,7 @@ class V2TemplateControllerTest {
 
     @Test
     void buildDefaultDefinition_hasRequiredFields() {
-        var def = V2TemplateController.buildDefaultDefinition("id-1", "テスト");
+        var def = TemplateController.buildDefaultDefinition("id-1", "テスト");
         assertEquals("id-1", def.path("id").asText());
         assertEquals("テスト", def.path("metadata").path("documentName").asText());
         assertTrue(def.has("pages"));

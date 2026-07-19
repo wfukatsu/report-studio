@@ -12,18 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2EvaluateControllerTest {
+class EvaluateControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private V2EvaluateController controller;
+    private EvaluateController controller;
     private Context ctx;
 
     @BeforeEach
     void setUp() {
         // Use permissive rate limiter (1000 req/s) so tests don't interfere with each other
         RateLimiter permissive = new RateLimiter(1000, 1000L);
-        controller = new V2EvaluateController(permissive);
+        controller = new EvaluateController(permissive);
         ctx = mock(Context.class);
         when(ctx.pathParam("id")).thenReturn("t1");
         when(ctx.ip()).thenReturn("127.0.0.1");
@@ -42,7 +42,7 @@ class V2EvaluateControllerTest {
             """;
         JsonNode definition = MAPPER.readTree(defJson);
 
-        JsonNode projection = V2EvaluateController.wrapForCalculation("t1", definition);
+        JsonNode projection = EvaluateController.wrapForCalculation("t1", definition);
 
         JsonNode v1Rule = projection.path("templates").get(0).path("calculationRules").get(0);
         assertEquals("total", v1Rule.path("targetField").asText());
@@ -61,7 +61,7 @@ class V2EvaluateControllerTest {
               ]
             }
             """;
-        JsonNode projection = V2EvaluateController.wrapForCalculation(
+        JsonNode projection = EvaluateController.wrapForCalculation(
                 "t1", MAPPER.readTree(defJson));
         JsonNode rules = projection.path("templates").get(0).path("calculationRules");
         assertEquals(1, rules.size());
@@ -301,7 +301,7 @@ class V2EvaluateControllerTest {
         // Exhaust the 1 allowed request
         strict.isAllowed("127.0.0.1");
 
-        V2EvaluateController limited = new V2EvaluateController(strict);
+        EvaluateController limited = new EvaluateController(strict);
         Context limitCtx = mock(Context.class);
         when(limitCtx.ip()).thenReturn("127.0.0.1");
         when(limitCtx.pathParam("id")).thenReturn("t1");
@@ -317,7 +317,7 @@ class V2EvaluateControllerTest {
         RateLimiter strict = new RateLimiter(1, 60_000L);
         strict.isAllowed("127.0.0.1");
 
-        V2EvaluateController limited = new V2EvaluateController(strict);
+        EvaluateController limited = new EvaluateController(strict);
         Context limitCtx = mock(Context.class);
         when(limitCtx.ip()).thenReturn("127.0.0.1");
         when(limitCtx.pathParam("id")).thenReturn("t1");

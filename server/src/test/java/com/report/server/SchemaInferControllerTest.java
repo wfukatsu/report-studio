@@ -12,18 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class V2SchemaInferControllerTest {
+class SchemaInferControllerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private V2SchemaInferController controller;
+    private SchemaInferController controller;
     private Context ctx;
     private Object capturedJson;
     private int capturedStatus = 200;
 
     @BeforeEach
     void setUp() {
-        controller = new V2SchemaInferController();
+        controller = new SchemaInferController();
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenAnswer(inv -> {
             capturedStatus = (int) inv.getArguments()[0];

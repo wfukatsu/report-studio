@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Parse-back tests for CalculationEngine results reaching the PDF (issue #59).
  *
- * <p>Replicates the enrichment seam used by PdfController / V2PdfController /
- * V2StatelessPdfController: {@code CalculationEngine.apply} enriches
+ * <p>Replicates the enrichment seam used by PdfController /
+ * StatelessPdfController: {@code CalculationEngine.apply} enriches
  * {@code _formData}, then the projection is rendered and the computed values
  * are asserted in the extracted text.
  */
