@@ -61,10 +61,8 @@ public final class ScalarDbRowController {
     private static final int MAX_BODY_BYTES = 65_536; // 64 KB
     private static final int MAX_IDENTIFIER_LENGTH = 64;
 
-    /** Namespaces that reject write operations. */
-    private static final Set<String> PROTECTED_NAMESPACES = Set.of(
-        "report_studio", "scalardb", "coordinator"
-    );
+    /** Namespaces that reject write operations (shared with the read/scan side). */
+    private static final Set<String> PROTECTED_NAMESPACES = SystemNamespaces.PROTECTED;
 
     private final TransactionFactory factory;
     private final RateLimiter rateLimiter;

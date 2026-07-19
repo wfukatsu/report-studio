@@ -101,6 +101,18 @@ public final class ScalarDbScanController {
             return;
         }
 
+        // Namespace protection: system namespaces (users, api_tokens, webhooks,
+        // form_responses, ScalarDB bookkeeping) are never exposed through the
+        // generic table browser — see SystemNamespaces. Mirrors the write-side
+        // guard in ScalarDbRowController so read and write cannot drift.
+        if (SystemNamespaces.isProtected(namespace)) {
+            log.warn("ScalarDB scan blocked on protected namespace ns={} table={} user={}",
+                namespace, tableName, userId);
+            ctx.status(HttpStatus.FORBIDDEN);
+            ctx.json(Map.of("error", "Access to this namespace is not allowed"));
+            return;
+        }
+
         // Parse pagination params
         int offset = parseIntParam(ctx.queryParam("offset"), 0, 0, MAX_SCAN_ROWS);
         int limit  = parseIntParam(ctx.queryParam("limit"),  PAGE_LIMIT, 1, PAGE_LIMIT);
