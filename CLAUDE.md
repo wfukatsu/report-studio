@@ -59,11 +59,12 @@ npm run build:backend
 
 ### State management (`src/store/`)
 
-Single Zustand store composed from 11 slices via immer middleware. Import via `useReportStore`. A separate `dataBrowserStore` handles the data browser page independently.
+Single Zustand store composed from 13 slices via immer middleware. Import via `useReportStore`. A separate `dataBrowserStore` handles the data browser page independently.
 
 | Slice | Responsibility |
 |-------|----------------|
 | `layoutSlice` | Pages, sections, elements, selection, zoom, grid snapping |
+| `clipboardSlice` | Copy / cut / paste of elements and styles |
 | `historySlice` | Undo/redo stack (array of page snapshots) |
 | `uiSlice` | Panel visibility, preview mode, live preview, auto-save timestamp |
 | `schemaSlice` | Data schema — master/detail groups + fields with ScalarDB column bindings |
@@ -73,6 +74,7 @@ Single Zustand store composed from 11 slices via immer middleware. Import via `u
 | `tenantSlice` | Tenant metadata (company name, address, phone, logo) |
 | `productSlice` | Product master catalog (SKU, price, tax, custom fields) |
 | `authSlice` | User login/session state |
+| `adminSlice` | Admin user list and server-config state |
 | `computedSlice` | Derived selectors only (no state) |
 
 Key selectors exported from the store:
@@ -119,8 +121,8 @@ One flag drives every design-vs-preview difference: **`readonly`** (`false` = de
 
 ### Types (`src/types/index.ts`)
 
-`ReportElement` is a discriminated union on `type` (28 active types grouped by category):
-- **Text/Labels**: `text`, `label`
+`ReportElement` is a discriminated union on `type` (24 active types grouped by category; `label` / `table` are deprecated and auto-migrated to `text` / `formTable`):
+- **Text**: `text`
 - **Data display**: `dataField`, `chart`, `repeatingBand`, `repeatingList`
 - **Table**: `formTable`
 - **Shapes/Media**: `shape`, `image`, `barcode`

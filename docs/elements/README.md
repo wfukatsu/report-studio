@@ -82,7 +82,7 @@ tenantCompanyName, tenantAddress, tenantPhone,
 tenantRepresentative, tenantLogo, tenantCustom
 ```
 
-全 23 種（`label` と `table` は廃止済みで `text` / `formTable` に統合）。
+全 24 種（`label` と `table` は廃止済みで `text` / `formTable` に統合）。
 
 ## 廃止済み要素
 
