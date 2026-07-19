@@ -893,8 +893,17 @@ public final class SectionRenderHelper {
     }
 
     private static String resolveKind(JsonNode el) {
+        String type = PdfUtils.textOf(el, "type", "");
+        // The V2 `barcode` element carries a `kind` field that is a barcode
+        // FORMAT (qr / code128 / code39 / jan13), not an element kind. Left to
+        // the generic rule below it would shadow the type and route to a
+        // non-existent "code128" renderer (blank box) — issue #182. Map it to
+        // the actual renderer kind here instead.
+        if ("barcode".equals(type)) {
+            return "qr".equalsIgnoreCase(PdfUtils.textOf(el, "kind", "")) ? "qrcode" : "barcode";
+        }
         String kind = PdfUtils.textOf(el, "kind", "");
-        return kind.isEmpty() ? PdfUtils.textOf(el, "type", "") : kind;
+        return kind.isEmpty() ? type : kind;
     }
 
     /**

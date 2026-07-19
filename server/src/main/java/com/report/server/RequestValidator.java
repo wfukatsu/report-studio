@@ -307,13 +307,18 @@ public final class RequestValidator {
                 if (elements == null || !elements.isArray()) continue;
                 for (JsonNode el : elements) {
                     // V1 uses "kind", V2 uses "type"
+                    String type = el.has("type") ? el.get("type").asText("") : "";
                     String kind = el.has("kind") ? el.get("kind").asText("") : "";
-                    if (kind.isEmpty()) {
-                        kind = el.has("type") ? el.get("type").asText("") : "";
-                    }
-                    if (!kind.isEmpty() && !KNOWN_ELEMENT_KINDS.contains(kind)) {
+                    String effective = !kind.isEmpty() ? kind : type;
+                    // The `kind` field can be an element-specific discriminator
+                    // rather than an element kind (e.g. the barcode element's
+                    // format qr/code128/…). When the authoritative V2 `type` is a
+                    // known kind, accept the element even if `kind` isn't — issue #182.
+                    if (!effective.isEmpty()
+                            && !KNOWN_ELEMENT_KINDS.contains(effective)
+                            && !KNOWN_ELEMENT_KINDS.contains(type)) {
                         // Sanitize for safe error message
-                        String safe = kind.length() > 50 ? kind.substring(0, 50) : kind;
+                        String safe = effective.length() > 50 ? effective.substring(0, 50) : effective;
                         return safe.replaceAll("[^a-zA-Z0-9_-]", "?");
                     }
                 }

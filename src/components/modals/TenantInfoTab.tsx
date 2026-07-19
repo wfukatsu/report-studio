@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import type { TenantInfo } from '@/types'
-import { isSafeImageSrc } from '@/lib/exportUtils'
+import { TenantLogoField } from '@/components/common/TenantLogoField'
 import { PropRow } from '@/elements/_base/sharedUI'
 
-const MAX_RASTER_SIZE = 2 * 1024 * 1024 // 2 MB
 const MAX_CUSTOM_FIELDS = 20
 
 export function TenantInfoTab() {
@@ -17,34 +16,11 @@ export function TenantInfoTab() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const customEntries = Object.entries(form.custom ?? {})
 
   function setField<K extends keyof TenantInfo>(key: K, value: TenantInfo[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (file.size > MAX_RASTER_SIZE) {
-      alert('ファイルサイズが 2MB を超えています。')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      if (!isSafeImageSrc(dataUrl)) {
-        alert('安全でない画像形式です。PNG/JPG/GIF/WebP を使用してください。')
-        return
-      }
-      setField('logoBase64', dataUrl)
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ''
   }
 
   function addCustomField() {
@@ -172,36 +148,10 @@ export function TenantInfoTab() {
       {/* Logo */}
       <section>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">ロゴ画像</p>
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="py-1.5 px-3 text-xs text-blue-600 hover:text-blue-800 border border-dashed rounded hover:bg-blue-50 transition-colors w-fit"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            ファイルを選択... (PNG/JPG/WebP, 最大 2MB)
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".png,.jpg,.jpeg,.gif,.webp"
-            className="hidden"
-            onChange={handleLogoUpload}
-          />
-          {form.logoBase64 && isSafeImageSrc(form.logoBase64) && (
-            <div className="flex items-center gap-3">
-              <div className="border rounded p-1 bg-muted/30 w-20 h-12 flex items-center justify-center">
-                <img src={form.logoBase64} alt="ロゴプレビュー" className="max-w-full max-h-full object-contain" />
-              </div>
-              <button
-                type="button"
-                className="text-xs text-red-500 hover:text-red-700"
-                onClick={() => setField('logoBase64', undefined)}
-              >
-                削除
-              </button>
-            </div>
-          )}
-        </div>
+        <TenantLogoField
+          value={form.logoBase64}
+          onChange={(dataUrl) => setField('logoBase64', dataUrl)}
+        />
       </section>
 
       {/* Custom fields */}

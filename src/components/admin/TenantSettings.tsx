@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useReportStore } from '@/store/reportStore'
 import { AlertBanner } from '@/components/common/AlertBanner'
+import { TenantLogoField } from '@/components/common/TenantLogoField'
 import type { TenantInfo } from '@/types'
 
 export function TenantSettings() {
@@ -146,6 +147,13 @@ export function TenantSettings() {
             value={form.representativeName ?? ''}
             onChange={(e) => setField('representativeName', e.target.value)}
             placeholder="山田 太郎"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">ロゴ画像</label>
+          <TenantLogoField
+            value={form.logoBase64}
+            onChange={(dataUrl) => setField('logoBase64', dataUrl)}
           />
         </div>
       </div>
