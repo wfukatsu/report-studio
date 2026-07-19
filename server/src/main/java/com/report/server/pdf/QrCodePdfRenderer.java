@@ -32,8 +32,9 @@ public final class QrCodePdfRenderer implements ElementPdfRenderer {
     public void render(PDPageContentStream cs, JsonNode el, float x, float y,
                        float w, float h, float pageHeight, PDDocument doc,
                        Map<String, PDFont> fontCache) throws IOException {
-        JsonNode props = el.get("props");
-        String value = props != null ? textOf(props, "value", "") : "";
+        // Accept both the V1 projection shape ({@code props.value}) and the V2
+        // element shape (top-level {@code el.value}) via elementTextOf (issue #182).
+        String value = elementTextOf(el, "value", "");
         if (value.isEmpty()) {
             renderBorder(cs, x, y, w, h);
             return;

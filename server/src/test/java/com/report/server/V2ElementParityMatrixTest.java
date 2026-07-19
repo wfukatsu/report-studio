@@ -162,4 +162,56 @@ class V2ElementParityMatrixTest {
         assertFalse(probe.pageContains(0, "PAGE2TEXT"), "page 2 must not bleed onto page 1");
         assertTrue(probe.pageContains(1, "PAGE2TEXT"));
     }
+
+    @Test
+    void v2Barcode_acceptedByValidator_andRoutesToRenderer_notBlankFallback() throws Exception {
+        // #182: the barcode element's discriminator field is named `kind`
+        // (qr/code128/…) — a FORMAT, not an element kind. Regression guard for
+        // two failures: (1) the stateless validator rejecting it as an unknown
+        // element type, and (2) resolveKind routing it to the blank fallback box
+        // instead of Barcode/QrCodePdfRenderer. The parity test above only
+        // checks registry membership, which does not exercise this path.
+        String barcodeTemplate = """
+            {
+              "id":"def-bc","metadata":{"documentName":"Barcode"},
+              "pageSettings":{"paperSize":"A4","orientation":"portrait",
+                              "margins":{"top":20,"right":20,"bottom":20,"left":20},"unit":"mm"},
+              "pages":[{
+                "id":"p1","name":"ページ 1","width":210,"height":297,
+                "sections":[{"id":"s1","sectionType":"body","height":297,"elements":[
+                  {"id":"b1","type":"barcode","kind":"code128","value":"HELLO123",
+                   "position":{"x":20,"y":20},"size":{"width":60,"height":20}},
+                  {"id":"q1","type":"barcode","kind":"qr","value":"https://example.com",
+                   "position":{"x":20,"y":60},"size":{"width":40,"height":40}}
+                ]}]
+              }]
+            }""";
+
+        // (1) The stateless PDF/Excel validator must accept the barcode/QR template.
+        JsonNode request = MAPPER.readTree("{\"template\":" + barcodeTemplate + "}");
+        assertNull(RequestValidator.validatePdfGenerateRequest(request),
+                "barcode/QR template must not be rejected as an unknown element type (#182)");
+
+        // (2) Both elements must actually render (many filled rectangles), not
+        // the single-rectangle blank fallback box.
+        JsonNode def = MAPPER.readTree(barcodeTemplate);
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(
+                V2RenderSupport.prepare(def, null, null)));
+        assertEquals(1, probe.pageCount());
+
+        // Differential check against a control whose barcode/QR values are empty
+        // (each draws only a single fallback border rectangle). The real render
+        // emits far more graphics operators, so its content stream is much
+        // longer — format-agnostic and robust to PDFBox operator formatting.
+        String blankTemplate = barcodeTemplate.replace("\"HELLO123\"", "\"\"")
+                                               .replace("\"https://example.com\"", "\"\"");
+        PdfProbe blank = PdfProbe.parse(PdfRenderer.renderDefinition(
+                V2RenderSupport.prepare(MAPPER.readTree(blankTemplate), null, null)));
+        int rendered = probe.pageContent(0).length();
+        int fallback = blank.pageContent(0).length();
+        assertTrue(rendered > fallback * 3,
+                "barcode + QR should draw many graphics ops (rendered=" + rendered
+                        + " vs blank-fallback=" + fallback
+                        + "); comparable size indicates the #182 blank-fallback regression");
+    }
 }

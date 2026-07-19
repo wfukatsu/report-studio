@@ -33,15 +33,19 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
     public void render(PDPageContentStream cs, JsonNode el, float x, float y,
                        float w, float h, float pageHeight, PDDocument doc,
                        Map<String, PDFont> fontCache) throws IOException {
-        JsonNode props = el.get("props");
-        String value = props != null ? textOf(props, "value", "") : "";
+        // Accept both the V1 projection shape ({@code props.value/props.format})
+        // and the V2 element shape ({@code el.value} + {@code el.kind} as the
+        // format) via elementTextOf, which reads top-level first then props
+        // (issue #182).
+        String value = elementTextOf(el, "value", "");
         if (value.isEmpty()) {
             renderBorder(cs, x, y, w, h);
             return;
         }
 
         try {
-            String format = props != null ? textOf(props, "format", "CODE_128") : "CODE_128";
+            String format = elementTextOf(el, "format", "");
+            if (format.isEmpty()) format = textOf(el, "kind", "CODE_128");
             BarcodeFormat bf = toBarcodeFormat(format);
             BitMatrix matrix = new MultiFormatWriter().encode(value, bf, (int) (w / MM_TO_PT * 3), (int) (h / MM_TO_PT * 3));
 
@@ -66,7 +70,7 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
     private static BarcodeFormat toBarcodeFormat(String format) {
         return switch (format.toUpperCase().replace("-", "_")) {
             case "CODE39", "CODE_39" -> BarcodeFormat.CODE_39;
-            case "EAN13", "EAN_13" -> BarcodeFormat.EAN_13;
+            case "JAN13", "JAN_13", "EAN13", "EAN_13" -> BarcodeFormat.EAN_13;
             case "EAN8", "EAN_8" -> BarcodeFormat.EAN_8;
             case "UPC", "UPC_A" -> BarcodeFormat.UPC_A;
             case "ITF14", "ITF_14", "ITF" -> BarcodeFormat.ITF;
