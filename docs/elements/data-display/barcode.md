@@ -1,12 +1,14 @@
-# バーコード (barcode)
+# バーコード / QRコード (barcode)
 
-QR コードおよび 1D バーコード（CODE128 / CODE39 / JAN13）を描画する要素。パレット上は QR 用とバーコード用の 2 項目がありますが、いずれも同一の `barcode` 型です。
+QRコード・CODE128・CODE39・JAN13（EAN-13）を描画する要素。エンコード値は静的文字列でも `{{fieldKey}}` トークンでのデータバインドでも指定できる。
+
+![バーコード / QRコード の操作デモ](../_media/barcode.gif)
 
 - **ElementType**: `barcode`
-- **パレット**:
-  - データ表示 → `QRコード`（`createBarcodeElement()`、`kind: 'qr'`）
-  - データ表示 → `バーコード`（`createBarcodeCode128Element()`、`kind: 'code128'`）
-- **Renderer**: `src/elements/barcode/Renderer.tsx`（内部で `_blocks/renderers/BarcodeContent.tsx` を使用）
+- **パレット**: データ表示 → `QRコード` / `バーコード`
+- **ファクトリ**: `createBarcodeElement()`（QR用）・`createBarcodeCode128Element()`（CODE128用） (`src/lib/elementFactories.ts`)
+- **Renderer**: `src/elements/barcode/Renderer.tsx`
+- **PropertiesPanel**: `src/elements/barcode/PropertiesPanel.tsx`
 
 ## 型定義
 
@@ -16,88 +18,91 @@ export type BarcodeKind = 'qr' | 'code128' | 'code39' | 'jan13'
 export interface BarcodeElement extends ElementBase {
   type: 'barcode'
   kind: BarcodeKind
-  value: string                                     // {{token}} 展開可
-  errorCorrection?: 'L' | 'M' | 'Q' | 'H'           // QR のみ
+  /** エンコード値 ({{token}} 可) */
+  value: string
+  errorCorrection?: 'L' | 'M' | 'Q' | 'H'
   darkColor?: string
   lightColor?: string
   showText?: boolean
 }
 ```
 
-## プロパティ
+`ElementBase` から `id` / `position` / `size` / `zIndex` / `visible` / `locked` などの共通プロパティを継承する。描画サイズは要素の `size.width` / `size.height`（mm）から算出される。
 
-| プロパティ | 型 | 必須 | 既定値 | 説明 |
+## 設定可能なプロパティ（全網羅）
+
+すべて単一の PropSection「バーコード」内に並ぶ。
+
+| UIラベル | プロパティ | 型 | 既定値 | 説明・効果 |
 |---|---|---|---|---|
-| `kind` | `BarcodeKind` | ○ | パレットで決定 | バーコード種別。 |
-| `value` | string | ○ | パレット依存 | エンコード値。`{{token}}` でデータ埋め込み可能。 |
-| `errorCorrection` | `'L'\|'M'\|'Q'\|'H'` | ー | `'M'` | QR 誤り訂正レベル（QR のみ利用）。 |
-| `darkColor` | string? | ー | `'#000000'` | 暗パターン色。 |
-| `lightColor` | string? | ー | `'#ffffff'` | 明パターン色。 |
-| `showText` | boolean? | ー | `'qr' → false` / `'code128' → true` | 下部に値文字列を表示するか。 |
+| 種別 | `kind` | `'qr' \| 'code128' \| 'code39' \| 'jan13'` | ファクトリ依存（QR:`qr` / バーコード:`code128`） | セレクトで QRコード / CODE128 / CODE39 / JAN13 (EAN-13) を選択。QR のときのみ「誤り訂正レベル」行が出現する。 |
+| 値 / フィールドキー | `value` | `string` | ファクトリ依存 | `FieldKeyInput` に静的値または `{{fieldKey}}` トークンを入力。トークンは描画時に `interpolate` でデータ解決される。プレースホルダ `値または {{fieldKey}}`。 |
+| 誤り訂正レベル | `errorCorrection` | `'L' \| 'M' \| 'Q' \| 'H'` | `'M'` | **`kind === 'qr'` のときのみ表示**。L（低）/ M（中）/ Q（高）/ H（最高）。QR の冗長度を決める。 |
+| バーコード色 | `darkColor` | `string` | `'#000000'` | `ColorInput`。QR の前景色 / バーコードの線色。 |
+| 背景色 | `lightColor` | `string` | `'#ffffff'` | `ColorInput`。QR / バーコードの背景色。 |
+| テキスト表示 | `showText` | `boolean` | `true`（UI 既定） | チェックボックス。CODE128/CODE39/JAN13 でバーの下に値テキストを表示するか（`displayValue`）。**QR には影響しない**（QR は常にテキスト非表示）。 |
 
-## デフォルト値（ファクトリ）
+## 既定値（ファクトリ）
 
-```ts
-// createBarcodeElement (QR)
-size:     { width: 30, height: 30 }
-kind:     'qr'
-value:    'https://example.com'
-errorCorrection: 'M'
-darkColor: '#000000'
-lightColor: '#ffffff'
-showText:  false
+このパレットカテゴリには 2 つのファクトリが対応する。
 
-// createBarcodeCode128Element
-size:     { width: 60, height: 15 }
-kind:     'code128'
-value:    '0000000000'
-showText:  true
-```
+### `createBarcodeElement()`（パレット「QRコード」）
+
+| プロパティ | 値 |
+|---|---|
+| `type` | `'barcode'` |
+| `position` | `{ x: 13, y: 13 }` |
+| `size` | `{ width: 30, height: 30 }` |
+| `zIndex` / `visible` / `locked` | `1` / `true` / `false` |
+| `kind` | `'qr'` |
+| `value` | `'https://example.com'` |
+| `errorCorrection` | `'M'` |
+| `darkColor` | `'#000000'` |
+| `lightColor` | `'#ffffff'` |
+| `showText` | `false` |
+
+### `createBarcodeCode128Element()`（パレット「バーコード」）
+
+| プロパティ | 値 |
+|---|---|
+| `type` | `'barcode'` |
+| `position` | `{ x: 13, y: 13 }` |
+| `size` | `{ width: 60, height: 15 }` |
+| `zIndex` / `visible` / `locked` | `1` / `true` / `false` |
+| `kind` | `'code128'` |
+| `value` | `'0000000000'` |
+| `darkColor` | `'#000000'` |
+| `lightColor` | `'#ffffff'` |
+| `showText` | `true` |
+
+`code128` ファクトリは `errorCorrection` を持たない（QR 専用のため）。
 
 ## レンダリング挙動
 
-1. `value` 中の `{{token}}` を `useDataResolver` で置換。
-2. `BarcodeContent` ブロックで種別に応じたライブラリを呼び出し：
-   - `qr`: QR 生成。`errorCorrection` を指定。
-   - `code128` / `code39` / `jan13`: 1D バーコード生成。`showText` が true なら下部にテキスト行。
-3. 正方比率が重要な `qr` 以外は自由なアスペクト比で描画可能。
+- **値解決**: `interpolate(el.value, data)` で `{{token}}` を解決してから `BarcodeContent` に渡す。
+- **空値フォールバック**: 解決後が空文字なら種別ごとの既定値（QR:`https://example.com`, code128:`0000000000`, code39:`HELLO`, jan13:`4902778913406`）を使う。
+- **サニタイズ**（JsBarcode は不正文字で例外を投げるため描画前に整形）:
+  - `code39`: 大文字化し、許可文字（A-Z・0-9・空白・`- . $ / + %`）以外を除去。空になれば既定値 `HELLO`。
+  - `jan13`: 数字以外を除去し、12〜13 桁でなければ既定値にフォールバック、13 桁に切り詰め。
+- **QR 描画**（`qrcode.react` の `QRCodeSVG`）: 一辺 = `min(width, height) × MM_TO_PX` の正方形。前景 `darkColor`、背景 `lightColor`、`level=errorCorrection`。中央寄せ。`showText` は無関係。
+- **1次元バーコード描画**（`react-barcode` / JsBarcode, CODE128/CODE39/EAN13）: `format` は `code128→CODE128` / `code39→CODE39` / `jan13→EAN13` にマップ。`width=1.2`、`height=size.height × MM_TO_PX × 0.75`、`displayValue=showText`、`lineColor=darkColor`、`background=lightColor`、`margin=2`、`fontSize=8`。中央寄せ・はみ出しは `overflow: hidden`。
 
-## バリデーション
+## 操作手順（GIF デモの流れ）
 
-- `jan13` は 12 or 13 桁の数値文字列を要求。不正値は赤字エラー表示（エディタ上）。
-- `code39` は `A-Z`, `0-9`, `-` `.` `$` `/` `+` `%` スペースのみ許可。
+1. パレットの「データ表示 → QRコード」をキャンバスにドラッグし、QRコード要素を追加する（初期値 `https://example.com`）。
+2. プロパティパネル「バーコード」→「種別」を `QRコード` → `CODE128` → `CODE39` → `JAN13 (EAN-13)` の順に切り替え、描画が変わることを確認する（QR 選択時のみ「誤り訂正レベル」行が現れる）。
+3. 「値 / フィールドキー」に静的値（例: `4902778913406`）を入力して描画を確認し、続けて `{{order.id}}` のようなトークンを入力してデータバインドできることを確認する。
+4. 種別を `QRコード` に戻し、「誤り訂正レベル」を `L（低）` → `M（中）` → `Q（高）` → `H（最高）` と切り替え、QR の密度が変わることを確認する。
+5. 「バーコード色」を任意の色（例: `#003366`）に変更し、前景/線色が変わることを確認する。
+6. 「背景色」を任意の色（例: `#f5f5f5`）に変更し、背景色が変わることを確認する。
+7. 種別を `CODE128` にして「テキスト表示」チェックを外し、バー下の数字が消えることを確認してから戻す（QR ではこのチェックは効かない）。
 
-## 典型的な使用例
+## スクリーンショット
 
-### QR コードにシリアル番号を埋め込み
-```ts
-createBarcodeElement({
-  kind: 'qr',
-  value: '{{product.serial}}',
-  errorCorrection: 'H',
-  size: { width: 25, height: 25 },
-})
-```
-
-### JAN13 商品コード
-```ts
-createBarcodeElement({
-  kind: 'jan13',
-  value: '4901234567894',
-  showText: true,
-  size: { width: 40, height: 18 },
-})
-```
-
-## PropertiesPanel の項目
-
-- 種別（qr / code128 / code39 / jan13）
-- `value` 入力（`{{token}}` 展開のプレビュー表示）
-- `errorCorrection`（QR のみ）
-- `darkColor`, `lightColor`
-- `showText`
+![バーコード / QRコード の設定例](../_media/barcode.png)
 
 ## 関連要素
 
-- [データフィールド (dataField)](../text/dataField.md) — 同一値をテキストで併置したい場合
-- [画像 (image)](../shape-image/image.md) — 既成のバーコード画像を使う場合
+- ハンコ (hanko) — 印影の描画
+- 画像 (image) — 画像・ロゴの配置
+- データフィールド (dataField) — 単一値のバインド表示
