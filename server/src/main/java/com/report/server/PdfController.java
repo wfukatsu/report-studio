@@ -2,7 +2,6 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,15 +14,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Handles POST /api/v1/templates/{id}/pdf.
+ * Handles POST /api/v2/templates/{id}/pdf.
  *
  * <p>Pipeline:
  * <ol>
- *   <li>Parse + validate request body (optional projection override)</li>
- *   <li>Validate variantId if provided</li>
- *   <li>Enrich _formData via CalculationEngine</li>
- *   <li>Pre-flight FieldConstraint validation via ValidationEngine</li>
- *   <li>Render PDF asynchronously with 30-second timeout</li>
+ *   <li>Load V2 template definition from {@code v2_definitions} repository</li>
+ *   <li>Parse optional request body for {@code testData} + {@code variantId}</li>
+ *   <li>Validate {@code variantId} against {@code outputVariants} if provided</li>
+ *   <li>Prepare the V2 definition ({@link V2RenderSupport}) — enrich data via
+ *       {@link CalculationEngine}, attach control keys</li>
+ *   <li>Render the definition natively ({@link PdfRenderer#renderDefinition}) with a 30-second timeout</li>
  * </ol>
  */
 public final class PdfController {
@@ -32,128 +32,108 @@ public final class PdfController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int TIMEOUT_SECONDS = 30;
 
-    private final ProjectionRepository projRepo;
+    private final JsonBlobRepository definitionsRepo;
     private final ExecutorService pdfExecutor;
 
-    public PdfController(ProjectionRepository projRepo, ExecutorService pdfExecutor) {
-        this.projRepo = projRepo;
+    public PdfController(JsonBlobRepository definitionsRepo, ExecutorService pdfExecutor) {
+        this.definitionsRepo = definitionsRepo;
         this.pdfExecutor = pdfExecutor;
     }
 
+    /**
+     * POST /api/v2/templates/{id}/pdf
+     * Body (optional JSON): {@code { testData?: {key: value}, variantId?: string }}
+     * Returns: PDF bytes with {@code Content-Disposition: attachment}.
+     */
     public void generate(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
         if (templateId == null) return;
 
-        String projectionJson = resolveProjection(ctx, templateId);
-        if (projectionJson == null) return; // error already written
+        // Load definition envelope
+        var stored = definitionsRepo.get(templateId);
+        if (stored.isEmpty()) {
+            ctx.status(404);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
 
-        projectionJson = applyVariantId(ctx, projectionJson);
-        if (projectionJson == null) return;
+        JsonNode envelope;
+        try {
+            envelope = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            ctx.status(500);
+            ctx.json(Map.of("error", "Failed to read template"));
+            return;
+        }
 
-        projectionJson = enrichWithCalculations(ctx, templateId, projectionJson);
-        if (projectionJson == null) return;
+        JsonNode definition = envelope.path("definition");
+        if (definition.isMissingNode()) {
+            ctx.status(404);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
+        }
 
-        if (!validateConstraints(ctx, projectionJson)) return;
-
-        renderAndRespond(ctx, templateId, projectionJson);
-    }
-
-    // ── private helpers ────────────────────────────────────────────────────────
-
-    /** Returns the projection JSON to use: request body override or stored projection. */
-    private String resolveProjection(Context ctx, String templateId) throws Exception {
+        // Parse optional request body
+        JsonNode testData = null;
+        String variantId = null;
         String body = ctx.body();
-        if (body != null && !body.isBlank() && body.startsWith("{")) {
+        if (body != null && !body.isBlank()) {
+            JsonNode req;
             try {
-                var parsed = MAPPER.readTree(body);
-                if (!parsed.has("templates") || !parsed.get("templates").isArray()) {
-                    ctx.status(400);
-                    ctx.json(Map.of("error", "Invalid projection: 'templates' array required"));
-                    return null;
-                }
+                req = MAPPER.readTree(body);
             } catch (Exception e) {
                 ctx.status(400);
                 ctx.json(Map.of("error", "Invalid JSON in request body"));
-                return null;
+                return;
             }
-            return body;
+            JsonNode td = req.path("testData");
+            if (!td.isMissingNode() && !td.isNull()) testData = td;
+            String vid = req.path("variantId").asText(null);
+            if (vid != null && !vid.isBlank()) variantId = vid;
         }
-        return projRepo.getProjection(templateId).orElse("{\"templates\":[]}");
-    }
 
-    /** Validates variantId query param and injects _variantId into the projection. */
-    private String applyVariantId(Context ctx, String projectionJson) throws Exception {
-        String variantId = ctx.queryParam("variantId");
-        if (variantId == null || variantId.isBlank()) return projectionJson;
-
-        try {
-            var parsed = MAPPER.readTree(projectionJson);
+        // Validate variantId if provided
+        if (variantId != null) {
             boolean found = false;
-            outer:
-            for (JsonNode variantTmpl : parsed.path("templates")) {
-                for (JsonNode v : variantTmpl.path("variants")) {
-                    if (variantId.equals(v.path("variantId").asText(null))) {
+            JsonNode variants = definition.path("outputVariants");
+            if (variants.isArray()) {
+                for (JsonNode v : variants) {
+                    if (variantId.equals(v.path("id").asText(null))) {
                         found = true;
-                        break outer;
+                        break;
                     }
                 }
             }
             if (!found) {
                 ctx.status(400);
                 ctx.json(Map.of("error", "Unknown variantId: " + variantId));
-                return null;
+                return;
             }
-            var rootNode = (ObjectNode) MAPPER.readTree(projectionJson);
-            rootNode.put("_variantId", variantId);
-            return rootNode.toString();
-        } catch (Exception e) {
-            ctx.status(400);
-            ctx.json(Map.of("error", "Invalid projection JSON during variant validation"));
-            return null;
         }
-    }
 
-    /** Enriches _formData with CalculationRule results. Falls back on failure. */
-    private String enrichWithCalculations(Context ctx, String templateId, String projectionJson) {
+        // Prepare the V2 definition for native rendering (issue #52)
+        String definitionJson;
         try {
-            var projNode = (ObjectNode) MAPPER.readTree(projectionJson);
-            JsonNode formDataNode = projNode.path("_formData");
-            var enriched = CalculationEngine.apply(
-                projNode, formDataNode.isMissingNode() ? null : formDataNode);
-            projNode.set("_formData", MAPPER.valueToTree(enriched));
-            return MAPPER.writeValueAsString(projNode);
-        } catch (CircularDependencyException e) {
-            ctx.status(422);
-            ctx.json(Map.of("error", "circular_dependency", "cycle", e.getCycle()));
-            return null;
+            definitionJson = V2RenderSupport.prepare(definition, testData, variantId);
         } catch (Exception e) {
-            log.warn("CalculationEngine enrichment failed for template {}: {}", templateId, e.getMessage());
-            return projectionJson; // fall back to unenriched
+            log.error("Failed to prepare V2 definition for template {}: {}", templateId, e.getMessage());
+            ctx.status(500);
+            ctx.json(Map.of("error", "Failed to prepare definition"));
+            return;
         }
+
+        renderAndRespond(ctx, templateId, definitionJson);
     }
 
-    /** Returns false (and writes error) if there are error-severity validation violations. */
-    private boolean validateConstraints(Context ctx, String projectionJson) {
-        var violations = ValidationEngine.validate(projectionJson);
-        var errors = violations.stream()
-                .filter(v -> "error".equals(v.severity()))
-                .toList();
-        if (!errors.isEmpty()) {
-            ctx.status(422);
-            ctx.json(Map.of("error", "Validation failed", "violations", errors));
-            return false;
-        }
-        return true;
-    }
+    // ── private helpers ────────────────────────────────────────────────────────
 
-    /** Renders PDF asynchronously and writes result to response. */
-    private void renderAndRespond(Context ctx, String templateId, String projectionJson) {
-        final String projJson = projectionJson;
+    private void renderAndRespond(Context ctx, String templateId, String definitionJson) {
+        final String defJson = definitionJson;
         try {
             byte[] pdfBytes = CompletableFuture
                     .supplyAsync(() -> {
                         try {
-                            return PdfRenderer.render(projJson);
+                            return PdfRenderer.renderDefinition(defJson);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -161,15 +141,15 @@ public final class PdfController {
                     .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             ctx.contentType("application/pdf");
             ctx.header("Content-Disposition",
-                "attachment; filename=\"template-" + templateId + ".pdf\"");
+                    "attachment; filename=\"template-" + templateId + ".pdf\"");
             ctx.result(pdfBytes);
-            log.info("Generated PDF for template: {} ({} bytes)", templateId, pdfBytes.length);
+            log.info("Generated V2 PDF for template {} ({} bytes)", templateId, pdfBytes.length);
         } catch (TimeoutException e) {
-            log.error("PDF generation timed out for template {}", templateId);
+            log.error("V2 PDF generation timed out for template {}", templateId);
             ctx.status(504);
             ctx.json(Map.of("error", "PDF generation timed out (30s limit)"));
         } catch (Exception e) {
-            log.error("PDF generation failed for template {}", templateId, e);
+            log.error("V2 PDF generation failed for template {}", templateId, e);
             ctx.status(500);
             ctx.json(Map.of("error", "PDF generation failed"));
         }

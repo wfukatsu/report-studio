@@ -170,7 +170,13 @@ export function createDataFieldFromSchema(field): ReportElement {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![データフィールド の設定例](../_media/dataField.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![データフィールド のプレビュー表示](../_media/dataField-preview.png)
 
 ## 関連要素
 

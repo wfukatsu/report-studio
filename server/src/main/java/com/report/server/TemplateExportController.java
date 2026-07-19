@@ -2,8 +2,8 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -13,360 +13,310 @@ import org.slf4j.LoggerFactory;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.*;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Template export/import controller.
- * Exports a complete template package (.rds.json) containing projection, schema, and metadata.
- * On import, regenerates all IDs to prevent collisions.
+ * V2 template export/import endpoints:
+ * <ul>
+ *   <li>GET  /api/v2/templates/{id}/export  — download as {@code .rds2.json}</li>
+ *   <li>POST /api/v2/templates/import       — upload {@code .rds2.json}, regenerate all IDs</li>
+ * </ul>
+ *
+ * Export format:
+ * <pre>{@code
+ * {
+ *   "formatVersion": 2,
+ *   "exportedAt": "<ISO-8601>",
+ *   "definition": { ...ReportDefinition... }
+ * }
+ * }</pre>
+ *
+ * On import, the definition gets a brand-new top-level ID and all page/element IDs are
+ * regenerated so importing the same file twice cannot collide.
  */
 public final class TemplateExportController {
 
     private static final Logger log = LoggerFactory.getLogger(TemplateExportController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final int EXPORT_VERSION = 1;
-    private static final int MAX_IMPORT_SIZE = 5_000_000; // 5MB
 
-    private final TemplateListRepository templateList;
-    private final ProjectionRepository projRepo;
-    private final JsonBlobRepository schemaRepo;
-    private final JsonBlobRepository bindingTreeRepo;
-    private final RateLimiter importRateLimiter = new RateLimiter();
+    private static final int FORMAT_VERSION = TemplateEnvelope.CURRENT_FORMAT_VERSION;
+    private static final int MAX_IMPORT_BYTES = 5_000_000; // 5 MB
+    private static final int MAX_NAME_LENGTH = 200;
 
-    public TemplateExportController(
-            TemplateListRepository templateList,
-            ProjectionRepository projRepo,
-            JsonBlobRepository schemaRepo,
-            JsonBlobRepository bindingTreeRepo) {
-        this.templateList = templateList;
-        this.projRepo = projRepo;
-        this.schemaRepo = schemaRepo;
-        this.bindingTreeRepo = bindingTreeRepo;
+    private final JsonBlobRepository definitionsRepo;
+    private final RateLimiter importLimiter;
+
+    public TemplateExportController(JsonBlobRepository definitionsRepo, RateLimiter importLimiter) {
+        this.definitionsRepo = definitionsRepo;
+        this.importLimiter = importLimiter;
     }
 
+    // ── Export ──────────────────────────────────────────────────────────────
+
     /**
-     * GET /api/v1/templates/{id}/export
-     * Exports template as a self-contained JSON package.
+     * GET /api/v2/templates/{id}/export
+     * Streams the template definition as a {@code .rds2.json} file.
      */
-    public void export(Context ctx) {
+    public void export(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
         if (templateId == null) return;
 
-        var metaOpt = templateList.findById(templateId);
-        if (metaOpt.isEmpty()) {
+        var stored = definitionsRepo.get(templateId);
+        if (stored.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Template not found"));
             return;
         }
 
-        var meta = metaOpt.get();
-
-        ObjectNode pkg = MAPPER.createObjectNode();
-        pkg.put("version", EXPORT_VERSION);
-        pkg.put("exportedAt", Instant.now().toString());
-        pkg.put("generator", "report-design-studio");
-
-        ObjectNode template = MAPPER.createObjectNode();
-        template.put("name", meta.name());
-
-        // FormSettings (exclude passwordHash for security)
-        if (meta.formSettings() != null) {
-            ObjectNode fs = MAPPER.createObjectNode();
-            fs.put("published", false); // Always export as unpublished
-            fs.put("defaultMode", meta.formSettings().defaultMode() != null
-                    ? meta.formSettings().defaultMode() : "standard");
-            template.set("formSettings", fs);
+        // Ownership check — consistent with get() / put() / delete() / duplicate().
+        // Returns 404 (not 403) to prevent template ID enumeration.
+        if (!TemplateController.isOwner(ctx, stored.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Template not found"));
+            return;
         }
 
-        setJsonField(template, "projection", projRepo.getProjection(templateId), true);
-        setJsonField(template, "schema", schemaRepo.get(templateId), false);
-        setJsonField(template, "bindingTree", bindingTreeRepo.get(templateId), false);
+        JsonNode envelope;
+        try {
+            envelope = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to read template"));
+            return;
+        }
 
-        pkg.set("template", template);
+        JsonNode definition = envelope.path("definition");
+        if (definition.isMissingNode()) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Template has no definition"));
+            return;
+        }
 
-        // RFC 6266: ASCII fallback + UTF-8 filename*
-        String asciiName = meta.name().replaceAll("[^a-zA-Z0-9\\-_]", "_");
-        String utf8Name = URLEncoder.encode(meta.name(), StandardCharsets.UTF_8).replace("+", "%20");
-        ctx.contentType("application/json; charset=utf-8");
+        String templateName = envelope.path("name").asText("template");
+
+        ObjectNode exportPackage = MAPPER.createObjectNode();
+        exportPackage.put("formatVersion", FORMAT_VERSION);
+        exportPackage.put("exportedAt", Instant.now().toString());
+        exportPackage.set("definition", definition);
+
+        String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(exportPackage);
+        String filename = sanitizeFilename(templateName) + ".rds2.json";
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        ctx.contentType("application/json");
         ctx.header("Content-Disposition",
-                "attachment; filename=\"" + asciiName + ".rds.json\"; filename*=UTF-8''" + utf8Name + ".rds.json");
-        ctx.json(pkg);
-        log.info("Exported template: {} ({})", templateId, meta.name());
+                "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encodedFilename);
+        ctx.result(json);
+        log.info("Exported template {}", templateId);
     }
 
+    // ── Import ───────────────────────────────────────────────────────────────
+
     /**
-     * POST /api/v1/templates/import
-     * Imports a template package, regenerating all IDs.
+     * POST /api/v2/templates/import
+     * Body: export package JSON (max 5 MB).
+     * Returns 201 with {@code {id, name}}.
      */
-    public void importTemplate(Context ctx) {
-        String clientIp = ctx.ip();
-        if (!importRateLimiter.isAllowed(clientIp)) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error", "Too many import attempts. Try again later."));
+    public void importTemplate(Context ctx) throws Exception {
+        Principal principal = ctx.attribute("principal");
+        String userId = (principal != null) ? principal.userId() : "anonymous";
+        if (!importLimiter.isAllowed(userId)) {
+            ctx.status(429);
+            ctx.json(Map.of("error", "Too many import requests"));
             return;
         }
 
         String body = ctx.body();
-        if (body == null || body.length() > MAX_IMPORT_SIZE) {
+        if (body == null || body.isBlank()) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Import file too large (max 5MB)"));
+            ctx.json(Map.of("error", "Request body is required"));
+            return;
+        }
+        if (body.length() > MAX_IMPORT_BYTES) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Import file too large (max 5 MB)"));
             return;
         }
 
+        JsonNode root;
         try {
-            JsonNode pkg = MAPPER.readTree(body);
-
-            // Validate structure and version
-            if (!pkg.has("version") || !pkg.has("template")) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid import format: missing version or template"));
-                return;
-            }
-
-            int version = pkg.get("version").asInt(0);
-            if (version < 1 || version > EXPORT_VERSION) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Unsupported import version: " + version));
-                return;
-            }
-
-            JsonNode templateNode = pkg.get("template");
-            String rawName = templateNode.has("name") ? templateNode.get("name").asText() : "インポート済みテンプレート";
-            String name = rawName.length() > 200 ? rawName.substring(0, 200) : rawName;
-
-            // Create new template entry
-            var meta = templateList.create(name);
-            String actualId = meta.id();
-
-            try {
-                // Process projection with ID remapping
-                if (templateNode.has("projection") && templateNode.get("projection").isObject()) {
-                    JsonNode projection = templateNode.get("projection");
-                    String remappedJson = remapProjectionIds(projection, actualId);
-                    projRepo.putProjection(actualId, remappedJson);
-                }
-
-                // Import schema
-                if (templateNode.has("schema") && !templateNode.get("schema").isNull()) {
-                    schemaRepo.put(actualId, MAPPER.writeValueAsString(templateNode.get("schema")));
-                }
-
-                // Import binding tree
-                if (templateNode.has("bindingTree") && !templateNode.get("bindingTree").isNull()) {
-                    bindingTreeRepo.put(actualId, MAPPER.writeValueAsString(templateNode.get("bindingTree")));
-                }
-
-                // Import form settings
-                if (templateNode.has("formSettings") && templateNode.get("formSettings").isObject()) {
-                    JsonNode fs = templateNode.get("formSettings");
-                    String defaultMode = fs.has("defaultMode") ? fs.get("defaultMode").asText() : "standard";
-                    templateList.updateFormSettings(actualId,
-                            new TemplateListRepository.FormSettings(false, null, defaultMode));
-                }
-            } catch (Exception inner) {
-                // Rollback: remove partial data (best-effort, ignore cleanup errors)
-                log.warn("Import failed after template creation, rolling back: {}", actualId);
-                try { projRepo.deleteProjection(actualId); } catch (Exception ignored) {}
-                try { schemaRepo.delete(actualId); } catch (Exception ignored) {}
-                try { bindingTreeRepo.delete(actualId); } catch (Exception ignored) {}
-                templateList.delete(actualId);
-                throw inner;
-            }
-
-            ctx.status(HttpStatus.CREATED);
-            ctx.json(Map.of("id", actualId, "name", name, "status", "imported"));
-            log.info("Imported template: {} as {}", name, actualId);
-
+            root = MAPPER.readTree(body);
         } catch (Exception e) {
-            log.error("Failed to import template", e);
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Failed to parse import file"));
+            ctx.json(Map.of("error", "Invalid JSON"));
+            return;
+        }
+
+        // Require an explicit envelope at the import boundary; the unwrapper
+        // migrates v1 ($schema marker) bodies and rejects newer versions.
+        var unwrapped = TemplateEnvelope.unwrapStrict(root);
+        if (unwrapped.isError()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", unwrapped.error()));
+            return;
+        }
+        JsonNode definition = unwrapped.definition();
+
+        // Structural validation — same save boundary as PUT (issue #52)
+        var validationError = ReportDefinitionValidator.validate(definition);
+        if (validationError.isPresent()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", validationError.get()));
+            return;
+        }
+
+        // Regenerate all IDs to prevent collisions
+        ObjectNode newDef;
+        try {
+            newDef = remapAllIds(definition.deepCopy());
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Failed to process definition: " + e.getMessage()));
+            return;
+        }
+
+        // Derive name from definition metadata; append "(インポート)" suffix
+        String rawName = newDef.path("metadata").path("documentName").asText("").strip();
+        if (rawName.isEmpty()) rawName = "インポートされたテンプレート";
+        String name = rawName + " (インポート)";
+        if (name.length() > MAX_NAME_LENGTH) name = name.substring(0, MAX_NAME_LENGTH);
+        // Write the updated name back so the sidebar shows it correctly
+        if (newDef.has("metadata") && newDef.get("metadata").isObject()) {
+            ((ObjectNode) newDef.get("metadata")).put("documentName", name);
+        }
+
+        String newId = newDef.path("id").asText();
+        long now = System.currentTimeMillis();
+        String createdBy = userId;
+
+        ObjectNode envNode = MAPPER.createObjectNode();
+        envNode.put("formatVersion", FORMAT_VERSION);
+        envNode.put("id", newId);
+        envNode.put("name", name);
+        envNode.put("created_at", now);
+        envNode.put("updated_at", now);
+        envNode.put("created_by", createdBy);
+        envNode.put("visibility", "private");
+        envNode.set("definition", newDef);
+
+        definitionsRepo.put(newId, MAPPER.writeValueAsString(envNode));
+
+        ctx.status(HttpStatus.CREATED);
+        ctx.json(Map.of("id", newId, "name", name));
+        log.info("Imported template as {} ('{}')", newId, name);
+    }
+
+    // ── ID remapping ─────────────────────────────────────────────────────────
+
+    /**
+     * Regenerates the top-level template ID plus every page and element ID in the definition.
+     * Cross-references inside elements (e.g., group {@code childIds}) are updated to match.
+     */
+    private static ObjectNode remapAllIds(ObjectNode def) {
+        java.util.Map<String, String> idMap = new java.util.HashMap<>();
+
+        // New top-level ID
+        String newTemplateId = UUID.randomUUID().toString();
+        idMap.put(def.path("id").asText(""), newTemplateId);
+        def.put("id", newTemplateId);
+
+        JsonNode pages = def.path("pages");
+        if (!pages.isArray()) return def;
+
+        // First pass: collect old → new mappings for pages and elements
+        for (JsonNode page : pages) {
+            if (!page.isObject()) continue;
+            String oldPageId = page.path("id").asText(null);
+            if (oldPageId != null && !oldPageId.isBlank()) {
+                idMap.put(oldPageId, "page-" + UUID.randomUUID());
+            }
+            // Collect from page.elements (deprecated legacy path)
+            collectElementIds(page.path("elements"), idMap);
+            // Collect from page.sections[].elements (modern path)
+            JsonNode sections = page.path("sections");
+            if (sections.isArray()) {
+                for (JsonNode section : sections) {
+                    if (!section.isObject()) continue;
+                    collectElementIds(section.path("elements"), idMap);
+                }
+            }
+        }
+
+        // Second pass: apply mappings
+        for (JsonNode page : pages) {
+            if (!page.isObject()) continue;
+            ObjectNode pageNode = (ObjectNode) page;
+            String oldPageId = pageNode.path("id").asText(null);
+            if (oldPageId != null && idMap.containsKey(oldPageId)) {
+                pageNode.put("id", idMap.get(oldPageId));
+            }
+            // Remap page.elements (deprecated legacy path)
+            remapElements(pageNode.path("elements"), idMap);
+            // Remap page.sections[].elements (modern path)
+            JsonNode sections = pageNode.path("sections");
+            if (sections.isArray()) {
+                for (JsonNode section : sections) {
+                    if (!section.isObject()) continue;
+                    remapElements(section.path("elements"), idMap);
+                }
+            }
+        }
+
+        return def;
+    }
+
+    /** Collect element IDs from a JSON array of elements into the idMap. */
+    private static void collectElementIds(JsonNode elements, java.util.Map<String, String> idMap) {
+        if (!elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!el.isObject()) continue;
+            String oldElId = el.path("id").asText(null);
+            if (oldElId != null && !oldElId.isBlank()) {
+                idMap.put(oldElId, "el-" + UUID.randomUUID());
+            }
         }
     }
 
-    /**
-     * Read an optional JSON blob and set it on the target node.
-     * On parse failure, logs a warning and sets a fallback (empty object or null).
-     */
-    private void setJsonField(ObjectNode target, String field, Optional<String> raw, boolean emptyAsObject) {
-        if (raw.isPresent()) {
-            try {
-                target.set(field, MAPPER.readTree(raw.get()));
-            } catch (Exception e) {
-                log.warn("Failed to parse {} for export", field);
-                if (emptyAsObject) {
-                    target.set(field, MAPPER.createObjectNode());
-                } else {
-                    target.putNull(field);
-                }
+    /** Apply ID remapping to a JSON array of elements. */
+    private static void remapElements(JsonNode elements, java.util.Map<String, String> idMap) {
+        if (!elements.isArray()) return;
+        for (JsonNode el : elements) {
+            if (!el.isObject()) continue;
+            ObjectNode elNode = (ObjectNode) el;
+            String oldElId = elNode.path("id").asText(null);
+            if (oldElId != null && idMap.containsKey(oldElId)) {
+                elNode.put("id", idMap.get(oldElId));
             }
-        } else {
-            if (emptyAsObject) {
-                target.set(field, MAPPER.createObjectNode());
-            } else {
-                target.putNull(field);
-            }
+            remapElementReferences(elNode, idMap);
         }
     }
 
-    /**
-     * Remap all IDs in projection to new UUIDs, updating internal references
-     * including cross-references in element props (e.g., group childIds).
-     */
-    private String remapProjectionIds(JsonNode projection, String newTemplateId) throws Exception {
-        // Mutate in-place — the parsed request tree is discarded after serialization
-        ObjectNode root = (ObjectNode) projection;
-        JsonNode templates = root.get("templates");
-        if (templates == null || !templates.isArray()) return MAPPER.writeValueAsString(root);
-
-        // First pass: build old-to-new ID map for all elements
-        Map<String, String> idMap = new HashMap<>();
-
-        for (JsonNode tmpl : templates) {
-            if (!tmpl.isObject()) continue;
-            JsonNode sections = tmpl.get("sections");
-            if (sections == null || !sections.isArray()) continue;
-            for (JsonNode sec : sections) {
-                if (!sec.isObject()) continue;
-                String oldSecId = sec.has("id") ? sec.get("id").asText() : null;
-                if (oldSecId != null) {
-                    idMap.put(oldSecId, "sec-" + UUID.randomUUID());
-                }
-                JsonNode elements = sec.get("elements");
-                if (elements == null || !elements.isArray()) continue;
-                for (JsonNode el : elements) {
-                    if (!el.isObject()) continue;
-                    String oldElId = el.has("id") ? el.get("id").asText() : null;
-                    if (oldElId != null) {
-                        idMap.put(oldElId, "el-" + UUID.randomUUID());
-                    }
-                }
-            }
-        }
-
-        // Second pass: apply ID remapping
-        for (JsonNode tmpl : templates) {
-            if (!tmpl.isObject()) continue;
-            ((ObjectNode) tmpl).put("id", newTemplateId);
-
-            JsonNode sections = tmpl.get("sections");
-            if (sections == null || !sections.isArray()) continue;
-            for (JsonNode sec : sections) {
-                if (!sec.isObject()) continue;
-                ObjectNode secNode = (ObjectNode) sec;
-                String oldSecId = secNode.has("id") ? secNode.get("id").asText() : null;
-                if (oldSecId != null && idMap.containsKey(oldSecId)) {
-                    secNode.put("id", idMap.get(oldSecId));
-                }
-
-                JsonNode elements = secNode.get("elements");
-                if (elements == null || !elements.isArray()) continue;
-                for (JsonNode el : elements) {
-                    if (!el.isObject()) continue;
-                    ObjectNode elNode = (ObjectNode) el;
-                    String oldElId = elNode.has("id") ? elNode.get("id").asText() : null;
-                    if (oldElId != null && idMap.containsKey(oldElId)) {
-                        elNode.put("id", idMap.get(oldElId));
-                    }
-
-                    // Remap cross-references in props (e.g., group childIds)
-                    remapPropsReferences(elNode, idMap);
-                }
-            }
-        }
-
-        return MAPPER.writeValueAsString(root);
-    }
-
-    /**
-     * Remap ID references within element props.
-     * Handles: childIds (group elements), and any array of strings that match known IDs.
-     */
-    private void remapPropsReferences(ObjectNode element, Map<String, String> idMap) {
-        JsonNode props = element.get("props");
-        if (props == null || !props.isObject()) return;
+    /** Remap ID cross-references within a single element's props. */
+    private static void remapElementReferences(ObjectNode element, java.util.Map<String, String> idMap) {
+        JsonNode props = element.path("props");
+        if (!props.isObject()) return;
         ObjectNode propsNode = (ObjectNode) props;
 
-        // Group elements store child element IDs in childIds
-        JsonNode childIds = propsNode.get("childIds");
-        if (childIds != null && childIds.isArray()) {
-            ArrayNode remapped = MAPPER.createArrayNode();
+        // Group elements store child IDs in childIds
+        JsonNode childIds = propsNode.path("childIds");
+        if (childIds.isArray()) {
+            var remapped = MAPPER.createArrayNode();
             for (JsonNode idNode : childIds) {
-                String oldId = idNode.asText();
-                remapped.add(idMap.getOrDefault(oldId, oldId));
+                String old = idNode.asText();
+                remapped.add(idMap.getOrDefault(old, old));
             }
             propsNode.set("childIds", remapped);
         }
     }
 
-    /**
-     * POST /api/v1/templates/{id}/duplicate
-     * Duplicates a template by exporting and re-importing with new IDs.
-     */
-    public void duplicate(Context ctx) {
-        String templateId = RequestValidator.validateId(ctx);
-        if (templateId == null) return;
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-        var metaOpt = templateList.findById(templateId);
-        if (metaOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
-            return;
-        }
-
-        var meta = metaOpt.get();
-        String newName = meta.name() + " (コピー)";
-        String rawName = newName.length() > 200 ? newName.substring(0, 200) : newName;
-
-        try {
-            var newMeta = templateList.create(rawName);
-            String actualId = newMeta.id();
-
-            try {
-                // Copy projection with ID remapping
-                var projOpt = projRepo.getProjection(templateId);
-                if (projOpt.isPresent()) {
-                    JsonNode projection = MAPPER.readTree(projOpt.get());
-                    String remapped = remapProjectionIds(projection, actualId);
-                    projRepo.putProjection(actualId, remapped);
-                }
-
-                // Copy schema
-                var schemaOpt = schemaRepo.get(templateId);
-                if (schemaOpt.isPresent()) {
-                    schemaRepo.put(actualId, schemaOpt.get());
-                }
-
-                // Copy binding tree
-                var bindingOpt = bindingTreeRepo.get(templateId);
-                if (bindingOpt.isPresent()) {
-                    bindingTreeRepo.put(actualId, bindingOpt.get());
-                }
-
-                // Copy form settings (unpublished)
-                if (meta.formSettings() != null) {
-                    String defaultMode = meta.formSettings().defaultMode() != null
-                            ? meta.formSettings().defaultMode() : "standard";
-                    templateList.updateFormSettings(actualId,
-                            new TemplateListRepository.FormSettings(false, null, defaultMode));
-                }
-            } catch (Exception inner) {
-                log.warn("Duplicate failed, rolling back: {}", actualId);
-                try { projRepo.deleteProjection(actualId); } catch (Exception ignored) {}
-                try { schemaRepo.delete(actualId); } catch (Exception ignored) {}
-                try { bindingTreeRepo.delete(actualId); } catch (Exception ignored) {}
-                templateList.delete(actualId);
-                throw inner;
-            }
-
-            ctx.status(HttpStatus.CREATED);
-            ctx.json(Map.of("id", actualId, "name", rawName, "status", "duplicated"));
-            log.info("Duplicated template: {} → {}", templateId, actualId);
-
-        } catch (Exception e) {
-            log.error("Failed to duplicate template", e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to duplicate template"));
-        }
+    private static String sanitizeFilename(String name) {
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_")
+                   .replaceAll("\\s+", "_")
+                   .replaceAll("_{2,}", "_")
+                   .replaceAll("^_|_$", "");
     }
 }

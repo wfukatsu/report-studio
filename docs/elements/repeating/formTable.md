@@ -195,7 +195,13 @@ Renderer は CSS Grid ベース（`gridTemplateColumns` = 列幅 mm、`gridTempl
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![帳票テーブル の設定例](../_media/formTable.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![帳票テーブル のプレビュー表示](../_media/formTable-preview.png)
 
 ## 関連要素
 

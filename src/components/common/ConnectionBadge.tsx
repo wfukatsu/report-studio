@@ -1,5 +1,5 @@
 /**
- * ConnectionBadge — shows V1 backend connectivity status.
+ * ConnectionBadge — shows backend connectivity status.
  * Renders nothing when connected (no noise in the happy path).
  */
 import { Wifi, WifiOff } from 'lucide-react'

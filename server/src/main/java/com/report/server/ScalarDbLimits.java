@@ -11,7 +11,7 @@ public final class ScalarDbLimits {
 
     private ScalarDbLimits() {}
 
-    /** Maximum columns per table. Matches V2SchemaInferController.MAX_FIELDS. */
+    /** Maximum columns per table. Matches SchemaInferController.MAX_FIELDS. */
     public static final int MAX_COLUMNS_PER_TABLE = 200;
 
     /** Maximum number of partition key columns. */

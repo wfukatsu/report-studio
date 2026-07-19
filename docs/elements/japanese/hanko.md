@@ -105,7 +105,13 @@ export interface HankoElement extends ElementBase {
 
 ## スクリーンショット
 
+編集画面（プロパティパネルで設定）:
+
 ![印鑑 の設定例](../_media/hanko.png)
+
+設定後のプレビュー表示（プレビュー画面 / PDF 出力のイメージ）:
+
+![印鑑 のプレビュー表示](../_media/hanko-preview.png)
 
 ## 関連要素
 

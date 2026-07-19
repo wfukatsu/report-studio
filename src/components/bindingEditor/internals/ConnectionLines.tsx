@@ -1,7 +1,8 @@
 /**
  * ConnectionLines — SVG overlay with Bezier curves, hover highlight, and disconnect buttons.
  *
- * Port of v1 ConnectionLines:
+ * Ported from the legacy binding editor's ConnectionLines
+ * (the pre-Zustand generation — unrelated to the HTTP API v1/v2):
  * - Bezier paths with curve factor 0.4 (not straight lines)
  * - Indigo (#6366f1) as primary connection color
  * - Group color coding

@@ -272,7 +272,7 @@ const GroupSection = memo(function GroupSection({
 })
 
 // ---------------------------------------------------------------------------
-// Schema inference — pure client-side, mirrors V2SchemaInferController logic
+// Schema inference — pure client-side, mirrors SchemaInferController logic
 // ---------------------------------------------------------------------------
 
 function inferFieldType(value: unknown): SchemaFieldType {

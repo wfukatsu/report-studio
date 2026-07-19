@@ -1,7 +1,9 @@
 /**
- * BindingEditor types — v2 equivalents derived from v1 BindingEditorPage.
+ * BindingEditor types — current binding editor, derived from the legacy
+ * BindingEditorPage (the pre-Zustand generation — unrelated to the HTTP API v1/v2).
  *
- * Key difference from v1: v2 stores schema/elements in Zustand (not local state).
+ * Key difference from the legacy editor: this one stores schema/elements in
+ * Zustand (not local component state).
  * These types represent derived/display-only structures for the binding editor UI.
  */
 
