@@ -1,626 +1,262 @@
-# 設計書
-
-**システム名:** Report Design Studio V2  
-**作成日:** 2026-04-12  
-**最終更新:** 2026-07-17
-
-> **2026-07-17 更新:** ストアスライス構成（13 slices + dataBrowserStore）、JEXL サンドボックスの実装方式、サーバ PDF 優先のエクスポート設計、テンプレートエンベロープ/ジョブ基盤/ページネーション各仕様へのリンクを実装に追随。
-
----
-
-## 1. 設計方針
-
-### 1.1 フロントエンド設計方針
-
-**イミュータビリティ (最重要)**  
-すべてのオブジェクト更新は新しいオブジェクトを返す。既存オブジェクトの直接変更は禁止。  
-Immer の `produce` を経由した Zustand ストアミューテーションのみで状態を更新する。
-
-**要素の最小単位での責任分離**  
-各要素タイプは `Renderer.tsx` と `PropertiesPanel.tsx` のみを持つ。  
-共通処理は `_blocks/` ディレクトリのビルディングブロックに委譲する。
-
-**ストア単一源泉**  
-コンポーネントが独自の状態を持つのは一時的なローカルUI状態のみ（入力値・ホバー状態等）。  
-帳票定義・選択状態・認証状態はすべて Zustand ストア経由。
-
-**小さいファイル**  
-1ファイル 200〜400行が標準、800行を超えないこと。  
-大きなモジュールから共通処理を切り出しユーティリティ化する。
-
-### 1.2 バックエンド設計方針
-
-**軽量 DI**  
-フレームワークの自動 DI を使用せず、`AppWiring.java` で手動依存性注入。  
-テスタビリティを確保しつつ、設定の複雑化を防ぐ。
-
-**サンドボックス式評価**  
-JEXL 計算式はホワイトリスト方式のサンドボックス（`JexlPermissions.ClassPermissions` — `JexlFunctions` の独自関数と数学関数のみ許可、それ以外のクラスアクセスは全面禁止）で実行する。  
-タイムアウト (500ms)、式の長さ制限 (500文字)、ネスト深さ制限 (16)、式の数制限 (50個) を設ける。  
-金額計算は BigDecimal ベースで浮動小数点誤差を排除する（`CalculationEngine` / `JexlFunctions`）。
-
-**ScalarDB 抽象化**  
-全データアクセスは ScalarDB API 経由。SQLite / PostgreSQL / MySQL など任意の JDBC DB に透過的に対応する。
-
----
-
-## 2. 主要コンポーネント設計
-
-### 2.1 Zustand ストア設計
-
-#### スライス構成
-
-スライスは関心事ごとに分割し、`useReportStore` に合成します。
-
-```typescript
-// src/store/index.ts
-export const useReportStore = create<StoreState>()(
-  immer(((...a) => {
-    return {
-      ...createLayoutSlice(...a),    // ページ・要素・選択
-      ...createHistorySlice(...a),   // Undo/Redo
-      ...createUISlice(...a),        // アクティブタブ・プレビュー・ズーム・グリッド
-      ...createClipboardSlice(...a), // 要素/スタイルのコピー・貼り付け
-      ...createAuthSlice(...a),      // 認証
-      ...createAdminSlice(...a),     // 管理タブ（ユーザー管理・サーバー設定）
-      ...createTenantSlice(...a),    // テナント情報
-      ...createSchemaSlice(...a),    // データスキーマ
-      ...createRulesSlice(...a),     // 計算・バリデーションルール
-      ...createVariantsSlice(...a),  // 出力バリアント
-      ...createResponsesSlice(...a), // フォーム回答
-      ...createProductSlice(...a),   // 商品マスタ
-      ...createComputedSlice(...a),  // 計算結果キャッシュ
-    }
-  }) as ImmerStateCreator)
-)
-```
-
-データブラウザタブは独立した `useDataBrowserStore`（`src/store/dataBrowserStore.ts`）を使用し、メインストアと状態を共有しない。トップナビの 6 タブ（デザイン/バインド/テンプレート管理/回答/データブラウザ/管理）は `uiSlice.activeTab` で切り替える。
-
-#### 状態更新パターン
-
-```typescript
-// ✅ 正しい — Immer produce 経由
-updateElement: (pageId, elementId, patch) => {
-  set((s) => {
-    const page = s.definition.pages.find((p) => p.id === pageId)
-    const section = page?.sections.find((sec) =>
-      sec.elements.some((el) => el.id === elementId)
-    )
-    const el = section?.elements.find((e) => e.id === elementId)
-    if (el) Object.assign(el, patch)
-  })
-  get().pushHistory()
-}
-
-// ❌ 誤り — 直接変更
-element.width = 100  // 絶対禁止
-```
-
-#### 履歴管理設計
-
-```typescript
-// 変更を記録するアクション（add/update/remove/duplicate）
-pushHistory: () => {
-  set((s) => {
-    const snapshot = snapshotPages(s.definition.pages)
-    const newHistory = s.history.slice(0, s.historyIndex + 1)
-    newHistory.push(snapshot)
-    s.history = newHistory.slice(-50)  // 最大50件
-    s.historyIndex = s.history.length - 1
-  })
-}
-
-// 変更を記録しないアクション（move/resize）
-// → ドラッグ中の頻繁な更新でパフォーマンスを維持
-```
-
-**追跡対象:** ページレイアウト（ページ・セクション・要素）のみ  
-**非追跡:** 計算ルール・バリデーションルール・データソース・テナント情報
-
-### 2.2 要素タイプシステム設計
-
-#### 型定義パターン
-
-```typescript
-// src/types/index.ts
-interface ElementBase {
-  id: string
-  type: string       // 判別子
-  x: number          // mm
-  y: number          // mm
-  width: number      // mm
-  height: number     // mm
-  locked?: boolean
-  visible?: boolean
-  displayCondition?: DisplayCondition
-  groupId?: string
-}
-
-interface TextElement extends ElementBase {
-  type: 'text'
-  content: string              // {{token}} を含む可能性あり
-  style?: Partial<TextStyle>
-  furigana?: FuriganaConfig
-}
-
-// ... 全24型が同パターンで定義
-
-export type ReportElement =
-  | TextElement
-  | DataFieldElement
-  | ChartElement
-  | RepeatingBandElement
-  // ... 24型の Union
-```
-
-#### Renderer 実装パターン
-
-```typescript
-// src/elements/text/Renderer.tsx
-export const TextRenderer = memo(function TextRenderer({
-  element, data, pageContext, readonly
-}: RendererProps<TextElement>) {
-  const resolved = useDataResolver(element.content, data, pageContext)
-
-  return (
-    <ElementFrame element={element}>
-      <TextContent
-        content={resolved}
-        style={element.style}
-        furigana={element.furigana}
-      />
-    </ElementFrame>
-  )
-})
-```
-
-#### PropertiesPanel 実装パターン
-
-```typescript
-// src/elements/text/PropertiesPanel.tsx
-export function TextPropertiesPanel({ element, pageId }: PanelProps<TextElement>) {
-  const updateElement = useReportStore((s) => s.updateElement)
-
-  return (
-    <div className="space-y-4">
-      <TextStyleSection
-        style={element.style}
-        onChange={(style) => updateElement(pageId, element.id, { style })}
-      />
-      <BorderSection
-        element={element}
-        onChange={(patch) => updateElement(pageId, element.id, patch)}
-      />
-      <FuriganaSection
-        furigana={element.furigana}
-        onChange={(furigana) => updateElement(pageId, element.id, { furigana })}
-      />
-    </div>
-  )
-}
-```
-
-### 2.3 データバインディング設計
-
-#### フィールド解決
-
-```typescript
-// src/lib/dataBinding.ts
-
-/**
- * ドット記法でネストしたフィールドを解決する
- * "customer.address.city" → data.customer.address.city
- */
-export function resolveField(
-  data: Record<string, unknown>,
-  fieldKey: string
-): unknown {
-  const parts = fieldKey.split('.')
-  // プロトタイプチェーン汚染防止
-  if (parts.some((p) => ['__proto__', 'constructor', 'prototype'].includes(p))) {
-    return undefined
-  }
-  return parts.reduce<unknown>((acc, key) => {
-    if (acc != null && typeof acc === 'object') {
-      return (acc as Record<string, unknown>)[key]
-    }
-    return undefined
-  }, data)
-}
-
-/**
- * テンプレート文字列内の {{token}} を解決する
- * "こんにちは {{name}} さん" → "こんにちは 田中 さん"
- */
-export function interpolate(
-  template: string,
-  data: Record<string, unknown>,
-  pageContext?: PageContext
-): string {
-  return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
-    const trimmed = key.trim()
-    // システム変数
-    if (trimmed === '$page' && pageContext) return String(pageContext.pageNumber)
-    if (trimmed === '$totalPages' && pageContext) return String(pageContext.totalPages)
-    if (trimmed === '$printDate') return new Date().toLocaleDateString('ja-JP')
-    // データフィールド
-    const value = resolveField(data, trimmed)
-    return value != null ? String(value) : ''
-  })
-}
-```
-
-#### useDataResolver フック
-
-```typescript
-// src/elements/_blocks/hooks/useDataResolver.ts
-export function useDataResolver(
-  fieldKeyOrTemplate: string,
-  data: Record<string, unknown>,
-  pageContext?: PageContext,
-  format?: FormatConfig
-): string {
-  return useMemo(() => {
-    const raw = interpolate(fieldKeyOrTemplate, data, pageContext)
-    return format ? applyFormat(raw, format) : raw
-  }, [fieldKeyOrTemplate, data, pageContext, format])
-}
-```
-
-### 2.4 Canvas 設計
-
-#### ドラッグ&ドロップ
-
-**パレット → Canvas:**
-1. `@dnd-kit/core` の `DndContext` がドロップを検知
-2. ドロップ座標 → セクション特定（Y 座標でどのセクションか判別）
-3. グリッドスナップ適用（1mm 精度）
-4. 余白考慮の座標計算
-5. `addElement(pageId, createElement(type), sectionId)` 実行
-
-**Canvas 上での移動:**
-1. `useDraggable` で要素をドラッグ可能にする
-2. `onDragEnd` イベントで新座標を計算
-3. `moveElement(pageId, elementId, { x, y })` 実行（履歴は記録しない）
-
-#### リサイズ
-
-8方向のリサイズハンドルをポインターイベントで実装。
-
-```typescript
-// src/components/canvas/CanvasElement.tsx のリサイズハンドル
-const handles = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const
-type HandleDir = typeof handles[number]
-
-// ポインターダウン → ムーブ → アップの3段階で変形量を計算
-```
-
-#### ズーム
-
-CSS `transform: scale(zoom)` をキャンバス全体に適用。  
-座標はすべて mm 単位で管理し、表示時のみズーム換算する。
-
-```typescript
-const MM_TO_PX = 96 / 25.4  // 1mm = 3.779px (@96dpi)
-const pixelX = element.x * MM_TO_PX * zoom
-```
-
-### 2.5 エクスポート設計
-
-**サーバーサイド PDF が正**（Issue #61）。ベクターテキスト・ページ分割・Noto フォント埋め込みに対応し、フロントエンドの全 24 要素タイプをサーバ側でネイティブ描画する。クライアントサイド PDF（html2canvas + jsPDF）はバックエンド未接続時のフォールバックとして残る。
-
-#### サーバーサイド PDF（推奨経路）
-
-```typescript
-// src/lib/exportUtils.ts
-export async function exportToServerPdf(
-  definition: ReportDefinition,
-  testData: Record<string, unknown> | null,
-  filename = 'report.pdf',
-): Promise<void> {
-  const { generateStatelessPdf } = await import('@/api/reportApi')
-  // POST /api/v2/pdf/generate — definition + data をそのまま送る
-  const blob = await generateStatelessPdf(defJson, dataJson)
-  downloadBlob(blob, filename)
-}
-```
-
-サーバ側の描画エンジン構成とページ分割の仕様は [architecture.md §4.4](architecture.md) と [pagination-spec.md](pagination-spec.md) を参照。
-
-#### クライアントサイド PDF（フォールバック）
-
-```typescript
-// src/lib/exportUtils.ts — ページ DOM を html2canvas でラスタライズし jsPDF に貼り付ける
-export async function exportReportToPdf(
-  pageEls: HTMLElement[],
-  fileName = 'report.pdf',
-  models?: AutoFieldModels,   // ページ番号・日付等の自動フィールドをモデル駆動で解決
-): Promise<void>
-```
-
-出力バリアントのマスキングは両経路で共通のロジックを通る（モデル駆動の自動フィールド + 共有マスキング）。
-
-#### 画像セキュリティフィルタ
-
-```typescript
-// 許可する画像 URL スキーム
-const SAFE_IMAGE_PREFIXES = [
-  'data:image/png;base64,',
-  'data:image/jpeg;base64,',
-  'data:image/gif;base64,',
-  'data:image/webp;base64,',
-  'https://',
-]
-const MAX_DATA_URI_SIZE = 2 * 1024 * 1024  // 2MB
-
-function isSafeImageSrc(src: string): boolean {
-  if (src.startsWith('data:')) {
-    return SAFE_IMAGE_PREFIXES.some((p) => src.startsWith(p))
-      && src.length <= MAX_DATA_URI_SIZE
-  }
-  return src.startsWith('https://')
-}
-```
-
----
-
-## 3. バックエンドコンポーネント設計
-
-### 3.1 ExpressionEngine 設計
-
-```java
-// サンドボックス設定 (Issue #58 で JexlPermissions 方式に強化)
-// JexlFunctions のホワイトリスト以外のクラスアクセスを全面禁止
-JexlPermissions permissions =
-        new JexlPermissions.ClassPermissions(JexlFunctions.class);
-
-JexlEngine jexl = new JexlBuilder()
-    .permissions(permissions)
-    .create();
-
-// タイムアウト付き評価 (TIMEOUT_MS = 500)
-// 追加ガード: 式長 <= 500 文字、ネスト深さ <= 16、式数 <= 50/テンプレート
-```
-
-**独自関数 (JexlFunctions):**
-`sum(array)`, `count(array)`, `avg(array)`, `min(array)`, `max(array)`,  
-`round(n, decimals)`, `concat(...)`, `formatDate(date, pattern)`,  
-`formatNumber(n, pattern)`, `ifExpr(cond, a, b)`
-
-金額を扱う集計・丸めは **BigDecimal ベース**で実装されている（Issue #57 — 浮動小数点の 2 進誤差による 1 円ズレを排除）。
-
-### 3.2 RateLimiter 設計
-
-固定窓アルゴリズムで実装します。
-
-```java
-// デフォルト: 5回/5分/IP
-public class RateLimiter {
-    private final int maxAttempts;
-    private final long windowMs;
-    private final ConcurrentHashMap<String, Window> windows;
-
-    public boolean isAllowed(String key) {
-        long now = System.currentTimeMillis();
-        Window current = windows.compute(key, (k, existing) -> {
-            if (existing == null || now - existing.windowStart() >= windowMs) {
-                return new Window(1, now);          // 新しい窓を開始
-            }
-            return new Window(existing.count() + 1, existing.windowStart());
-        });
-        return current.count() <= maxAttempts;
-    }
-}
-```
-
-**設定 (環境変数):**
-- `LOGIN_RATE_LIMIT_MAX`: 試行上限 (デフォルト: 5)
-- `LOGIN_RATE_LIMIT_WINDOW_MS`: 窓の長さ ms (デフォルト: 300000)
-
-### 3.3 ScalarDB リポジトリパターン
-
-```java
-// TemplateRepository のパターン例
-public class TemplateRepository {
-    private final DistributedTransactionManager manager;
-
-    public Optional<TemplateRecord> findById(String id) {
-        try (DistributedTransaction tx = manager.start()) {
-            Get get = Get.newBuilder()
-                .namespace(NAMESPACE)
-                .table(TABLE)
-                .partitionKey(Key.ofText("id", id))
-                .build();
-            Optional<Result> result = tx.get(get);
-            tx.commit();
-            return result.map(this::toRecord);
-        }
-    }
-
-    public void save(TemplateRecord record) {
-        try (DistributedTransaction tx = manager.start()) {
-            Upsert upsert = Upsert.newBuilder()
-                .namespace(NAMESPACE)
-                .table(TABLE)
-                .partitionKey(Key.ofText("id", record.id()))
-                .textValue("definition", record.definitionJson())
-                .bigIntValue("updated_at", record.updatedAt())
-                .build();
-            tx.upsert(upsert);
-            tx.commit();
-        }
-    }
-}
-```
-
-JSON ドキュメントを保持する多くのテーブル（`v2_definitions`, `tenant`, `products`, `webhooks` 等）は、この形の実装を共通化した `JsonBlobRepository` を経由する。
-
-### 3.4 テンプレートエンベロープ設計
-
-テンプレートの交換・永続化は正準エンベロープ `{ formatVersion: 2, definition }` に統一されている（Issue #52）。サーバは `TemplateEnvelope.unwrap()` で旧形式をマイグレーションラダーで引き上げ、保存境界では `ReportDefinitionValidator` が構造上限値（`schemas/report-definition-limits.json` — フロント Zod と共有の単一ソース）を検証する。
-
-詳細仕様は **[template-envelope-spec.md](template-envelope-spec.md)** が正。
-
-### 3.5 PDF レンダラー構成
-
-サーバ PDF は 2 段のレジストリで構成される:
-
-- `SectionPdfRendererRegistry` — セクション種別（`page_base` / `detail_table` / `multi_row_table` / `free`）ごとのページ計画と描画。ページ分割・繰越小計・グループ改ページ・押し下げ自動改ページ・V2 バンドフローの仕様は **[pagination-spec.md](pagination-spec.md)** が正
-- `ElementPdfRendererRegistry` — 要素種別ごとの描画。フロントエンドの全 24 要素タイプをカバーし、`V2ElementParityMatrixTest` がパリティを保証（Issue #53）
-
-和文タイポグラフィ（Issue #56）は `FontProvider` が同梱の Noto Sans JP Regular/Bold・Noto Serif JP を埋め込み、折返し・縦書き・ふりがな・太字描画をサーバ側で行う。システム変数（ページ番号・日付・和暦）とテナント情報は `SystemValueResolver` / `TenantInfoProvider` がサーバ側で解決する（Issue #54）。
-
-### 3.6 ジョブ基盤設計
-
-V1/V2 のジョブスタックは単一の `JobStore` 抽象（実装 `JobRepository` = ScalarDB メタデータ + ファイルシステム成果物）に統合されている（Issue #60）。統一ステータス語彙・TTL 回収・再起動時 reconcile・同時実行制限を含む詳細は **[job-infrastructure.md](job-infrastructure.md)** が正。
-
-ジョブは投入 Principal を所有者として記録し、状態参照・結果ダウンロードを所有者に限定する（Issue #58）。
-
----
-
-## 4. セクション構造設計
-
-帳票の1ページは複数のセクションで構成されます。
+# 設計（デザイン）
+
+フロントエンド・バックエンドの内部設計、状態管理、要素システム、データバインディング、拡張手順をまとめます。全体像は [システムアーキテクチャ](./architecture.md)、操作方法は [ユーザー操作マニュアル](./user-manual.md) を参照してください。
+
+## 1. フロントエンド設計
+
+### 技術スタック
+
+| 関心事 | ライブラリ | バージョン |
+|--------|-----------|-----------|
+| UI | react / react-dom | 19 |
+| 状態管理 | zustand | 5（immer ミドルウェア） |
+| ドラッグ&ドロップ | @dnd-kit/core / modifiers / sortable | 6 / 9 / 10 |
+| グラフ | recharts | 3 |
+| 画像/PDF 出力 | html2canvas / jspdf | 1 / 4 |
+| スタイル | tailwindcss + Radix UI + lucide-react | 3.4 |
+| ルーティング | react-router-dom | 7 |
+| 式エンジン（クライアント） | @pawel-up/jexl | 4 |
+| 数式エディタ | CodeMirror 6 | — |
+| バリデーション | zod | 4 |
+| バーコード/QR | react-barcode / qrcode.react | — |
+| ビルド/テスト | Vite 6 / Vitest 3 / TypeScript 5.7 | — |
+| コンポーネントカタログ | Storybook 8 | — |
+
+### 画面構成
+
+- **ルーティング**（`src/main.tsx`）: `/` → `AppShell`、`/data-browser` → 遅延読み込みの `DataBrowserPage`。
+- **AppShell**（`src/components/layout/AppShell.tsx`）: 上部タブ（デザイン / バインド / テンプレート管理 / 回答 / データブラウザ / 管理）。デザインタブは `<Activity>` でマウント保持。
+- **デザインタブ**（`src/App.tsx`）: 3 ペイン構成。
+  - 左サイドバー: 要素（パレット）/ レイヤー / ページ / スキーマ
+  - 中央: `ReportCanvas`（編集）または `PreviewPane`（ライブプレビュー）
+  - 右サイドバー: プロパティ / バージョン / ページ設定
+  - 上部に `Toolbar`、下部に `EditorStatusBar`
+
+### キャンバス編集
+
+- **`ReportCanvas`**: `@dnd-kit` の `DndContext`（`PointerSensor` + `restrictToParentElement`）でドラッグを扱い、セクション単位に `SectionContainer` を描画。パレットドロップやスキーマフィールド/グループのドロップ（MIME `SCHEMA_FIELD_MIME` / `SCHEMA_GROUP_MIME`）でバインド済み要素を生成。mm↔px 変換（`mmToPx` / `pxToMm`）、グリッド/余白境界スナップ対応。
+- **`CanvasElement`**: 絶対配置の要素ラッパー。`useDraggable` + 8 方向リサイズハンドル（コーナー 4 + 辺 4）。`data-element-id` / `data-element-type` を付与（エクスポート時に利用）。`ElementErrorBoundary` で要素単位のエラーを隔離。
+- **FormTable のインタラクティブ編集**: ダブルクリックで専用エディタ（`FormTableEditor`）に進入。`useReducer`（`tableEditState`）+ 補助モジュール（`tableOperations` の行/列挿入・削除・リサイズ、`tableMerge` のセル結合/分割、`CellPopover` / `TableContextMenu` / `TableToolbar`）。テーブル専用 Undo スタック（グローバル履歴と分離、モード離脱時に 1 エントリに統合）。
+
+### 設計モード vs プレビューモード
+
+1 つの `readonly` プロップ（`ReportCanvas` → `SectionContainer` → `CanvasElement` → `ElementRenderer` に伝播）が全ての差異を駆動します。`uiSlice.previewMode` ではありません。
+
+| | 設計モード（`readonly=false`） | プレビュー/出力（`readonly=true`） |
+|---|---|---|
+| 空バインド | プレースホルダー表示 | `isDataEmptyInPreview` が空要素を非表示 |
+| 繰り返し要素（band/list/formTable） | デザインプレビュー（モック行・`{{fieldKey}}` セル・バッジ） | `dataSource` の実行時レコードを表示 |
+| 自動/テナントフィールド | リテラルトークン/書式（`{{会社名}}`・`yyyy/MM/dd`） | 解決値（未設定時は `（…未設定）`） |
+| サンプルヒント | データ駆動要素に点線下線・「サンプル」バッジ | なし（非破壊・出力に残らない） |
+
+両モードとも同じ `data`（`dataOverride ?? livePreviewData ?? sampleData`）に対して解決するため、フィールドの値は一致します。
+
+### 出力（`src/lib/exportUtils.ts`）
+
+- **PNG**: `html2canvas`（`scale=2`）→ `toDataURL('image/png')` → ダウンロード。
+- **PDF**: 各ページを **逐次** ラスタライズ（`Promise.all` を使わずピークメモリを抑制。20 ページ A4 で約 14MB vs 約 280MB）。`jsPDF` を先頭ページ寸法で生成し、ページごとの寸法で `addPage`（A4/A3・縦横混在に忠実）。描画後すぐキャンバスを解放。
+- **自動フィールドの解決**: 出力時に `pageNumber` / `currentDate` の DOM テキストを要素モデルから計算した値に一時的に書き換え（`resolveAutoFields`）、`finally` で復元。
+- **JSON エクスポート/インポート**: `formatVersion: 2` エンベロープでラップ（`JSON.parse(JSON.stringify(...))` で immer プロキシを除去）。画像ソースは `isSafeImageSrc` / `isSafeSvgDataUri` でサニタイズ（ラスタ ≤ 2MB、スクリプトなし SVG ≤ 512KB、https のみ）。
+
+## 2. 状態管理（`src/store/`）
+
+単一の Zustand ストアを 13 スライスで構成（`store/index.ts` で `create<StoreState>()(immer(...))`）。データブラウザは独立ストア。
+
+| スライス | 責務 |
+|---------|------|
+| `layoutSlice` | `ReportDefinition`・ページ・セクション・要素・選択。要素 CRUD、z-order、整列、グループ化、セクション高さ調整、インポート/エクスポート、テンプレート読込 |
+| `clipboardSlice` | クリップボード + スタイルクリップボード（コピー/カット/ペースト、スタイルのコピー/ペースト） |
+| `rulesSlice` | 計算ルール・検証ルールの CRUD |
+| `historySlice` | Undo/Redo。`{pages, schema, calculationRules, validationRules}` を JSON クローンでスナップショット（上限 30） |
+| `uiSlice` | 表示状態: `activeTab`・`previewMode`・ズーム・グリッド/スナップ/トンボ/余白ガイド・`livePreviewEnabled`・`backendConnected`・`currentTemplateId`・保存/読込ステート |
+| `computedSlice` | サーバー式評価の結果（`computedValues` / `computedErrors` / `computedViolations`）。undo 履歴外（undo 後の陳腐化を防ぐ） |
+| `schemaSlice` | `SchemaDefinition` CRUD、3 フェーズ DB バインド、商品マスターのシステムグループ、`setElementSchemaBinding` |
+| `variantsSlice` | `OutputVariant` CRUD、要素の非表示トグル、マスキングルール CRUD |
+| `responsesSlice` | フォーム回答一覧（5 分 TTL キャッシュ）、送信モーダル状態、キャッシュ無効化 |
+| `authSlice` | `currentUser`・認証状態、`checkAuth` / `loginUser` / `logoutUser` |
+| `tenantSlice` | `tenantInfo`、取得/更新 |
+| `productSlice` | 商品カタログ・カスタムフィールド定義、CRUD、操作ロック |
+| `adminSlice` | 管理者ユーザー一覧・サーバー設定、取得/作成/削除・設定編集/保存 |
+
+**主なセレクタ**（`selectors.ts`）:
+
+- `flattenPageElements(page)` — セクションをまたいだ要素の平坦配列（`sections.flatMap(s => s.elements)`）。
+- `selectActivePage` / `selectActivePageId` — アクティブページ（フォールバックは `pages[0]`）。
+- `selectSelectedElements` — アクティブページ上の選択要素。
+- `selectSchemaFieldKeyById(fieldId)` — UUID から `SchemaField.key` を逆引き（Phase 2 バインド用）。
+
+**dataBrowserStore**（`dataBrowserStore.ts`）: `/data-browser` 専用の独立ストア。検索/ソート/ページングの状態がエディタを再描画しないよう分離。
+
+## 3. 要素システム
+
+### 要素タイプ（24 種）
+
+`ReportElement` は `type` を判別子とする直和型。全要素が `ElementBase`（`id` / `type` / `position` / `size`（mm）/ `zIndex` / `locked` / `visible` / `name` / `conditionalDisplay` / `printable` / `schemaBinding`）を継承します。
+
+| カテゴリ | 要素タイプ |
+|---------|-----------|
+| テキスト | `text` |
+| データ表示 | `dataField`, `chart` |
+| 繰り返し | `repeatingBand`, `repeatingList` |
+| テーブル | `formTable` |
+| 図形・画像 | `shape`, `image`, `barcode` |
+| 記入・入力 | `manualEntry`, `checkbox`, `eraSelect` |
+| 日本語帳票専用 | `hanko`, `approvalStampRow`, `revenueStamp` |
+| 自動フィールド | `pageNumber`, `currentDate`, `divider` |
+| テナント情報 | `tenantCompanyName`, `tenantAddress`, `tenantPhone`, `tenantRepresentative`, `tenantLogo`, `tenantCustom` |
+
+> 廃止要素: `label` → `text` に統合、`table` → `formTable` に統合（ElementRenderer で自動変換）。
+
+### 合成パターン（`src/elements/_blocks/`）
+
+各要素は `src/elements/{type}/` に自己完結（`Renderer.tsx` / `PropertiesPanel.tsx` / `*.stories.tsx` / `*.test.tsx`）し、共通部品から合成します。
 
 ```
-PageDef {
-  id, name, width, height, background
-  sections: Section[]
-}
-
-Section {
-  id
-  sectionType: 'header' | 'body' | 'footer' | 'custom'
-  height: number (mm)
-  elements: ReportElement[]
-}
+_blocks/
+├── renderers/   ElementFrame（枠/背景/余白）, TextContent（縦書き・ふりがな）,
+│                ChartContent, BarcodeContent, GridLines, ElementErrorBoundary
+├── hooks/       useDataResolver（フィールド解決 + 書式適用）
+└── panels/      DataBindingSection, TextStyleSection, ColorSection,
+                 BorderSection, FormatSection, FuriganaSection
 ```
 
-**マスターヘッダー/フッター:**  
-ページをまたいで同じヘッダー/フッターを表示するマスターセクション。  
-`definition.masterHeader`, `definition.masterFooter` に格納。
+ディスパッチは中央集約（レジストリではなく）。`components/canvas/ElementRenderer.tsx` が `switch(element.type)` で各 Renderer に振り分け、末尾の `assertNever(element)` で網羅性を型で保証します（新要素の未配線をコンパイルエラーで検出）。
 
-**H/F 編集モード:**  
-ツールバーの「H/F 編集」ボタンでヘッダー・フッターのセクション高さを変更可能。
+## 4. 要素タイプの追加手順
 
----
+1. `src/types/index.ts` の `ElementType` 直和に文字列を追加し、`ElementBase` を継承する `XxxElement` インターフェースを定義、`ReportElement` 直和に追加。
+2. `src/elements/xxx/Renderer.tsx` を作成（`_blocks/renderers/` から合成）。
+3. `src/elements/xxx/PropertiesPanel.tsx` を作成（`_blocks/panels/` から合成）。
+4. `ElementRenderer.tsx` に `import` と `case 'xxx':` を追加（`assertNever` が未配線を弾く）。
+5. `lib/elementFactories.ts` にファクトリを追加。
+6. `components/sidebar/ElementPalette.tsx`（`PALETTE_ITEM_MAP`）にパレット項目を登録。
+7. サーバー側 PDF 出力が必要なら `com.report.server.pdf` に要素レンダラを追加し `ElementPdfRendererRegistry` に登録。
 
-## 5. テンプレート構造設計
+> テンプレート作成規約: 要素は必ず `page.sections[N].elements` に格納します。`Page.elements`（トップレベル）は `@deprecated` で、レンダラーに無視されます。
 
-### ReportDefinition の主要フィールド
+## 5. データバインディング
 
-```typescript
-// src/types/index.ts (現行)
-interface ReportDefinition {
-  id: string
-  metadata: Metadata                 // documentName / category / tags / ...
-  pageSettings: PageSettings         // width / height / margin* / clipToMargins
-  defaultTextStyle: TextStyle
-  templateVariables: TemplateVariable[]
-  calculationRules: CalculationRule[]
-  dataSources: DataSourceDefinition[]
-  outputVariants: OutputVariant[]
-  submissionModels: SubmissionModel[]
-  validationRules: ValidationRule[]
-  pages: PageDef[]
-  schema?: SchemaDefinition          // データスキーマ定義
-  masterHeader?: Section             // addPage 時に全ページへ複製
-  masterFooter?: Section
-  formulaLanguage?: FormulaLanguage  // 'jexl' (レガシー) | 'formula-v1'
-}
+### `{{fieldKey}}` トークンとデータフィールド
+
+- **`interpolate(template, data, pageContext?)`**（`lib/dataBinding.ts`）: `{{...}}` トークンをデータで置換。システム変数 `$page` / `$totalPages` / `$printDate` は `pageContext` から解決。
+- **`resolveField(data, "a.b.c")`**: ドット記法でレコードを辿る。`FORBIDDEN_KEYS`（`__proto__` / `constructor` / `prototype`）でプロトタイプ汚染を防止。
+- **`useDataResolver(fieldKey, data, {format, fallbackText})`**: フィールド解決 + 書式適用（`applyFormat`）を担うフック。`{resolved, raw, error}` を返し、空/エラー時は `fallbackText` にフォールバック。
+
+### スキーマバインドの 3 フェーズ
+
+| フェーズ | 内容 |
+|---------|------|
+| Phase 1（グループ → テーブル） | `SchemaGroup.tableMeta` で ScalarDB テーブルに紐付け。`SchemaField.dbColumnName` は列のヒント |
+| Phase 2（フィールド → 列） | 要素はスキーマフィールドを **UUID** で参照（`ElementSchemaBinding.fieldId`）。key ではないためリネームで壊れない。`selectSchemaFieldKeyById` で現在の key を逆引き |
+| Phase 3（計算フィールド） | `SchemaField.computed=true` + `expression`（JEXL）。同一グループの兄弟フィールドと組み込み関数（`sum`/`count`/`avg`/`min`/`max`/`round`/`concat`/`formatDate`/`formatNumber`/`ifExpr`）が文脈 |
+
+> **2 階層制約**: スキーマは意図的に 2 階層（`SchemaGroup.dataKey` + `SchemaField.key`、例 `items.price`）。両セグメントは識別子文法 `^[a-zA-Z_][a-zA-Z0-9_]*$` を満たす必要があり、3 階層キー（`quotation.customer.name` 等）は DB バインド不可です。
+
+> **Zod の重要な注意**: `src/lib/schemas/reportDefinition.ts` の `SchemaFieldSchema` / `SchemaGroupSchema` / `ScalarDbTableMetaSchema` は `dbColumnName` / `computed` / `expression` / `tableMeta` / `linkedMasterGroupId` を明示的に許可します（`.passthrough()` ではない）。スキーマバインド系のフィールドを追加したらここにも追加しないと、テンプレートインポート時に **無言で除去** されます。変更後は `npm run generate:schema` を実行してください。
+
+## 6. API リファレンス（概要）
+
+全ルートは `ApiRoutes.java` に登録。代表的なもの:
+
+### 認証（`/api/v1/auth/*`）
+
+| メソッド | パス | 用途 |
+|---------|------|------|
+| GET | `/api/v1/health` | 生存確認 |
+| GET | `/api/v1/auth/me` | 現在のセッションユーザー |
+| POST | `/api/v1/auth/login` | ログイン（`session_id` Cookie 発行） |
+| POST | `/api/v1/auth/logout` | ログアウト |
+| POST | `/api/v1/auth/change-profile` | 表示名/パスワード変更 |
+
+### テンプレート（`/api/v2/templates`）
+
+| メソッド | パス | 用途 |
+|---------|------|------|
+| GET / POST | `/api/v2/templates` | 一覧 / 作成 |
+| GET / PUT / DELETE | `/api/v2/templates/{id}` | 取得 / 更新 / 削除 |
+| POST | `/api/v2/templates/{id}/duplicate` `/copy` | 複製 / コピー |
+| PUT | `/api/v2/templates/{id}/visibility` | 可視性変更 |
+| POST | `/api/v2/templates/{id}/evaluate` `/validate` | 計算 / 検証の評価 |
+| GET / POST | `/api/v2/templates/{id}/versions` | バージョン一覧 / 作成 |
+| POST | `/api/v2/templates/{id}/versions/{vid}/restore` | バージョン復元 |
+| GET | `/api/v2/templates/{id}/export` | エクスポート |
+| POST | `/api/v2/templates/import` | インポート |
+| POST | `/api/v2/templates/{id}/pdf` | テンプレート PDF 生成 |
+| POST | `/api/v2/templates/{id}/resolve-bindings` | 実データ解決（部分成功は 207） |
+
+### 回答（`/api/v2/templates/{id}/responses`）
+
+| メソッド | パス | 用途 |
+|---------|------|------|
+| POST / GET | `.../responses` | 送信（5/60s）/ 一覧（ページング） |
+| GET | `.../responses/export` | エクスポート（csv/excel、3/60s） |
+| GET / DELETE | `.../responses/{rid}` | 取得 / 削除 |
+| PATCH | `.../responses/{rid}/status` | ステータス変更 |
+| GET | `.../responses/{rid}/pdf` | 回答票 PDF |
+
+### 出力・ジョブ・データ
+
+| メソッド | パス | 用途 |
+|---------|------|------|
+| POST | `/api/v2/pdf/generate` | ステートレス PDF（テンプレ + データ inline） |
+| POST | `/api/v2/excel/generate` | ステートレス XLSX |
+| POST / GET | `/api/v2/pdf-jobs` `/{jobId}` `/{jobId}/result` | 非同期 PDF ジョブ（202 → ポーリング → 取得） |
+| POST / GET | `/api/v2/pdf-jobs/batch` `/{id}` `/{id}/result` | バッチ PDF（ZIP） |
+| GET | `/api/v2/scalardb/catalog` | ScalarDB カタログ |
+| POST | `/api/v2/scalardb/tables` | テーブル作成 |
+| GET/POST/PUT/DELETE | `/api/v2/scalardb/tables/{ns}/{table}/rows` | 行のスキャン/挿入/upsert/削除 |
+| GET / PUT | `/api/v2/tenant` | テナント設定の取得 / 更新 |
+
+その他 V1 群: 管理（`/api/v1/admin/*`）、商品（`/api/v1/products/*`）、Webhook（`/api/v1/webhooks/*`）、採番（`/api/v1/sequences/*`）、公開フォーム（`/api/v1/public/forms/*`）、ジョブ（`/api/v1/jobs/*`）。
+
+## 7. バックエンドの内部設計
+
+### パッケージ構成
+
+```
+com.report.server                app 起動・ルーティング・エンジン・Controller・Repository
+  App, AppConfig, AppWiring, ApiRoutes    起動・設定・DI 配線・ルート登録
+  ExpressionEngine, JexlFunctions         JEXL サンドボックス + カスタム関数
+  CalculationEngine, ConditionEvaluator, ValidationEngine
+  PdfRenderer                             PDFBox レンダリングエンジン
+  Repositories: JsonBlobRepository, ProjectionRepository, VersionRepository,
+                TemplateListRepository（ファイルベース）
+  Controllers（V1 / V2）                  各機能の HTTP ハンドラ
+  Support: ProjectionMerger, CsvDataSource, SecretCrypto, RequestValidator,
+           ReportDefinitionValidator, Metrics, AuditLog ...
+  com.report.server.auth   AuthController, FormSessionManager, RateLimiter,
+                           Principal, UserRepository, AdminUserController
+  com.report.server.job    BatchPdfProcessor, JobController, JobRepository,
+                           JobStore, JobConcurrencyLimiter, JobTtlReaper
+  com.report.server.pdf    要素/セクションレンダラ（約 40 種）, FontProvider,
+                           PdfUnits, RelativeLayoutResolver ...
+resources/
+  fonts/  NotoSansJP-Regular.ttf, NotoSansJP-Bold.ttf, NotoSerifJP-Regular.otf
+  schemas/e-tax/  XML スキーマ
+  report-definition-limits.json（ビルド時に ../schemas からコピー）
 ```
 
-ファイル・API・ストレージ間の受け渡しは常にエンベロープ `{ formatVersion: 2, definition }` で行う（→ [template-envelope-spec.md](template-envelope-spec.md)）。
+### エンジンの要点
 
----
+- **`ExpressionEngine`**: 共有スレッドセーフな `JexlEngine`。`JexlPermissions.ClassPermissions` で許可リスト方式（`JexlFunctions` と `java.lang.Math` のみ公開）。`strict(true)` / `silent(false)`。上限（式長 500 / ネスト深さ 16 / テンプレあたり 50）と評価あたり 500ms タイムアウト（仮想スレッド executor）。formula-v1（`SUM(`・`IF(`→`ifExpr(` 等）→ JEXL 変換層をフロント `functionCatalog.ts` と同期。`evaluate()` はフェイルセーフ（null/空→true・エラー→false）、`calculate()` は厳格（例外送出）。
+- **`CalculationEngine`**: 計算ルールを依存グラフからトポロジカル順（Kahn 法、O(V+E)）で評価。循環/自己参照は `CircularDependencyException`（→ 422）。丸めは BigDecimal（`floor`/`ceil`/`round`/`half_up`/`half_even` + `roundingScale`）で double 演算を回避。
+- **`ConditionEvaluator`**: 要素の `conditionalDisplay` を評価（`equals`/`contains`/`greater_than`/`empty` などの演算子 + `and`/`or`）。JEXL とは別の軽量 JSON 評価器。
+- **`ValidationEngine`**: `FieldConstraint`（text: 必須・文字数・文字種・`inputPattern`（RE2J）、numeric: 範囲、date: ISO + 範囲、codeSet）を検証し `List<Violation>` を返す（→ 422）。
 
-## 6. 条件表示設計
+### PDF レンダリング
 
-要素単位で表示条件を設定できます。
+- **`PdfRenderer`**: mm を pt に変換（`PdfUnits.MM_TO_PT`）。`render(json)→byte[]` と `renderToStream`（バッチ向け、ヒープ回避）。上限（投影あたりテンプレ 20 / 物理ページ 2000）。
+- **要素レンダラ**（`ElementPdfRendererRegistry`）: Text / Shape / Line / Barcode / QrCode / Image / Check / SealBox / Hanko / Divider / RevenueStamp / ApprovalStampRow / EraSelect / DataField / ManualEntry / Chart / Repeating* / Table / FormGrid / FormTable / StyledText（自動・テナント）など約 40 種。
+- **セクションレンダラ**（`SectionPdfRendererRegistry`、`SectionPdfRenderer` インターフェース）: `PageBaseSectionRenderer` / `DetailTableSectionRenderer` / `FreeSectionRenderer` / `MultiRowTableSectionRenderer`。ページ分割の詳細は [ページ分割仕様](./pagination-spec.md)。
+- **`FontProvider`**: CJK フォントを class 初期化時に 1 度ロードしバイト列を JVM レベルでキャッシュ。`PDType0Font` はサブセット化のためドキュメント単位に生成。CJK 不在時は Standard-14 Helvetica にフォールバック（`isSyntheticBold` で疑似ボールド）。
+- **画像**（`ImagePdfRenderer`）: Base64 データ URI と HTTP/HTTPS URL 対応。SSRF 対策で 10s タイムアウト・リダイレクト禁止・10MB 上限。
 
-```typescript
-interface DisplayCondition {
-  operator: 'and' | 'or'
-  conditions: SingleCondition[]
-}
+### ジョブ基盤
 
-interface SingleCondition {
-  fieldKey: string
-  comparator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'empty' | 'not_empty'
-  value?: string | number | boolean
-}
-```
+- **`JobStore` / `JobRepository`**: メタデータは ScalarDB `report_studio.jobs`、成果物 PDF/ZIP はファイルシステム `data/jobs/{jobId}/`。起動時 `reconcileOrphans` で非終了ジョブを FAILED に整合、TTL リーパで掃除。
+- **`BatchPdfProcessor`**: テンプレート投影から N 件の PDF を生成（行ごとにエラー隔離）。仮想スレッド + セマフォで並列度制御（`clamp(cores, 2..8)`）。進捗は 10 件ごとにチェックポイント、キャンセル可能、成果物を ZIP 化。
+- **`JobController`**: `MAX_ACTIVE_JOBS=20`（超過は 429 + Retry-After）、`MAX_ROW_COUNT=10,000`。JSON または multipart CSV を受理。詳細は [ジョブ基盤](./job-infrastructure.md)。
 
-`ElementRenderer` がレンダリング前に `conditionEvaluator.ts` で評価し、条件が偽なら要素を非表示にします。
+## 8. 出力バリアント（項目マスキング）
 
----
-
-## 7. テスト設計方針
-
-### フロントエンドテスト
-
-| テスト種別 | ツール | 対象 |
-|-----------|--------|------|
-| Unit | Vitest 3 | ユーティリティ関数・ストアスライス |
-| Component | Vitest 3 + @testing-library/react | レンダラー・プロパティパネル |
-| Integration | Vitest 3 | API クライアント・モーダル |
-
-**カバレッジ閾値:** 80%（設定: `vitest.config.ts`）  
-**CI:** GitHub Actions（`.github/workflows/ci.yml`）が push/PR ごとに lint・型チェック・フロント/バックエンドテストを実行（CI では threads プールで実行）
-
-```bash
-# 単一ファイルのテスト
-npx vitest run src/lib/dataBinding.test.ts
-```
-
-### バックエンドテスト
-
-| テスト種別 | ツール | 対象 |
-|-----------|--------|------|
-| Unit | JUnit 5 + Mockito | コントローラ・エンジン |
-| Integration | JUnit 5 | リポジトリ (SQLite インメモリ) |
-| PDF 検証 | JUnit 5 | パースバックテスト（生成 PDF を解析して座標・文言を検証）+ ゴールデンテンプレート・パリティマトリクス（`V2ElementParityMatrixTest`） |
-
-```bash
-npm run test:backend   # (= ./gradlew test)
-```
-
----
-
-## 8. エラー処理設計
-
-### フロントエンド
-
-**要素レベル:** `ElementErrorBoundary` がキャッチし、要素単位でエラー表示（帳票全体はクラッシュしない）
-
-**API エラー:** `apiFetch` が全 non-2xx を `ApiError` にラップ。コンポーネントで `catch` して toast 表示。
-
-**テナント情報:** ネットワークエラーや 401 は無視（ベストエフォート）。要素は fallback テキストを表示。
-
-### バックエンド
-
-**グローバルハンドラ:** Javalin の `app.exception()` で全例外をキャッチし、統一 JSON 形式でレスポンス。
-
-```java
-app.exception(Exception.class, (e, ctx) -> {
-    log.error("Unhandled exception", e);
-    ctx.status(500).json(Map.of("error", "Internal server error"));
-});
-```
-
-**ValidationException → 400、NotFoundException → 404、AuthException → 401**
-
----
-
-## 9. ローカリゼーション設計
-
-現在 UI は日本語固定です。テキストは各コンポーネントにハードコードされています。  
-将来の多言語対応を考慮し、文字列定数ファイルへの分離を推奨します。
-
-**日本語専用機能:**
-- ふりがな (Ruby テキスト)
-- 縦書き
-- 元号 (Wareki) 表示
-- 漢数字フォーマット
-- 印鑑・承認欄・収入印紙要素
+`variantsSlice` が `OutputVariant[]` を保持。各バリアントは出力時に特定フィールドをマスク（`fullReplace` = 完全置換、`partial` = 先頭/末尾を残して伏せ字）し、`hiddenElementIds` で要素を非表示にできます。`lib/variantApplicator.ts` が選択バリアントに対する不変ページ配列を生成（このマスキングロジックはサーバー側 PDF 経路と共有）。用途: 1 つのテンプレートから宛先別 PDF を出力。

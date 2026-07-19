@@ -147,13 +147,15 @@ npm run build:backend    # fat-JAR ビルド
 
 ## ドキュメント
 
+ドキュメントの入口は [docs/README.md](docs/README.md) です。
+
 | ドキュメント | 内容 |
 |-------------|------|
-| [アーキテクチャ設計](docs/architecture.md) | システム全体の構成とデータフロー |
-| [設計書](docs/design.md) | コンポーネント設計と主要パターン |
-| [詳細設計書](docs/detailed-design.md) | API仕様・型定義・実装詳細 |
+| [導入方法（セットアップ）](docs/setup.md) | ローカル/Docker 起動・環境変数・設定・CLI・サンプルデータ |
+| [ユーザー操作マニュアル](docs/user-manual.md) | 画面構成・テンプレート編集・データ設計・出力・ステータス管理 |
+| [システムアーキテクチャ](docs/architecture.md) | 全体構成・データフロー・認証・データ層・API・非機能要件 |
+| [設計（デザイン）](docs/design.md) | フロントエンド/バックエンド設計・状態管理・要素システム・拡張手順 |
 | [運用可視性](docs/observability.md) | ヘルスチェック・メトリクス・ログ |
-| [ユーザーマニュアル](docs/user-manual.md) | 操作方法と機能説明 |
 
 ## プロジェクト構造
 
