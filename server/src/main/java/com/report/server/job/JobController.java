@@ -2,6 +2,7 @@ package com.report.server.job;
 
 import com.report.server.CsvDataSource;
 import com.report.server.RequestValidator;
+import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UploadedFile;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -191,6 +193,77 @@ public final class JobController {
     /** GET /api/v1/jobs — list V1 batch jobs (V2 jobs share the store but not this API) */
     public void list(Context ctx) {
         ctx.json(jobRepo.listAll().stream().filter(JobRecord::isV1).toList());
+    }
+
+    // ── Unified V2 job API (issue #191) ─────────────────────────────────────────
+
+    /**
+     * GET /api/v2/pdf-jobs — unified listing of every job type (V1 CSV batch, V2
+     * single-PDF, V2 batch-ZIP), newest first, projected to a stable DTO with the
+     * lowercase status vocabulary. Owner-scoped: a user sees their own jobs plus
+     * ownerless (legacy/anonymous) jobs; admins see everything.
+     */
+    public void listUnified(Context ctx) {
+        Principal principal = ctx.attribute("principal");
+        boolean admin = principal != null && principal.roles().contains("admin");
+        String userId = principal != null ? principal.userId() : null;
+        List<Map<String, Object>> out = jobRepo.listAll().stream()
+                .filter(j -> j.owner() == null || admin || (userId != null && userId.equals(j.owner())))
+                .map(JobController::toUnifiedDto)
+                .toList();
+        ctx.json(out);
+    }
+
+    /**
+     * DELETE /api/v2/pdf-jobs/{jobId} — cancel or delete any job type (issue #191).
+     * Terminal jobs are deleted (record + artifacts); running V1 jobs are cooperatively
+     * cancelled via the processor; running V2 jobs are marked CANCELLED (best-effort —
+     * the in-flight worker is not interrupted, but the job leaves the active list).
+     */
+    public void cancelUnified(Context ctx) {
+        String jobId = ctx.pathParam("jobId");
+        var jobOpt = jobRepo.findById(jobId);
+        if (jobOpt.isEmpty() || !canAccess(ctx, jobOpt.get())) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            ctx.json(Map.of("error", "Job not found"));
+            return;
+        }
+        JobRecord job = jobOpt.get();
+        if (job.isTerminal()) {
+            jobRepo.delete(jobId);
+            ctx.json(Map.of("deleted", true, "jobId", jobId));
+            return;
+        }
+        if (job.isV1()) {
+            processor.requestCancel(jobId);
+        } else {
+            jobRepo.save(job.withStatus(JobStatus.CANCELLED));
+        }
+        ctx.json(Map.of("cancelled", true, "jobId", jobId));
+    }
+
+    /** Owner-scoped access: ownerless jobs are open; otherwise owner or admin only. */
+    static boolean canAccess(Context ctx, JobRecord job) {
+        if (job.owner() == null) return true;
+        Principal principal = ctx.attribute("principal");
+        if (principal == null || principal.isAnonymous()) return false;
+        return job.owner().equals(principal.userId()) || principal.roles().contains("admin");
+    }
+
+    private static Map<String, Object> toUnifiedDto(JobRecord j) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("jobId", j.jobId());
+        m.put("jobType", j.jobType() != null ? j.jobType() : JobRecord.TYPE_V1_BATCH);
+        m.put("status", j.statusEnum().v2Name());
+        m.put("templateId", j.templateId());
+        m.put("total", j.totalItems());
+        m.put("completed", j.processedItems());
+        m.put("failed", j.failedItems());
+        if (j.errorMessage() != null) m.put("error", j.errorMessage());
+        m.put("createdAt", j.createdAt());
+        m.put("updatedAt", j.updatedAt());
+        m.put("completedAt", j.completedAt());
+        return m;
     }
 
     /** GET /api/v1/jobs/{id} — job status */

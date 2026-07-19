@@ -230,6 +230,26 @@ public final class JsonBlobRepository {
         tx.put(put);
     }
 
+    /**
+     * Write within an existing transaction, preserving the group key (does NOT commit).
+     *
+     * <p>Use this instead of {@link #putWithinTx(DistributedTransaction, String, String)}
+     * for grouped rows: the group-key-less variant leaves {@code group_key} null, which
+     * drops the row from {@link #listByGroupKey} results.
+     */
+    public void putWithinTx(DistributedTransaction tx, String id, String json, String groupKey) throws Exception {
+        Put put = Put.newBuilder()
+                .namespace(namespace)
+                .table(table)
+                .partitionKey(Key.ofText(COL_ID, id))
+                .textValue(COL_JSON, json)
+                .textValue(COL_GROUP_KEY, groupKey)
+                .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                .enableImplicitPreRead()
+                .build();
+        tx.put(put);
+    }
+
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
             try { tx.abort(); } catch (Exception ignored) { }

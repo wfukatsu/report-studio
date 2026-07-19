@@ -5,9 +5,10 @@ import { UserManagement } from '@/components/admin/UserManagement'
 import { ServerSettings } from '@/components/admin/ServerSettings'
 import { TenantSettings } from '@/components/admin/TenantSettings'
 import { DefaultStyleSettings } from '@/components/admin/DefaultStyleSettings'
+import { ApiTokenSettings } from '@/components/admin/ApiTokenSettings'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
 
-type AdminSection = 'users' | 'server' | 'tenant' | 'style' | 'templates'
+type AdminSection = 'users' | 'server' | 'tenant' | 'style' | 'tokens' | 'templates'
 
 interface SectionEntry {
   readonly id: AdminSection
@@ -21,6 +22,7 @@ const SECTIONS: SectionEntry[] = [
   { id: 'server',    label: 'サーバー設定',  component: ServerSettings },
   { id: 'tenant',    label: 'テナント情報',  component: TenantSettings },
   { id: 'style',     label: 'デフォルトスタイル', component: DefaultStyleSettings },
+  { id: 'tokens',    label: 'APIトークン',   component: ApiTokenSettings },
   { id: 'templates', label: 'テンプレート',  component: TemplateManagementTab, fullWidth: true },
 ]
 

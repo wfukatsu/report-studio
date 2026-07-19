@@ -35,6 +35,7 @@ import { Readable } from 'node:stream'
 
 const HOME = process.env.REPORT_STUDIO_HOME || join(homedir(), '.report-studio')
 const COOKIE_JAR = join(HOME, 'cookies')
+const TOKEN_FILE = join(HOME, 'token')
 
 function parseArgs(argv) {
   const positionals = []
@@ -88,6 +89,21 @@ function saveCookie(setCookieHeader) {
 }
 
 // ---------------------------------------------------------------------------
+// API token (PAT) — Bearer auth for CI / headless use (#195)
+// ---------------------------------------------------------------------------
+
+/** $REPORT_STUDIO_TOKEN takes precedence over a token saved via `login --token`. */
+function loadToken() {
+  if (process.env.REPORT_STUDIO_TOKEN) return process.env.REPORT_STUDIO_TOKEN.trim()
+  try { return readFileSync(TOKEN_FILE, 'utf8').trim() } catch { return '' }
+}
+
+function saveToken(token) {
+  if (!existsSync(HOME)) mkdirSync(HOME, { recursive: true })
+  writeFileSync(TOKEN_FILE, token, { mode: 0o600 })
+}
+
+// ---------------------------------------------------------------------------
 // HTTP
 // ---------------------------------------------------------------------------
 
@@ -98,6 +114,9 @@ async function api(method, path, { body, raw = false, formData } = {}) {
   const headers = {}
   const cookie = loadCookie()
   if (cookie) headers.Cookie = cookie
+  // Bearer PAT auth (#195). The server tries the session cookie first, then this.
+  const token = loadToken()
+  if (token) headers.Authorization = `Bearer ${token}`
   let payload
   if (formData) {
     payload = formData
@@ -137,12 +156,52 @@ async function api(method, path, { body, raw = false, formData } = {}) {
 // ---------------------------------------------------------------------------
 
 async function cmdLogin() {
+  // Token-based login (#195): save a PAT and verify it against an authenticated endpoint.
+  if (flags.token && flags.token !== true) {
+    saveToken(String(flags.token))
+    // Verify by hitting an auth-required endpoint (Bearer works everywhere except /api/v1/auth/*).
+    const res = await api('GET', '/api/v2/templates', { raw: true })
+    if (!res.ok) die('トークンが無効です。管理画面「APIトークン」で発行した値を確認してください。')
+    if (JSON_OUT) return printJson({ ok: true, tokenFile: TOKEN_FILE })
+    out(`✓ トークンを保存しました → ${TOKEN_FILE}`)
+    out('  以降のコマンドは Bearer 認証で実行されます（$REPORT_STUDIO_TOKEN でも指定可）。')
+    return
+  }
   const userId = flags.user || 'admin'
   const password = flags.password || 'changeme'
   const res = await api('POST', '/api/v1/auth/login', { body: { userId, password } })
   if (JSON_OUT) return printJson(res)
   out(`✓ ログインしました: ${res.userId} (${(res.roles || []).join(', ')})`)
   out(`  セッションを ${COOKIE_JAR} に保存しました`)
+}
+
+// ── Personal Access Tokens (#195) ────────────────────────────────────────────
+
+async function cmdTokensList() {
+  const res = await api('GET', '/api/v1/auth/tokens')
+  const tokens = res.tokens || []
+  if (JSON_OUT) return printJson(tokens)
+  if (tokens.length === 0) return out('APIトークンがありません。')
+  out(pad('ID', 20) + pad('ラベル', 20) + pad('プレビュー', 16) + '最終利用')
+  for (const t of tokens) {
+    out(pad((t.id || '').slice(0, 18), 20) + pad(t.label ?? '', 20) + pad(t.preview ?? '', 16)
+      + (t.lastUsedAt ? new Date(t.lastUsedAt).toISOString() : '未使用'))
+  }
+}
+
+async function cmdTokenCreate() {
+  const label = flags.label && flags.label !== true ? String(flags.label) : ''
+  const res = await api('POST', '/api/v1/auth/tokens', { body: { label } })
+  if (JSON_OUT) return printJson(res)
+  out(`✓ トークンを発行しました（この値は再表示されません）:`)
+  out(`  ${res.token}`)
+  out(`  保存例: report-studio login --token ${res.token}`)
+}
+
+async function cmdTokenRevoke(id) {
+  if (!id) die('トークンIDを指定してください: tokens revoke <id>（IDは tokens list で確認）')
+  await api('DELETE', `/api/v1/auth/tokens/${encodeURIComponent(id)}`, { raw: true })
+  out(`✓ トークンを失効しました: ${id}`)
 }
 
 async function cmdWhoami() {
@@ -227,18 +286,53 @@ async function cmdBatch(id) {
   // Render each row through the reliable per-template PDF endpoint (the V1 CSV job
   // path relies on legacy projections that V2 templates don't have). Header row
   // keys use dot-notation (e.g. customer.customerName) → nested testData.
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const filenameTemplate = flags['filename-template'] && flags['filename-template'] !== true
+    ? String(flags['filename-template']) : null
+  const usedNames = new Set()
+
   out(`… ${rows.length} 行をレンダリングします...`)
   let ok = 0
   for (let i = 0; i < rows.length; i++) {
     const testData = expandDotKeys(rows[i])
     const res = await api('POST', `/api/v2/templates/${encodeURIComponent(id)}/pdf`, { body: { testData }, raw: true })
     if (!res.ok) { err(`  行 ${i + 1}: 失敗 (HTTP ${res.status})`); continue }
-    const nameCol = flags.name && rows[i][flags.name] ? sanitizeFilename(rows[i][flags.name]) : String(i + 1).padStart(4, '0')
-    const file = join(outDir, `${nameCol}.pdf`)
+    const file = join(outDir, uniqueName(usedNames, batchFilename(rows[i], i, dateStr, filenameTemplate)))
     await streamToFile(res, file)
     ok++
   }
   out(`✓ 一括PDF (${ok}/${rows.length} 成功) → ${outDir}/`)
+}
+
+/**
+ * Resolve the output filename for one batch row (#194). Precedence:
+ * --filename-template "{col}_{date}.pdf" > legacy --name <col> > zero-padded index.
+ * Template tokens: {seq}, {date}, and any CSV column name.
+ */
+function batchFilename(row, index, dateStr, template) {
+  const seqStr = String(index + 1).padStart(4, '0')
+  if (template) {
+    const name = template.replace(/\{([^{}]+)\}/g, (_, key) => {
+      const k = key.trim()
+      if (k === 'seq') return seqStr
+      if (k === 'date') return dateStr
+      return sanitizeFilename(row[k] ?? '')
+    })
+    const cleaned = sanitizeFilename(name.replace(/\.pdf$/i, '')) || seqStr
+    return `${cleaned}.pdf`
+  }
+  if (flags.name && flags.name !== true && row[flags.name]) return `${sanitizeFilename(row[flags.name])}.pdf`
+  return `${seqStr}.pdf`
+}
+
+/** Ensure filename uniqueness within the output directory. */
+function uniqueName(used, name) {
+  if (!used.has(name)) { used.add(name); return name }
+  const base = name.replace(/\.pdf$/i, '')
+  for (let i = 2; ; i++) {
+    const candidate = `${base}_${i}.pdf`
+    if (!used.has(candidate)) { used.add(candidate); return candidate }
+  }
 }
 
 /** Minimal RFC-4180-ish CSV parser: header row + quoted-field support. */
@@ -340,20 +434,34 @@ async function cmdResponsesSetStatus(templateId, status) {
 }
 
 async function cmdJobsList() {
-  const res = await api('GET', '/api/v1/jobs')
+  // Unified listing across all job types (#191).
+  const res = await api('GET', '/api/v2/pdf-jobs')
   const jobs = Array.isArray(res) ? res : (res.jobs || [])
   if (JSON_OUT) return printJson(jobs)
   if (jobs.length === 0) return out('ジョブがありません。')
   out(pad('JOB ID', 40) + pad('種別', 10) + pad('状態', 12) + '進捗')
   for (const j of jobs) {
-    out(pad(j.jobId, 40) + pad(j.jobType ?? '', 10) + pad(j.status ?? '', 12) + `${j.processedItems ?? 0}/${j.totalItems ?? 0}`)
+    const completed = j.completed ?? j.processedItems ?? 0
+    const total = j.total ?? j.totalItems ?? 0
+    out(pad(j.jobId, 40) + pad(j.jobType ?? '', 10) + pad(j.status ?? '', 12) + `${completed}/${total}`)
   }
 }
 
 async function cmdJobStatus(jobId) {
   if (!jobId) die('ジョブIDを指定してください: jobs status <jobId>')
-  const res = await api('GET', `/api/v1/jobs/${encodeURIComponent(jobId)}`)
-  printJson(res)
+  // V2 single-PDF status; batch jobs live under /api/v2/pdf-jobs/batch/{id}.
+  const res = await api('GET', `/api/v2/pdf-jobs/${encodeURIComponent(jobId)}`, { raw: true })
+  if (res.ok) return printJson(await res.json())
+  // Fall back to the V1 status endpoint for CSV batch jobs.
+  const v1 = await api('GET', `/api/v1/jobs/${encodeURIComponent(jobId)}`)
+  printJson(v1)
+}
+
+async function cmdJobCancel(jobId) {
+  if (!jobId) die('ジョブIDを指定してください: jobs cancel <jobId>')
+  const res = await api('DELETE', `/api/v2/pdf-jobs/${encodeURIComponent(jobId)}`)
+  if (JSON_OUT) return printJson(res)
+  out(`✓ ジョブを${res.deleted ? '削除' : 'キャンセル'}しました: ${jobId}`)
 }
 
 async function cmdDbTables() {
@@ -387,7 +495,11 @@ function printHelp() {
 
 認証:
   login                       ログイン（セッションを保存）  --user --password
+  login --token <t>           APIトークンで認証（$REPORT_STUDIO_TOKEN でも可）
   whoami                      現在のユーザーを表示
+  tokens list                 APIトークン一覧
+  tokens create               APIトークン発行  --label <用途>
+  tokens revoke <id>          APIトークン失効
 
 テンプレート:
   templates list              テンプレート一覧
@@ -398,7 +510,8 @@ function printHelp() {
 
 出力:
   pdf <id>                    単票PDF生成  --data data.json --out file.pdf
-  batch <id> --csv rows.csv   CSVから一括PDF  --out dir/  --name <col>
+  batch <id> --csv rows.csv   CSVから一括PDF  --out dir/
+                              ファイル名: --filename-template "{col}_{date}.pdf" または --name <col>
 
 回答・ステータス:
   responses list <id>         回答一覧（ステータス付き）
@@ -406,8 +519,9 @@ function printHelp() {
   responses set-status <id> <status> --ids a,b  または --status-from <old>   一括変更
 
 ジョブ:
-  jobs list                   ジョブ一覧
+  jobs list                   ジョブ一覧（全種別・統一表示）
   jobs status <jobId>         ジョブ状態
+  jobs cancel <jobId>         ジョブをキャンセル/削除
 
 データベース:
   db tables                   ScalarDB テーブル一覧
@@ -435,6 +549,11 @@ async function main() {
   switch (command) {
     case 'login': return cmdLogin()
     case 'whoami': return cmdWhoami()
+    case 'tokens':
+      if (sub === 'list') return cmdTokensList()
+      if (sub === 'create') return cmdTokenCreate()
+      if (sub === 'revoke') return cmdTokenRevoke(positionals[2])
+      return die(`不明なサブコマンド: tokens ${sub ?? ''}`)
     case 'templates':
       if (sub === 'list') return cmdTemplatesList()
       if (sub === 'get') return cmdTemplateGet(positionals[2])
@@ -452,6 +571,7 @@ async function main() {
     case 'jobs':
       if (sub === 'list') return cmdJobsList()
       if (sub === 'status') return cmdJobStatus(positionals[2])
+      if (sub === 'cancel') return cmdJobCancel(positionals[2])
       return die(`不明なサブコマンド: jobs ${sub ?? ''}`)
     case 'db':
       if (sub === 'tables') return cmdDbTables()

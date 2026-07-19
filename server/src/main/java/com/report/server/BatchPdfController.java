@@ -93,22 +93,43 @@ public final class BatchPdfController {
             return;
         }
 
+        // Two input modes (issue #193): stored form responses (responseIds) OR inline
+        // data rows (rows) for DB-row-driven bulk export. Exactly one must be present.
         JsonNode idsNode = req.path("responseIds");
-        if (!idsNode.isArray() || idsNode.size() == 0) {
+        JsonNode rowsNode = req.path("rows");
+        boolean hasIds = idsNode.isArray() && idsNode.size() > 0;
+        boolean hasRows = rowsNode.isArray() && rowsNode.size() > 0;
+        if (hasIds == hasRows) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "responseIds must be a non-empty array"));
+            ctx.json(Map.of("error", "Provide exactly one of a non-empty responseIds or rows array"));
             return;
         }
-        if (idsNode.size() > MAX_BATCH_SIZE) {
+        int inputSize = hasIds ? idsNode.size() : rowsNode.size();
+        if (inputSize > MAX_BATCH_SIZE) {
             ctx.status(HttpStatus.BAD_REQUEST);
             ctx.json(Map.of("error", "Maximum batch size is " + MAX_BATCH_SIZE));
             return;
         }
 
-        // Collect responseIds
-        List<String> responseIds = new ArrayList<>();
-        for (JsonNode id : idsNode) {
-            if (id.isTextual() && !id.asText().isBlank()) responseIds.add(id.asText());
+        // Optional output filename template (issue #194), e.g. "{documentNo}_{customer.name}.pdf"
+        String filenameTemplate = req.path("filenameTemplate").asText(null);
+        if (filenameTemplate != null && filenameTemplate.isBlank()) filenameTemplate = null;
+
+        // Build the input list for either mode.
+        List<BatchInput> inputs = new ArrayList<>();
+        if (hasIds) {
+            for (JsonNode id : idsNode) {
+                if (id.isTextual() && !id.asText().isBlank()) inputs.add(new BatchInput(id.asText(), null));
+            }
+        } else {
+            for (JsonNode row : rowsNode) {
+                if (row.isObject()) inputs.add(new BatchInput(null, row));
+            }
+        }
+        if (inputs.isEmpty()) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "No valid items to render"));
+            return;
         }
 
         // Ensure template exists
@@ -129,19 +150,21 @@ public final class BatchPdfController {
 
         String batchJobId = "batch-" + UUID.randomUUID();
         JobRecord job = JobRecord.create(batchJobId, templateId, JobRecord.TYPE_V2_BATCH,
-                principal.userId(), responseIds.size(),
+                principal.userId(), inputs.size(),
                 System.currentTimeMillis() + TTL_SECONDS * 1000);
         jobStore.save(job);
 
         final String finalTemplateId = templateId;
         final String finalRaw = rawOpt.get();
-        final List<String> finalIds = responseIds;
+        final List<BatchInput> finalInputs = inputs;
+        final String finalFilenameTemplate = filenameTemplate;
         final String userId = principal.userId();
 
         CompletableFuture.runAsync(() -> {
             jobStore.save(job.withStatus(JobStatus.PROCESSING));
             try {
-                Path zipPath = generateBatchZip(batchJobId, finalTemplateId, finalRaw, finalIds, userId);
+                Path zipPath = generateBatchZip(batchJobId, finalTemplateId, finalRaw,
+                        finalInputs, finalFilenameTemplate, userId);
                 JobRecord latest = jobStore.findById(batchJobId).orElse(job);
                 jobStore.save(latest.withArtifact(zipPath.toString()));
                 log.info("Batch PDF job {} completed ({})", batchJobId, zipPath);
@@ -157,15 +180,15 @@ public final class BatchPdfController {
         ctx.status(HttpStatus.ACCEPTED);
         ctx.json(Map.of(
             "batchJobId", batchJobId,
-            "totalCount", responseIds.size(),
+            "totalCount", inputs.size(),
             "status", JobStatus.PENDING.v2Name(),
             "statusUrl", "/api/v2/pdf-jobs/batch/" + batchJobId
         ));
     }
 
-    /** Renders each response and streams the resulting ZIP to the job's artifact path. */
+    /** Renders each input (stored response or inline row) and streams the ZIP to the job's artifact path. */
     private Path generateBatchZip(String batchJobId, String templateId, String rawDef,
-                                  List<String> responseIds, String userId) throws Exception {
+                                  List<BatchInput> inputs, String filenameTemplate, String userId) throws Exception {
         // The stored blob is an envelope {created_by, definition:{pages,...}, ...}.
         // renderDefinition expects the inner ReportDefinition (it reads `pages`
         // from the root), so unwrap `.definition` — passing the whole envelope
@@ -181,46 +204,55 @@ public final class BatchPdfController {
         AtomicInteger failedCount = new AtomicInteger();
 
         List<CompletableFuture<PdfResult>> futures = new ArrayList<>();
-        int[] seqArr = {0};
+        // Guard against filename collisions from the template producing duplicate names.
+        Set<String> usedNames = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        int seq = 0;
 
-        for (String responseId : responseIds) {
-            int seq = ++seqArr[0];
-            String seqStr = String.format("%03d", seq);
-            final String filename = seqStr + "_" + dateStr + ".pdf";
+        for (BatchInput input : inputs) {
+            seq++;
+            final int seqNum = seq;
+            final String seqStr = String.format("%03d", seq);
+            final String label = input.responseId() != null ? input.responseId() : "row-" + seqStr;
 
-            // Fetch response data
-            Optional<String> respOpt;
-            try { respOpt = responseRepo.get(responseId); }
-            catch (Exception e) {
-                failedCount.incrementAndGet();
-                futures.add(CompletableFuture.completedFuture(
-                    new PdfResult(responseId, filename, null, "Response not found: " + responseId)));
-                continue;
+            // Resolve the data node (and doc number / status for filename tokens).
+            ObjectNode dataNode;
+            String documentNumber = "";
+            String status = "";
+            if (input.responseId() != null) {
+                Optional<String> respOpt;
+                try { respOpt = responseRepo.get(input.responseId()); }
+                catch (Exception e) { respOpt = Optional.empty(); }
+                if (respOpt.isEmpty()) {
+                    failedCount.incrementAndGet();
+                    String fn = uniqueName(usedNames, seqStr + "_" + dateStr + ".pdf");
+                    futures.add(CompletableFuture.completedFuture(
+                        new PdfResult(label, fn, null, "Response not found")));
+                    continue;
+                }
+                JsonNode resp = MAPPER.readTree(respOpt.get());
+                JsonNode d = resp.path("data");
+                dataNode = (d.isObject()) ? (ObjectNode) d : MAPPER.createObjectNode();
+                documentNumber = resp.path("documentNumber").asText("");
+                status = resp.path("status").asText("");
+            } else {
+                dataNode = (ObjectNode) input.inlineData();
             }
-            if (respOpt.isEmpty()) {
-                failedCount.incrementAndGet();
-                futures.add(CompletableFuture.completedFuture(
-                    new PdfResult(responseId, filename, null, "Response not found")));
-                continue;
-            }
 
-            final String respJson = respOpt.get();
+            String desiredName = buildFilename(filenameTemplate, seqStr, dateStr,
+                    documentNumber, status, dataNode);
+            final String filename = uniqueName(usedNames, desiredName);
             final JsonNode defNode = definitionNode;
+            final ObjectNode finalData = dataNode;
 
             CompletableFuture<PdfResult> future = CompletableFuture.supplyAsync(() -> {
                 try {
-                    JsonNode resp = MAPPER.readTree(respJson);
-                    ObjectNode testData = (ObjectNode) resp.path("data");
-                    if (testData == null || testData.isMissingNode()) {
-                        testData = MAPPER.createObjectNode();
-                    }
-                    String defJson = V2RenderSupport.prepare(defNode, testData, null);
+                    String defJson = V2RenderSupport.prepare(defNode, finalData, null);
                     byte[] pdfBytes = PdfRenderer.renderDefinition(defJson);
                     checkpointProgress(batchJobId, completedCount.incrementAndGet(), failedCount.get());
-                    return new PdfResult(responseId, filename, pdfBytes, null);
+                    return new PdfResult(label, filename, pdfBytes, null);
                 } catch (Exception ex) {
                     checkpointProgress(batchJobId, completedCount.get(), failedCount.incrementAndGet());
-                    return new PdfResult(responseId, filename, null, ex.getMessage());
+                    return new PdfResult(label, filename, null, ex.getMessage());
                 }
             }, pdfExecutor);
             futures.add(future);
@@ -269,11 +301,21 @@ public final class BatchPdfController {
                 bytesWritten += entrySize;
             }
 
-            // summary.json
+            // summary.json — enriched manifest (issue #194): per-entry filename + outcome
             ObjectNode summary = MAPPER.createObjectNode();
             summary.put("completed", successCount);
             summary.put("failed", failCount);
             if (truncated) summary.put("truncated", true);
+            ArrayNode entries = summary.putArray("entries");
+            for (PdfResult r : results) {
+                ObjectNode e = entries.objectNode();
+                e.put("label", r.responseId());
+                e.put("filename", r.filename());
+                e.put("ok", r.bytes() != null);
+                if (r.bytes() == null) e.put("reason", r.error() != null ? r.error() : "unknown");
+                entries.add(e);
+            }
+            // Backward-compatible failures list
             ArrayNode failures = summary.putArray("failures");
             for (PdfResult r : results) {
                 if (r.bytes() == null) {
@@ -364,6 +406,87 @@ public final class BatchPdfController {
         return jobStore.findById(id)
                 .filter(j -> JobRecord.TYPE_V2_BATCH.equals(j.jobType()));
     }
+
+    // ── Filename templating (issue #194) ────────────────────────────────────────
+
+    private static final java.util.regex.Pattern TOKEN = java.util.regex.Pattern.compile("\\{([^{}]+)\\}");
+
+    /**
+     * Build the ZIP entry name for one item. With no template, falls back to the
+     * historical {@code NNN_yyyyMMdd.pdf} form. Tokens: {@code {seq}}, {@code {date}},
+     * {@code {documentNo}}/{@code {documentNumber}}, {@code {status}}, and any
+     * dot-notation data field (e.g. {@code {customer.name}}). Unknown tokens resolve
+     * to empty. Result is sanitized and always ends in {@code .pdf}.
+     */
+    static String buildFilename(String template, String seqStr, String dateStr,
+                                String documentNumber, String status, JsonNode data) {
+        if (template == null || template.isBlank()) {
+            return seqStr + "_" + dateStr + ".pdf";
+        }
+        Map<String, String> flat = new HashMap<>();
+        flattenLeaves(data, "", flat);
+        java.util.regex.Matcher m = TOKEN.matcher(template);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String key = m.group(1).trim();
+            String value = switch (key) {
+                case "seq" -> seqStr;
+                case "date" -> dateStr;
+                case "documentNo", "documentNumber" -> documentNumber == null ? "" : documentNumber;
+                case "status" -> status == null ? "" : status;
+                default -> flat.getOrDefault(key, "");
+            };
+            m.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(value));
+        }
+        m.appendTail(sb);
+        // Strip a template-supplied .pdf before sanitizing so trailing underscores from
+        // empty tokens (e.g. "{missing}_A_{missing}.pdf") don't cling to the extension.
+        String base = sanitizeFilename(sb.toString().replaceAll("(?i)\\.pdf$", ""));
+        if (base.isBlank()) base = seqStr + "_" + dateStr;
+        return base + ".pdf";
+    }
+
+    /** Replace path separators and characters unsafe in ZIP entry / OS filenames. */
+    static String sanitizeFilename(String raw) {
+        String s = raw.replace('/', '_').replace('\\', '_')
+                .replaceAll("[\\x00-\\x1f<>:\"|?*]", "_")
+                .trim();
+        // Collapse redundant underscores, strip a trailing dot, and trim stray edges.
+        s = s.replaceAll("_{2,}", "_").replaceAll("\\.+$", "").replaceAll("^_+|_+$", "");
+        if (s.length() > 180) s = s.substring(0, 180);
+        return s;
+    }
+
+    /** Ensure uniqueness within the ZIP by suffixing collisions with a counter. */
+    private static String uniqueName(Set<String> used, String name) {
+        if (used.add(name)) return name;
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name;
+        String ext = dot > 0 ? name.substring(dot) : "";
+        for (int i = 2; ; i++) {
+            String candidate = base + "_" + i + ext;
+            if (used.add(candidate)) return candidate;
+        }
+    }
+
+    /** Flatten scalar leaves of a JSON object into dot-notation keys for token lookup. */
+    private static void flattenLeaves(JsonNode node, String prefix, Map<String, String> out) {
+        if (node == null || !node.isObject()) return;
+        var fields = node.fields();
+        while (fields.hasNext()) {
+            var f = fields.next();
+            String key = prefix.isEmpty() ? f.getKey() : prefix + "." + f.getKey();
+            JsonNode v = f.getValue();
+            if (v.isObject()) {
+                flattenLeaves(v, key, out);
+            } else if (!v.isArray()) {
+                out.put(key, v.asText(""));
+            }
+        }
+    }
+
+    /** One batch input: either a stored response id, or an inline data object (DB row). */
+    private record BatchInput(String responseId, JsonNode inlineData) {}
 
     private record PdfResult(String responseId, String filename, byte[] bytes, String error) {}
 }

@@ -45,13 +45,14 @@ npm run build:backend
 - **DB**: ScalarDB 3.14 + SQLite (dev) / any JDBC (prod)
 - **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
 - **API routes** (authoritative registration: `ApiRoutes.java`): the API was migrated to a `/api/v2` stack; the dead v1 duplicate stack (templates/schemas/versions/responses/export/pdf/thumbnail + designer-projection/export-submission) was **removed** along with its controllers, and the surviving controllers dropped their `V2` class-name prefix (e.g. `TemplateController`, `PdfController`). URL paths keep the `/api/v2` version — the version lives in the URL, not the class name. The split is now **by resource, with no duplicated routes**:
-  - **v2**: `templates` and everything under it (`evaluate`, `validate`, `versions`, `responses`, `export`/`import`, `pdf`, `thumbnail`, `duplicate`/`copy`/`visibility`, `resolve-bindings`), `schemas`(+`infer`, with `schema-library` redirecting to `schemas`), `excel`, `pdf`/`pdf-jobs`(+`batch`), `scalardb`, `tenant`, `health`
-  - **v1 (not yet migrated — no v2 equivalent)**: `auth`, `admin`, `products`, `jobs`, `webhooks`, `sequences`, `public/forms`, `binding-trees`, plus public `health`
+  - **v2**: `templates` and everything under it (`evaluate`, `validate`, `versions`, `responses`(+`/{rid}/status`, `/{rid}/audit`), `export`/`import`, `pdf`, `thumbnail`, `duplicate`/`copy`/`visibility`, `resolve-bindings`), `documents` (cross-template issued-documents list, #190), `schemas`(+`infer`, with `schema-library` redirecting to `schemas`), `excel`, `pdf`/`pdf-jobs`(+`batch`; `GET /pdf-jobs` unified list + `DELETE /pdf-jobs/{id}` cancel span all job types, #191), `scalardb`, `tenant`, `health`
+  - **v1 (not yet migrated — no v2 equivalent)**: `auth`(+`/tokens` PAT management, #195), `admin`, `products`, `jobs`, `webhooks`, `sequences`, `public/forms`, `binding-trees`, plus public `health`
   - Note: the `V2` prefix marks the newer controller generation, not a stable public contract; `v1`/`v2` here is unrelated to the binding-editor "legacy vs current" UI or template version numbers shown in the UI.
 - **Key engines**: `ExpressionEngine` (JEXL sandbox), `CalculationEngine`, `ConditionEvaluator`, `ValidationEngine`
 - **PDF export**: `SectionPdfRenderer`, `FormTablePdfRenderer`, `ImagePdfRenderer`, `BarcodePdfRenderer`, `FontProvider`
-- **Batch jobs**: `BatchPdfProcessor` via `JobController` / `JobRepository`
-- **Auth**: `FormSessionManager` + `RateLimiter`; wiring in `AppWiring.java`
+- **Batch jobs**: `BatchPdfProcessor` via `JobController` / `JobRepository`. The V2 batch endpoint (`BatchPdfController`) accepts either `responseIds` (stored responses) or inline `rows` (DB-row-driven bulk export, #193) plus an optional `filenameTemplate` (`{documentNo}`/`{status}`/`{seq}`/`{date}`/data fields, #194)
+- **Document lifecycle (#163)**: responses carry a `status` (draft/issued/sent/void); `SequenceController.nextAndStamp` assigns a document number at submit **or** on the first draft→issued transition; `StatusAuditRepository` persists every transition (who/when/from→to) in `report_studio.status_audit`
+- **Auth**: `FormSessionManager` + `RateLimiter` (cookie sessions) + `ApiTokenController` (PAT/Bearer, table `report_studio.api_tokens`, #195); wiring in `AppWiring.java`, Bearer resolved as a fallback in the `ApiRoutes` auth before-filter
 
 ## Architecture
 
