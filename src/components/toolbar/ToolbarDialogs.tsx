@@ -11,7 +11,7 @@ import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 /** Default/placeholder document names not worth pre-filling in the save dialog (#158). */
-const PLACEHOLDER_TEMPLATE_NAMES = new Set(['Untitled Report', '新しいテンプレート', ''])
+const PLACEHOLDER_TEMPLATE_NAMES = new Set(['無題の帳票', 'Untitled Report', '新しいテンプレート', ''])
 
 interface Props {
   reportName: string

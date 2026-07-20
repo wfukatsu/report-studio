@@ -14,7 +14,6 @@
 
 import { memo, useCallback, useMemo } from 'react'
 import { useReportStore } from '@/store/reportStore'
-import { useShallow } from 'zustand/shallow'
 import type { RepeatingBandField } from '@/types'
 import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
@@ -60,11 +59,15 @@ interface Props {
   computedValues?: Record<string, unknown>
   /** Default text style from store — lifted from parent to avoid N subscriptions */
   defaultTextStyle?: TextStyle
+  /** Calculation-output keys from store — lifted from parent to avoid N subscriptions (#218) */
+  calcOutputKeys?: Set<string>
 }
+
+const EMPTY_KEY_SET: Set<string> = new Set()
 
 export const ElementRenderer = memo(function ElementRenderer({
   element, data = {}, rowIndex, readonly = false, pageIndex, totalPages,
-  computedValues = {}, defaultTextStyle = {} as TextStyle,
+  computedValues = {}, defaultTextStyle = {} as TextStyle, calcOutputKeys = EMPTY_KEY_SET,
 }: Props) {
   // Memoize merged data so the object reference is stable across renders when
   // neither data nor computedValues have changed (prevents useMemo churn below).
@@ -79,12 +82,8 @@ export const ElementRenderer = memo(function ElementRenderer({
     return evaluateConditionalDisplay(element.conditionalDisplay, mergedData, rowIndex)
   }, [element.conditionalDisplay, mergedData, rowIndex])
 
-  // Memoize the set of calculation output keys so that isDataEmptyInPreview
-  // never hides a field whose value is produced by a calculation rule.
-  const calcOutputKeys = useReportStore(useShallow((s) => {
-    const keys = s.definition.calculationRules.map((r) => r.key)
-    return new Set(keys)
-  }))
+  // calcOutputKeys is supplied by the parent (SectionContainer) so isDataEmptyInPreview never
+  // hides a calculation-produced field — subscribed once there, not per element (#218).
 
   // In readonly mode (preview / PDF-PNG export): hide elements whose data binding
   // resolves to empty so that placeholder displays (grey-italic field names,

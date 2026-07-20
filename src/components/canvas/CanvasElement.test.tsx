@@ -23,6 +23,7 @@ vi.mock('@/store/reportStore', () => ({
     const fakeStore = {
       removeElement: vi.fn(),
       updateElement: vi.fn(),
+      pushHistory: vi.fn(),
       editorZoom: storeState.editorZoom,
     }
     return selector(fakeStore)

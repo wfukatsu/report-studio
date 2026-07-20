@@ -5,7 +5,8 @@
 import type { StateCreator } from 'zustand'
 import { castDraft } from 'immer'
 import type { StoreState, HistoryEntry } from './types'
-import type { PageDef, SchemaDefinition, CalculationRule, ValidationRule } from '@/types'
+import type { PageDef, SchemaDefinition, CalculationRule, ValidationRule, PageSettings } from '@/types'
+import { clearHistoryTimer } from './historyTimer'
 
 // ---------------------------------------------------------------------------
 // Snapshot helper
@@ -21,12 +22,14 @@ export function snapshotPages(
   schema?: SchemaDefinition,
   calculationRules?: CalculationRule[],
   validationRules?: ValidationRule[],
+  pageSettings?: PageSettings,
 ): HistoryEntry {
   return JSON.parse(JSON.stringify({
     pages,
     schema,
     calculationRules,
     validationRules,
+    pageSettings,
   })) as HistoryEntry
 }
 
@@ -42,8 +45,9 @@ export function pushHistoryEntry(
   schema?: SchemaDefinition,
   calculationRules?: CalculationRule[],
   validationRules?: ValidationRule[],
+  pageSettings?: PageSettings,
 ): { history: HistoryEntry[]; historyIndex: number } {
-  const entry = snapshotPages(pages, schema, calculationRules, validationRules)
+  const entry = snapshotPages(pages, schema, calculationRules, validationRules, pageSettings)
   const trimmed = history.slice(0, historyIndex + 1)
   const next = [...trimmed, entry].slice(-30)
   return { history: next, historyIndex: next.length - 1 }
@@ -79,6 +83,7 @@ export const createHistorySlice: StateCreator<
       definition.schema,
       definition.calculationRules,
       definition.validationRules,
+      definition.pageSettings,
     )
     set((s) => {
       s.history = castDraft(result.history)
@@ -87,6 +92,10 @@ export const createHistorySlice: StateCreator<
   },
 
   undo: () => {
+    // Cancel any pending debounced pushHistory (from a recent updateElement). Otherwise the
+    // timer fires AFTER the undo and pushes the undone state as a new entry, truncating the
+    // redo branch and leaving a duplicate (#215).
+    clearHistoryTimer()
     const { historyIndex, history } = get()
     if (historyIndex < 1) return
     const entry = history[historyIndex - 1]
@@ -96,11 +105,13 @@ export const createHistorySlice: StateCreator<
       if (entry.schema !== undefined) s.definition.schema = structuredClone(entry.schema)
       if (entry.calculationRules !== undefined) s.definition.calculationRules = structuredClone(entry.calculationRules)
       if (entry.validationRules !== undefined) s.definition.validationRules = structuredClone(entry.validationRules)
+      if (entry.pageSettings !== undefined) s.definition.pageSettings = castDraft(structuredClone(entry.pageSettings))
       s.historyIndex -= 1
     })
   },
 
   redo: () => {
+    clearHistoryTimer() // same rationale as undo (#215)
     const { historyIndex, history } = get()
     if (historyIndex >= history.length - 1) return
     const entry = history[historyIndex + 1]
@@ -109,6 +120,7 @@ export const createHistorySlice: StateCreator<
       if (entry.schema !== undefined) s.definition.schema = structuredClone(entry.schema)
       if (entry.calculationRules !== undefined) s.definition.calculationRules = structuredClone(entry.calculationRules)
       if (entry.validationRules !== undefined) s.definition.validationRules = structuredClone(entry.validationRules)
+      if (entry.pageSettings !== undefined) s.definition.pageSettings = castDraft(structuredClone(entry.pageSettings))
       s.historyIndex += 1
     })
   },

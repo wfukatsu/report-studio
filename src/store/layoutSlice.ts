@@ -51,7 +51,7 @@ function createDefaultSection(elements: ReportElement[] = [], height?: number): 
   }
 }
 
-export function createDefaultPageDef(name = 'Page 1'): PageDef {
+export function createDefaultPageDef(name = 'ページ 1'): PageDef {
   const dims = getPageDimensions('A4', 'portrait')
   const section = createDefaultSection([], dims.height)
   return {
@@ -68,7 +68,7 @@ export function createDefaultDefinition(): ReportDefinition {
   return {
     id: uuidv4(),
     metadata: {
-      documentName: 'Untitled Report',
+      documentName: '無題の帳票',
       version: '1.0',
       reportType: 'general',
     },
@@ -165,21 +165,25 @@ export const createLayoutSlice: StateCreator<
     Object.assign(s.definition.metadata, patch)
   }),
 
-  updateSettings: (settings) => set((s) => {
-    Object.assign(s.definition.pageSettings, settings)
-    const { paperSize, orientation, customWidth, customHeight } = s.definition.pageSettings
-    const dims = getPageDimensions(paperSize, orientation, customWidth, customHeight)
-    for (const page of s.definition.pages) {
-      page.width = dims.width
-      page.height = dims.height
-      const bodySection = page.sections.find((sec) => sec.sectionType === 'body')
-      if (bodySection) {
-        bodySection.height = dims.height
-      } else if (page.sections.length > 0) {
-        page.sections[0].height = dims.height
+  updateSettings: (settings) => {
+    clearHistoryTimer()
+    set((s) => {
+      Object.assign(s.definition.pageSettings, settings)
+      const { paperSize, orientation, customWidth, customHeight } = s.definition.pageSettings
+      const dims = getPageDimensions(paperSize, orientation, customWidth, customHeight)
+      for (const page of s.definition.pages) {
+        page.width = dims.width
+        page.height = dims.height
+        const bodySection = page.sections.find((sec) => sec.sectionType === 'body')
+        if (bodySection) {
+          bodySection.height = dims.height
+        } else if (page.sections.length > 0) {
+          page.sections[0].height = dims.height
+        }
       }
-    }
-  }),
+    })
+    get().pushHistory() // page/settings changes are undoable (#215)
+  },
 
   updateDefaultTextStyle: (patch) => set((s) => {
     Object.assign(s.definition.defaultTextStyle, patch)
@@ -203,6 +207,7 @@ export const createLayoutSlice: StateCreator<
       migratedDefinition.schema,
       migratedDefinition.calculationRules,
       migratedDefinition.validationRules,
+      migratedDefinition.pageSettings,
     )
     set((s) => {
       s.definition = castDraft(migratedDefinition)
@@ -226,6 +231,7 @@ export const createLayoutSlice: StateCreator<
       definition.schema,
       definition.calculationRules,
       definition.validationRules,
+      definition.pageSettings,
     )
     set((s) => {
       s.definition = castDraft(definition)
@@ -247,71 +253,93 @@ export const createLayoutSlice: StateCreator<
     return { ok: true }
   },
 
-  addPage: (name) => set((s) => {
-    const pageName = name ?? `Page ${s.definition.pages.length + 1}`
-    const page = createDefaultPageDef(pageName)
-    const { masterHeader, masterFooter } = s.definition
-    if (masterHeader) {
-      const idx = page.sections.findIndex((sec) => sec.sectionType === 'header')
-      if (idx !== -1) {
-        page.sections[idx] = cloneSectionForPage(masterHeader as Section)
-      } else {
-        const cloned = cloneSectionForPage(masterHeader as Section)
-        page.sections.unshift(cloned)
+  addPage: (name) => {
+    clearHistoryTimer()
+    set((s) => {
+      const pageName = name ?? `ページ ${s.definition.pages.length + 1}`
+      const page = createDefaultPageDef(pageName)
+      const { masterHeader, masterFooter } = s.definition
+      if (masterHeader) {
+        const idx = page.sections.findIndex((sec) => sec.sectionType === 'header')
+        if (idx !== -1) {
+          page.sections[idx] = cloneSectionForPage(masterHeader as Section)
+        } else {
+          const cloned = cloneSectionForPage(masterHeader as Section)
+          page.sections.unshift(cloned)
+        }
       }
-    }
-    if (masterFooter) {
-      const idx = page.sections.findIndex((sec) => sec.sectionType === 'footer')
-      if (idx !== -1) {
-        page.sections[idx] = cloneSectionForPage(masterFooter as Section)
-      } else {
-        const cloned = cloneSectionForPage(masterFooter as Section)
-        page.sections.push(cloned)
+      if (masterFooter) {
+        const idx = page.sections.findIndex((sec) => sec.sectionType === 'footer')
+        if (idx !== -1) {
+          page.sections[idx] = cloneSectionForPage(masterFooter as Section)
+        } else {
+          const cloned = cloneSectionForPage(masterFooter as Section)
+          page.sections.push(cloned)
+        }
       }
-    }
-    fitBodyToPage(page)
-    s.definition.pages.push(castDraft(page))
-    s.selection.activePageId = page.id
-  }),
+      fitBodyToPage(page)
+      s.definition.pages.push(castDraft(page))
+      s.selection.activePageId = page.id
+    })
+    get().pushHistory() // page add is undoable (#215)
+  },
 
-  removePage: (pageId) => set((s) => {
-    if (s.definition.pages.length <= 1) return
-    const idx = s.definition.pages.findIndex((p) => p.id === pageId)
-    if (idx === -1) return
-    s.definition.pages.splice(idx, 1)
-    if (s.selection.activePageId === pageId) {
-      s.selection.activePageId = s.definition.pages[Math.max(0, idx - 1)]?.id ?? null
-    }
-  }),
+  removePage: (pageId) => {
+    clearHistoryTimer()
+    set((s) => {
+      if (s.definition.pages.length <= 1) return
+      const idx = s.definition.pages.findIndex((p) => p.id === pageId)
+      if (idx === -1) return
+      s.definition.pages.splice(idx, 1)
+      if (s.selection.activePageId === pageId) {
+        s.selection.activePageId = s.definition.pages[Math.max(0, idx - 1)]?.id ?? null
+      }
+    })
+    get().pushHistory() // page removal is undoable (#215)
+  },
 
-  renamePage: (pageId, name) => set((s) => {
-    const page = s.definition.pages.find((p) => p.id === pageId)
-    if (page) page.name = name
-  }),
+  renamePage: (pageId, name) => {
+    clearHistoryTimer()
+    set((s) => {
+      const page = s.definition.pages.find((p) => p.id === pageId)
+      if (page) page.name = name
+    })
+    get().pushHistory() // rename is undoable (#215)
+  },
 
-  updatePageBackground: (pageId, background) => set((s) => {
-    const page = s.definition.pages.find((p) => p.id === pageId)
-    if (page) page.background = background
-  }),
+  updatePageBackground: (pageId, background) => {
+    clearHistoryTimer()
+    set((s) => {
+      const page = s.definition.pages.find((p) => p.id === pageId)
+      if (page) page.background = background
+    })
+    get().pushHistory() // background change is undoable (#215)
+  },
 
   setActivePage: (pageId) => set((s) => {
     s.selection.activePageId = pageId
     s.selection.selectedElementIds = []
   }),
 
-  updateSectionHeight: (pageId, sectionId, heightMm) => set((s) => {
-    const page = s.definition.pages.find((p) => p.id === pageId)
-    if (!page) return
-    const section = page.sections.find((sec) => sec.id === sectionId)
-    if (!section) return
-    const MIN_HEIGHT: Record<string, number> = {
-      header: 10, footer: 10, body: 50, custom: 10,
-    }
-    const min = MIN_HEIGHT[section.sectionType] ?? 10
-    section.height = Math.max(min, heightMm)
-    // If a non-body section was resized, adjust body to fit page
-    if (section.sectionType !== 'body') fitBodyToPage(page)
-  }),
+  updateSectionHeight: (pageId, sectionId, heightMm) => {
+    clearHistoryTimer()
+    set((s) => {
+      const page = s.definition.pages.find((p) => p.id === pageId)
+      if (!page) return
+      const section = page.sections.find((sec) => sec.id === sectionId)
+      if (!section) return
+      const MIN_HEIGHT: Record<string, number> = {
+        header: 10, footer: 10, body: 50, custom: 10,
+      }
+      const min = MIN_HEIGHT[section.sectionType] ?? 10
+      section.height = Math.max(min, heightMm)
+      // If a non-body section was resized, adjust body to fit page
+      if (section.sectionType !== 'body') fitBodyToPage(page)
+    })
+    // Called once on section-resize pointerup (SectionContainer accumulates locally), so a
+    // single history entry per resize gesture (#215).
+    get().pushHistory()
+  },
 
   updateTestData: (dataSourceId, fieldKey, value) => set((s) => {
     const ds = s.definition.dataSources.find((d) => d.id === dataSourceId)

@@ -2,6 +2,7 @@ import { toast } from 'sonner'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePageId, selectActivePage, flattenPageElements } from '@/store/reportStore'
+import { historyTimerRef } from '@/store/historyTimer'
 import { Toolbar } from '@/components/toolbar/Toolbar'
 import { ReportCanvas } from '@/components/canvas/ReportCanvas'
 import { ElementPalette } from '@/components/sidebar/ElementPalette'
@@ -89,6 +90,7 @@ export default function App() {
   const removeElements = useReportStore((s) => s.removeElements)
   const selectAll = useReportStore((s) => s.selectAll)
   const moveElement = useReportStore((s) => s.moveElement)
+  const pushHistory = useReportStore((s) => s.pushHistory)
   const setZoom = useReportStore((s) => s.setZoom)
   const setEditorZoom = useReportStore((s) => s.setEditorZoom)
   const editorZoom = useReportStore((s) => s.editorZoom)
@@ -317,13 +319,20 @@ export default function App() {
           const snapVal = (v: number) => snapToGrid ? Math.round(v / gridSize) * gridSize : v
           moveElement(activePageId, id, { x: snapVal(el.position.x + dx), y: snapVal(el.position.y + dy) })
         })
+        // moveElement doesn't push history; debounce one commit so a burst of arrow-key
+        // nudges (or a held key) collapses into a single undo step (#215).
+        if (historyTimerRef.current) clearTimeout(historyTimerRef.current)
+        historyTimerRef.current = setTimeout(() => {
+          historyTimerRef.current = null
+          pushHistory()
+        }, 300)
       }
     }
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [activePageId, selectedIds, undo, redo, copyElements, cutElements, pasteElements,
-    duplicateElement, removeElements, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, activePage,
+    duplicateElement, removeElements, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, pushHistory, activePage,
     snapToGrid, gridSize, headerEditMode, setHeaderEditMode])
 
   return (
