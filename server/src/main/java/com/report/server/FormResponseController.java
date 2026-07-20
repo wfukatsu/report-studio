@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
+import com.scalar.db.api.DistributedTransaction;
+import com.scalar.db.exception.transaction.CommitConflictException;
+import com.scalar.db.exception.transaction.CrudConflictException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.slf4j.Logger;
@@ -46,6 +49,24 @@ public final class FormResponseController {
     /** Document lifecycle statuses (#163). draft → issued → sent, or void at any point. */
     static final String DEFAULT_STATUS = "issued";
     static final java.util.Set<String> VALID_STATUSES = java.util.Set.of("draft", "issued", "sent", "void");
+
+    /**
+     * Allowed document-lifecycle transitions (#205). A status may advance
+     * draft → issued → sent, and any non-terminal status may be voided; {@code void}
+     * is terminal. Any other transition (e.g. void → issued, sent → draft) is rejected
+     * with 409 so a status machine cannot be driven backwards or resurrected.
+     * A same-status "transition" is treated as an idempotent no-op, not an error.
+     */
+    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
+            "draft",  Set.of("issued", "void"),
+            "issued", Set.of("sent", "void"),
+            "sent",   Set.of("void"),
+            "void",   Set.of());
+
+    static boolean isValidTransition(String from, String to) {
+        if (from == null || from.equals(to)) return true; // no-op / first assignment
+        return ALLOWED_TRANSITIONS.getOrDefault(from, Set.of()).contains(to);
+    }
 
     private final JsonBlobRepository responseRepo;
     private final JsonBlobRepository definitionsRepo;
@@ -427,76 +448,118 @@ public final class FormResponseController {
             return;
         }
 
-        Optional<String> stored = responseRepo.get(responseId);
-        if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
-            return;
-        }
-
-        ObjectNode node;
-        try {
-            node = (ObjectNode) MAPPER.readTree(stored.get());
-        } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read response"));
-            return;
-        }
-
-        if (!templateId.equals(node.path("templateId").asText(""))) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
-            return;
-        }
-
-        // Same access rule as delete: template owner or original submitter.
-        String submittedBy = node.path("submittedBy").asText("");
+        // Template ownership is invariant across the operation — resolve it once.
         String templateOwner = getTemplateOwner(templateId);
-        boolean isSubmitter = principal.userId().equals(submittedBy);
-        boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
-        if (!isSubmitter && !isOwner) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
-            return;
-        }
 
-        String oldStatus = node.path("status").asText(DEFAULT_STATUS);
-        node.put("status", newStatus);
+        // Read-validate-write in a single transaction with OCC retry (#205): the transition
+        // is validated against the status re-read inside the transaction, so two concurrent
+        // PATCHes (or a PATCH racing a data edit) can no longer lose an update or drive the
+        // status machine backwards. Document numbering (draft→issued) happens in the same TX.
+        for (int attempt = 0; attempt < STATUS_MAX_OCC_RETRIES; attempt++) {
+            if (attempt > 0) sleepBackoff(attempt);
+            DistributedTransaction tx = null;
+            try {
+                tx = responseRepo.getTransactionManager().start();
 
-        // Assign a document number when transitioning to "issued" if the template has a
-        // sequence configured and no number has been assigned yet (#189). Numbering is
-        // otherwise done at submit time; this covers the draft → issued flow.
-        String assignedNumber = null;
-        boolean savedBySequence = false;
-        boolean needsNumber = "issued".equals(newStatus)
-                && node.path("documentNumber").asText("").isEmpty();
-        try {
-            if (needsNumber && sequenceCtrl != null) {
-                assignedNumber = sequenceCtrl.nextAndStamp(
-                        templateId, responseRepo, responseId, MAPPER.writeValueAsString(node), templateId);
-                if (assignedNumber != null) {
-                    node.put("documentNumber", assignedNumber);
-                    savedBySequence = true; // response persisted inside the sequence TX
+                Optional<String> storedOpt = responseRepo.getWithinTx(tx, responseId);
+                if (storedOpt.isEmpty()) {
+                    tx.abort();
+                    ctx.status(HttpStatus.NOT_FOUND);
+                    ctx.json(Map.of("error", "Response not found"));
+                    return;
                 }
+                ObjectNode node = (ObjectNode) MAPPER.readTree(storedOpt.get());
+                if (!templateId.equals(node.path("templateId").asText(""))) {
+                    tx.abort();
+                    ctx.status(HttpStatus.NOT_FOUND);
+                    ctx.json(Map.of("error", "Response not found"));
+                    return;
+                }
+
+                // Same access rule as delete: template owner or original submitter.
+                String submittedBy = node.path("submittedBy").asText("");
+                boolean isSubmitter = principal.userId().equals(submittedBy);
+                boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
+                if (!isSubmitter && !isOwner) {
+                    tx.abort();
+                    ctx.status(HttpStatus.FORBIDDEN);
+                    ctx.json(Map.of("error", "Access denied"));
+                    return;
+                }
+
+                String oldStatus = node.path("status").asText(DEFAULT_STATUS);
+                if (oldStatus.equals(newStatus)) {
+                    // Idempotent no-op — nothing to persist or audit.
+                    tx.abort();
+                    Map<String, Object> noop = new LinkedHashMap<>();
+                    noop.put("id", responseId);
+                    noop.put("status", newStatus);
+                    ctx.json(noop);
+                    return;
+                }
+                if (!isValidTransition(oldStatus, newStatus)) {
+                    tx.abort();
+                    ctx.status(HttpStatus.CONFLICT);
+                    ctx.json(Map.of("error", "Invalid status transition: " + oldStatus + " → " + newStatus));
+                    return;
+                }
+
+                node.put("status", newStatus);
+
+                // Assign a document number on the first draft→issued transition when the
+                // template has a sequence configured and no number yet (#189) — atomically,
+                // in this same transaction (#205).
+                String assignedNumber = null;
+                boolean needsNumber = "issued".equals(newStatus)
+                        && node.path("documentNumber").asText("").isEmpty();
+                if (needsNumber && sequenceCtrl != null) {
+                    assignedNumber = sequenceCtrl.nextNumberWithinTx(tx, templateId);
+                    if (assignedNumber != null) node.put("documentNumber", assignedNumber);
+                }
+
+                responseRepo.putWithinTx(tx, responseId, MAPPER.writeValueAsString(node), templateId);
+                tx.commit();
+
+                // Append to the status-transition audit trail (#188)
+                recordAudit(responseId, templateId, oldStatus, newStatus, principal.userId());
+
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("id", responseId);
+                result.put("status", newStatus);
+                if (assignedNumber != null) result.put("documentNumber", assignedNumber);
+                ctx.json(result);
+                return;
+
+            } catch (CommitConflictException | CrudConflictException e) {
+                abortQuietly(tx); // transient OCC conflict — retry with a fresh transaction
+            } catch (Exception e) {
+                abortQuietly(tx);
+                log.error("Failed to update status for response {}", responseId, e);
+                ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+                ctx.json(Map.of("error", "Failed to update status"));
+                return;
             }
-            if (!savedBySequence) {
-                responseRepo.put(responseId, MAPPER.writeValueAsString(node), templateId);
-            }
-        } catch (Exception e) {
-            log.error("Failed to update status for response {}", responseId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to update status"));
-            return;
         }
+        // Retries exhausted under sustained contention.
+        ctx.status(HttpStatus.CONFLICT);
+        ctx.json(Map.of("error", "Status update conflict; please retry"));
+    }
 
-        // Append to the status-transition audit trail (#188)
-        recordAudit(responseId, templateId, oldStatus, newStatus, principal.userId());
+    private static final int STATUS_MAX_OCC_RETRIES = 3;
+    private static final long STATUS_INITIAL_BACKOFF_MS = 20;
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", responseId);
-        result.put("status", newStatus);
-        if (assignedNumber != null) result.put("documentNumber", assignedNumber);
-        ctx.json(result);
+    private static void sleepBackoff(int attempt) {
+        try {
+            Thread.sleep((long) Math.pow(2, attempt - 1) * STATUS_INITIAL_BACKOFF_MS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void abortQuietly(DistributedTransaction tx) {
+        if (tx != null) {
+            try { tx.abort(); } catch (Exception ignored) { }
+        }
     }
 
     // ── audit trail (#188) ──────────────────────────────────────────────────────

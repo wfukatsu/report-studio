@@ -123,7 +123,6 @@ public final class SequenceController {
             return null;
         }
 
-        int currentYear = ZonedDateTime.now(JST).getYear();
         Exception lastException = null;
 
         for (int attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
@@ -135,33 +134,12 @@ public final class SequenceController {
             try {
                 tx = seqRepo.getTransactionManager().start();
 
-                // Read sequence config within transaction
-                Optional<String> storedOpt = seqRepo.getWithinTx(tx, templateId);
-                if (storedOpt.isEmpty()) {
+                // Increment the counter and format the number within this transaction.
+                String docNumber = nextNumberWithinTx(tx, templateId);
+                if (docNumber == null) {
                     tx.abort();
                     return null;
                 }
-                ObjectNode config = (ObjectNode) MAPPER.readTree(storedOpt.get());
-
-                // Check-on-read year reset
-                String resetOn = config.path("resetOn").asText(null);
-                int storedYear = config.path("resetYear").asInt(0);
-                if ("year".equals(resetOn) && storedYear < currentYear) {
-                    config.put("counter", 0);
-                    config.put("resetYear", currentYear);
-                }
-
-                int counter = config.path("counter").asInt(0) + 1;
-                config.put("counter", counter);
-
-                // Format the document number
-                String prefix = config.path("prefix").asText("");
-                String suffix = config.path("suffix").asText("");
-                int digits = Math.max(1, config.path("digits").asInt(4));
-                String docNumber = prefix + String.format("%0" + digits + "d", counter) + suffix;
-
-                // Write updated sequence within same TX
-                seqRepo.putWithinTx(tx, templateId, MAPPER.writeValueAsString(config));
 
                 // Write response with documentNumber stamped within same TX.
                 // Preserve the group key so the numbered response is not dropped from
@@ -171,7 +149,7 @@ public final class SequenceController {
                 responseRepo.putWithinTx(tx, responseId, MAPPER.writeValueAsString(respNode), groupKey);
 
                 tx.commit();
-                log.info("Sequence {} → {} for template {}", counter, docNumber, templateId);
+                log.info("Sequence stamped {} for template {}", docNumber, templateId);
                 return docNumber;
 
             } catch (CommitConflictException | CrudConflictException e) {
@@ -187,6 +165,44 @@ public final class SequenceController {
             }
         }
         throw new RuntimeException("Sequence OCC conflict unresolved after " + MAX_OCC_RETRIES + " retries", lastException);
+    }
+
+    /**
+     * Increments the sequence counter and returns the formatted document number, updating the
+     * stored config <b>within the caller's transaction</b> (does NOT commit). Returns null if
+     * no sequence is configured for the template. Lets a caller (e.g. status draft→issued,
+     * {@code FormResponseController.updateStatus}) atomically number a document in the same
+     * transaction that mutates the document, closing the read-modify-write race (#205).
+     */
+    public String nextNumberWithinTx(DistributedTransaction tx, String templateId) throws Exception {
+        Optional<String> storedOpt = seqRepo.getWithinTx(tx, templateId);
+        if (storedOpt.isEmpty()) return null;
+        ObjectNode config = (ObjectNode) MAPPER.readTree(storedOpt.get());
+
+        // A sequence is "configured" only if it has a prefix, suffix, or explicit digits.
+        if (!config.has("prefix") && !config.has("suffix") && !config.has("digits")) {
+            return null;
+        }
+
+        // Check-on-read year reset
+        int currentYear = ZonedDateTime.now(JST).getYear();
+        String resetOn = config.path("resetOn").asText(null);
+        int storedYear = config.path("resetYear").asInt(0);
+        if ("year".equals(resetOn) && storedYear < currentYear) {
+            config.put("counter", 0);
+            config.put("resetYear", currentYear);
+        }
+
+        int counter = config.path("counter").asInt(0) + 1;
+        config.put("counter", counter);
+
+        String prefix = config.path("prefix").asText("");
+        String suffix = config.path("suffix").asText("");
+        int digits = Math.max(1, config.path("digits").asInt(4));
+        String docNumber = prefix + String.format("%0" + digits + "d", counter) + suffix;
+
+        seqRepo.putWithinTx(tx, templateId, MAPPER.writeValueAsString(config));
+        return docNumber;
     }
 
     private boolean requireAuth(Context ctx) {

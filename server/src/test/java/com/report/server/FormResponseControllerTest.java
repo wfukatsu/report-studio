@@ -270,4 +270,106 @@ class FormResponseControllerTest {
         verify(ctx).status(HttpStatus.FORBIDDEN);
         verify(responseRepo, never()).delete(anyString());
     }
+
+    // ── updateStatus — transition guard + transactional RMW (#205) ──────────────
+
+    /** A response JSON with an explicit lifecycle status, submitted by the test principal. */
+    private String responseWithStatus(String status) throws Exception {
+        ObjectNode resp = (ObjectNode) MAPPER.readTree(buildResponse("resp-1", "tmpl-1", "user-1"));
+        resp.put("status", status);
+        return MAPPER.writeValueAsString(resp);
+    }
+
+    /** Wire the transactional read path so getWithinTx returns the given stored response. */
+    private com.scalar.db.api.DistributedTransaction stubStatusTx(String storedResponseJson) throws Exception {
+        com.scalar.db.api.DistributedTransactionManager mgr =
+                mock(com.scalar.db.api.DistributedTransactionManager.class);
+        com.scalar.db.api.DistributedTransaction tx =
+                mock(com.scalar.db.api.DistributedTransaction.class);
+        when(responseRepo.getTransactionManager()).thenReturn(mgr);
+        when(mgr.start()).thenReturn(tx);
+        when(responseRepo.getWithinTx(eq(tx), eq("resp-1"))).thenReturn(Optional.of(storedResponseJson));
+        return tx;
+    }
+
+    @Test
+    void updateStatus_validTransition_issuedToSent_commits() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"sent\"}");
+        com.scalar.db.api.DistributedTransaction tx = stubStatusTx(responseWithStatus("issued"));
+
+        controller.updateStatus(ctx);
+
+        // Persisted within the transaction and committed.
+        verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), anyString(), eq("tmpl-1"));
+        verify(tx).commit();
+        // Legacy per-op put must NOT be used (that was the lost-update path).
+        verify(responseRepo, never()).put(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void updateStatus_invalidTransition_voidToIssued_409_noWrite() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"issued\"}");
+        com.scalar.db.api.DistributedTransaction tx = stubStatusTx(responseWithStatus("void"));
+
+        controller.updateStatus(ctx);
+
+        verify(ctx).status(HttpStatus.CONFLICT);
+        verify(responseRepo, never()).putWithinTx(any(), anyString(), anyString(), anyString());
+        verify(tx, never()).commit();
+        verify(tx).abort();
+    }
+
+    @Test
+    void updateStatus_invalidTransition_sentToDraft_409() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"draft\"}");
+        stubStatusTx(responseWithStatus("sent"));
+
+        controller.updateStatus(ctx);
+
+        verify(ctx).status(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void updateStatus_sameStatus_isNoOp_noWrite() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"issued\"}");
+        com.scalar.db.api.DistributedTransaction tx = stubStatusTx(responseWithStatus("issued"));
+
+        controller.updateStatus(ctx);
+
+        verify(responseRepo, never()).putWithinTx(any(), anyString(), anyString(), anyString());
+        verify(tx, never()).commit();
+    }
+
+    @Test
+    void updateStatus_invalidStatusValue_400() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"archived\"}");
+
+        controller.updateStatus(ctx);
+
+        verify(ctx).status(HttpStatus.BAD_REQUEST);
+        verify(responseRepo, never()).getTransactionManager();
+    }
+
+    @Test
+    void updateStatus_voidingIssued_allowed() throws Exception {
+        when(ctx.pathParam("id")).thenReturn("tmpl-1");
+        when(ctx.pathParam("rid")).thenReturn("resp-1");
+        when(ctx.body()).thenReturn("{\"status\":\"void\"}");
+        com.scalar.db.api.DistributedTransaction tx = stubStatusTx(responseWithStatus("issued"));
+
+        controller.updateStatus(ctx);
+
+        verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), anyString(), eq("tmpl-1"));
+        verify(tx).commit();
+    }
 }
