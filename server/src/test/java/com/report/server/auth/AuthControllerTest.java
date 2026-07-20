@@ -461,4 +461,46 @@ class AuthControllerTest {
 
         verify(ctx).status(HttpStatus.NOT_FOUND);
     }
+
+    // ── changeProfile: session invalidation on password change (#202) ──────────
+
+    @Test
+    void changePassword_invalidatesOldSession_andIssuesFreshOne() {
+        Cookie oldCookie = loginAndCaptureCookie();
+        String oldSession = oldCookie.getValue();
+        // Sanity: the pre-change session is valid.
+        assertFalse(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous());
+
+        Context ctx = requestWithSession(oldSession);
+        when(ctx.bodyAsClass(Map.class)).thenReturn(
+                Map.of("currentPassword", PASSWORD, "newPassword", "next-pw"));
+        controller.changeProfile(ctx);
+
+        // The old cookie must no longer authenticate (a stolen cookie is now useless).
+        assertTrue(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
+                "old session must be invalidated after a password change (#202)");
+
+        // A fresh session was issued so the caller stays logged in, and it works.
+        ArgumentCaptor<Cookie> newCookie = ArgumentCaptor.forClass(Cookie.class);
+        verify(ctx).cookie(newCookie.capture());
+        String newSession = newCookie.getValue().getValue();
+        assertNotEquals(oldSession, newSession, "a new session id must be issued");
+        assertFalse(controller.resolveFromRequest(requestWithSession(newSession)).isAnonymous(),
+                "the re-issued session must authenticate");
+    }
+
+    @Test
+    void changeDisplayNameOnly_doesNotResetSessions() {
+        Cookie oldCookie = loginAndCaptureCookie();
+        String oldSession = oldCookie.getValue();
+
+        Context ctx = requestWithSession(oldSession);
+        when(ctx.bodyAsClass(Map.class)).thenReturn(Map.of("displayName", "新しい名前"));
+        controller.changeProfile(ctx);
+
+        // No password change → session stays valid and no new cookie is issued.
+        assertFalse(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
+                "display-name-only change must not invalidate the session");
+        verify(ctx, never()).cookie(any(Cookie.class));
+    }
 }
