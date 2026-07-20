@@ -26,6 +26,16 @@ export default tseslint.config(
         argsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_',
       }],
+      // Staged adoption (#251): eslint-plugin-react-hooks 7 (React Compiler rules)
+      // and ESLint 10 core added these as errors. Surface them as warnings for now
+      // so the upgrade lands without a 62-finding code churn; fix and promote to
+      // 'error' incrementally in follow-up work.
+      'react-hooks/refs': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+      'preserve-caught-error': 'warn',
+      'no-useless-assignment': 'warn',
     },
   },
 )

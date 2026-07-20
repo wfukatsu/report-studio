@@ -67,7 +67,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "@lezer/generator": "^1.8.0",
     "@playwright/test": "^1.61.1",
     "@storybook/addon-docs": "^10.5.3",
@@ -84,10 +84,10 @@
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
     "concurrently": "^10.0.3",
-    "eslint": "^9.17.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.16",
-    "globals": "^15.14.0",
+    "eslint": "^10.7.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.20",
     "storybook": "^10.5.3",
