@@ -37,12 +37,16 @@ export function ServerSettings() {
     return () => controller.abort()
   }, [fetchConfig])
 
-  // Detect server restart completion
+  // Detect server restart completion. The clear is deferred to a task so the
+  // effect body performs no synchronous setState; the cleanup cancels it if
+  // the inputs change first.
   useEffect(() => {
-    if (restarting && backendConnected) {
+    if (!(restarting && backendConnected)) return
+    const id = setTimeout(() => {
       setRestarting(false)
       setLocalError(null)
-    }
+    }, 0)
+    return () => clearTimeout(id)
   }, [backendConnected, restarting])
 
   // Cleanup timers on unmount

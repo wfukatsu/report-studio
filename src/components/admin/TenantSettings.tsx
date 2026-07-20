@@ -9,26 +9,21 @@ export function TenantSettings() {
   const fetchTenantInfo = useReportStore((s) => s.fetchTenantInfo)
   const updateTenantInfo = useReportStore((s) => s.updateTenantInfo)
 
-  const [form, setForm] = useState<TenantInfo>({})
-  const [originalForm, setOriginalForm] = useState<TenantInfo>({})
+  // The form is derived: unedited fields mirror the store's tenantInfo, and
+  // `edited` holds the user's working copy once they start typing. This
+  // replaces the old store→form sync effect (no setState in effects).
+  const [edited, setEdited] = useState<TenantInfo | null>(null)
+  const form: TenantInfo = edited ?? tenantInfo ?? {}
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(originalForm)
+  const isDirty = edited !== null && JSON.stringify(edited) !== JSON.stringify(tenantInfo ?? {})
 
   useEffect(() => {
     void fetchTenantInfo()
   }, [fetchTenantInfo])
-
-  // Sync store → form when tenantInfo loads
-  useEffect(() => {
-    if (tenantInfo) {
-      setForm(tenantInfo)
-      setOriginalForm(tenantInfo)
-    }
-  }, [tenantInfo])
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -36,7 +31,7 @@ export function TenantSettings() {
   }, [])
 
   function setField<K extends keyof TenantInfo>(key: K, value: TenantInfo[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    setEdited({ ...form, [key]: value })
   }
 
   async function handleSave() {
@@ -45,7 +40,9 @@ export function TenantSettings() {
     setSaveMessage(null)
     try {
       await updateTenantInfo(form)
-      setOriginalForm(form)
+      // The store now holds the server-normalized tenantInfo — drop the local
+      // working copy so the form mirrors it again (and isDirty clears).
+      setEdited(null)
       setSaveMessage('テナント情報を保存しました。')
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => setSaveMessage(null), 3000)
@@ -99,7 +96,7 @@ export function TenantSettings() {
             value={form.address1 ?? ''}
             onChange={(e) => {
               const v = e.target.value
-              setForm((prev) => ({ ...prev, address1: v, address: v + (prev.address2 ?? '') }))
+              setEdited({ ...form, address1: v, address: v + (form.address2 ?? '') })
             }}
             placeholder="東京都千代田区千代田"
           />
@@ -112,7 +109,7 @@ export function TenantSettings() {
             value={form.address2 ?? ''}
             onChange={(e) => {
               const v = e.target.value
-              setForm((prev) => ({ ...prev, address2: v, address: (prev.address1 ?? '') + v }))
+              setEdited({ ...form, address2: v, address: (form.address1 ?? '') + v })
             }}
             placeholder="1-1-1 〇〇ビル3F"
           />

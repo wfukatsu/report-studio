@@ -60,7 +60,7 @@ export function useDragSelect({ sections, zoom, readonly, onSelectIds, currentSe
     marqueeRef.current = null
     didDragSelectRef.current = false
     e.currentTarget.setPointerCapture(e.pointerId)
-  }, [readonly, zoom])
+  }, [readonly, zoom, currentSelectedIds])
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!startRef.current || !containerRectRef.current) return

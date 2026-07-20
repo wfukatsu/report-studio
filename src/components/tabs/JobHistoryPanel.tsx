@@ -57,7 +57,14 @@ export function JobHistoryPanel() {
     }
   }, [backendConnected])
 
-  useEffect(() => { void fetchJobs() }, [fetchJobs])
+  // Initial fetch, deferred to a task: fetchJobs flips the loading flag
+  // synchronously (wanted for user-triggered refreshes), so the effect
+  // schedules it instead of calling it inline — no sync setState in the
+  // effect body, and the cleanup cancels a pending schedule.
+  useEffect(() => {
+    const id = setTimeout(() => { void fetchJobs() }, 0)
+    return () => clearTimeout(id)
+  }, [fetchJobs])
 
   // Auto-refresh every 3s while any job is still running.
   useEffect(() => {

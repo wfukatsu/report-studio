@@ -26,13 +26,16 @@ function formatDate(epochMs: number): string {
 
 export function ApiTokenSettings() {
   const [tokens, setTokens] = useState<ApiTokenSummary[]>([])
-  const [loading, setLoading] = useState(false)
+  // Starts true: the initial fetch begins on mount, so deriving the initial
+  // spinner from state avoids a synchronous setState in the mount effect.
+  const [loading, setLoading] = useState(true)
   const [label, setLabel] = useState('')
   const [creating, setCreating] = useState(false)
   const [newToken, setNewToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<ApiTokenSummary | null>(null)
 
+  // Event-handler refresh: shows the spinner for user-triggered refreshes.
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
@@ -44,7 +47,14 @@ export function ApiTokenSettings() {
     }
   }, [])
 
-  useEffect(() => { void refresh() }, [refresh])
+  // Initial fetch — all state updates happen asynchronously in the promise
+  // callbacks (loading already starts true), so the effect body stays sync-free.
+  useEffect(() => {
+    listApiTokens()
+      .then((items) => setTokens(items))
+      .catch(() => toast.error('トークン一覧の取得に失敗しました'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const handleCreate = useCallback(async () => {
     if (creating) return

@@ -8,7 +8,7 @@
  *   const FormulaEditor = React.lazy(() => import('@/components/formulaEditor/FormulaEditor'))
  */
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { Extension } from '@codemirror/state'
 import { useFormulaEditor, type UseFormulaEditorReturn } from './useFormulaEditor'
 
@@ -49,12 +49,13 @@ function FormulaEditorInner({
     onBlur,
     onReady,
   })
+  const { containerRef } = editor
 
-  // Expose imperative handle to parent
-  const editorRefLocal = useRef(editor)
-  editorRefLocal.current = editor
+  // Expose imperative handle to parent. No dependency array on purpose — the
+  // handle object is recreated every render, so re-sync after each commit
+  // (same cadence as before; ref writes belong in effects, not render).
   useEffect(() => {
-    if (editorRef) editorRef.current = editorRefLocal.current
+    if (editorRef) editorRef.current = editor
     return () => { if (editorRef) editorRef.current = null }
   })
 
@@ -67,7 +68,7 @@ function FormulaEditorInner({
         fx
       </span>
       <div
-        ref={editor.containerRef}
+        ref={containerRef}
         className="flex-1 min-h-[40px] py-1"
         aria-label="計算式エディタ"
       />

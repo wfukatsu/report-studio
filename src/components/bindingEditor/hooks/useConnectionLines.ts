@@ -64,6 +64,19 @@ export function useConnectionLines(
   const fieldRefs = useRef<Map<string, HTMLElement | null>>(new Map())
   const elementRefs = useRef<Map<string, HTMLElement | null>>(new Map())
 
+  // Stable ref-registration callbacks. Defined here (next to the useRef
+  // declarations) so the refs are locally known to be stable — consumers get
+  // memoized callbacks without having to reference the ref objects themselves.
+  const setFieldRef = useCallback((fieldId: string, el: HTMLElement | null) => {
+    if (el) fieldRefs.current.set(fieldId, el)
+    else fieldRefs.current.delete(fieldId)
+  }, [])
+
+  const setElementRef = useCallback((elementId: string, el: HTMLElement | null) => {
+    if (el) elementRefs.current.set(elementId, el)
+    else elementRefs.current.delete(elementId)
+  }, [])
+
   // -----------------------------------------------------------------------
   // Line calculation
   // -----------------------------------------------------------------------
@@ -154,6 +167,8 @@ export function useConnectionLines(
     containerRef,
     fieldRefs,
     elementRefs,
+    setFieldRef,
+    setElementRef,
 
     // Manual recalc
     triggerRecalc,
@@ -165,6 +180,8 @@ export function useConnectionLines(
     toggleElementGroup,
     expandFieldGroup,
     expandElementGroup,
+    setFieldRef,
+    setElementRef,
     triggerRecalc,
   ])
 }

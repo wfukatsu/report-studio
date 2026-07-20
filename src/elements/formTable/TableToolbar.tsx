@@ -41,9 +41,10 @@ export const TableToolbar = memo(function TableToolbar({
   useEffect(() => {
     if (!toolbarRef.current) return
     const rect = toolbarRef.current.getBoundingClientRect()
-    // If toolbar is above the viewport top, flip to below
+    // If toolbar is above the viewport top, flip to below.
+    // Re-measure whenever the rendered inputs change (they drive layout).
     setShowBelow(rect.top < 0)
-  })
+  }, [el, selectedCells, activeCell])
 
   return (
     <div

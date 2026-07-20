@@ -25,6 +25,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const activePage = useReportStore(selectActivePage)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
 
+  // Retry handler (event) — clears the error immediately for instant feedback.
   const loadSeqConfig = useCallback(async () => {
     if (!currentTemplateId) return
     setSeqLoadError(null)
@@ -35,10 +36,17 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
     }
   }, [currentTemplateId])
 
+  // Fetch when the section opens — state updates happen only in the promise
+  // callbacks so the effect body performs no synchronous setState.
   useEffect(() => {
-    if (!seqOpen) return
-    loadSeqConfig()
-  }, [seqOpen, loadSeqConfig])
+    if (!seqOpen || !currentTemplateId) return
+    getSequenceConfig(currentTemplateId)
+      .then((cfg) => {
+        setSeqConfig(cfg)
+        setSeqLoadError(null)
+      })
+      .catch((err) => setSeqLoadError(classifyError(err)))
+  }, [seqOpen, currentTemplateId])
 
   const handleSeqSave = async () => {
     if (!currentTemplateId || !seqConfig || seqSaving) return

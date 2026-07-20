@@ -169,10 +169,29 @@ export function ResponsesPanel() {
   }, [currentTemplateId, backendConnected, responsesCacheTime,
       setResponsesLoading, setResponses])
 
-  // Auto-fetch on mount and when templateId changes
+  // Auto-fetch on mount and when templateId changes. Inlined (not via
+  // fetchResponses) so all local state updates happen in promise callbacks —
+  // the effect body performs no synchronous React setState. Cache semantics
+  // mirror fetchResponses(force = false).
   useEffect(() => {
-    fetchResponses()
-  }, [fetchResponses])
+    if (!currentTemplateId || !backendConnected) return
+    if (responsesCacheTime > 0 && Date.now() - responsesCacheTime < CACHE_TTL_MS) return
+
+    setResponsesLoading(true)
+    listResponses(currentTemplateId)
+      .then((result) => {
+        if (!mountedRef.current) return
+        setResponses(result.items, result.total)
+        setLoadError(null)
+      })
+      .catch((err) => {
+        if (mountedRef.current) setLoadError(classifyError(err))
+      })
+      .finally(() => {
+        if (mountedRef.current) setResponsesLoading(false)
+      })
+  }, [currentTemplateId, backendConnected, responsesCacheTime,
+      setResponsesLoading, setResponses])
 
   const execDelete = useCallback(async (response: FormResponseSummary) => {
     if (!currentTemplateId) return

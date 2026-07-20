@@ -64,7 +64,14 @@ export function IssuedDocumentsPanel() {
     }
   }, [backendConnected, statusFilter])
 
-  useEffect(() => { void fetchDocs() }, [fetchDocs])
+  // Fetch on mount / filter change, deferred to a task: fetchDocs flips the
+  // loading flag synchronously (wanted for user-triggered refreshes), so the
+  // effect schedules it instead of calling it inline — no sync setState in
+  // the effect body, and the cleanup cancels a pending schedule.
+  useEffect(() => {
+    const id = setTimeout(() => { void fetchDocs() }, 0)
+    return () => clearTimeout(id)
+  }, [fetchDocs])
 
   const templateNames = useMemo(() => {
     const m = new Map<string, string>()

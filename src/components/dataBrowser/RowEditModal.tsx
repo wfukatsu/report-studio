@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { ScalarDbColumnMeta, ScalarDbRowValues } from '@/api/reportApi'
 import { insertScalarDbRow, updateScalarDbRow } from '@/api/reportApi'
 
@@ -13,23 +13,24 @@ interface Props {
   onClose: () => void
 }
 
-export function RowEditModal({ open, mode, namespace, table, columns, row, onSave, onClose }: Props) {
-  const [form, setForm] = useState<Record<string, string>>({})
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+export function RowEditModal({ open, ...rest }: Props) {
+  // Mount the content only while open: the form state initializes from props
+  // at mount and dies on close — no props→state sync effect needed.
+  if (!open) return null
+  return <RowEditModalContent {...rest} />
+}
 
-  useEffect(() => {
-    if (!open) return
+function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onClose }: Omit<Props, 'open'>) {
+  const [form, setForm] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {}
     for (const col of columns) {
       const existing = row?.[col.name]
       initial[col.name] = existing != null ? String(existing) : ''
     }
-    setForm(initial)
-    setError(null)
-  }, [open, columns, row])
-
-  if (!open) return null
+    return initial
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const keyColumns = new Set(columns.filter((c) => c.keyType === 'partition' || c.keyType === 'clustering').map((c) => c.name))
 

@@ -101,7 +101,7 @@ export function ReportCanvas({
       }
       return { ...transform, x: 0 }
     },
-    [],
+    [shiftRef],
   )
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
@@ -178,8 +178,8 @@ export function ReportCanvas({
       clearHistoryTimer()
       pushHistory()
     },
-    // shiftRef is a stable useRef object — excluded from deps intentionally
-    [getActivePage, moveElement, pushHistory, zoom, snapToGrid, gridSize, margins],
+    // shiftRef is a stable useRef object — listing it is a no-op but satisfies the rule
+    [getActivePage, moveElement, pushHistory, zoom, snapToGrid, gridSize, margins, shiftRef],
   )
 
   const handleResize = useCallback(

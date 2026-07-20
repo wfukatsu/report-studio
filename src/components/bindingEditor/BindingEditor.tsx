@@ -34,14 +34,43 @@ const ComputedFieldDialog = lazy(() =>
 
 export function BindingEditor() {
   const bs = useBindingState()
-  const cl = useConnectionLines(bs.connections)
+  // Destructure the connection-line hook result: the memoized callbacks below
+  // list the individual (stable) members as dependencies, and the DOM ref
+  // objects must be plain identifiers so they are only dereferenced inside
+  // effects/callbacks — never during render.
+  const {
+    lines,
+    expandedFieldGroups,
+    expandedElementGroups,
+    toggleFieldGroup,
+    toggleElementGroup,
+    expandFieldGroup,
+    expandElementGroup,
+    containerRef,
+    fieldRefs,
+    elementRefs,
+    setFieldRef,
+    setElementRef,
+    triggerRecalc,
+  } = useConnectionLines(bs.connections)
+  const {
+    setHoveredGroupId,
+    setHoveredFieldId,
+    updateSchemaField,
+    addSchemaField,
+    disconnect,
+    allElements,
+    schemaGroups,
+    elementGroups,
+    schema,
+  } = bs
 
   // DB panel accordion state
   const [dbCollapsed, setDbCollapsed] = useState(false)
   const toggleDb = useCallback(() => {
     setDbCollapsed((prev) => !prev)
-    setTimeout(() => cl.triggerRecalc(), 320)
-  }, [cl.triggerRecalc])
+    setTimeout(() => triggerRecalc(), 320)
+  }, [triggerRecalc])
 
   // Computed field dialog state
   const [computedDialog, setComputedDialog] = useState<
@@ -63,9 +92,9 @@ export function BindingEditor() {
       const { groupId, editingFieldId } = computedDialog
 
       if (editingFieldId) {
-        bs.updateSchemaField(groupId, editingFieldId, { expression })
+        updateSchemaField(groupId, editingFieldId, { expression })
       } else {
-        bs.addSchemaField(groupId, {
+        addSchemaField(groupId, {
           key: name,
           label: name,
           type: 'number',
@@ -75,59 +104,45 @@ export function BindingEditor() {
       }
       closeComputedDialog()
     },
-    [computedDialog, bs.updateSchemaField, bs.addSchemaField, closeComputedDialog],
+    [computedDialog, updateSchemaField, addSchemaField, closeComputedDialog],
   )
 
   // Auto-expand all groups on mount
   useEffect(() => {
     for (const group of bs.elementGroups) {
-      cl.expandElementGroup(group.pageId)
+      expandElementGroup(group.pageId)
     }
     for (const group of bs.schemaGroups) {
-      cl.expandFieldGroup(group.id)
+      expandFieldGroup(group.id)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recalc lines when groups change
   useEffect(() => {
-    cl.triggerRecalc()
-  }, [bs.schemaGroups, bs.elementGroups, cl.triggerRecalc])
+    triggerRecalc()
+  }, [schemaGroups, elementGroups, triggerRecalc])
 
-  // Element ref callback
-  const elementRefCallback = useCallback(
-    (elementId: string, el: HTMLElement | null) => {
-      if (el) cl.elementRefs.current.set(elementId, el)
-      else cl.elementRefs.current.delete(elementId)
-    },
-    [cl.elementRefs],
-  )
-
-  // Field ref callback
-  const fieldRefCallback = useCallback(
-    (fieldId: string, el: HTMLElement | null) => {
-      if (el) cl.fieldRefs.current.set(fieldId, el)
-      else cl.fieldRefs.current.delete(fieldId)
-    },
-    [cl.fieldRefs],
-  )
+  // Element/field ref registration — stable callbacks from useConnectionLines
+  const elementRefCallback = setElementRef
+  const fieldRefCallback = setFieldRef
 
   // Connection line hover handler
   const handleHoverLine = useCallback(
     (groupId: string | null, fieldId: string | null) => {
-      bs.setHoveredGroupId(groupId)
-      bs.setHoveredFieldId(fieldId)
+      setHoveredGroupId(groupId)
+      setHoveredFieldId(fieldId)
     },
-    [bs.setHoveredGroupId, bs.setHoveredFieldId],
+    [setHoveredGroupId, setHoveredFieldId],
   )
 
   // Disconnect a binding from the SVG line's ✕ button
   const handleDisconnectLine = useCallback(
     (_fieldId: string, elementId: string) => {
       // Find which page this element is on
-      const el = bs.allElements.find((e) => e.elementId === elementId)
-      if (el) bs.disconnect(el.pageId, elementId)
+      const el = allElements.find((e) => e.elementId === elementId)
+      if (el) disconnect(el.pageId, elementId)
     },
-    [bs.allElements, bs.disconnect],
+    [allElements, disconnect],
   )
 
   // Schema Library modal state
@@ -143,7 +158,7 @@ export function BindingEditor() {
     setSavingToLibrary(true)
     try {
       await saveToSchemaLibrary(name, {
-        schema: bs.schema ?? { groups: [] },
+        schema: schema ?? { groups: [] },
         dataSources: dataSources ?? [],
       })
       toast.success('スキーマをライブラリに保存しました')
@@ -152,7 +167,7 @@ export function BindingEditor() {
     } finally {
       setSavingToLibrary(false)
     }
-  }, [bs.schema, dataSources])
+  }, [schema, dataSources])
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
@@ -226,7 +241,7 @@ export function BindingEditor() {
 
       {/* 3-panel canvas with gaps for connection lines */}
       <div
-        ref={cl.containerRef}
+        ref={containerRef}
         className="flex-1 relative overflow-hidden p-3"
         style={{
           display: 'grid',
@@ -240,11 +255,11 @@ export function BindingEditor() {
       >
         {/* SVG connection lines overlay */}
         <ConnectionLines
-          lines={cl.lines}
+          lines={lines}
           dragState={bs.dragState}
-          fieldRefs={cl.fieldRefs}
-          elementRefs={cl.elementRefs}
-          containerRef={cl.containerRef}
+          fieldRefs={fieldRefs}
+          elementRefs={elementRefs}
+          containerRef={containerRef}
           groupIndexMap={bs.groupIndexMap}
           hoveredGroupId={bs.hoveredGroupId}
           hoveredFieldId={bs.hoveredFieldId}
@@ -256,8 +271,8 @@ export function BindingEditor() {
         <div className="overflow-hidden rounded-lg border shadow-sm bg-background">
           <ElementPanel
             bs={bs}
-            expandedGroups={cl.expandedElementGroups}
-            onToggleGroup={cl.toggleElementGroup}
+            expandedGroups={expandedElementGroups}
+            onToggleGroup={toggleElementGroup}
             elementRef={elementRefCallback}
           />
         </div>
@@ -269,8 +284,8 @@ export function BindingEditor() {
         <div className="overflow-hidden rounded-lg border shadow-sm bg-background">
           <SchemaPanel
             bs={bs}
-            expandedGroups={cl.expandedFieldGroups}
-            onToggleGroup={cl.toggleFieldGroup}
+            expandedGroups={expandedFieldGroups}
+            onToggleGroup={toggleFieldGroup}
             fieldRef={fieldRefCallback}
             onOpenComputedDialog={openComputedDialog}
           />

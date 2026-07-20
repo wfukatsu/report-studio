@@ -22,6 +22,10 @@ import { toast } from 'sonner'
 
 const PAGE_SIZE = 50
 
+// Shared empty selection — returned while the view key doesn't match the
+// stored selection (never mutated; all updates build fresh Sets).
+const EMPTY_SELECTION: ReadonlySet<number> = new Set<number>()
+
 // Value type for grid cells — narrower than Record<string, unknown>
 type GridRow = Record<string, string | number | boolean | null | undefined>
 
@@ -49,8 +53,10 @@ export function DataGrid({ source }: Props) {
   const detailRow = useDataBrowserStore((s) => s.detailRow)
   const setDetailRow = useDataBrowserStore((s) => s.setDetailRow)
 
-  const [loadState, setLoadState] = useState<LoadState>('idle')
-  const [errorMsg, setErrorMsg] = useState('')
+  // Load state is derived from a request-keyed result: anything not yet
+  // resolved for the current view key is 'loading'. This removes the need to
+  // set a loading flag synchronously inside the load effect.
+  const [loadResult, setLoadResult] = useState<{ key: string; state: LoadState; error?: string } | null>(null)
   const [scalarDbData, setScalarDbData] = useState<ScalarDbScanResponse | null>(null)
   const [productRows, setProductRows] = useState<GridRow[]>([])
   const [allProducts, setAllProducts] = useState<Product[]>([])  // full objects for detail panel
@@ -75,20 +81,34 @@ export function DataGrid({ source }: Props) {
   // Bulk PDF export from DB rows (#193). Only for sources whose rows are real data
   // maps (ScalarDB tables, product master) — form-responses rows carry only summaries.
   const supportsBulkPdf = source.kind === 'scalardb-table' || source.kind === 'product-master'
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
   const [showBulkExport, setShowBulkExport] = useState(false)
 
   // Stable source key — prevents useEffect firing on object re-creation
   const sourceKey = toSourceKey(source)
 
-  // Clear selection whenever the view changes (source / page / reload / search).
-  useEffect(() => { setSelectedRows(new Set()) }, [sourceKey, currentPage, reloadKey, searchQuery])
+  // Selection is keyed by the current view (source / page / reload / search):
+  // when the view changes the key no longer matches and the selection reads as
+  // empty — no clearing effect needed.
+  const viewKey = `${sourceKey}|${currentPage}|${reloadKey}|${searchQuery}`
+  const [selection, setSelection] = useState<{ key: string; rows: ReadonlySet<number> }>(
+    () => ({ key: '', rows: EMPTY_SELECTION }),
+  )
+  const selectedRows: ReadonlySet<number> = selection.key === viewKey ? selection.rows : EMPTY_SELECTION
+  const setSelectedRows = (next: Set<number> | ((prev: ReadonlySet<number>) => Set<number>)) => {
+    setSelection((prev) => {
+      const prevRows = prev.key === viewKey ? prev.rows : EMPTY_SELECTION
+      return { key: viewKey, rows: typeof next === 'function' ? next(prevRows) : next }
+    })
+  }
+
+  // Derived load status for the current request key
+  const loadKey = `${sourceKey}|${currentPage}|${reloadKey}`
+  const loadState: LoadState = loadResult?.key === loadKey ? loadResult.state : 'loading'
+  const errorMsg = loadResult?.key === loadKey ? loadResult.error ?? '' : ''
 
   // Load data when source or page changes
   useEffect(() => {
     let cancelled = false
-    setLoadState('loading')
-    setErrorMsg('')
 
     if (source.kind === 'scalardb-table') {
       const offset = currentPage * PAGE_SIZE
@@ -97,12 +117,15 @@ export function DataGrid({ source }: Props) {
           if (cancelled) return
           setScalarDbData(data)
           setColumns(data.columns.map((c) => c.name))
-          setLoadState('ok')
+          setLoadResult({ key: loadKey, state: 'ok' })
         })
         .catch((e) => {
           if (cancelled) return
-          setErrorMsg(e instanceof Error ? e.message : 'データの読み込みに失敗しました')
-          setLoadState('error')
+          setLoadResult({
+            key: loadKey,
+            state: 'error',
+            error: e instanceof Error ? e.message : 'データの読み込みに失敗しました',
+          })
         })
 
     } else if (source.kind === 'product-master') {
@@ -124,12 +147,15 @@ export function DataGrid({ source }: Props) {
             stockCount: p.stockCount,
             description: p.description,
           })))
-          setLoadState('ok')
+          setLoadResult({ key: loadKey, state: 'ok' })
         })
         .catch((e) => {
           if (cancelled) return
-          setErrorMsg(e instanceof Error ? e.message : '商品データの読み込みに失敗しました')
-          setLoadState('error')
+          setLoadResult({
+            key: loadKey,
+            state: 'error',
+            error: e instanceof Error ? e.message : '商品データの読み込みに失敗しました',
+          })
         })
 
     } else if (source.kind === 'form-responses') {
@@ -144,12 +170,15 @@ export function DataGrid({ source }: Props) {
             submittedBy: r.submittedBy,
             summary: r.summary.join(', '),
           })))
-          setLoadState('ok')
+          setLoadResult({ key: loadKey, state: 'ok' })
         })
         .catch((e) => {
           if (cancelled) return
-          setErrorMsg(e instanceof Error ? e.message : '回答データの読み込みに失敗しました')
-          setLoadState('error')
+          setLoadResult({
+            key: loadKey,
+            state: 'error',
+            error: e instanceof Error ? e.message : '回答データの読み込みに失敗しました',
+          })
         })
     }
 

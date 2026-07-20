@@ -30,13 +30,21 @@ interface TemplateSelectionModalProps {
   confirmLabel?: string
 }
 
-export function TemplateSelectionModal({
-  open,
+export function TemplateSelectionModal({ open, ...rest }: TemplateSelectionModalProps) {
+  // Mount the content only while open. All transient state (in-flight flags,
+  // selection, filters) lives in the content component and dies on close, so a
+  // stale loadingId can never swallow a subsequent open (#154) — the old
+  // clear-flags-on-close effect is no longer needed.
+  if (!open) return null
+  return <TemplateSelectionModalContent {...rest} />
+}
+
+function TemplateSelectionModalContent({
   onClose,
   onSelect,
   title = '新規レポート作成',
   confirmLabel = '作成',
-}: TemplateSelectionModalProps) {
+}: Omit<TemplateSelectionModalProps, 'open'>) {
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [selectedDefinition, setSelectedDefinition] = useState<ReportDefinition | null>(null)
 
@@ -115,27 +123,18 @@ export function TemplateSelectionModal({
 
   // Auto-load the server template lists when the modal opens so users don't have
   // to hunt for a "一覧を取得" button — the templates are what most people came for
-  // (#157). Runs once per open; the fetch handlers guard their own loading state.
+  // (#157). The content mounts per open, so this runs once per open (and again if
+  // the backend reconnects while open). The fetch handlers flip their loading
+  // flags synchronously (wanted for user-triggered refreshes), so the effect
+  // schedules them in a task instead of calling them inline.
   useEffect(() => {
-    if (!open || !backendConnected) return
-    void handleFetchBackend()
-    void handleFetchPublic()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, backendConnected])
-
-  // This modal is always mounted (returns null when closed), so its transient
-  // in-flight flags survive open→close. A loadingId left set — e.g. the modal
-  // closed by a deferred load behind the unsaved-changes confirm — would make the
-  // `if (loadingId) return` guard silently swallow every subsequent open, with no
-  // error, until a full reload. Clear the flags whenever the modal closes (#154).
-  useEffect(() => {
-    if (open) return
-    setLoadingId(null)
-    setCopyingId(null)
-    setDuplicatingId(null)
-    setExportingId(null)
-    setImporting(false)
-  }, [open])
+    if (!backendConnected) return
+    const id = setTimeout(() => {
+      void handleFetchBackend()
+      void handleFetchPublic()
+    }, 0)
+    return () => clearTimeout(id)
+  }, [backendConnected, handleFetchBackend, handleFetchPublic])
 
   const handleCopyTemplate = async (id: string) => {
     setCopyingId(id)
@@ -289,8 +288,6 @@ export function TemplateSelectionModal({
     setManagerOpen(false)
     onClose()
   }
-
-  if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

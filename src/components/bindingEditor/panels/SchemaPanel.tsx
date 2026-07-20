@@ -29,17 +29,29 @@ export const SchemaPanel = memo(function SchemaPanel({
 }: SchemaPanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Destructure the members used inside memoized callbacks so the dependency
+  // arrays can list them directly (bs itself is a fresh object every render).
+  const {
+    addSchemaField,
+    setAddingFieldGroupId,
+    setBulk,
+    updateSchemaGroup,
+    setHoveredFieldId,
+    setHoveredGroupId,
+    fieldMap,
+  } = bs
+
   const handleAddField = useCallback(
     (groupId: string, field: Omit<SchemaField, 'id'>) => {
-      bs.addSchemaField(groupId, field as never)
-      bs.setAddingFieldGroupId(null)
+      addSchemaField(groupId, field as never)
+      setAddingFieldGroupId(null)
     },
-    [bs.addSchemaField, bs.setAddingFieldGroupId],
+    [addSchemaField, setAddingFieldGroupId],
   )
 
   const handleBulkGenerate = useCallback(
-    (groupId: string) => bs.setBulk({ side: 'schema', groupId }),
-    [bs.setBulk],
+    (groupId: string) => setBulk({ side: 'schema', groupId }),
+    [setBulk],
   )
 
   // #138: master-group candidates for the detail groups' 親マスター picker.
@@ -54,21 +66,21 @@ export const SchemaPanel = memo(function SchemaPanel({
 
   const handleSetLinkedMaster = useCallback(
     (groupId: string, masterGroupId: string | undefined) =>
-      bs.updateSchemaGroup(groupId, { linkedMasterGroupId: masterGroupId }),
-    [bs.updateSchemaGroup],
+      updateSchemaGroup(groupId, { linkedMasterGroupId: masterGroupId }),
+    [updateSchemaGroup],
   )
 
   const handleHoverField = useCallback(
     (fieldId: string | null) => {
-      bs.setHoveredFieldId(fieldId)
+      setHoveredFieldId(fieldId)
       if (fieldId) {
-        const field = bs.fieldMap.get(fieldId)
-        if (field) bs.setHoveredGroupId(field.groupId)
+        const field = fieldMap.get(fieldId)
+        if (field) setHoveredGroupId(field.groupId)
       } else {
-        bs.setHoveredGroupId(null)
+        setHoveredGroupId(null)
       }
     },
-    [bs.setHoveredFieldId, bs.setHoveredGroupId, bs.fieldMap],
+    [setHoveredFieldId, setHoveredGroupId, fieldMap],
   )
 
   if (!bs.hasSchema && !bs.hasFields) {
