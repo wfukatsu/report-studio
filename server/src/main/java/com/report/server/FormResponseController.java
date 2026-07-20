@@ -384,7 +384,15 @@ public final class FormResponseController {
             return;
         }
 
-        responseRepo.delete(responseId);
+        // Only report success if the delete actually committed (issue #206).
+        try {
+            responseRepo.delete(responseId);
+        } catch (Exception e) {
+            log.warn("Response deletion failed for id={}: {}", responseId, e.getMessage());
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to delete response"));
+            return;
+        }
         ctx.json(Map.of("deleted", true, "id", responseId));
     }
 

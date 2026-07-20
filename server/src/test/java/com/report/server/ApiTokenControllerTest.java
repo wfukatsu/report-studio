@@ -133,4 +133,44 @@ class ApiTokenControllerTest {
 
         verify(ctx).status(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void revoke_ownToken_success() {
+        Context ctx = ctx();
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.pathParam("id")).thenReturn("myhash");
+        when(tokenRepo.get("myhash")).thenReturn(Optional.of("{\"userId\":\"admin\"}"));
+
+        controller.revoke(ctx);
+
+        verify(tokenRepo).delete("myhash");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> resp = ArgumentCaptor.forClass(Map.class);
+        verify(ctx).json(resp.capture());
+        assertEquals(Boolean.TRUE, resp.getValue().get("revoked"));
+    }
+
+    /**
+     * Issue #206: a failed delete must NOT report success — otherwise a "revoked" token
+     * stays usable for Bearer auth. The controller returns 500 and never emits revoked:true.
+     */
+    @Test
+    void revoke_deleteFails_returns500_notFalseSuccess() {
+        Context ctx = ctx();
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.pathParam("id")).thenReturn("myhash");
+        when(tokenRepo.get("myhash")).thenReturn(Optional.of("{\"userId\":\"admin\"}"));
+        org.mockito.Mockito.doThrow(new JsonBlobRepository.RepositoryException("db down", new RuntimeException()))
+                .when(tokenRepo).delete("myhash");
+
+        controller.revoke(ctx);
+
+        verify(ctx).status(HttpStatus.INTERNAL_SERVER_ERROR);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> resp = ArgumentCaptor.forClass(Map.class);
+        verify(ctx).json(resp.capture());
+        assertNull(resp.getValue().get("revoked"), "must not report revoked:true on a failed delete");
+    }
 }

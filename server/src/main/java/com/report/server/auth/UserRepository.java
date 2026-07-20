@@ -2,6 +2,7 @@ package com.report.server.auth;
 
 import com.report.server.JsonBlobRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +27,8 @@ public final class UserRepository {
 
     private final JsonBlobRepository blob;
 
-    public UserRepository(TransactionFactory factory) {
-        this.blob = new JsonBlobRepository(factory, NAMESPACE, TABLE);
+    public UserRepository(TransactionFactory factory, DistributedTransactionManager manager) {
+        this.blob = new JsonBlobRepository(factory, manager, NAMESPACE, TABLE);
     }
 
     /** Package-private for tests — inject a prepared blob repository. */

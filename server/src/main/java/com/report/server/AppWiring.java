@@ -8,6 +8,7 @@ import com.report.server.auth.UserRepository;
 import com.report.server.job.BatchPdfProcessor;
 import com.report.server.job.JobController;
 import com.report.server.job.JobRepository;
+import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,15 @@ public final class AppWiring {
 
     private static final Logger log = LoggerFactory.getLogger(AppWiring.class);
     private static final String NAMESPACE = "report_studio";
+
+    /**
+     * The single app-wide {@link DistributedTransactionManager}. ScalarDB managers are
+     * thread-safe and meant to be created once and reused; {@code factory.getTransactionManager()}
+     * builds a fresh manager (with its own connection pool) on every call and never closes it, so
+     * repositories and controllers must share this one instance rather than call the factory per
+     * operation (issue #203). Closed in {@link #shutdown()}.
+     */
+    private final DistributedTransactionManager txManager;
 
     // ── Repositories ──────────────────────────────────────────────────────────
     final ProjectionRepository projRepo;
@@ -98,38 +108,42 @@ public final class AppWiring {
     final RateLimiter v2ExportLimiter;
 
     public AppWiring(TransactionFactory factory) {
+        // Single shared transaction manager — created once, reused by every repository
+        // and controller, closed on shutdown (issue #203).
+        txManager = factory.getTransactionManager();
+
         // Repositories
-        projRepo = new ProjectionRepository(factory);
+        projRepo = new ProjectionRepository(factory, txManager);
         projRepo.ensureTable();
 
-        schemaRepo = new JsonBlobRepository(factory, NAMESPACE, "schemas");
+        schemaRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "schemas");
         schemaRepo.ensureTable();
 
-        bindingTreeRepo = new JsonBlobRepository(factory, NAMESPACE, "binding_trees");
+        bindingTreeRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "binding_trees");
         bindingTreeRepo.ensureTable();
 
         templateList = new TemplateListRepository();
 
-        UserRepository userRepo = new UserRepository(factory);
+        UserRepository userRepo = new UserRepository(factory, txManager);
         userRepo.ensureTable();
         userRepo.ensureDefaultUser();
 
-        jobRepo = new JobRepository(factory);
+        jobRepo = new JobRepository(factory, txManager);
         jobRepo.ensureTable();
         jobRepo.reconcileOrphans();
         // Unified TTL reclamation for all job types (issue #60)
         jobTtlReaper = new com.report.server.job.JobTtlReaper(jobRepo, 60);
 
-        responseRepo = new JsonBlobRepository(factory, NAMESPACE, "form_responses");
+        responseRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "form_responses");
         responseRepo.ensureTable();
 
-        versionRepo = new VersionRepository(factory);
+        versionRepo = new VersionRepository(factory, txManager);
         versionRepo.ensureTable();
 
-        v2DefinitionsRepo = new JsonBlobRepository(factory, NAMESPACE, "v2_definitions");
+        v2DefinitionsRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "v2_definitions");
         v2DefinitionsRepo.ensureTable();
 
-        v2ResponseRepo = new JsonBlobRepository(factory, NAMESPACE, "v2_form_responses");
+        v2ResponseRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "v2_form_responses");
         v2ResponseRepo.ensureTable();
 
         // Executor pools
@@ -148,7 +162,7 @@ public final class AppWiring {
         // Controllers
         authCtrl = new AuthController(userRepo);
         // API token (PAT) authentication (#195)
-        apiTokenRepo = new JsonBlobRepository(factory, NAMESPACE, "api_tokens");
+        apiTokenRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "api_tokens");
         apiTokenRepo.ensureTable();
         apiTokenCtrl = new ApiTokenController(authCtrl, userRepo, apiTokenRepo);
         bindingCtrl = new GenericJsonController(bindingTreeRepo, "binding-tree", "{}");
@@ -158,11 +172,11 @@ public final class AppWiring {
         templateCtrl = new TemplateController(v2DefinitionsRepo);
 
         // Schema Library
-        final JsonBlobRepository schemaLibraryRepo = new JsonBlobRepository(factory, NAMESPACE, "schema_library");
+        final JsonBlobRepository schemaLibraryRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "schema_library");
         schemaLibraryRepo.ensureTable();
         schemaLibraryCtrl = new SchemaLibraryController(schemaLibraryRepo);
         evalCtrl = new EvaluateController();
-        versionCtrl = new VersionController(factory, v2DefinitionsRepo);
+        versionCtrl = new VersionController(factory, txManager, v2DefinitionsRepo);
         versionCtrl.ensureTable();
         formResponseCtrl = new FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
         responseExportCtrl = new ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
@@ -176,8 +190,8 @@ public final class AppWiring {
         statelessExcelCtrl = new StatelessExcelController();
         scalarDbCatalogCtrl = new ScalarDbCatalogController(factory);
         scalarDbTableCtrl = new ScalarDbTableController(factory);
-        bindingResolveCtrl = new BindingResolveController(factory, v2DefinitionsRepo);
-        tenantRepo = new JsonBlobRepository(factory, NAMESPACE, "tenant");
+        bindingResolveCtrl = new BindingResolveController(factory, txManager, v2DefinitionsRepo);
+        tenantRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
         tenantCtrl = new TenantController(tenantRepo);
         // Tenant elements in PDFs resolve through this process-wide supplier (issue #54)
@@ -191,22 +205,22 @@ public final class AppWiring {
                 return null;
             }
         });
-        productRepo = new JsonBlobRepository(factory, NAMESPACE, "products");
+        productRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "products");
         productRepo.ensureTable();
         productCtrl = new ProductController(productRepo);
         bindingResolveCtrl.setProductController(productCtrl);
-        scalarDbScanCtrl = new ScalarDbScanController(factory);
-        scalarDbRowCtrl = new ScalarDbRowController(factory);
+        scalarDbScanCtrl = new ScalarDbScanController(factory, txManager);
+        scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
         batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
-        sequenceRepo = new JsonBlobRepository(factory, NAMESPACE, "sequences");
+        sequenceRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();
         sequenceCtrl = new SequenceController(sequenceRepo);
         formResponseCtrl.setSequenceController(sequenceCtrl);
         // Status-transition audit trail (#188)
-        statusAuditRepo = new StatusAuditRepository(new JsonBlobRepository(factory, NAMESPACE, "status_audit"));
+        statusAuditRepo = new StatusAuditRepository(new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
         statusAuditRepo.ensureTable();
         formResponseCtrl.setStatusAuditRepository(statusAuditRepo);
-        webhookRepo = new JsonBlobRepository(factory, NAMESPACE, "webhooks");
+        webhookRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "webhooks");
         webhookRepo.ensureTable();
         webhookDispatcher = new WebhookDispatcher();
         webhookExecutor = new java.util.concurrent.ThreadPoolExecutor(
@@ -234,6 +248,12 @@ public final class AppWiring {
             Thread.currentThread().interrupt();
             jobExecutor.shutdownNow();
             pdfExecutor.shutdownNow();
+        }
+        // Close the single shared transaction manager and its connection pool (issue #203).
+        try {
+            txManager.close();
+        } catch (Exception e) {
+            log.warn("Failed to close transaction manager: {}", e.getMessage());
         }
     }
 }

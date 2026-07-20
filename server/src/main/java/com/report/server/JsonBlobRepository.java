@@ -33,11 +33,22 @@ public final class JsonBlobRepository {
     static final String COL_GROUP_KEY = "group_key";
 
     private final TransactionFactory factory;
+    private final DistributedTransactionManager manager;
     private final String namespace;
     private final String table;
 
-    public JsonBlobRepository(TransactionFactory factory, String namespace, String table) {
+    /**
+     * @param factory used only for admin/DDL ({@link #ensureTable}); never for per-operation
+     *                manager creation — {@code factory.getTransactionManager()} builds a fresh
+     *                {@code ConsensusCommitManager} (with its own connection pool) on every call
+     *                and never closes it, so it must not be called per request (issue #203).
+     * @param manager the single app-wide {@link DistributedTransactionManager}, owned and closed
+     *                by {@code AppWiring}. ScalarDB managers are thread-safe and meant to be reused.
+     */
+    public JsonBlobRepository(TransactionFactory factory, DistributedTransactionManager manager,
+                              String namespace, String table) {
         this.factory = factory;
+        this.manager = manager;
         this.namespace = namespace;
         this.table = table;
     }
@@ -68,7 +79,7 @@ public final class JsonBlobRepository {
 
     /** Get JSON by id. Returns empty if not found. */
     public Optional<String> get(String id) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -88,7 +99,7 @@ public final class JsonBlobRepository {
 
     /** Upsert JSON by id. */
     public void put(String id, String json) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -110,7 +121,7 @@ public final class JsonBlobRepository {
 
     /** Upsert JSON by id with a group key for indexed lookups. */
     public void put(String id, String json, String groupKey) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -133,7 +144,7 @@ public final class JsonBlobRepository {
 
     /** List JSON blobs filtered by group key (uses secondary index). */
     public List<String> listByGroupKey(String groupKey) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -157,7 +168,7 @@ public final class JsonBlobRepository {
 
     /** List all JSON blobs in the table. */
     public List<String> list() {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -179,9 +190,14 @@ public final class JsonBlobRepository {
         }
     }
 
-    /** Delete entry by id. Silently succeeds if not found. */
+    /**
+     * Delete entry by id. Idempotent for a missing row (ScalarDB delete does not require a
+     * prior read), but a genuine failure (DB unreachable, commit conflict) is propagated as
+     * {@link RepositoryException} — callers must not report success on a failed delete
+     * (issue #206: token revocation / response deletion previously returned a false "success").
+     */
     public void delete(String id) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -195,15 +211,19 @@ public final class JsonBlobRepository {
             log.info("Deleted {}/{}", table, id);
         } catch (Exception e) {
             abortQuietly(tx);
-            log.warn("Failed to delete {}/{}: {}", table, id, e.getMessage());
+            throw new RepositoryException("Failed to delete " + table + "/" + id, e);
         }
     }
 
     // ── Transaction-aware methods for atomic read-then-write ──────────────────
 
-    /** Expose factory for callers that need to manage their own transaction lifecycle. */
+    /**
+     * Expose the shared app-wide manager for callers that need to run their own
+     * multi-step transaction (read-modify-write). Returns the single shared instance —
+     * callers must NOT close it (its lifecycle is owned by {@code AppWiring}).
+     */
     public DistributedTransactionManager getTransactionManager() {
-        return factory.getTransactionManager();
+        return manager;
     }
 
     /** Read within an existing transaction (does NOT commit). */

@@ -44,7 +44,7 @@ class ScalarDbScanControllerTest {
         when(factory.getTransactionManager()).thenReturn(txManager);
         when(rateLimiter.isAllowed(anyString())).thenReturn(true);
 
-        controller = new ScalarDbScanController(factory, rateLimiter);
+        controller = new ScalarDbScanController(factory, txManager, rateLimiter);
 
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenReturn(ctx);

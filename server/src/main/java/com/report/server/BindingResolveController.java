@@ -70,17 +70,21 @@ public final class BindingResolveController {
     static final String SYSTEM_GROUP_PRODUCT_MASTER = "__productMaster__";
 
     private final TransactionFactory factory;
+    private final DistributedTransactionManager manager;
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter rateLimiter;
     private ProductController productCtrl;
 
-    public BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
-        this(factory, definitionsRepo, new RateLimiter(3, 10_000L));
+    public BindingResolveController(TransactionFactory factory, DistributedTransactionManager manager,
+                                    JsonBlobRepository definitionsRepo) {
+        this(factory, manager, definitionsRepo, new RateLimiter(3, 10_000L));
     }
 
     /** Package-private constructor for testing. */
-    BindingResolveController(TransactionFactory factory, JsonBlobRepository definitionsRepo, RateLimiter rateLimiter) {
+    BindingResolveController(TransactionFactory factory, DistributedTransactionManager manager,
+                             JsonBlobRepository definitionsRepo, RateLimiter rateLimiter) {
         this.factory = factory;
+        this.manager = manager;
         this.definitionsRepo = definitionsRepo;
         this.rateLimiter = rateLimiter;
         this.productCtrl = null; // injected lazily via setProductController
@@ -467,7 +471,7 @@ public final class BindingResolveController {
             String correlationId,
             String userId
     ) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
 
         try {
@@ -560,7 +564,7 @@ public final class BindingResolveController {
             String correlationId,
             String userId
     ) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
 
         try {

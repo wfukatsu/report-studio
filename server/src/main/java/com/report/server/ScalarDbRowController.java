@@ -65,18 +65,20 @@ public final class ScalarDbRowController {
     private static final Set<String> PROTECTED_NAMESPACES = SystemNamespaces.PROTECTED;
 
     private final TransactionFactory factory;
+    private final DistributedTransactionManager manager;
     private final RateLimiter rateLimiter;
     private static final long METADATA_CACHE_TTL_MS = 5 * 60 * 1000L; // 5 minutes
 
     private record CachedMeta(TableMetadata meta, long cachedAt) {}
     private final ConcurrentHashMap<String, CachedMeta> metadataCache = new ConcurrentHashMap<>();
 
-    public ScalarDbRowController(TransactionFactory factory) {
-        this(factory, new RateLimiter(60, 60_000L));
+    public ScalarDbRowController(TransactionFactory factory, DistributedTransactionManager manager) {
+        this(factory, manager, new RateLimiter(60, 60_000L));
     }
 
-    ScalarDbRowController(TransactionFactory factory, RateLimiter rateLimiter) {
+    ScalarDbRowController(TransactionFactory factory, DistributedTransactionManager manager, RateLimiter rateLimiter) {
         this.factory = factory;
+        this.manager = manager;
         this.rateLimiter = rateLimiter;
     }
 
@@ -139,7 +141,7 @@ public final class ScalarDbRowController {
         allKeys.addAll(clusteringKeys);
         Put put = buildPutWithValues(rc.namespace, rc.table, partitionKey, clusteringKey, values, allKeys, meta);
 
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -233,7 +235,7 @@ public final class ScalarDbRowController {
             delBuilder.clusteringKey(buildKey(keys, clusteringKeys, meta));
         }
 
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
