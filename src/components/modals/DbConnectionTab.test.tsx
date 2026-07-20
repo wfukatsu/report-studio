@@ -218,7 +218,12 @@ describe('DbConnectionTab — happy path binding flow', () => {
       target: { value: 'app' },
     })
 
-    expect(tableSelect).not.toBeDisabled()
+    // Re-query inside waitFor: enabling follows the namespace state update, which under CI
+    // load can flush after this synchronous point (the whole file uses this pattern; see
+    // waitForTableOption / the WAIT-timeout comment above).
+    await waitFor(() => {
+      expect(screen.getByLabelText(/テーブル/)).not.toBeDisabled()
+    }, WAIT)
   })
 })
 
