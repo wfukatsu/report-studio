@@ -169,10 +169,28 @@ public final class AuthController {
 
         // Single-session policy: invalidate any existing sessions for this user
         // (intentional — see method Javadoc; most recent login wins).
-        sessions.entrySet().removeIf(e -> userId.equals(e.getValue().principal().userId()));
+        invalidateSessionsFor(userId);
 
-        String sessionId = UUID.randomUUID().toString();
         Principal principal = new Principal(user.userId(), user.displayName(), user.roles());
+        issueSession(ctx, principal);
+        ctx.json(Map.of(
+            "userId", principal.userId(),
+            "displayName", principal.displayName(),
+            "roles", principal.roles(),
+            "anonymous", false
+        ));
+
+        log.info("User logged in: {}", userId);
+    }
+
+    /** Remove every active session belonging to the given user. */
+    private void invalidateSessionsFor(String userId) {
+        sessions.entrySet().removeIf(e -> userId.equals(e.getValue().principal().userId()));
+    }
+
+    /** Create a fresh session for {@code principal} and set the session cookie on the response. */
+    private void issueSession(Context ctx, Principal principal) {
+        String sessionId = UUID.randomUUID().toString();
         sessions.put(sessionId, new SessionEntry(principal, clock.getAsLong() + SESSION_TTL_MS));
 
         Cookie cookie = new Cookie(SESSION_COOKIE, sessionId);
@@ -182,14 +200,6 @@ public final class AuthController {
         cookie.setSameSite(io.javalin.http.SameSite.LAX);
         cookie.setPath("/api/");
         ctx.cookie(cookie);
-        ctx.json(Map.of(
-            "userId", principal.userId(),
-            "displayName", principal.displayName(),
-            "roles", principal.roles(),
-            "anonymous", false
-        ));
-
-        log.info("User logged in: {}", userId);
     }
 
     /** POST /api/v1/auth/logout — clear session */
@@ -233,6 +243,7 @@ public final class AuthController {
                 ? newDisplayName.strip() : user.displayName();
 
         String updatedHash = user.passwordHash();
+        boolean passwordChanged = false;
         if (newPassword != null && !newPassword.isBlank()) {
             if (currentPassword == null || currentPassword.isBlank()) {
                 ctx.status(HttpStatus.BAD_REQUEST);
@@ -245,10 +256,19 @@ public final class AuthController {
                 return;
             }
             updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
+            passwordChanged = true;
         }
 
         UserRecord updated = new UserRecord(user.userId(), updatedDisplayName, updatedHash, user.roles());
         userRepo.save(updated);
+
+        if (passwordChanged) {
+            // A password change must revoke every existing session for this user so a stolen or
+            // older cookie can no longer be used (#202); then re-issue a fresh session for this
+            // caller so they stay logged in. (PATs are separate — revoke them via the token API.)
+            invalidateSessionsFor(updated.userId());
+            issueSession(ctx, new Principal(updated.userId(), updated.displayName(), updated.roles()));
+        }
 
         ctx.json(Map.of(
             "userId", updated.userId(),
@@ -256,7 +276,8 @@ public final class AuthController {
             "roles", updated.roles(),
             "anonymous", false
         ));
-        log.info("User {} updated profile", principal.userId());
+        log.info("User {} updated profile{}", principal.userId(),
+                passwordChanged ? " (password changed — sessions reset)" : "");
     }
 
     /**

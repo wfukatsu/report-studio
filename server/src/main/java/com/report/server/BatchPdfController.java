@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.job.JobConcurrencyLimiter;
+import com.report.server.job.JobController;
 import com.report.server.job.JobRecord;
 import com.report.server.job.JobStatus;
 import com.report.server.job.JobStore;
@@ -388,7 +389,10 @@ public final class BatchPdfController {
     public void getStatus(Context ctx) {
         String id = ctx.pathParam("id");
         JobRecord job = findBatchJob(id).orElse(null);
-        if (job == null) {
+        // Owner-scoped: reject (as 404, to avoid job-ID enumeration) jobs the caller does not
+        // own. Previously any authenticated user who knew a job ID could read another user's
+        // batch status (issue #199). Mirrors PdfJobController / JobController.
+        if (job == null || !JobController.canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Batch job not found"));
             return;
@@ -409,7 +413,9 @@ public final class BatchPdfController {
     public void getResult(Context ctx) {
         String id = ctx.pathParam("id");
         JobRecord job = findBatchJob(id).orElse(null);
-        if (job == null) {
+        // Owner-scoped: a non-owner must not download (and, via the one-shot delete below,
+        // destroy) another user's result ZIP (issue #199). 404 to avoid job-ID enumeration.
+        if (job == null || !JobController.canAccess(ctx, job)) {
             ctx.status(HttpStatus.NOT_FOUND);
             ctx.json(Map.of("error", "Batch job not found"));
             return;

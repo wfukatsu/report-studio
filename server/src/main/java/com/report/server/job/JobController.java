@@ -242,8 +242,12 @@ public final class JobController {
         ctx.json(Map.of("cancelled", true, "jobId", jobId));
     }
 
-    /** Owner-scoped access: ownerless jobs are open; otherwise owner or admin only. */
-    static boolean canAccess(Context ctx, JobRecord job) {
+    /**
+     * Owner-scoped access: ownerless jobs are open; otherwise owner or admin only.
+     * Public so sibling job stacks (e.g. {@code BatchPdfController} in the parent package)
+     * apply the identical rule instead of re-implementing it (issue #199).
+     */
+    public static boolean canAccess(Context ctx, JobRecord job) {
         if (job.owner() == null) return true;
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) return false;

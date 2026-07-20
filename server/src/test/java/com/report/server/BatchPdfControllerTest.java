@@ -47,13 +47,14 @@ class BatchPdfControllerTest {
         doAnswer(inv -> { capturedJson = inv.getArguments()[0]; return null; })
                 .when(ctx).json(any());
         when(ctx.header(anyString(), anyString())).thenReturn(ctx);
+        // Default principal: alice. Status/result reads are now owner-scoped (#199), so the
+        // caller must match the job owner ("alice" in the read-path fixtures).
+        when(ctx.attribute("principal")).thenReturn(user("alice"));
     }
 
+    /** Real (non-anonymous) principal with the default "user" role. */
     private Principal user(String id) {
-        Principal p = mock(Principal.class);
-        when(p.userId()).thenReturn(id);
-        when(p.isAnonymous()).thenReturn(false);
-        return p;
+        return new Principal(id, id, java.util.Set.of("user"));
     }
 
     @Test
@@ -148,6 +149,44 @@ class BatchPdfControllerTest {
         when(ctx.pathParam("id")).thenReturn("batch-1");
         controller.getResult(ctx);
         assertEquals(409, capturedStatus);
+    }
+
+    // ── Owner-scoped access (issue #199) ───────────────────────────────────────
+
+    @Test
+    void getStatus_otherUsersJob_404() {
+        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 3, 0));
+        when(ctx.pathParam("id")).thenReturn("batch-1");
+        when(ctx.attribute("principal")).thenReturn(user("alice")); // not the owner
+
+        controller.getStatus(ctx);
+
+        assertEquals(404, capturedStatus);
+    }
+
+    @Test
+    void getResult_otherUsersJob_404_doesNotDelete() {
+        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 1, 0)
+                .withArtifact("/tmp/does-not-matter.zip"));
+        when(ctx.pathParam("id")).thenReturn("batch-1");
+        when(ctx.attribute("principal")).thenReturn(user("alice")); // not the owner
+
+        controller.getResult(ctx);
+
+        assertEquals(404, capturedStatus);
+        // The one-shot delete must not have run — bob's job is still present.
+        assertTrue(jobStore.findById("batch-1").isPresent(), "non-owner must not destroy the job");
+    }
+
+    @Test
+    void getStatus_adminCanReadAnyJob() {
+        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 3, 0).withProgress(1, 0));
+        when(ctx.pathParam("id")).thenReturn("batch-1");
+        when(ctx.attribute("principal")).thenReturn(new Principal("root", "root", java.util.Set.of("admin")));
+
+        controller.getStatus(ctx);
+
+        assertEquals(200, capturedStatus);
     }
 
     /**

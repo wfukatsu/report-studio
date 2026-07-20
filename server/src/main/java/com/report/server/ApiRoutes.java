@@ -71,24 +71,11 @@ public final class ApiRoutes {
             }
         });
 
-        // CSRF protection: verify Origin header on state-changing requests
+        // CSRF protection: verify Origin (or Referer) on state-changing requests
         app.before("/api/*", ctx -> {
-            String method = ctx.method().name();
-            if (!"GET".equals(method) && !"HEAD".equals(method) && !"OPTIONS".equals(method)) {
-                String origin = ctx.header("Origin");
-                if (origin != null && !origin.isBlank()
-                        && !origin.equals("http://localhost:" + SERVER_PORT)
-                        && (ALLOWED_ORIGIN == null || !origin.equals(ALLOWED_ORIGIN))) {
-                    // Allow any Vite dev server port (5173–5200) for local development
-                    boolean isLocalVite = false;
-                    for (int port = 5173; port <= 5200; port++) {
-                        if (origin.equals("http://localhost:" + port)) { isLocalVite = true; break; }
-                    }
-                    if (!isLocalVite) {
-                        throw new io.javalin.http.ForbiddenResponse("Cross-origin request rejected");
-                    }
-                }
-            }
+            String reason = csrfRejectReason(ctx.method().name(), ctx.path(),
+                    ctx.header("Origin"), ctx.header("Referer"), ctx.header("Authorization"));
+            if (reason != null) throw new io.javalin.http.ForbiddenResponse(reason);
         });
 
         // Auth before-filter: resolve principal and enforce authentication
@@ -125,6 +112,66 @@ public final class ApiRoutes {
      */
     static void registerAdminRoleFilter(Javalin app) {
         app.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
+    }
+
+    /**
+     * CSRF decision for one request. Returns {@code null} to allow, or a human-readable reason
+     * to reject with 403. Pure and package-private so it can be unit-tested directly (issue #201).
+     *
+     * <p>For cookie-authenticated, state-changing requests the browser-supplied {@code Origin}
+     * (or, when absent, the origin parsed from {@code Referer}) must be present and match an
+     * allowed origin. Previously a <b>missing</b> Origin was allowed, so an attacker page that
+     * suppressed the header slipped past the check — the exact gap CSRF protection must not have.
+     *
+     * <p>Two carve-outs keep legitimate non-browser callers working:
+     * <ul>
+     *   <li><b>Bearer/PAT</b> requests are not cookie-authenticated, so they carry no CSRF risk
+     *       and are exempt regardless of Origin.</li>
+     *   <li><b>{@code /api/v1/auth/*} and {@code /api/v1/public/*}</b> may be called by non-browser
+     *       clients (CLI password login, external public-form submission) that legitimately omit
+     *       Origin/Referer; a missing header is tolerated there, but a present-but-foreign origin
+     *       is still rejected.</li>
+     * </ul>
+     */
+    static String csrfRejectReason(String method, String path, String origin, String referer,
+                                   String authorization) {
+        if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) return null;
+        if (authorization != null && authorization.startsWith("Bearer ")) return null;
+
+        String candidate = (origin != null && !origin.isBlank()) ? origin : originOf(referer);
+        boolean exemptPath = path != null
+                && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/"));
+
+        if (candidate == null || candidate.isBlank()) {
+            return exemptPath ? null : "Missing Origin/Referer on state-changing request";
+        }
+        return isAllowedOrigin(candidate) ? null : "Cross-origin request rejected";
+    }
+
+    /** True if the origin is this server, the configured ALLOWED_ORIGIN, or a local Vite dev port. */
+    private static boolean isAllowedOrigin(String origin) {
+        if (origin.equals("http://localhost:" + SERVER_PORT)) return true;
+        if (ALLOWED_ORIGIN != null && origin.equals(ALLOWED_ORIGIN)) return true;
+        for (int port = 5173; port <= 5200; port++) {
+            if (origin.equals("http://localhost:" + port)) return true;
+        }
+        return false;
+    }
+
+    /** Extract the {@code scheme://host[:port]} origin from a full URL (e.g. a Referer), or null. */
+    private static String originOf(String url) {
+        if (url == null || url.isBlank()) return null;
+        try {
+            java.net.URI u = java.net.URI.create(url);
+            String scheme = u.getScheme();
+            String host = u.getHost();
+            if (scheme == null || host == null) return null;
+            return u.getPort() == -1
+                    ? scheme + "://" + host
+                    : scheme + "://" + host + ":" + u.getPort();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
