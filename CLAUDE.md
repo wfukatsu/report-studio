@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Frontend
 ```bash
 npm run dev          # Start dev server (http://localhost:5173)
-npm run build        # Type-check + build to dist/
+npm run build        # Type-check (tsc, TS 5.7) + build to dist/
+npm run typecheck:native  # TS 7 native compiler (tsgo) type-check — readiness/fast check only (#252)
 npm run lint         # ESLint
 npm test             # Run tests (watch mode)
 npm test -- --run    # Run tests once
