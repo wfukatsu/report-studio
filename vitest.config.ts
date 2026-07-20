@@ -11,7 +11,9 @@ export default defineConfig({
     // Unit/component tests live under src/. Scope the glob there so the default
     // `**/*.spec.ts` pattern does NOT sweep up the Playwright E2E specs in e2e/
     // (they import @playwright/test and must run via `playwright test`, #221).
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // scripts/cli tests spawn the CLI as a child process (#268) — still vitest,
+    // still no Playwright.
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'scripts/cli/**/*.test.mjs'],
     // Default 5s is too tight under load: coverage instrumentation and busy CI
     // runners slow jsdom+RTL tests ~4x, turning healthy tests into timeout
     // flakes. This is a ceiling, not a delay — fast tests stay fast.
@@ -48,15 +50,19 @@ export default defineConfig({
       //
       // Re-baselined 2026-07-21 for @vitest/coverage-v8 v4, which switched to
       // AST-aware branch remapping (counts optional chaining / nullish / default
-      // params as branches). The SAME 2707 tests measure lower under v4 — this is
-      // a measurement change, not a code regression. New v4 floor:
-      // stmts 66.12 / branches 60.41 / funcs 65.59 / lines 67.66.
+      // params as branches). This is a measurement change, not a code regression.
       // (v3 floor was: lines 73.68 / functions 70.11 / branches 85.42.)
+      //
+      // Ratcheted 2026-07-21 (#268) after adding tenant-renderer / store-util /
+      // hook / CLI tests. Measured floor: stmts 66.44 / branches 60.63 /
+      // funcs 66.00 / lines 67.99. Thresholds sit ~0.2-0.3pt below the floor —
+      // enough to catch regressions without flaking on test-unrelated refactors
+      // (the previous stmts gap of +0.12pt was too tight).
       thresholds: {
-        lines: 67,
-        functions: 65,
-        branches: 60,
-        statements: 66,
+        lines: 67.7,
+        functions: 65.7,
+        branches: 60.4,
+        statements: 66.2,
       },
     },
   },
