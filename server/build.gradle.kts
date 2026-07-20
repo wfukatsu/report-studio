@@ -20,10 +20,10 @@ repositories {
 
 dependencies {
     // Web framework
-    implementation("io.javalin:javalin:6.6.0")
+    implementation("io.javalin:javalin:7.2.2")
 
     // JSON
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
 
     // ScalarDB
     // 3.17.3 — supersedes the 3.14.4 pin (the JDBC storage connection leak fix that
@@ -33,35 +33,35 @@ dependencies {
     implementation("com.scalar-labs:scalardb:3.17.3")
 
     // SQLite JDBC (ScalarDB storage backend)
-    implementation("org.xerial:sqlite-jdbc:3.47.2.0")
+    implementation("org.xerial:sqlite-jdbc:3.53.2.0")
 
     // PDF generation
-    implementation("org.apache.pdfbox:pdfbox:3.0.3")
+    implementation("org.apache.pdfbox:pdfbox:3.0.8")
 
     // Barcode/QR generation for PDF
-    implementation("com.google.zxing:core:3.5.3")
-    implementation("com.google.zxing:javase:3.5.3")
+    implementation("com.google.zxing:core:3.5.4")
+    implementation("com.google.zxing:javase:3.5.4")
 
     // Password hashing
     implementation("at.favre.lib:bcrypt:0.10.2")
 
     // RE2J — linear-time regex engine (ReDoS-safe pattern validation)
-    implementation("com.google.re2j:re2j:1.7")
+    implementation("com.google.re2j:re2j:1.8")
 
     // Apache Commons JEXL 3.x — sandboxed expression engine for CalculationRule / ValidationRule conditions
-    implementation("org.apache.commons:commons-jexl3:3.4.0")
+    implementation("org.apache.commons:commons-jexl3:3.7.0")
 
     // Apache POI — Excel export (SXSSF streaming workbook)
-    implementation("org.apache.poi:poi-ooxml:5.3.0")
+    implementation("org.apache.poi:poi-ooxml:5.5.1")
 
     // Logging
-    implementation("org.slf4j:slf4j-simple:2.0.16")
+    implementation("org.slf4j:slf4j-simple:2.0.18")
 
     // Test
-    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.3")
+    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.1")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.2")
     testImplementation("org.mockito:mockito-core:5.23.0")
-    testImplementation("io.javalin:javalin-testtools:6.6.0")
+    testImplementation("io.javalin:javalin-testtools:7.2.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

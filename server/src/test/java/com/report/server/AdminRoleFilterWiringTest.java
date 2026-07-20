@@ -26,12 +26,13 @@ class AdminRoleFilterWiringTest {
      * routes.
      */
     private Javalin createApp(Principal principal) {
-        Javalin app = Javalin.create();
-        app.before("/api/*", ctx -> ctx.attribute("principal", principal));
-        ApiRoutes.registerAdminRoleFilter(app);
-        app.get("/api/v1/admin/ping", ctx -> ctx.result("pong"));
-        app.get("/api/v1/templates", ctx -> ctx.result("ok"));
-        return app;
+        return Javalin.create(
+                config -> {
+                    config.routes.before("/api/*", ctx -> ctx.attribute("principal", principal));
+                    ApiRoutes.registerAdminRoleFilter(config);
+                    config.routes.get("/api/v1/admin/ping", ctx -> ctx.result("pong"));
+                    config.routes.get("/api/v1/templates", ctx -> ctx.result("ok"));
+                });
     }
 
     @Test

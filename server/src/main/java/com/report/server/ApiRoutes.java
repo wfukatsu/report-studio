@@ -1,6 +1,6 @@
 package com.report.server;
 
-import io.javalin.Javalin;
+import io.javalin.config.JavalinConfig;
 import io.javalin.http.HttpStatus;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -28,22 +28,22 @@ public final class ApiRoutes {
 
     private ApiRoutes() {}
 
-    public static void register(Javalin app, AppWiring w) {
-        registerMiddleware(app, w);
-        registerAuthRoutes(app, w);
-        registerBindingTreeRoutes(app, w);
-        registerPublicFormRoutes(app, w);
-        registerJobRoutes(app, w);
-        registerV2Routes(app, w);
-        registerAdminRoutes(app, w);
-        registerV2SchemaRoutes(app, w);
+    public static void register(JavalinConfig config, AppWiring w) {
+        registerMiddleware(config, w);
+        registerAuthRoutes(config, w);
+        registerBindingTreeRoutes(config, w);
+        registerPublicFormRoutes(config, w);
+        registerJobRoutes(config, w);
+        registerV2Routes(config, w);
+        registerAdminRoutes(config, w);
+        registerV2SchemaRoutes(config, w);
     }
 
     // ── Middleware ─────────────────────────────────────────────────────────────
 
-    private static void registerMiddleware(Javalin app, AppWiring w) {
+    private static void registerMiddleware(JavalinConfig config, AppWiring w) {
         // Global exception handler — returns JSON error body without stack traces
-        app.exception(
+        config.routes.exception(
                 Exception.class,
                 (e, ctx) -> {
                     if (e instanceof io.javalin.http.HttpResponseException hre) {
@@ -57,7 +57,7 @@ public final class ApiRoutes {
                 });
 
         // Security response headers
-        app.after(
+        config.routes.after(
                 ctx -> {
                     ctx.header("X-Content-Type-Options", "nosniff");
                     ctx.header("X-Frame-Options", "DENY");
@@ -78,7 +78,7 @@ public final class ApiRoutes {
                 });
 
         // CSRF protection: verify Origin (or Referer) on state-changing requests
-        app.before(
+        config.routes.before(
                 "/api/*",
                 ctx -> {
                     String reason =
@@ -92,7 +92,7 @@ public final class ApiRoutes {
                 });
 
         // Auth before-filter: resolve principal and enforce authentication
-        app.before(
+        config.routes.before(
                 "/api/*",
                 ctx -> {
                     String path = ctx.path();
@@ -116,7 +116,7 @@ public final class ApiRoutes {
 
         // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
         // Runs after auth filter so principal is already resolved
-        registerAdminRoleFilter(app);
+        registerAdminRoleFilter(config);
     }
 
     /**
@@ -124,8 +124,8 @@ public final class ApiRoutes {
      * AdminRoleFilterWiringTest can exercise the real registration (path pattern + handler) over
      * HTTP — the controllers behind these routes perform no role check of their own.
      */
-    static void registerAdminRoleFilter(Javalin app) {
-        app.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
+    static void registerAdminRoleFilter(JavalinConfig config) {
+        config.routes.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
     }
 
     /**
@@ -208,177 +208,184 @@ public final class ApiRoutes {
 
     // ── Route groups ───────────────────────────────────────────────────────────
 
-    private static void registerAuthRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/health", ctx -> ctx.json(Map.of("status", "ok")));
-        app.get("/api/v1/auth/me", w.authCtrl::me);
-        app.post("/api/v1/auth/login", w.authCtrl::login);
-        app.post("/api/v1/auth/logout", w.authCtrl::logout);
-        app.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
+    private static void registerAuthRoutes(JavalinConfig config, AppWiring w) {
+        config.routes.get("/api/v1/health", ctx -> ctx.json(Map.of("status", "ok")));
+        config.routes.get("/api/v1/auth/me", w.authCtrl::me);
+        config.routes.post("/api/v1/auth/login", w.authCtrl::login);
+        config.routes.post("/api/v1/auth/logout", w.authCtrl::logout);
+        config.routes.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
         // Personal Access Tokens (#195) — session-authenticated management
-        app.post("/api/v1/auth/tokens", w.apiTokenCtrl::create);
-        app.get("/api/v1/auth/tokens", w.apiTokenCtrl::list);
-        app.delete("/api/v1/auth/tokens/{id}", w.apiTokenCtrl::revoke);
+        config.routes.post("/api/v1/auth/tokens", w.apiTokenCtrl::create);
+        config.routes.get("/api/v1/auth/tokens", w.apiTokenCtrl::list);
+        config.routes.delete("/api/v1/auth/tokens/{id}", w.apiTokenCtrl::revoke);
     }
 
-    private static void registerAdminRoutes(Javalin app, AppWiring w) {
+    private static void registerAdminRoutes(JavalinConfig config, AppWiring w) {
         // User management (admin only)
-        app.get("/api/v1/admin/users", w.adminUserCtrl::list);
-        app.post("/api/v1/admin/users", w.adminUserCtrl::create);
-        app.put("/api/v1/admin/users/{id}", w.adminUserCtrl::update);
-        app.delete("/api/v1/admin/users/{id}", w.adminUserCtrl::delete);
+        config.routes.get("/api/v1/admin/users", w.adminUserCtrl::list);
+        config.routes.post("/api/v1/admin/users", w.adminUserCtrl::create);
+        config.routes.put("/api/v1/admin/users/{id}", w.adminUserCtrl::update);
+        config.routes.delete("/api/v1/admin/users/{id}", w.adminUserCtrl::delete);
         // Server config (admin only)
-        app.get("/api/v1/admin/server-config", w.adminServerCtrl::getConfig);
-        app.put("/api/v1/admin/server-config", w.adminServerCtrl::putConfig);
-        app.post("/api/v1/admin/server-config/test", w.adminServerCtrl::testConfig);
-        app.post("/api/v1/admin/server/restart", w.adminServerCtrl::restart);
+        config.routes.get("/api/v1/admin/server-config", w.adminServerCtrl::getConfig);
+        config.routes.put("/api/v1/admin/server-config", w.adminServerCtrl::putConfig);
+        config.routes.post("/api/v1/admin/server-config/test", w.adminServerCtrl::testConfig);
+        config.routes.post("/api/v1/admin/server/restart", w.adminServerCtrl::restart);
         // Observability (admin only) — detailed health + process metrics.
         // Public liveness stays on /api/v1/health and /api/v2/health.
-        app.get("/api/v1/admin/health", w.healthCtrl::detailed);
-        app.get("/api/v1/admin/metrics", w.healthCtrl::metrics);
+        config.routes.get("/api/v1/admin/health", w.healthCtrl::detailed);
+        config.routes.get("/api/v1/admin/metrics", w.healthCtrl::metrics);
     }
 
-    private static void registerBindingTreeRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/binding-trees/{id}", w.bindingCtrl::get);
-        app.put("/api/v1/binding-trees/{id}", w.bindingCtrl::put);
+    private static void registerBindingTreeRoutes(JavalinConfig config, AppWiring w) {
+        config.routes.get("/api/v1/binding-trees/{id}", w.bindingCtrl::get);
+        config.routes.put("/api/v1/binding-trees/{id}", w.bindingCtrl::put);
     }
 
-    private static void registerPublicFormRoutes(Javalin app, AppWiring w) {
-        app.get("/api/v1/public/forms/{id}", w.publicFormCtrl::getFormInfo);
-        app.post("/api/v1/public/forms/{id}/verify", w.publicFormCtrl::verifyPassword);
-        app.get("/api/v1/public/forms/{id}/projection", w.publicFormCtrl::getProjection);
-        app.post("/api/v1/public/forms/{id}/submit", w.publicFormCtrl::submitResponse);
+    private static void registerPublicFormRoutes(JavalinConfig config, AppWiring w) {
+        config.routes.get("/api/v1/public/forms/{id}", w.publicFormCtrl::getFormInfo);
+        config.routes.post("/api/v1/public/forms/{id}/verify", w.publicFormCtrl::verifyPassword);
+        config.routes.get("/api/v1/public/forms/{id}/projection", w.publicFormCtrl::getProjection);
+        config.routes.post("/api/v1/public/forms/{id}/submit", w.publicFormCtrl::submitResponse);
     }
 
-    private static void registerJobRoutes(Javalin app, AppWiring w) {
-        app.post("/api/v1/jobs", w.jobCtrl::submit);
-        app.get("/api/v1/jobs", w.jobCtrl::list);
-        app.get("/api/v1/jobs/{id}", w.jobCtrl::status);
-        app.get("/api/v1/jobs/{id}/output", w.jobCtrl::download);
-        app.delete("/api/v1/jobs/{id}", w.jobCtrl::cancel);
+    private static void registerJobRoutes(JavalinConfig config, AppWiring w) {
+        config.routes.post("/api/v1/jobs", w.jobCtrl::submit);
+        config.routes.get("/api/v1/jobs", w.jobCtrl::list);
+        config.routes.get("/api/v1/jobs/{id}", w.jobCtrl::status);
+        config.routes.get("/api/v1/jobs/{id}/output", w.jobCtrl::download);
+        config.routes.delete("/api/v1/jobs/{id}", w.jobCtrl::cancel);
     }
 
     // ── V2 routes ─────────────────────────────────────────────────────────────
 
-    private static void registerV2Routes(Javalin app, AppWiring w) {
-        app.get("/api/v2/health", ctx -> ctx.status(204));
-        app.get("/api/v2/templates", w.templateCtrl::list);
-        app.post("/api/v2/templates", w.templateCtrl::create);
-        app.get("/api/v2/templates/{id}", w.templateCtrl::get);
-        app.put("/api/v2/templates/{id}", w.templateCtrl::put);
+    private static void registerV2Routes(JavalinConfig config, AppWiring w) {
+        config.routes.get("/api/v2/health", ctx -> ctx.status(204));
+        config.routes.get("/api/v2/templates", w.templateCtrl::list);
+        config.routes.post("/api/v2/templates", w.templateCtrl::create);
+        config.routes.get("/api/v2/templates/{id}", w.templateCtrl::get);
+        config.routes.put("/api/v2/templates/{id}", w.templateCtrl::put);
         // navigator.sendBeacon (tab-close auto-save, #213) can only issue POST, so the
         // beacon save hits POST /templates/{id}. Bind it to the same handler as PUT — without
         // this the beacon 404s and the last edits are silently lost.
-        app.post("/api/v2/templates/{id}", w.templateCtrl::put);
-        app.delete("/api/v2/templates/{id}", w.templateCtrl::delete);
-        app.post("/api/v2/templates/{id}/duplicate", w.templateCtrl::duplicate);
-        app.put("/api/v2/templates/{id}/visibility", w.templateCtrl::updateVisibility);
-        app.post("/api/v2/templates/{id}/copy", w.templateCtrl::copy);
-        app.post("/api/v2/templates/{id}/evaluate", w.evalCtrl::evaluate);
-        app.post("/api/v2/templates/{id}/validate", w.evalCtrl::validate);
-        app.get("/api/v2/templates/{id}/versions", w.versionCtrl::list);
-        app.post("/api/v2/templates/{id}/versions", w.versionCtrl::create);
-        app.post("/api/v2/templates/{id}/versions/{vid}/restore", w.versionCtrl::restore);
+        config.routes.post("/api/v2/templates/{id}", w.templateCtrl::put);
+        config.routes.delete("/api/v2/templates/{id}", w.templateCtrl::delete);
+        config.routes.post("/api/v2/templates/{id}/duplicate", w.templateCtrl::duplicate);
+        config.routes.put("/api/v2/templates/{id}/visibility", w.templateCtrl::updateVisibility);
+        config.routes.post("/api/v2/templates/{id}/copy", w.templateCtrl::copy);
+        config.routes.post("/api/v2/templates/{id}/evaluate", w.evalCtrl::evaluate);
+        config.routes.post("/api/v2/templates/{id}/validate", w.evalCtrl::validate);
+        config.routes.get("/api/v2/templates/{id}/versions", w.versionCtrl::list);
+        config.routes.post("/api/v2/templates/{id}/versions", w.versionCtrl::create);
+        config.routes.post("/api/v2/templates/{id}/versions/{vid}/restore", w.versionCtrl::restore);
 
         // V2 form responses
-        app.post("/api/v2/templates/{id}/responses", w.formResponseCtrl::submit);
-        app.get("/api/v2/templates/{id}/responses", w.formResponseCtrl::list);
-        app.get("/api/v2/templates/{id}/responses/export", w.responseExportCtrl::export);
-        app.get("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::get);
-        app.delete("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::delete);
-        app.patch(
+        config.routes.post("/api/v2/templates/{id}/responses", w.formResponseCtrl::submit);
+        config.routes.get("/api/v2/templates/{id}/responses", w.formResponseCtrl::list);
+        config.routes.get("/api/v2/templates/{id}/responses/export", w.responseExportCtrl::export);
+        config.routes.get("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::get);
+        config.routes.delete("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::delete);
+        config.routes.patch(
                 "/api/v2/templates/{id}/responses/{rid}/status", w.formResponseCtrl::updateStatus);
-        app.get("/api/v2/templates/{id}/responses/{rid}/audit", w.formResponseCtrl::getAudit);
-        app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.responsePdfCtrl::generatePdf);
+        config.routes.get(
+                "/api/v2/templates/{id}/responses/{rid}/audit", w.formResponseCtrl::getAudit);
+        config.routes.get(
+                "/api/v2/templates/{id}/responses/{rid}/pdf", w.responsePdfCtrl::generatePdf);
 
         // Cross-template issued-documents view (#190)
-        app.get("/api/v2/documents", w.formResponseCtrl::listDocuments);
+        config.routes.get("/api/v2/documents", w.formResponseCtrl::listDocuments);
 
         // V2 template export/import/thumbnail
-        app.get("/api/v2/templates/{id}/export", w.exportCtrl::export);
-        app.post("/api/v2/templates/import", w.exportCtrl::importTemplate);
-        app.get("/api/v2/templates/{id}/thumbnail", w.thumbnailCtrl::get);
+        config.routes.get("/api/v2/templates/{id}/export", w.exportCtrl::export);
+        config.routes.post("/api/v2/templates/import", w.exportCtrl::importTemplate);
+        config.routes.get("/api/v2/templates/{id}/thumbnail", w.thumbnailCtrl::get);
 
         // V2 template PDF generation
-        app.post("/api/v2/templates/{id}/pdf", w.pdfCtrl::generate);
+        config.routes.post("/api/v2/templates/{id}/pdf", w.pdfCtrl::generate);
 
         // V2 schema inference
-        app.post("/api/v2/schemas/infer", w.schemaInferCtrl::infer);
+        config.routes.post("/api/v2/schemas/infer", w.schemaInferCtrl::infer);
 
         // V2 stateless PDF generation
-        app.post("/api/v2/pdf/generate", w.statelessPdfCtrl::generate);
+        config.routes.post("/api/v2/pdf/generate", w.statelessPdfCtrl::generate);
 
         // V2 stateless XLSX generation (issue #118)
-        app.post("/api/v2/excel/generate", w.statelessExcelCtrl::generate);
+        config.routes.post("/api/v2/excel/generate", w.statelessExcelCtrl::generate);
 
         // V2 async PDF jobs
-        app.post("/api/v2/pdf-jobs", w.pdfJobCtrl::submit);
+        config.routes.post("/api/v2/pdf-jobs", w.pdfJobCtrl::submit);
         // Unified job listing + cancel across all job types (issue #191)
-        app.get("/api/v2/pdf-jobs", w.jobCtrl::listUnified);
-        app.get("/api/v2/pdf-jobs/{jobId}", w.pdfJobCtrl::getStatus);
-        app.get("/api/v2/pdf-jobs/{jobId}/result", w.pdfJobCtrl::getResult);
-        app.delete("/api/v2/pdf-jobs/{jobId}", w.jobCtrl::cancelUnified);
+        config.routes.get("/api/v2/pdf-jobs", w.jobCtrl::listUnified);
+        config.routes.get("/api/v2/pdf-jobs/{jobId}", w.pdfJobCtrl::getStatus);
+        config.routes.get("/api/v2/pdf-jobs/{jobId}/result", w.pdfJobCtrl::getResult);
+        config.routes.delete("/api/v2/pdf-jobs/{jobId}", w.jobCtrl::cancelUnified);
 
         // V2 ScalarDB catalog (namespaces → tables → columns) for schema binding UI
-        app.get("/api/v2/scalardb/catalog", w.scalarDbCatalogCtrl::getCatalog);
+        config.routes.get("/api/v2/scalardb/catalog", w.scalarDbCatalogCtrl::getCatalog);
         // V2 ScalarDB table creation (Phase 1.5)
-        app.post("/api/v2/scalardb/tables", w.scalarDbTableCtrl::createTable);
+        config.routes.post("/api/v2/scalardb/tables", w.scalarDbTableCtrl::createTable);
         // Phase 2: resolve actual ScalarDB row data for live preview
-        app.post("/api/v2/templates/{id}/resolve-bindings", w.bindingResolveCtrl::resolve);
+        config.routes.post(
+                "/api/v2/templates/{id}/resolve-bindings", w.bindingResolveCtrl::resolve);
 
         // Tenant info — shared organization settings
-        app.get("/api/v2/tenant", w.tenantCtrl::get);
-        app.put("/api/v2/tenant", w.tenantCtrl::put);
+        config.routes.get("/api/v2/tenant", w.tenantCtrl::get);
+        config.routes.put("/api/v2/tenant", w.tenantCtrl::put);
 
         // Data Browser — ScalarDB full-table scan (read-only, authenticated users)
-        app.get("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbScanCtrl::scanRows);
+        config.routes.get(
+                "/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbScanCtrl::scanRows);
 
         // Data Browser — ScalarDB row CRUD (authenticated users, system namespaces protected)
-        app.post("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::insertRow);
-        app.put("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::updateRow);
-        app.delete("/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::deleteRow);
+        config.routes.post(
+                "/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::insertRow);
+        config.routes.put(
+                "/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::updateRow);
+        config.routes.delete(
+                "/api/v2/scalardb/tables/{ns}/{table}/rows", w.scalarDbRowCtrl::deleteRow);
 
         // Webhooks
-        app.get("/api/v1/webhooks/{templateId}", w.webhookCtrl::getConfig);
-        app.put("/api/v1/webhooks/{templateId}", w.webhookCtrl::putConfig);
-        app.post("/api/v1/webhooks/{templateId}/test", w.webhookCtrl::testWebhook);
+        config.routes.get("/api/v1/webhooks/{templateId}", w.webhookCtrl::getConfig);
+        config.routes.put("/api/v1/webhooks/{templateId}", w.webhookCtrl::putConfig);
+        config.routes.post("/api/v1/webhooks/{templateId}/test", w.webhookCtrl::testWebhook);
 
         // Document auto-numbering sequences
-        app.get("/api/v1/sequences/{templateId}", w.sequenceCtrl::getConfig);
-        app.put("/api/v1/sequences/{templateId}", w.sequenceCtrl::putConfig);
+        config.routes.get("/api/v1/sequences/{templateId}", w.sequenceCtrl::getConfig);
+        config.routes.put("/api/v1/sequences/{templateId}", w.sequenceCtrl::putConfig);
 
         // Batch PDF generation
-        app.post("/api/v2/pdf-jobs/batch", w.batchPdfCtrl::submitBatch);
-        app.get("/api/v2/pdf-jobs/batch/{id}", w.batchPdfCtrl::getStatus);
-        app.get("/api/v2/pdf-jobs/batch/{id}/result", w.batchPdfCtrl::getResult);
+        config.routes.post("/api/v2/pdf-jobs/batch", w.batchPdfCtrl::submitBatch);
+        config.routes.get("/api/v2/pdf-jobs/batch/{id}", w.batchPdfCtrl::getStatus);
+        config.routes.get("/api/v2/pdf-jobs/batch/{id}/result", w.batchPdfCtrl::getResult);
 
         // Product Master — tenant-wide product catalog
-        app.get("/api/v1/products", w.productCtrl::list);
-        app.get("/api/v1/products/fields", w.productCtrl::getFields);
-        app.get("/api/v1/products/{id}", w.productCtrl::get);
-        app.post("/api/v1/products", w.productCtrl::create);
-        app.put("/api/v1/products/fields", w.productCtrl::putFields);
-        app.put("/api/v1/products/{id}", w.productCtrl::update);
-        app.delete("/api/v1/products/{id}", w.productCtrl::softDelete);
-        app.post("/api/v1/products/import", w.productCtrl::importCsv);
+        config.routes.get("/api/v1/products", w.productCtrl::list);
+        config.routes.get("/api/v1/products/fields", w.productCtrl::getFields);
+        config.routes.get("/api/v1/products/{id}", w.productCtrl::get);
+        config.routes.post("/api/v1/products", w.productCtrl::create);
+        config.routes.put("/api/v1/products/fields", w.productCtrl::putFields);
+        config.routes.put("/api/v1/products/{id}", w.productCtrl::update);
+        config.routes.delete("/api/v1/products/{id}", w.productCtrl::softDelete);
+        config.routes.post("/api/v1/products/import", w.productCtrl::importCsv);
     }
 
     // -----------------------------------------------------------------------
     // Schemas — unified schema CRUD (was schema-library)
     // -----------------------------------------------------------------------
 
-    private static void registerV2SchemaRoutes(Javalin app, AppWiring w) {
+    private static void registerV2SchemaRoutes(JavalinConfig config, AppWiring w) {
         // New canonical paths
-        app.get("/api/v2/schemas", w.schemaLibraryCtrl::list);
-        app.post("/api/v2/schemas", w.schemaLibraryCtrl::create);
-        app.get("/api/v2/schemas/{id}", w.schemaLibraryCtrl::get);
-        app.put("/api/v2/schemas/{id}", w.schemaLibraryCtrl::put);
-        app.delete("/api/v2/schemas/{id}", w.schemaLibraryCtrl::delete);
+        config.routes.get("/api/v2/schemas", w.schemaLibraryCtrl::list);
+        config.routes.post("/api/v2/schemas", w.schemaLibraryCtrl::create);
+        config.routes.get("/api/v2/schemas/{id}", w.schemaLibraryCtrl::get);
+        config.routes.put("/api/v2/schemas/{id}", w.schemaLibraryCtrl::put);
+        config.routes.delete("/api/v2/schemas/{id}", w.schemaLibraryCtrl::delete);
 
         // Backward-compat redirects for old /api/v2/schema-library paths
-        app.get(
+        config.routes.get(
                 "/api/v2/schema-library",
                 ctx -> ctx.redirect("/api/v2/schemas", HttpStatus.MOVED_PERMANENTLY));
-        app.get(
+        config.routes.get(
                 "/api/v2/schema-library/{id}",
                 ctx ->
                         ctx.redirect(

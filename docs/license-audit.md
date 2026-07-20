@@ -27,20 +27,20 @@
 
 | 依存 | ライセンス | 互換性 |
 |---|---|---|
-| io.javalin:javalin 6.6.0 | Apache-2.0 | ✅ |
-| com.fasterxml.jackson.core:jackson-databind 2.18.3 | Apache-2.0 | ✅ |
+| io.javalin:javalin 7.2.2 | Apache-2.0 | ✅ |
+| com.fasterxml.jackson.core:jackson-databind 2.22.1 | Apache-2.0 | ✅ |
 | com.scalar-labs:scalardb 3.17.3（Community Edition） | Apache-2.0 | ✅ |
-| org.xerial:sqlite-jdbc 3.47.2.0 | Apache-2.0（同梱 SQLite は Public Domain） | ✅ |
-| org.apache.pdfbox:pdfbox 3.0.3 | Apache-2.0 | ✅ |
-| com.google.zxing:core / javase 3.5.3 | Apache-2.0 | ✅ |
+| org.xerial:sqlite-jdbc 3.53.2.0 | Apache-2.0（同梱 SQLite は Public Domain） | ✅ |
+| org.apache.pdfbox:pdfbox 3.0.8 | Apache-2.0 | ✅ |
+| com.google.zxing:core / javase 3.5.4 | Apache-2.0 | ✅ |
 | at.favre.lib:bcrypt 0.10.2 | Apache-2.0 | ✅ |
-| com.google.re2j:re2j 1.7 | Go License（BSD-3-Clause 系） | ✅ |
-| org.apache.commons:commons-jexl3 3.4.0 | Apache-2.0 | ✅ |
-| org.apache.poi:poi-ooxml 5.3.0 | Apache-2.0 | ✅ |
-| org.slf4j:slf4j-simple 2.0.16 | MIT | ✅ |
-| junit-jupiter 5.11.4（test） | EPL-2.0 | ✅（テストのみ、配布物に含まれない） |
-| mockito-core 5.14.2（test） | MIT | ✅ |
-| javalin-testtools 6.6.0（test） | Apache-2.0 | ✅ |
+| com.google.re2j:re2j 1.8 | Go License（BSD-3-Clause 系） | ✅ |
+| org.apache.commons:commons-jexl3 3.7.0 | Apache-2.0 | ✅ |
+| org.apache.poi:poi-ooxml 5.5.1 | Apache-2.0 | ✅ |
+| org.slf4j:slf4j-simple 2.0.18 | MIT | ✅ |
+| junit-jupiter 6.1.2（test） | EPL-2.0 | ✅（テストのみ、配布物に含まれない） |
+| mockito-core 5.23.0（test） | MIT | ✅ |
+| javalin-testtools 7.2.2（test） | Apache-2.0 | ✅ |
 
 ## 同梱フォント
 
