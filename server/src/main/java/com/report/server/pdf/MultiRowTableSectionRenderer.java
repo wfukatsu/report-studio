@@ -1,28 +1,35 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.io.IOException;
 
 /**
- * Renders {@code multi_row_table} sections where each logical data record
- * spans multiple physical rows (rowUnitSize).
+ * Renders {@code multi_row_table} sections where each logical data record spans multiple physical
+ * rows (rowUnitSize).
  *
  * <p>Pagination (issue #55) honors {@code splitPolicy}:
+ *
  * <ul>
- *   <li>{@code forbidden} (default) — unit-based: a logical unit never splits
- *       across pages; capacity is whole units per page.</li>
- *   <li>{@code allowed-between-rows} / {@code allowed-inside-unit} — physical
- *       row-based: a unit's rows may straddle a page boundary, so capacity is
- *       measured in physical rows ({@code rowUnitSize} rows per unit).</li>
+ *   <li>{@code forbidden} (default) — unit-based: a logical unit never splits across pages;
+ *       capacity is whole units per page.
+ *   <li>{@code allowed-between-rows} / {@code allowed-inside-unit} — physical row-based: a unit's
+ *       rows may straddle a page boundary, so capacity is measured in physical rows ({@code
+ *       rowUnitSize} rows per unit).
  * </ul>
  */
 final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
 
     private static final int DEFAULT_UNITS_PER_PAGE = 10;
 
-    @Override public String sectionType() { return "multi_row_table"; }
-    @Override public boolean isPaginating() { return true; }
+    @Override
+    public String sectionType() {
+        return "multi_row_table";
+    }
+
+    @Override
+    public boolean isPaginating() {
+        return true;
+    }
 
     private static boolean allowsSplit(JsonNode section) {
         String policy = PdfUtils.textOf(section, "splitPolicy", "forbidden");
@@ -89,11 +96,18 @@ final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
     }
 
     @Override
-    public void renderPage(PageContext ctx, JsonNode section, JsonNode formData,
-                           SectionRenderHelper helper, int pageIdx, int rowsPerPage, int totalRows)
+    public void renderPage(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            SectionRenderHelper helper,
+            int pageIdx,
+            int rowsPerPage,
+            int totalRows)
             throws IOException {
         boolean repeatHeader =
-                section.has("continuationHeader") && section.get("continuationHeader").asBoolean(false);
+                section.has("continuationHeader")
+                        && section.get("continuationHeader").asBoolean(false);
 
         if (allowsSplit(section)) {
             renderSplitPage(ctx, section, formData, pageIdx, totalRows, repeatHeader);
@@ -111,15 +125,21 @@ final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
         float stride = region != null ? region[1] : Float.NaN;
         int endRow = Math.min(startRow + rowsPerPage, totalRows);
         for (int rowIdx = startRow; rowIdx < endRow; rowIdx++) {
-            SectionRenderHelper.renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage,
-                    ctx.variantCtx(), stride);
+            SectionRenderHelper.renderElementsForRow(
+                    ctx, section, formData, rowIdx, rowsPerPage, ctx.variantCtx(), stride);
         }
-        SectionRenderHelper.renderCarryOverElements(ctx, section, formData, startRow, endRow, totalRows);
+        SectionRenderHelper.renderCarryOverElements(
+                ctx, section, formData, startRow, endRow, totalRows);
     }
 
     /** allowed-between-rows: paginate by physical rows; units may straddle a page. */
-    private void renderSplitPage(PageContext ctx, JsonNode section, JsonNode formData,
-                                 int pageIdx, int records, boolean repeatHeader) {
+    private void renderSplitPage(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            int pageIdx,
+            int records,
+            boolean repeatHeader) {
         int unitSize = rowUnitSize(section);
         int cap = physicalRowsPerPage(section);
         int totalPhys = records * unitSize;
@@ -142,8 +162,8 @@ final class MultiRowTableSectionRenderer implements SectionPdfRenderer {
             int rowWithinUnit = phys % unitSize;
             if (rowWithinUnit >= blocks.size()) continue; // unit has fewer blocks than rowUnitSize
             float y = region[0] + physRowH * (phys - startPhys);
-            SectionRenderHelper.renderSplitRow(ctx, blocks.get(rowWithinUnit), formData,
-                    recordIdx, y, ctx.variantCtx());
+            SectionRenderHelper.renderSplitRow(
+                    ctx, blocks.get(rowWithinUnit), formData, recordIdx, y, ctx.variantCtx());
         }
     }
 }

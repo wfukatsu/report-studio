@@ -1,11 +1,10 @@
 package com.report.server;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ExpressionEngineTest {
 
@@ -69,11 +68,8 @@ class ExpressionEngineTest {
 
     @Test
     void calculate_sumFunction_acrossCollection() {
-        List<Map<String, Object>> items = List.of(
-                Map.of("amount", 100.0),
-                Map.of("amount", 200.0),
-                Map.of("amount", 300.0)
-        );
+        List<Map<String, Object>> items =
+                List.of(Map.of("amount", 100.0), Map.of("amount", 200.0), Map.of("amount", 300.0));
         Map<String, Object> ctx = Map.of("items", items);
         Object result = ExpressionEngine.calculate("sum(items, 'amount')", ctx);
         assertEquals(600.0, ((Number) result).doubleValue(), 0.01);
@@ -81,11 +77,8 @@ class ExpressionEngineTest {
 
     @Test
     void calculate_countFunction_works() {
-        List<Map<String, Object>> items = List.of(
-                Map.of("name", "A"),
-                Map.of("name", "B"),
-                Map.of("name", "C")
-        );
+        List<Map<String, Object>> items =
+                List.of(Map.of("name", "A"), Map.of("name", "B"), Map.of("name", "C"));
         Map<String, Object> ctx = Map.of("items", items);
         Object result = ExpressionEngine.calculate("count(items)", ctx);
         assertEquals(3, ((Number) result).intValue());
@@ -121,7 +114,8 @@ class ExpressionEngineTest {
     @Test
     void calculate_unknownVariable_strictModeThrows() {
         // strict=true surfaces typos/unknown variables as JexlException rather than silently null
-        assertThrows(Exception.class,
+        assertThrows(
+                Exception.class,
                 () -> ExpressionEngine.calculate("undeclaredVariable + 1", Map.of()));
     }
 
@@ -138,7 +132,8 @@ class ExpressionEngineTest {
 
     @Test
     void evaluate_nonBlankExpression_evaluatedByJexl() {
-        // Phase 5: non-blank expressions are now evaluated (not always returning false as in Phase 2 stub)
+        // Phase 5: non-blank expressions are now evaluated (not always returning false as in Phase
+        // 2 stub)
         Map<String, Object> ctx = Map.of("x", 5.0);
         assertTrue(ExpressionEngine.evaluate("x > 3", ctx, 0));
         assertFalse(ExpressionEngine.evaluate("x > 10", ctx, 0));
@@ -151,55 +146,55 @@ class ExpressionEngineTest {
         // JEXL sandbox (RESTRICTED) must block Class.forName for untrusted classes —
         // Class methods are not in the RESTRICTED allowlist even if the string literal's
         // getClass() succeeds, forName() must throw
-        assertThrows(Exception.class,
-                () -> ExpressionEngine.calculate(
-                        "new('java.lang.reflect.Constructor')", Map.of()));
+        assertThrows(
+                Exception.class,
+                () -> ExpressionEngine.calculate("new('java.lang.reflect.Constructor')", Map.of()));
     }
 
     @Test
     void calculate_systemExitExpression_isRejected() {
         // System.exit must not be callable from expressions
-        assertThrows(Exception.class,
-                () -> ExpressionEngine.calculate("System:exit(0)", Map.of()));
+        assertThrows(Exception.class, () -> ExpressionEngine.calculate("System:exit(0)", Map.of()));
     }
 
     @Test
     void calculate_runtimeGetRuntime_isRejected() {
         // java.lang.Runtime access must be blocked (sandbox only allows com.report.server.*)
-        assertThrows(Exception.class,
+        assertThrows(
+                Exception.class,
                 () -> ExpressionEngine.calculate("Runtime:getRuntime()", Map.of()));
     }
 
     @Test
     void calculate_processBuilderConstruction_isRejected() {
         // new() with untrusted java.lang classes must be blocked by the JEXL sandbox
-        assertThrows(Exception.class,
-                () -> ExpressionEngine.calculate("new('java.lang.ProcessBuilder', 'ls')", Map.of()));
+        assertThrows(
+                Exception.class,
+                () ->
+                        ExpressionEngine.calculate(
+                                "new('java.lang.ProcessBuilder', 'ls')", Map.of()));
     }
 
     @Test
     void calculate_fileConstruction_isRejected() {
         // java.io.File must not be constructable from expressions
-        assertThrows(Exception.class,
+        assertThrows(
+                Exception.class,
                 () -> ExpressionEngine.calculate("new('java.io.File', '/')", Map.of()));
     }
 
     @Test
     void calculate_threadSleepExpression_isRejected() {
         // Thread.sleep must not be callable (potential DoS vector)
-        assertThrows(Exception.class,
-                () -> ExpressionEngine.calculate("Thread:sleep(1000)", Map.of()));
+        assertThrows(
+                Exception.class, () -> ExpressionEngine.calculate("Thread:sleep(1000)", Map.of()));
     }
 
     // ── Phase 3 built-in functions ────────────────────────────────────────────
 
     @Test
     void calculate_avgFunction_returnsAverage() throws Exception {
-        var items = List.of(
-                Map.of("score", 10.0),
-                Map.of("score", 20.0),
-                Map.of("score", 30.0)
-        );
+        var items = List.of(Map.of("score", 10.0), Map.of("score", 20.0), Map.of("score", 30.0));
         Object result = ExpressionEngine.calculate("avg(items, 'score')", Map.of("items", items));
         assertEquals(20.0, ((Number) result).doubleValue(), 0.001);
     }
@@ -220,38 +215,38 @@ class ExpressionEngineTest {
 
     @Test
     void calculate_concatFunction_concatenatesStrings() throws Exception {
-        Object result = ExpressionEngine.calculate(
-                "concat(firstName, ' ', lastName)",
-                Map.of("firstName", "太郎", "lastName", "山田"));
+        Object result =
+                ExpressionEngine.calculate(
+                        "concat(firstName, ' ', lastName)",
+                        Map.of("firstName", "太郎", "lastName", "山田"));
         assertEquals("太郎 山田", result);
     }
 
     @Test
     void calculate_ifExprFunction_trueCondition() throws Exception {
-        Object result = ExpressionEngine.calculate(
-                "ifExpr(score >= 60, '合格', '不合格')",
-                Map.of("score", 80));
+        Object result =
+                ExpressionEngine.calculate("ifExpr(score >= 60, '合格', '不合格')", Map.of("score", 80));
         assertEquals("合格", result);
     }
 
     @Test
     void calculate_ifExprFunction_falseCondition() throws Exception {
-        Object result = ExpressionEngine.calculate(
-                "ifExpr(score >= 60, '合格', '不合格')",
-                Map.of("score", 40));
+        Object result =
+                ExpressionEngine.calculate("ifExpr(score >= 60, '合格', '不合格')", Map.of("score", 40));
         assertEquals("不合格", result);
     }
 
     @Test
     void calculate_formatNumberFunction_integer() throws Exception {
         Object result = ExpressionEngine.calculate("formatNumber(1234567, 'integer')", Map.of());
-        assertTrue(result.toString().contains("1,234,567") || result.toString().contains("1234567"));
+        assertTrue(
+                result.toString().contains("1,234,567") || result.toString().contains("1234567"));
     }
 
     @Test
     void calculate_formatDateFunction_formatsDate() throws Exception {
-        Object result = ExpressionEngine.calculate(
-                "formatDate('2026-04-12', 'yyyy年MM月dd日')", Map.of());
+        Object result =
+                ExpressionEngine.calculate("formatDate('2026-04-12', 'yyyy年MM月dd日')", Map.of());
         assertEquals("2026年04月12日", result);
     }
 
@@ -274,7 +269,9 @@ class ExpressionEngineTest {
 
     @Test
     void translate_IF_to_ifExpr() {
-        assertEquals("ifExpr(x > 0, 'yes', 'no')", ExpressionEngine.translateFormulaToJexl("IF(x > 0, 'yes', 'no')"));
+        assertEquals(
+                "ifExpr(x > 0, 'yes', 'no')",
+                ExpressionEngine.translateFormulaToJexl("IF(x > 0, 'yes', 'no')"));
     }
 
     @Test
@@ -284,17 +281,22 @@ class ExpressionEngineTest {
 
     @Test
     void translate_FORMAT_DATE_to_formatDate() {
-        assertEquals("formatDate(d, 'yyyy/MM/dd')", ExpressionEngine.translateFormulaToJexl("FORMAT_DATE(d, 'yyyy/MM/dd')"));
+        assertEquals(
+                "formatDate(d, 'yyyy/MM/dd')",
+                ExpressionEngine.translateFormulaToJexl("FORMAT_DATE(d, 'yyyy/MM/dd')"));
     }
 
     @Test
     void translate_nested_functions() {
-        assertEquals("round(sum(items), 2)", ExpressionEngine.translateFormulaToJexl("ROUND(SUM(items), 2)"));
+        assertEquals(
+                "round(sum(items), 2)",
+                ExpressionEngine.translateFormulaToJexl("ROUND(SUM(items), 2)"));
     }
 
     @Test
     void translate_passthrough_plain_arithmetic() {
-        assertEquals("price * qty + 100", ExpressionEngine.translateFormulaToJexl("price * qty + 100"));
+        assertEquals(
+                "price * qty + 100", ExpressionEngine.translateFormulaToJexl("price * qty + 100"));
     }
 
     @Test
@@ -311,11 +313,7 @@ class ExpressionEngineTest {
 
     @Test
     void calculate_formulaV1_SUM_evaluates() {
-        var items = List.of(
-                Map.of("price", 10.0),
-                Map.of("price", 20.0),
-                Map.of("price", 30.0)
-        );
+        var items = List.of(Map.of("price", 10.0), Map.of("price", 20.0), Map.of("price", 30.0));
         Object result = ExpressionEngine.calculate("SUM(items, 'price')", Map.of("items", items));
         assertEquals(60.0, ((Number) result).doubleValue(), 0.001);
     }
@@ -328,7 +326,8 @@ class ExpressionEngineTest {
 
     @Test
     void calculate_formulaV1_IF_evaluates() {
-        Object result = ExpressionEngine.calculate("IF(score >= 60, '合格', '不合格')", Map.of("score", 80));
+        Object result =
+                ExpressionEngine.calculate("IF(score >= 60, '合格', '不合格')", Map.of("score", 80));
         assertEquals("合格", result);
     }
 

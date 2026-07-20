@@ -1,17 +1,15 @@
 package com.report.server.auth;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.atomic.AtomicLong;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.Test;
+
 /**
- * Tests for {@link RateLimiter} — the fixed-window limiter guarding
- * login and row-write endpoints. Time is injected via the package-private
- * clock seam so window expiry is deterministic.
+ * Tests for {@link RateLimiter} — the fixed-window limiter guarding login and row-write endpoints.
+ * Time is injected via the package-private clock seam so window expiry is deterministic.
  */
 class RateLimiterTest {
 

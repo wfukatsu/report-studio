@@ -1,19 +1,17 @@
 package com.report.server;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Sandbox-boundary tests for the JEXL engine (issue #58).
  *
- * <p>Permissions are RESTRICTED + JexlFunctions only. The previous
- * {@code compose("com.report.server.*")} exposed every public member of the
- * application package to user expressions; these tests pin the tightened
- * boundary.
+ * <p>Permissions are RESTRICTED + JexlFunctions only. The previous {@code
+ * compose("com.report.server.*")} exposed every public member of the application package to user
+ * expressions; these tests pin the tightened boundary.
  */
 class ExpressionEngineSecurityTest {
 
@@ -22,24 +20,30 @@ class ExpressionEngineSecurityTest {
     @Test
     void applicationClasses_areNotInstantiable() {
         // Reachable before the fix: public record constructor in com.report.server.pdf
-        assertThrows(Exception.class, () -> ExpressionEngine.calculate(
-                "new('com.report.server.pdf.VariantContext', {:}, {:})", EMPTY),
+        assertThrows(
+                Exception.class,
+                () ->
+                        ExpressionEngine.calculate(
+                                "new('com.report.server.pdf.VariantContext', {:}, {:})", EMPTY),
                 "application classes must not be reachable from user expressions");
     }
 
     @Test
     void applicationStaticMethods_areNotCallable() {
-        assertThrows(Exception.class, () -> ExpressionEngine.calculate(
-                "new('com.report.server.TenantInfoProvider')", EMPTY));
+        assertThrows(
+                Exception.class,
+                () ->
+                        ExpressionEngine.calculate(
+                                "new('com.report.server.TenantInfoProvider')", EMPTY));
     }
 
     @Test
     void dangerousJdkClasses_remainBlocked() {
-        assertThrows(Exception.class, () -> ExpressionEngine.calculate(
-                "new('java.lang.ProcessBuilder', ['ls'])", EMPTY));
+        assertThrows(
+                Exception.class,
+                () -> ExpressionEngine.calculate("new('java.lang.ProcessBuilder', ['ls'])", EMPTY));
         // Denied methods on Class resolve to null (blocked without throwing)
-        assertNull(ExpressionEngine.calculate(
-                "''.class.forName('java.lang.Runtime')", EMPTY));
+        assertNull(ExpressionEngine.calculate("''.class.forName('java.lang.Runtime')", EMPTY));
     }
 
     @Test
@@ -67,7 +71,8 @@ class ExpressionEngineSecurityTest {
     void deeplyNestedExpression_isRejectedBeforeEvaluation() {
         StringBuilder e = new StringBuilder("1");
         for (int i = 0; i < 40; i++) e.insert(0, "(").append(")");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ExpressionEngine.calculate(e.toString(), EMPTY));
     }
 

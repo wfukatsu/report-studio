@@ -1,20 +1,19 @@
 package com.report.server.pdf;
 
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.io.IOException;
-import java.util.Map;
-
 /**
- * Mutable rendering context that tracks the current page and content stream.
- * Manages page breaks and shared resources (fonts, images) across pages.
+ * Mutable rendering context that tracks the current page and content stream. Manages page breaks
+ * and shared resources (fonts, images) across pages.
  *
- * <p>A PDPageContentStream is bound to exactly one page. This class handles
- * closing the old stream before opening a new one for the next page.
+ * <p>A PDPageContentStream is bound to exactly one page. This class handles closing the old stream
+ * before opening a new one for the next page.
  */
 public final class PageContext implements AutoCloseable {
 
@@ -25,10 +24,10 @@ public final class PageContext implements AutoCloseable {
 
     private PDPageContentStream cs;
     private PDRectangle currentPageSize;
-    private int pageIndex = -1;      // global physical page index (for page numbers)
-    private int totalPages = 1;      // global physical page count
+    private int pageIndex = -1; // global physical page index (for page numbers)
+    private int totalPages = 1; // global physical page count
     private int localPageIndex = -1; // index within the current designed page's flow
-    private int localPageCount = 1;  // physical pages of the current designed page
+    private int localPageCount = 1; // physical pages of the current designed page
     private java.time.LocalDate printDate = java.time.LocalDate.now();
     private com.fasterxml.jackson.databind.JsonNode tenant;
     private float[] clipMarginsMm; // {top, right, bottom, left} — null = no clipping
@@ -37,8 +36,11 @@ public final class PageContext implements AutoCloseable {
         this(doc, pageSize, fontCache, VariantContext.empty());
     }
 
-    public PageContext(PDDocument doc, PDRectangle pageSize, Map<String, PDFont> fontCache,
-                       VariantContext variantCtx) {
+    public PageContext(
+            PDDocument doc,
+            PDRectangle pageSize,
+            Map<String, PDFont> fontCache,
+            VariantContext variantCtx) {
         this.doc = doc;
         this.pageSize = pageSize;
         this.currentPageSize = pageSize;
@@ -52,9 +54,9 @@ public final class PageContext implements AutoCloseable {
     }
 
     /**
-     * Start a new page at an explicit size (issue #52 — V2 designed pages each
-     * carry their own dimensions). Closes the previous content stream if open.
-     * {@link #pageHeight()} reflects the current page for coordinate flipping.
+     * Start a new page at an explicit size (issue #52 — V2 designed pages each carry their own
+     * dimensions). Closes the previous content stream if open. {@link #pageHeight()} reflects the
+     * current page for coordinate flipping.
      */
     public void newPage(PDRectangle size) throws IOException {
         if (cs != null) {
@@ -69,9 +71,9 @@ public final class PageContext implements AutoCloseable {
     }
 
     /**
-     * Enable content clipping to the page margins (issue #55 — opt-in via
-     * {@code pageSetup.clipToMargins}). The clip rectangle is re-applied on
-     * every subsequent page using that page's own size.
+     * Enable content clipping to the page margins (issue #55 — opt-in via {@code
+     * pageSetup.clipToMargins}). The clip rectangle is re-applied on every subsequent page using
+     * that page's own size.
      *
      * @param marginsMm {top, right, bottom, left} in mm, or null to disable
      */
@@ -82,8 +84,8 @@ public final class PageContext implements AutoCloseable {
     private void applyMarginClip(PDRectangle size) throws IOException {
         if (clipMarginsMm == null) return;
         final float mmToPt = PdfUnits.MM_TO_PT;
-        float x = clipMarginsMm[3] * mmToPt;                                    // left
-        float y = clipMarginsMm[2] * mmToPt;                                    // bottom
+        float x = clipMarginsMm[3] * mmToPt; // left
+        float y = clipMarginsMm[2] * mmToPt; // bottom
         float w = size.getWidth() - (clipMarginsMm[1] + clipMarginsMm[3]) * mmToPt;
         float h = size.getHeight() - (clipMarginsMm[0] + clipMarginsMm[2]) * mmToPt;
         if (w <= 0 || h <= 0) return; // degenerate margins — skip rather than blank the page
@@ -97,11 +99,10 @@ public final class PageContext implements AutoCloseable {
     }
 
     /**
-     * Set the local page position within the current designed page's flow
-     * (issue #52). {@code pageScope} first/last is evaluated against this, so a
-     * "last" section renders on the last physical page of its own designed
-     * page, not the last page of the whole document. The V1 path sets these
-     * equal to the global index/count, preserving prior behavior.
+     * Set the local page position within the current designed page's flow (issue #52). {@code
+     * pageScope} first/last is evaluated against this, so a "last" section renders on the last
+     * physical page of its own designed page, not the last page of the whole document. The V1 path
+     * sets these equal to the global index/count, preserving prior behavior.
      */
     public void setLocalPage(int localIndex, int localCount) {
         this.localPageIndex = localIndex;
@@ -128,15 +129,41 @@ public final class PageContext implements AutoCloseable {
 
     // ── Accessors ───────────────────────────────────────
 
-    public PDPageContentStream contentStream() { return cs; }
-    public PDDocument document() { return doc; }
-    public Map<String, PDFont> fontCache() { return fontCache; }
-    public VariantContext variantCtx() { return variantCtx; }
-    public float pageHeight() { return currentPageSize.getHeight(); }
-    public int pageIndex() { return pageIndex; }
-    public int totalPages() { return totalPages; }
-    public java.time.LocalDate printDate() { return printDate; }
-    public com.fasterxml.jackson.databind.JsonNode tenant() { return tenant; }
+    public PDPageContentStream contentStream() {
+        return cs;
+    }
+
+    public PDDocument document() {
+        return doc;
+    }
+
+    public Map<String, PDFont> fontCache() {
+        return fontCache;
+    }
+
+    public VariantContext variantCtx() {
+        return variantCtx;
+    }
+
+    public float pageHeight() {
+        return currentPageSize.getHeight();
+    }
+
+    public int pageIndex() {
+        return pageIndex;
+    }
+
+    public int totalPages() {
+        return totalPages;
+    }
+
+    public java.time.LocalDate printDate() {
+        return printDate;
+    }
+
+    public com.fasterxml.jackson.databind.JsonNode tenant() {
+        return tenant;
+    }
 
     @Override
     public void close() throws IOException {

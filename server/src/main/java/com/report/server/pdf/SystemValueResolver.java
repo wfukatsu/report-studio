@@ -3,17 +3,17 @@ package com.report.server.pdf;
 import java.time.LocalDate;
 
 /**
- * Formats the auto-field values — page numbers and print dates — that are
- * only known at render time (issue #54).
+ * Formats the auto-field values — page numbers and print dates — that are only known at render time
+ * (issue #54).
  *
  * <p>Ports the frontend formatters exactly:
+ *
  * <ul>
- *   <li>{@code src/elements/pageNumber/format.ts} — the format string IS the
- *       template ({@code {{page}}} / {@code {{pages}}} placeholders);
- *       {@code "custom"} switches to {@code customFormat}</li>
- *   <li>{@code src/elements/currentDate/format.ts} — note this dialect
- *       zero-pads month/day (2026年07月16日), unlike CalculationFormat's
- *       date formats, and supports a day-of-week token</li>
+ *   <li>{@code src/elements/pageNumber/format.ts} — the format string IS the template ({@code
+ *       {{page}}} / {@code {{pages}}} placeholders); {@code "custom"} switches to {@code
+ *       customFormat}
+ *   <li>{@code src/elements/currentDate/format.ts} — note this dialect zero-pads month/day
+ *       (2026年07月16日), unlike CalculationFormat's date formats, and supports a day-of-week token
  * </ul>
  */
 public final class SystemValueResolver {
@@ -24,11 +24,13 @@ public final class SystemValueResolver {
 
     /** Mirror of formatPageNumber: the format string is the template. */
     public static String formatPageNumber(String format, String customFormat, int page, int pages) {
-        String template = "custom".equals(format)
-                ? (customFormat != null && !customFormat.isEmpty() ? customFormat : "{{page}}")
-                : (format == null || format.isEmpty() ? "{{page}}" : format);
-        return template
-                .replace("{{page}}", String.valueOf(page))
+        String template =
+                "custom".equals(format)
+                        ? (customFormat != null && !customFormat.isEmpty()
+                                ? customFormat
+                                : "{{page}}")
+                        : (format == null || format.isEmpty() ? "{{page}}" : format);
+        return template.replace("{{page}}", String.valueOf(page))
                 .replace("{{pages}}", String.valueOf(pages));
     }
 
@@ -50,13 +52,13 @@ public final class SystemValueResolver {
                 Wareki w = toWareki(d);
                 yield "%s%d.%02d.%02d".formatted(w.abbr(), w.year(), m, day);
             }
-            case "yyyy年MM月dd日 (ddd)" ->
-                    "%d年%02d月%02d日 (%s)".formatted(y, m, day, dayName(d));
+            case "yyyy年MM月dd日 (ddd)" -> "%d年%02d月%02d日 (%s)".formatted(y, m, day, dayName(d));
             case "custom" -> {
-                String pattern = customFormat != null && !customFormat.isEmpty()
-                        ? customFormat : "yyyy/MM/dd";
-                yield pattern
-                        .replace("yyyy", String.valueOf(y))
+                String pattern =
+                        customFormat != null && !customFormat.isEmpty()
+                                ? customFormat
+                                : "yyyy/MM/dd";
+                yield pattern.replace("yyyy", String.valueOf(y))
                         .replace("MM", "%02d".formatted(m))
                         .replace("ddd", dayName(d))
                         .replace("dd", "%02d".formatted(day));
@@ -75,11 +77,11 @@ public final class SystemValueResolver {
     private static Wareki toWareki(LocalDate d) {
         record Era(String name, String abbr, LocalDate start) {}
         Era[] eras = {
-                new Era("令和", "R", LocalDate.of(2019, 5, 1)),
-                new Era("平成", "H", LocalDate.of(1989, 1, 8)),
-                new Era("昭和", "S", LocalDate.of(1926, 12, 25)),
-                new Era("大正", "T", LocalDate.of(1912, 7, 30)),
-                new Era("明治", "M", LocalDate.of(1868, 1, 25)),
+            new Era("令和", "R", LocalDate.of(2019, 5, 1)),
+            new Era("平成", "H", LocalDate.of(1989, 1, 8)),
+            new Era("昭和", "S", LocalDate.of(1926, 12, 25)),
+            new Era("大正", "T", LocalDate.of(1912, 7, 30)),
+            new Era("明治", "M", LocalDate.of(1868, 1, 25)),
         };
         for (Era era : eras) {
             if (!d.isBefore(era.start())) {

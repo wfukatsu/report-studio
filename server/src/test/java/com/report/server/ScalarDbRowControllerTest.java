@@ -1,5 +1,18 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.Principal;
@@ -18,34 +31,18 @@ import com.scalar.db.io.DataType;
 import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.ServiceUnavailableResponse;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 /**
- * Unit tests for {@link ScalarDbRowController} — insert/update/delete row
- * paths, auth/rate-limit gating, protected-namespace rejection, key
- * validation and transaction failure mapping.
+ * Unit tests for {@link ScalarDbRowController} — insert/update/delete row paths, auth/rate-limit
+ * gating, protected-namespace rejection, key validation and transaction failure mapping.
  *
- * <p>Uses the hand-rolled Mockito {@link Context} pattern from
- * {@link ScalarDbTableControllerTest} / {@link ScalarDbCatalogControllerTest}.
+ * <p>Uses the hand-rolled Mockito {@link Context} pattern from {@link ScalarDbTableControllerTest}
+ * / {@link ScalarDbCatalogControllerTest}.
  */
 class ScalarDbRowControllerTest {
 
@@ -86,24 +83,26 @@ class ScalarDbRowControllerTest {
 
     /** app.items: id TEXT (partition key), name TEXT, qty INT. */
     private void stubSimpleTable() throws Exception {
-        TableMetadata meta = TableMetadata.newBuilder()
-                .addColumn("id", DataType.TEXT)
-                .addColumn("name", DataType.TEXT)
-                .addColumn("qty", DataType.INT)
-                .addPartitionKey("id")
-                .build();
+        TableMetadata meta =
+                TableMetadata.newBuilder()
+                        .addColumn("id", DataType.TEXT)
+                        .addColumn("name", DataType.TEXT)
+                        .addColumn("qty", DataType.INT)
+                        .addPartitionKey("id")
+                        .build();
         when(admin.getTableMetadata("app", "items")).thenReturn(meta);
     }
 
     /** app.items: id TEXT (partition key), seq BIGINT (clustering key), name TEXT. */
     private void stubClusteredTable() throws Exception {
-        TableMetadata meta = TableMetadata.newBuilder()
-                .addColumn("id", DataType.TEXT)
-                .addColumn("seq", DataType.BIGINT)
-                .addColumn("name", DataType.TEXT)
-                .addPartitionKey("id")
-                .addClusteringKey("seq")
-                .build();
+        TableMetadata meta =
+                TableMetadata.newBuilder()
+                        .addColumn("id", DataType.TEXT)
+                        .addColumn("seq", DataType.BIGINT)
+                        .addColumn("name", DataType.TEXT)
+                        .addPartitionKey("id")
+                        .addClusteringKey("seq")
+                        .build();
         when(admin.getTableMetadata("app", "items")).thenReturn(meta);
     }
 

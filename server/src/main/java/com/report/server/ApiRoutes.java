@@ -2,26 +2,27 @@ package com.report.server;
 
 import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 /**
  * Registers all API routes and middleware on the given Javalin instance.
  *
  * <p>Middleware order (applied to all /api/* paths):
+ *
  * <ol>
- *   <li>Global exception handler</li>
- *   <li>Security response headers (after-filter)</li>
- *   <li>CSRF Origin verification (before-filter, state-changing methods only)</li>
- *   <li>Authentication resolution (before-filter)</li>
+ *   <li>Global exception handler
+ *   <li>Security response headers (after-filter)
+ *   <li>CSRF Origin verification (before-filter, state-changing methods only)
+ *   <li>Authentication resolution (before-filter)
  * </ol>
  */
 public final class ApiRoutes {
 
     private static final Logger log = LoggerFactory.getLogger(ApiRoutes.class);
     private static final int SERVER_PORT = 8080;
+
     /** Allowed cross-origin for CORS/CSRF; null means dev-only (localhost:5173). */
     private static final String ALLOWED_ORIGIN = System.getenv("ALLOWED_ORIGIN");
 
@@ -42,62 +43,76 @@ public final class ApiRoutes {
 
     private static void registerMiddleware(Javalin app, AppWiring w) {
         // Global exception handler — returns JSON error body without stack traces
-        app.exception(Exception.class, (e, ctx) -> {
-            if (e instanceof io.javalin.http.HttpResponseException hre) {
-                ctx.status(hre.getStatus());
-                ctx.json(Map.of("error", hre.getMessage()));
-                return;
-            }
-            log.error("Unhandled exception [{} {}]", ctx.method(), ctx.path(), e);
-            ctx.status(500);
-            ctx.json(Map.of("error", "Internal server error"));
-        });
+        app.exception(
+                Exception.class,
+                (e, ctx) -> {
+                    if (e instanceof io.javalin.http.HttpResponseException hre) {
+                        ctx.status(hre.getStatus());
+                        ctx.json(Map.of("error", hre.getMessage()));
+                        return;
+                    }
+                    log.error("Unhandled exception [{} {}]", ctx.method(), ctx.path(), e);
+                    ctx.status(500);
+                    ctx.json(Map.of("error", "Internal server error"));
+                });
 
         // Security response headers
-        app.after(ctx -> {
-            ctx.header("X-Content-Type-Options", "nosniff");
-            ctx.header("X-Frame-Options", "DENY");
-            ctx.header("Referrer-Policy", "no-referrer");
-            // img-src includes data: to allow inline SVG placeholder thumbnails in CSS
-            ctx.header("Content-Security-Policy",
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-                "img-src 'self' data:; connect-src 'self'");
-            // No-cache for file downloads
-            String contentType = ctx.res().getContentType();
-            if (contentType != null && (contentType.contains("application/pdf")
-                    || contentType.contains("application/zip"))) {
-                ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
-                ctx.header("Pragma", "no-cache");
-            }
-        });
+        app.after(
+                ctx -> {
+                    ctx.header("X-Content-Type-Options", "nosniff");
+                    ctx.header("X-Frame-Options", "DENY");
+                    ctx.header("Referrer-Policy", "no-referrer");
+                    // img-src includes data: to allow inline SVG placeholder thumbnails in CSS
+                    ctx.header(
+                            "Content-Security-Policy",
+                            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                                    + "img-src 'self' data:; connect-src 'self'");
+                    // No-cache for file downloads
+                    String contentType = ctx.res().getContentType();
+                    if (contentType != null
+                            && (contentType.contains("application/pdf")
+                                    || contentType.contains("application/zip"))) {
+                        ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
+                        ctx.header("Pragma", "no-cache");
+                    }
+                });
 
         // CSRF protection: verify Origin (or Referer) on state-changing requests
-        app.before("/api/*", ctx -> {
-            String reason = csrfRejectReason(ctx.method().name(), ctx.path(),
-                    ctx.header("Origin"), ctx.header("Referer"), ctx.header("Authorization"));
-            if (reason != null) throw new io.javalin.http.ForbiddenResponse(reason);
-        });
+        app.before(
+                "/api/*",
+                ctx -> {
+                    String reason =
+                            csrfRejectReason(
+                                    ctx.method().name(),
+                                    ctx.path(),
+                                    ctx.header("Origin"),
+                                    ctx.header("Referer"),
+                                    ctx.header("Authorization"));
+                    if (reason != null) throw new io.javalin.http.ForbiddenResponse(reason);
+                });
 
         // Auth before-filter: resolve principal and enforce authentication
-        app.before("/api/*", ctx -> {
-            String path = ctx.path();
-            if (path.startsWith("/api/v1/public/")
-                    || path.startsWith("/api/v1/auth/")
-                    || path.equals("/api/v1/health")
-                    || path.equals("/api/v2/health")) {
-                ctx.attribute("principal", com.report.server.auth.Principal.ANONYMOUS);
-                return;
-            }
-            var principal = w.authCtrl.resolveFromRequest(ctx);
-            if (principal.isAnonymous()) {
-                // Fall back to Bearer PAT auth for CLI / CI clients (#195)
-                principal = w.apiTokenCtrl.resolveFromBearer(ctx);
-            }
-            ctx.attribute("principal", principal);
-            if (principal.isAnonymous()) {
-                throw new io.javalin.http.UnauthorizedResponse("Authentication required");
-            }
-        });
+        app.before(
+                "/api/*",
+                ctx -> {
+                    String path = ctx.path();
+                    if (path.startsWith("/api/v1/public/")
+                            || path.startsWith("/api/v1/auth/")
+                            || path.equals("/api/v1/health")
+                            || path.equals("/api/v2/health")) {
+                        ctx.attribute("principal", com.report.server.auth.Principal.ANONYMOUS);
+                        return;
+                    }
+                    var principal = w.authCtrl.resolveFromRequest(ctx);
+                    if (principal.isAnonymous()) {
+                        // Fall back to Bearer PAT auth for CLI / CI clients (#195)
+                        principal = w.apiTokenCtrl.resolveFromBearer(ctx);
+                    }
+                    ctx.attribute("principal", principal);
+                    if (principal.isAnonymous()) {
+                        throw new io.javalin.http.UnauthorizedResponse("Authentication required");
+                    }
+                });
 
         // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
         // Runs after auth filter so principal is already resolved
@@ -105,42 +120,43 @@ public final class ApiRoutes {
     }
 
     /**
-     * Registers the admin-role before-filter on /api/v1/admin/*.
-     * Package-private so AdminRoleFilterWiringTest can exercise the real
-     * registration (path pattern + handler) over HTTP — the controllers
-     * behind these routes perform no role check of their own.
+     * Registers the admin-role before-filter on /api/v1/admin/*. Package-private so
+     * AdminRoleFilterWiringTest can exercise the real registration (path pattern + handler) over
+     * HTTP — the controllers behind these routes perform no role check of their own.
      */
     static void registerAdminRoleFilter(Javalin app) {
         app.before("/api/v1/admin/*", ApiRoutes::requireAdminRole);
     }
 
     /**
-     * CSRF decision for one request. Returns {@code null} to allow, or a human-readable reason
-     * to reject with 403. Pure and package-private so it can be unit-tested directly (issue #201).
+     * CSRF decision for one request. Returns {@code null} to allow, or a human-readable reason to
+     * reject with 403. Pure and package-private so it can be unit-tested directly (issue #201).
      *
-     * <p>For cookie-authenticated, state-changing requests the browser-supplied {@code Origin}
-     * (or, when absent, the origin parsed from {@code Referer}) must be present and match an
-     * allowed origin. Previously a <b>missing</b> Origin was allowed, so an attacker page that
-     * suppressed the header slipped past the check — the exact gap CSRF protection must not have.
+     * <p>For cookie-authenticated, state-changing requests the browser-supplied {@code Origin} (or,
+     * when absent, the origin parsed from {@code Referer}) must be present and match an allowed
+     * origin. Previously a <b>missing</b> Origin was allowed, so an attacker page that suppressed
+     * the header slipped past the check — the exact gap CSRF protection must not have.
      *
      * <p>Two carve-outs keep legitimate non-browser callers working:
+     *
      * <ul>
-     *   <li><b>Bearer/PAT</b> requests are not cookie-authenticated, so they carry no CSRF risk
-     *       and are exempt regardless of Origin.</li>
+     *   <li><b>Bearer/PAT</b> requests are not cookie-authenticated, so they carry no CSRF risk and
+     *       are exempt regardless of Origin.
      *   <li><b>{@code /api/v1/auth/*} and {@code /api/v1/public/*}</b> may be called by non-browser
      *       clients (CLI password login, external public-form submission) that legitimately omit
      *       Origin/Referer; a missing header is tolerated there, but a present-but-foreign origin
-     *       is still rejected.</li>
+     *       is still rejected.
      * </ul>
      */
-    static String csrfRejectReason(String method, String path, String origin, String referer,
-                                   String authorization) {
+    static String csrfRejectReason(
+            String method, String path, String origin, String referer, String authorization) {
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) return null;
         if (authorization != null && authorization.startsWith("Bearer ")) return null;
 
         String candidate = (origin != null && !origin.isBlank()) ? origin : originOf(referer);
-        boolean exemptPath = path != null
-                && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/"));
+        boolean exemptPath =
+                path != null
+                        && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/"));
 
         if (candidate == null || candidate.isBlank()) {
             return exemptPath ? null : "Missing Origin/Referer on state-changing request";
@@ -148,7 +164,9 @@ public final class ApiRoutes {
         return isAllowedOrigin(candidate) ? null : "Cross-origin request rejected";
     }
 
-    /** True if the origin is this server, the configured ALLOWED_ORIGIN, or a local Vite dev port. */
+    /**
+     * True if the origin is this server, the configured ALLOWED_ORIGIN, or a local Vite dev port.
+     */
     private static boolean isAllowedOrigin(String origin) {
         if (origin.equals("http://localhost:" + SERVER_PORT)) return true;
         if (ALLOWED_ORIGIN != null && origin.equals(ALLOWED_ORIGIN)) return true;
@@ -158,7 +176,9 @@ public final class ApiRoutes {
         return false;
     }
 
-    /** Extract the {@code scheme://host[:port]} origin from a full URL (e.g. a Referer), or null. */
+    /**
+     * Extract the {@code scheme://host[:port]} origin from a full URL (e.g. a Referer), or null.
+     */
     private static String originOf(String url) {
         if (url == null || url.isBlank()) return null;
         try {
@@ -175,10 +195,9 @@ public final class ApiRoutes {
     }
 
     /**
-     * Rejects the request with 403 unless the resolved principal has the
-     * "admin" role. Single source of truth for the admin-role predicate —
-     * used by the /api/v1/admin/* before-filter and by controllers that
-     * guard individual admin-only endpoints (e.g. TenantController.put).
+     * Rejects the request with 403 unless the resolved principal has the "admin" role. Single
+     * source of truth for the admin-role predicate — used by the /api/v1/admin/* before-filter and
+     * by controllers that guard individual admin-only endpoints (e.g. TenantController.put).
      */
     static void requireAdminRole(io.javalin.http.Context ctx) {
         com.report.server.auth.Principal principal = ctx.attribute("principal");
@@ -203,18 +222,18 @@ public final class ApiRoutes {
 
     private static void registerAdminRoutes(Javalin app, AppWiring w) {
         // User management (admin only)
-        app.get("/api/v1/admin/users",          w.adminUserCtrl::list);
-        app.post("/api/v1/admin/users",         w.adminUserCtrl::create);
-        app.put("/api/v1/admin/users/{id}",     w.adminUserCtrl::update);
-        app.delete("/api/v1/admin/users/{id}",  w.adminUserCtrl::delete);
+        app.get("/api/v1/admin/users", w.adminUserCtrl::list);
+        app.post("/api/v1/admin/users", w.adminUserCtrl::create);
+        app.put("/api/v1/admin/users/{id}", w.adminUserCtrl::update);
+        app.delete("/api/v1/admin/users/{id}", w.adminUserCtrl::delete);
         // Server config (admin only)
-        app.get("/api/v1/admin/server-config",        w.adminServerCtrl::getConfig);
-        app.put("/api/v1/admin/server-config",        w.adminServerCtrl::putConfig);
-        app.post("/api/v1/admin/server-config/test",  w.adminServerCtrl::testConfig);
-        app.post("/api/v1/admin/server/restart",      w.adminServerCtrl::restart);
+        app.get("/api/v1/admin/server-config", w.adminServerCtrl::getConfig);
+        app.put("/api/v1/admin/server-config", w.adminServerCtrl::putConfig);
+        app.post("/api/v1/admin/server-config/test", w.adminServerCtrl::testConfig);
+        app.post("/api/v1/admin/server/restart", w.adminServerCtrl::restart);
         // Observability (admin only) — detailed health + process metrics.
         // Public liveness stays on /api/v1/health and /api/v2/health.
-        app.get("/api/v1/admin/health",  w.healthCtrl::detailed);
+        app.get("/api/v1/admin/health", w.healthCtrl::detailed);
         app.get("/api/v1/admin/metrics", w.healthCtrl::metrics);
     }
 
@@ -266,7 +285,8 @@ public final class ApiRoutes {
         app.get("/api/v2/templates/{id}/responses/export", w.responseExportCtrl::export);
         app.get("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::get);
         app.delete("/api/v2/templates/{id}/responses/{rid}", w.formResponseCtrl::delete);
-        app.patch("/api/v2/templates/{id}/responses/{rid}/status", w.formResponseCtrl::updateStatus);
+        app.patch(
+                "/api/v2/templates/{id}/responses/{rid}/status", w.formResponseCtrl::updateStatus);
         app.get("/api/v2/templates/{id}/responses/{rid}/audit", w.formResponseCtrl::getAudit);
         app.get("/api/v2/templates/{id}/responses/{rid}/pdf", w.responsePdfCtrl::generatePdf);
 
@@ -348,14 +368,21 @@ public final class ApiRoutes {
 
     private static void registerV2SchemaRoutes(Javalin app, AppWiring w) {
         // New canonical paths
-        app.get("/api/v2/schemas",          w.schemaLibraryCtrl::list);
-        app.post("/api/v2/schemas",         w.schemaLibraryCtrl::create);
-        app.get("/api/v2/schemas/{id}",     w.schemaLibraryCtrl::get);
-        app.put("/api/v2/schemas/{id}",     w.schemaLibraryCtrl::put);
-        app.delete("/api/v2/schemas/{id}",  w.schemaLibraryCtrl::delete);
+        app.get("/api/v2/schemas", w.schemaLibraryCtrl::list);
+        app.post("/api/v2/schemas", w.schemaLibraryCtrl::create);
+        app.get("/api/v2/schemas/{id}", w.schemaLibraryCtrl::get);
+        app.put("/api/v2/schemas/{id}", w.schemaLibraryCtrl::put);
+        app.delete("/api/v2/schemas/{id}", w.schemaLibraryCtrl::delete);
 
         // Backward-compat redirects for old /api/v2/schema-library paths
-        app.get("/api/v2/schema-library",      ctx -> ctx.redirect("/api/v2/schemas", HttpStatus.MOVED_PERMANENTLY));
-        app.get("/api/v2/schema-library/{id}", ctx -> ctx.redirect("/api/v2/schemas/" + ctx.pathParam("id"), HttpStatus.MOVED_PERMANENTLY));
+        app.get(
+                "/api/v2/schema-library",
+                ctx -> ctx.redirect("/api/v2/schemas", HttpStatus.MOVED_PERMANENTLY));
+        app.get(
+                "/api/v2/schema-library/{id}",
+                ctx ->
+                        ctx.redirect(
+                                "/api/v2/schemas/" + ctx.pathParam("id"),
+                                HttpStatus.MOVED_PERMANENTLY));
     }
 }

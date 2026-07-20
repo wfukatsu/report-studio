@@ -7,14 +7,12 @@ import com.report.server.ConditionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
  * Shared element-rendering utilities for SectionPdfRenderer implementations.
  *
- * <p>Holds the ElementPdfRendererRegistry instance and coordinate conversion
- * constants. Section renderers call these methods rather than duplicating the
- * mm→pt conversion and registry lookup logic.
+ * <p>Holds the ElementPdfRendererRegistry instance and coordinate conversion constants. Section
+ * renderers call these methods rather than duplicating the mm→pt conversion and registry lookup
+ * logic.
  */
 public final class SectionRenderHelper {
 
@@ -27,17 +25,28 @@ public final class SectionRenderHelper {
     private static final ElementPdfRendererRegistry ELEMENT_REGISTRY =
             ElementPdfRendererRegistry.createDefault();
 
-    private static final ElementPdfRenderer ELEMENT_FALLBACK = new ElementPdfRenderer() {
-        @Override public String kind() { return "__fallback__"; }
-        @Override public void render(
-                org.apache.pdfbox.pdmodel.PDPageContentStream cs, JsonNode el,
-                float x, float y, float w, float h, float pageHeight,
-                org.apache.pdfbox.pdmodel.PDDocument doc,
-                java.util.Map<String, org.apache.pdfbox.pdmodel.font.PDFont> fontCache)
-                throws java.io.IOException {
-            PdfUtils.renderBorder(cs, x, y, w, h);
-        }
-    };
+    private static final ElementPdfRenderer ELEMENT_FALLBACK =
+            new ElementPdfRenderer() {
+                @Override
+                public String kind() {
+                    return "__fallback__";
+                }
+
+                @Override
+                public void render(
+                        org.apache.pdfbox.pdmodel.PDPageContentStream cs,
+                        JsonNode el,
+                        float x,
+                        float y,
+                        float w,
+                        float h,
+                        float pageHeight,
+                        org.apache.pdfbox.pdmodel.PDDocument doc,
+                        java.util.Map<String, org.apache.pdfbox.pdmodel.font.PDFont> fontCache)
+                        throws java.io.IOException {
+                    PdfUtils.renderBorder(cs, x, y, w, h);
+                }
+            };
 
     private SectionRenderHelper() {}
 
@@ -45,42 +54,45 @@ public final class SectionRenderHelper {
 
     /**
      * Render all elements in a section, applying conditional display and scalar formData bindings.
-     * Row-indexed bindings (bindingRef containing "[]") are not resolved here — use
-     * {@link #renderElementsForRow} for detail/multi-row sections.
+     * Row-indexed bindings (bindingRef containing "[]") are not resolved here — use {@link
+     * #renderElementsForRow} for detail/multi-row sections.
      *
-     * <p>If the section has {@code layoutMode: "relative"}, element Y positions are
-     * pre-computed via {@link RelativeLayoutResolver} before rendering.
+     * <p>If the section has {@code layoutMode: "relative"}, element Y positions are pre-computed
+     * via {@link RelativeLayoutResolver} before rendering.
      */
     public static void renderElements(PageContext ctx, JsonNode section, JsonNode formData) {
         renderElements(ctx, section, formData, VariantContext.empty());
     }
 
-    /**
-     * Render all elements with variant-aware visibility and masking.
-     */
-    public static void renderElements(PageContext ctx, JsonNode section, JsonNode formData,
-                                      VariantContext variantCtx) {
+    /** Render all elements with variant-aware visibility and masking. */
+    public static void renderElements(
+            PageContext ctx, JsonNode section, JsonNode formData, VariantContext variantCtx) {
         renderElementsPaged(ctx, section, formData, variantCtx, 0);
     }
 
     /**
      * Render elements on a specific section-local physical page (issue #55).
      *
-     * <p>For relative sections, pushdown chains that flow beyond the section's
-     * bottom edge are auto-paginated ({@link RelativeLayoutResolver#paginate}):
-     * an element assigned to continuation page {@code k > 0} renders only when
-     * {@code pageIdx == k}, at its wrapped Y. Elements that fit the first page
-     * keep today's behavior (drawn on every physical page the section renders
+     * <p>For relative sections, pushdown chains that flow beyond the section's bottom edge are
+     * auto-paginated ({@link RelativeLayoutResolver#paginate}): an element assigned to continuation
+     * page {@code k > 0} renders only when {@code pageIdx == k}, at its wrapped Y. Elements that
+     * fit the first page keep today's behavior (drawn on every physical page the section renders
      * on, subject to {@code pageScope}).
      */
-    public static void renderElementsPaged(PageContext ctx, JsonNode section, JsonNode formData,
-                                           VariantContext variantCtx, int pageIdx) {
+    public static void renderElementsPaged(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            VariantContext variantCtx,
+            int pageIdx) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
 
         boolean isRelative = "relative".equals(PdfUtils.textOf(section, "layoutMode", "absolute"));
-        RelativeLayoutResolver.PagedLayout layout = isRelative
-                ? pushdownLayout(section) : RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
+        RelativeLayoutResolver.PagedLayout layout =
+                isRelative
+                        ? pushdownLayout(section)
+                        : RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
 
         for (JsonNode el : elements) {
             String elId = PdfUtils.textOf(el, "id", "");
@@ -89,9 +101,10 @@ public final class SectionRenderHelper {
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
             int elementPage = layout.pageOf().getOrDefault(elId, 0);
             if (elementPage > 0 && elementPage != pageIdx) continue;
-            JsonNode withLayout = isRelative
-                    ? RelativeLayoutResolver.applyEffectiveY(el, layout.pagedY()) : el;
-            JsonNode resolved = formData != null ? resolveFormData(withLayout, formData) : withLayout;
+            JsonNode withLayout =
+                    isRelative ? RelativeLayoutResolver.applyEffectiveY(el, layout.pagedY()) : el;
+            JsonNode resolved =
+                    formData != null ? resolveFormData(withLayout, formData) : withLayout;
             // Band elements draw a per-page record window (issue #64)
             resolved = applyBandWindow(resolved, pageIdx);
             if (resolved == null) continue;
@@ -101,8 +114,8 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Pushdown page-overflow layout of a relative section (issue #55).
-     * Absolute sections and sections without a usable height are single-page.
+     * Pushdown page-overflow layout of a relative section (issue #55). Absolute sections and
+     * sections without a usable height are single-page.
      */
     public static RelativeLayoutResolver.PagedLayout pushdownLayout(JsonNode section) {
         if (!"relative".equals(PdfUtils.textOf(section, "layoutMode", "absolute"))) {
@@ -119,20 +132,19 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Render all non-row-block elements (header/footer of a table section).
-     * Used to render column headers and section-level decorations.
+     * Render all non-row-block elements (header/footer of a table section). Used to render column
+     * headers and section-level decorations.
      */
     public static void renderNonRowElements(PageContext ctx, JsonNode section, JsonNode formData) {
         renderNonRowElements(ctx, section, formData, VariantContext.empty());
     }
 
     /**
-     * Render all non-row-block elements with variant-aware masking.
-     * Carry-over elements are skipped — the section renderer draws them
-     * with page-aware sums (issue #55).
+     * Render all non-row-block elements with variant-aware masking. Carry-over elements are skipped
+     * — the section renderer draws them with page-aware sums (issue #55).
      */
-    public static void renderNonRowElements(PageContext ctx, JsonNode section, JsonNode formData,
-                                            VariantContext variantCtx) {
+    public static void renderNonRowElements(
+            PageContext ctx, JsonNode section, JsonNode formData, VariantContext variantCtx) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
@@ -152,35 +164,43 @@ public final class SectionRenderHelper {
     /**
      * Render a single row_block element with data from a specific logical row index.
      *
-     * @param ctx        page context
-     * @param el         row_block element JSON node
-     * @param formData   form data
-     * @param rowIdx     zero-based logical row index
+     * @param ctx page context
+     * @param el row_block element JSON node
+     * @param formData form data
+     * @param rowIdx zero-based logical row index
      * @param rowsPerPage rows per page (used for Y-offset calculation within page)
      */
-    public static void renderElementsForRow(PageContext ctx, JsonNode section,
-                                            JsonNode formData, int rowIdx, int rowsPerPage) {
+    public static void renderElementsForRow(
+            PageContext ctx, JsonNode section, JsonNode formData, int rowIdx, int rowsPerPage) {
         renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage, VariantContext.empty());
     }
 
     /**
-     * Render row_block elements with variant-aware visibility and masking.
-     * The row stride defaults to each element's own frame height.
+     * Render row_block elements with variant-aware visibility and masking. The row stride defaults
+     * to each element's own frame height.
      */
-    public static void renderElementsForRow(PageContext ctx, JsonNode section,
-                                            JsonNode formData, int rowIdx, int rowsPerPage,
-                                            VariantContext variantCtx) {
+    public static void renderElementsForRow(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            int rowIdx,
+            int rowsPerPage,
+            VariantContext variantCtx) {
         renderElementsForRow(ctx, section, formData, rowIdx, rowsPerPage, variantCtx, Float.NaN);
     }
 
     /**
-     * Render row_block elements with an explicit row-unit stride (mm).
-     * Multi-row units must advance by the whole unit's extent, not each
-     * element's own height (issue #55).
+     * Render row_block elements with an explicit row-unit stride (mm). Multi-row units must advance
+     * by the whole unit's extent, not each element's own height (issue #55).
      */
-    public static void renderElementsForRow(PageContext ctx, JsonNode section,
-                                            JsonNode formData, int rowIdx, int rowsPerPage,
-                                            VariantContext variantCtx, float strideMm) {
+    public static void renderElementsForRow(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            int rowIdx,
+            int rowsPerPage,
+            VariantContext variantCtx,
+            float strideMm) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
@@ -196,12 +216,17 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Render row_block elements for data row {@code rowIdx} placed at page slot
-     * {@code rowOnPage} (issue #55 — used by the group-aware page plan).
+     * Render row_block elements for data row {@code rowIdx} placed at page slot {@code rowOnPage}
+     * (issue #55 — used by the group-aware page plan).
      */
-    public static void renderRowAtPosition(PageContext ctx, JsonNode section, JsonNode formData,
-                                           int rowIdx, int rowOnPage, VariantContext variantCtx,
-                                           float strideMm) {
+    public static void renderRowAtPosition(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            int rowIdx,
+            int rowOnPage,
+            VariantContext variantCtx,
+            float strideMm) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
@@ -247,22 +272,33 @@ public final class SectionRenderHelper {
             float y = ctx.pageHeight() - (yMm * MM_TO_PT);
             float w = Math.min(wMm * MM_TO_PT, MAX_DIMENSION_PT);
             float h = Math.min(hMm * MM_TO_PT, MAX_DIMENSION_PT);
-            ELEMENT_REGISTRY.get(kind)
+            ELEMENT_REGISTRY
+                    .get(kind)
                     .orElse(ELEMENT_FALLBACK)
-                    .render(ctx.contentStream(), el, x, y, w, h,
-                            ctx.pageHeight(), ctx.document(), ctx.fontCache());
+                    .render(
+                            ctx.contentStream(),
+                            el,
+                            x,
+                            y,
+                            w,
+                            h,
+                            ctx.pageHeight(),
+                            ctx.document(),
+                            ctx.fontCache());
         } catch (Exception e) {
-            log.warn("Failed to render element {}: {}",
-                    PdfUtils.textOf(el, "id", "?"), e.getMessage());
+            log.warn(
+                    "Failed to render element {}: {}",
+                    PdfUtils.textOf(el, "id", "?"),
+                    e.getMessage());
         }
     }
 
     // ── Form data resolution ────────────────────────────────────────────
 
     /**
-     * Resolve scalar form data bindings into element props.
-     * Master fields: "group.field" → _formData["group.field"]
-     * Detail fields (first row only): "group[].field" → _formData.group[0].field
+     * Resolve scalar form data bindings into element props. Master fields: "group.field" →
+     * _formData["group.field"] Detail fields (first row only): "group[].field" →
+     * _formData.group[0].field
      */
     public static JsonNode resolveFormData(JsonNode el, JsonNode formData) {
         // Array-bound elements copy a whole _formData array into props.data:
@@ -315,8 +351,10 @@ public final class SectionRenderHelper {
         if (arr == null || !arr.isArray()) return el;
         try {
             ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode props = copy.has("props") && copy.get("props").isObject()
-                    ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+            ObjectNode props =
+                    copy.has("props") && copy.get("props").isObject()
+                            ? (ObjectNode) copy.get("props")
+                            : MAPPER.createObjectNode();
             props.set("data", arr.deepCopy());
             copy.set("props", props);
             return copy;
@@ -326,31 +364,32 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Create a copy of a row element with data from the given logical row index.
-     * The element Y position is offset by {@code (rowIdx % rowsPerPage) * rowHeight}.
+     * Create a copy of a row element with data from the given logical row index. The element Y
+     * position is offset by {@code (rowIdx % rowsPerPage) * rowHeight}.
      */
-    public static JsonNode resolveDetailRow(JsonNode el, JsonNode formData,
-                                            int rowIdx, int rowsPerPage) {
+    public static JsonNode resolveDetailRow(
+            JsonNode el, JsonNode formData, int rowIdx, int rowsPerPage) {
         return resolveDetailRow(el, formData, rowIdx, rowsPerPage, Float.NaN);
     }
 
     /**
-     * Stride-aware variant: the Y offset per logical row is {@code strideMm}
-     * (the row unit's full extent); NaN falls back to the element's own height.
+     * Stride-aware variant: the Y offset per logical row is {@code strideMm} (the row unit's full
+     * extent); NaN falls back to the element's own height.
      */
-    public static JsonNode resolveDetailRow(JsonNode el, JsonNode formData,
-                                            int rowIdx, int rowsPerPage, float strideMm) {
-        return resolveDetailRowAt(el, formData, rowIdx, rowIdx % Math.max(rowsPerPage, 1), strideMm);
+    public static JsonNode resolveDetailRow(
+            JsonNode el, JsonNode formData, int rowIdx, int rowsPerPage, float strideMm) {
+        return resolveDetailRowAt(
+                el, formData, rowIdx, rowIdx % Math.max(rowsPerPage, 1), strideMm);
     }
 
     /**
-     * Position-explicit variant (issue #55): the value comes from data row
-     * {@code rowIdx}, but the Y offset uses {@code rowOnPage} — the row's slot
-     * on the current physical page. This lets a group's first page start at
-     * slot 0 even when its data index does not align to a rowsPerPage boundary.
+     * Position-explicit variant (issue #55): the value comes from data row {@code rowIdx}, but the
+     * Y offset uses {@code rowOnPage} — the row's slot on the current physical page. This lets a
+     * group's first page start at slot 0 even when its data index does not align to a rowsPerPage
+     * boundary.
      */
-    public static JsonNode resolveDetailRowAt(JsonNode el, JsonNode formData,
-                                              int rowIdx, int rowOnPage, float strideMm) {
+    public static JsonNode resolveDetailRowAt(
+            JsonNode el, JsonNode formData, int rowIdx, int rowOnPage, float strideMm) {
         JsonNode bindingRefNode = el.get("bindingRef");
         if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
         String ref = bindingRefNode.asText();
@@ -371,15 +410,18 @@ public final class SectionRenderHelper {
             JsonNode frame = copy.get("frame");
             if (frame != null && frame.isObject()) {
                 ObjectNode frameCopy = (ObjectNode) frame;
-                float stride = Float.isNaN(strideMm) || strideMm <= 0
-                        ? PdfUtils.floatOf(frame, "height") : strideMm;
+                float stride =
+                        Float.isNaN(strideMm) || strideMm <= 0
+                                ? PdfUtils.floatOf(frame, "height")
+                                : strideMm;
                 float baseY = PdfUtils.floatOf(frame, "y");
                 frameCopy.put("y", baseY + stride * rowOnPage);
             }
             // Set the resolved value into props
-            ObjectNode props = copy.has("props") && copy.get("props").isObject()
-                    ? (ObjectNode) copy.get("props")
-                    : MAPPER.createObjectNode();
+            ObjectNode props =
+                    copy.has("props") && copy.get("props").isObject()
+                            ? (ObjectNode) copy.get("props")
+                            : MAPPER.createObjectNode();
             String kind = resolveKind(el);
             String propKey = propKeyFor(kind);
             applyValue(props, propKey, value);
@@ -401,21 +443,27 @@ public final class SectionRenderHelper {
                 if ("row_block".equals(resolveKind(el))) blocks.add(el);
             }
         }
-        blocks.sort(java.util.Comparator.comparingDouble(el -> {
-            JsonNode f = el.get("frame");
-            return f != null ? PdfUtils.floatOf(f, "y") : 0f;
-        }));
+        blocks.sort(
+                java.util.Comparator.comparingDouble(
+                        el -> {
+                            JsonNode f = el.get("frame");
+                            return f != null ? PdfUtils.floatOf(f, "y") : 0f;
+                        }));
         return blocks;
     }
 
     /**
-     * Render one physical row of a splittable multi_row_table (issue #55):
-     * the row_block {@code block} carries data from record {@code recordIdx} and
-     * is drawn at absolute {@code yMm} — so a logical unit's rows can straddle a
-     * page boundary ({@code splitPolicy: allowed-between-rows}).
+     * Render one physical row of a splittable multi_row_table (issue #55): the row_block {@code
+     * block} carries data from record {@code recordIdx} and is drawn at absolute {@code yMm} — so a
+     * logical unit's rows can straddle a page boundary ({@code splitPolicy: allowed-between-rows}).
      */
-    public static void renderSplitRow(PageContext ctx, JsonNode block, JsonNode formData,
-                                      int recordIdx, float yMm, VariantContext variantCtx) {
+    public static void renderSplitRow(
+            PageContext ctx,
+            JsonNode block,
+            JsonNode formData,
+            int recordIdx,
+            float yMm,
+            VariantContext variantCtx) {
         if (!ConditionEvaluator.shouldRender(block, formData, recordIdx)) return;
         String elId = PdfUtils.textOf(block, "id", "");
         if (!variantCtx.isVisible(elId, PdfUtils.boolOf(block, "visible", true))) return;
@@ -424,7 +472,8 @@ public final class SectionRenderHelper {
     }
 
     /** Copy a row_block with record {@code recordIdx}'s value and an absolute frame.y. */
-    private static JsonNode resolveRowValueAtY(JsonNode el, JsonNode formData, int recordIdx, float yMm) {
+    private static JsonNode resolveRowValueAtY(
+            JsonNode el, JsonNode formData, int recordIdx, float yMm) {
         JsonNode bindingRefNode = el.get("bindingRef");
         if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
         String ref = bindingRefNode.asText();
@@ -439,8 +488,10 @@ public final class SectionRenderHelper {
             ObjectNode copy = (ObjectNode) el.deepCopy();
             JsonNode frame = copy.get("frame");
             if (frame != null && frame.isObject()) ((ObjectNode) frame).put("y", yMm);
-            ObjectNode props = copy.has("props") && copy.get("props").isObject()
-                    ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+            ObjectNode props =
+                    copy.has("props") && copy.get("props").isObject()
+                            ? (ObjectNode) copy.get("props")
+                            : MAPPER.createObjectNode();
             applyValue(props, propKeyFor(resolveKind(el)), value);
             copy.set("props", props);
             return copy;
@@ -455,9 +506,9 @@ public final class SectionRenderHelper {
     static final int MAX_BAND_PAGES = 200;
 
     /**
-     * Records per page a repeatingBand / repeatingList element can hold, or 0
-     * when the element cannot flow (no usable geometry; list layouts other
-     * than vertical keep the historical clip behavior).
+     * Records per page a repeatingBand / repeatingList element can hold, or 0 when the element
+     * cannot flow (no usable geometry; list layouts other than vertical keep the historical clip
+     * behavior).
      */
     public static int bandCapacity(JsonNode el) {
         String kind = resolveKind(el);
@@ -482,9 +533,8 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Section-local pages needed to flow every band element's bound records
-     * (issue #64). Records dropped by {@code maxItems} are an explicit
-     * designer choice and do not flow.
+     * Section-local pages needed to flow every band element's bound records (issue #64). Records
+     * dropped by {@code maxItems} are an explicit designer choice and do not flow.
      */
     public static int bandFlowPages(JsonNode section, JsonNode formData) {
         if (formData == null) return 1;
@@ -508,18 +558,17 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Combined non-paginating-section overflow page count: pushdown layout
-     * (issue #55) and band flow (issue #64).
+     * Combined non-paginating-section overflow page count: pushdown layout (issue #55) and band
+     * flow (issue #64).
      */
     public static int sectionOverflowPages(JsonNode section, JsonNode formData) {
         return Math.max(pushdownPages(section), bandFlowPages(section, formData));
     }
 
     /**
-     * Window a band element's resolved records to the given section-local page
-     * (issue #64): page k draws records {@code [k*capacity, (k+1)*capacity)}
-     * of the maxItems-capped set. Returns the element unchanged when it cannot
-     * flow, or null when the element has no records on this page.
+     * Window a band element's resolved records to the given section-local page (issue #64): page k
+     * draws records {@code [k*capacity, (k+1)*capacity)} of the maxItems-capped set. Returns the
+     * element unchanged when it cannot flow, or null when the element has no records on this page.
      */
     private static JsonNode applyBandWindow(JsonNode el, int pageIdx) {
         String kind = resolveKind(el);
@@ -563,10 +612,10 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Resolve a scalar data reference: exact key first (legacy flat projection
-     * data), then dot-notation traversal into nested objects — mirroring the
-     * frontend {@code resolveField} (e.g. {@code "document.documentNo"} into
-     * {@code {document: {documentNo: ...}}}). Returns null when unresolved.
+     * Resolve a scalar data reference: exact key first (legacy flat projection data), then
+     * dot-notation traversal into nested objects — mirroring the frontend {@code resolveField}
+     * (e.g. {@code "document.documentNo"} into {@code {document: {documentNo: ...}}}). Returns null
+     * when unresolved.
      */
     public static JsonNode resolveDataPath(JsonNode data, String ref) {
         if (data == null || ref == null || ref.isEmpty()) return null;
@@ -599,14 +648,13 @@ public final class SectionRenderHelper {
     /**
      * Build the per-physical-page row plan for a paginating section.
      *
-     * <p>Without {@code groupBy}: contiguous {@code rowsPerPage} slices.
-     * With {@code groupBy}: rows are partitioned by that field's value (in row
-     * order), each group is paginated independently, and **groups never share a
-     * page** — i.e. every group starts on a fresh physical page. The first page
-     * of each group is flagged so a group header can be drawn.
+     * <p>Without {@code groupBy}: contiguous {@code rowsPerPage} slices. With {@code groupBy}: rows
+     * are partitioned by that field's value (in row order), each group is paginated independently,
+     * and **groups never share a page** — i.e. every group starts on a fresh physical page. The
+     * first page of each group is flagged so a group header can be drawn.
      */
-    public static java.util.List<PageSlice> buildPagePlan(JsonNode section, JsonNode formData,
-                                                          int rowsPerPage) {
+    public static java.util.List<PageSlice> buildPagePlan(
+            JsonNode section, JsonNode formData, int rowsPerPage) {
         int total = 0;
         String groupName = findRowGroupName(section);
         JsonNode rows = (formData != null && groupName != null) ? formData.get(groupName) : null;
@@ -618,7 +666,10 @@ public final class SectionRenderHelper {
 
         if (groupBy.isEmpty() || rows == null) {
             // Flat pagination
-            if (total == 0) { plan.add(new PageSlice(0, 0, true, null)); return plan; }
+            if (total == 0) {
+                plan.add(new PageSlice(0, 0, true, null));
+                return plan;
+            }
             for (int start = 0; start < total; start += rpp) {
                 plan.add(new PageSlice(start, Math.min(start + rpp, total), start == 0, null));
             }
@@ -630,7 +681,8 @@ public final class SectionRenderHelper {
         while (groupStart < total) {
             String gv = valueAt(rows, groupStart, groupBy);
             int groupEnd = groupStart;
-            while (groupEnd < total && java.util.Objects.equals(valueAt(rows, groupEnd, groupBy), gv)) {
+            while (groupEnd < total
+                    && java.util.Objects.equals(valueAt(rows, groupEnd, groupBy), gv)) {
                 groupEnd++;
             }
             for (int s = groupStart; s < groupEnd; s += rpp) {
@@ -647,9 +699,9 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Render a group-header element ({@code kind: "group_header"}) with the
-     * current group's value, on the first page of each group (issue #55).
-     * Fields: {@code prefix}/{@code suffix} text, {@code style}.
+     * Render a group-header element ({@code kind: "group_header"}) with the current group's value,
+     * on the first page of each group (issue #55). Fields: {@code prefix}/{@code suffix} text,
+     * {@code style}.
      */
     public static void renderGroupHeader(PageContext ctx, JsonNode section, PageSlice slice) {
         if (!slice.groupFirstPage() || slice.groupValue() == null) return;
@@ -657,11 +709,14 @@ public final class SectionRenderHelper {
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
             if (!"group_header".equals(resolveKind(el))) continue;
-            String text = PdfUtils.elementTextOf(el, "prefix", "")
-                    + slice.groupValue()
-                    + PdfUtils.elementTextOf(el, "suffix", "");
-            renderElement(ctx, withResolvedProp(el,
-                    com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
+            String text =
+                    PdfUtils.elementTextOf(el, "prefix", "")
+                            + slice.groupValue()
+                            + PdfUtils.elementTextOf(el, "suffix", "");
+            renderElement(
+                    ctx,
+                    withResolvedProp(
+                            el, com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
         }
     }
 
@@ -671,19 +726,25 @@ public final class SectionRenderHelper {
      * Render carry-over elements of a paginating section (帳票の繰越小計).
      *
      * <p>Two special element kinds, positioned by their own frames:
+     *
      * <ul>
-     *   <li>{@code carryover_footer} — drawn on every page that has more rows
-     *       coming (「次頁へ続く」); value = sum of rows [0, endRow)</li>
-     *   <li>{@code carryover_header} — drawn on continuation pages
-     *       (「前頁より繰越」); value = sum of rows [0, startRow)</li>
+     *   <li>{@code carryover_footer} — drawn on every page that has more rows coming (「次頁へ続く」);
+     *       value = sum of rows [0, endRow)
+     *   <li>{@code carryover_header} — drawn on continuation pages (「前頁より繰越」); value = sum of rows
+     *       [0, startRow)
      * </ul>
      *
-     * <p>Element fields: {@code carryField} (field name inside the row group,
-     * required; values must be numeric), optional {@code prefix} / {@code suffix}
-     * text, optional {@code format} (CalculationFormat), {@code style} (TextStyle).
+     * <p>Element fields: {@code carryField} (field name inside the row group, required; values must
+     * be numeric), optional {@code prefix} / {@code suffix} text, optional {@code format}
+     * (CalculationFormat), {@code style} (TextStyle).
      */
-    public static void renderCarryOverElements(PageContext ctx, JsonNode section, JsonNode formData,
-                                               int startRow, int endRow, int totalRows) {
+    public static void renderCarryOverElements(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            int startRow,
+            int endRow,
+            int totalRows) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray() || formData == null) return;
         String group = findRowGroupName(section);
@@ -697,7 +758,7 @@ public final class SectionRenderHelper {
             boolean header = "carryover_header".equals(kind);
             if (!footer && !header) continue;
             if (footer && endRow >= totalRows) continue; // final page — nothing continues
-            if (header && startRow == 0) continue;       // first page — nothing carried
+            if (header && startRow == 0) continue; // first page — nothing carried
 
             String field = PdfUtils.elementTextOf(el, "carryField", "");
             if (field.isEmpty()) continue;
@@ -718,14 +779,19 @@ public final class SectionRenderHelper {
                 }
             }
 
-            JsonNode numNode = (sum == Math.rint(sum) && Math.abs(sum) < 1e15)
-                    ? com.fasterxml.jackson.databind.node.LongNode.valueOf((long) sum)
-                    : com.fasterxml.jackson.databind.node.DoubleNode.valueOf(sum);
-            String text = PdfUtils.elementTextOf(el, "prefix", "")
-                    + com.report.server.ValueFormatter.applyFormat(numNode, el.get("format"))
-                    + PdfUtils.elementTextOf(el, "suffix", "");
-            renderElement(ctx, withResolvedProp(el,
-                    com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
+            JsonNode numNode =
+                    (sum == Math.rint(sum) && Math.abs(sum) < 1e15)
+                            ? com.fasterxml.jackson.databind.node.LongNode.valueOf((long) sum)
+                            : com.fasterxml.jackson.databind.node.DoubleNode.valueOf(sum);
+            String text =
+                    PdfUtils.elementTextOf(el, "prefix", "")
+                            + com.report.server.ValueFormatter.applyFormat(
+                                    numNode, el.get("format"))
+                            + PdfUtils.elementTextOf(el, "suffix", "");
+            renderElement(
+                    ctx,
+                    withResolvedProp(
+                            el, com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
         }
     }
 
@@ -746,10 +812,9 @@ public final class SectionRenderHelper {
     // ── System values (issue #54) ───────────────────────────────────────
 
     /**
-     * Resolve render-time system values into the element's value prop:
-     * pageNumber / currentDate elements format themselves from the page
-     * context, and legacy {@code {pageNumber}} / {@code {totalPages}} /
-     * {@code {currentDate}} bindingRefs substitute their current value.
+     * Resolve render-time system values into the element's value prop: pageNumber / currentDate
+     * elements format themselves from the page context, and legacy {@code {pageNumber}} / {@code
+     * {totalPages}} / {@code {currentDate}} bindingRefs substitute their current value.
      */
     private static JsonNode resolveSystemValues(JsonNode el, PageContext ctx) {
         String kind = resolveKind(el);
@@ -758,24 +823,31 @@ public final class SectionRenderHelper {
         }
         String value = null;
         if ("pageNumber".equals(kind)) {
-            value = SystemValueResolver.formatPageNumber(
-                    PdfUtils.elementTextOf(el, "format", "{{page}}"),
-                    PdfUtils.elementTextOf(el, "customFormat", ""),
-                    ctx.pageIndex() + 1, ctx.totalPages());
+            value =
+                    SystemValueResolver.formatPageNumber(
+                            PdfUtils.elementTextOf(el, "format", "{{page}}"),
+                            PdfUtils.elementTextOf(el, "customFormat", ""),
+                            ctx.pageIndex() + 1,
+                            ctx.totalPages());
         } else if ("currentDate".equals(kind)) {
-            value = SystemValueResolver.formatCurrentDate(
-                    PdfUtils.elementTextOf(el, "format", ""),
-                    PdfUtils.elementTextOf(el, "customFormat", ""),
-                    ctx.printDate());
+            value =
+                    SystemValueResolver.formatCurrentDate(
+                            PdfUtils.elementTextOf(el, "format", ""),
+                            PdfUtils.elementTextOf(el, "customFormat", ""),
+                            ctx.printDate());
         } else {
             JsonNode ref = el.get("bindingRef");
             if (ref != null && ref.isTextual()) {
                 switch (ref.asText()) {
                     case "{pageNumber}" -> value = String.valueOf(ctx.pageIndex() + 1);
                     case "{totalPages}" -> value = String.valueOf(ctx.totalPages());
-                    case "{currentDate}" -> value = SystemValueResolver.formatCurrentDate(
-                            "yyyy/MM/dd", null, ctx.printDate());
-                    default -> { /* not a system variable */ }
+                    case "{currentDate}" ->
+                            value =
+                                    SystemValueResolver.formatCurrentDate(
+                                            "yyyy/MM/dd", null, ctx.printDate());
+                    default -> {
+                        /* not a system variable */
+                    }
                 }
             }
         }
@@ -784,22 +856,25 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Resolve V2 tenant* elements from the TenantInfo document (issue #54).
-     * Text elements fall back to the element's {@code fallback} when the
-     * tenant field is unset; tenantLogo is rewritten to an {@code image}
-     * element so ImagePdfRenderer handles the data-URI.
+     * Resolve V2 tenant* elements from the TenantInfo document (issue #54). Text elements fall back
+     * to the element's {@code fallback} when the tenant field is unset; tenantLogo is rewritten to
+     * an {@code image} element so ImagePdfRenderer handles the data-URI.
      */
     private static JsonNode resolveTenantElement(JsonNode el, String kind, JsonNode tenant) {
         if ("tenantLogo".equals(kind)) {
             String src = tenant != null ? PdfUtils.textOf(tenant, "logoBase64", "") : "";
-            if (src.isEmpty()) return el; // no logo — image renderer draws nothing useful; keep fallback box
+            if (src.isEmpty())
+                return el; // no logo — image renderer draws nothing useful; keep fallback box
             try {
                 ObjectNode copy = (ObjectNode) el.deepCopy();
                 copy.put("kind", "image");
-                ObjectNode props = copy.has("props") && copy.get("props").isObject()
-                        ? (ObjectNode) copy.get("props") : MAPPER.createObjectNode();
+                ObjectNode props =
+                        copy.has("props") && copy.get("props").isObject()
+                                ? (ObjectNode) copy.get("props")
+                                : MAPPER.createObjectNode();
                 props.put("src", src);
-                if (el.hasNonNull("objectFit")) props.put("objectFit", el.get("objectFit").asText());
+                if (el.hasNonNull("objectFit"))
+                    props.put("objectFit", el.get("objectFit").asText());
                 if (el.hasNonNull("opacity")) props.put("opacity", el.get("opacity").asDouble());
                 copy.set("props", props);
                 return copy;
@@ -808,22 +883,32 @@ public final class SectionRenderHelper {
             }
         }
 
-        String value = tenant == null ? "" : switch (kind) {
-            case "tenantCompanyName" -> PdfUtils.textOf(tenant, "companyName", "");
-            case "tenantAddress" -> {
-                boolean multiline = "multiLine".equals(PdfUtils.elementTextOf(el, "displayMode", "single"));
-                yield com.report.server.ValueFormatter.formatAddress(tenant, multiline);
-            }
-            case "tenantPhone" -> PdfUtils.textOf(tenant, "phone", "");
-            case "tenantRepresentative" -> PdfUtils.textOf(tenant, "representativeName", "");
-            case "tenantCustom" -> {
-                String fieldKey = PdfUtils.elementTextOf(el, "fieldKey", "");
-                JsonNode custom = tenant.get("custom");
-                yield custom != null && !fieldKey.isEmpty()
-                        ? PdfUtils.textOf(custom, fieldKey, "") : "";
-            }
-            default -> "";
-        };
+        String value =
+                tenant == null
+                        ? ""
+                        : switch (kind) {
+                            case "tenantCompanyName" -> PdfUtils.textOf(tenant, "companyName", "");
+                            case "tenantAddress" -> {
+                                boolean multiline =
+                                        "multiLine"
+                                                .equals(
+                                                        PdfUtils.elementTextOf(
+                                                                el, "displayMode", "single"));
+                                yield com.report.server.ValueFormatter.formatAddress(
+                                        tenant, multiline);
+                            }
+                            case "tenantPhone" -> PdfUtils.textOf(tenant, "phone", "");
+                            case "tenantRepresentative" ->
+                                    PdfUtils.textOf(tenant, "representativeName", "");
+                            case "tenantCustom" -> {
+                                String fieldKey = PdfUtils.elementTextOf(el, "fieldKey", "");
+                                JsonNode custom = tenant.get("custom");
+                                yield custom != null && !fieldKey.isEmpty()
+                                        ? PdfUtils.textOf(custom, fieldKey, "")
+                                        : "";
+                            }
+                            default -> "";
+                        };
         if (value.isEmpty()) {
             value = PdfUtils.elementTextOf(el, "fallback", "");
         }
@@ -833,11 +918,10 @@ public final class SectionRenderHelper {
     // ── Row-region geometry (issue #55) ─────────────────────────────────
 
     /**
-     * Compute the row-unit region of a paginating section from its row_block
-     * elements: {@code [startYmm, strideMm]} where startY is the topmost
-     * row_block frame Y and stride is the unit's full vertical extent
-     * (max(y+height) − min(y)). Returns null when the section has no
-     * row_block with usable geometry.
+     * Compute the row-unit region of a paginating section from its row_block elements: {@code
+     * [startYmm, strideMm]} where startY is the topmost row_block frame Y and stride is the unit's
+     * full vertical extent (max(y+height) − min(y)). Returns null when the section has no row_block
+     * with usable geometry.
      */
     public static float[] computeRowRegion(JsonNode section) {
         JsonNode elements = section.get("elements");
@@ -854,14 +938,13 @@ public final class SectionRenderHelper {
             maxBottom = Math.max(maxBottom, y + h);
         }
         if (minY == Float.MAX_VALUE || maxBottom <= minY) return null;
-        return new float[]{minY, maxBottom - minY};
+        return new float[] {minY, maxBottom - minY};
     }
 
     /**
-     * Height-derived row capacity: how many whole row units fit between the
-     * topmost row_block and the section's bottom edge ({@code section.y +
-     * section.height}). Returns -1 when the geometry is not computable, so
-     * callers can fall back to their legacy default.
+     * Height-derived row capacity: how many whole row units fit between the topmost row_block and
+     * the section's bottom edge ({@code section.y + section.height}). Returns -1 when the geometry
+     * is not computable, so callers can fall back to their legacy default.
      */
     public static int computeRowCapacity(JsonNode section) {
         float[] region = computeRowRegion(section);
@@ -879,9 +962,10 @@ public final class SectionRenderHelper {
     private static JsonNode withResolvedProp(JsonNode el, JsonNode value) {
         try {
             ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode props = copy.has("props") && copy.get("props").isObject()
-                    ? (ObjectNode) copy.get("props")
-                    : MAPPER.createObjectNode();
+            ObjectNode props =
+                    copy.has("props") && copy.get("props").isObject()
+                            ? (ObjectNode) copy.get("props")
+                            : MAPPER.createObjectNode();
             String kind = resolveKind(el);
             String propKey = propKeyFor(kind);
             applyValue(props, propKey, value);
@@ -907,22 +991,22 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Resolve the element's data-binding key. V1/V2 shared elements use
-     * {@code bindingRef}; some V2 types carry their own field:
-     * eraSelect ({@code dataSource}) and hanko ({@code binding}).
+     * Resolve the element's data-binding key. V1/V2 shared elements use {@code bindingRef}; some V2
+     * types carry their own field: eraSelect ({@code dataSource}) and hanko ({@code binding}).
      * Returns null when the element has no binding.
      */
     private static String resolveBindingRef(JsonNode el) {
         JsonNode bindingRefNode = el.get("bindingRef");
         if (bindingRefNode != null && bindingRefNode.isTextual()) return bindingRefNode.asText();
         String kind = resolveKind(el);
-        String v2Field = switch (kind) {
-            case "eraSelect" -> "dataSource";
-            case "hanko" -> "binding";
-            case "dataField" -> "fieldKey";
-            case "manualEntry" -> "furiganaDataSource";
-            default -> null;
-        };
+        String v2Field =
+                switch (kind) {
+                    case "eraSelect" -> "dataSource";
+                    case "hanko" -> "binding";
+                    case "dataField" -> "fieldKey";
+                    case "manualEntry" -> "furiganaDataSource";
+                    default -> null;
+                };
         if (v2Field == null) return null;
         JsonNode node = el.get(v2Field);
         return node != null && node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
@@ -944,16 +1028,19 @@ public final class SectionRenderHelper {
             // Integral values print without ".0" — BigDecimal calc results
             // (issue #57) and JSON doubles like 450.0 both become "450"
             double d = value.asDouble();
-            props.put(propKey, (d == Math.rint(d) && Math.abs(d) < 1e15)
-                    ? String.valueOf((long) d) : String.valueOf(d));
+            props.put(
+                    propKey,
+                    (d == Math.rint(d) && Math.abs(d) < 1e15)
+                            ? String.valueOf((long) d)
+                            : String.valueOf(d));
         } else if (value.isBoolean()) {
             props.put(propKey, value.asBoolean());
         }
     }
 
     /**
-     * Apply masking rules from a VariantContext to an element's text/value prop.
-     * Returns the original node if no masking rule applies.
+     * Apply masking rules from a VariantContext to an element's text/value prop. Returns the
+     * original node if no masking rule applies.
      */
     private static JsonNode applyMaskingToElement(JsonNode el, VariantContext variantCtx) {
         String elId = PdfUtils.textOf(el, "id", "");

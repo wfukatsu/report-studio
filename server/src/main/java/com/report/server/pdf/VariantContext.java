@@ -1,30 +1,26 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Holds the active output variant settings for a single PDF render pass.
  *
- * <p>A variant can override element visibility and apply masking rules to
- * element text/value props before rendering. Built from the {@code _variantId}
- * top-level key in the projection JSON, matched against the template's
- * {@code variants} array.
+ * <p>A variant can override element visibility and apply masking rules to element text/value props
+ * before rendering. Built from the {@code _variantId} top-level key in the projection JSON, matched
+ * against the template's {@code variants} array.
  */
 public record VariantContext(
-    Map<String, Boolean> visibilityOverrides,
-    Map<String, MaskingSpec> maskingRules
-) {
+        Map<String, Boolean> visibilityOverrides, Map<String, MaskingSpec> maskingRules) {
 
     /**
      * Masking specification for a single element.
      *
-     * @param type         "hidden" | "fullReplace" | "partial"
+     * @param type "hidden" | "fullReplace" | "partial"
      * @param replaceValue replacement string for fullReplace
-     * @param keepFirst    number of characters to keep at the start (partial)
-     * @param keepLast     number of characters to keep at the end (partial)
+     * @param keepFirst number of characters to keep at the start (partial)
+     * @param keepLast number of characters to keep at the end (partial)
      */
     public record MaskingSpec(String type, String replaceValue, int keepFirst, int keepLast) {}
 
@@ -34,15 +30,17 @@ public record VariantContext(
     }
 
     /**
-     * Build a VariantContext from a variant JsonNode (one entry in the
-     * {@code variants} array of a template).
+     * Build a VariantContext from a variant JsonNode (one entry in the {@code variants} array of a
+     * template).
      */
     public static VariantContext from(JsonNode variant) {
         Map<String, Boolean> vis = new HashMap<>();
         // V1 projection: visibilityOverrides { id: bool }.
         JsonNode overrides = variant.path("visibilityOverrides");
         if (overrides.isObject()) {
-            overrides.fields().forEachRemaining(e -> vis.put(e.getKey(), e.getValue().asBoolean(true)));
+            overrides
+                    .fields()
+                    .forEachRemaining(e -> vis.put(e.getKey(), e.getValue().asBoolean(true)));
         }
         // V2 ReportDefinition: hiddenElementIds [ id, ... ] → { id: false } (issue #52).
         JsonNode hidden = variant.path("hiddenElementIds");
@@ -63,8 +61,14 @@ public record VariantContext(
                 String type = rule.path("maskingType").asText(rule.path("type").asText("hidden"));
                 String replace = rule.path("replaceValue").asText("");
                 // partialSpec.keepFirst/keepLast (V1) || keepFirst/keepLast at rule level (V2)
-                int keepFirst = rule.path("partialSpec").path("keepFirst").asInt(rule.path("keepFirst").asInt(0));
-                int keepLast = rule.path("partialSpec").path("keepLast").asInt(rule.path("keepLast").asInt(0));
+                int keepFirst =
+                        rule.path("partialSpec")
+                                .path("keepFirst")
+                                .asInt(rule.path("keepFirst").asInt(0));
+                int keepLast =
+                        rule.path("partialSpec")
+                                .path("keepLast")
+                                .asInt(rule.path("keepLast").asInt(0));
                 masks.put(targetId, new MaskingSpec(type, replace, keepFirst, keepLast));
             }
         }
@@ -72,10 +76,10 @@ public record VariantContext(
     }
 
     /**
-     * Returns whether the element should be visible, considering any
-     * visibility override for this variant.
+     * Returns whether the element should be visible, considering any visibility override for this
+     * variant.
      *
-     * @param elementId   the element's id
+     * @param elementId the element's id
      * @param baseVisible the element's base visible flag
      */
     public boolean isVisible(String elementId, boolean baseVisible) {
@@ -86,7 +90,7 @@ public record VariantContext(
      * Apply masking to a resolved text/value string.
      *
      * @param elementId the element's id
-     * @param value     the resolved text/value (may be null)
+     * @param value the resolved text/value (may be null)
      * @return masked value, or original if no masking rule applies
      */
     public String applyMasking(String elementId, String value) {
@@ -101,11 +105,11 @@ public record VariantContext(
     }
 
     /**
-     * Apply partial masking: keep {@code keepFirst} chars at the start and
-     * {@code keepLast} chars at the end; replace the middle with asterisks.
+     * Apply partial masking: keep {@code keepFirst} chars at the start and {@code keepLast} chars
+     * at the end; replace the middle with asterisks.
      *
-     * <p>Both {@code keepFirst} and {@code keepLast} are clamped so that their
-     * sum never exceeds the string length (acceptance criterion #5).
+     * <p>Both {@code keepFirst} and {@code keepLast} are clamped so that their sum never exceeds
+     * the string length (acceptance criterion #5).
      */
     private static String applyPartial(String value, int keepFirst, int keepLast) {
         if (value == null) return "";

@@ -3,54 +3,55 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.Principal;
+import com.report.server.auth.RateLimiter;
 import com.scalar.db.api.Delete;
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
+import com.scalar.db.api.Get;
 import com.scalar.db.api.Put;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.exception.storage.ExecutionException;
-import com.scalar.db.api.Get;
 import com.scalar.db.exception.transaction.CommitConflictException;
 import com.scalar.db.exception.transaction.TransactionException;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
 import com.scalar.db.service.TransactionFactory;
-import com.report.server.auth.Principal;
-import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.ServiceUnavailableResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Row-level CRUD operations for ScalarDB tables.
  *
  * <ul>
- *   <li>POST   /api/v2/scalardb/tables/{ns}/{table}/rows — insert</li>
- *   <li>PUT    /api/v2/scalardb/tables/{ns}/{table}/rows — upsert (partial update)</li>
- *   <li>DELETE /api/v2/scalardb/tables/{ns}/{table}/rows — physical delete</li>
+ *   <li>POST /api/v2/scalardb/tables/{ns}/{table}/rows — insert
+ *   <li>PUT /api/v2/scalardb/tables/{ns}/{table}/rows — upsert (partial update)
+ *   <li>DELETE /api/v2/scalardb/tables/{ns}/{table}/rows — physical delete
  * </ul>
  *
- * <p>System namespaces ({@code report_studio}, {@code scalardb}, {@code coordinator})
- * are write-protected — requests targeting them receive 403.
+ * <p>System namespaces ({@code report_studio}, {@code scalardb}, {@code coordinator}) are
+ * write-protected — requests targeting them receive 403.
  *
  * <p><b>Missing-row semantics (intentional asymmetry):</b>
+ *
  * <ul>
- *   <li>{@code PUT} (update) reads before writing and returns <b>404</b> when the target
- *       row does not exist — an update is only meaningful against an existing row.</li>
- *   <li>{@code DELETE} is <b>idempotent</b>: it returns <b>204</b> whether or not the row
- *       existed. ScalarDB's {@code delete} does not require a prior read, and idempotent
- *       delete is standard REST semantics (repeating the call converges to the same state).</li>
+ *   <li>{@code PUT} (update) reads before writing and returns <b>404</b> when the target row does
+ *       not exist — an update is only meaningful against an existing row.
+ *   <li>{@code DELETE} is <b>idempotent</b>: it returns <b>204</b> whether or not the row existed.
+ *       ScalarDB's {@code delete} does not require a prior read, and idempotent delete is standard
+ *       REST semantics (repeating the call converges to the same state).
  * </ul>
+ *
  * This asymmetry is deliberate; callers must not infer prior existence from a 204.
  */
 public final class ScalarDbRowController {
@@ -70,13 +71,18 @@ public final class ScalarDbRowController {
     private static final long METADATA_CACHE_TTL_MS = 5 * 60 * 1000L; // 5 minutes
 
     private record CachedMeta(TableMetadata meta, long cachedAt) {}
+
     private final ConcurrentHashMap<String, CachedMeta> metadataCache = new ConcurrentHashMap<>();
 
-    public ScalarDbRowController(TransactionFactory factory, DistributedTransactionManager manager) {
+    public ScalarDbRowController(
+            TransactionFactory factory, DistributedTransactionManager manager) {
         this(factory, manager, new RateLimiter(60, 60_000L));
     }
 
-    ScalarDbRowController(TransactionFactory factory, DistributedTransactionManager manager, RateLimiter rateLimiter) {
+    ScalarDbRowController(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            RateLimiter rateLimiter) {
         this.factory = factory;
         this.manager = manager;
         this.rateLimiter = rateLimiter;
@@ -93,8 +99,8 @@ public final class ScalarDbRowController {
     }
 
     /**
-     * Shared insert/update logic. When {@code requireExists} is true (update),
-     * the row must already exist — otherwise 404 is returned.
+     * Shared insert/update logic. When {@code requireExists} is true (update), the row must already
+     * exist — otherwise 404 is returned.
      */
     private void doUpsert(Context ctx, String opName, int successStatus, boolean requireExists) {
         String correlationId = CorrelationId.generate();
@@ -103,7 +109,11 @@ public final class ScalarDbRowController {
 
         JsonNode values = rc.body.path("values");
         if (!values.isObject() || values.isEmpty()) {
-            ctx.status(400).json(errorResponse("Request must include a non-empty 'values' object", correlationId));
+            ctx.status(400)
+                    .json(
+                            errorResponse(
+                                    "Request must include a non-empty 'values' object",
+                                    correlationId));
             return;
         }
 
@@ -113,13 +123,15 @@ public final class ScalarDbRowController {
 
         for (String pk : partitionKeys) {
             if (values.path(pk).isMissingNode() || values.path(pk).isNull()) {
-                ctx.status(400).json(errorResponse("Missing required partition key", correlationId));
+                ctx.status(400)
+                        .json(errorResponse("Missing required partition key", correlationId));
                 return;
             }
         }
         for (String ck : clusteringKeys) {
             if (values.path(ck).isMissingNode() || values.path(ck).isNull()) {
-                ctx.status(400).json(errorResponse("Missing required clustering key", correlationId));
+                ctx.status(400)
+                        .json(errorResponse("Missing required clustering key", correlationId));
                 return;
             }
         }
@@ -129,17 +141,25 @@ public final class ScalarDbRowController {
             String col = fieldNames.next();
             if (!meta.getColumnNames().contains(col)) {
                 ctx.status(400).json(errorResponse("Invalid request", correlationId));
-                log.warn("{} rejected: unknown column '{}' in {}.{} correlationId={}",
-                    opName, col, rc.namespace, rc.table, correlationId);
+                log.warn(
+                        "{} rejected: unknown column '{}' in {}.{} correlationId={}",
+                        opName,
+                        col,
+                        rc.namespace,
+                        rc.table,
+                        correlationId);
                 return;
             }
         }
 
         Key partitionKey = buildKey(values, partitionKeys, meta);
-        Key clusteringKey = clusteringKeys.isEmpty() ? null : buildKey(values, clusteringKeys, meta);
+        Key clusteringKey =
+                clusteringKeys.isEmpty() ? null : buildKey(values, clusteringKeys, meta);
         Set<String> allKeys = new LinkedHashSet<>(partitionKeys);
         allKeys.addAll(clusteringKeys);
-        Put put = buildPutWithValues(rc.namespace, rc.table, partitionKey, clusteringKey, values, allKeys, meta);
+        Put put =
+                buildPutWithValues(
+                        rc.namespace, rc.table, partitionKey, clusteringKey, values, allKeys, meta);
 
         DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
@@ -148,14 +168,16 @@ public final class ScalarDbRowController {
 
             // For update: verify the row exists first
             if (requireExists) {
-                var getBuilder = Get.newBuilder()
-                    .namespace(rc.namespace)
-                    .table(rc.table)
-                    .partitionKey(partitionKey);
+                var getBuilder =
+                        Get.newBuilder()
+                                .namespace(rc.namespace)
+                                .table(rc.table)
+                                .partitionKey(partitionKey);
                 if (clusteringKey != null) getBuilder.clusteringKey(clusteringKey);
                 if (tx.get(getBuilder.build()).isEmpty()) {
                     tx.abort();
-                    AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "not_found", correlationId);
+                    AuditLog.op(
+                            opName, rc.userId, rc.namespace, rc.table, "not_found", correlationId);
                     ctx.status(404).json(errorResponse("Row not found", correlationId));
                     return;
                 }
@@ -179,7 +201,8 @@ public final class ScalarDbRowController {
         } catch (CommitConflictException e) {
             abortQuietly(tx);
             AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "conflict", correlationId);
-            ctx.status(409).json(errorResponse("Conflict: row was modified concurrently", correlationId));
+            ctx.status(409)
+                    .json(errorResponse("Conflict: row was modified concurrently", correlationId));
         } catch (TransactionException e) {
             abortQuietly(tx);
             AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "unreachable", correlationId);
@@ -187,7 +210,13 @@ public final class ScalarDbRowController {
         } catch (Exception e) {
             abortQuietly(tx);
             AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "error", correlationId);
-            log.error("{} failed ns={} table={} correlationId={}", opName, rc.namespace, rc.table, correlationId, e);
+            log.error(
+                    "{} failed ns={} table={} correlationId={}",
+                    opName,
+                    rc.namespace,
+                    rc.table,
+                    correlationId,
+                    e);
             throw new InternalServerErrorResponse();
         }
     }
@@ -195,8 +224,8 @@ public final class ScalarDbRowController {
     // ── DELETE — physical delete ────────────────────────────────────────────
 
     /**
-     * Idempotent delete: returns 204 regardless of whether the row existed
-     * (see class Javadoc for the deliberate update/delete asymmetry).
+     * Idempotent delete: returns 204 regardless of whether the row existed (see class Javadoc for
+     * the deliberate update/delete asymmetry).
      */
     public void deleteRow(Context ctx) {
         String correlationId = CorrelationId.generate();
@@ -205,7 +234,11 @@ public final class ScalarDbRowController {
 
         JsonNode keys = rc.body.path("keys");
         if (!keys.isObject() || keys.isEmpty()) {
-            ctx.status(400).json(errorResponse("Request must include a non-empty 'keys' object", correlationId));
+            ctx.status(400)
+                    .json(
+                            errorResponse(
+                                    "Request must include a non-empty 'keys' object",
+                                    correlationId));
             return;
         }
 
@@ -215,21 +248,24 @@ public final class ScalarDbRowController {
 
         for (String pk : partitionKeys) {
             if (keys.path(pk).isMissingNode() || keys.path(pk).isNull()) {
-                ctx.status(400).json(errorResponse("Missing required partition key", correlationId));
+                ctx.status(400)
+                        .json(errorResponse("Missing required partition key", correlationId));
                 return;
             }
         }
         for (String ck : clusteringKeys) {
             if (keys.path(ck).isMissingNode() || keys.path(ck).isNull()) {
-                ctx.status(400).json(errorResponse("Missing required clustering key", correlationId));
+                ctx.status(400)
+                        .json(errorResponse("Missing required clustering key", correlationId));
                 return;
             }
         }
 
-        var delBuilder = Delete.newBuilder()
-            .namespace(rc.namespace)
-            .table(rc.table)
-            .partitionKey(buildKey(keys, partitionKeys, meta));
+        var delBuilder =
+                Delete.newBuilder()
+                        .namespace(rc.namespace)
+                        .table(rc.table)
+                        .partitionKey(buildKey(keys, partitionKeys, meta));
 
         if (!clusteringKeys.isEmpty()) {
             delBuilder.clusteringKey(buildKey(keys, clusteringKeys, meta));
@@ -249,15 +285,22 @@ public final class ScalarDbRowController {
         } catch (CommitConflictException e) {
             abortQuietly(tx);
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "conflict", correlationId);
-            ctx.status(409).json(errorResponse("Conflict: row was modified concurrently", correlationId));
+            ctx.status(409)
+                    .json(errorResponse("Conflict: row was modified concurrently", correlationId));
         } catch (TransactionException e) {
             abortQuietly(tx);
-            AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "unreachable", correlationId);
+            AuditLog.op(
+                    "delete_row", rc.userId, rc.namespace, rc.table, "unreachable", correlationId);
             throw new ServiceUnavailableResponse();
         } catch (Exception e) {
             abortQuietly(tx);
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "error", correlationId);
-            log.error("DELETE failed ns={} table={} correlationId={}", rc.namespace, rc.table, correlationId, e);
+            log.error(
+                    "DELETE failed ns={} table={} correlationId={}",
+                    rc.namespace,
+                    rc.table,
+                    correlationId,
+                    e);
             throw new InternalServerErrorResponse();
         }
     }
@@ -272,19 +315,19 @@ public final class ScalarDbRowController {
     /** Remove all expired entries from the cache. */
     void cleanExpiredCache() {
         long now = System.currentTimeMillis();
-        metadataCache.entrySet().removeIf(e -> now - e.getValue().cachedAt >= METADATA_CACHE_TTL_MS);
+        metadataCache
+                .entrySet()
+                .removeIf(e -> now - e.getValue().cachedAt >= METADATA_CACHE_TTL_MS);
     }
 
     // ── Shared validation ───────────────────────────────────────────────────
 
     private record RequestContext(
-        String namespace, String table, String userId,
-        JsonNode body, TableMetadata meta
-    ) {}
+            String namespace, String table, String userId, JsonNode body, TableMetadata meta) {}
 
     /**
-     * Common validation for all three endpoints.
-     * Returns null if the request was rejected (response already sent).
+     * Common validation for all three endpoints. Returns null if the request was rejected (response
+     * already sent).
      */
     private RequestContext validateRequest(Context ctx, String correlationId) {
         // Auth
@@ -313,7 +356,11 @@ public final class ScalarDbRowController {
         // Namespace protection
         if (PROTECTED_NAMESPACES.contains(namespace)) {
             AuditLog.op("row_write_blocked", userId, namespace, table, "forbidden", correlationId);
-            ctx.status(403).json(errorResponse("Write operations are not allowed on this namespace", correlationId));
+            ctx.status(403)
+                    .json(
+                            errorResponse(
+                                    "Write operations are not allowed on this namespace",
+                                    correlationId));
             return null;
         }
 
@@ -341,8 +388,12 @@ public final class ScalarDbRowController {
         try {
             meta = getCachedMetadata(namespace, table);
         } catch (ExecutionException e) {
-            log.error("Failed to retrieve table metadata ns={} table={} correlationId={}",
-                namespace, table, correlationId, e);
+            log.error(
+                    "Failed to retrieve table metadata ns={} table={} correlationId={}",
+                    namespace,
+                    table,
+                    correlationId,
+                    e);
             throw new ServiceUnavailableResponse();
         }
         if (meta == null) {
@@ -355,21 +406,25 @@ public final class ScalarDbRowController {
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private TableMetadata getCachedMetadata(String namespace, String table) throws ExecutionException {
+    private TableMetadata getCachedMetadata(String namespace, String table)
+            throws ExecutionException {
         String key = namespace + "." + table;
         CachedMeta cached = metadataCache.get(key);
-        if (cached != null && System.currentTimeMillis() - cached.cachedAt < METADATA_CACHE_TTL_MS) {
+        if (cached != null
+                && System.currentTimeMillis() - cached.cachedAt < METADATA_CACHE_TTL_MS) {
             return cached.meta;
         }
 
         try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
             TableMetadata meta = admin.getTableMetadata(namespace, table);
-            if (meta != null) metadataCache.put(key, new CachedMeta(meta, System.currentTimeMillis()));
+            if (meta != null)
+                metadataCache.put(key, new CachedMeta(meta, System.currentTimeMillis()));
             return meta;
         }
     }
 
-    private static Key buildKey(JsonNode values, LinkedHashSet<String> keyColumns, TableMetadata meta) {
+    private static Key buildKey(
+            JsonNode values, LinkedHashSet<String> keyColumns, TableMetadata meta) {
         if (keyColumns.size() == 1) {
             String col = keyColumns.iterator().next();
             return buildSingleKey(col, values.get(col), meta.getColumnDataType(col));
@@ -383,35 +438,37 @@ public final class ScalarDbRowController {
 
     private static Key buildSingleKey(String col, JsonNode value, DataType dt) {
         return switch (dt) {
-            case INT     -> Key.ofInt(col, value.asInt());
-            case BIGINT  -> Key.ofBigInt(col, value.asLong());
-            case FLOAT   -> Key.ofFloat(col, (float) value.asDouble());
-            case DOUBLE  -> Key.ofDouble(col, value.asDouble());
+            case INT -> Key.ofInt(col, value.asInt());
+            case BIGINT -> Key.ofBigInt(col, value.asLong());
+            case FLOAT -> Key.ofFloat(col, (float) value.asDouble());
+            case DOUBLE -> Key.ofDouble(col, value.asDouble());
             case BOOLEAN -> Key.ofBoolean(col, value.asBoolean());
-            default      -> Key.ofText(col, value.asText());
+            default -> Key.ofText(col, value.asText());
         };
     }
 
-    private static void addToKeyBuilder(Key.Builder builder, String col, JsonNode value, DataType dt) {
+    private static void addToKeyBuilder(
+            Key.Builder builder, String col, JsonNode value, DataType dt) {
         switch (dt) {
-            case INT     -> builder.addInt(col, value.asInt());
-            case BIGINT  -> builder.addBigInt(col, value.asLong());
-            case FLOAT   -> builder.addFloat(col, (float) value.asDouble());
-            case DOUBLE  -> builder.addDouble(col, value.asDouble());
+            case INT -> builder.addInt(col, value.asInt());
+            case BIGINT -> builder.addBigInt(col, value.asLong());
+            case FLOAT -> builder.addFloat(col, (float) value.asDouble());
+            case DOUBLE -> builder.addDouble(col, value.asDouble());
             case BOOLEAN -> builder.addBoolean(col, value.asBoolean());
-            default      -> builder.addText(col, value.asText());
+            default -> builder.addText(col, value.asText());
         }
     }
 
     /** Build a Put with typed non-key column values from the JSON body. */
     private static Put buildPutWithValues(
-        String ns, String table, Key partitionKey, Key clusteringKey,
-        JsonNode values, Set<String> keyColumns, TableMetadata meta
-    ) {
-        var builder = Put.newBuilder()
-            .namespace(ns)
-            .table(table)
-            .partitionKey(partitionKey);
+            String ns,
+            String table,
+            Key partitionKey,
+            Key clusteringKey,
+            JsonNode values,
+            Set<String> keyColumns,
+            TableMetadata meta) {
+        var builder = Put.newBuilder().namespace(ns).table(table).partitionKey(partitionKey);
         if (clusteringKey != null) {
             builder.clusteringKey(clusteringKey);
         }
@@ -423,12 +480,12 @@ public final class ScalarDbRowController {
             if (value == null || value.isNull()) continue;
             DataType dt = meta.getColumnDataType(col);
             switch (dt) {
-                case INT     -> builder.intValue(col, value.asInt());
-                case BIGINT  -> builder.bigIntValue(col, value.asLong());
-                case FLOAT   -> builder.floatValue(col, (float) value.asDouble());
-                case DOUBLE  -> builder.doubleValue(col, value.asDouble());
+                case INT -> builder.intValue(col, value.asInt());
+                case BIGINT -> builder.bigIntValue(col, value.asLong());
+                case FLOAT -> builder.floatValue(col, (float) value.asDouble());
+                case DOUBLE -> builder.doubleValue(col, value.asDouble());
                 case BOOLEAN -> builder.booleanValue(col, value.asBoolean());
-                default      -> builder.textValue(col, value.asText());
+                default -> builder.textValue(col, value.asText());
             }
         }
         return builder.build();
@@ -444,7 +501,10 @@ public final class ScalarDbRowController {
 
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
-            try { tx.abort(); } catch (Exception ignored) { }
+            try {
+                tx.abort();
+            } catch (Exception ignored) {
+            }
         }
     }
 }

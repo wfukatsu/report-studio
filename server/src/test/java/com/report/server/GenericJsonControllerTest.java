@@ -1,13 +1,12 @@
 package com.report.server;
 
+import static org.mockito.Mockito.*;
+
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
-
-import static org.mockito.Mockito.*;
 
 class GenericJsonControllerTest {
 

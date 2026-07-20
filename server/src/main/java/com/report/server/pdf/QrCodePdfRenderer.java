@@ -1,24 +1,21 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
-/**
- * Renders QR code elements to PDF using ZXing.
- */
+/** Renders QR code elements to PDF using ZXing. */
 public final class QrCodePdfRenderer implements ElementPdfRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(QrCodePdfRenderer.class);
@@ -29,9 +26,17 @@ public final class QrCodePdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         // Accept both the V1 projection shape ({@code props.value}) and the V2
         // element shape (top-level {@code el.value}) via elementTextOf (issue #182).
         String value = elementTextOf(el, "value", "");

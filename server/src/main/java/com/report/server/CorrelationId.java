@@ -5,9 +5,9 @@ import java.util.UUID;
 /**
  * Generates short correlation IDs for error responses.
  *
- * <p>A correlation ID is the first 8 characters of a randomly generated UUID,
- * included in error response bodies so that a developer can cross-reference
- * the server logs without exposing sensitive exception details to the client.
+ * <p>A correlation ID is the first 8 characters of a randomly generated UUID, included in error
+ * response bodies so that a developer can cross-reference the server logs without exposing
+ * sensitive exception details to the client.
  *
  * <p>Reused by all Phase 1.5+ controllers that call {@code AuditLog.op(...)}.
  */

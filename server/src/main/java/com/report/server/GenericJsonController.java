@@ -2,15 +2,12 @@ package com.report.server;
 
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.Optional;
-
-/**
- * Reusable GET/PUT handler for JSON blob endpoints.
- */
+/** Reusable GET/PUT handler for JSON blob endpoints. */
 public final class GenericJsonController {
 
     private static final Logger log = LoggerFactory.getLogger(GenericJsonController.class);
@@ -19,7 +16,8 @@ public final class GenericJsonController {
     private final String resourceName;
     private final String emptyResponse;
 
-    public GenericJsonController(JsonBlobRepository repo, String resourceName, String emptyResponse) {
+    public GenericJsonController(
+            JsonBlobRepository repo, String resourceName, String emptyResponse) {
         this.repo = repo;
         this.resourceName = resourceName;
         this.emptyResponse = emptyResponse;

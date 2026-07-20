@@ -1,7 +1,6 @@
 package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -16,15 +15,13 @@ import java.util.Locale;
  * Server-side port of the frontend value formatter (issues #53/#57).
  *
  * <p>Byte-compatible with {@code src/lib/numberFormatter.ts}: number formats
- * (integer/decimal/currency/percent/comma/kanji_numeral/custom pattern),
- * date formats (yyyy/MM/dd, yyyy年MM月dd日, MM/dd/yyyy, 和暦 full/short,
- * custom pattern), and address formats. The cross-language contract is pinned
- * by ValueFormatterTest, which mirrors numberFormatter.test.ts fixtures.
+ * (integer/decimal/currency/percent/comma/kanji_numeral/custom pattern), date formats (yyyy/MM/dd,
+ * yyyy年MM月dd日, MM/dd/yyyy, 和暦 full/short, custom pattern), and address formats. The cross-language
+ * contract is pinned by ValueFormatterTest, which mirrors numberFormatter.test.ts fixtures.
  *
- * <p>Divergences (documented): dates are parsed timezone-free (matches the
- * frontend's behavior on a JST machine); non-numeric strings that merely
- * start with digits are not number-parsed (JS {@code parseFloat} prefix
- * semantics are not replicated).
+ * <p>Divergences (documented): dates are parsed timezone-free (matches the frontend's behavior on a
+ * JST machine); non-numeric strings that merely start with digits are not number-parsed (JS {@code
+ * parseFloat} prefix semantics are not replicated).
  */
 public final class ValueFormatter {
 
@@ -34,23 +31,25 @@ public final class ValueFormatter {
 
     private record Era(String name, String abbr, LocalDate start) {}
 
-    private static final List<Era> ERA_TABLE = List.of(
-            new Era("令和", "R", LocalDate.of(2019, 5, 1)),
-            new Era("平成", "H", LocalDate.of(1989, 1, 8)),
-            new Era("昭和", "S", LocalDate.of(1926, 12, 25)),
-            new Era("大正", "T", LocalDate.of(1912, 7, 30)),
-            new Era("明治", "M", LocalDate.of(1868, 1, 25)));
+    private static final List<Era> ERA_TABLE =
+            List.of(
+                    new Era("令和", "R", LocalDate.of(2019, 5, 1)),
+                    new Era("平成", "H", LocalDate.of(1989, 1, 8)),
+                    new Era("昭和", "S", LocalDate.of(1926, 12, 25)),
+                    new Era("大正", "T", LocalDate.of(1912, 7, 30)),
+                    new Era("明治", "M", LocalDate.of(1868, 1, 25)));
 
-    private static final List<String> DATE_TYPES = List.of(
-            "yyyy/MM/dd", "yyyy年MM月dd日", "MM/dd/yyyy", "wareki_full", "wareki_short");
+    private static final List<String> DATE_TYPES =
+            List.of("yyyy/MM/dd", "yyyy年MM月dd日", "MM/dd/yyyy", "wareki_full", "wareki_short");
 
-    private static final DecimalFormatSymbols US_SYMBOLS = DecimalFormatSymbols.getInstance(Locale.US);
+    private static final DecimalFormatSymbols US_SYMBOLS =
+            DecimalFormatSymbols.getInstance(Locale.US);
 
     // ── Generic entry point (mirror of applyFormat) ────────────────────
 
     /**
-     * Format a resolved raw value with a {@code CalculationFormat} JSON node
-     * ({@code {type, decimalPlaces?, customPattern?}}). Null-safe on both sides.
+     * Format a resolved raw value with a {@code CalculationFormat} JSON node ({@code {type,
+     * decimalPlaces?, customPattern?}}). Null-safe on both sides.
      */
     public static String applyFormat(JsonNode value, JsonNode format) {
         if (value == null || value.isNull() || value.isMissingNode()) return "";
@@ -75,7 +74,9 @@ public final class ValueFormatter {
 
         Double num = tryParseNumber(value, raw);
         if (num != null) {
-            return formatNumber(num, type,
+            return formatNumber(
+                    num,
+                    type,
                     format.path("decimalPlaces").asInt(0),
                     format.path("customPattern").asText(null));
         }
@@ -84,7 +85,8 @@ public final class ValueFormatter {
 
     // ── Number formatting (mirror of formatNumber) ─────────────────────
 
-    public static String formatNumber(double value, String type, int decimalPlaces, String customPattern) {
+    public static String formatNumber(
+            double value, String type, int decimalPlaces, String customPattern) {
         return switch (type) {
             case "integer" -> String.valueOf(Math.round(value));
             case "decimal" -> toFixed(value, decimalPlaces);
@@ -93,8 +95,10 @@ public final class ValueFormatter {
             case "percent" -> toFixed(value * 100, decimalPlaces) + "%";
             case "comma" -> newGroupedFormat(0, 3).format(value);
             case "kanji_numeral" -> toKanjiNumeral(value);
-            case "custom" -> customPattern != null && !customPattern.isEmpty()
-                    ? applyCustomPattern(value, customPattern) : numToString(value);
+            case "custom" ->
+                    customPattern != null && !customPattern.isEmpty()
+                            ? applyCustomPattern(value, customPattern)
+                            : numToString(value);
             default -> numToString(value);
         };
     }
@@ -149,8 +153,10 @@ public final class ValueFormatter {
             case "MM/dd/yyyy" -> "%02d/%02d/%d".formatted(m, d, y);
             case "wareki_full" -> formatWareki(date, false);
             case "wareki_short" -> formatWareki(date, true);
-            case "custom" -> customPattern != null && !customPattern.isEmpty()
-                    ? applyDatePattern(date, customPattern) : "%d/%02d/%02d".formatted(y, m, d);
+            case "custom" ->
+                    customPattern != null && !customPattern.isEmpty()
+                            ? applyDatePattern(date, customPattern)
+                            : "%d/%02d/%02d".formatted(y, m, d);
             default -> "%d/%02d/%02d".formatted(y, m, d);
         };
     }
@@ -161,12 +167,13 @@ public final class ValueFormatter {
             if (!date.isBefore(era.start())) {
                 int year = date.getYear() - era.start().getYear() + 1;
                 if (shortForm) {
-                    return "%s%02d.%02d.%02d".formatted(era.abbr(), year,
-                            date.getMonthValue(), date.getDayOfMonth());
+                    return "%s%02d.%02d.%02d"
+                            .formatted(
+                                    era.abbr(), year, date.getMonthValue(), date.getDayOfMonth());
                 }
                 String yy = year == 1 ? "元" : String.valueOf(year);
-                return "%s%s年%d月%d日".formatted(era.name(), yy,
-                        date.getMonthValue(), date.getDayOfMonth());
+                return "%s%s年%d月%d日"
+                        .formatted(era.name(), yy, date.getMonthValue(), date.getDayOfMonth());
             }
         }
         return "%d/%02d/%02d".formatted(date.getYear(), date.getMonthValue(), date.getDayOfMonth());
@@ -178,16 +185,24 @@ public final class ValueFormatter {
         String s = raw.trim();
         try {
             return LocalDate.parse(s);
-        } catch (Exception ignored) { /* try next format */ }
+        } catch (Exception ignored) {
+            /* try next format */
+        }
         try {
             return LocalDate.parse(s, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        } catch (Exception ignored) { /* try next format */ }
+        } catch (Exception ignored) {
+            /* try next format */
+        }
         try {
             return java.time.OffsetDateTime.parse(s).toLocalDate();
-        } catch (Exception ignored) { /* try next format */ }
+        } catch (Exception ignored) {
+            /* try next format */
+        }
         try {
             return java.time.LocalDateTime.parse(s).toLocalDate();
-        } catch (Exception ignored) { /* give up */ }
+        } catch (Exception ignored) {
+            /* give up */
+        }
         return null;
     }
 
@@ -233,7 +248,9 @@ public final class ValueFormatter {
 
     /** JS toFixed equivalent (half-up). */
     private static String toFixed(double value, int decimalPlaces) {
-        return BigDecimal.valueOf(value).setScale(decimalPlaces, RoundingMode.HALF_UP).toPlainString();
+        return BigDecimal.valueOf(value)
+                .setScale(decimalPlaces, RoundingMode.HALF_UP)
+                .toPlainString();
     }
 
     /** Grouped decimal format with explicit US symbols (grouping "," / decimal "."). */
@@ -264,11 +281,17 @@ public final class ValueFormatter {
         int decimals = 0;
         int dot = pattern.indexOf('.');
         if (dot >= 0) {
-            decimals = (int) pattern.substring(dot + 1).chars().filter(c -> c == '0' || c == '#').count();
+            decimals =
+                    (int)
+                            pattern.substring(dot + 1)
+                                    .chars()
+                                    .filter(c -> c == '0' || c == '#')
+                                    .count();
         }
-        String result = hasComma
-                ? newGroupedFormat(decimals, decimals).format(value)
-                : toFixed(value, decimals);
+        String result =
+                hasComma
+                        ? newGroupedFormat(decimals, decimals).format(value)
+                        : toFixed(value, decimals);
         if (pattern.startsWith("¥") || pattern.startsWith("$")) {
             result = pattern.charAt(0) + result;
         }
@@ -277,8 +300,7 @@ public final class ValueFormatter {
 
     /** yyyy/MM/dd/HH/mm token replacement (mirror of applyDatePattern; HH/mm are 00). */
     private static String applyDatePattern(LocalDate date, String pattern) {
-        return pattern
-                .replaceFirst("yyyy", String.valueOf(date.getYear()))
+        return pattern.replaceFirst("yyyy", String.valueOf(date.getYear()))
                 .replaceFirst("MM", "%02d".formatted(date.getMonthValue()))
                 .replaceFirst("dd", "%02d".formatted(date.getDayOfMonth()))
                 .replaceFirst("HH", "00")

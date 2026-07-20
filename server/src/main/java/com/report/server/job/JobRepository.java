@@ -3,23 +3,21 @@ package com.report.server.job;
 import com.report.server.JsonBlobRepository;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Job repository backed by ScalarDB for metadata persistence
- * and local filesystem for PDF output files — the {@link JobStore}
- * implementation shared by every job stack (issue #60).
+ * Job repository backed by ScalarDB for metadata persistence and local filesystem for PDF output
+ * files — the {@link JobStore} implementation shared by every job stack (issue #60).
  *
- * <p>Metadata (JobRecord) is stored as JSON in ScalarDB table {@code report_studio.jobs}.
- * Output PDFs and ZIP archives remain on the local filesystem under {@code data/jobs/{jobId}/}.
+ * <p>Metadata (JobRecord) is stored as JSON in ScalarDB table {@code report_studio.jobs}. Output
+ * PDFs and ZIP archives remain on the local filesystem under {@code data/jobs/{jobId}/}.
  */
 public final class JobRepository implements JobStore {
 
@@ -54,9 +52,9 @@ public final class JobRepository implements JobStore {
     }
 
     /**
-     * Save or update a job record, retrying transient failures (issue #60).
-     * A save that still fails after retries is logged as an alert — the job's
-     * visible status will lag reality until the next successful checkpoint.
+     * Save or update a job record, retrying transient failures (issue #60). A save that still fails
+     * after retries is logged as an alert — the job's visible status will lag reality until the
+     * next successful checkpoint.
      */
     @Override
     public void save(JobRecord record) {
@@ -66,12 +64,20 @@ public final class JobRepository implements JobStore {
                 return;
             } catch (Exception e) {
                 if (attempt == SAVE_ATTEMPTS) {
-                    log.error("ALERT: failed to save job {} after {} attempts — "
-                            + "job status may be stale", record.jobId(), SAVE_ATTEMPTS, e);
+                    log.error(
+                            "ALERT: failed to save job {} after {} attempts — "
+                                    + "job status may be stale",
+                            record.jobId(),
+                            SAVE_ATTEMPTS,
+                            e);
                     return;
                 }
-                log.warn("Failed to save job {} (attempt {}/{}): {}",
-                        record.jobId(), attempt, SAVE_ATTEMPTS, e.getMessage());
+                log.warn(
+                        "Failed to save job {} (attempt {}/{}): {}",
+                        record.jobId(),
+                        attempt,
+                        SAVE_ATTEMPTS,
+                        e.getMessage());
                 try {
                     Thread.sleep(SAVE_RETRY_BACKOFF_MS * attempt);
                 } catch (InterruptedException ie) {
@@ -85,28 +91,31 @@ public final class JobRepository implements JobStore {
     /** Find a job by ID. */
     @Override
     public Optional<JobRecord> findById(String jobId) {
-        return blob.get(jobId).flatMap(json -> {
-            try {
-                return Optional.of(JobRecord.fromJson(json));
-            } catch (IOException e) {
-                log.warn("Failed to parse job {}: {}", jobId, e.getMessage());
-                return Optional.empty();
-            }
-        });
+        return blob.get(jobId)
+                .flatMap(
+                        json -> {
+                            try {
+                                return Optional.of(JobRecord.fromJson(json));
+                            } catch (IOException e) {
+                                log.warn("Failed to parse job {}: {}", jobId, e.getMessage());
+                                return Optional.empty();
+                            }
+                        });
     }
 
     /** List all jobs, sorted by creation date descending. */
     @Override
     public List<JobRecord> listAll() {
         return blob.list().stream()
-                .map(json -> {
-                    try {
-                        return JobRecord.fromJson(json);
-                    } catch (IOException e) {
-                        log.warn("Skipping corrupt job record: {}", e.getMessage());
-                        return null;
-                    }
-                })
+                .map(
+                        json -> {
+                            try {
+                                return JobRecord.fromJson(json);
+                            } catch (IOException e) {
+                                log.warn("Skipping corrupt job record: {}", e.getMessage());
+                                return null;
+                            }
+                        })
                 .filter(j -> j != null)
                 .sorted(Comparator.comparingLong(JobRecord::createdAt).reversed())
                 .toList();
@@ -121,16 +130,23 @@ public final class JobRepository implements JobStore {
         if (Files.exists(jobDir)) {
             try (var files = Files.walk(jobDir)) {
                 files.sorted(Comparator.reverseOrder())
-                     .forEach(path -> {
-                         try { Files.deleteIfExists(path); } catch (IOException ignored) {}
-                     });
+                        .forEach(
+                                path -> {
+                                    try {
+                                        Files.deleteIfExists(path);
+                                    } catch (IOException ignored) {
+                                    }
+                                });
             } catch (IOException e) {
                 log.warn("Failed to clean up job files for {}: {}", jobId, e.getMessage());
             }
         }
         // Clean up ZIP
         Path zipPath = getOutputZipPath(jobId);
-        try { Files.deleteIfExists(zipPath); } catch (IOException ignored) {}
+        try {
+            Files.deleteIfExists(zipPath);
+        } catch (IOException ignored) {
+        }
         log.info("Deleted job {} and its output files", jobId);
     }
 
@@ -153,9 +169,9 @@ public final class JobRepository implements JobStore {
     }
 
     /**
-     * Delete jobs whose TTL has passed (issue #60). Covers artifacts too via
-     * {@link #delete}. Non-terminal expired jobs are logged — with the V2
-     * per-job timeouts far below the TTL this indicates something got stuck.
+     * Delete jobs whose TTL has passed (issue #60). Covers artifacts too via {@link #delete}.
+     * Non-terminal expired jobs are logged — with the V2 per-job timeouts far below the TTL this
+     * indicates something got stuck.
      */
     @Override
     public int deleteExpired(long nowMillis) {
@@ -163,8 +179,10 @@ public final class JobRepository implements JobStore {
         for (JobRecord job : listAll()) {
             if (job.expiresAt() > 0 && job.expiresAt() < nowMillis) {
                 if (!job.isTerminal()) {
-                    log.warn("Reaping expired job {} that never reached a terminal state (was {})",
-                            job.jobId(), job.status());
+                    log.warn(
+                            "Reaping expired job {} that never reached a terminal state (was {})",
+                            job.jobId(),
+                            job.status());
                 }
                 delete(job.jobId());
                 reaped++;

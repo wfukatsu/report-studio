@@ -5,21 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.re2j.PatternSyntaxException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Shared request validation utilities.
- * Validates path parameters and request bodies at API boundaries.
+ * Shared request validation utilities. Validates path parameters and request bodies at API
+ * boundaries.
  */
 public final class RequestValidator {
 
     private static final Pattern SAFE_ID = Pattern.compile("^[a-zA-Z0-9_-]{1,128}$");
     private static final int MAX_TEMPLATE_NAME_LENGTH = 200;
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
     /** Allowed top-level keys in designer-projection JSON */
     private static final Set<String> PROJECTION_ALLOWED_KEYS = Set.of("templates", "schemaGroups");
 
@@ -109,8 +109,8 @@ public final class RequestValidator {
 
     /**
      * Validate projection JSON: require "templates" key and reject unknown top-level keys.
-     * Single-parse: validates structure and key whitelist in one pass.
-     * Returns true if valid, false if invalid (response already sent).
+     * Single-parse: validates structure and key whitelist in one pass. Returns true if valid, false
+     * if invalid (response already sent).
      */
     public static boolean validateProjectionStructure(Context ctx, String body) {
         if (body == null || body.isBlank()) {
@@ -199,29 +199,33 @@ public final class RequestValidator {
 
     private static final int MAX_JSON_DEPTH = 50;
     private static final int MAX_OBJECT_COUNT = 5000;
+
     /**
-     * Known element kinds, derived from the renderer registry so newly
-     * registered renderers are accepted automatically (the previous
-     * hand-maintained list drifted and rejected V2 templates whose elements
-     * the renderer fully supported — e.g. manualEntry, tenantLogo).
+     * Known element kinds, derived from the renderer registry so newly registered renderers are
+     * accepted automatically (the previous hand-maintained list drifted and rejected V2 templates
+     * whose elements the renderer fully supported — e.g. manualEntry, tenantLogo).
      */
     private static final Set<String> KNOWN_ELEMENT_KINDS = buildKnownElementKinds();
 
     private static Set<String> buildKnownElementKinds() {
-        var kinds = new java.util.HashSet<>(
-                com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds());
+        var kinds =
+                new java.util.HashSet<>(
+                        com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds());
         // Aliases resolved before registry lookup + historical names kept for compat
-        kinds.addAll(Set.of(
-                "label",                      // migrated to text at render time
-                "form_grid", "formGrid",      // grid naming variants
-                "table", "formTable"          // table naming variants
-        ));
+        kinds.addAll(
+                Set.of(
+                        "label", // migrated to text at render time
+                        "form_grid",
+                        "formGrid", // grid naming variants
+                        "table",
+                        "formTable" // table naming variants
+                        ));
         return Set.copyOf(kinds);
     }
 
     /**
-     * Validate a stateless PDF generation request body.
-     * Checks: required fields, JSON depth, object count, known element kinds.
+     * Validate a stateless PDF generation request body. Checks: required fields, JSON depth, object
+     * count, known element kinds.
      *
      * @param root the parsed request JSON root node
      * @return error message string, or null if valid
@@ -268,8 +272,8 @@ public final class RequestValidator {
     }
 
     /**
-     * Recursively measure JSON depth and count objects/arrays.
-     * Returns max depth reached. Increments counts[0] for each object/array node.
+     * Recursively measure JSON depth and count objects/arrays. Returns max depth reached.
+     * Increments counts[0] for each object/array node.
      */
     private static int measureDepthAndCount(JsonNode node, int currentDepth, int[] counts) {
         if (counts[0] > MAX_OBJECT_COUNT) return currentDepth; // early exit
@@ -278,7 +282,8 @@ public final class RequestValidator {
             counts[0]++;
             Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
-                int childDepth = measureDepthAndCount(fields.next().getValue(), currentDepth + 1, counts);
+                int childDepth =
+                        measureDepthAndCount(fields.next().getValue(), currentDepth + 1, counts);
                 if (childDepth > maxDepth) maxDepth = childDepth;
             }
         } else if (node.isArray()) {
@@ -318,7 +323,8 @@ public final class RequestValidator {
                             && !KNOWN_ELEMENT_KINDS.contains(effective)
                             && !KNOWN_ELEMENT_KINDS.contains(type)) {
                         // Sanitize for safe error message
-                        String safe = effective.length() > 50 ? effective.substring(0, 50) : effective;
+                        String safe =
+                                effective.length() > 50 ? effective.substring(0, 50) : effective;
                         return safe.replaceAll("[^a-zA-Z0-9_-]", "?");
                     }
                 }
@@ -328,8 +334,8 @@ public final class RequestValidator {
     }
 
     /**
-     * Validate that an inputPattern string is a valid RE2J-compatible regex.
-     * Used when saving FieldConstraints with inputPattern to prevent ReDoS.
+     * Validate that an inputPattern string is a valid RE2J-compatible regex. Used when saving
+     * FieldConstraints with inputPattern to prevent ReDoS.
      *
      * @return true if the pattern is valid or null/blank, false if invalid (response already sent)
      */
@@ -369,10 +375,10 @@ public final class RequestValidator {
     private static final int MAX_SCHEMA_DEPTH = 20;
 
     /**
-     * Validate a schema definition JSON structure.
-     * Checks: body size (1MB), group count (50), field count per group (200), nesting depth (20).
+     * Validate a schema definition JSON structure. Checks: body size (1MB), group count (50), field
+     * count per group (200), nesting depth (20).
      *
-     * @param ctx  the Javalin context
+     * @param ctx the Javalin context
      * @param body the raw request body string
      * @param definition the parsed definition node
      * @return true if valid, false if invalid (response already sent)
@@ -407,7 +413,14 @@ public final class RequestValidator {
                 if (fields.isArray() && fields.size() > MAX_SCHEMA_FIELDS_PER_GROUP) {
                     String label = group.path("label").asText("unknown");
                     ctx.status(HttpStatus.BAD_REQUEST);
-                    ctx.json(Map.of("error", "Too many fields in group '" + label + "' (max " + MAX_SCHEMA_FIELDS_PER_GROUP + ")"));
+                    ctx.json(
+                            Map.of(
+                                    "error",
+                                    "Too many fields in group '"
+                                            + label
+                                            + "' (max "
+                                            + MAX_SCHEMA_FIELDS_PER_GROUP
+                                            + ")"));
                     return false;
                 }
             }
@@ -418,7 +431,12 @@ public final class RequestValidator {
         int depth = measureDepthAndCount(definition, 0, counts);
         if (depth > MAX_SCHEMA_DEPTH) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Schema definition too deeply nested (max " + MAX_SCHEMA_DEPTH + " levels)"));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "Schema definition too deeply nested (max "
+                                    + MAX_SCHEMA_DEPTH
+                                    + " levels)"));
             return false;
         }
 

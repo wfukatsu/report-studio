@@ -10,17 +10,16 @@ import com.report.server.job.JobController;
 import com.report.server.job.JobRepository;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Wires all repositories and controllers together.
- * Owns the lifecycle of shared ExecutorService instances.
+ * Wires all repositories and controllers together. Owns the lifecycle of shared ExecutorService
+ * instances.
  */
 public final class AppWiring {
 
@@ -28,9 +27,9 @@ public final class AppWiring {
     private static final String NAMESPACE = "report_studio";
 
     /**
-     * The single app-wide {@link DistributedTransactionManager}. ScalarDB managers are
-     * thread-safe and meant to be created once and reused; {@code factory.getTransactionManager()}
-     * builds a fresh manager (with its own connection pool) on every call and never closes it, so
+     * The single app-wide {@link DistributedTransactionManager}. ScalarDB managers are thread-safe
+     * and meant to be created once and reused; {@code factory.getTransactionManager()} builds a
+     * fresh manager (with its own connection pool) on every call and never closes it, so
      * repositories and controllers must share this one instance rather than call the factory per
      * operation (issue #203). Closed in {@link #shutdown()}.
      */
@@ -104,6 +103,7 @@ public final class AppWiring {
     // ── V2 rate limiters ──────────────────────────────────────────────────────
     /** 5 response submissions per user per 60 seconds. */
     final RateLimiter v2SubmitLimiter;
+
     /** 3 exports per user per 60 seconds. */
     final RateLimiter v2ExportLimiter;
 
@@ -147,8 +147,9 @@ public final class AppWiring {
         v2ResponseRepo.ensureTable();
 
         // Executor pools
-        jobExecutor = Executors.newFixedThreadPool(
-            Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+        jobExecutor =
+                Executors.newFixedThreadPool(
+                        Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
         pdfExecutor = Executors.newFixedThreadPool(4);
 
         // V2 rate limiters
@@ -167,19 +168,27 @@ public final class AppWiring {
         apiTokenCtrl = new ApiTokenController(authCtrl, userRepo, apiTokenRepo);
         bindingCtrl = new GenericJsonController(bindingTreeRepo, "binding-tree", "{}");
         formSessionManager = new FormSessionManager();
-        publicFormCtrl = new PublicFormController(
-            templateList, projRepo, responseRepo, formSessionManager, new RateLimiter());
+        publicFormCtrl =
+                new PublicFormController(
+                        templateList,
+                        projRepo,
+                        responseRepo,
+                        formSessionManager,
+                        new RateLimiter());
         templateCtrl = new TemplateController(v2DefinitionsRepo);
 
         // Schema Library
-        final JsonBlobRepository schemaLibraryRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "schema_library");
+        final JsonBlobRepository schemaLibraryRepo =
+                new JsonBlobRepository(factory, txManager, NAMESPACE, "schema_library");
         schemaLibraryRepo.ensureTable();
         schemaLibraryCtrl = new SchemaLibraryController(schemaLibraryRepo);
         evalCtrl = new EvaluateController();
         versionCtrl = new VersionController(factory, txManager, v2DefinitionsRepo);
         versionCtrl.ensureTable();
-        formResponseCtrl = new FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
-        responseExportCtrl = new ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
+        formResponseCtrl =
+                new FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
+        responseExportCtrl =
+                new ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
         responsePdfCtrl = new ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
         pdfCtrl = new PdfController(v2DefinitionsRepo, pdfExecutor);
         exportCtrl = new TemplateExportController(v2DefinitionsRepo, new RateLimiter(10, 60_000L));
@@ -195,42 +204,54 @@ public final class AppWiring {
         tenantRepo.ensureTable();
         tenantCtrl = new TenantController(tenantRepo);
         // Tenant elements in PDFs resolve through this process-wide supplier (issue #54)
-        TenantInfoProvider.setSupplier(() -> {
-            try {
-                var stored = tenantRepo.get("singleton");
-                return stored.isPresent()
-                        ? new com.fasterxml.jackson.databind.ObjectMapper().readTree(stored.get())
-                        : null;
-            } catch (Exception e) {
-                return null;
-            }
-        });
+        TenantInfoProvider.setSupplier(
+                () -> {
+                    try {
+                        var stored = tenantRepo.get("singleton");
+                        return stored.isPresent()
+                                ? new com.fasterxml.jackson.databind.ObjectMapper()
+                                        .readTree(stored.get())
+                                : null;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                });
         productRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "products");
         productRepo.ensureTable();
         productCtrl = new ProductController(productRepo);
         bindingResolveCtrl.setProductController(productCtrl);
         scalarDbScanCtrl = new ScalarDbScanController(factory, txManager);
         scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
-        batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
+        batchPdfCtrl =
+                new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
         sequenceRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();
         sequenceCtrl = new SequenceController(sequenceRepo, v2DefinitionsRepo);
         formResponseCtrl.setSequenceController(sequenceCtrl);
         // Status-transition audit trail (#188)
-        statusAuditRepo = new StatusAuditRepository(new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
+        statusAuditRepo =
+                new StatusAuditRepository(
+                        new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
         statusAuditRepo.ensureTable();
         formResponseCtrl.setStatusAuditRepository(statusAuditRepo);
         webhookRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "webhooks");
         webhookRepo.ensureTable();
         webhookDispatcher = new WebhookDispatcher();
-        webhookExecutor = new java.util.concurrent.ThreadPoolExecutor(
-            2, 8, 60L, java.util.concurrent.TimeUnit.SECONDS,
-            new java.util.concurrent.LinkedBlockingQueue<>(100),
-            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
-        webhookCtrl = new WebhookController(webhookRepo, v2DefinitionsRepo, webhookDispatcher, SecretCrypto.fromEnv());
+        webhookExecutor =
+                new java.util.concurrent.ThreadPoolExecutor(
+                        2,
+                        8,
+                        60L,
+                        java.util.concurrent.TimeUnit.SECONDS,
+                        new java.util.concurrent.LinkedBlockingQueue<>(100),
+                        new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        webhookCtrl =
+                new WebhookController(
+                        webhookRepo, v2DefinitionsRepo, webhookDispatcher, SecretCrypto.fromEnv());
         formResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
-        healthCtrl = new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
+        healthCtrl =
+                new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
     }
 
     /** Gracefully shuts down all executor pools (call from Javalin serverStopping event). */

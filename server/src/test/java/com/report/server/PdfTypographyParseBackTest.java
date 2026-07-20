@@ -1,15 +1,14 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
 /**
- * Parse-back tests for Japanese typography in the text renderer (issue #56):
- * multi-line wrapping, vertical writing (縦書き), furigana (ruby), synthetic bold.
+ * Parse-back tests for Japanese typography in the text renderer (issue #56): multi-line wrapping,
+ * vertical writing (縦書き), furigana (ruby), synthetic bold.
  */
 class PdfTypographyParseBackTest {
 
@@ -25,13 +24,18 @@ class PdfTypographyParseBackTest {
                   %s
                 }]
               }]
-            }]}""".formatted(extra);
+            }]}"""
+                .formatted(extra);
     }
 
     @Test
     void longText_wrapsAcrossMultipleLines() throws IOException {
         // 30 chars in a 40mm-wide box at 12pt must wrap to several lines
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"これはとても長い日本語のテキストで折り返しの検証をします",
             "style":{"fontSize":12}""")));
         var runs = probe.runs(0);
@@ -46,7 +50,11 @@ class PdfTypographyParseBackTest {
 
     @Test
     void explicitNewlines_produceSeparateLines() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"一行目\\n二行目\\n三行目","style":{"fontSize":10}""")));
         assertTrue(probe.pageContains(0, "一行目"));
         assertTrue(probe.pageContains(0, "二行目"));
@@ -58,13 +66,19 @@ class PdfTypographyParseBackTest {
 
     @Test
     void verticalWriting_stacksCharactersTopToBottom() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"御見積書","style":{"fontSize":14,"writingMode":"vertical-rl"}""")));
         // Each character on its own baseline, descending
         var mi = probe.findRun(0, "御").orElseThrow();
         var sho = probe.findRun(0, "書").orElseThrow();
-        assertTrue(sho.baselineYMm() > mi.baselineYMm(),
-                "御 (y=%.1f) should be above 書 (y=%.1f)".formatted(mi.baselineYMm(), sho.baselineYMm()));
+        assertTrue(
+                sho.baselineYMm() > mi.baselineYMm(),
+                "御 (y=%.1f) should be above 書 (y=%.1f)"
+                        .formatted(mi.baselineYMm(), sho.baselineYMm()));
         // Same column → same X
         assertEquals(mi.xMm(), sho.xMm(), 1.0f);
     }
@@ -72,7 +86,10 @@ class PdfTypographyParseBackTest {
     @Test
     void verticalWriting_wrapsToNewColumnRightToLeft() throws IOException {
         // 8 chars, box height only fits ~4 at 14pt → wraps to a 2nd column on the left
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                """
             {"templates":[{
               "id":"t1","name":"VCol",
               "sections":[{
@@ -87,13 +104,18 @@ class PdfTypographyParseBackTest {
         var first = probe.findRun(0, "一").orElseThrow();
         var later = probe.findRun(0, "八").orElseThrow();
         // vertical-rl: later characters are in columns to the LEFT
-        assertTrue(later.xMm() < first.xMm(),
+        assertTrue(
+                later.xMm() < first.xMm(),
                 "八 (x=%.1f) should be left of 一 (x=%.1f)".formatted(later.xMm(), first.xMm()));
     }
 
     @Test
     void furigana_rendersRubyAboveMainText() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"山田","furigana":"やまだ","furiganaScale":0.5,
             "style":{"fontSize":14}""")));
         assertTrue(probe.pageContains(0, "山田"), probe.pageText(0));
@@ -108,11 +130,16 @@ class PdfTypographyParseBackTest {
     @Test
     void bold_usesRealBoldFace_notSyntheticStroke() throws IOException {
         // Issue #56: sans bold now embeds the real Noto Sans JP Bold face
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"太字テスト","style":{"fontSize":12,"bold":true}""")));
         assertTrue(probe.pageContains(0, "太字テスト"), probe.pageText(0));
         PdfProbe.TextRun run = probe.findRun(0, "太字").orElseThrow();
-        assertTrue(run.fontName().contains("NotoSansJP-Bold"),
+        assertTrue(
+                run.fontName().contains("NotoSansJP-Bold"),
                 "bold should use the real Bold face, got: " + run.fontName());
         // real bold does not stroke-widen
         assertFalse(probe.pageContent(0).contains("2 Tr"), "real bold must not stroke");
@@ -120,10 +147,15 @@ class PdfTypographyParseBackTest {
 
     @Test
     void nonBold_usesRegularFace() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"通常テキスト","style":{"fontSize":12}""")));
         PdfProbe.TextRun run = probe.findRun(0, "通常").orElseThrow();
-        assertTrue(run.fontName().contains("NotoSansJP") && !run.fontName().contains("Bold"),
+        assertTrue(
+                run.fontName().contains("NotoSansJP") && !run.fontName().contains("Bold"),
                 "non-bold should use the Regular face, got: " + run.fontName());
         assertFalse(probe.pageContent(0).contains("2 Tr"), "non-bold text must not stroke");
     }
@@ -131,20 +163,30 @@ class PdfTypographyParseBackTest {
     @Test
     void fontWeightBold_isRecognized() throws IOException {
         // Frontend TextStyle uses fontWeight:"bold"; the server must honor it too
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"太字ウェイト","style":{"fontSize":12,"fontWeight":"bold"}""")));
         PdfProbe.TextRun run = probe.findRun(0, "太字").orElseThrow();
-        assertTrue(run.fontName().contains("NotoSansJP-Bold"),
+        assertTrue(
+                run.fontName().contains("NotoSansJP-Bold"),
                 "fontWeight:bold should use the real Bold face, got: " + run.fontName());
     }
 
     @Test
     void serifBold_fallsBackToSyntheticStroke() throws IOException {
         // No serif bold face is bundled → bold serif stroke-widens the Regular serif
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(textEl("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
             "content":"明朝太字","style":{"fontSize":12,"bold":true,"fontFamily":"Noto Serif JP"}""")));
         assertTrue(probe.pageContains(0, "明朝太字"), probe.pageText(0));
-        assertTrue(probe.pageContent(0).contains("2 Tr"),
+        assertTrue(
+                probe.pageContent(0).contains("2 Tr"),
                 "serif bold should synthetic-stroke (no serif bold face): " + probe.pageContent(0));
     }
 }

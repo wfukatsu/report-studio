@@ -1,17 +1,16 @@
 package com.report.server.pdf;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Test;
+
 /**
- * Unit tests for the SSRF guard in {@link ImagePdfRenderer#isSafeUrl(String)}
- * (issue #59; hardening tracked in issue #58).
+ * Unit tests for the SSRF guard in {@link ImagePdfRenderer#isSafeUrl(String)} (issue #59; hardening
+ * tracked in issue #58).
  *
- * <p>Hosts are given as IP literals or hosts-file names so the tests never
- * depend on external DNS. Note the known TOCTOU gap (#58): {@code isSafeUrl}
- * resolves DNS separately from the subsequent fetch, so these tests cover the
- * check itself, not rebinding between check and use.
+ * <p>Hosts are given as IP literals or hosts-file names so the tests never depend on external DNS.
+ * Note the known TOCTOU gap (#58): {@code isSafeUrl} resolves DNS separately from the subsequent
+ * fetch, so these tests cover the check itself, not rebinding between check and use.
  */
 class ImagePdfRendererSsrfTest {
 
@@ -38,7 +37,8 @@ class ImagePdfRendererSsrfTest {
     @Test
     void blocksCloudMetadataEndpoints() {
         assertFalse(ImagePdfRenderer.isSafeUrl("http://169.254.169.254/latest/meta-data/"));
-        assertFalse(ImagePdfRenderer.isSafeUrl("http://metadata.google.internal/computeMetadata/v1/"));
+        assertFalse(
+                ImagePdfRenderer.isSafeUrl("http://metadata.google.internal/computeMetadata/v1/"));
     }
 
     // ── Private / special IP ranges ─────────────────────────────────────

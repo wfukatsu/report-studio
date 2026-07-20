@@ -1,22 +1,20 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 class FormResponseControllerTest {
 
@@ -54,7 +52,8 @@ class FormResponseControllerTest {
         return MAPPER.writeValueAsString(env);
     }
 
-    private String buildResponse(String id, String templateId, String submittedBy) throws Exception {
+    private String buildResponse(String id, String templateId, String submittedBy)
+            throws Exception {
         ObjectNode resp = MAPPER.createObjectNode();
         resp.put("id", id);
         resp.put("templateId", templateId);
@@ -71,7 +70,8 @@ class FormResponseControllerTest {
     void submit_returnsCreatedWithId() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.body()).thenReturn("{\"data\": {\"name\": \"Alice\"}}");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
 
         controller.submit(ctx);
 
@@ -103,7 +103,8 @@ class FormResponseControllerTest {
     @Test
     void submit_returns403WhenNotOwner() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "other-user")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "other-user")));
 
         controller.submit(ctx);
 
@@ -114,7 +115,8 @@ class FormResponseControllerTest {
     void submit_rejectsMissingDataField() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.body()).thenReturn("{\"other\": \"value\"}");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
 
         controller.submit(ctx);
 
@@ -126,7 +128,8 @@ class FormResponseControllerTest {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         // Body does NOT include submittedBy — server must stamp it
         when(ctx.body()).thenReturn("{\"data\": {\"name\": \"Alice\"}}");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
 
         controller.submit(ctx);
 
@@ -141,7 +144,8 @@ class FormResponseControllerTest {
         when(ctx.pathParam("id")).thenReturn("tmpl-legacy");
         when(ctx.body()).thenReturn("{\"data\": {\"x\": \"y\"}}");
         // Legacy template: no created_by field
-        when(definitionsRepo.get("tmpl-legacy")).thenReturn(Optional.of(buildEnvelope("tmpl-legacy", "Legacy", null)));
+        when(definitionsRepo.get("tmpl-legacy"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-legacy", "Legacy", null)));
 
         controller.submit(ctx);
 
@@ -156,11 +160,13 @@ class FormResponseControllerTest {
         when(ctx.queryParam("offset")).thenReturn(null);
         when(ctx.queryParam("limit")).thenReturn(null);
         when(ctx.queryParam("aggregate")).thenReturn(null);
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
-        when(responseRepo.listByGroupKey("tmpl-1")).thenReturn(List.of(
-            buildResponse("resp-1", "tmpl-1", "user-1"),
-            buildResponse("resp-2", "tmpl-1", "user-1")
-        ));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(responseRepo.listByGroupKey("tmpl-1"))
+                .thenReturn(
+                        List.of(
+                                buildResponse("resp-1", "tmpl-1", "user-1"),
+                                buildResponse("resp-2", "tmpl-1", "user-1")));
 
         controller.list(ctx);
 
@@ -174,7 +180,8 @@ class FormResponseControllerTest {
     @Test
     void list_returns403WhenNotOwner() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "other-user")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "other-user")));
 
         controller.list(ctx);
 
@@ -185,7 +192,8 @@ class FormResponseControllerTest {
     void list_returns422WhenTooManyResponses() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.queryParam(anyString())).thenReturn(null);
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
         // Create 2001 responses (above MAX_INLINE_RESPONSES=2000)
         List<String> many = new java.util.ArrayList<>();
         for (int i = 0; i < 2001; i++) {
@@ -204,7 +212,8 @@ class FormResponseControllerTest {
     void get_returnsResponseJson() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.pathParam("rid")).thenReturn("resp-1");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
         String respJson = buildResponse("resp-1", "tmpl-1", "user-1");
         when(responseRepo.get("resp-1")).thenReturn(Optional.of(respJson));
 
@@ -218,9 +227,11 @@ class FormResponseControllerTest {
     void get_returns404ForWrongTemplate() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.pathParam("rid")).thenReturn("resp-1");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
         // Response belongs to a different template
-        when(responseRepo.get("resp-1")).thenReturn(Optional.of(buildResponse("resp-1", "tmpl-OTHER", "user-1")));
+        when(responseRepo.get("resp-1"))
+                .thenReturn(Optional.of(buildResponse("resp-1", "tmpl-OTHER", "user-1")));
 
         controller.get(ctx);
 
@@ -233,9 +244,11 @@ class FormResponseControllerTest {
     void delete_allowsSubmitterToDelete() throws Exception {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.pathParam("rid")).thenReturn("resp-1");
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "owner-user")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "owner-user")));
         // user-1 is the submitter
-        when(responseRepo.get("resp-1")).thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "user-1")));
+        when(responseRepo.get("resp-1"))
+                .thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "user-1")));
 
         controller.delete(ctx);
 
@@ -247,9 +260,11 @@ class FormResponseControllerTest {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.pathParam("rid")).thenReturn("resp-1");
         // user-1 is the template owner
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "user-1")));
         // response was submitted by someone else
-        when(responseRepo.get("resp-1")).thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "other-user")));
+        when(responseRepo.get("resp-1"))
+                .thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "other-user")));
 
         controller.delete(ctx);
 
@@ -261,8 +276,10 @@ class FormResponseControllerTest {
         when(ctx.pathParam("id")).thenReturn("tmpl-1");
         when(ctx.pathParam("rid")).thenReturn("resp-1");
         // template owned by "owner-user", submitted by "submitter-user"
-        when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "owner-user")));
-        when(responseRepo.get("resp-1")).thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "submitter-user")));
+        when(definitionsRepo.get("tmpl-1"))
+                .thenReturn(Optional.of(buildEnvelope("tmpl-1", "Test", "owner-user")));
+        when(responseRepo.get("resp-1"))
+                .thenReturn(Optional.of(buildResponse("resp-1", "tmpl-1", "submitter-user")));
         // principal is user-1 (neither owner nor submitter)
 
         controller.delete(ctx);
@@ -281,14 +298,16 @@ class FormResponseControllerTest {
     }
 
     /** Wire the transactional read path so getWithinTx returns the given stored response. */
-    private com.scalar.db.api.DistributedTransaction stubStatusTx(String storedResponseJson) throws Exception {
+    private com.scalar.db.api.DistributedTransaction stubStatusTx(String storedResponseJson)
+            throws Exception {
         com.scalar.db.api.DistributedTransactionManager mgr =
                 mock(com.scalar.db.api.DistributedTransactionManager.class);
         com.scalar.db.api.DistributedTransaction tx =
                 mock(com.scalar.db.api.DistributedTransaction.class);
         when(responseRepo.getTransactionManager()).thenReturn(mgr);
         when(mgr.start()).thenReturn(tx);
-        when(responseRepo.getWithinTx(eq(tx), eq("resp-1"))).thenReturn(Optional.of(storedResponseJson));
+        when(responseRepo.getWithinTx(eq(tx), eq("resp-1")))
+                .thenReturn(Optional.of(storedResponseJson));
         return tx;
     }
 
@@ -379,7 +398,10 @@ class FormResponseControllerTest {
     void listDocuments_aboveInlineCap_returns422() {
         java.util.List<String> huge = new java.util.ArrayList<>();
         for (int i = 0; i < 2_001; i++) { // MAX_INLINE_RESPONSES = 2000
-            huge.add("{\"id\":\"r" + i + "\",\"templateId\":\"t\",\"status\":\"issued\",\"submittedBy\":\"user-1\"}");
+            huge.add(
+                    "{\"id\":\"r"
+                            + i
+                            + "\",\"templateId\":\"t\",\"status\":\"issued\",\"submittedBy\":\"user-1\"}");
         }
         when(responseRepo.list()).thenReturn(huge);
         when(ctx.status(anyInt())).thenReturn(ctx);

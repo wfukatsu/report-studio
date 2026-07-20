@@ -7,23 +7,23 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.apache.commons.jexl3.JexlException;
-
 import java.util.Map;
+import org.apache.commons.jexl3.JexlException;
 
 /**
  * Handles V2 expression evaluation endpoints:
+ *
  * <ul>
- *   <li>POST /api/v2/templates/{id}/evaluate  — calculation rule evaluation</li>
- *   <li>POST /api/v2/templates/{id}/validate  — validation rule evaluation</li>
+ *   <li>POST /api/v2/templates/{id}/evaluate — calculation rule evaluation
+ *   <li>POST /api/v2/templates/{id}/validate — validation rule evaluation
  * </ul>
  *
- * <p>evaluate: V2 {@code calculationRules} are adapted to V1 {@link CalculationEngine}
- * projection format via {@link #wrapForCalculation}.
+ * <p>evaluate: V2 {@code calculationRules} are adapted to V1 {@link CalculationEngine} projection
+ * format via {@link #wrapForCalculation}.
  *
- * <p>validate: V2 {@code validationRules} are evaluated directly via
- * {@link ExpressionEngine#evaluate} — V1 {@code ValidationEngine} handles form field
- * constraints (required/minLength), not JEXL expressions, so it is not used here.
+ * <p>validate: V2 {@code validationRules} are evaluated directly via {@link
+ * ExpressionEngine#evaluate} — V1 {@code ValidationEngine} handles form field constraints
+ * (required/minLength), not JEXL expressions, so it is not used here.
  *
  * <p>Rate limiting: 10 requests per 10 seconds per client IP (JEXL evaluation is CPU-intensive).
  */
@@ -52,9 +52,8 @@ public final class EvaluateController {
     // ── evaluate ──────────────────────────────────────────────────────────────
 
     /**
-     * POST /api/v2/templates/{id}/evaluate
-     * Body: {@code {definition, testData}}
-     * Returns: {@code {results: {key: value}, errors: {key: message}}}
+     * POST /api/v2/templates/{id}/evaluate Body: {@code {definition, testData}} Returns: {@code
+     * {results: {key: value}, errors: {key: message}}}
      */
     public void evaluate(Context ctx) throws Exception {
         if (!rateLimiter.isAllowed(ctx.ip())) {
@@ -79,7 +78,10 @@ public final class EvaluateController {
         JsonNode testData = req.path("testData");
         if (testData.isObject() && testData.size() > MAX_TEST_DATA_FIELDS) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
             return;
         }
 
@@ -101,8 +103,12 @@ public final class EvaluateController {
             String expr = rule.path("expression").asText("");
             if (expr.length() > MAX_EXPRESSION_LENGTH) {
                 ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Expression too long in rule '"
-                        + sanitize(rule.path("key").asText("")) + "'"));
+                ctx.json(
+                        Map.of(
+                                "error",
+                                "Expression too long in rule '"
+                                        + sanitize(rule.path("key").asText(""))
+                                        + "'"));
                 return;
             }
         }
@@ -148,12 +154,11 @@ public final class EvaluateController {
     // ── validate ─────────────────────────────────────────────────────────────
 
     /**
-     * POST /api/v2/templates/{id}/validate
-     * Body: {@code {definition, testData}}
-     * Returns: {@code {violations: [{ruleKey, message, elementId?}]}}
+     * POST /api/v2/templates/{id}/validate Body: {@code {definition, testData}} Returns: {@code
+     * {violations: [{ruleKey, message, elementId?}]}}
      *
-     * <p>A rule fires (produces a violation) when its {@code condition} expression evaluates
-     * to {@code true}. Empty / missing condition = no violation.
+     * <p>A rule fires (produces a violation) when its {@code condition} expression evaluates to
+     * {@code true}. Empty / missing condition = no violation.
      */
     public void validate(Context ctx) throws Exception {
         if (!rateLimiter.isAllowed(ctx.ip())) {
@@ -178,7 +183,10 @@ public final class EvaluateController {
         JsonNode testData = req.path("testData");
         if (testData.isObject() && testData.size() > MAX_TEST_DATA_FIELDS) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
             return;
         }
 
@@ -218,8 +226,8 @@ public final class EvaluateController {
     // ── Package-private helper (used by controller and tests) ─────────────────
 
     /**
-     * Wrap V2 {@code calculationRules} into V1 {@link CalculationEngine} projection format.
-     * V2 rule {@code key} maps to V1 {@code targetField}.
+     * Wrap V2 {@code calculationRules} into V1 {@link CalculationEngine} projection format. V2 rule
+     * {@code key} maps to V1 {@code targetField}.
      */
     static JsonNode wrapForCalculation(String templateId, JsonNode definition) {
         ObjectNode projection = MAPPER.createObjectNode();

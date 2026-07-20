@@ -1,10 +1,10 @@
 package com.report.server;
 
+import com.scalar.db.api.Delete;
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
-import com.scalar.db.api.Delete;
 import com.scalar.db.api.Put;
 import com.scalar.db.api.Result;
 import com.scalar.db.api.Scan;
@@ -12,16 +12,15 @@ import com.scalar.db.api.TableMetadata;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
 import com.scalar.db.service.TransactionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Generic ScalarDB-backed JSON blob repository.
- * Each table stores: id (TEXT PK) + json_data (TEXT) + updated_at (BIGINT).
+ * Generic ScalarDB-backed JSON blob repository. Each table stores: id (TEXT PK) + json_data (TEXT)
+ * + updated_at (BIGINT).
  */
 public final class JsonBlobRepository {
 
@@ -39,14 +38,17 @@ public final class JsonBlobRepository {
 
     /**
      * @param factory used only for admin/DDL ({@link #ensureTable}); never for per-operation
-     *                manager creation — {@code factory.getTransactionManager()} builds a fresh
-     *                {@code ConsensusCommitManager} (with its own connection pool) on every call
-     *                and never closes it, so it must not be called per request (issue #203).
-     * @param manager the single app-wide {@link DistributedTransactionManager}, owned and closed
-     *                by {@code AppWiring}. ScalarDB managers are thread-safe and meant to be reused.
+     *     manager creation — {@code factory.getTransactionManager()} builds a fresh {@code
+     *     ConsensusCommitManager} (with its own connection pool) on every call and never closes it,
+     *     so it must not be called per request (issue #203).
+     * @param manager the single app-wide {@link DistributedTransactionManager}, owned and closed by
+     *     {@code AppWiring}. ScalarDB managers are thread-safe and meant to be reused.
      */
-    public JsonBlobRepository(TransactionFactory factory, DistributedTransactionManager manager,
-                              String namespace, String table) {
+    public JsonBlobRepository(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            String namespace,
+            String table) {
         this.factory = factory;
         this.manager = manager;
         this.namespace = namespace;
@@ -61,14 +63,15 @@ public final class JsonBlobRepository {
                 log.info("Created namespace: {}", namespace);
             }
             if (!admin.tableExists(namespace, table)) {
-                TableMetadata metadata = TableMetadata.newBuilder()
-                        .addColumn(COL_ID, DataType.TEXT)
-                        .addColumn(COL_JSON, DataType.TEXT)
-                        .addColumn(COL_UPDATED_AT, DataType.BIGINT)
-                        .addColumn(COL_GROUP_KEY, DataType.TEXT)
-                        .addPartitionKey(COL_ID)
-                        .addSecondaryIndex(COL_GROUP_KEY)
-                        .build();
+                TableMetadata metadata =
+                        TableMetadata.newBuilder()
+                                .addColumn(COL_ID, DataType.TEXT)
+                                .addColumn(COL_JSON, DataType.TEXT)
+                                .addColumn(COL_UPDATED_AT, DataType.BIGINT)
+                                .addColumn(COL_GROUP_KEY, DataType.TEXT)
+                                .addPartitionKey(COL_ID)
+                                .addSecondaryIndex(COL_GROUP_KEY)
+                                .build();
                 admin.createTable(namespace, table, metadata);
                 log.info("Created table: {}.{}", namespace, table);
             }
@@ -83,11 +86,12 @@ public final class JsonBlobRepository {
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Get get = Get.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .partitionKey(Key.ofText(COL_ID, id))
-                    .build();
+            Get get =
+                    Get.newBuilder()
+                            .namespace(namespace)
+                            .table(table)
+                            .partitionKey(Key.ofText(COL_ID, id))
+                            .build();
             Optional<Result> result = tx.get(get);
             tx.commit();
             return result.map(r -> r.getText(COL_JSON));
@@ -103,14 +107,15 @@ public final class JsonBlobRepository {
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Put put = Put.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .partitionKey(Key.ofText(COL_ID, id))
-                    .textValue(COL_JSON, json)
-                    .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
-                    .enableImplicitPreRead()
-                    .build();
+            Put put =
+                    Put.newBuilder()
+                            .namespace(namespace)
+                            .table(table)
+                            .partitionKey(Key.ofText(COL_ID, id))
+                            .textValue(COL_JSON, json)
+                            .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                            .enableImplicitPreRead()
+                            .build();
             tx.put(put);
             tx.commit();
         } catch (Exception e) {
@@ -125,15 +130,16 @@ public final class JsonBlobRepository {
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Put put = Put.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .partitionKey(Key.ofText(COL_ID, id))
-                    .textValue(COL_JSON, json)
-                    .textValue(COL_GROUP_KEY, groupKey)
-                    .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
-                    .enableImplicitPreRead()
-                    .build();
+            Put put =
+                    Put.newBuilder()
+                            .namespace(namespace)
+                            .table(table)
+                            .partitionKey(Key.ofText(COL_ID, id))
+                            .textValue(COL_JSON, json)
+                            .textValue(COL_GROUP_KEY, groupKey)
+                            .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                            .enableImplicitPreRead()
+                            .build();
             tx.put(put);
             tx.commit();
         } catch (Exception e) {
@@ -148,11 +154,12 @@ public final class JsonBlobRepository {
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Scan scan = Scan.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .indexKey(Key.ofText(COL_GROUP_KEY, groupKey))
-                    .build();
+            Scan scan =
+                    Scan.newBuilder()
+                            .namespace(namespace)
+                            .table(table)
+                            .indexKey(Key.ofText(COL_GROUP_KEY, groupKey))
+                            .build();
             List<Result> results = tx.scan(scan);
             tx.commit();
             List<String> jsonList = new ArrayList<>();
@@ -162,7 +169,8 @@ public final class JsonBlobRepository {
             return jsonList;
         } catch (Exception e) {
             abortQuietly(tx);
-            throw new RepositoryException("Failed to list " + table + " by group key " + groupKey, e);
+            throw new RepositoryException(
+                    "Failed to list " + table + " by group key " + groupKey, e);
         }
     }
 
@@ -172,11 +180,7 @@ public final class JsonBlobRepository {
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Scan scan = Scan.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .all()
-                    .build();
+            Scan scan = Scan.newBuilder().namespace(namespace).table(table).all().build();
             List<Result> results = tx.scan(scan);
             tx.commit();
             List<String> jsonList = new ArrayList<>();
@@ -191,21 +195,22 @@ public final class JsonBlobRepository {
     }
 
     /**
-     * Delete entry by id. Idempotent for a missing row (ScalarDB delete does not require a
-     * prior read), but a genuine failure (DB unreachable, commit conflict) is propagated as
-     * {@link RepositoryException} — callers must not report success on a failed delete
-     * (issue #206: token revocation / response deletion previously returned a false "success").
+     * Delete entry by id. Idempotent for a missing row (ScalarDB delete does not require a prior
+     * read), but a genuine failure (DB unreachable, commit conflict) is propagated as {@link
+     * RepositoryException} — callers must not report success on a failed delete (issue #206: token
+     * revocation / response deletion previously returned a false "success").
      */
     public void delete(String id) {
         DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
-            Delete del = Delete.newBuilder()
-                    .namespace(namespace)
-                    .table(table)
-                    .partitionKey(Key.ofText(COL_ID, id))
-                    .build();
+            Delete del =
+                    Delete.newBuilder()
+                            .namespace(namespace)
+                            .table(table)
+                            .partitionKey(Key.ofText(COL_ID, id))
+                            .build();
             tx.delete(del);
             tx.commit();
             log.info("Deleted {}/{}", table, id);
@@ -218,9 +223,9 @@ public final class JsonBlobRepository {
     // ── Transaction-aware methods for atomic read-then-write ──────────────────
 
     /**
-     * Expose the shared app-wide manager for callers that need to run their own
-     * multi-step transaction (read-modify-write). Returns the single shared instance —
-     * callers must NOT close it (its lifecycle is owned by {@code AppWiring}).
+     * Expose the shared app-wide manager for callers that need to run their own multi-step
+     * transaction (read-modify-write). Returns the single shared instance — callers must NOT close
+     * it (its lifecycle is owned by {@code AppWiring}).
      */
     public DistributedTransactionManager getTransactionManager() {
         return manager;
@@ -228,51 +233,58 @@ public final class JsonBlobRepository {
 
     /** Read within an existing transaction (does NOT commit). */
     public Optional<String> getWithinTx(DistributedTransaction tx, String id) throws Exception {
-        Get get = Get.newBuilder()
-                .namespace(namespace)
-                .table(table)
-                .partitionKey(Key.ofText(COL_ID, id))
-                .build();
+        Get get =
+                Get.newBuilder()
+                        .namespace(namespace)
+                        .table(table)
+                        .partitionKey(Key.ofText(COL_ID, id))
+                        .build();
         Optional<Result> result = tx.get(get);
         return result.map(r -> r.getText(COL_JSON));
     }
 
     /** Write within an existing transaction (does NOT commit). */
     public void putWithinTx(DistributedTransaction tx, String id, String json) throws Exception {
-        Put put = Put.newBuilder()
-                .namespace(namespace)
-                .table(table)
-                .partitionKey(Key.ofText(COL_ID, id))
-                .textValue(COL_JSON, json)
-                .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
-                .enableImplicitPreRead()
-                .build();
+        Put put =
+                Put.newBuilder()
+                        .namespace(namespace)
+                        .table(table)
+                        .partitionKey(Key.ofText(COL_ID, id))
+                        .textValue(COL_JSON, json)
+                        .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                        .enableImplicitPreRead()
+                        .build();
         tx.put(put);
     }
 
     /**
      * Write within an existing transaction, preserving the group key (does NOT commit).
      *
-     * <p>Use this instead of {@link #putWithinTx(DistributedTransaction, String, String)}
-     * for grouped rows: the group-key-less variant leaves {@code group_key} null, which
-     * drops the row from {@link #listByGroupKey} results.
+     * <p>Use this instead of {@link #putWithinTx(DistributedTransaction, String, String)} for
+     * grouped rows: the group-key-less variant leaves {@code group_key} null, which drops the row
+     * from {@link #listByGroupKey} results.
      */
-    public void putWithinTx(DistributedTransaction tx, String id, String json, String groupKey) throws Exception {
-        Put put = Put.newBuilder()
-                .namespace(namespace)
-                .table(table)
-                .partitionKey(Key.ofText(COL_ID, id))
-                .textValue(COL_JSON, json)
-                .textValue(COL_GROUP_KEY, groupKey)
-                .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
-                .enableImplicitPreRead()
-                .build();
+    public void putWithinTx(DistributedTransaction tx, String id, String json, String groupKey)
+            throws Exception {
+        Put put =
+                Put.newBuilder()
+                        .namespace(namespace)
+                        .table(table)
+                        .partitionKey(Key.ofText(COL_ID, id))
+                        .textValue(COL_JSON, json)
+                        .textValue(COL_GROUP_KEY, groupKey)
+                        .bigIntValue(COL_UPDATED_AT, System.currentTimeMillis())
+                        .enableImplicitPreRead()
+                        .build();
         tx.put(put);
     }
 
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
-            try { tx.abort(); } catch (Exception ignored) { }
+            try {
+                tx.abort();
+            } catch (Exception ignored) {
+            }
         }
     }
 

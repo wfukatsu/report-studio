@@ -1,24 +1,21 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
-/**
- * Renders barcode elements to PDF using ZXing.
- */
+/** Renders barcode elements to PDF using ZXing. */
 public final class BarcodePdfRenderer implements ElementPdfRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(BarcodePdfRenderer.class);
@@ -30,9 +27,17 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         // Accept both the V1 projection shape ({@code props.value/props.format})
         // and the V2 element shape ({@code el.value} + {@code el.kind} as the
         // format) via elementTextOf, which reads top-level first then props
@@ -47,14 +52,19 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
             String format = elementTextOf(el, "format", "");
             if (format.isEmpty()) format = textOf(el, "kind", "CODE_128");
             BarcodeFormat bf = toBarcodeFormat(format);
-            BitMatrix matrix = new MultiFormatWriter().encode(value, bf, (int) (w / MM_TO_PT * 3), (int) (h / MM_TO_PT * 3));
+            BitMatrix matrix =
+                    new MultiFormatWriter()
+                            .encode(value, bf, (int) (w / MM_TO_PT * 3), (int) (h / MM_TO_PT * 3));
 
             float barWidth = w / matrix.getWidth();
             cs.setNonStrokingColor(Color.BLACK);
             for (int col = 0; col < matrix.getWidth(); col++) {
                 boolean hasBlack = false;
                 for (int row = 0; row < matrix.getHeight(); row++) {
-                    if (matrix.get(col, row)) { hasBlack = true; break; }
+                    if (matrix.get(col, row)) {
+                        hasBlack = true;
+                        break;
+                    }
                 }
                 if (hasBlack) {
                     cs.addRect(x + col * barWidth, y - h, barWidth, h);

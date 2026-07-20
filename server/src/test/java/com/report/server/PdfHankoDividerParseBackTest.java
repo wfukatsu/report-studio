@@ -1,18 +1,16 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 /**
  * Parse-back tests for the V2 hanko / divider renderers (issue #53 wiring).
  *
- * <p>Hanko assertions use text extraction; divider assertions inspect the
- * page content stream (stroke color / line width / dash operators), since
- * pure graphics never appear in extracted text.
+ * <p>Hanko assertions use text extraction; divider assertions inspect the page content stream
+ * (stroke color / line width / dash operators), since pure graphics never appear in extracted text.
  */
 class PdfHankoDividerParseBackTest {
 
@@ -31,12 +29,17 @@ class PdfHankoDividerParseBackTest {
                   %s
                 }]
               }]
-            }]}""".formatted(fields);
+            }]}"""
+                .formatted(fields);
     }
 
     @Test
     void verticalHanko_rendersEachCharacterExtractably() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(hankoJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                hankoJson(
+                                        """
             "text":"山田","shape":"circle","borderColor":"#cc0000","textColor":"#cc0000",
             "fontSize":4,"writingMode":"vertical-rl","doubleBorder":true""")));
         assertTrue(probe.pageContains(0, "山"), probe.pageText(0));
@@ -45,14 +48,20 @@ class PdfHankoDividerParseBackTest {
         // Vertical stack: 山 must sit above 田 at the same X
         PdfProbe.TextRun yama = probe.findRun(0, "山").orElseThrow();
         PdfProbe.TextRun ta = probe.findRun(0, "田").orElseThrow();
-        assertTrue(yama.baselineYMm() < ta.baselineYMm(),
-                "山 (y=%.1f) should be above 田 (y=%.1f)".formatted(yama.baselineYMm(), ta.baselineYMm()));
+        assertTrue(
+                yama.baselineYMm() < ta.baselineYMm(),
+                "山 (y=%.1f) should be above 田 (y=%.1f)"
+                        .formatted(yama.baselineYMm(), ta.baselineYMm()));
         assertEquals(yama.xMm(), ta.xMm(), 0.5f);
     }
 
     @Test
     void horizontalHanko_rendersTextOnOneLine() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(hankoJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                hankoJson(
+                                        """
             "text":"承認","shape":"rectangle","writingMode":"horizontal-tb","doubleBorder":false""")));
         assertTrue(probe.pageContains(0, "承認"), probe.pageText(0));
     }
@@ -67,7 +76,8 @@ class PdfHankoDividerParseBackTest {
     void hanko_bindingRefResolvesViaProps() throws IOException {
         // bindingRef resolution (SectionRenderHelper) injects props.text,
         // which must win over the design-time text field.
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"HankoBound",
               "sections":[{
@@ -88,7 +98,11 @@ class PdfHankoDividerParseBackTest {
 
     @Test
     void hanko_strokesUseSealRed() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(hankoJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                hankoJson(
+                                        """
             "text":"印","borderColor":"#cc0000","doubleBorder":true""")));
         // #cc0000 → PDFBox 3 emits "/DeviceRGB CS" + "0.8 0 0 SC" for the stroke color
         assertTrue(probe.pageContent(0).contains("0.8 0 0 SC"), probe.pageContent(0));
@@ -109,12 +123,17 @@ class PdfHankoDividerParseBackTest {
                   %s
                 }]
               }]
-            }]}""".formatted(fields);
+            }]}"""
+                .formatted(fields);
     }
 
     @Test
     void solidDivider_strokesWithColorAndThickness() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(dividerJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                dividerJson(
+                                        """
             "direction":"horizontal","color":"#cc0000","thickness":1,"dashStyle":"solid"
             """)));
         String content = probe.pageContent(0);
@@ -127,7 +146,11 @@ class PdfHankoDividerParseBackTest {
 
     @Test
     void dashedDivider_setsDashPattern() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(dividerJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                dividerJson(
+                                        """
             "direction":"horizontal","color":"#000000","thickness":0.5,"dashStyle":"dashed"
             """)));
         // 4mm/2mm → [11.34 5.67] 0 d
@@ -136,7 +159,11 @@ class PdfHankoDividerParseBackTest {
 
     @Test
     void verticalDivider_drawsAlongVerticalCenter() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(dividerJson("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                dividerJson(
+                                        """
             "direction":"vertical","color":"#000000","thickness":0.3,"dashStyle":"solid"
             """)));
         // Element x=20mm w=170mm → center x = 105mm ≈ 297.64pt (72/25.4 exact)

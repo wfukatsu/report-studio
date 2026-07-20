@@ -6,16 +6,15 @@ import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Public form endpoints — no admin auth required.
- * Password-protected forms use bcrypt verification + session cookies.
+ * Public form endpoints — no admin auth required. Password-protected forms use bcrypt verification
+ * + session cookies.
  */
 public final class PublicFormController {
 
@@ -43,9 +42,8 @@ public final class PublicFormController {
     }
 
     /**
-     * GET /api/v1/public/forms/{id}
-     * Returns form info (published status, whether password is required).
-     * Returns 404 for both not-found and not-published (enumeration protection).
+     * GET /api/v1/public/forms/{id} Returns form info (published status, whether password is
+     * required). Returns 404 for both not-found and not-published (enumeration protection).
      */
     public void getFormInfo(Context ctx) {
         String templateId = validateTemplateId(ctx);
@@ -58,21 +56,28 @@ public final class PublicFormController {
         }
 
         var meta = metaOpt.get();
-        var settings = meta.formSettings() != null ? meta.formSettings() : TemplateListRepository.FormSettings.DEFAULT;
+        var settings =
+                meta.formSettings() != null
+                        ? meta.formSettings()
+                        : TemplateListRepository.FormSettings.DEFAULT;
 
-        ctx.json(Map.of(
-            "templateId", meta.id(),
-            "name", meta.name(),
-            "published", true,
-            "passwordRequired", settings.passwordHash() != null && !settings.passwordHash().isBlank(),
-            "defaultMode", settings.defaultMode() != null ? settings.defaultMode() : "standard"
-        ));
+        ctx.json(
+                Map.of(
+                        "templateId",
+                        meta.id(),
+                        "name",
+                        meta.name(),
+                        "published",
+                        true,
+                        "passwordRequired",
+                        settings.passwordHash() != null && !settings.passwordHash().isBlank(),
+                        "defaultMode",
+                        settings.defaultMode() != null ? settings.defaultMode() : "standard"));
     }
 
     /**
-     * POST /api/v1/public/forms/{id}/verify
-     * Rate-limited bcrypt password verification.
-     * Sets form_session cookie on success.
+     * POST /api/v1/public/forms/{id}/verify Rate-limited bcrypt password verification. Sets
+     * form_session cookie on success.
      */
     public void verifyPassword(Context ctx) {
         String templateId = validateTemplateId(ctx);
@@ -94,7 +99,9 @@ public final class PublicFormController {
 
         var meta = metaOpt.get();
         var settings = meta.formSettings();
-        if (settings == null || settings.passwordHash() == null || settings.passwordHash().isBlank()) {
+        if (settings == null
+                || settings.passwordHash() == null
+                || settings.passwordHash().isBlank()) {
             // No password required — just grant access
             String token = sessionManager.createSession(templateId);
             setSessionCookie(ctx, token);
@@ -112,7 +119,8 @@ public final class PublicFormController {
         }
 
         // bcrypt verify
-        BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), settings.passwordHash());
+        BCrypt.Result result =
+                BCrypt.verifyer().verify(password.toCharArray(), settings.passwordHash());
         if (!result.verified) {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.json(Map.of("error", "Invalid password"));
@@ -127,8 +135,7 @@ public final class PublicFormController {
     }
 
     /**
-     * GET /api/v1/public/forms/{id}/projection
-     * Returns the projection for a published form.
+     * GET /api/v1/public/forms/{id}/projection Returns the projection for a published form.
      * Requires valid session if password-protected.
      */
     public void getProjection(Context ctx) {
@@ -172,9 +179,8 @@ public final class PublicFormController {
     }
 
     /**
-     * POST /api/v1/public/forms/{id}/submit
-     * Saves a form response for a published form.
-     * Requires valid session if password-protected.
+     * POST /api/v1/public/forms/{id}/submit Saves a form response for a published form. Requires
+     * valid session if password-protected.
      */
     public void submitResponse(Context ctx) {
         String templateId = validateTemplateId(ctx);
@@ -231,8 +237,8 @@ public final class PublicFormController {
 
     private static boolean requiresPassword(TemplateListRepository.TemplateMeta meta) {
         return meta.formSettings() != null
-            && meta.formSettings().passwordHash() != null
-            && !meta.formSettings().passwordHash().isBlank();
+                && meta.formSettings().passwordHash() != null
+                && !meta.formSettings().passwordHash().isBlank();
     }
 
     private boolean hasValidSession(Context ctx, String templateId) {

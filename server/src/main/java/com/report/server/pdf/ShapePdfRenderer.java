@@ -1,19 +1,18 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
- * Renders shape elements (rectangle, ellipse) to PDF.
- * Phase 2 will add rounded-rectangle, triangle, diamond.
+ * Renders shape elements (rectangle, ellipse) to PDF. Phase 2 will add rounded-rectangle, triangle,
+ * diamond.
  */
 public final class ShapePdfRenderer implements ElementPdfRenderer {
 
@@ -23,9 +22,17 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode props = el.get("props");
         String shapeType = props != null ? textOf(props, "shapeType", "rectangle") : "rectangle";
 
@@ -38,7 +45,8 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
 
         switch (shapeType) {
             case "ellipse" -> renderEllipse(cs, x, y, w, h);
-            case "rounded-rectangle", "roundedRectangle" -> renderRoundedRect(cs, x, y, w, h, Math.min(w, h) * 0.15f);
+            case "rounded-rectangle", "roundedRectangle" ->
+                    renderRoundedRect(cs, x, y, w, h, Math.min(w, h) * 0.15f);
             case "triangle" -> renderTriangle(cs, x, y, w, h);
             case "diamond" -> renderDiamond(cs, x, y, w, h);
             case "polygon" -> renderPolygon(cs, x, y, w, h, 6);
@@ -51,7 +59,8 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.restoreGraphicsState();
     }
 
-    private static void renderEllipse(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
+    private static void renderEllipse(PDPageContentStream cs, float x, float y, float w, float h)
+            throws IOException {
         float cx = x + w / 2;
         float cy = y - h / 2;
         float rx = w / 2;
@@ -65,7 +74,9 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void renderRoundedRect(PDPageContentStream cs, float x, float y, float w, float h, float r) throws IOException {
+    private static void renderRoundedRect(
+            PDPageContentStream cs, float x, float y, float w, float h, float r)
+            throws IOException {
         float bottom = y - h;
         float k = 0.5522848f * r;
         cs.moveTo(x + r, y);
@@ -81,7 +92,8 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void renderTriangle(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
+    private static void renderTriangle(PDPageContentStream cs, float x, float y, float w, float h)
+            throws IOException {
         float midX = x + w / 2f;
         float bottom = y - h;
         cs.moveTo(midX, y);
@@ -91,7 +103,8 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void renderDiamond(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
+    private static void renderDiamond(PDPageContentStream cs, float x, float y, float w, float h)
+            throws IOException {
         float midX = x + w / 2f;
         float midY = y - h / 2f;
         cs.moveTo(midX, y);
@@ -102,7 +115,9 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void renderPolygon(PDPageContentStream cs, float x, float y, float w, float h, int sides) throws IOException {
+    private static void renderPolygon(
+            PDPageContentStream cs, float x, float y, float w, float h, int sides)
+            throws IOException {
         if (sides < 3) return;
         float cx = x + w / 2f;
         float cy = y - h / 2f;

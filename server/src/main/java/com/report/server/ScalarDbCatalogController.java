@@ -5,21 +5,20 @@ import com.scalar.db.api.TableMetadata;
 import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.ServiceUnavailableResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * GET /api/v2/scalardb/catalog
  *
- * <p>Returns the complete ScalarDB catalog the frontend needs in order to let a user
- * bind a {@code SchemaGroup} to an existing table. The response is a single nested
- * structure (one round-trip) shaped as:
+ * <p>Returns the complete ScalarDB catalog the frontend needs in order to let a user bind a {@code
+ * SchemaGroup} to an existing table. The response is a single nested structure (one round-trip)
+ * shaped as:
  *
  * <pre>{@code
  * {
@@ -42,18 +41,18 @@ import java.util.Set;
  * }
  * }</pre>
  *
- * <p><b>Plain columns omit {@code keyType} entirely</b> — the frontend Zod schema
- * treats an absent {@code keyType} as "regular column", keeping the union semantically
- * clean (no {@code 'column'} sentinel value).
+ * <p><b>Plain columns omit {@code keyType} entirely</b> — the frontend Zod schema treats an absent
+ * {@code keyType} as "regular column", keeping the union semantically clean (no {@code 'column'}
+ * sentinel value).
  *
- * <p><b>Caveat carried forward from ScalarDB 3.14:</b> {@code getNamespaceNames()}
- * returns only namespaces that contain at least one table. Empty namespaces are
- * invisible here; the frontend surfaces this with a specific empty-state copy.
+ * <p><b>Caveat carried forward from ScalarDB 3.14:</b> {@code getNamespaceNames()} returns only
+ * namespaces that contain at least one table. Empty namespaces are invisible here; the frontend
+ * surfaces this with a specific empty-state copy.
  *
- * <p>Failures of the underlying ScalarDB admin API are mapped to HTTP 503
- * ({@link ServiceUnavailableResponse}) because from the client's perspective a catalog
- * listing failure always means "ScalarDB is unreachable" — there is no 400-class
- * input this endpoint can reject (it takes no body and no path params).
+ * <p>Failures of the underlying ScalarDB admin API are mapped to HTTP 503 ({@link
+ * ServiceUnavailableResponse}) because from the client's perspective a catalog listing failure
+ * always means "ScalarDB is unreachable" — there is no 400-class input this endpoint can reject (it
+ * takes no body and no path params).
  */
 public final class ScalarDbCatalogController {
 
@@ -76,16 +75,13 @@ public final class ScalarDbCatalogController {
 
                 for (String tableName : tableNames) {
                     TableMetadata meta = admin.getTableMetadata(namespace, tableName);
-                    tables.add(Map.of(
-                            "name", tableName,
-                            "columns", buildColumns(meta)
-                    ));
+                    tables.add(Map.of("name", tableName, "columns", buildColumns(meta)));
                 }
 
-                namespaces.add(Map.of(
-                        "name", namespace,
-                        "tables", tables
-                ));
+                namespaces.add(
+                        Map.of(
+                                "name", namespace,
+                                "tables", tables));
             }
 
             ctx.json(Map.of("namespaces", namespaces));
@@ -112,7 +108,8 @@ public final class ScalarDbCatalogController {
             column.put("name", columnName);
             column.put("type", meta.getColumnDataType(columnName).name());
 
-            String keyType = classifyKeyType(columnName, partitionKeys, clusteringKeys, indexColumns);
+            String keyType =
+                    classifyKeyType(columnName, partitionKeys, clusteringKeys, indexColumns);
             if (keyType != null) {
                 column.put("keyType", keyType);
             }
@@ -122,9 +119,9 @@ public final class ScalarDbCatalogController {
     }
 
     /**
-     * Returns the ScalarDb key-role name for a column, or {@code null} if the column
-     * has no key role (a regular column). The client encodes "no key role" as an
-     * absent {@code keyType} field, not a {@code 'column'} sentinel.
+     * Returns the ScalarDb key-role name for a column, or {@code null} if the column has no key
+     * role (a regular column). The client encodes "no key role" as an absent {@code keyType} field,
+     * not a {@code 'column'} sentinel.
      */
     private static String classifyKeyType(
             String columnName,

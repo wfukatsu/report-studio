@@ -1,20 +1,18 @@
 package com.report.server;
 
 import com.report.server.job.JobStatus;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Minimal in-process metrics registry — lightweight counters and timers exposed
- * by the admin metrics endpoint. Intentionally dependency-free (no Micrometer /
- * Prometheus): the goal is basic operational visibility for self-hosted adopters,
- * not a full metrics pipeline.
+ * Minimal in-process metrics registry — lightweight counters and timers exposed by the admin
+ * metrics endpoint. Intentionally dependency-free (no Micrometer / Prometheus): the goal is basic
+ * operational visibility for self-hosted adopters, not a full metrics pipeline.
  *
- * <p>All counters are process-lifetime totals (reset on restart) and thread-safe.
- * Instrumentation call sites use the shared {@link #GLOBAL} instance; tests may
- * construct their own instance for isolation.
+ * <p>All counters are process-lifetime totals (reset on restart) and thread-safe. Instrumentation
+ * call sites use the shared {@link #GLOBAL} instance; tests may construct their own instance for
+ * isolation.
  */
 public final class Metrics {
 
@@ -41,7 +39,7 @@ public final class Metrics {
      * Record one PDF render.
      *
      * @param durationMillis wall-clock duration of the render
-     * @param success        {@code true} if the render completed, {@code false} if it threw
+     * @param success {@code true} if the render completed, {@code false} if it threw
      */
     public void recordPdfRender(long durationMillis, boolean success) {
         pdfRenderCount.incrementAndGet();
@@ -57,7 +55,9 @@ public final class Metrics {
             case COMPLETED -> jobCompletedCount.incrementAndGet();
             case FAILED -> jobFailedCount.incrementAndGet();
             case CANCELLED -> jobCancelledCount.incrementAndGet();
-            default -> { /* PENDING / PROCESSING are not outcomes */ }
+            default -> {
+                /* PENDING / PROCESSING are not outcomes */
+            }
         }
     }
 

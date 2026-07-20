@@ -1,21 +1,19 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Parse-back tests for CalculationEngine results reaching the PDF (issue #59).
  *
- * <p>Replicates the enrichment seam used by PdfController /
- * StatelessPdfController: {@code CalculationEngine.apply} enriches
- * {@code _formData}, then the projection is rendered and the computed values
- * are asserted in the extracted text.
+ * <p>Replicates the enrichment seam used by PdfController / StatelessPdfController: {@code
+ * CalculationEngine.apply} enriches {@code _formData}, then the projection is rendered and the
+ * computed values are asserted in the extracted text.
  */
 class PdfCalculationParseBackTest {
 
@@ -24,7 +22,8 @@ class PdfCalculationParseBackTest {
     /** Same three lines as the controllers' private enrichWithCalculations. */
     private static PdfProbe renderEnriched(String projectionJson) throws Exception {
         ObjectNode projNode = (ObjectNode) MAPPER.readTree(projectionJson);
-        Map<String, Object> enriched = CalculationEngine.apply(projNode, projNode.path("_formData"));
+        Map<String, Object> enriched =
+                CalculationEngine.apply(projNode, projNode.path("_formData"));
         projNode.set("_formData", MAPPER.valueToTree(enriched));
         return PdfProbe.parse(PdfRenderer.render(MAPPER.writeValueAsString(projNode)));
     }
@@ -46,12 +45,16 @@ class PdfCalculationParseBackTest {
                 ]
               }]
             }],
-            "_formData":{"price":1500,"quantity":3}}""".formatted(rules);
+            "_formData":{"price":1500,"quantity":3}}"""
+                .formatted(rules);
     }
 
     @Test
     void calculatedField_rendersInPdf() throws Exception {
-        PdfProbe probe = renderEnriched(projection("""
+        PdfProbe probe =
+                renderEnriched(
+                        projection(
+                                """
             {"id":"r1","targetField":"subtotal","expression":"price * quantity","roundingPolicy":"none"}"""));
         assertTrue(probe.pageContains(0, "4500"), probe.pageText(0));
     }
@@ -59,7 +62,10 @@ class PdfCalculationParseBackTest {
     @Test
     void chainedRules_evaluateInDependencyOrder() throws Exception {
         // tax depends on subtotal — topological sort must order them correctly
-        PdfProbe probe = renderEnriched(projection("""
+        PdfProbe probe =
+                renderEnriched(
+                        projection(
+                                """
             {"id":"r2","targetField":"tax","expression":"subtotal * 0.1","roundingPolicy":"floor"},
             {"id":"r1","targetField":"subtotal","expression":"price * quantity","roundingPolicy":"none"}"""));
         assertTrue(probe.pageContains(0, "4500"), probe.pageText(0));
@@ -70,7 +76,9 @@ class PdfCalculationParseBackTest {
 
     @Test
     void floorRounding_truncatesFraction() throws Exception {
-        PdfProbe probe = renderEnriched("""
+        PdfProbe probe =
+                renderEnriched(
+                        """
             {"templates":[{
               "id":"t1","name":"Floor",
               "calculationRules":[
@@ -93,7 +101,9 @@ class PdfCalculationParseBackTest {
     @Test
     void halfEvenRoundingWithScale_rendersDecimalResult() throws Exception {
         // 1234 / 8 = 154.25 → half_even at scale 1 → 154.2 (#57)
-        PdfProbe probe = renderEnriched("""
+        PdfProbe probe =
+                renderEnriched(
+                        """
             {"templates":[{
               "id":"t1","name":"HalfEven",
               "calculationRules":[

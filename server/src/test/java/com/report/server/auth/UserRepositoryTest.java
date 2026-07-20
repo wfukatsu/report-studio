@@ -1,11 +1,5 @@
 package com.report.server.auth;
 
-import com.report.server.JsonBlobRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,16 +8,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.report.server.JsonBlobRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 /**
- * Tests for {@link UserRepository#ensureDefaultUser(String)} — the admin
- * bootstrap must never silently reset a password that was changed from the
- * admin UI (issue #70 security audit).
+ * Tests for {@link UserRepository#ensureDefaultUser(String)} — the admin bootstrap must never
+ * silently reset a password that was changed from the admin UI (issue #70 security audit).
  */
 class UserRepositoryTest {
 
     private static final String EXISTING_ADMIN_JSON =
             "{\"userId\":\"admin\",\"displayName\":\"管理者\","
-            + "\"passwordHash\":\"$2a$12$existinghash\",\"roles\":[\"admin\",\"user\"]}";
+                    + "\"passwordHash\":\"$2a$12$existinghash\",\"roles\":[\"admin\",\"user\"]}";
 
     private JsonBlobRepository blob;
     private UserRepository repo;

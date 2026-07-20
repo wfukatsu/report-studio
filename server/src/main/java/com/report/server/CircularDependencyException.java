@@ -3,8 +3,8 @@ package com.report.server;
 import java.util.Set;
 
 /**
- * Thrown when CalculationEngine detects a circular dependency among CalculationRules.
- * Callers should return HTTP 422 with {@code "error": "circular_dependency", "cycle": [...]}.
+ * Thrown when CalculationEngine detects a circular dependency among CalculationRules. Callers
+ * should return HTTP 422 with {@code "error": "circular_dependency", "cycle": [...]}.
  */
 public final class CircularDependencyException extends RuntimeException {
 

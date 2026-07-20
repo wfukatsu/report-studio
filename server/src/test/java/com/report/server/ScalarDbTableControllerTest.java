@@ -1,5 +1,9 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scalar.db.api.DistributedTransactionAdmin;
@@ -16,17 +20,11 @@ import io.javalin.http.UnauthorizedResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.LinkedHashSet;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for {@link ScalarDbTableController}.
  *
- * <p>Uses the hand-rolled Mockito {@link Context} pattern from
- * {@link ScalarDbCatalogControllerTest}. No {@code JavalinTest}.
+ * <p>Uses the hand-rolled Mockito {@link Context} pattern from {@link
+ * ScalarDbCatalogControllerTest}. No {@code JavalinTest}.
  */
 class ScalarDbTableControllerTest {
 
@@ -48,15 +46,21 @@ class ScalarDbTableControllerTest {
         controller = new ScalarDbTableController(factory);
         ctx = mock(Context.class);
 
-        doAnswer(inv -> {
-            capturedJson = inv.getArguments()[0];
-            return null;
-        }).when(ctx).json(any());
+        doAnswer(
+                        inv -> {
+                            capturedJson = inv.getArguments()[0];
+                            return null;
+                        })
+                .when(ctx)
+                .json(any());
 
-        doAnswer(inv -> {
-            capturedStatus = (int) inv.getArguments()[0];
-            return ctx;
-        }).when(ctx).status(anyInt());
+        doAnswer(
+                        inv -> {
+                            capturedStatus = (int) inv.getArguments()[0];
+                            return ctx;
+                        })
+                .when(ctx)
+                .status(anyInt());
 
         // Default: namespace does not exist, table does not exist
         when(admin.namespaceExists(anyString())).thenReturn(false);
@@ -86,15 +90,17 @@ class ScalarDbTableControllerTest {
                   "clusteringKeys": [],
                   "secondaryIndexes": []
                 }
-                """.formatted(ns, table);
+                """
+                .formatted(ns, table);
     }
 
     private void stubTableMetadataRoundTrip(String ns, String table) throws Exception {
-        TableMetadata meta = TableMetadata.newBuilder()
-                .addColumn("id", DataType.BIGINT)
-                .addColumn("name", DataType.TEXT)
-                .addPartitionKey("id")
-                .build();
+        TableMetadata meta =
+                TableMetadata.newBuilder()
+                        .addColumn("id", DataType.BIGINT)
+                        .addColumn("name", DataType.TEXT)
+                        .addPartitionKey("id")
+                        .build();
         when(admin.getTableMetadata(ns, table)).thenReturn(meta);
     }
 
@@ -150,7 +156,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void missingNamespace_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "tableName": "users",
                   "columns": [{ "name": "id", "type": "BIGINT" }],
@@ -181,7 +188,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void missingPartitionKey_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -202,7 +210,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void duplicateColumnNames_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -226,7 +235,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void unknownColumnInPartitionKey_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -246,7 +256,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void columnsNotArray_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -275,7 +286,8 @@ class ScalarDbTableControllerTest {
         }
         cols.append("]");
 
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -284,7 +296,8 @@ class ScalarDbTableControllerTest {
                   "clusteringKeys": [],
                   "secondaryIndexes": []
                 }
-                """.formatted(cols));
+                """
+                        .formatted(cols));
 
         controller.createTable(ctx);
 
@@ -296,7 +309,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void duplicatePartitionKeyEntries_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -332,7 +346,8 @@ class ScalarDbTableControllerTest {
     void retriableException_503WithCorrelationId() throws Exception {
         setBody(validBody("app", "users"));
         doThrow(new RetriableExecutionException("connection timeout"))
-                .when(admin).createTable(anyString(), anyString(), any(TableMetadata.class));
+                .when(admin)
+                .createTable(anyString(), anyString(), any(TableMetadata.class));
 
         assertThrows(ServiceUnavailableResponse.class, () -> controller.createTable(ctx));
     }
@@ -342,7 +357,8 @@ class ScalarDbTableControllerTest {
     @Test
     void authorizationException_403() throws Exception {
         setBody(validBody("app", "users"));
-        ExecutionException ex = new ExecutionException("permission denied", false, false, true, null);
+        ExecutionException ex =
+                new ExecutionException("permission denied", false, false, true, null);
         doThrow(ex).when(admin).createTable(anyString(), anyString(), any(TableMetadata.class));
 
         assertThrows(ForbiddenResponse.class, () -> controller.createTable(ctx));
@@ -365,7 +381,8 @@ class ScalarDbTableControllerTest {
     void ddlRejectionException_500() throws Exception {
         setBody(validBody("app", "users"));
         doThrow(new ExecutionException("DDL rejected: reserved word"))
-                .when(admin).createTable(anyString(), anyString(), any(TableMetadata.class));
+                .when(admin)
+                .createTable(anyString(), anyString(), any(TableMetadata.class));
         // Ensure TOCTOU check returns false
         when(admin.tableExists("app", "users")).thenReturn(false);
 
@@ -379,10 +396,11 @@ class ScalarDbTableControllerTest {
         setBody(validBody("app", "users"));
         // First check: does not exist (pre-flight passes)
         when(admin.tableExists("app", "users"))
-                .thenReturn(false)  // pre-flight
-                .thenReturn(true);  // TOCTOU re-check in catch block
+                .thenReturn(false) // pre-flight
+                .thenReturn(true); // TOCTOU re-check in catch block
         doThrow(new ExecutionException("concurrent create"))
-                .when(admin).createTable(anyString(), anyString(), any(TableMetadata.class));
+                .when(admin)
+                .createTable(anyString(), anyString(), any(TableMetadata.class));
 
         controller.createTable(ctx);
 
@@ -420,7 +438,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void invalidIdentifier_inPartitionKey_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -439,7 +458,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void invalidIdentifier_inClusteringKey_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",
@@ -461,7 +481,8 @@ class ScalarDbTableControllerTest {
 
     @Test
     void invalidIdentifier_inSecondaryIndex_400() throws Exception {
-        setBody("""
+        setBody(
+                """
                 {
                   "namespace": "app",
                   "tableName": "users",

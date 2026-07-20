@@ -1,21 +1,5 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.report.server.job.JobRecord;
-import com.report.server.job.JobStore;
-import com.scalar.db.api.DistributedTransactionAdmin;
-import com.scalar.db.service.TransactionFactory;
-import io.javalin.http.Context;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +8,21 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.job.JobRecord;
+import com.report.server.job.JobStore;
+import com.scalar.db.api.DistributedTransactionAdmin;
+import com.scalar.db.service.TransactionFactory;
+import io.javalin.http.Context;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 
 /** Unit tests for {@link HealthController} — detailed health + metrics endpoints. */
 class HealthControllerTest {
@@ -37,8 +36,7 @@ class HealthControllerTest {
     private Context ctx;
     private HealthController controller;
 
-    @TempDir
-    Path jobsRoot;
+    @TempDir Path jobsRoot;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -76,7 +74,9 @@ class HealthControllerTest {
 
         verify(ctx).status(200); // not 503
         JsonNode body = capturedJson();
-        assertNotEquals("DOWN", body.get("status").asText()); // UP (or DEGRADED only if the test disk is near-full)
+        assertNotEquals(
+                "DOWN",
+                body.get("status").asText()); // UP (or DEGRADED only if the test disk is near-full)
         assertEquals("up", body.get("scalardb").get("status").asText());
         assertEquals(0, body.get("jobs").get("backlog").asLong());
         assertTrue(body.get("scalardb").has("latencyMillis"));
@@ -109,7 +109,8 @@ class HealthControllerTest {
         verify(ctx).status(200); // degraded is still reachable, not down
         JsonNode body = capturedJson();
         assertEquals("DEGRADED", body.get("status").asText());
-        assertEquals(HealthController.QUEUE_BACKLOG_DEGRADED, body.get("jobs").get("backlog").asLong());
+        assertEquals(
+                HealthController.QUEUE_BACKLOG_DEGRADED, body.get("jobs").get("backlog").asLong());
         assertTrue(body.get("jobs").get("degraded").asBoolean());
     }
 

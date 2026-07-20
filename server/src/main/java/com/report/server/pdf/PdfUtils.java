@@ -1,15 +1,12 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-
-/**
- * Shared utilities for PDF element renderers.
- */
+/** Shared utilities for PDF element renderers. */
 public final class PdfUtils {
 
     private PdfUtils() {}
@@ -39,8 +36,8 @@ public final class PdfUtils {
     }
 
     /**
-     * Read a field that V2 elements store at the element top level and V1
-     * elements store in {@code props}: top level wins, then props, then default.
+     * Read a field that V2 elements store at the element top level and V1 elements store in {@code
+     * props}: top level wins, then props, then default.
      */
     public static String elementTextOf(JsonNode el, String field, String defaultValue) {
         String v = textOf(el, field, "");
@@ -66,9 +63,9 @@ public final class PdfUtils {
     }
 
     /**
-     * Whether a style/props node requests bold. Recognizes both the boolean
-     * {@code bold: true} and the CSS-style {@code fontWeight: "bold"} the
-     * frontend TextStyle uses — so bold authored either way renders bold.
+     * Whether a style/props node requests bold. Recognizes both the boolean {@code bold: true} and
+     * the CSS-style {@code fontWeight: "bold"} the frontend TextStyle uses — so bold authored
+     * either way renders bold.
      */
     public static boolean isBold(JsonNode styleOrProps) {
         if (styleOrProps == null) return false;
@@ -111,16 +108,22 @@ public final class PdfUtils {
     }
 
     /**
-     * Greedy word/character wrapping to fit {@code maxWidth} (issue #56).
-     * Honors explicit newlines, breaks Latin runs at spaces when possible,
-     * and falls back to per-character breaks (CJK {@code break-all} semantics).
-     * Returns at least one line (possibly empty).
+     * Greedy word/character wrapping to fit {@code maxWidth} (issue #56). Honors explicit newlines,
+     * breaks Latin runs at spaces when possible, and falls back to per-character breaks (CJK {@code
+     * break-all} semantics). Returns at least one line (possibly empty).
      */
-    public static java.util.List<String> wrapText(String text, PDFont font, float fontSize, float maxWidth) {
+    public static java.util.List<String> wrapText(
+            String text, PDFont font, float fontSize, float maxWidth) {
         java.util.List<String> lines = new java.util.ArrayList<>();
-        if (text == null) { lines.add(""); return lines; }
+        if (text == null) {
+            lines.add("");
+            return lines;
+        }
         for (String paragraph : text.split("\n", -1)) {
-            if (paragraph.isEmpty()) { lines.add(""); continue; }
+            if (paragraph.isEmpty()) {
+                lines.add("");
+                continue;
+            }
             StringBuilder line = new StringBuilder();
             int lastBreak = -1; // index in `line` after the last space (Latin break point)
             for (int i = 0; i < paragraph.length(); ) {
@@ -128,7 +131,8 @@ public final class PdfUtils {
                 String ch = new String(Character.toChars(cp));
                 float w = safeWidth(font, line + ch, fontSize);
                 if (w > maxWidth && line.length() > 0) {
-                    boolean latinBreak = lastBreak > 0 && cp < 0x3000 && !Character.isWhitespace(cp);
+                    boolean latinBreak =
+                            lastBreak > 0 && cp < 0x3000 && !Character.isWhitespace(cp);
                     if (latinBreak) {
                         lines.add(line.substring(0, lastBreak).stripTrailing());
                         line.delete(0, lastBreak);
@@ -156,8 +160,8 @@ public final class PdfUtils {
     }
 
     /**
-     * Truncate text to fit within maxWidth. O(n) single-pass accumulation
-     * instead of O(n log n) binary search with repeated substring scans.
+     * Truncate text to fit within maxWidth. O(n) single-pass accumulation instead of O(n log n)
+     * binary search with repeated substring scans.
      */
     public static String truncateToWidth(String text, PDFont font, float fontSize, float maxWidth) {
         float scale = fontSize / 1000f;
@@ -178,22 +182,30 @@ public final class PdfUtils {
     }
 
     /**
-     * Draw a uniform grid. All lines are batched into a single stroke() call.
-     * Draws both outer border and inner dividers.
+     * Draw a uniform grid. All lines are batched into a single stroke() call. Draws both outer
+     * border and inner dividers.
      *
-     * @param cs        content stream
-     * @param x         left edge (PDF points)
-     * @param y         top edge (PDF points, PDF coordinate space)
-     * @param w         total width
-     * @param h         total height
-     * @param cols      number of columns
-     * @param rows      number of rows
+     * @param cs content stream
+     * @param x left edge (PDF points)
+     * @param y top edge (PDF points, PDF coordinate space)
+     * @param w total width
+     * @param h total height
+     * @param cols number of columns
+     * @param rows number of rows
      * @param lineWidth stroke width
      * @param lineColor stroke color
      */
-    public static void drawGrid(PDPageContentStream cs, float x, float y,
-                                float w, float h, int cols, int rows,
-                                float lineWidth, Color lineColor) throws IOException {
+    public static void drawGrid(
+            PDPageContentStream cs,
+            float x,
+            float y,
+            float w,
+            float h,
+            int cols,
+            int rows,
+            float lineWidth,
+            Color lineColor)
+            throws IOException {
         float colW = w / cols;
         float rowH = h / rows;
 
@@ -218,7 +230,8 @@ public final class PdfUtils {
     }
 
     /** Render a light-gray border rectangle (fallback for unsupported kinds). */
-    public static void renderBorder(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
+    public static void renderBorder(PDPageContentStream cs, float x, float y, float w, float h)
+            throws IOException {
         cs.setStrokingColor(Color.LIGHT_GRAY);
         cs.setLineWidth(0.5f);
         cs.addRect(x, y - h, w, h);

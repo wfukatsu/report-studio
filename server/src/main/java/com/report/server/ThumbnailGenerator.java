@@ -1,16 +1,5 @@
 package com.report.server;
 
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.rendering.ImageType;
-import org.apache.pdfbox.rendering.PDFRenderer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -20,10 +9,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Iterator;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Generates JPEG thumbnails from PDF bytes.
- * Renders first page at 150 DPI then scales to 400px width for quality.
+ * Generates JPEG thumbnails from PDF bytes. Renders first page at 150 DPI then scales to 400px
+ * width for quality.
  */
 public final class ThumbnailGenerator {
 
@@ -37,6 +36,7 @@ public final class ThumbnailGenerator {
 
     /**
      * Generate a JPEG thumbnail from PDF bytes.
+     *
      * @return JPEG bytes, or empty array on failure
      */
     public static byte[] generate(byte[] pdfBytes) {
@@ -52,9 +52,7 @@ public final class ThumbnailGenerator {
         }
     }
 
-    /**
-     * Compute ETag from projection JSON (SHA-256, 16 hex chars).
-     */
+    /** Compute ETag from projection JSON (SHA-256, 16 hex chars). */
     public static String computeETag(String projectionJson) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -69,7 +67,8 @@ public final class ThumbnailGenerator {
         BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = scaled.createGraphics();
         try {
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g.drawImage(source, 0, 0, width, height, null);
         } finally {

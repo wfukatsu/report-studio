@@ -1,30 +1,31 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
 /**
- * Parse-back tests for multi_row_table splitPolicy (issue #55):
- * {@code forbidden} keeps whole units together; {@code allowed-between-rows}
- * lets a unit's physical rows straddle a page boundary.
+ * Parse-back tests for multi_row_table splitPolicy (issue #55): {@code forbidden} keeps whole units
+ * together; {@code allowed-between-rows} lets a unit's physical rows straddle a page boundary.
  */
 class PdfSplitPolicyParseBackTest {
 
     /**
-     * multi_row_table: 2-row units (name at y=40, desc at y=50, each 10mm →
-     * unit extent 20mm). Section y=30 height=50 → bottom edge 80, available
-     * from region top (40) = 40mm. Physical-row height = 10mm.
-     * forbidden: floor(40/20)=2 units/page. allowed: floor(40/10)=4 rows/page.
+     * multi_row_table: 2-row units (name at y=40, desc at y=50, each 10mm → unit extent 20mm).
+     * Section y=30 height=50 → bottom edge 80, available from region top (40) = 40mm. Physical-row
+     * height = 10mm. forbidden: floor(40/20)=2 units/page. allowed: floor(40/10)=4 rows/page.
      */
     private static String json(String policy, int records) {
         StringBuilder items = new StringBuilder();
         for (int i = 1; i <= records; i++) {
             if (i > 1) items.append(',');
-            items.append("{\"name\":\"名前").append(i).append("\",\"desc\":\"説明").append(i).append("\"}");
+            items.append("{\"name\":\"名前")
+                    .append(i)
+                    .append("\",\"desc\":\"説明")
+                    .append(i)
+                    .append("\"}");
         }
         return """
             {"templates":[{
@@ -42,7 +43,8 @@ class PdfSplitPolicyParseBackTest {
                 ]
               }]
             }],
-            "_formData":{"records":[%s]}}""".formatted(policy, items);
+            "_formData":{"records":[%s]}}"""
+                .formatted(policy, items);
     }
 
     @Test
@@ -78,9 +80,12 @@ class PdfSplitPolicyParseBackTest {
         String j = json("allowed-between-rows", 2).replace("\"height\":50,", "\"height\":40,");
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(j));
         assertEquals(2, probe.pageCount());
-        assertTrue(probe.pageContains(0, "名前2"), "unit 2's first row on page 1: " + probe.pageText(0));
+        assertTrue(
+                probe.pageContains(0, "名前2"), "unit 2's first row on page 1: " + probe.pageText(0));
         assertFalse(probe.pageContains(0, "説明2"), "unit 2's second row must spill to page 2");
-        assertTrue(probe.pageContains(1, "説明2"), "unit 2's second row on page 2: " + probe.pageText(1));
+        assertTrue(
+                probe.pageContains(1, "説明2"),
+                "unit 2's second row on page 2: " + probe.pageText(1));
         // Page 2's first row sits at the region top (y=40mm)
         PdfProbe.TextRun spill = probe.findRun(1, "説明2").orElseThrow();
         assertEquals(PdfProbe.expectedBaselineYMm(40, 9), spill.baselineYMm(), 0.5f);

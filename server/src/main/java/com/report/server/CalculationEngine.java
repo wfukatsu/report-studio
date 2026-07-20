@@ -3,21 +3,20 @@ package com.report.server;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * CalculationEngine — evaluates CalculationRules from a template projection.
  *
- * <p>Rules are evaluated in topological order (Kahn's algorithm, O(V+E)).
- * Circular dependencies throw {@link CircularDependencyException} → callers return HTTP 422.
+ * <p>Rules are evaluated in topological order (Kahn's algorithm, O(V+E)). Circular dependencies
+ * throw {@link CircularDependencyException} → callers return HTTP 422.
  *
- * <p>Output: an enriched {@code Map<String, Object>} of formData with computed field values
- * merged in. The original JsonNode is not modified.
+ * <p>Output: an enriched {@code Map<String, Object>} of formData with computed field values merged
+ * in. The original JsonNode is not modified.
  */
 public final class CalculationEngine {
 
@@ -33,11 +32,11 @@ public final class CalculationEngine {
     /**
      * Apply all CalculationRules in the projection to the given form data.
      *
-     * @param projection  the full projection JSON (templates[].calculationRules)
-     * @param formData    the base form data (may be null)
-     * @return            a mutable map of formData enriched with computed fields
+     * @param projection the full projection JSON (templates[].calculationRules)
+     * @param formData the base form data (may be null)
+     * @return a mutable map of formData enriched with computed fields
      * @throws CircularDependencyException if rules form a cycle
-     * @throws ExpressionTimeoutException  if any expression evaluation times out
+     * @throws ExpressionTimeoutException if any expression evaluation times out
      */
     public static Map<String, Object> apply(JsonNode projection, JsonNode formData) {
         Map<String, Object> context = formDataToMap(formData);
@@ -60,8 +59,12 @@ public final class CalculationEngine {
 
     // ── Rule extraction ───────────────────────────────────────────────────────
 
-    private record CalcRule(String id, String targetField, String expression,
-                            String roundingPolicy, int roundingScale) {}
+    private record CalcRule(
+            String id,
+            String targetField,
+            String expression,
+            String roundingPolicy,
+            int roundingScale) {}
 
     private static List<CalcRule> extractRules(JsonNode projection) {
         List<CalcRule> rules = new ArrayList<>();
@@ -82,7 +85,8 @@ public final class CalculationEngine {
         if (!calcRules.isArray()) return;
         for (JsonNode r : calcRules) {
             if (rules.size() >= ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE) {
-                log.warn("Expression count exceeds limit ({}), truncating",
+                log.warn(
+                        "Expression count exceeds limit ({}), truncating",
                         ExpressionEngine.MAX_EXPRESSIONS_PER_TEMPLATE);
                 return;
             }
@@ -158,10 +162,10 @@ public final class CalculationEngine {
     }
 
     /**
-     * Extract identifiers from an expression that match known computed fields.
-     * Uses the JEXL parser (issue #57) so identifiers inside string literals or
-     * quoted arguments no longer create false dependencies / false cycles;
-     * falls back to a regex token scan when the expression fails to parse.
+     * Extract identifiers from an expression that match known computed fields. Uses the JEXL parser
+     * (issue #57) so identifiers inside string literals or quoted arguments no longer create false
+     * dependencies / false cycles; falls back to a regex token scan when the expression fails to
+     * parse.
      */
     private static Set<String> extractDependencies(String expression, Set<String> knownFields) {
         Set<String> parsed = ExpressionEngine.extractVariables(expression);
@@ -182,20 +186,20 @@ public final class CalculationEngine {
     // ── Rounding ──────────────────────────────────────────────────────────────
 
     /**
-     * BigDecimal-based rounding (issue #57): monetary values are rounded in
-     * decimal space, never via double math. Policies: {@code floor},
-     * {@code ceil}, {@code round}/{@code half_up}, {@code half_even};
-     * {@code roundingScale} selects the decimal places (default 0).
+     * BigDecimal-based rounding (issue #57): monetary values are rounded in decimal space, never
+     * via double math. Policies: {@code floor}, {@code ceil}, {@code round}/{@code half_up}, {@code
+     * half_even}; {@code roundingScale} selects the decimal places (default 0).
      */
     private static Object applyRounding(Object value, String policy, int scale) {
         if (!(value instanceof Number n) || policy == null || "none".equals(policy)) return value;
-        java.math.RoundingMode mode = switch (policy) {
-            case "floor" -> java.math.RoundingMode.FLOOR;
-            case "ceil" -> java.math.RoundingMode.CEILING;
-            case "round", "half_up" -> java.math.RoundingMode.HALF_UP;
-            case "half_even" -> java.math.RoundingMode.HALF_EVEN;
-            default -> null;
-        };
+        java.math.RoundingMode mode =
+                switch (policy) {
+                    case "floor" -> java.math.RoundingMode.FLOOR;
+                    case "ceil" -> java.math.RoundingMode.CEILING;
+                    case "round", "half_up" -> java.math.RoundingMode.HALF_UP;
+                    case "half_even" -> java.math.RoundingMode.HALF_EVEN;
+                    default -> null;
+                };
         if (mode == null) return value;
         return new java.math.BigDecimal(n.toString()).setScale(scale, mode);
     }
@@ -203,15 +207,17 @@ public final class CalculationEngine {
     // ── Form data conversion ──────────────────────────────────────────────────
 
     /**
-     * Convert a Jackson JsonNode (object) to a {@code Map<String, Object>} for JEXL context.
-     * Arrays become {@code List<Map<String, Object>>}. Numbers become Double.
+     * Convert a Jackson JsonNode (object) to a {@code Map<String, Object>} for JEXL context. Arrays
+     * become {@code List<Map<String, Object>>}. Numbers become Double.
      */
     static Map<String, Object> formDataToMap(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull()) return new LinkedHashMap<>();
         try {
             return MAPPER.convertValue(node, MAP_TYPE);
         } catch (Exception e) {
-            log.warn("CalculationEngine: failed to convert formData node to Map — returning empty: {}", e.getMessage());
+            log.warn(
+                    "CalculationEngine: failed to convert formData node to Map — returning empty: {}",
+                    e.getMessage());
             return new LinkedHashMap<>();
         }
     }

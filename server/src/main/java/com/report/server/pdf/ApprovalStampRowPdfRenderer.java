@@ -1,6 +1,11 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
@@ -8,22 +13,15 @@ import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
  * Renders V2 {@code approvalStampRow} (承認印欄) elements to PDF (issue #53).
  *
- * <p>Mirrors the frontend ApprovalStampRowRenderer: a bordered row of cells
- * with fixed mm widths, each carrying a 4mm role-label band at the top or
- * bottom. Stamp images ({@code cells[].stampSrc} — data URI or SSRF-guarded
- * URL, resolved via {@link ImagePdfRenderer#resolveImageBytes}) are drawn
- * aspect-fit and centred in the stamp area at max 80% size and 85% opacity,
- * matching the designer preview (issue #74). A cell whose image cannot be
- * loaded falls back to the blank-cell rendering instead of failing the PDF.
+ * <p>Mirrors the frontend ApprovalStampRowRenderer: a bordered row of cells with fixed mm widths,
+ * each carrying a 4mm role-label band at the top or bottom. Stamp images ({@code cells[].stampSrc}
+ * — data URI or SSRF-guarded URL, resolved via {@link ImagePdfRenderer#resolveImageBytes}) are
+ * drawn aspect-fit and centred in the stamp area at max 80% size and 85% opacity, matching the
+ * designer preview (issue #74). A cell whose image cannot be loaded falls back to the blank-cell
+ * rendering instead of failing the PDF.
  */
 public final class ApprovalStampRowPdfRenderer implements ElementPdfRenderer {
 
@@ -33,8 +31,10 @@ public final class ApprovalStampRowPdfRenderer implements ElementPdfRenderer {
     private static final float LABEL_BAND_PT = 4 * MM_TO_PT;
     private static final float LABEL_FONT_PT = 2.5f * MM_TO_PT;
     private static final Color LABEL_COLOR = new Color(0x37, 0x41, 0x51);
+
     /** Designer: {@code maxWidth/maxHeight: 80%} of the stamp area. */
     private static final float STAMP_MAX_RATIO = 0.8f;
+
     /** Designer: {@code opacity: 0.85}. */
     private static final float STAMP_OPACITY = 0.85f;
 
@@ -44,9 +44,17 @@ public final class ApprovalStampRowPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode cells = el.get("cells");
         if (cells == null || !cells.isArray() || cells.isEmpty()) {
             JsonNode props = el.get("props");
@@ -94,12 +102,13 @@ public final class ApprovalStampRowPdfRenderer implements ElementPdfRenderer {
                 String role = textOf(cell, "role", "");
                 if (!role.isEmpty()) {
                     float textWidth = font.getStringWidth(role) / 1000 * LABEL_FONT_PT;
-                    float bandCenterY = labelTop ? y - LABEL_BAND_PT / 2 : y - h + LABEL_BAND_PT / 2;
+                    float bandCenterY =
+                            labelTop ? y - LABEL_BAND_PT / 2 : y - h + LABEL_BAND_PT / 2;
                     cs.beginText();
                     cs.setFont(font, LABEL_FONT_PT);
                     cs.setNonStrokingColor(LABEL_COLOR);
-                    cs.newLineAtOffset(cellX + (cellW - textWidth) / 2,
-                            bandCenterY - LABEL_FONT_PT * 0.35f);
+                    cs.newLineAtOffset(
+                            cellX + (cellW - textWidth) / 2, bandCenterY - LABEL_FONT_PT * 0.35f);
                     cs.showText(role);
                     cs.endText();
                 }
@@ -118,15 +127,20 @@ public final class ApprovalStampRowPdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * Draw one cell's stamp image: aspect-fit into a centred box covering at
-     * most {@value #STAMP_MAX_RATIO} of the stamp area (the cell minus the
-     * label band), at {@value #STAMP_OPACITY} opacity — the designer preview's
-     * {@code maxWidth/maxHeight: 80%; opacity: 0.85}. Any load or draw failure
-     * only logs a warning; the cell keeps its blank-cell rendering.
+     * Draw one cell's stamp image: aspect-fit into a centred box covering at most {@value
+     * #STAMP_MAX_RATIO} of the stamp area (the cell minus the label band), at {@value
+     * #STAMP_OPACITY} opacity — the designer preview's {@code maxWidth/maxHeight: 80%; opacity:
+     * 0.85}. Any load or draw failure only logs a warning; the cell keeps its blank-cell rendering.
      */
-    private static void drawStamp(PDPageContentStream cs, PDDocument doc, String stampSrc,
-                                  float cellX, float rowTopY, float cellW, float rowH,
-                                  boolean labelTop) {
+    private static void drawStamp(
+            PDPageContentStream cs,
+            PDDocument doc,
+            String stampSrc,
+            float cellX,
+            float rowTopY,
+            float cellW,
+            float rowH,
+            boolean labelTop) {
         byte[] imageBytes = ImagePdfRenderer.resolveImageBytes(stampSrc);
         if (imageBytes == null) return; // blank cell — same as no stampSrc
 

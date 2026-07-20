@@ -2,6 +2,7 @@ plugins {
     java
     application
     jacoco
+    id("com.diffplug.spotless") version "7.0.2"
 }
 
 group = "com.report"
@@ -83,6 +84,14 @@ tasks.register<JavaExec>("seed") {
 tasks.processResources {
     from(project.projectDir.resolve("../schemas")) {
         include("report-definition-limits.json")
+    }
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        googleJavaFormat("1.25.2").aosp()
+        removeUnusedImports()
     }
 }
 

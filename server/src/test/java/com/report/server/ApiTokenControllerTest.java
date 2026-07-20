@@ -1,21 +1,5 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.report.server.auth.AuthController;
-import com.report.server.auth.Principal;
-import com.report.server.auth.RateLimiter;
-import com.report.server.auth.UserRecord;
-import com.report.server.auth.UserRepository;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,6 +8,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.auth.AuthController;
+import com.report.server.auth.Principal;
+import com.report.server.auth.RateLimiter;
+import com.report.server.auth.UserRecord;
+import com.report.server.auth.UserRepository;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** Unit tests for {@link ApiTokenController} — Bearer resolution + management (#195). */
 class ApiTokenControllerTest {
@@ -45,7 +44,9 @@ class ApiTokenControllerTest {
         controller = new ApiTokenController(authCtrl, userRepo, tokenRepo);
     }
 
-    private Context ctx() { return mock(Context.class); }
+    private Context ctx() {
+        return mock(Context.class);
+    }
 
     // ── Bearer resolution ────────────────────────────────────────────────────
 
@@ -106,7 +107,8 @@ class ApiTokenControllerTest {
     @Test
     void create_persistsHashOnly_andReturnsPlaintextOnce() {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.body()).thenReturn("{\"label\":\"ci\"}");
 
         controller.create(ctx);
@@ -122,14 +124,17 @@ class ApiTokenControllerTest {
         String plaintext = (String) resp.getValue().get("token");
         assertNotNull(plaintext);
         assertTrue(plaintext.startsWith("rpat_"));
-        assertFalse(json.getValue().contains(plaintext), "stored record must not hold the plaintext");
-        assertEquals(ApiTokenController.sha256(plaintext), id.getValue(), "id must be the token hash");
+        assertFalse(
+                json.getValue().contains(plaintext), "stored record must not hold the plaintext");
+        assertEquals(
+                ApiTokenController.sha256(plaintext), id.getValue(), "id must be the token hash");
     }
 
     @Test
     void revoke_otherUsersToken_returns404() {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.pathParam("id")).thenReturn("somehash");
         when(tokenRepo.get("somehash")).thenReturn(Optional.of("{\"userId\":\"other\"}"));
 
@@ -142,7 +147,8 @@ class ApiTokenControllerTest {
     void revoke_ownToken_success() {
         Context ctx = ctx();
         when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.pathParam("id")).thenReturn("myhash");
         when(tokenRepo.get("myhash")).thenReturn(Optional.of("{\"userId\":\"admin\"}"));
 
@@ -156,18 +162,22 @@ class ApiTokenControllerTest {
     }
 
     /**
-     * Issue #206: a failed delete must NOT report success — otherwise a "revoked" token
-     * stays usable for Bearer auth. The controller returns 500 and never emits revoked:true.
+     * Issue #206: a failed delete must NOT report success — otherwise a "revoked" token stays
+     * usable for Bearer auth. The controller returns 500 and never emits revoked:true.
      */
     @Test
     void revoke_deleteFails_returns500_notFalseSuccess() {
         Context ctx = ctx();
         when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.pathParam("id")).thenReturn("myhash");
         when(tokenRepo.get("myhash")).thenReturn(Optional.of("{\"userId\":\"admin\"}"));
-        org.mockito.Mockito.doThrow(new JsonBlobRepository.RepositoryException("db down", new RuntimeException()))
-                .when(tokenRepo).delete("myhash");
+        org.mockito.Mockito.doThrow(
+                        new JsonBlobRepository.RepositoryException(
+                                "db down", new RuntimeException()))
+                .when(tokenRepo)
+                .delete("myhash");
 
         controller.revoke(ctx);
 
@@ -175,7 +185,8 @@ class ApiTokenControllerTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> resp = ArgumentCaptor.forClass(Map.class);
         verify(ctx).json(resp.capture());
-        assertNull(resp.getValue().get("revoked"), "must not report revoked:true on a failed delete");
+        assertNull(
+                resp.getValue().get("revoked"), "must not report revoked:true on a failed delete");
     }
 
     // ── Expiry / limits / rate-limit (#209) ────────────────────────────────────
@@ -183,7 +194,8 @@ class ApiTokenControllerTest {
     @Test
     void create_withExpiresInDays_persistsFutureExpiry() throws Exception {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.body()).thenReturn("{\"label\":\"ci\",\"expiresInDays\":30}");
 
         controller.create(ctx);
@@ -197,7 +209,8 @@ class ApiTokenControllerTest {
     @Test
     void create_withoutExpiry_neverExpires() throws Exception {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.body()).thenReturn("{\"label\":\"ci\"}");
 
         controller.create(ctx);
@@ -212,19 +225,28 @@ class ApiTokenControllerTest {
         String plaintext = "rpat_expired";
         String hash = ApiTokenController.sha256(plaintext);
         long past = System.currentTimeMillis() - 1_000;
-        when(tokenRepo.get(hash)).thenReturn(Optional.of(
-                "{\"id\":\"" + hash + "\",\"userId\":\"admin\",\"expiresAt\":" + past + "}"));
+        when(tokenRepo.get(hash))
+                .thenReturn(
+                        Optional.of(
+                                "{\"id\":\""
+                                        + hash
+                                        + "\",\"userId\":\"admin\",\"expiresAt\":"
+                                        + past
+                                        + "}"));
 
         Context ctx = ctx();
         when(ctx.header("Authorization")).thenReturn("Bearer " + plaintext);
 
-        assertTrue(controller.resolveFromBearer(ctx).isAnonymous(), "expired token must not authenticate");
+        assertTrue(
+                controller.resolveFromBearer(ctx).isAnonymous(),
+                "expired token must not authenticate");
     }
 
     @Test
     void create_atPerUserLimit_returns429_noWrite() {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.body()).thenReturn("{}");
         java.util.List<String> active = new java.util.ArrayList<>();
         for (int i = 0; i < ApiTokenController.MAX_TOKENS_PER_USER; i++) {
@@ -241,7 +263,8 @@ class ApiTokenControllerTest {
     @Test
     void create_expiredTokensDoNotCountTowardLimit() {
         Context ctx = ctx();
-        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(ctx.body()).thenReturn("{}");
         long past = System.currentTimeMillis() - 1_000;
         java.util.List<String> expired = new java.util.ArrayList<>();
@@ -262,13 +285,15 @@ class ApiTokenControllerTest {
         ApiTokenController limited = new ApiTokenController(authCtrl, userRepo, tokenRepo, tight);
 
         Context first = ctx();
-        when(authCtrl.resolveFromRequest(first)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(first))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(first.body()).thenReturn("{}");
         limited.create(first);
         verify(first).status(HttpStatus.CREATED);
 
         Context second = ctx();
-        when(authCtrl.resolveFromRequest(second)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(authCtrl.resolveFromRequest(second))
+                .thenReturn(new Principal("admin", "管理者", Set.of("admin")));
         when(second.body()).thenReturn("{}");
         limited.create(second);
         verify(second).status(HttpStatus.TOO_MANY_REQUESTS);

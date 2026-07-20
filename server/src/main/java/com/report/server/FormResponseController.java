@@ -10,26 +10,27 @@ import com.scalar.db.exception.transaction.CommitConflictException;
 import com.scalar.db.exception.transaction.CrudConflictException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-
 /**
  * Handles V2 form response CRUD endpoints:
+ *
  * <ul>
- *   <li>POST   /api/v2/templates/{id}/responses        — submit response (rate-limited)</li>
- *   <li>GET    /api/v2/templates/{id}/responses        — list responses with pagination</li>
- *   <li>GET    /api/v2/templates/{id}/responses/{rid}  — get single response</li>
- *   <li>DELETE /api/v2/templates/{id}/responses/{rid}  — delete (owner or submitter only)</li>
+ *   <li>POST /api/v2/templates/{id}/responses — submit response (rate-limited)
+ *   <li>GET /api/v2/templates/{id}/responses — list responses with pagination
+ *   <li>GET /api/v2/templates/{id}/responses/{rid} — get single response
+ *   <li>DELETE /api/v2/templates/{id}/responses/{rid} — delete (owner or submitter only)
  * </ul>
  *
  * <p>Security:
+ *
  * <ul>
- *   <li>All endpoints require authentication (enforced by auth before-filter in ApiRoutes)</li>
- *   <li>{@code submittedBy} is always set server-side — never accepted from the client</li>
- *   <li>Template ownership is verified before submit/list/get/delete</li>
- *   <li>Delete requires ownership of the template OR the response itself</li>
+ *   <li>All endpoints require authentication (enforced by auth before-filter in ApiRoutes)
+ *   <li>{@code submittedBy} is always set server-side — never accepted from the client
+ *   <li>Template ownership is verified before submit/list/get/delete
+ *   <li>Delete requires ownership of the template OR the response itself
  * </ul>
  */
 public final class FormResponseController {
@@ -39,29 +40,35 @@ public final class FormResponseController {
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 500;
+
     /** Inline listing is capped; above this threshold, use the export endpoint. */
     private static final int MAX_INLINE_RESPONSES = 2_000;
+
     /** Aggregation is capped to prevent memory issues. */
     private static final int MAX_AGG_RESPONSES = 5_000;
+
     private static final int SUMMARY_FIELD_COUNT = 3;
     private static final int MAX_NEST_DEPTH = 8;
 
     /** Document lifecycle statuses (#163). draft → issued → sent, or void at any point. */
     static final String DEFAULT_STATUS = "issued";
-    static final java.util.Set<String> VALID_STATUSES = java.util.Set.of("draft", "issued", "sent", "void");
+
+    static final java.util.Set<String> VALID_STATUSES =
+            java.util.Set.of("draft", "issued", "sent", "void");
 
     /**
-     * Allowed document-lifecycle transitions (#205). A status may advance
-     * draft → issued → sent, and any non-terminal status may be voided; {@code void}
-     * is terminal. Any other transition (e.g. void → issued, sent → draft) is rejected
-     * with 409 so a status machine cannot be driven backwards or resurrected.
-     * A same-status "transition" is treated as an idempotent no-op, not an error.
+     * Allowed document-lifecycle transitions (#205). A status may advance draft → issued → sent,
+     * and any non-terminal status may be voided; {@code void} is terminal. Any other transition
+     * (e.g. void → issued, sent → draft) is rejected with 409 so a status machine cannot be driven
+     * backwards or resurrected. A same-status "transition" is treated as an idempotent no-op, not
+     * an error.
      */
-    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
-            "draft",  Set.of("issued", "void"),
-            "issued", Set.of("sent", "void"),
-            "sent",   Set.of("void"),
-            "void",   Set.of());
+    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS =
+            Map.of(
+                    "draft", Set.of("issued", "void"),
+                    "issued", Set.of("sent", "void"),
+                    "sent", Set.of("void"),
+                    "void", Set.of());
 
     static boolean isValidTransition(String from, String to) {
         if (from == null || from.equals(to)) return true; // no-op / first assignment
@@ -72,7 +79,7 @@ public final class FormResponseController {
     private final JsonBlobRepository definitionsRepo;
     private final RateLimiter submitLimiter;
     private SequenceController sequenceCtrl; // injected lazily
-    private WebhookController webhookCtrl;   // injected lazily
+    private WebhookController webhookCtrl; // injected lazily
     private java.util.concurrent.ExecutorService webhookExecutor;
     private StatusAuditRepository statusAuditRepo; // injected lazily (#188)
 
@@ -96,7 +103,8 @@ public final class FormResponseController {
     }
 
     /** Inject webhook controller after construction. */
-    public void setWebhookController(WebhookController ctrl, java.util.concurrent.ExecutorService executor) {
+    public void setWebhookController(
+            WebhookController ctrl, java.util.concurrent.ExecutorService executor) {
         this.webhookCtrl = ctrl;
         this.webhookExecutor = executor;
     }
@@ -179,7 +187,9 @@ public final class FormResponseController {
             // If sequence controller is configured, use single atomic TX (seq + response)
             if (sequenceCtrl != null) {
                 String responseJson = MAPPER.writeValueAsString(response);
-                String docNumber = sequenceCtrl.nextAndStamp(templateId, responseRepo, responseId, responseJson, templateId);
+                String docNumber =
+                        sequenceCtrl.nextAndStamp(
+                                templateId, responseRepo, responseId, responseJson, templateId);
                 if (docNumber == null) {
                     // No sequence configured — save response normally
                     responseRepo.put(responseId, responseJson, templateId);
@@ -203,12 +213,18 @@ public final class FormResponseController {
             try {
                 String savedJson = MAPPER.writeValueAsString(response);
                 webhookCtrl.dispatchAsync(templateId, responseId, savedJson, webhookExecutor);
-            } catch (Exception ignored) { /* webhook errors must never surface to user */ }
+            } catch (Exception ignored) {
+                /* webhook errors must never surface to user */
+            }
         }
 
         ctx.status(HttpStatus.CREATED);
         ctx.json(Map.of("id", responseId, "templateId", templateId, "submittedAt", now));
-        log.info("Saved V2 form response {} for template {} by {}", responseId, templateId, principal.userId());
+        log.info(
+                "Saved V2 form response {} for template {} by {}",
+                responseId,
+                templateId,
+                principal.userId());
     }
 
     // ── list ─────────────────────────────────────────────────────────────────
@@ -253,10 +269,12 @@ public final class FormResponseController {
         // Guard: above threshold, direct to export endpoint
         if (allJson.size() > MAX_INLINE_RESPONSES) {
             ctx.status(422);
-            ctx.json(Map.of(
-                "error", "Too many responses for inline listing. Use the export endpoint.",
-                "total", allJson.size()
-            ));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "Too many responses for inline listing. Use the export endpoint.",
+                            "total",
+                            allJson.size()));
             return;
         }
 
@@ -267,18 +285,28 @@ public final class FormResponseController {
             try {
                 JsonNode n = MAPPER.readTree(json);
                 statusById.put(n.path("id").asText(), n.path("status").asText(DEFAULT_STATUS));
-            } catch (Exception ignored) { /* skip unparseable */ }
+            } catch (Exception ignored) {
+                /* skip unparseable */
+            }
         }
 
         // Parse, optionally filter by status (#172), and sort by submittedAt descending
         final String finalStatusFilter = statusFilter;
-        List<V2ResponseAggregator.ResponseEntry> entries = allJson.stream()
-            .map(this::parseToEntry)
-            .filter(Objects::nonNull)
-            .filter(e -> finalStatusFilter == null
-                || finalStatusFilter.equals(statusById.getOrDefault(e.id(), DEFAULT_STATUS)))
-            .sorted(Comparator.comparingLong(V2ResponseAggregator.ResponseEntry::submittedAt).reversed())
-            .toList();
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                allJson.stream()
+                        .map(this::parseToEntry)
+                        .filter(Objects::nonNull)
+                        .filter(
+                                e ->
+                                        finalStatusFilter == null
+                                                || finalStatusFilter.equals(
+                                                        statusById.getOrDefault(
+                                                                e.id(), DEFAULT_STATUS)))
+                        .sorted(
+                                Comparator.comparingLong(
+                                                V2ResponseAggregator.ResponseEntry::submittedAt)
+                                        .reversed())
+                        .toList();
 
         int total = entries.size();
         int fromIndex = Math.min(offset, total);
@@ -420,11 +448,11 @@ public final class FormResponseController {
     // ── status (#163) ──────────────────────────────────────────────────────────
 
     /**
-     * PATCH /api/v2/templates/{id}/responses/{rid}/status
-     * Body: {@code {"status": "draft"|"issued"|"sent"|"void"}}
+     * PATCH /api/v2/templates/{id}/responses/{rid}/status Body: {@code {"status":
+     * "draft"|"issued"|"sent"|"void"}}
      *
-     * <p>Updates the document lifecycle status of an issued report. Same access
-     * rule as delete: template owner or original submitter.
+     * <p>Updates the document lifecycle status of an issued report. Same access rule as delete:
+     * template owner or original submitter.
      */
     public void updateStatus(Context ctx) {
         String templateId = RequestValidator.validateId(ctx);
@@ -479,7 +507,8 @@ public final class FormResponseController {
                 // Same access rule as delete: template owner or original submitter.
                 String submittedBy = node.path("submittedBy").asText("");
                 boolean isSubmitter = principal.userId().equals(submittedBy);
-                boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
+                boolean isOwner =
+                        !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
                 if (!isSubmitter && !isOwner) {
                     tx.abort();
                     ctx.status(HttpStatus.FORBIDDEN);
@@ -500,7 +529,10 @@ public final class FormResponseController {
                 if (!isValidTransition(oldStatus, newStatus)) {
                     tx.abort();
                     ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(Map.of("error", "Invalid status transition: " + oldStatus + " → " + newStatus));
+                    ctx.json(
+                            Map.of(
+                                    "error",
+                                    "Invalid status transition: " + oldStatus + " → " + newStatus));
                     return;
                 }
 
@@ -510,14 +542,16 @@ public final class FormResponseController {
                 // template has a sequence configured and no number yet (#189) — atomically,
                 // in this same transaction (#205).
                 String assignedNumber = null;
-                boolean needsNumber = "issued".equals(newStatus)
-                        && node.path("documentNumber").asText("").isEmpty();
+                boolean needsNumber =
+                        "issued".equals(newStatus)
+                                && node.path("documentNumber").asText("").isEmpty();
                 if (needsNumber && sequenceCtrl != null) {
                     assignedNumber = sequenceCtrl.nextNumberWithinTx(tx, templateId);
                     if (assignedNumber != null) node.put("documentNumber", assignedNumber);
                 }
 
-                responseRepo.putWithinTx(tx, responseId, MAPPER.writeValueAsString(node), templateId);
+                responseRepo.putWithinTx(
+                        tx, responseId, MAPPER.writeValueAsString(node), templateId);
                 tx.commit();
 
                 // Append to the status-transition audit trail (#188)
@@ -558,15 +592,18 @@ public final class FormResponseController {
 
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
-            try { tx.abort(); } catch (Exception ignored) { }
+            try {
+                tx.abort();
+            } catch (Exception ignored) {
+            }
         }
     }
 
     // ── audit trail (#188) ──────────────────────────────────────────────────────
 
     /**
-     * GET /api/v2/templates/{id}/responses/{rid}/audit
-     * Returns the status-transition history (from/to/by/at), newest first.
+     * GET /api/v2/templates/{id}/responses/{rid}/audit Returns the status-transition history
+     * (from/to/by/at), newest first.
      */
     public void getAudit(Context ctx) {
         String templateId = RequestValidator.validateId(ctx);
@@ -583,8 +620,9 @@ public final class FormResponseController {
             return;
         }
         JsonNode node;
-        try { node = MAPPER.readTree(stored.get()); }
-        catch (Exception e) {
+        try {
+            node = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "Failed to read response"));
             return;
@@ -604,28 +642,31 @@ public final class FormResponseController {
             return;
         }
 
-        List<Map<String, Object>> entries = statusAuditRepo == null
-                ? List.of()
-                : statusAuditRepo.listForResponse(responseId);
+        List<Map<String, Object>> entries =
+                statusAuditRepo == null ? List.of() : statusAuditRepo.listForResponse(responseId);
         ctx.json(Map.of("responseId", responseId, "entries", entries));
     }
 
     /** Append a status-transition record. Never throws — audit is best-effort. */
-    private void recordAudit(String responseId, String templateId, String from, String to, String by) {
+    private void recordAudit(
+            String responseId, String templateId, String from, String to, String by) {
         if (statusAuditRepo == null) return;
         try {
             statusAuditRepo.append(responseId, templateId, from, to, by);
         } catch (Exception e) {
-            log.warn("Failed to record status audit for response {}: {}", responseId, e.getMessage());
+            log.warn(
+                    "Failed to record status audit for response {}: {}",
+                    responseId,
+                    e.getMessage());
         }
     }
 
     // ── cross-template documents (#190) ─────────────────────────────────────────
 
     /**
-     * GET /api/v2/documents[?status=&templateId=&offset=&limit=]
-     * Cross-template list of issued documents (form responses). Only documents whose
-     * template the caller owns, or that the caller submitted, are returned.
+     * GET /api/v2/documents[?status=&templateId=&offset=&limit=] Cross-template list of issued
+     * documents (form responses). Only documents whose template the caller owns, or that the caller
+     * submitted, are returned.
      */
     public void listDocuments(Context ctx) {
         Principal principal = ctx.attribute("principal");
@@ -652,10 +693,12 @@ public final class FormResponseController {
         // the caller must narrow the query (templateId/status) or use the export endpoint.
         if (allJson.size() > MAX_INLINE_RESPONSES) {
             ctx.status(422);
-            ctx.json(Map.of(
-                "error", "Too many documents for inline listing. Narrow by templateId/status or use export.",
-                "total", allJson.size()
-            ));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "Too many documents for inline listing. Narrow by templateId/status or use export.",
+                            "total",
+                            allJson.size()));
             return;
         }
 
@@ -666,8 +709,11 @@ public final class FormResponseController {
         List<Map<String, Object>> items = new ArrayList<>();
         for (String json : allJson) {
             JsonNode node;
-            try { node = MAPPER.readTree(json); }
-            catch (Exception ignored) { continue; }
+            try {
+                node = MAPPER.readTree(json);
+            } catch (Exception ignored) {
+                continue;
+            }
 
             String tid = node.path("templateId").asText("");
             if (tid.isEmpty()) continue;
@@ -681,7 +727,10 @@ public final class FormResponseController {
             if (env == null && !envCache.containsKey(tid)) {
                 env = loadDefinitionEnvelope(tid).orElse(null);
                 envCache.put(tid, env);
-                if (env == null) { unknownTemplates.add(tid); continue; }
+                if (env == null) {
+                    unknownTemplates.add(tid);
+                    continue;
+                }
             }
             if (env == null) continue;
 
@@ -703,9 +752,11 @@ public final class FormResponseController {
             items.add(item);
         }
 
-        items.sort((a, b) -> Long.compare(
-                ((Number) b.getOrDefault("submittedAt", 0L)).longValue(),
-                ((Number) a.getOrDefault("submittedAt", 0L)).longValue()));
+        items.sort(
+                (a, b) ->
+                        Long.compare(
+                                ((Number) b.getOrDefault("submittedAt", 0L)).longValue(),
+                                ((Number) a.getOrDefault("submittedAt", 0L)).longValue()));
 
         int total = items.size();
         int fromIndex = Math.min(offset, total);
@@ -731,10 +782,7 @@ public final class FormResponseController {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Load the template definition envelope JSON.
-     * Returns empty if not found or malformed.
-     */
+    /** Load the template definition envelope JSON. Returns empty if not found or malformed. */
     private Optional<JsonNode> loadDefinitionEnvelope(String templateId) {
         Optional<String> blob = definitionsRepo.get(templateId);
         if (blob.isEmpty()) return Optional.empty();
@@ -746,14 +794,16 @@ public final class FormResponseController {
     }
 
     /**
-     * Check if the principal can access the template.
-     * If {@code created_by} is present, only the owner can access.
-     * If absent (legacy templates without owner), access is allowed with a warning log.
+     * Check if the principal can access the template. If {@code created_by} is present, only the
+     * owner can access. If absent (legacy templates without owner), access is allowed with a
+     * warning log.
      */
     private boolean canAccess(Principal principal, JsonNode envelope) {
         String createdBy = envelope.path("created_by").asText("");
         if (createdBy.isEmpty()) {
-            log.warn("Template {} has no createdBy — allowing access without ownership check", envelope.path("id").asText("?"));
+            log.warn(
+                    "Template {} has no createdBy — allowing access without ownership check",
+                    envelope.path("id").asText("?"));
             return true;
         }
         return principal.userId().equals(createdBy);
@@ -762,20 +812,19 @@ public final class FormResponseController {
     /** Get the template owner userId, or empty string if not set. */
     private String getTemplateOwner(String templateId) {
         return loadDefinitionEnvelope(templateId)
-            .map(env -> env.path("created_by").asText(""))
-            .orElse("");
+                .map(env -> env.path("created_by").asText(""))
+                .orElse("");
     }
 
     private V2ResponseAggregator.ResponseEntry parseToEntry(String json) {
         try {
             JsonNode node = MAPPER.readTree(json);
             return new V2ResponseAggregator.ResponseEntry(
-                node.path("id").asText(),
-                node.path("templateId").asText(),
-                node.path("submittedAt").asLong(),
-                node.path("submittedBy").asText(""),
-                node.path("data")
-            );
+                    node.path("id").asText(),
+                    node.path("templateId").asText(),
+                    node.path("submittedAt").asLong(),
+                    node.path("submittedBy").asText(""),
+                    node.path("data"));
         } catch (Exception e) {
             return null;
         }
@@ -801,8 +850,10 @@ public final class FormResponseController {
             if (value.isObject()) {
                 collectLeafSummaries(value, key, out);
             } else {
-                String text = value.isTextual() ? value.asText()
-                    : value.isArray() ? value.size() + "件" : value.asText();
+                String text =
+                        value.isTextual()
+                                ? value.asText()
+                                : value.isArray() ? value.size() + "件" : value.asText();
                 if (text.length() > 50) text = text.substring(0, 50) + "...";
                 out.add(key + ": " + text);
             }

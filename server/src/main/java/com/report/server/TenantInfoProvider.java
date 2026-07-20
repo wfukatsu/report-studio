@@ -1,19 +1,17 @@
 package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.function.Supplier;
 
 /**
  * Process-wide access point for the tenant info document (issue #54).
  *
- * <p>{@link PdfRenderer} is a static pipeline shared by every PDF entry point
- * (stateless, stored-template, jobs, batch); registering the supplier once in
- * AppWiring gives all of them tenant resolution without threading a repository
- * through each call site. A projection can still override the document via a
- * root-level {@code _tenant} node — used by tests and previews.
+ * <p>{@link PdfRenderer} is a static pipeline shared by every PDF entry point (stateless,
+ * stored-template, jobs, batch); registering the supplier once in AppWiring gives all of them
+ * tenant resolution without threading a repository through each call site. A projection can still
+ * override the document via a root-level {@code _tenant} node — used by tests and previews.
  */
 public final class TenantInfoProvider {
 

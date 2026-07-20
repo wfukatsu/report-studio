@@ -18,9 +18,6 @@ import com.scalar.db.io.Key;
 import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,23 +26,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * POST /api/v2/templates/{id}/resolve-bindings
  *
- * <p>Fetches actual row data from ScalarDB for schema groups that have a tableMeta
- * binding. Returns HTTP 207 (partial success): groups that resolve successfully are in
- * {@code resolved}; groups that fail are in {@code errors} with a diagnostic message.
- * A {@code requestId} is always included for server-side log correlation.
+ * <p>Fetches actual row data from ScalarDB for schema groups that have a tableMeta binding. Returns
+ * HTTP 207 (partial success): groups that resolve successfully are in {@code resolved}; groups that
+ * fail are in {@code errors} with a diagnostic message. A {@code requestId} is always included for
+ * server-side log correlation.
  *
- * <p>Phase 2 restriction: only {@code role=master} groups (single-row Get) are
- * supported. Detail groups (Scan / array result) return an error entry and are skipped.
+ * <p>Phase 2 restriction: only {@code role=master} groups (single-row Get) are supported. Detail
+ * groups (Scan / array result) return an error entry and are skipped.
  *
  * <p>Security:
+ *
  * <ul>
  *   <li>Caller must own the template (or the template must have no {@code created_by}).
- *   <li>Each requested (namespace, tableName) pair must exist verbatim in the stored
- *       template's schema {@code tableMeta} — prevents arbitrary table reads.
+ *   <li>Each requested (namespace, tableName) pair must exist verbatim in the stored template's
+ *       schema {@code tableMeta} — prevents arbitrary table reads.
  *   <li>All identifiers are validated against the shared {@link ScalarDbLimits} regex.
  *   <li>Column names are verified against {@link TableMetadata} before use.
  *   <li>Rate-limited per authenticated user ID ({@code 3 req / 10 s}).
@@ -61,8 +61,10 @@ public final class BindingResolveController {
 
     /** Structural limits — align with ScalarDbLimits and frontend */
     private static final int MAX_GROUPS = 10;
+
     private static final int MAX_FIELDS_PER_GROUP = 50;
     private static final int MAX_BODY_BYTES = 64 * 1024; // 64 KB
+
     /** Maximum rows returned per detail group Scan — prevents accidental large result sets. */
     private static final int MAX_DETAIL_ROWS = 500;
 
@@ -75,14 +77,19 @@ public final class BindingResolveController {
     private final RateLimiter rateLimiter;
     private ProductController productCtrl;
 
-    public BindingResolveController(TransactionFactory factory, DistributedTransactionManager manager,
-                                    JsonBlobRepository definitionsRepo) {
+    public BindingResolveController(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            JsonBlobRepository definitionsRepo) {
         this(factory, manager, definitionsRepo, new RateLimiter(3, 10_000L));
     }
 
     /** Package-private constructor for testing. */
-    BindingResolveController(TransactionFactory factory, DistributedTransactionManager manager,
-                             JsonBlobRepository definitionsRepo, RateLimiter rateLimiter) {
+    BindingResolveController(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            JsonBlobRepository definitionsRepo,
+            RateLimiter rateLimiter) {
         this.factory = factory;
         this.manager = manager;
         this.definitionsRepo = definitionsRepo;
@@ -175,7 +182,8 @@ public final class BindingResolveController {
         // ── #144: named relations (for per-row lookup enrichment) ────────────
         JsonNode relationsNode = schemaNode.path("relations");
         // Report date drives product price resolution (same source as the product master group).
-        java.time.LocalDate reportDate = parseReportDate(partitionKeysNode.path("__reportDate__").asText(null));
+        java.time.LocalDate reportDate =
+                parseReportDate(partitionKeysNode.path("__reportDate__").asText(null));
 
         // ── Per-group resolution ──────────────────────────────────────────────
         ObjectNode resolved = MAPPER.createObjectNode();
@@ -222,14 +230,16 @@ public final class BindingResolveController {
             // Parse fields
             JsonNode fieldsNode = group.path("fields");
             if (!fieldsNode.isArray() || fieldsNode.size() > MAX_FIELDS_PER_GROUP) {
-                errors.put(groupId, "fields missing or too many (max " + MAX_FIELDS_PER_GROUP + ")");
+                errors.put(
+                        groupId, "fields missing or too many (max " + MAX_FIELDS_PER_GROUP + ")");
                 continue;
             }
 
             // Build fieldKey → dbColumnName map (name-based, never positional)
             // Also collect Phase 3 computed fields: fieldKey → JEXL expression
             Map<String, String> colToFieldKey = new HashMap<>();
-            List<Map.Entry<String, String>> computedFields = new ArrayList<>(); // (fieldKey, expression)
+            List<Map.Entry<String, String>> computedFields =
+                    new ArrayList<>(); // (fieldKey, expression)
             boolean invalidField = false;
             for (JsonNode field : fieldsNode) {
                 String fieldKey = field.path("key").asText(null);
@@ -269,15 +279,32 @@ public final class BindingResolveController {
                 List<JsonNode> lookupRelations = collectProductLookups(relationsNode, groupId);
                 // Phase 2.5: Scan → array of rows
                 resolveDetailGroup(
-                        groupId, namespace, tableName, colToFieldKey, computedFields, pkNode,
-                        MAX_DETAIL_ROWS, lookupRelations, reportDate, resolved, errors, correlationId, userId
-                );
+                        groupId,
+                        namespace,
+                        tableName,
+                        colToFieldKey,
+                        computedFields,
+                        pkNode,
+                        MAX_DETAIL_ROWS,
+                        lookupRelations,
+                        reportDate,
+                        resolved,
+                        errors,
+                        correlationId,
+                        userId);
             } else {
                 // Phase 2: Get → single row
                 resolveGroup(
-                        groupId, namespace, tableName, colToFieldKey, computedFields, pkNode,
-                        resolved, errors, correlationId, userId
-                );
+                        groupId,
+                        namespace,
+                        tableName,
+                        colToFieldKey,
+                        computedFields,
+                        pkNode,
+                        resolved,
+                        errors,
+                        correlationId,
+                        userId);
             }
         }
 
@@ -287,8 +314,11 @@ public final class BindingResolveController {
         response.set("errors", errors);
         response.put("requestId", correlationId);
 
-        log.info("AUDIT op=resolve_bindings user={} templateId={} outcome=completed correlationId={}",
-                userId, templateId, correlationId);
+        log.info(
+                "AUDIT op=resolve_bindings user={} templateId={} outcome=completed correlationId={}",
+                userId,
+                templateId,
+                correlationId);
         ctx.status(207);
         ctx.contentType("application/json");
         ctx.result(MAPPER.writeValueAsString(response));
@@ -300,28 +330,28 @@ public final class BindingResolveController {
      * Resolves the {@code __productMaster__} system group.
      *
      * <p>Supported modes (from request body {@code partitionKeys.__productMaster__}):
+     *
      * <ul>
-     *   <li>{@code mode=single} + {@code productCode} — returns a single product's fields</li>
-     *   <li>{@code mode=list} (default) — returns an array of all active products</li>
+     *   <li>{@code mode=single} + {@code productCode} — returns a single product's fields
+     *   <li>{@code mode=list} (default) — returns an array of all active products
      * </ul>
      *
-     * <p>For single mode, {@code resolved["__productMaster__"]} is a flat object of
-     * the product's fields. For list mode, it is an array of such objects.
-     * Deleted or missing products return null fields (not an error) plus a
-     * {@code "__stale__": true} marker.
+     * <p>For single mode, {@code resolved["__productMaster__"]} is a flat object of the product's
+     * fields. For list mode, it is an array of such objects. Deleted or missing products return
+     * null fields (not an error) plus a {@code "__stale__": true} marker.
      */
     private void resolveProductMasterGroup(
-            String groupId,
-            JsonNode req,
-            ObjectNode resolved,
-            ObjectNode errors) {
+            String groupId, JsonNode req, ObjectNode resolved, ObjectNode errors) {
 
         JsonNode pkNode = req.path("partitionKeys").path(groupId);
         String mode = pkNode.path("mode").asText("list");
         String reportDateStr = req.path("partitionKeys").path("__reportDate__").asText(null);
         java.time.LocalDate reportDate = null;
         if (reportDateStr != null) {
-            try { reportDate = java.time.LocalDate.parse(reportDateStr); } catch (Exception ignored) {}
+            try {
+                reportDate = java.time.LocalDate.parse(reportDateStr);
+            } catch (Exception ignored) {
+            }
         }
 
         if ("single".equals(mode)) {
@@ -365,10 +395,10 @@ public final class BindingResolveController {
     }
 
     /**
-     * Collect the lookup relations that enrich {@code groupId} from the product
-     * master. Only {@code kind=lookup} relations with {@code from=groupId} and
-     * {@code to=__productMaster__} qualify; each must carry an identifier
-     * {@code name} and {@code on.fromColumn}. Returns an empty list otherwise.
+     * Collect the lookup relations that enrich {@code groupId} from the product master. Only {@code
+     * kind=lookup} relations with {@code from=groupId} and {@code to=__productMaster__} qualify;
+     * each must carry an identifier {@code name} and {@code on.fromColumn}. Returns an empty list
+     * otherwise.
      */
     private static List<JsonNode> collectProductLookups(JsonNode relationsNode, String groupId) {
         List<JsonNode> out = new ArrayList<>();
@@ -386,11 +416,10 @@ public final class BindingResolveController {
     }
 
     /**
-     * Enrich a resolved detail row in place with product master fields for each
-     * applicable lookup relation. The row's join value is read via the relation's
-     * {@code on.fromColumn} (mapped to its fieldKey), looked up by product code,
-     * and the product's fields are added under the {@code name_} prefix
-     * (e.g. {@code product_name}). A missing product yields a {@code name_ _stale}
+     * Enrich a resolved detail row in place with product master fields for each applicable lookup
+     * relation. The row's join value is read via the relation's {@code on.fromColumn} (mapped to
+     * its fieldKey), looked up by product code, and the product's fields are added under the {@code
+     * name_} prefix (e.g. {@code product_name}). A missing product yields a {@code name_ _stale}
      * marker rather than an error, mirroring the product master group behaviour.
      */
     private void enrichRowWithProductLookups(
@@ -423,8 +452,8 @@ public final class BindingResolveController {
     }
 
     /** Converts a product JsonNode to a flat row object for resolve-bindings output. */
-    private ObjectNode productNodeToRow(com.fasterxml.jackson.databind.JsonNode product,
-                                        java.time.LocalDate reportDate) {
+    private ObjectNode productNodeToRow(
+            com.fasterxml.jackson.databind.JsonNode product, java.time.LocalDate reportDate) {
         ObjectNode row = MAPPER.createObjectNode();
         row.put("id", product.path("id").asText(""));
         row.put("code", product.path("code").asText(""));
@@ -449,12 +478,12 @@ public final class BindingResolveController {
     /**
      * Phase 2.5: Scan a detail group table and return an ArrayNode of row objects.
      *
-     * <p>Unlike the master-group {@link #resolveGroup} which uses {@code Get} and returns
-     * a single {@code ObjectNode}, this method uses {@code Scan} with a partition key and
-     * returns a JSON array. An empty scan result maps to an empty array (not an error).
+     * <p>Unlike the master-group {@link #resolveGroup} which uses {@code Get} and returns a single
+     * {@code ObjectNode}, this method uses {@code Scan} with a partition key and returns a JSON
+     * array. An empty scan result maps to an empty array (not an error).
      *
-     * <p>Key difference from master Get: {@code tx.scan()} returns {@code List<Result>},
-     * not {@code Optional<Result>}. An empty list means "no rows" — it is not an exception.
+     * <p>Key difference from master Get: {@code tx.scan()} returns {@code List<Result>}, not {@code
+     * Optional<Result>}. An empty list means "no rows" — it is not an exception.
      */
     private void resolveDetailGroup(
             String groupId,
@@ -469,8 +498,7 @@ public final class BindingResolveController {
             ObjectNode resolved,
             ObjectNode errors,
             String correlationId,
-            String userId
-    ) {
+            String userId) {
         DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
 
@@ -484,8 +512,11 @@ public final class BindingResolveController {
             // TOCTOU guard: table may have been dropped since schema was saved
             if (meta == null) {
                 errors.put(groupId, "Schema table was removed since binding; please re-bind");
-                log.info("AUDIT op=resolve_bindings user={} groupId={} outcome=schema_removed correlationId={}",
-                        userId, groupId, correlationId);
+                log.info(
+                        "AUDIT op=resolve_bindings user={} groupId={} outcome=schema_removed correlationId={}",
+                        userId,
+                        groupId,
+                        correlationId);
                 return;
             }
 
@@ -506,12 +537,13 @@ public final class BindingResolveController {
             }
 
             // ── Scan (not Get) — returns List<Result>, empty list = no rows ──
-            Scan scan = Scan.newBuilder()
-                    .namespace(namespace)
-                    .table(tableName)
-                    .partitionKey(partitionKey)
-                    .limit(maxRows)
-                    .build();
+            Scan scan =
+                    Scan.newBuilder()
+                            .namespace(namespace)
+                            .table(tableName)
+                            .partitionKey(partitionKey)
+                            .limit(maxRows)
+                            .build();
 
             tx = mgr.start();
             List<Result> rows = tx.scan(scan);
@@ -546,8 +578,11 @@ public final class BindingResolveController {
         } catch (Exception e) {
             abortQuietly(tx);
             // Never include e.getMessage() in response — may contain internal details
-            log.warn("resolve-bindings detail groupId={} correlationId={} failed",
-                    groupId, correlationId, e);
+            log.warn(
+                    "resolve-bindings detail groupId={} correlationId={} failed",
+                    groupId,
+                    correlationId,
+                    e);
             errors.put(groupId, "Query failed");
         }
     }
@@ -562,8 +597,7 @@ public final class BindingResolveController {
             ObjectNode resolved,
             ObjectNode errors,
             String correlationId,
-            String userId
-    ) {
+            String userId) {
         DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
 
@@ -577,8 +611,11 @@ public final class BindingResolveController {
             // TOCTOU guard: table may have been dropped since schema was saved
             if (meta == null) {
                 errors.put(groupId, "Schema table was removed since binding; please re-bind");
-                log.info("AUDIT op=resolve_bindings user={} groupId={} outcome=schema_removed correlationId={}",
-                        userId, groupId, correlationId);
+                log.info(
+                        "AUDIT op=resolve_bindings user={} groupId={} outcome=schema_removed correlationId={}",
+                        userId,
+                        groupId,
+                        correlationId);
                 return;
             }
 
@@ -600,11 +637,12 @@ public final class BindingResolveController {
 
             // Execute Get (TransactionManager — not Admin)
             tx = mgr.start();
-            Get get = Get.newBuilder()
-                    .namespace(namespace)
-                    .table(tableName)
-                    .partitionKey(partitionKey)
-                    .build();
+            Get get =
+                    Get.newBuilder()
+                            .namespace(namespace)
+                            .table(tableName)
+                            .partitionKey(partitionKey)
+                            .build();
             Optional<Result> resultOpt = tx.get(get);
             tx.commit();
 
@@ -635,15 +673,19 @@ public final class BindingResolveController {
         } catch (Exception e) {
             abortQuietly(tx);
             // Never include e.getMessage() in the response — it may contain internal details
-            log.warn("resolve-bindings groupId={} correlationId={} failed", groupId, correlationId, e);
+            log.warn(
+                    "resolve-bindings groupId={} correlationId={} failed",
+                    groupId,
+                    correlationId,
+                    e);
             errors.put(groupId, "Query failed");
         }
     }
 
     /**
-     * Build a ScalarDB {@link Key} from the partition key values in the request.
-     * Uses the {@link TableMetadata} to select the correct typed {@code Key.of*} method.
-     * Returns {@code null} if construction fails (type mismatch, missing column, etc.).
+     * Build a ScalarDB {@link Key} from the partition key values in the request. Uses the {@link
+     * TableMetadata} to select the correct typed {@code Key.of*} method. Returns {@code null} if
+     * construction fails (type mismatch, missing column, etc.).
      */
     private static Key buildPartitionKey(JsonNode pkValues, TableMetadata meta) {
         try {
@@ -707,8 +749,8 @@ public final class BindingResolveController {
     }
 
     /**
-     * Extract all (namespace.tableName) pairs from the stored template's schema groups.
-     * This builds the allowlist for the ownership+binding verification.
+     * Extract all (namespace.tableName) pairs from the stored template's schema groups. This builds
+     * the allowlist for the ownership+binding verification.
      */
     private static Set<String> extractAllowedTables(String storedEnvelopeJson) {
         Set<String> allowed = new HashSet<>();
@@ -730,15 +772,14 @@ public final class BindingResolveController {
     }
 
     /**
-     * Phase 3: evaluate computed fields against the resolved DB row data.
-     * Uses the same {@link ExpressionEngine} as the calculation/validation system.
-     * Errors are silently recorded as {@code null} — they do not stop other fields.
+     * Phase 3: evaluate computed fields against the resolved DB row data. Uses the same {@link
+     * ExpressionEngine} as the calculation/validation system. Errors are silently recorded as
+     * {@code null} — they do not stop other fields.
      */
     private void evaluateComputedFields(
             ObjectNode rowData,
             List<Map.Entry<String, String>> computedFields,
-            String correlationId
-    ) {
+            String correlationId) {
         if (computedFields == null || computedFields.isEmpty()) return;
         // Convert current row data to Map<String, Object> for ExpressionEngine context
         Map<String, Object> context = CalculationEngine.formDataToMap(rowData);
@@ -762,8 +803,11 @@ public final class BindingResolveController {
                     context.put(fieldKey, result.toString());
                 }
             } catch (Exception e) {
-                log.warn("Computed field evaluation failed fieldKey={} expr={} correlationId={}",
-                        fieldKey, sanitize(expression), correlationId);
+                log.warn(
+                        "Computed field evaluation failed fieldKey={} expr={} correlationId={}",
+                        fieldKey,
+                        sanitize(expression),
+                        correlationId);
                 rowData.putNull(fieldKey);
                 context.put(fieldKey, null);
             }
@@ -784,7 +828,10 @@ public final class BindingResolveController {
 
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx != null) {
-            try { tx.abort(); } catch (Exception ignored) { }
+            try {
+                tx.abort();
+            } catch (Exception ignored) {
+            }
         }
     }
 }

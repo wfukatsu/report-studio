@@ -1,21 +1,22 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class CalculationEngineTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonNode parse(String json) {
-        try { return MAPPER.readTree(json); }
-        catch (Exception e) { throw new RuntimeException(e); }
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // ── Basic calculation ─────────────────────────────────────────────────────
@@ -31,7 +32,9 @@ class CalculationEngineTest {
 
     @Test
     void apply_singleRule_computesTargetField() throws Exception {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"total","expression":"price * qty","roundingPolicy":"round"}
             ]}]}""");
@@ -44,7 +47,9 @@ class CalculationEngineTest {
     @Test
     void apply_chainedRules_executedInOrder() throws Exception {
         // subtotal = price * qty; total = subtotal + tax
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"subtotal","expression":"price * qty"},
               {"id":"r2","targetField":"total","expression":"subtotal + tax"}
@@ -58,11 +63,15 @@ class CalculationEngineTest {
 
     @Test
     void apply_sumOverCollection_works() throws Exception {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"totalAmount","expression":"sum(items, 'amount')"}
             ]}]}""");
-        JsonNode formData = parse("""
+        JsonNode formData =
+                parse(
+                        """
             {"items":[
               {"name":"A","amount":100.0},
               {"name":"B","amount":200.0},
@@ -75,7 +84,9 @@ class CalculationEngineTest {
 
     @Test
     void apply_roundingPolicy_floor_appliesFloor() throws Exception {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"tax","expression":"price * 0.1","roundingPolicy":"floor"}
             ]}]}""");
@@ -97,28 +108,35 @@ class CalculationEngineTest {
     @Test
     void apply_circularDependency_throwsCircularDependencyException() {
         // r1: a = b; r2: b = a → circular
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"a","expression":"b"},
               {"id":"r2","targetField":"b","expression":"a"}
             ]}]}""");
         JsonNode formData = parse("{}");
 
-        assertThrows(CircularDependencyException.class,
+        assertThrows(
+                CircularDependencyException.class,
                 () -> CalculationEngine.apply(projection, formData));
     }
 
     @Test
     void apply_circularDependency_exceptionContainsCycleInfo() {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"x","expression":"y + 1"},
               {"id":"r2","targetField":"y","expression":"x + 1"}
             ]}]}""");
         JsonNode formData = parse("{}");
 
-        CircularDependencyException ex = assertThrows(CircularDependencyException.class,
-                () -> CalculationEngine.apply(projection, formData));
+        CircularDependencyException ex =
+                assertThrows(
+                        CircularDependencyException.class,
+                        () -> CalculationEngine.apply(projection, formData));
         assertNotNull(ex.getCycle());
         assertFalse(ex.getCycle().isEmpty());
     }
@@ -126,13 +144,16 @@ class CalculationEngineTest {
     @Test
     void apply_selfReference_throwsCircularDependencyException() {
         // r1: a = a + 1 → self-reference
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"a","expression":"a + 1"}
             ]}]}""");
         JsonNode formData = parse("{\"a\":0}");
 
-        assertThrows(CircularDependencyException.class,
+        assertThrows(
+                CircularDependencyException.class,
                 () -> CalculationEngine.apply(projection, formData));
     }
 
@@ -148,7 +169,8 @@ class CalculationEngineTest {
 
     @Test
     void apply_emptyProjection_returnsEmptyMap() throws Exception {
-        Map<String, Object> result = CalculationEngine.apply(parse("{\"templates\":[]}"), parse("{}"));
+        Map<String, Object> result =
+                CalculationEngine.apply(parse("{\"templates\":[]}"), parse("{}"));
         assertNotNull(result);
     }
 
@@ -156,7 +178,9 @@ class CalculationEngineTest {
 
     @Test
     void apply_halfEvenWithScale_roundsInDecimalSpace() throws Exception {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"unit","expression":"price / 8",
                "roundingPolicy":"half_even","roundingScale":1}
@@ -165,21 +189,28 @@ class CalculationEngineTest {
 
         Map<String, Object> result = CalculationEngine.apply(projection, formData);
         // 154.25 → half_even @ scale 1 → 154.2
-        assertEquals(0, new java.math.BigDecimal("154.2")
-                .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
+        assertEquals(
+                0,
+                new java.math.BigDecimal("154.2")
+                        .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
     }
 
     @Test
     void apply_halfUpWithScale_roundsAwayFromZeroOnTie() throws Exception {
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"unit","expression":"price / 8",
                "roundingPolicy":"half_up","roundingScale":1}
             ]}]}""");
-        Map<String, Object> result = CalculationEngine.apply(projection, parse("{\"price\":1234.0}"));
+        Map<String, Object> result =
+                CalculationEngine.apply(projection, parse("{\"price\":1234.0}"));
         // 154.25 → half_up @ scale 1 → 154.3
-        assertEquals(0, new java.math.BigDecimal("154.3")
-                .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
+        assertEquals(
+                0,
+                new java.math.BigDecimal("154.3")
+                        .compareTo(new java.math.BigDecimal(result.get("unit").toString())));
     }
 
     @Test
@@ -187,7 +218,9 @@ class CalculationEngineTest {
         // Regression (#57): the old regex scanner saw "b" inside the string
         // literal of rule a, reporting a false a→b dependency; combined with
         // the real b→a dependency it raised a bogus CircularDependencyException.
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","calculationRules":[
               {"id":"r1","targetField":"a","expression":"'b'"},
               {"id":"r2","targetField":"b","expression":"a"}

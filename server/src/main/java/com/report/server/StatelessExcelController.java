@@ -3,7 +3,12 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
-import org.apache.poi.ss.usermodel.Cell;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.WorkbookUtil;
@@ -12,18 +17,12 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-
 /**
- * Stateless XLSX generation endpoint — accepts template + data inline and returns
- * the report's underlying data as a multi-sheet Excel workbook (issue #118).
+ * Stateless XLSX generation endpoint — accepts template + data inline and returns the report's
+ * underlying data as a multi-sheet Excel workbook (issue #118).
  *
  * <p>POST /api/v2/excel/generate
+ *
  * <pre>
  * Body: { "template": { V2 ReportDefinition }, "data": { key-value pairs } }
  * Response: 200 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
@@ -31,11 +30,13 @@ import java.util.Map;
  * </pre>
  *
  * <p>Table selection mirrors the client-side CSV export:
+ *
  * <ol>
- *   <li>arrays referenced by a repeating element's {@code dataSource} (the report's
- *       real line-item tables), then</li>
- *   <li>any remaining top-level array-of-objects.</li>
+ *   <li>arrays referenced by a repeating element's {@code dataSource} (the report's real line-item
+ *       tables), then
+ *   <li>any remaining top-level array-of-objects.
  * </ol>
+ *
  * Scalar master fields become a leading 項目/値 sheet.
  *
  * <p>Security: all cells use {@link CellType#STRING} to prevent formula execution.
@@ -78,9 +79,10 @@ public final class StatelessExcelController {
         }
 
         JsonNode template = root.get("template");
-        JsonNode data = root.has("data") && root.get("data").isObject()
-            ? root.get("data")
-            : MAPPER.createObjectNode();
+        JsonNode data =
+                root.has("data") && root.get("data").isObject()
+                        ? root.get("data")
+                        : MAPPER.createObjectNode();
 
         try {
             byte[] xlsx = buildWorkbook(template, data);
@@ -135,8 +137,7 @@ public final class StatelessExcelController {
             // 3. Ensure the workbook always has at least one sheet
             if (wb.getNumberOfSheets() == 0) {
                 SXSSFSheet sheet = wb.createSheet(uniqueSheetName("データ", usedSheetNames));
-                sheet.createRow(0).createCell(0, CellType.STRING)
-                    .setCellValue("出力できるデータがありません");
+                sheet.createRow(0).createCell(0, CellType.STRING).setCellValue("出力できるデータがありません");
             }
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -187,7 +188,10 @@ public final class StatelessExcelController {
                     String type = el.path("type").asText("");
                     if (!type.equals("repeatingBand") && !type.equals("repeatingList")) continue;
                     JsonNode ds = el.get("dataSource");
-                    if (ds != null && ds.isTextual() && !ds.asText().isBlank() && seen.add(ds.asText())) {
+                    if (ds != null
+                            && ds.isTextual()
+                            && !ds.asText().isBlank()
+                            && seen.add(ds.asText())) {
                         keys.add(ds.asText());
                     }
                 }
@@ -204,7 +208,7 @@ public final class StatelessExcelController {
             String key = fields.next();
             JsonNode v = data.get(key);
             if (v == null || v.isObject() || v.isArray()) continue;
-            out.add(new String[]{ key, cellValue(v) });
+            out.add(new String[] {key, cellValue(v)});
         }
         return out;
     }

@@ -2,21 +2,18 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.auth.Principal;
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.exception.storage.ExecutionException;
 import com.scalar.db.exception.storage.RetriableExecutionException;
 import com.scalar.db.io.DataType;
 import com.scalar.db.service.TransactionFactory;
-import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.ServiceUnavailableResponse;
 import io.javalin.http.UnauthorizedResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -24,16 +21,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * POST /api/v2/scalardb/tables
  *
- * <p>Creates a new ScalarDB table from the request body and returns the
- * resulting table metadata. Used by Phase 1.5's inline {@code CreateTableForm}
- * to let users go from "schema group defined" to "bound to a real ScalarDB
- * table" without leaving the designer.
+ * <p>Creates a new ScalarDB table from the request body and returns the resulting table metadata.
+ * Used by Phase 1.5's inline {@code CreateTableForm} to let users go from "schema group defined" to
+ * "bound to a real ScalarDB table" without leaving the designer.
  *
  * <p>Request body (JSON):
+ *
  * <pre>{@code
  * {
  *   "namespace": "app",
@@ -49,16 +48,17 @@ import java.util.regex.Pattern;
  * }</pre>
  *
  * <p>Success response (201):
+ *
  * <pre>{@code
  * { "name": "users", "columns": [{ "name": "id", "type": "BIGINT", "keyType": "partition" }, ...] }
  * }</pre>
  *
- * <p>Error bodies are English (matching all existing v2 controllers). Japanese
- * strings live only in the React UI layer.
+ * <p>Error bodies are English (matching all existing v2 controllers). Japanese strings live only in
+ * the React UI layer.
  *
- * <p>No raw {@code e.getMessage()} is included in public error bodies. Each
- * exception path generates a correlation ID, logs the full exception server-side,
- * and returns only the generic message + {@code "correlationId"} to the client.
+ * <p>No raw {@code e.getMessage()} is included in public error bodies. Each exception path
+ * generates a correlation ID, logs the full exception server-side, and returns only the generic
+ * message + {@code "correlationId"} to the client.
  */
 public final class ScalarDbTableController {
 
@@ -81,16 +81,16 @@ public final class ScalarDbTableController {
      * {@code POST /api/v2/scalardb/tables}
      *
      * <p><b>Side-effect caveat:</b> If the target namespace does not exist, this method
-     * auto-creates it before calling {@code createTable}. The namespace creation is NOT
-     * atomic with the table creation. If {@code createTable} subsequently fails (DDL
-     * rejection, auth error, etc.), the empty namespace persists on disk. Empty namespaces
-     * are invisible to {@code getNamespaceNames()} (which only lists populated namespaces),
-     * so the user will not see a phantom entry in the catalog, but the namespace exists and
-     * cannot be cleaned up from the designer UI. Operators can remove it via the ScalarDB CLI:
-     * {@code scalardb admin drop-namespace <namespace>}.
+     * auto-creates it before calling {@code createTable}. The namespace creation is NOT atomic with
+     * the table creation. If {@code createTable} subsequently fails (DDL rejection, auth error,
+     * etc.), the empty namespace persists on disk. Empty namespaces are invisible to {@code
+     * getNamespaceNames()} (which only lists populated namespaces), so the user will not see a
+     * phantom entry in the catalog, but the namespace exists and cannot be cleaned up from the
+     * designer UI. Operators can remove it via the ScalarDB CLI: {@code scalardb admin
+     * drop-namespace <namespace>}.
      *
-     * <p>Phase 2 may address this by adding a namespace cleanup step in the exception handler
-     * or by removing the auto-create and requiring the namespace to exist beforehand.
+     * <p>Phase 2 may address this by adding a namespace cleanup step in the exception handler or by
+     * removing the auto-create and requiring the namespace to exist beforehand.
      */
     public void createTable(Context ctx) {
         // ── Parse body ────────────────────────────────────────────────────────
@@ -125,8 +125,16 @@ public final class ScalarDbTableController {
             return;
         }
         if (namespace.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-            ctx.status(400).json(Map.of("error",
-                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + namespace.substring(0, Math.min(namespace.length(), 20)) + "...'"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Identifier too long (max "
+                                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                            + " chars): '"
+                                            + namespace.substring(
+                                                    0, Math.min(namespace.length(), 20))
+                                            + "...'"));
             return;
         }
         if (!IDENTIFIER.matcher(namespace).matches()) {
@@ -134,8 +142,16 @@ public final class ScalarDbTableController {
             return;
         }
         if (tableName.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-            ctx.status(400).json(Map.of("error",
-                "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + tableName.substring(0, Math.min(tableName.length(), 20)) + "...'"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Identifier too long (max "
+                                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                            + " chars): '"
+                                            + tableName.substring(
+                                                    0, Math.min(tableName.length(), 20))
+                                            + "...'"));
             return;
         }
         if (!IDENTIFIER.matcher(tableName).matches()) {
@@ -151,8 +167,13 @@ public final class ScalarDbTableController {
 
         JsonNode columnsNode = req.path("columns");
         if (columnsNode.size() > ScalarDbLimits.MAX_COLUMNS_PER_TABLE) {
-            ctx.status(400).json(Map.of(
-                "error", "Too many columns (max " + ScalarDbLimits.MAX_COLUMNS_PER_TABLE + ")"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Too many columns (max "
+                                            + ScalarDbLimits.MAX_COLUMNS_PER_TABLE
+                                            + ")"));
             return;
         }
 
@@ -167,8 +188,15 @@ public final class ScalarDbTableController {
                 return;
             }
             if (name.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-                ctx.status(400).json(Map.of("error",
-                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + name.substring(0, Math.min(name.length(), 20)) + "...'"));
+                ctx.status(400)
+                        .json(
+                                Map.of(
+                                        "error",
+                                        "Identifier too long (max "
+                                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                                + " chars): '"
+                                                + name.substring(0, Math.min(name.length(), 20))
+                                                + "...'"));
                 return;
             }
             if (!IDENTIFIER.matcher(name).matches()) {
@@ -181,8 +209,13 @@ public final class ScalarDbTableController {
             }
             DataType dataType = parseDataType(type);
             if (dataType == null) {
-                ctx.status(400).json(Map.of("error",
-                    "Invalid column type: '" + type + "'. Must be one of BOOLEAN, INT, BIGINT, FLOAT, DOUBLE, TEXT, BLOB"));
+                ctx.status(400)
+                        .json(
+                                Map.of(
+                                        "error",
+                                        "Invalid column type: '"
+                                                + type
+                                                + "'. Must be one of BOOLEAN, INT, BIGINT, FLOAT, DOUBLE, TEXT, BLOB"));
                 return;
             }
             columns.add(new ColumnDef(name, dataType));
@@ -208,18 +241,33 @@ public final class ScalarDbTableController {
 
         // Length caps for key lists
         if (partitionKeys.size() > ScalarDbLimits.MAX_PARTITION_KEYS) {
-            ctx.status(400).json(Map.of(
-                "error", "Too many partition keys (max " + ScalarDbLimits.MAX_PARTITION_KEYS + ")"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Too many partition keys (max "
+                                            + ScalarDbLimits.MAX_PARTITION_KEYS
+                                            + ")"));
             return;
         }
         if (clusteringKeys.size() > ScalarDbLimits.MAX_CLUSTERING_KEYS) {
-            ctx.status(400).json(Map.of(
-                "error", "Too many clustering keys (max " + ScalarDbLimits.MAX_CLUSTERING_KEYS + ")"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Too many clustering keys (max "
+                                            + ScalarDbLimits.MAX_CLUSTERING_KEYS
+                                            + ")"));
             return;
         }
         if (secondaryIndexes.size() > ScalarDbLimits.MAX_SECONDARY_INDEXES) {
-            ctx.status(400).json(Map.of(
-                "error", "Too many secondary indexes (max " + ScalarDbLimits.MAX_SECONDARY_INDEXES + ")"));
+            ctx.status(400)
+                    .json(
+                            Map.of(
+                                    "error",
+                                    "Too many secondary indexes (max "
+                                            + ScalarDbLimits.MAX_SECONDARY_INDEXES
+                                            + ")"));
             return;
         }
 
@@ -258,9 +306,13 @@ public final class ScalarDbTableController {
         try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
             // Idempotency guard — return 409 instead of letting ScalarDB throw
             if (admin.tableExists(namespace, tableName)) {
-                AuditLog.op("create_table", userId, namespace, tableName, "conflict", correlationId);
-                ctx.status(409).json(Map.of(
-                    "error", "Table already exists: " + namespace + "." + tableName));
+                AuditLog.op(
+                        "create_table", userId, namespace, tableName, "conflict", correlationId);
+                ctx.status(409)
+                        .json(
+                                Map.of(
+                                        "error",
+                                        "Table already exists: " + namespace + "." + tableName));
                 return;
             }
 
@@ -301,12 +353,19 @@ public final class ScalarDbTableController {
 
         } catch (ExecutionException e) {
             if (e.isAuthenticationError()) {
-                AuditLog.op("create_table", userId, namespace, tableName, "auth_failed", correlationId);
+                AuditLog.op(
+                        "create_table", userId, namespace, tableName, "auth_failed", correlationId);
                 log.warn("ScalarDb auth failed correlationId={}", correlationId, e);
                 throw new UnauthorizedResponse("ScalarDb authentication failed");
             }
             if (e.isAuthorizationError() || e.isSuperuserRequired()) {
-                AuditLog.op("create_table", userId, namespace, tableName, "authz_denied", correlationId);
+                AuditLog.op(
+                        "create_table",
+                        userId,
+                        namespace,
+                        tableName,
+                        "authz_denied",
+                        correlationId);
                 log.warn("ScalarDb authz denied correlationId={}", correlationId, e);
                 throw new ForbiddenResponse("ScalarDb permission denied");
             }
@@ -316,16 +375,29 @@ public final class ScalarDbTableController {
             // edge case where the re-check itself fails (resource exhaustion etc.).
             try (DistributedTransactionAdmin adminCheck = factory.getTransactionAdmin()) {
                 if (adminCheck.tableExists(namespace, tableName)) {
-                    AuditLog.op("create_table", userId, namespace, tableName, "conflict", correlationId);
-                    ctx.status(409).json(Map.of(
-                        "error", "Table already exists: " + namespace + "." + tableName));
+                    AuditLog.op(
+                            "create_table",
+                            userId,
+                            namespace,
+                            tableName,
+                            "conflict",
+                            correlationId);
+                    ctx.status(409)
+                            .json(
+                                    Map.of(
+                                            "error",
+                                            "Table already exists: "
+                                                    + namespace
+                                                    + "."
+                                                    + tableName));
                     return;
                 }
             } catch (Exception checkEx) {
                 log.warn("TOCTOU re-check failed correlationId={}", correlationId, checkEx);
             }
 
-            AuditLog.op("create_table", userId, namespace, tableName, "ddl_rejected", correlationId);
+            AuditLog.op(
+                    "create_table", userId, namespace, tableName, "ddl_rejected", correlationId);
             log.warn("ScalarDb DDL rejected correlationId={}", correlationId, e);
             throw new InternalServerErrorResponse("ScalarDb DDL rejected");
         }
@@ -383,14 +455,21 @@ public final class ScalarDbTableController {
     }
 
     /**
-     * Returns true and writes a 400 response if any entry fails the IDENTIFIER regex
-     * or exceeds {@link ScalarDbLimits#MAX_IDENTIFIER_LENGTH}.
+     * Returns true and writes a 400 response if any entry fails the IDENTIFIER regex or exceeds
+     * {@link ScalarDbLimits#MAX_IDENTIFIER_LENGTH}.
      */
     private static boolean rejectInvalidIdentifiers(List<String> keys, Context ctx) {
         for (String k : keys) {
             if (k.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-                ctx.status(400).json(Map.of("error",
-                    "Identifier too long (max " + ScalarDbLimits.MAX_IDENTIFIER_LENGTH + " chars): '" + k.substring(0, Math.min(k.length(), 20)) + "...'"));
+                ctx.status(400)
+                        .json(
+                                Map.of(
+                                        "error",
+                                        "Identifier too long (max "
+                                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                                + " chars): '"
+                                                + k.substring(0, Math.min(k.length(), 20))
+                                                + "...'"));
                 return true;
             }
             if (!IDENTIFIER.matcher(k).matches()) {
@@ -402,8 +481,8 @@ public final class ScalarDbTableController {
     }
 
     /**
-     * Returns true and writes a 400 response if the list contains duplicate entries.
-     * Single-pass detection — finds the first duplicate inline without a second traversal.
+     * Returns true and writes a 400 response if the list contains duplicate entries. Single-pass
+     * detection — finds the first duplicate inline without a second traversal.
      */
     private static boolean rejectDuplicateKeys(List<String> keys, Context ctx) {
         Set<String> seen = new HashSet<>();
@@ -420,7 +499,8 @@ public final class ScalarDbTableController {
     private static boolean rejectUnknownKeys(List<String> keys, Set<String> columns, Context ctx) {
         for (String k : keys) {
             if (!columns.contains(k)) {
-                ctx.status(400).json(Map.of("error", "Key column '" + k + "' not found in columns list"));
+                ctx.status(400)
+                        .json(Map.of("error", "Key column '" + k + "' not found in columns list"));
                 return true;
             }
         }

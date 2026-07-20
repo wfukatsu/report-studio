@@ -1,9 +1,9 @@
 package com.report.server.job;
 
-import com.report.server.ProjectionRepository;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+import com.report.server.ProjectionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,19 +11,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Tests for the parallel batch processor (issue #60): all rows render with
- * per-row error isolation, correct terminal status, and one output file per row.
+ * Tests for the parallel batch processor (issue #60): all rows render with per-row error isolation,
+ * correct terminal status, and one output file per row.
  */
 class BatchPdfProcessorTest {
 
     /** A minimal V1 projection that renders one blank A4 page. */
-    private static final String PROJECTION =
-            "{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}";
+    private static final String PROJECTION = "{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}";
 
     private BatchPdfProcessor newProcessor(JobRepository repo, String projection) {
         ProjectionRepository projRepo = mock(ProjectionRepository.class);
@@ -35,11 +33,19 @@ class BatchPdfProcessorTest {
     private JobRepository memoryRepo(Path tmp, String jobId, int total) {
         JobRepository repo = mock(JobRepository.class);
         ConcurrentHashMap<String, JobRecord> store = new ConcurrentHashMap<>();
-        store.put(jobId, new JobRecord(jobId, "t1", JobRecord.PENDING, total, 0, 0, null,
-                0L, 0L, 0L));
-        doAnswer(inv -> { JobRecord r = inv.getArgument(0); store.put(r.jobId(), r); return null; })
-                .when(repo).save(any());
-        when(repo.findById(anyString())).thenAnswer(inv -> Optional.ofNullable(store.get(inv.getArgument(0))));
+        store.put(
+                jobId,
+                new JobRecord(jobId, "t1", JobRecord.PENDING, total, 0, 0, null, 0L, 0L, 0L));
+        doAnswer(
+                        inv -> {
+                            JobRecord r = inv.getArgument(0);
+                            store.put(r.jobId(), r);
+                            return null;
+                        })
+                .when(repo)
+                .save(any());
+        when(repo.findById(anyString()))
+                .thenAnswer(inv -> Optional.ofNullable(store.get(inv.getArgument(0))));
         when(repo.getOutputDir(anyString())).thenReturn(tmp.resolve("output"));
         when(repo.getOutputZipPath(anyString())).thenReturn(tmp.resolve("output.zip"));
         return repo;
@@ -108,6 +114,8 @@ class BatchPdfProcessorTest {
 
         JobRecord rec = repo.findById("j4").orElseThrow();
         assertEquals("CANCELLED", rec.status());
-        assertTrue(rec.processedItems() < 200, "cancel should stop before all rows: " + rec.processedItems());
+        assertTrue(
+                rec.processedItems() < 200,
+                "cancel should stop before all rows: " + rec.processedItems());
     }
 }

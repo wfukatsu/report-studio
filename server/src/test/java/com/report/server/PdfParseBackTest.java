@@ -1,18 +1,17 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 /**
  * Parse-back contract tests for the PDF render pipeline (issue #59).
  *
- * <p>Unlike {@link PdfRendererTest} (which only checks that *a* PDF is produced),
- * these tests extract text, positions, and fonts from the rendered output and
- * assert the renderer's coordinate/typography contract.
+ * <p>Unlike {@link PdfRendererTest} (which only checks that *a* PDF is produced), these tests
+ * extract text, positions, and fonts from the rendered output and assert the renderer's
+ * coordinate/typography contract.
  */
 class PdfParseBackTest {
 
@@ -24,7 +23,8 @@ class PdfParseBackTest {
 
     @Test
     void textElement_contentPositionAndFontSizeLandInPdf() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Contract",
               "pageSetup":{"kind":"preset","paperSizeId":"A4","orientation":"portrait"},
@@ -43,8 +43,12 @@ class PdfParseBackTest {
         assertEquals(210f, probe.pageWidthMm(0), 0.1f);
         assertEquals(297f, probe.pageHeightMm(0), 0.1f);
 
-        PdfProbe.TextRun run = probe.findRun(0, "Hello Contract").orElseThrow(
-                () -> new AssertionError("text not extracted; runs:\n" + probe.dumpRuns()));
+        PdfProbe.TextRun run =
+                probe.findRun(0, "Hello Contract")
+                        .orElseThrow(
+                                () ->
+                                        new AssertionError(
+                                                "text not extracted; runs:\n" + probe.dumpRuns()));
         assertEquals(PdfProbe.expectedXMm(50), run.xMm(), POS_TOL_MM);
         assertEquals(PdfProbe.expectedBaselineYMm(30, 16), run.baselineYMm(), POS_TOL_MM);
         assertEquals(16f, run.fontSizePt(), 0.01f);
@@ -52,7 +56,8 @@ class PdfParseBackTest {
 
     @Test
     void japaneseText_extractableWithEmbeddedNotoFont() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"CJK",
               "sections":[{
@@ -71,14 +76,16 @@ class PdfParseBackTest {
         assertTrue(probe.pageContains(0, "御見積書"), probe.pageText(0));
 
         PdfProbe.TextRun run = probe.findRun(0, "株式会社").orElseThrow();
-        assertTrue(run.fontName().contains("NotoSansJP"),
+        assertTrue(
+                run.fontName().contains("NotoSansJP"),
                 "CJK text must use the embedded Noto font, got: " + run.fontName());
     }
 
     @Test
     void warekiAndDaijiGlyphs_renderAndExtract() throws IOException {
         // 和暦・大字 — glyph coverage required by Japanese business forms
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Wareki",
               "sections":[{
@@ -100,7 +107,8 @@ class PdfParseBackTest {
 
     @Test
     void scalarBindingRef_resolvesFormDataIntoText() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Binding",
               "sections":[{
@@ -121,7 +129,8 @@ class PdfParseBackTest {
     @Test
     void unknownElementKind_producesNoText() throws IOException {
         // A genuinely unknown future kind falls back to an empty border box.
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Unknown",
               "sections":[{
@@ -134,14 +143,16 @@ class PdfParseBackTest {
               }]
             }]}""";
         PdfProbe probe = render(json);
-        assertFalse(probe.pageContains(0, "未知要素テキスト"),
+        assertFalse(
+                probe.pageContains(0, "未知要素テキスト"),
                 "unknown kinds render an empty border box, not their text");
     }
 
     @Test
     void systemVariables_substituteAtRenderTime() throws IOException {
         // Issue #54: {pageNumber} bindingRefs resolve from the page context.
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"SysVar",
               "sections":[{

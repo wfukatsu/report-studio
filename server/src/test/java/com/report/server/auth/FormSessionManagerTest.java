@@ -1,21 +1,20 @@
 package com.report.server.auth;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 /**
- * Tests for {@link FormSessionManager} — token issuance, validation and the
- * 1-hour TTL. Time is injected via the package-private clock seam.
+ * Tests for {@link FormSessionManager} — token issuance, validation and the 1-hour TTL. Time is
+ * injected via the package-private clock seam.
  */
 class FormSessionManagerTest {
 

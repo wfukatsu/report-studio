@@ -5,21 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
  * Handles tenant info endpoints:
+ *
  * <ul>
- *   <li>GET /api/v2/tenant — read tenant info (returns {} if not set)</li>
- *   <li>PUT /api/v2/tenant — replace tenant info (admin role required)</li>
+ *   <li>GET /api/v2/tenant — read tenant info (returns {} if not set)
+ *   <li>PUT /api/v2/tenant — replace tenant info (admin role required)
  * </ul>
  *
- * <p>Stored as a singleton document in the {@code tenant} table with the fixed
- * id {@code "singleton"}. Uses {@link JsonBlobRepository} exactly like
- * {@code schemas} and {@code binding_trees}.
+ * <p>Stored as a singleton document in the {@code tenant} table with the fixed id {@code
+ * "singleton"}. Uses {@link JsonBlobRepository} exactly like {@code schemas} and {@code
+ * binding_trees}.
  */
 public final class TenantController {
 
@@ -35,8 +35,7 @@ public final class TenantController {
     }
 
     /**
-     * GET /api/v2/tenant
-     * Returns the tenant info JSON, or {@code {}} if not yet configured.
+     * GET /api/v2/tenant Returns the tenant info JSON, or {@code {}} if not yet configured.
      * Authentication not required (read-only).
      */
     public void get(Context ctx) throws Exception {
@@ -47,10 +46,8 @@ public final class TenantController {
     }
 
     /**
-     * PUT /api/v2/tenant
-     * Body: TenantInfo JSON
-     * Replaces the entire tenant info document.
-     * Requires an authenticated principal with the "admin" role.
+     * PUT /api/v2/tenant Body: TenantInfo JSON Replaces the entire tenant info document. Requires
+     * an authenticated principal with the "admin" role.
      */
     public void put(Context ctx) throws Exception {
         // Single source of truth for the admin-role predicate (throws 403).

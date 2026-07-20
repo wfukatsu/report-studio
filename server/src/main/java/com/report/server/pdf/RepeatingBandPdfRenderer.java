@@ -1,32 +1,30 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.report.server.ValueFormatter;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
-
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
- * Renders V2 {@code repeatingBand} elements to PDF (issue #53) as a
- * self-contained table within the element frame.
+ * Renders V2 {@code repeatingBand} elements to PDF (issue #53) as a self-contained table within the
+ * element frame.
  *
- * <p>Unlike the {@code detail_table} section (which flows rows across pages),
- * a repeatingBand element draws its header + data rows inside its own box,
- * bounded by {@code maxItems} — matching the frontend's in-place preview.
- * Column widths come from {@code fields[].width} (mm, normalized to the box),
- * with per-column {@code align} and {@code format}. Data rows are resolved
- * upstream into {@code props.data} (an array).
+ * <p>Unlike the {@code detail_table} section (which flows rows across pages), a repeatingBand
+ * element draws its header + data rows inside its own box, bounded by {@code maxItems} — matching
+ * the frontend's in-place preview. Column widths come from {@code fields[].width} (mm, normalized
+ * to the box), with per-column {@code align} and {@code format}. Data rows are resolved upstream
+ * into {@code props.data} (an array).
  *
- * <p>Full parity with the frontend's grouping / subtotals / footer aggregates
- * is out of scope here; this renders the header row and the flat data rows.
+ * <p>Full parity with the frontend's grouping / subtotals / footer aggregates is out of scope here;
+ * this renders the header row and the flat data rows.
  */
 public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
 
@@ -41,9 +39,17 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         List<Col> cols = readColumns(el);
         if (cols.isEmpty()) {
             renderBorder(cs, x, y, w, h);
@@ -60,14 +66,17 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         if (totalW <= 0) totalW = cols.size();
         float[] colX = new float[cols.size() + 1];
         colX[0] = x;
-        for (int i = 0; i < cols.size(); i++) colX[i + 1] = colX[i] + w * (cols.get(i).width / totalW);
+        for (int i = 0; i < cols.size(); i++)
+            colX[i + 1] = colX[i] + w * (cols.get(i).width / totalW);
 
         // Row height follows the element's itemHeight (mm) like the frontend;
         // capacity math in SectionRenderHelper.bandCapacity mirrors this (issue #64)
         float itemHeightMm = elementFloatOf(el, "itemHeight", 6f);
         float rowH = itemHeightMm > 0 ? itemHeightMm * PdfUnits.MM_TO_PT : DEFAULT_ROW_H;
-        float headerH = elementFloatOf(el, "headerHeight", itemHeightMm) > 0
-                ? elementFloatOf(el, "headerHeight", itemHeightMm) * PdfUnits.MM_TO_PT : rowH;
+        float headerH =
+                elementFloatOf(el, "headerHeight", itemHeightMm) > 0
+                        ? elementFloatOf(el, "headerHeight", itemHeightMm) * PdfUnits.MM_TO_PT
+                        : rowH;
         int rowCount = rows == null ? 0 : rows.size();
         if (maxItems > 0) rowCount = Math.min(rowCount, maxItems);
         float cursorTop = y;
@@ -80,8 +89,17 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                 cs.addRect(x, cursorTop - headerH, w, headerH);
                 cs.fill();
                 for (int i = 0; i < cols.size(); i++) {
-                    drawCell(cs, font, cols.get(i).label, colX[i], colX[i + 1],
-                            cursorTop, headerH, "left", true, Color.BLACK);
+                    drawCell(
+                            cs,
+                            font,
+                            cols.get(i).label,
+                            colX[i],
+                            colX[i + 1],
+                            cursorTop,
+                            headerH,
+                            "left",
+                            true,
+                            Color.BLACK);
                 }
                 cursorTop -= headerH;
             }
@@ -94,8 +112,17 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                 for (int i = 0; i < cols.size(); i++) {
                     Col c = cols.get(i);
                     String text = ValueFormatter.applyFormat(row.get(c.key), c.format);
-                    drawCell(cs, font, text, colX[i], colX[i + 1], cursorTop, rowH,
-                            c.align, false, Color.BLACK);
+                    drawCell(
+                            cs,
+                            font,
+                            text,
+                            colX[i],
+                            colX[i + 1],
+                            cursorTop,
+                            rowH,
+                            c.align,
+                            false,
+                            Color.BLACK);
                 }
                 cursorTop -= rowH;
             }
@@ -116,18 +143,28 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         }
     }
 
-    private static void drawCell(PDPageContentStream cs, PDFont font, String text,
-                                 float x0, float x1, float top, float rowH,
-                                 String align, boolean bold, Color color) throws IOException {
+    private static void drawCell(
+            PDPageContentStream cs,
+            PDFont font,
+            String text,
+            float x0,
+            float x1,
+            float top,
+            float rowH,
+            String align,
+            boolean bold,
+            Color color)
+            throws IOException {
         if (text == null || text.isEmpty()) return;
         float cellW = x1 - x0;
         String truncated = truncateToWidth(text, font, FONT, cellW - 2);
         float tw = font.getStringWidth(truncated) / 1000 * FONT;
-        float tx = switch (align) {
-            case "center" -> x0 + (cellW - tw) / 2;
-            case "right" -> x1 - tw - 1;
-            default -> x0 + 1;
-        };
+        float tx =
+                switch (align) {
+                    case "center" -> x0 + (cellW - tw) / 2;
+                    case "right" -> x1 - tw - 1;
+                    default -> x0 + 1;
+                };
         cs.beginText();
         cs.setFont(font, FONT);
         cs.setNonStrokingColor(color);
@@ -141,15 +178,19 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
     private static List<Col> readColumns(JsonNode el) {
         List<Col> cols = new ArrayList<>();
         JsonNode fields = el.get("fields");
-        if (fields == null) { JsonNode p = el.get("props"); if (p != null) fields = p.get("fields"); }
+        if (fields == null) {
+            JsonNode p = el.get("props");
+            if (p != null) fields = p.get("fields");
+        }
         if (fields == null || !fields.isArray()) return cols;
         for (JsonNode f : fields) {
-            cols.add(new Col(
-                    textOf(f, "key", ""),
-                    textOf(f, "label", textOf(f, "key", "")),
-                    floatOf(f, "width", 20f),
-                    textOf(f, "align", "left"),
-                    f.get("format")));
+            cols.add(
+                    new Col(
+                            textOf(f, "key", ""),
+                            textOf(f, "label", textOf(f, "key", "")),
+                            floatOf(f, "width", 20f),
+                            textOf(f, "align", "left"),
+                            f.get("format")));
         }
         return cols;
     }

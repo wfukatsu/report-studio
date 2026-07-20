@@ -1,15 +1,15 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration tests for EtaxXmlValidator — verifies the XSD validation pipeline
- * from WithholdingTaxXmlBuilder output against the bundled stub XSD.
+ * Integration tests for EtaxXmlValidator — verifies the XSD validation pipeline from
+ * WithholdingTaxXmlBuilder output against the bundled stub XSD.
  */
 class EtaxXmlValidatorTest {
 
@@ -57,10 +57,10 @@ class EtaxXmlValidatorTest {
     @Test
     void validate_unknownSchemaVersion_throwsIllegalArgument() throws Exception {
         Document doc = WithholdingTaxXmlBuilder.build(null, buildFormData());
-        IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> EtaxXmlValidator.validate(doc, "unknown-version")
-        );
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> EtaxXmlValidator.validate(doc, "unknown-version"));
         assertTrue(ex.getMessage().contains("No XSD registered"));
     }
 

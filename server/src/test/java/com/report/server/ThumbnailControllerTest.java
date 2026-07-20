@@ -1,16 +1,15 @@
 package com.report.server;
 
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.Optional;
 import java.util.concurrent.Executors;
-
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class ThumbnailControllerTest {
 
@@ -23,8 +22,7 @@ class ThumbnailControllerTest {
     @BeforeEach
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
-        controller = new ThumbnailController(definitionsRepo,
-                Executors.newSingleThreadExecutor());
+        controller = new ThumbnailController(definitionsRepo, Executors.newSingleThreadExecutor());
         ctx = mock(Context.class);
         when(ctx.pathParam("id")).thenReturn("tpl-1");
         when(ctx.header("If-None-Match")).thenReturn(null);
@@ -36,7 +34,10 @@ class ThumbnailControllerTest {
         env.put("name", "Test");
         ObjectNode def = MAPPER.createObjectNode();
         def.put("id", id);
-        def.putObject("metadata").put("documentName", "Test").put("version", "1.0").put("reportType", "general");
+        def.putObject("metadata")
+                .put("documentName", "Test")
+                .put("version", "1.0")
+                .put("reportType", "general");
         ObjectNode ps = def.putObject("pageSettings");
         ps.put("paperSize", "A4");
         ps.put("orientation", "portrait");
@@ -49,17 +50,19 @@ class ThumbnailControllerTest {
         def.putArray("outputVariants");
         def.putArray("submissionModels");
         def.putArray("validationRules");
-        def.putArray("pages").addObject()
+        def.putArray("pages")
+                .addObject()
                 .put("id", "page-1")
                 .put("name", "Page 1")
                 .put("width", 210)
                 .put("height", 297)
                 .put("background", "#ffffff")
-                .putArray("sections").addObject()
-                        .put("id", "sec-1")
-                        .put("sectionType", "body")
-                        .put("height", 257)
-                        .putArray("elements");
+                .putArray("sections")
+                .addObject()
+                .put("id", "sec-1")
+                .put("sectionType", "body")
+                .put("height", 257)
+                .putArray("elements");
         env.set("definition", def);
         return MAPPER.writeValueAsString(env);
     }
@@ -89,8 +92,9 @@ class ThumbnailControllerTest {
         // ETag is computed from the prepared V2 definition (issue #52)
         String env = makeEnvelope("tpl-1");
         com.fasterxml.jackson.databind.JsonNode envNode = MAPPER.readTree(env);
-        String definitionJson = V2RenderSupport.prepare(
-                envNode.path("definition"), MAPPER.createObjectNode(), null);
+        String definitionJson =
+                V2RenderSupport.prepare(
+                        envNode.path("definition"), MAPPER.createObjectNode(), null);
         String etag = ThumbnailGenerator.computeETag(definitionJson);
 
         when(ctx.header("If-None-Match")).thenReturn(etag);

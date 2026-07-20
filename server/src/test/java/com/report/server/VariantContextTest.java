@@ -1,10 +1,10 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.pdf.VariantContext;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class VariantContextTest {
 
@@ -29,7 +29,8 @@ class VariantContextTest {
 
     @Test
     void isVisible_overrideTrue_returnsTrue() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": { "el1": true },
@@ -42,7 +43,8 @@ class VariantContextTest {
 
     @Test
     void isVisible_overrideFalse_returnsFalse() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": { "el-mynum": false },
@@ -55,7 +57,8 @@ class VariantContextTest {
 
     @Test
     void isVisible_noOverride_returnsBase() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -71,7 +74,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_hidden_returnsEmpty() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -86,7 +90,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_hidden_nullValue_returnsEmpty() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -103,7 +108,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_fullReplace_returnsReplaceValue() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -118,7 +124,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_fullReplace_emptyReplaceValue() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -135,7 +142,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_partial_keepFirst2() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -155,7 +163,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_partial_keepLast4() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -175,7 +184,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_partial_keepFirstAndLast() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -195,7 +205,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_partial_keepFirstExceedsLength_clamped() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -215,7 +226,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_partial_keepFirstPlusLastExceedsLength_clamped() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -235,7 +247,8 @@ class VariantContextTest {
 
     @Test
     void applyMasking_noRule_returnsOriginal() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -250,7 +263,8 @@ class VariantContextTest {
 
     @Test
     void from_missingVisibilityOverrides_usesBase() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "maskingRules": []
@@ -262,7 +276,8 @@ class VariantContextTest {
 
     @Test
     void from_missingMaskingRules_noMasking() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {}
@@ -274,7 +289,8 @@ class VariantContextTest {
 
     @Test
     void from_ruleWithMissingTargetElementId_skipped() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "variantId": "v1",
               "visibilityOverrides": {},
@@ -292,7 +308,8 @@ class VariantContextTest {
 
     @Test
     void render_withValidVariantId_succeeds() throws Exception {
-        String json = """
+        String json =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -319,7 +336,8 @@ class VariantContextTest {
     @Test
     void render_hiddenElement_notInPdf() throws Exception {
         // Integration test: element with visibilityOverride=false should be skipped
-        String json = """
+        String json =
+                """
             {
               "templates": [{
                 "id": "t1",

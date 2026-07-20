@@ -1,29 +1,31 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
  * Renders formTable elements to PDF.
  *
  * <p>Iterates rows and cells from the V2 FormTableElement structure:
+ *
  * <ul>
- *   <li>{@code columns[]} — each with {@code width} (mm)</li>
- *   <li>{@code rows[]} — each with {@code height} (mm), {@code role} (header/body/footer), {@code cells[]}</li>
- *   <li>{@code cells[]} — each with {@code type} (label/input/dataField), {@code text}, {@code fieldKey},
- *       {@code colspan}, {@code rowspan}, {@code mergedInto}, {@code style}</li>
+ *   <li>{@code columns[]} — each with {@code width} (mm)
+ *   <li>{@code rows[]} — each with {@code height} (mm), {@code role} (header/body/footer), {@code
+ *       cells[]}
+ *   <li>{@code cells[]} — each with {@code type} (label/input/dataField), {@code text}, {@code
+ *       fieldKey}, {@code colspan}, {@code rowspan}, {@code mergedInto}, {@code style}
  * </ul>
  *
- * <p>Cells with {@code mergedInto} set are skipped (spanned into another cell).
- * For {@code type: "dataField"} cells, the value is resolved from {@code _formData}
- * in the projection JSON (passed as a prop or resolved upstream).
+ * <p>Cells with {@code mergedInto} set are skipped (spanned into another cell). For {@code type:
+ * "dataField"} cells, the value is resolved from {@code _formData} in the projection JSON (passed
+ * as a prop or resolved upstream).
  */
 public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
@@ -39,9 +41,17 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         // Read element-level props — V2 elements store columns/rows at top level or in props
         JsonNode columns = resolveArray(el, "columns");
         JsonNode rows = resolveArray(el, "rows");
@@ -52,12 +62,16 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
         // Element-level border settings
         JsonNode props = el.get("props");
-        Color borderColor = parseColor(
-                props != null ? textOf(props, "borderColor", "") : textOf(el, "borderColor", ""),
-                DEFAULT_BORDER_COLOR);
-        float borderWidth = props != null
-                ? floatOf(props, "borderWidth", DEFAULT_BORDER_WIDTH)
-                : floatOf(el, "borderWidth", DEFAULT_BORDER_WIDTH);
+        Color borderColor =
+                parseColor(
+                        props != null
+                                ? textOf(props, "borderColor", "")
+                                : textOf(el, "borderColor", ""),
+                        DEFAULT_BORDER_COLOR);
+        float borderWidth =
+                props != null
+                        ? floatOf(props, "borderWidth", DEFAULT_BORDER_WIDTH)
+                        : floatOf(el, "borderWidth", DEFAULT_BORDER_WIDTH);
 
         // Form data for dataField resolution
         JsonNode formData = el.get("_formData");
@@ -74,10 +88,28 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         try {
             // Render cells: backgrounds, text, then borders
             renderCellBackgrounds(cs, el, rows, columns, colXPt, colWidthPt, rowYPt, rowHeightPt);
-            renderCellText(cs, el, rows, columns, colXPt, colWidthPt, rowYPt, rowHeightPt,
-                    formData, doc, fontCache);
-            renderCellBorders(cs, rows, columns, colXPt, colWidthPt, rowYPt, rowHeightPt,
-                    borderColor, borderWidth);
+            renderCellText(
+                    cs,
+                    el,
+                    rows,
+                    columns,
+                    colXPt,
+                    colWidthPt,
+                    rowYPt,
+                    rowHeightPt,
+                    formData,
+                    doc,
+                    fontCache);
+            renderCellBorders(
+                    cs,
+                    rows,
+                    columns,
+                    colXPt,
+                    colWidthPt,
+                    rowYPt,
+                    rowHeightPt,
+                    borderColor,
+                    borderWidth);
         } finally {
             cs.restoreGraphicsState();
         }
@@ -126,15 +158,25 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
     // ── Cell backgrounds ──────────────────────────────────────────────────────
 
-    private static void renderCellBackgrounds(PDPageContentStream cs, JsonNode el,
-                                              JsonNode rows, JsonNode columns,
-                                              float[] colXPt, float[] colWidthPt,
-                                              float[] rowYPt, float[] rowHeightPt) throws IOException {
+    private static void renderCellBackgrounds(
+            PDPageContentStream cs,
+            JsonNode el,
+            JsonNode rows,
+            JsonNode columns,
+            float[] colXPt,
+            float[] colWidthPt,
+            float[] rowYPt,
+            float[] rowHeightPt)
+            throws IOException {
         // Element-level header/body styles
-        JsonNode headerStyle = el.has("headerStyle") ? el.get("headerStyle")
-                : (el.has("props") ? el.get("props").get("headerStyle") : null);
-        JsonNode bodyStyle = el.has("bodyStyle") ? el.get("bodyStyle")
-                : (el.has("props") ? el.get("props").get("bodyStyle") : null);
+        JsonNode headerStyle =
+                el.has("headerStyle")
+                        ? el.get("headerStyle")
+                        : (el.has("props") ? el.get("props").get("headerStyle") : null);
+        JsonNode bodyStyle =
+                el.has("bodyStyle")
+                        ? el.get("bodyStyle")
+                        : (el.has("props") ? el.get("props").get("bodyStyle") : null);
 
         for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
             JsonNode row = rows.get(rowIdx);
@@ -153,8 +195,17 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 Color bg = parseColor(bgColor, null);
                 if (bg == null) continue;
 
-                CellBounds bounds = computeCellBounds(colIdx, rowIdx, cell, columns.size(), rows.size(),
-                        colXPt, colWidthPt, rowYPt, rowHeightPt);
+                CellBounds bounds =
+                        computeCellBounds(
+                                colIdx,
+                                rowIdx,
+                                cell,
+                                columns.size(),
+                                rows.size(),
+                                colXPt,
+                                colWidthPt,
+                                rowYPt,
+                                rowHeightPt);
 
                 cs.setNonStrokingColor(bg);
                 cs.addRect(bounds.x, bounds.y - bounds.h, bounds.w, bounds.h);
@@ -165,12 +216,19 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
     // ── Cell text ─────────────────────────────────────────────────────────────
 
-    private static void renderCellText(PDPageContentStream cs, JsonNode el,
-                                       JsonNode rows, JsonNode columns,
-                                       float[] colXPt, float[] colWidthPt,
-                                       float[] rowYPt, float[] rowHeightPt,
-                                       JsonNode formData, PDDocument doc,
-                                       Map<String, PDFont> fontCache) throws IOException {
+    private static void renderCellText(
+            PDPageContentStream cs,
+            JsonNode el,
+            JsonNode rows,
+            JsonNode columns,
+            float[] colXPt,
+            float[] colWidthPt,
+            float[] rowYPt,
+            float[] rowHeightPt,
+            JsonNode formData,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
             JsonNode row = rows.get(rowIdx);
             JsonNode cells = row.get("cells");
@@ -183,12 +241,24 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 String text = resolveCellText(cell, formData);
                 if (text == null || text.isEmpty()) continue;
 
-                CellBounds bounds = computeCellBounds(colIdx, rowIdx, cell, columns.size(), rows.size(),
-                        colXPt, colWidthPt, rowYPt, rowHeightPt);
+                CellBounds bounds =
+                        computeCellBounds(
+                                colIdx,
+                                rowIdx,
+                                cell,
+                                columns.size(),
+                                rows.size(),
+                                colXPt,
+                                colWidthPt,
+                                rowYPt,
+                                rowHeightPt);
 
                 // Resolve font from cell style
                 JsonNode style = cell.get("style");
-                float fontSize = style != null ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE) : DEFAULT_FONT_SIZE;
+                float fontSize =
+                        style != null
+                                ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE)
+                                : DEFAULT_FONT_SIZE;
                 boolean bold = isBold(style);
                 String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
                 PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
@@ -199,7 +269,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
                 // Text alignment
                 String textAlign = style != null ? textOf(style, "textAlign", "left") : "left";
-                String verticalAlign = style != null ? textOf(style, "verticalAlign", "middle") : "middle";
+                String verticalAlign =
+                        style != null ? textOf(style, "verticalAlign", "middle") : "middle";
 
                 // Truncate text to fit cell width
                 float availableWidth = bounds.w - 2 * CELL_PADDING_PT;
@@ -225,11 +296,17 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
     // ── Cell borders ──────────────────────────────────────────────────────────
 
-    private static void renderCellBorders(PDPageContentStream cs,
-                                          JsonNode rows, JsonNode columns,
-                                          float[] colXPt, float[] colWidthPt,
-                                          float[] rowYPt, float[] rowHeightPt,
-                                          Color borderColor, float borderWidth) throws IOException {
+    private static void renderCellBorders(
+            PDPageContentStream cs,
+            JsonNode rows,
+            JsonNode columns,
+            float[] colXPt,
+            float[] colWidthPt,
+            float[] rowYPt,
+            float[] rowHeightPt,
+            Color borderColor,
+            float borderWidth)
+            throws IOException {
         cs.setStrokingColor(borderColor);
         cs.setLineWidth(borderWidth);
 
@@ -242,8 +319,17 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 JsonNode cell = cells.get(colIdx);
                 if (isMergedInto(cell)) continue;
 
-                CellBounds bounds = computeCellBounds(colIdx, rowIdx, cell, columns.size(), rows.size(),
-                        colXPt, colWidthPt, rowYPt, rowHeightPt);
+                CellBounds bounds =
+                        computeCellBounds(
+                                colIdx,
+                                rowIdx,
+                                cell,
+                                columns.size(),
+                                rows.size(),
+                                colXPt,
+                                colWidthPt,
+                                rowYPt,
+                                rowHeightPt);
 
                 cs.addRect(bounds.x, bounds.y - bounds.h, bounds.w, bounds.h);
             }
@@ -256,10 +342,16 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     /** Immutable cell bounds in PDF points. */
     private record CellBounds(float x, float y, float w, float h) {}
 
-    private static CellBounds computeCellBounds(int colIdx, int rowIdx, JsonNode cell,
-                                                int totalCols, int totalRows,
-                                                float[] colXPt, float[] colWidthPt,
-                                                float[] rowYPt, float[] rowHeightPt) {
+    private static CellBounds computeCellBounds(
+            int colIdx,
+            int rowIdx,
+            JsonNode cell,
+            int totalCols,
+            int totalRows,
+            float[] colXPt,
+            float[] colWidthPt,
+            float[] rowYPt,
+            float[] rowHeightPt) {
         int colspan = Math.max(1, intOf(cell, "colspan", 1));
         int rowspan = Math.max(1, intOf(cell, "rowspan", 1));
 
@@ -295,9 +387,10 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 JsonNode value = SectionRenderHelper.resolveDataPath(formData, fieldKey);
                 if (value != null && !value.isNull()) {
                     if (value.isTextual()) return value.asText();
-                    if (value.isNumber()) return value.isInt()
-                            ? String.valueOf(value.asInt())
-                            : String.valueOf(value.asDouble());
+                    if (value.isNumber())
+                        return value.isInt()
+                                ? String.valueOf(value.asInt())
+                                : String.valueOf(value.asDouble());
                     if (value.isBoolean()) return String.valueOf(value.asBoolean());
                     return value.asText("");
                 }
@@ -314,8 +407,9 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             }
             String mark = textOf(cell, "checkmark", "✓");
             String label = textOf(cell, "text", "");
-            return checked ? (mark + (label.isEmpty() ? "" : " " + label))
-                           : (label.isEmpty() ? "" : "□ " + label);
+            return checked
+                    ? (mark + (label.isEmpty() ? "" : " " + label))
+                    : (label.isEmpty() ? "" : "□ " + label);
         }
         if ("eraSelect".equals(cellType)) {
             String ds = textOf(cell, "eraDataSource", "");
@@ -336,8 +430,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         return textOf(cell, "text", "");
     }
 
-    private static String resolveBgColor(JsonNode cell, String role,
-                                         JsonNode headerStyle, JsonNode bodyStyle) {
+    private static String resolveBgColor(
+            JsonNode cell, String role, JsonNode headerStyle, JsonNode bodyStyle) {
         // Cell-level style takes priority
         JsonNode style = cell.get("style");
         if (style != null) {
@@ -377,7 +471,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         };
     }
 
-    private static float computeTextY(float cellY, float cellH, float fontSize, String verticalAlign) {
+    private static float computeTextY(
+            float cellY, float cellH, float fontSize, String verticalAlign) {
         return switch (verticalAlign) {
             case "top" -> cellY - fontSize - CELL_PADDING_PT;
             case "bottom" -> cellY - cellH + CELL_PADDING_PT;
@@ -394,8 +489,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * Resolve an array field that may exist at element top level or in props.
-     * V2 elements store columns/rows at top level; props-wrapped format is also supported.
+     * Resolve an array field that may exist at element top level or in props. V2 elements store
+     * columns/rows at top level; props-wrapped format is also supported.
      */
     private static JsonNode resolveArray(JsonNode el, String fieldName) {
         JsonNode node = el.get(fieldName);

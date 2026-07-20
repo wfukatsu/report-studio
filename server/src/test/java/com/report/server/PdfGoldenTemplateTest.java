@@ -1,22 +1,20 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Golden-template regression test (issue #59).
  *
- * <p>Renders the quotation golden fixture (src/test/resources/golden/) and
- * asserts extracted text, positions, fonts, and page structure. Any renderer
- * change that shifts coordinates, breaks CJK output, or alters pagination
- * fails here instead of surfacing as a manual designer-vs-PDF diff
+ * <p>Renders the quotation golden fixture (src/test/resources/golden/) and asserts extracted text,
+ * positions, fonts, and page structure. Any renderer change that shifts coordinates, breaks CJK
+ * output, or alters pagination fails here instead of surfacing as a manual designer-vs-PDF diff
  * (docs/issues/*-pdf-comparison-issues.md).
  */
 class PdfGoldenTemplateTest {
@@ -28,8 +26,9 @@ class PdfGoldenTemplateTest {
     @BeforeAll
     static void renderGolden() throws IOException {
         String json;
-        try (InputStream is = PdfGoldenTemplateTest.class
-                .getResourceAsStream("/golden/quotation-projection.json")) {
+        try (InputStream is =
+                PdfGoldenTemplateTest.class.getResourceAsStream(
+                        "/golden/quotation-projection.json")) {
             assertNotNull(is, "golden fixture missing");
             json = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
@@ -47,8 +46,12 @@ class PdfGoldenTemplateTest {
 
     @Test
     void titleRendersAtDesignPositionWithDesignFontSize() {
-        PdfProbe.TextRun title = probe.findRun(0, "御見積書").orElseThrow(
-                () -> new AssertionError("title missing; runs:\n" + probe.dumpRuns()));
+        PdfProbe.TextRun title =
+                probe.findRun(0, "御見積書")
+                        .orElseThrow(
+                                () ->
+                                        new AssertionError(
+                                                "title missing; runs:\n" + probe.dumpRuns()));
         assertEquals(PdfProbe.expectedXMm(80), title.xMm(), POS_TOL_MM);
         assertEquals(PdfProbe.expectedBaselineYMm(15, 18), title.baselineYMm(), POS_TOL_MM);
         assertEquals(18f, title.fontSizePt(), 0.01f);
@@ -83,8 +86,12 @@ class PdfGoldenTemplateTest {
         // Row rendering + height-derived pagination (issue #55): the section
         // bottom edge is 162mm and rows start at 82mm with an 8mm stride
         // → 10 rows on page 0, rows 11–12 on page 1 back at the region top.
-        PdfProbe.TextRun first = probe.findRun(0, "基本設計支援").orElseThrow(
-                () -> new AssertionError("row data missing; runs:\n" + probe.dumpRuns()));
+        PdfProbe.TextRun first =
+                probe.findRun(0, "基本設計支援")
+                        .orElseThrow(
+                                () ->
+                                        new AssertionError(
+                                                "row data missing; runs:\n" + probe.dumpRuns()));
         assertEquals(PdfProbe.expectedBaselineYMm(82, 9), first.baselineYMm(), 0.5f);
         assertTrue(probe.pageContains(0, "¥100,000"));
         assertTrue(probe.pageContains(0, "教育・引き継ぎ"));

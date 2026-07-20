@@ -1,18 +1,17 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class TemplateControllerTest {
 
@@ -33,11 +32,13 @@ class TemplateControllerTest {
 
     @Test
     void list_returnsItemsAndTotal() throws Exception {
-        String envelope = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-            .put("id", "t1")
-            .put("name", "テスト")
-            .put("created_at", 1000L)
-            .put("updated_at", 2000L));
+        String envelope =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode()
+                                .put("id", "t1")
+                                .put("name", "テスト")
+                                .put("created_at", 1000L)
+                                .put("updated_at", 2000L));
         when(repo.list()).thenReturn(List.of(envelope));
 
         controller.list(ctx);
@@ -82,12 +83,21 @@ class TemplateControllerTest {
 
     @Test
     void list_filtersOutOtherUsersTemplates() throws Exception {
-        String mine = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "t1").put("name", "自分の").put("created_by", "me"));
-        String others = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "t2").put("name", "他人の").put("created_by", "other-user"));
-        String legacy = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "t3").put("name", "レガシー"));
+        String mine =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode()
+                                .put("id", "t1")
+                                .put("name", "自分の")
+                                .put("created_by", "me"));
+        String others =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode()
+                                .put("id", "t2")
+                                .put("name", "他人の")
+                                .put("created_by", "other-user"));
+        String legacy =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode().put("id", "t3").put("name", "レガシー"));
         when(repo.list()).thenReturn(List.of(mine, others, legacy));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("me");
@@ -111,8 +121,9 @@ class TemplateControllerTest {
     void list_legacyTemplatesWithoutCreatedByAreVisibleToAllUsers() throws Exception {
         // Legacy template has no created_by field — visible to every authenticated user.
         // This is intentional backwards-compatibility behaviour documented in the list() Javadoc.
-        String legacy = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "legacy1").put("name", "レガシー"));
+        String legacy =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode().put("id", "legacy1").put("name", "レガシー"));
         when(repo.list()).thenReturn(List.of(legacy));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("any-random-user");
@@ -129,9 +140,11 @@ class TemplateControllerTest {
     @Test
     void get_legacyTemplatesWithoutCreatedByAreAccessibleToAllUsers() throws Exception {
         when(ctx.pathParam("id")).thenReturn("legacy1");
-        String legacy = MAPPER.createObjectNode()
-                .put("id", "legacy1")
-                .set("definition", MAPPER.createObjectNode().put("id", "legacy1")).toString();
+        String legacy =
+                MAPPER.createObjectNode()
+                        .put("id", "legacy1")
+                        .set("definition", MAPPER.createObjectNode().put("id", "legacy1"))
+                        .toString();
         when(repo.get("legacy1")).thenReturn(Optional.of(legacy));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("any-random-user");
@@ -174,12 +187,19 @@ class TemplateControllerTest {
         assertFalse(resp.path("createdAt").asText("").isBlank());
 
         // Verify repo was called with envelope containing definition
-        verify(repo).put(anyString(), argThat(json -> {
-            try {
-                JsonNode env = MAPPER.readTree(json);
-                return env.has("definition") && "マイレポート".equals(env.path("name").asText());
-            } catch (Exception e) { return false; }
-        }));
+        verify(repo)
+                .put(
+                        anyString(),
+                        argThat(
+                                json -> {
+                                    try {
+                                        JsonNode env = MAPPER.readTree(json);
+                                        return env.has("definition")
+                                                && "マイレポート".equals(env.path("name").asText());
+                                    } catch (Exception e) {
+                                        return false;
+                                    }
+                                }));
     }
 
     @Test
@@ -230,7 +250,8 @@ class TemplateControllerTest {
         var captor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(ctx).result(captor.capture());
         JsonNode resource = MAPPER.readTree(captor.getValue());
-        assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
+        assertEquals(
+                TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
         assertEquals("t1", resource.path("id").asText());
         assertEquals("テスト", resource.path("name").asText());
         assertEquals("t1", resource.path("definition").path("id").asText());
@@ -259,10 +280,12 @@ class TemplateControllerTest {
     @Test
     void get_returns404ForNonOwner() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
-        String envelope = MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("created_by", "owner-user")
-                .set("definition", MAPPER.createObjectNode().put("id", "t1")).toString();
+        String envelope =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .put("created_by", "owner-user")
+                        .set("definition", MAPPER.createObjectNode().put("id", "t1"))
+                        .toString();
         when(repo.get("t1")).thenReturn(Optional.of(envelope));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("other-user");
@@ -277,10 +300,12 @@ class TemplateControllerTest {
     @Test
     void get_allowsOwnerAccess() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
-        String envelope = MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("created_by", "owner-user")
-                .set("definition", MAPPER.createObjectNode().put("id", "t1")).toString();
+        String envelope =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .put("created_by", "owner-user")
+                        .set("definition", MAPPER.createObjectNode().put("id", "t1"))
+                        .toString();
         when(repo.get("t1")).thenReturn(Optional.of(envelope));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("owner-user");
@@ -300,9 +325,11 @@ class TemplateControllerTest {
         String oldEnvelope = buildEnvelope("t1", "旧名称");
         when(repo.get("t1")).thenReturn(Optional.of(oldEnvelope));
 
-        String defJson = MAPPER.createObjectNode()
-            .put("id", "t1")
-            .set("metadata", MAPPER.createObjectNode().put("documentName", "新名称")).toString();
+        String defJson =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .set("metadata", MAPPER.createObjectNode().put("documentName", "新名称"))
+                        .toString();
         when(ctx.body()).thenReturn(defJson);
 
         controller.put(ctx);
@@ -315,13 +342,20 @@ class TemplateControllerTest {
         assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, result.path("formatVersion").asInt());
         assertEquals("t1", result.path("definition").path("id").asText());
 
-        verify(repo).put(eq("t1"), argThat(json -> {
-            try {
-                JsonNode env = MAPPER.readTree(json);
-                return "新名称".equals(env.path("name").asText())
-                        && env.path("formatVersion").asInt() == TemplateEnvelope.CURRENT_FORMAT_VERSION;
-            } catch (Exception e) { return false; }
-        }));
+        verify(repo)
+                .put(
+                        eq("t1"),
+                        argThat(
+                                json -> {
+                                    try {
+                                        JsonNode env = MAPPER.readTree(json);
+                                        return "新名称".equals(env.path("name").asText())
+                                                && env.path("formatVersion").asInt()
+                                                        == TemplateEnvelope.CURRENT_FORMAT_VERSION;
+                                    } catch (Exception e) {
+                                        return false;
+                                    }
+                                }));
     }
 
     @Test
@@ -329,22 +363,39 @@ class TemplateControllerTest {
         when(ctx.pathParam("id")).thenReturn("t1");
         when(repo.get("t1")).thenReturn(Optional.empty());
 
-        String body = MAPPER.createObjectNode()
-            .put("formatVersion", 2)
-            .set("definition", MAPPER.createObjectNode()
-                .put("id", "t1")
-                .set("metadata", MAPPER.createObjectNode().put("documentName", "封筒経由"))).toString();
+        String body =
+                MAPPER.createObjectNode()
+                        .put("formatVersion", 2)
+                        .set(
+                                "definition",
+                                MAPPER.createObjectNode()
+                                        .put("id", "t1")
+                                        .set(
+                                                "metadata",
+                                                MAPPER.createObjectNode()
+                                                        .put("documentName", "封筒経由")))
+                        .toString();
         when(ctx.body()).thenReturn(body);
 
         controller.put(ctx);
 
-        verify(repo).put(eq("t1"), argThat(json -> {
-            try {
-                JsonNode env = MAPPER.readTree(json);
-                return "封筒経由".equals(env.path("name").asText())
-                        && "t1".equals(env.path("definition").path("id").asText());
-            } catch (Exception e) { return false; }
-        }));
+        verify(repo)
+                .put(
+                        eq("t1"),
+                        argThat(
+                                json -> {
+                                    try {
+                                        JsonNode env = MAPPER.readTree(json);
+                                        return "封筒経由".equals(env.path("name").asText())
+                                                && "t1"
+                                                        .equals(
+                                                                env.path("definition")
+                                                                        .path("id")
+                                                                        .asText());
+                                    } catch (Exception e) {
+                                        return false;
+                                    }
+                                }));
     }
 
     @Test
@@ -372,10 +423,12 @@ class TemplateControllerTest {
     @Test
     void put_returns404ForNonOwner() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
-        String oldEnvelope = MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("created_by", "owner-user")
-                .set("definition", MAPPER.createObjectNode()).toString();
+        String oldEnvelope =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .put("created_by", "owner-user")
+                        .set("definition", MAPPER.createObjectNode())
+                        .toString();
         when(repo.get("t1")).thenReturn(Optional.of(oldEnvelope));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("other-user");
@@ -392,27 +445,37 @@ class TemplateControllerTest {
     void put_preservesCreatedAt() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
         long originalCreatedAt = 999_000L;
-        String oldEnvelope = MAPPER.createObjectNode()
-            .put("id", "t1")
-            .put("name", "x")
-            .put("created_at", originalCreatedAt)
-            .put("updated_at", 999_001L)
-            .set("definition", MAPPER.createObjectNode()).toString();
+        String oldEnvelope =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .put("name", "x")
+                        .put("created_at", originalCreatedAt)
+                        .put("updated_at", 999_001L)
+                        .set("definition", MAPPER.createObjectNode())
+                        .toString();
         when(repo.get("t1")).thenReturn(Optional.of(oldEnvelope));
 
-        String defJson = MAPPER.createObjectNode()
-            .put("id", "t1")
-            .set("metadata", MAPPER.createObjectNode().put("documentName", "y")).toString();
+        String defJson =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .set("metadata", MAPPER.createObjectNode().put("documentName", "y"))
+                        .toString();
         when(ctx.body()).thenReturn(defJson);
 
         controller.put(ctx);
 
-        verify(repo).put(eq("t1"), argThat(json -> {
-            try {
-                JsonNode env = MAPPER.readTree(json);
-                return env.path("created_at").asLong() == originalCreatedAt;
-            } catch (Exception e) { return false; }
-        }));
+        verify(repo)
+                .put(
+                        eq("t1"),
+                        argThat(
+                                json -> {
+                                    try {
+                                        JsonNode env = MAPPER.readTree(json);
+                                        return env.path("created_at").asLong() == originalCreatedAt;
+                                    } catch (Exception e) {
+                                        return false;
+                                    }
+                                }));
     }
 
     // ── delete ────────────────────────────────────────────────────────────────
@@ -421,10 +484,12 @@ class TemplateControllerTest {
     void delete_callsRepoDeleteAndReturns204() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
         // Legacy template without created_by — ownership check passes for any caller
-        String envelope = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("name", "テスト")
-                .set("definition", MAPPER.createObjectNode()));
+        String envelope =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode()
+                                .put("id", "t1")
+                                .put("name", "テスト")
+                                .set("definition", MAPPER.createObjectNode()));
         when(repo.get("t1")).thenReturn(Optional.of(envelope));
 
         controller.delete(ctx);
@@ -436,10 +501,12 @@ class TemplateControllerTest {
     @Test
     void delete_returns404ForNonOwner() throws Exception {
         when(ctx.pathParam("id")).thenReturn("t1");
-        String envelope = MAPPER.writeValueAsString(MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("created_by", "owner-user")
-                .set("definition", MAPPER.createObjectNode()));
+        String envelope =
+                MAPPER.writeValueAsString(
+                        MAPPER.createObjectNode()
+                                .put("id", "t1")
+                                .put("created_by", "owner-user")
+                                .set("definition", MAPPER.createObjectNode()));
         when(repo.get("t1")).thenReturn(Optional.of(envelope));
         var principal = mock(com.report.server.auth.Principal.class);
         when(principal.userId()).thenReturn("other-user");
@@ -477,10 +544,11 @@ class TemplateControllerTest {
 
     private String buildEnvelope(String id, String name) throws Exception {
         return MAPPER.createObjectNode()
-            .put("id", id)
-            .put("name", name)
-            .put("created_at", System.currentTimeMillis())
-            .put("updated_at", System.currentTimeMillis())
-            .set("definition", MAPPER.createObjectNode().put("id", id)).toString();
+                .put("id", id)
+                .put("name", name)
+                .put("created_at", System.currentTimeMillis())
+                .put("updated_at", System.currentTimeMillis())
+                .set("definition", MAPPER.createObjectNode().put("id", id))
+                .toString();
     }
 }

@@ -6,6 +6,8 @@ import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.io.ByteArrayOutputStream;
+import java.util.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -14,23 +16,22 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.util.*;
-
 /**
  * Handles V2 form response export:
+ *
  * <ul>
- *   <li>GET /api/v2/templates/{id}/responses/export?format=csv  — UTF-8 CSV with BOM</li>
- *   <li>GET /api/v2/templates/{id}/responses/export?format=excel — XLSX via Apache POI SXSSF</li>
+ *   <li>GET /api/v2/templates/{id}/responses/export?format=csv — UTF-8 CSV with BOM
+ *   <li>GET /api/v2/templates/{id}/responses/export?format=excel — XLSX via Apache POI SXSSF
  * </ul>
  *
  * <p>Security:
+ *
  * <ul>
- *   <li>Authentication required (enforced by before-filter)</li>
- *   <li>Template ownership verified before export</li>
- *   <li>Rate limited to 3 exports per userId per minute</li>
- *   <li>CSV formula injection neutralised (=+-@\t\r|)</li>
- *   <li>Excel cells always use {@code CellType.STRING} to prevent formula execution</li>
+ *   <li>Authentication required (enforced by before-filter)
+ *   <li>Template ownership verified before export
+ *   <li>Rate limited to 3 exports per userId per minute
+ *   <li>CSV formula injection neutralised (=+-@\t\r|)
+ *   <li>Excel cells always use {@code CellType.STRING} to prevent formula execution
  * </ul>
  */
 public final class ResponseExportController {
@@ -150,28 +151,31 @@ public final class ResponseExportController {
         List<String> keys = new ArrayList<>(allKeys);
         StringBuilder csv = new StringBuilder();
         csv.append('\uFEFF'); // UTF-8 BOM for Excel compatibility
-        csv.append(String.join(",", keys.stream().map(ResponseExportController::escapeCsvField).toList()));
+        csv.append(
+                String.join(
+                        ",", keys.stream().map(ResponseExportController::escapeCsvField).toList()));
         csv.append("\r\n");
 
         for (ParsedResponse resp : responses) {
             for (int i = 0; i < keys.size(); i++) {
                 if (i > 0) csv.append(',');
                 String key = keys.get(i);
-                String value = switch (key) {
-                    case "id" -> resp.id();
-                    case "submittedAt" -> String.valueOf(resp.submittedAt());
-                    case "submittedBy" -> resp.submittedBy();
-                    case "status" -> resp.status();
-                    default -> resp.dataValue(key);
-                };
+                String value =
+                        switch (key) {
+                            case "id" -> resp.id();
+                            case "submittedAt" -> String.valueOf(resp.submittedAt());
+                            case "submittedBy" -> resp.submittedBy();
+                            case "status" -> resp.status();
+                            default -> resp.dataValue(key);
+                        };
                 csv.append(escapeCsvField(value));
             }
             csv.append("\r\n");
         }
 
         ctx.contentType("text/csv; charset=utf-8");
-        ctx.header("Content-Disposition",
-            "attachment; filename=\"responses-" + templateId + ".csv\"");
+        ctx.header(
+                "Content-Disposition", "attachment; filename=\"responses-" + templateId + ".csv\"");
         ctx.result(csv.toString());
     }
 
@@ -181,7 +185,8 @@ public final class ResponseExportController {
             List<ParsedResponse> responses,
             LinkedHashSet<String> allKeys,
             String templateId,
-            Context ctx) throws Exception {
+            Context ctx)
+            throws Exception {
         List<String> keys = new ArrayList<>(allKeys);
 
         // SXSSFWorkbook: streaming mode, keeps only last 100 rows in memory
@@ -202,13 +207,14 @@ public final class ResponseExportController {
                 Row row = sheet.createRow(rowNum++);
                 int colIdx = 0;
                 for (String key : keys) {
-                    String value = switch (key) {
-                        case "id" -> resp.id();
-                        case "submittedAt" -> String.valueOf(resp.submittedAt());
-                        case "submittedBy" -> resp.submittedBy();
-                        case "status" -> resp.status();
-                        default -> resp.dataValue(key);
-                    };
+                    String value =
+                            switch (key) {
+                                case "id" -> resp.id();
+                                case "submittedAt" -> String.valueOf(resp.submittedAt());
+                                case "submittedBy" -> resp.submittedBy();
+                                case "status" -> resp.status();
+                                default -> resp.dataValue(key);
+                            };
                     // Always STRING type — prevents formula execution in Excel
                     Cell cell = row.createCell(colIdx++, CellType.STRING);
                     cell.setCellValue(value);
@@ -220,8 +226,9 @@ public final class ResponseExportController {
             wb.dispose();
 
             ctx.contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            ctx.header("Content-Disposition",
-                "attachment; filename=\"responses-" + templateId + ".xlsx\"");
+            ctx.header(
+                    "Content-Disposition",
+                    "attachment; filename=\"responses-" + templateId + ".xlsx\"");
             ctx.result(bos.toByteArray());
         }
     }
@@ -229,9 +236,8 @@ public final class ResponseExportController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Escape a field value for CSV output.
-     * Neutralises formula injection characters at position 0, removes null bytes,
-     * and always double-quotes the value for maximum safety.
+     * Escape a field value for CSV output. Neutralises formula injection characters at position 0,
+     * removes null bytes, and always double-quotes the value for maximum safety.
      */
     static String escapeCsvField(String value) {
         if (value == null) return "\"\"";
@@ -250,8 +256,7 @@ public final class ResponseExportController {
             long submittedAt,
             String submittedBy,
             String status,
-            Map<String, String> data
-    ) {
+            Map<String, String> data) {
         static ParsedResponse from(JsonNode node) {
             String id = node.path("id").asText("");
             long submittedAt = node.path("submittedAt").asLong(0);
@@ -261,10 +266,15 @@ public final class ResponseExportController {
             Map<String, String> data = new LinkedHashMap<>();
             JsonNode dataNode = node.path("data");
             if (dataNode.isObject()) {
-                dataNode.fields().forEachRemaining(e -> {
-                    String v = e.getValue().isTextual() ? e.getValue().asText() : e.getValue().toString();
-                    data.put(e.getKey(), v);
-                });
+                dataNode.fields()
+                        .forEachRemaining(
+                                e -> {
+                                    String v =
+                                            e.getValue().isTextual()
+                                                    ? e.getValue().asText()
+                                                    : e.getValue().toString();
+                                    data.put(e.getKey(), v);
+                                });
             }
             return new ParsedResponse(id, submittedAt, submittedBy, status, data);
         }

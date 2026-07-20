@@ -1,26 +1,24 @@
 package com.report.server.pdf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
+import static com.report.server.pdf.PdfUtils.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
- * Renders standalone V2 {@code eraSelect} (元号選択) elements to PDF
- * (issue #53; the formTable-cell variant lives in FormTablePdfRenderer).
+ * Renders standalone V2 {@code eraSelect} (元号選択) elements to PDF (issue #53; the formTable-cell
+ * variant lives in FormTablePdfRenderer).
  *
- * <p>Mirrors the frontend EraSelectRenderer: era markers (●selected /
- * ○unselected) laid out in a column, row, or 2-column grid with the same
- * auto font-size ratios. The selected era arrives via {@code props.text}
- * (resolved upstream from the element's {@code dataSource} field by
+ * <p>Mirrors the frontend EraSelectRenderer: era markers (●selected / ○unselected) laid out in a
+ * column, row, or 2-column grid with the same auto font-size ratios. The selected era arrives via
+ * {@code props.text} (resolved upstream from the element's {@code dataSource} field by
  * SectionRenderHelper); empty means no selection — all ○.
  */
 public final class EraSelectPdfRenderer implements ElementPdfRenderer {
@@ -35,9 +33,17 @@ public final class EraSelectPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode props = el.get("props");
         String selected = props != null ? textOf(props, "text", "") : "";
 
@@ -46,11 +52,12 @@ public final class EraSelectPdfRenderer implements ElementPdfRenderer {
         int count = Math.max(eras.size(), 1);
 
         // Frontend auto font-size ratios (mm-space, then to pt)
-        float rawFontPt = switch (layout) {
-            case "row" -> (w / count) * 0.5f;
-            case "grid-2col" -> (h / (float) Math.ceil(count / 2.0)) * 0.6f;
-            default -> (h / count) * 0.75f;
-        };
+        float rawFontPt =
+                switch (layout) {
+                    case "row" -> (w / count) * 0.5f;
+                    case "grid-2col" -> (h / (float) Math.ceil(count / 2.0)) * 0.6f;
+                    default -> (h / count) * 0.75f;
+                };
         float fontSize = Math.max(rawFontPt, MIN_FONT_PT);
         PDFont font = FontProvider.getFont(doc, fontCache);
 

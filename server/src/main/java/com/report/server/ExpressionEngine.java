@@ -1,31 +1,30 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Map;
+import java.util.concurrent.*;
 import org.apache.commons.jexl3.*;
 import org.apache.commons.jexl3.introspection.JexlPermissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.*;
-
 /**
  * ExpressionEngine — Phase 5 implementation using Apache Commons JEXL 3.x.
  *
  * <p>Security constraints:
+ *
  * <ul>
- *   <li>Sandbox: deny-by-default; only {@code java.lang.Math} is permitted</li>
- *   <li>Only {@code createExpression()} is used — {@code createScript()} (which allows loops)
- *       is intentionally not exposed</li>
- *   <li>500 ms timeout per evaluation to prevent CPU exhaustion</li>
+ *   <li>Sandbox: deny-by-default; only {@code java.lang.Math} is permitted
+ *   <li>Only {@code createExpression()} is used — {@code createScript()} (which allows loops) is
+ *       intentionally not exposed
+ *   <li>500 ms timeout per evaluation to prevent CPU exhaustion
  * </ul>
  *
  * <p>Custom functions (callable without namespace prefix) — see {@link JexlFunctions}:
+ *
  * <ul>
- *   <li>{@code sum(collection, fieldName)} — sum a numeric field across a list of maps</li>
- *   <li>{@code count(collection)} — count elements in a collection</li>
- *   <li>{@code round(value, scale)} — round a number to N decimal places</li>
+ *   <li>{@code sum(collection, fieldName)} — sum a numeric field across a list of maps
+ *   <li>{@code count(collection)} — count elements in a collection
+ *   <li>{@code round(value, scale)} — round a number to N decimal places
  * </ul>
  */
 public final class ExpressionEngine {
@@ -37,17 +36,16 @@ public final class ExpressionEngine {
     public static final int MAX_EXPRESSION_LENGTH = 500;
 
     /**
-     * Maximum parenthesis / bracket nesting depth (issue #58). The 500 ms
-     * timeout cannot interrupt a busy JEXL evaluation (no interruption points),
-     * so a pathologically nested expression could occupy an evaluator thread
-     * for its full run. Rejecting deeply nested input before evaluation bounds
-     * the worst case cheaply. Real business formulas nest only a few levels.
+     * Maximum parenthesis / bracket nesting depth (issue #58). The 500 ms timeout cannot interrupt
+     * a busy JEXL evaluation (no interruption points), so a pathologically nested expression could
+     * occupy an evaluator thread for its full run. Rejecting deeply nested input before evaluation
+     * bounds the worst case cheaply. Real business formulas nest only a few levels.
      */
     public static final int MAX_NESTING_DEPTH = 16;
 
     /**
-     * Returns true if the expression's bracket nesting exceeds
-     * {@link #MAX_NESTING_DEPTH}. Brackets inside string literals are ignored.
+     * Returns true if the expression's bracket nesting exceeds {@link #MAX_NESTING_DEPTH}. Brackets
+     * inside string literals are ignored.
      */
     static boolean exceedsNestingDepth(String expr) {
         int depth = 0, max = 0;
@@ -60,10 +58,20 @@ public final class ExpressionEngine {
                 continue;
             }
             switch (c) {
-                case '\'', '"' -> { inStr = true; quote = c; }
-                case '(', '[' -> { depth++; if (depth > max) max = depth; }
-                case ')', ']' -> { if (depth > 0) depth--; }
-                default -> { /* not a bracket */ }
+                case '\'', '"' -> {
+                    inStr = true;
+                    quote = c;
+                }
+                case '(', '[' -> {
+                    depth++;
+                    if (depth > max) max = depth;
+                }
+                case ')', ']' -> {
+                    if (depth > 0) depth--;
+                }
+                default -> {
+                    /* not a bracket */
+                }
             }
         }
         return max > MAX_NESTING_DEPTH;
@@ -82,18 +90,21 @@ public final class ExpressionEngine {
     /**
      * Evaluate a condition expression — used for {@code ValidationRule.condition}.
      *
-     * <p>null / blank → returns {@code true} (unconditional rule always fires).
-     * Evaluation errors are logged and return {@code false} (fail-safe).
+     * <p>null / blank → returns {@code true} (unconditional rule always fires). Evaluation errors
+     * are logged and return {@code false} (fail-safe).
      *
-     * @param expression  condition string (may be null or blank)
-     * @param context     variable bindings (form data fields etc.)
-     * @param rowIndex    current detail row index (available as {@code _row} in expression)
+     * @param expression condition string (may be null or blank)
+     * @param context variable bindings (form data fields etc.)
+     * @param rowIndex current detail row index (available as {@code _row} in expression)
      */
     public static boolean evaluate(String expression, Map<String, Object> context, int rowIndex) {
         if (expression == null || expression.isBlank()) return true;
         if (expression.length() > MAX_EXPRESSION_LENGTH) {
-            log.warn("Expression exceeds max length ({} > {}): {}...",
-                    expression.length(), MAX_EXPRESSION_LENGTH, expression.substring(0, 50));
+            log.warn(
+                    "Expression exceeds max length ({} > {}): {}...",
+                    expression.length(),
+                    MAX_EXPRESSION_LENGTH,
+                    expression.substring(0, 50));
             return false;
         }
         if (exceedsNestingDepth(expression)) {
@@ -114,7 +125,8 @@ public final class ExpressionEngine {
             log.warn("Expression evaluation timed out: {}", expression);
             return false;
         } catch (Exception e) {
-            log.debug("Expression evaluation error (condition): {} — {}", expression, e.getMessage());
+            log.debug(
+                    "Expression evaluation error (condition): {} — {}", expression, e.getMessage());
             return false;
         }
     }
@@ -122,20 +134,24 @@ public final class ExpressionEngine {
     /**
      * Calculate a value — used for {@code CalculationRule.expression}.
      *
-     * @param expression  arithmetic / aggregate expression
-     * @param context     variable bindings enriched with prior calculation results
-     * @return            computed value (Number, String, Boolean, or null)
+     * @param expression arithmetic / aggregate expression
+     * @param context variable bindings enriched with prior calculation results
+     * @return computed value (Number, String, Boolean, or null)
      * @throws ExpressionTimeoutException if evaluation exceeds 500 ms
-     * @throws JexlException              on syntax / sandbox violation
+     * @throws JexlException on syntax / sandbox violation
      */
     public static Object calculate(String expression, Map<String, Object> context) {
         if (expression != null && expression.length() > MAX_EXPRESSION_LENGTH) {
-            throw new IllegalArgumentException("Expression exceeds max length ("
-                    + expression.length() + " > " + MAX_EXPRESSION_LENGTH + ")");
+            throw new IllegalArgumentException(
+                    "Expression exceeds max length ("
+                            + expression.length()
+                            + " > "
+                            + MAX_EXPRESSION_LENGTH
+                            + ")");
         }
         if (expression != null && exceedsNestingDepth(expression)) {
-            throw new IllegalArgumentException("Expression exceeds max nesting depth ("
-                    + MAX_NESTING_DEPTH + ")");
+            throw new IllegalArgumentException(
+                    "Expression exceeds max nesting depth (" + MAX_NESTING_DEPTH + ")");
         }
         String jexlExpr = translateFormulaToJexl(expression);
         JexlContext ctx = toJexlContext(context);
@@ -145,13 +161,12 @@ public final class ExpressionEngine {
     }
 
     /**
-     * Parse-only variable extraction for dependency analysis (issue #57).
-     * Returns the top-level variable names referenced by the expression, or
-     * null when it cannot be parsed (callers fall back to a token scan).
+     * Parse-only variable extraction for dependency analysis (issue #57). Returns the top-level
+     * variable names referenced by the expression, or null when it cannot be parsed (callers fall
+     * back to a token scan).
      *
-     * <p>Uses {@code createScript} solely to obtain the parsed variable set —
-     * the script is never evaluated, so the looser script grammar carries no
-     * execution risk here.
+     * <p>Uses {@code createScript} solely to obtain the parsed variable set — the script is never
+     * evaluated, so the looser script grammar carries no execution risk here.
      */
     public static java.util.Set<String> extractVariables(String expression) {
         if (expression == null || expression.length() > MAX_EXPRESSION_LENGTH) return null;
@@ -175,10 +190,10 @@ public final class ExpressionEngine {
         // classes). ClassPermissions adds ONLY JexlFunctions on top — the previous
         // compose("com.report.server.*") exposed every public member of the whole
         // application package to user expressions (issue #58).
-        JexlPermissions permissions =
-                new JexlPermissions.ClassPermissions(JexlFunctions.class);
+        JexlPermissions permissions = new JexlPermissions.ClassPermissions(JexlFunctions.class);
 
-        // Map.of() does not allow null keys; JEXL resolves un-prefixed functions via null namespace key.
+        // Map.of() does not allow null keys; JEXL resolves un-prefixed functions via null namespace
+        // key.
         java.util.HashMap<String, Object> ns = new java.util.HashMap<>();
         ns.put(null, new JexlFunctions());
         ns.put("Math", Math.class);
@@ -194,8 +209,8 @@ public final class ExpressionEngine {
     // ── Timeout wrapper ───────────────────────────────────────────────────────
 
     /**
-     * Shared virtual-thread executor — Java 21 virtual threads are extremely lightweight.
-     * Replaces per-call newSingleThreadExecutor() which created+destroyed OS threads on each evaluation.
+     * Shared virtual-thread executor — Java 21 virtual threads are extremely lightweight. Replaces
+     * per-call newSingleThreadExecutor() which created+destroyed OS threads on each evaluation.
      * Never shut down; lives for the server's lifetime.
      */
     private static final ExecutorService EVAL_EXECUTOR =
@@ -223,19 +238,19 @@ public final class ExpressionEngine {
     // ── Formula-v1 translation layer ────────────────────────────────────────
 
     /**
-     * Mapping from formula-v1 UPPERCASE function names to JEXL equivalents.
-     * Must be kept in sync with the frontend's FORMULA_TO_JEXL_MAP in functionCatalog.ts.
+     * Mapping from formula-v1 UPPERCASE function names to JEXL equivalents. Must be kept in sync
+     * with the frontend's FORMULA_TO_JEXL_MAP in functionCatalog.ts.
      */
     private static final String[][] FORMULA_TO_JEXL_MAP = {
-        {"SUM(",         "sum("},
-        {"COUNT(",       "count("},
-        {"ROUND(",       "round("},
-        {"AVG(",         "avg("},
-        {"MIN(",         "min("},
-        {"MAX(",         "max("},
-        {"CONCAT(",      "concat("},
-        {"IF(",          "ifExpr("},
-        {"TEXT(",        "formatNumber("},
+        {"SUM(", "sum("},
+        {"COUNT(", "count("},
+        {"ROUND(", "round("},
+        {"AVG(", "avg("},
+        {"MIN(", "min("},
+        {"MAX(", "max("},
+        {"CONCAT(", "concat("},
+        {"IF(", "ifExpr("},
+        {"TEXT(", "formatNumber("},
         {"FORMAT_DATE(", "formatDate("},
     };
 
@@ -247,8 +262,8 @@ public final class ExpressionEngine {
      *
      * <p>If the expression is already in JEXL format (all lowercase), this is a no-op.
      *
-     * @param formula  formula-v1 or legacy JEXL expression
-     * @return         JEXL-compatible expression string
+     * @param formula formula-v1 or legacy JEXL expression
+     * @return JEXL-compatible expression string
      */
     static String translateFormulaToJexl(String formula) {
         if (formula == null || formula.isBlank()) return formula;

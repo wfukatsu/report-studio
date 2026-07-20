@@ -1,22 +1,19 @@
 package com.report.server.job;
 
-import io.javalin.http.Context;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for {@link JobController#list} — the paginated, bounded v1 job listing (#210).
- */
+import io.javalin.http.Context;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+/** Unit tests for {@link JobController#list} — the paginated, bounded v1 job listing (#210). */
 class JobControllerTest {
 
     private JobRepository jobRepo;
@@ -27,10 +24,17 @@ class JobControllerTest {
     @BeforeEach
     void setUp() {
         jobRepo = mock(JobRepository.class);
-        controller = new JobController(jobRepo, mock(BatchPdfProcessor.class), mock(ExecutorService.class));
+        controller =
+                new JobController(
+                        jobRepo, mock(BatchPdfProcessor.class), mock(ExecutorService.class));
         ctx = mock(Context.class);
-        org.mockito.Mockito.doAnswer(inv -> { capturedJson = inv.getArgument(0); return ctx; })
-                .when(ctx).json(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.doAnswer(
+                        inv -> {
+                            capturedJson = inv.getArgument(0);
+                            return ctx;
+                        })
+                .when(ctx)
+                .json(org.mockito.ArgumentMatchers.any());
         when(ctx.header(anyString(), anyString())).thenReturn(ctx);
     }
 

@@ -1,14 +1,14 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class RequestValidatorTest {
 
@@ -175,10 +175,12 @@ class RequestValidatorTest {
                 new com.fasterxml.jackson.databind.ObjectMapper();
 
         private JsonNode requestWithElementType(String type) throws Exception {
-            return M.readTree("""
+            return M.readTree(
+                    """
                 {"template":{"pages":[{"sections":[{"elements":[
                   {"id":"e1","type":"%s","position":{"x":0,"y":0},"size":{"width":10,"height":10}}
-                ]}]}]},"data":{}}""".formatted(type));
+                ]}]}]},"data":{}}"""
+                            .formatted(type));
         }
 
         @Test
@@ -186,21 +188,25 @@ class RequestValidatorTest {
             // The whitelist is derived from the renderer registry — every kind
             // the server can draw must pass validation (the previous
             // hand-maintained list rejected manualEntry/tenantLogo/hanko etc.)
-            for (String kind : com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds()) {
-                assertNull(RequestValidator.validatePdfGenerateRequest(requestWithElementType(kind)),
+            for (String kind :
+                    com.report.server.pdf.ElementPdfRendererRegistry.createDefault().kinds()) {
+                assertNull(
+                        RequestValidator.validatePdfGenerateRequest(requestWithElementType(kind)),
                         "kind should be accepted: " + kind);
             }
         }
 
         @Test
         void acceptsLabelAlias() throws Exception {
-            assertNull(RequestValidator.validatePdfGenerateRequest(requestWithElementType("label")));
+            assertNull(
+                    RequestValidator.validatePdfGenerateRequest(requestWithElementType("label")));
         }
 
         @Test
         void rejectsUnknownElementType() throws Exception {
-            String error = RequestValidator.validatePdfGenerateRequest(
-                    requestWithElementType("totallyBogusType"));
+            String error =
+                    RequestValidator.validatePdfGenerateRequest(
+                            requestWithElementType("totallyBogusType"));
             assertNotNull(error);
             assertTrue(error.contains("Unknown element type"));
         }

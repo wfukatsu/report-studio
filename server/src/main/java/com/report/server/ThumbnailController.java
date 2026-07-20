@@ -4,23 +4,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * GET /api/v2/templates/{id}/thumbnail
  *
- * <p>Renders the template with empty test data, generates a JPEG thumbnail (400px wide)
- * via {@link ThumbnailGenerator}, and returns it with ETag-based cache headers.
+ * <p>Renders the template with empty test data, generates a JPEG thumbnail (400px wide) via {@link
+ * ThumbnailGenerator}, and returns it with ETag-based cache headers.
  *
- * <p>Renders the V2 definition natively like {@link PdfController}, but always
- * passes empty test data so placeholders show as blank — suitable for a preview image.
+ * <p>Renders the V2 definition natively like {@link PdfController}, but always passes empty test
+ * data so placeholders show as blank — suitable for a preview image.
  */
 public final class ThumbnailController {
 
@@ -63,7 +62,8 @@ public final class ThumbnailController {
             return;
         }
 
-        // Prepare the V2 definition with empty test data — thumbnails show structure, not live values
+        // Prepare the V2 definition with empty test data — thumbnails show structure, not live
+        // values
         String definitionJson;
         try {
             definitionJson = V2RenderSupport.prepare(definition, MAPPER.createObjectNode(), null);
@@ -82,14 +82,17 @@ public final class ThumbnailController {
 
         // Render PDF + generate thumbnail off the main thread
         final String finalDefinition = definitionJson;
-        CompletableFuture<byte[]> future = CompletableFuture.supplyAsync(() -> {
-            try {
-                byte[] pdfBytes = PdfRenderer.renderDefinition(finalDefinition);
-                return ThumbnailGenerator.generate(pdfBytes);
-            } catch (Exception e) {
-                throw new RuntimeException("Thumbnail render failed", e);
-            }
-        }, pdfExecutor);
+        CompletableFuture<byte[]> future =
+                CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                byte[] pdfBytes = PdfRenderer.renderDefinition(finalDefinition);
+                                return ThumbnailGenerator.generate(pdfBytes);
+                            } catch (Exception e) {
+                                throw new RuntimeException("Thumbnail render failed", e);
+                            }
+                        },
+                        pdfExecutor);
 
         byte[] thumbnail;
         try {

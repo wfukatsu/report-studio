@@ -7,32 +7,32 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Schema CRUD endpoints (unified from former schema-library + v1 schemas):
+ *
  * <ul>
- *   <li>GET    /api/v2/schemas         — list (own + shared)</li>
- *   <li>POST   /api/v2/schemas         — create</li>
- *   <li>GET    /api/v2/schemas/{id}    — get (full envelope)</li>
- *   <li>PUT    /api/v2/schemas/{id}    — update (with optimistic lock)</li>
- *   <li>DELETE /api/v2/schemas/{id}    — delete</li>
+ *   <li>GET /api/v2/schemas — list (own + shared)
+ *   <li>POST /api/v2/schemas — create
+ *   <li>GET /api/v2/schemas/{id} — get (full envelope)
+ *   <li>PUT /api/v2/schemas/{id} — update (with optimistic lock)
+ *   <li>DELETE /api/v2/schemas/{id} — delete
  * </ul>
  *
- * Storage: {@code schema_library} table via {@link JsonBlobRepository}.
- * Envelope: {@code {id, name, created_at, updated_at, created_by, visibility, definition}}
+ * Storage: {@code schema_library} table via {@link JsonBlobRepository}. Envelope: {@code {id, name,
+ * created_at, updated_at, created_by, visibility, definition}}
  *
  * <p>Visibility rules:
+ *
  * <ul>
- *   <li>{@code private} — only the owner can see/edit</li>
- *   <li>{@code shared}  — all authenticated users can read, only owner can edit</li>
+ *   <li>{@code private} — only the owner can see/edit
+ *   <li>{@code shared} — all authenticated users can read, only owner can edit
  * </ul>
  */
 public final class SchemaLibraryController {
@@ -263,10 +263,12 @@ public final class SchemaLibraryController {
                 if (requestUpdatedAt != 0 && storedUpdatedAt != requestUpdatedAt) {
                     tx.abort();
                     ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(Map.of(
-                        "error", "Schema has been modified by another user. Please reload.",
-                        "serverUpdatedAt", storedUpdatedAt
-                    ));
+                    ctx.json(
+                            Map.of(
+                                    "error",
+                                    "Schema has been modified by another user. Please reload.",
+                                    "serverUpdatedAt",
+                                    storedUpdatedAt));
                     return;
                 }
             }
@@ -279,8 +281,9 @@ public final class SchemaLibraryController {
             if (name.isEmpty()) name = existingEnvelope.path("name").asText("スキーマ");
             if (name.length() > MAX_NAME_LENGTH) name = name.substring(0, MAX_NAME_LENGTH);
 
-            String visibility = input.path("visibility").asText(
-                    existingEnvelope.path("visibility").asText("private"));
+            String visibility =
+                    input.path("visibility")
+                            .asText(existingEnvelope.path("visibility").asText("private"));
             if (!"shared".equals(visibility)) visibility = "private";
 
             JsonNode definition = input.path("definition");
@@ -308,9 +311,14 @@ public final class SchemaLibraryController {
             tx.commit();
 
             ctx.contentType("application/json");
-            ctx.result(MAPPER.writeValueAsString(Map.of("status", "saved", "id", id, "updatedAt", now)));
+            ctx.result(
+                    MAPPER.writeValueAsString(
+                            Map.of("status", "saved", "id", id, "updatedAt", now)));
         } catch (Exception e) {
-            try { tx.abort(); } catch (Exception ignored) {}
+            try {
+                tx.abort();
+            } catch (Exception ignored) {
+            }
             throw e;
         }
     }

@@ -6,9 +6,6 @@ import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UploadedFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,22 +15,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * HTTP handlers for batch job endpoints.
  *
- * POST   /api/v1/jobs           — submit new job
- * GET    /api/v1/jobs           — list all jobs
- * GET    /api/v1/jobs/{id}      — job status + progress
- * GET    /api/v1/jobs/{id}/output — download ZIP
+ * <p>POST /api/v1/jobs — submit new job GET /api/v1/jobs — list all jobs GET /api/v1/jobs/{id} —
+ * job status + progress GET /api/v1/jobs/{id}/output — download ZIP
  */
 public final class JobController {
 
     private static final Logger log = LoggerFactory.getLogger(JobController.class);
     private static final int MAX_ACTIVE_JOBS = 20;
     private static final int MAX_ROW_COUNT = 10_000;
+
     /** v1 job listing page defaults (#210). */
     private static final int JOBS_DEFAULT_LIMIT = 100;
+
     private static final int JOBS_MAX_LIMIT = 500;
 
     private final JobRepository jobRepo;
@@ -41,7 +40,8 @@ public final class JobController {
     private final ExecutorService executor;
     private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
-    public JobController(JobRepository jobRepo, BatchPdfProcessor processor, ExecutorService executor) {
+    public JobController(
+            JobRepository jobRepo, BatchPdfProcessor processor, ExecutorService executor) {
         this.jobRepo = jobRepo;
         this.processor = processor;
         this.executor = executor;
@@ -92,29 +92,36 @@ public final class JobController {
 
         String jobId = "job-" + UUID.randomUUID();
         long now = System.currentTimeMillis();
-        JobRecord record = new JobRecord(
-            jobId, templateId, JobRecord.PENDING,
-            rowCount, 0, 0, null, now, now, 0
-        );
+        JobRecord record =
+                new JobRecord(
+                        jobId, templateId, JobRecord.PENDING, rowCount, 0, 0, null, now, now, 0);
         jobRepo.save(record);
 
         int finalRowCount = rowCount;
-        executor.submit(() -> {
-            try {
-                processor.run(jobId, templateId, finalRowCount);
-            } finally {
-                limiter.release();
-            }
-        });
+        executor.submit(
+                () -> {
+                    try {
+                        processor.run(jobId, templateId, finalRowCount);
+                    } finally {
+                        limiter.release();
+                    }
+                });
 
         ctx.status(HttpStatus.ACCEPTED);
-        ctx.json(Map.of(
-            "jobId", jobId,
-            "status", JobRecord.PENDING,
-            "statusUrl", "/api/v1/jobs/" + jobId
-        ));
+        ctx.json(
+                Map.of(
+                        "jobId",
+                        jobId,
+                        "status",
+                        JobRecord.PENDING,
+                        "statusUrl",
+                        "/api/v1/jobs/" + jobId));
 
-        log.info("Submitted batch job {} for template {} ({} rows)", jobId, templateId, finalRowCount);
+        log.info(
+                "Submitted batch job {} for template {} ({} rows)",
+                jobId,
+                templateId,
+                finalRowCount);
     }
 
     /** Submit a batch job with CSV data: multipart form with templateId + csv file */
@@ -167,42 +174,53 @@ public final class JobController {
 
         String jobId = "job-" + UUID.randomUUID();
         long now = System.currentTimeMillis();
-        JobRecord record = new JobRecord(
-            jobId, templateId, JobRecord.PENDING,
-            rows.size(), 0, 0, null, now, now, 0
-        );
+        JobRecord record =
+                new JobRecord(
+                        jobId, templateId, JobRecord.PENDING, rows.size(), 0, 0, null, now, now, 0);
         jobRepo.save(record);
 
-        executor.submit(() -> {
-            try {
-                processor.runWithData(jobId, templateId, rows);
-            } finally {
-                limiter.release();
-            }
-        });
+        executor.submit(
+                () -> {
+                    try {
+                        processor.runWithData(jobId, templateId, rows);
+                    } finally {
+                        limiter.release();
+                    }
+                });
 
         ctx.status(HttpStatus.ACCEPTED);
-        ctx.json(Map.of(
-            "jobId", jobId,
-            "status", JobRecord.PENDING,
-            "statusUrl", "/api/v1/jobs/" + jobId,
-            "totalRows", rows.size()
-        ));
+        ctx.json(
+                Map.of(
+                        "jobId",
+                        jobId,
+                        "status",
+                        JobRecord.PENDING,
+                        "statusUrl",
+                        "/api/v1/jobs/" + jobId,
+                        "totalRows",
+                        rows.size()));
 
-        log.info("Submitted CSV batch job {} for template {} ({} rows from CSV)",
-            jobId, templateId, rows.size());
+        log.info(
+                "Submitted CSV batch job {} for template {} ({} rows from CSV)",
+                jobId,
+                templateId,
+                rows.size());
     }
 
     /** GET /api/v1/jobs — list V1 batch jobs (V2 jobs share the store but not this API) */
     public void list(Context ctx) {
         // Paginate the v1 job list (#210): the previous version returned every job unbounded.
         // Newest first; total count is surfaced via X-Total-Count so paging isn't silent.
-        List<JobRecord> all = jobRepo.listAll().stream()
-                .filter(JobRecord::isV1)
-                .sorted(java.util.Comparator.comparingLong(JobRecord::createdAt).reversed())
-                .toList();
+        List<JobRecord> all =
+                jobRepo.listAll().stream()
+                        .filter(JobRecord::isV1)
+                        .sorted(java.util.Comparator.comparingLong(JobRecord::createdAt).reversed())
+                        .toList();
         int offset = Math.max(0, parseIntParam(ctx.queryParam("offset"), 0));
-        int limit = Math.min(Math.max(1, parseIntParam(ctx.queryParam("limit"), JOBS_DEFAULT_LIMIT)), JOBS_MAX_LIMIT);
+        int limit =
+                Math.min(
+                        Math.max(1, parseIntParam(ctx.queryParam("limit"), JOBS_DEFAULT_LIMIT)),
+                        JOBS_MAX_LIMIT);
         int from = Math.min(offset, all.size());
         int to = Math.min(from + limit, all.size());
         ctx.header("X-Total-Count", String.valueOf(all.size()));
@@ -211,34 +229,42 @@ public final class JobController {
 
     private static int parseIntParam(String raw, int defaultVal) {
         if (raw == null || raw.isBlank()) return defaultVal;
-        try { return Integer.parseInt(raw.trim()); }
-        catch (NumberFormatException e) { return defaultVal; }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
     }
 
     // ── Unified V2 job API (issue #191) ─────────────────────────────────────────
 
     /**
-     * GET /api/v2/pdf-jobs — unified listing of every job type (V1 CSV batch, V2
-     * single-PDF, V2 batch-ZIP), newest first, projected to a stable DTO with the
-     * lowercase status vocabulary. Owner-scoped: a user sees their own jobs plus
-     * ownerless (legacy/anonymous) jobs; admins see everything.
+     * GET /api/v2/pdf-jobs — unified listing of every job type (V1 CSV batch, V2 single-PDF, V2
+     * batch-ZIP), newest first, projected to a stable DTO with the lowercase status vocabulary.
+     * Owner-scoped: a user sees their own jobs plus ownerless (legacy/anonymous) jobs; admins see
+     * everything.
      */
     public void listUnified(Context ctx) {
         Principal principal = ctx.attribute("principal");
         boolean admin = principal != null && principal.roles().contains("admin");
         String userId = principal != null ? principal.userId() : null;
-        List<Map<String, Object>> out = jobRepo.listAll().stream()
-                .filter(j -> j.owner() == null || admin || (userId != null && userId.equals(j.owner())))
-                .map(JobController::toUnifiedDto)
-                .toList();
+        List<Map<String, Object>> out =
+                jobRepo.listAll().stream()
+                        .filter(
+                                j ->
+                                        j.owner() == null
+                                                || admin
+                                                || (userId != null && userId.equals(j.owner())))
+                        .map(JobController::toUnifiedDto)
+                        .toList();
         ctx.json(out);
     }
 
     /**
-     * DELETE /api/v2/pdf-jobs/{jobId} — cancel or delete any job type (issue #191).
-     * Terminal jobs are deleted (record + artifacts); running V1 jobs are cooperatively
-     * cancelled via the processor; running V2 jobs are marked CANCELLED (best-effort —
-     * the in-flight worker is not interrupted, but the job leaves the active list).
+     * DELETE /api/v2/pdf-jobs/{jobId} — cancel or delete any job type (issue #191). Terminal jobs
+     * are deleted (record + artifacts); running V1 jobs are cooperatively cancelled via the
+     * processor; running V2 jobs are marked CANCELLED (best-effort — the in-flight worker is not
+     * interrupted, but the job leaves the active list).
      */
     public void cancelUnified(Context ctx) {
         String jobId = ctx.pathParam("jobId");
@@ -263,9 +289,9 @@ public final class JobController {
     }
 
     /**
-     * Owner-scoped access: ownerless jobs are open; otherwise owner or admin only.
-     * Public so sibling job stacks (e.g. {@code BatchPdfController} in the parent package)
-     * apply the identical rule instead of re-implementing it (issue #199).
+     * Owner-scoped access: ownerless jobs are open; otherwise owner or admin only. Public so
+     * sibling job stacks (e.g. {@code BatchPdfController} in the parent package) apply the
+     * identical rule instead of re-implementing it (issue #199).
      */
     public static boolean canAccess(Context ctx, JobRecord job) {
         if (job.owner() == null) return true;

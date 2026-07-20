@@ -1,19 +1,17 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.Test;
 
 class StatelessExcelControllerTest {
 
@@ -24,11 +22,13 @@ class StatelessExcelControllerTest {
     }
 
     private static JsonNode templateWithBand(String dataSource) throws Exception {
-        return json("""
+        return json(
+                """
             { "pages": [ { "sections": [ { "elements": [
               { "type": "repeatingBand", "dataSource": "%s" }
             ] } ] } ] }
-            """.formatted(dataSource));
+            """
+                        .formatted(dataSource));
     }
 
     private static XSSFWorkbook read(byte[] bytes) throws Exception {
@@ -45,13 +45,16 @@ class StatelessExcelControllerTest {
 
     @Test
     void collectDataSourceKeys_findsRepeatingBandSource() throws Exception {
-        List<String> keys = StatelessExcelController.collectDataSourceKeys(templateWithBand("items"));
+        List<String> keys =
+                StatelessExcelController.collectDataSourceKeys(templateWithBand("items"));
         assertEquals(List.of("items"), keys);
     }
 
     @Test
     void collectDataSourceKeys_emptyWhenNoRepeatingElement() throws Exception {
-        JsonNode tpl = json("{ \"pages\": [ { \"sections\": [ { \"elements\": [ { \"type\": \"text\" } ] } ] } ] }");
+        JsonNode tpl =
+                json(
+                        "{ \"pages\": [ { \"sections\": [ { \"elements\": [ { \"type\": \"text\" } ] } ] } ] }");
         assertTrue(StatelessExcelController.collectDataSourceKeys(tpl).isEmpty());
     }
 
@@ -60,7 +63,9 @@ class StatelessExcelControllerTest {
     @Test
     void buildWorkbook_scalarsAndTableSheets() throws Exception {
         JsonNode tpl = templateWithBand("items");
-        JsonNode data = json("""
+        JsonNode data =
+                json(
+                        """
             { "invoiceNo": "INV-1", "total": 154000,
               "items": [ { "code": "A", "qty": 2 }, { "code": "B", "qty": 3 } ] }
             """);
@@ -113,7 +118,9 @@ class StatelessExcelControllerTest {
     @Test
     void buildWorkbook_prefersDataSourceOrderThenOtherArrays() throws Exception {
         JsonNode tpl = templateWithBand("items");
-        JsonNode data = json("""
+        JsonNode data =
+                json(
+                        """
             { "other": [ { "x": 1 } ], "items": [ { "code": "A" } ] }
             """);
         try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
@@ -136,7 +143,8 @@ class StatelessExcelControllerTest {
         JsonNode tpl = templateWithBand("items");
         JsonNode data = json("{ \"items\": [ { \"meta\": { \"k\": 1 } } ] }");
         try (XSSFWorkbook wb = read(StatelessExcelController.buildWorkbook(tpl, data))) {
-            assertEquals("{\"k\":1}", wb.getSheet("items").getRow(1).getCell(0).getStringCellValue());
+            assertEquals(
+                    "{\"k\":1}", wb.getSheet("items").getRow(1).getCell(0).getStringCellValue());
         }
     }
 }

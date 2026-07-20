@@ -4,18 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.io.IOException;
 import java.util.Map;
 
 /**
  * Merges a data row into a projection JSON by resolving bindingRef values.
  *
- * <p>For each element with a {@code bindingRef}, looks up the corresponding value
- * in the data row and injects it into the appropriate prop (text, value, checked, selected).
+ * <p>For each element with a {@code bindingRef}, looks up the corresponding value in the data row
+ * and injects it into the appropriate prop (text, value, checked, selected).
  *
- * <p>Deep-copies the projection once at the root level, then mutates in place.
- * This avoids triple deep-copy (template → section → element) for O(1) copies per merge.
+ * <p>Deep-copies the projection once at the root level, then mutates in place. This avoids triple
+ * deep-copy (template → section → element) for O(1) copies per merge.
  */
 public final class ProjectionMerger {
 
@@ -92,18 +91,20 @@ public final class ProjectionMerger {
 
         // Determine which prop to set based on element kind
         String kind = el.has("kind") ? el.get("kind").asText() : "";
-        String propKey = switch (kind) {
-            case "checkbox" -> "checked";
-            case "radio_mark" -> "selected";
-            case "barcode", "qrcode" -> "value";
-            default -> "text";
-        };
+        String propKey =
+                switch (kind) {
+                    case "checkbox" -> "checked";
+                    case "radio_mark" -> "selected";
+                    case "barcode", "qrcode" -> "value";
+                    default -> "text";
+                };
 
         // Mutate in place — safe because root was already deep-copied
         ObjectNode elNode = (ObjectNode) el;
-        ObjectNode props = elNode.has("props") && elNode.get("props").isObject()
-                ? (ObjectNode) elNode.get("props")
-                : MAPPER.createObjectNode();
+        ObjectNode props =
+                elNode.has("props") && elNode.get("props").isObject()
+                        ? (ObjectNode) elNode.get("props")
+                        : MAPPER.createObjectNode();
         props.put(propKey, value);
         elNode.set("props", props);
         return elNode;

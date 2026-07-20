@@ -7,23 +7,24 @@ import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * V2 template export/import endpoints:
+ *
  * <ul>
- *   <li>GET  /api/v2/templates/{id}/export  — download as {@code .rds2.json}</li>
- *   <li>POST /api/v2/templates/import       — upload {@code .rds2.json}, regenerate all IDs</li>
+ *   <li>GET /api/v2/templates/{id}/export — download as {@code .rds2.json}
+ *   <li>POST /api/v2/templates/import — upload {@code .rds2.json}, regenerate all IDs
  * </ul>
  *
  * Export format:
+ *
  * <pre>{@code
  * {
  *   "formatVersion": 2,
@@ -32,8 +33,8 @@ import java.util.UUID;
  * }
  * }</pre>
  *
- * On import, the definition gets a brand-new top-level ID and all page/element IDs are
- * regenerated so importing the same file twice cannot collide.
+ * On import, the definition gets a brand-new top-level ID and all page/element IDs are regenerated
+ * so importing the same file twice cannot collide.
  */
 public final class TemplateExportController {
 
@@ -55,8 +56,8 @@ public final class TemplateExportController {
     // ── Export ──────────────────────────────────────────────────────────────
 
     /**
-     * GET /api/v2/templates/{id}/export
-     * Streams the template definition as a {@code .rds2.json} file.
+     * GET /api/v2/templates/{id}/export Streams the template definition as a {@code .rds2.json}
+     * file.
      */
     public void export(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
@@ -102,11 +103,12 @@ public final class TemplateExportController {
 
         String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(exportPackage);
         String filename = sanitizeFilename(templateName) + ".rds2.json";
-        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8)
-                .replace("+", "%20");
+        String encodedFilename =
+                URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
 
         ctx.contentType("application/json");
-        ctx.header("Content-Disposition",
+        ctx.header(
+                "Content-Disposition",
                 "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encodedFilename);
         ctx.result(json);
         log.info("Exported template {}", templateId);
@@ -115,9 +117,8 @@ public final class TemplateExportController {
     // ── Import ───────────────────────────────────────────────────────────────
 
     /**
-     * POST /api/v2/templates/import
-     * Body: export package JSON (max 5 MB).
-     * Returns 201 with {@code {id, name}}.
+     * POST /api/v2/templates/import Body: export package JSON (max 5 MB). Returns 201 with {@code
+     * {id, name}}.
      */
     public void importTemplate(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");
@@ -294,7 +295,8 @@ public final class TemplateExportController {
     }
 
     /** Remap ID cross-references within a single element's props. */
-    private static void remapElementReferences(ObjectNode element, java.util.Map<String, String> idMap) {
+    private static void remapElementReferences(
+            ObjectNode element, java.util.Map<String, String> idMap) {
         JsonNode props = element.path("props");
         if (!props.isObject()) return;
         ObjectNode propsNode = (ObjectNode) props;
@@ -315,8 +317,8 @@ public final class TemplateExportController {
 
     private static String sanitizeFilename(String name) {
         return name.replaceAll("[\\\\/:*?\"<>|]", "_")
-                   .replaceAll("\\s+", "_")
-                   .replaceAll("_{2,}", "_")
-                   .replaceAll("^_|_$", "");
+                .replaceAll("\\s+", "_")
+                .replaceAll("_{2,}", "_")
+                .replaceAll("^_|_$", "");
     }
 }

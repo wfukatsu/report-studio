@@ -1,25 +1,24 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.report.server.auth.Principal;
 import com.report.server.job.JobRecord;
 import com.report.server.testsupport.InMemoryJobStore;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Validation and status behavior of the batch PDF job endpoints on the
- * unified job store (issue #60).
+ * Validation and status behavior of the batch PDF job endpoints on the unified job store (issue
+ * #60).
  */
 class BatchPdfControllerTest {
 
@@ -41,12 +40,19 @@ class BatchPdfControllerTest {
         controller = new BatchPdfController(definitionsRepo, responseRepo, jobStore, executor);
 
         ctx = mock(Context.class);
-        when(ctx.status(any(HttpStatus.class))).thenAnswer(inv -> {
-            capturedStatus = ((HttpStatus) inv.getArguments()[0]).getCode();
-            return ctx;
-        });
-        doAnswer(inv -> { capturedJson = inv.getArguments()[0]; return null; })
-                .when(ctx).json(any());
+        when(ctx.status(any(HttpStatus.class)))
+                .thenAnswer(
+                        inv -> {
+                            capturedStatus = ((HttpStatus) inv.getArguments()[0]).getCode();
+                            return ctx;
+                        });
+        doAnswer(
+                        inv -> {
+                            capturedJson = inv.getArguments()[0];
+                            return null;
+                        })
+                .when(ctx)
+                .json(any());
         when(ctx.header(anyString(), anyString())).thenReturn(ctx);
         // Default principal: alice. Status/result reads are now owner-scoped (#199), so the
         // caller must match the job owner ("alice" in the read-path fixtures).
@@ -130,8 +136,9 @@ class BatchPdfControllerTest {
 
     @Test
     void getStatus_reportsLowercaseStatusAndCounts() {
-        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "alice", 3, 0)
-                .withProgress(2, 1));
+        jobStore.save(
+                JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "alice", 3, 0)
+                        .withProgress(2, 1));
         when(ctx.pathParam("id")).thenReturn("batch-1");
 
         controller.getStatus(ctx);
@@ -167,8 +174,9 @@ class BatchPdfControllerTest {
 
     @Test
     void getResult_otherUsersJob_404_doesNotDelete() {
-        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 1, 0)
-                .withArtifact("/tmp/does-not-matter.zip"));
+        jobStore.save(
+                JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 1, 0)
+                        .withArtifact("/tmp/does-not-matter.zip"));
         when(ctx.pathParam("id")).thenReturn("batch-1");
         when(ctx.attribute("principal")).thenReturn(user("alice")); // not the owner
 
@@ -181,9 +189,12 @@ class BatchPdfControllerTest {
 
     @Test
     void getStatus_adminCanReadAnyJob() {
-        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 3, 0).withProgress(1, 0));
+        jobStore.save(
+                JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "bob", 3, 0)
+                        .withProgress(1, 0));
         when(ctx.pathParam("id")).thenReturn("batch-1");
-        when(ctx.attribute("principal")).thenReturn(new Principal("root", "root", java.util.Set.of("admin")));
+        when(ctx.attribute("principal"))
+                .thenReturn(new Principal("root", "root", java.util.Set.of("admin")));
 
         controller.getStatus(ctx);
 
@@ -195,39 +206,45 @@ class BatchPdfControllerTest {
     @Test
     void getResult_streamsZip_andDeletesJobOnStreamClose() throws Exception {
         java.nio.file.Path zip = java.nio.file.Files.createTempFile("batch-result", ".zip");
-        java.nio.file.Files.write(zip, new byte[]{1, 2, 3, 4});
-        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "alice", 1, 0)
-                .withArtifact(zip.toString())); // withArtifact → status COMPLETED + artifactPath
+        java.nio.file.Files.write(zip, new byte[] {1, 2, 3, 4});
+        jobStore.save(
+                JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "alice", 1, 0)
+                        .withArtifact(
+                                zip.toString())); // withArtifact → status COMPLETED + artifactPath
         when(ctx.pathParam("id")).thenReturn("batch-1");
 
         controller.getResult(ctx);
 
         // Streamed, not buffered to a byte[]: result is an InputStream.
-        ArgumentCaptor<java.io.InputStream> stream = ArgumentCaptor.forClass(java.io.InputStream.class);
+        ArgumentCaptor<java.io.InputStream> stream =
+                ArgumentCaptor.forClass(java.io.InputStream.class);
         verify(ctx).result(stream.capture());
         // One-shot delete is deferred until the stream is fully written (closed).
-        assertTrue(jobStore.findById("batch-1").isPresent(), "job must survive until the stream closes");
+        assertTrue(
+                jobStore.findById("batch-1").isPresent(),
+                "job must survive until the stream closes");
         stream.getValue().close();
-        assertTrue(jobStore.findById("batch-1").isEmpty(), "job dropped after the download completes");
+        assertTrue(
+                jobStore.findById("batch-1").isEmpty(), "job dropped after the download completes");
 
         java.nio.file.Files.deleteIfExists(zip);
     }
 
     /**
-     * Issue #204: the batch coordinator must not run on {@code pdfExecutor}. Here that pool
-     * has a single thread and the batch produces real render tasks submitted to it. If the
-     * coordinator also ran on {@code pdfExecutor}, it would seize the only thread and then
-     * block on {@code allOf().get()} waiting for render tasks that can never be scheduled —
-     * a deadlock that would leave the job non-terminal until the 5-minute timeout. With the
-     * coordinator on its own pool, the job reaches a terminal state promptly.
+     * Issue #204: the batch coordinator must not run on {@code pdfExecutor}. Here that pool has a
+     * single thread and the batch produces real render tasks submitted to it. If the coordinator
+     * also ran on {@code pdfExecutor}, it would seize the only thread and then block on {@code
+     * allOf().get()} waiting for render tasks that can never be scheduled — a deadlock that would
+     * leave the job non-terminal until the 5-minute timeout. With the coordinator on its own pool,
+     * the job reaches a terminal state promptly.
      */
     @Test
     void submitBatch_coordinatorDoesNotStarvePdfExecutor() throws Exception {
         Principal alice = user("alice");
         when(ctx.attribute("principal")).thenReturn(alice);
-        when(ctx.body()).thenReturn("{\"templateId\":\"t1\",\"responseIds\":[\"r1\",\"r2\",\"r3\"]}");
-        when(definitionsRepo.get("t1"))
-                .thenReturn(Optional.of("{\"definition\":{\"pages\":[]}}"));
+        when(ctx.body())
+                .thenReturn("{\"templateId\":\"t1\",\"responseIds\":[\"r1\",\"r2\",\"r3\"]}");
+        when(definitionsRepo.get("t1")).thenReturn(Optional.of("{\"definition\":{\"pages\":[]}}"));
         // Valid responses → each input becomes a real render task on the single-thread pdfExecutor
         // (the deadlock-prone path), not a short-circuited "not found" completed future.
         when(responseRepo.get(anyString()))
@@ -246,7 +263,8 @@ class BatchPdfControllerTest {
             Thread.sleep(25);
         }
         assertNotNull(job, "batch job should have been persisted");
-        assertTrue(job.isTerminal(),
+        assertTrue(
+                job.isTerminal(),
                 "batch job must reach a terminal state — a non-terminal job indicates the "
                         + "coordinator/render pool deadlock (#204)");
     }

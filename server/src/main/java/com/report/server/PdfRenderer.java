@@ -9,6 +9,10 @@ import com.report.server.pdf.PdfUtils;
 import com.report.server.pdf.SectionPdfRenderer;
 import com.report.server.pdf.SectionPdfRendererRegistry;
 import com.report.server.pdf.VariantContext;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -17,16 +21,11 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Renders a designer projection JSON to a PDF document using Apache PDFBox.
- * Delegates element rendering to the ElementPdfRendererRegistry (registry pattern).
+ * Renders a designer projection JSON to a PDF document using Apache PDFBox. Delegates element
+ * rendering to the ElementPdfRendererRegistry (registry pattern).
  *
- * Uses mm coordinates from the projection, converting to PDF points (1mm = 2.835pt).
+ * <p>Uses mm coordinates from the projection, converting to PDF points (1mm = 2.835pt).
  */
 public final class PdfRenderer {
 
@@ -34,11 +33,14 @@ public final class PdfRenderer {
     private static final float MM_TO_PT = com.report.server.pdf.PdfUnits.MM_TO_PT;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_TEMPLATES_PER_PROJECTION = 20;
-    private static final int MAX_PHYSICAL_PAGES = 2000; // bound runaway pages[] × pagination (issue #52)
+    private static final int MAX_PHYSICAL_PAGES =
+            2000; // bound runaway pages[] × pagination (issue #52)
 
-    private static final ElementPdfRendererRegistry REGISTRY = ElementPdfRendererRegistry.createDefault();
+    private static final ElementPdfRendererRegistry REGISTRY =
+            ElementPdfRendererRegistry.createDefault();
     private static final ElementPdfRenderer FALLBACK = new FallbackRenderer();
-    private static final SectionPdfRendererRegistry SECTION_REGISTRY = SectionPdfRendererRegistry.createDefault();
+    private static final SectionPdfRendererRegistry SECTION_REGISTRY =
+            SectionPdfRendererRegistry.createDefault();
 
     private PdfRenderer() {}
 
@@ -55,10 +57,11 @@ public final class PdfRenderer {
     }
 
     /**
-     * Render projection JSON directly to an OutputStream (no intermediate byte[]).
-     * Preferred for batch use to avoid heap pressure.
+     * Render projection JSON directly to an OutputStream (no intermediate byte[]). Preferred for
+     * batch use to avoid heap pressure.
      */
-    public static void renderToStream(String projectionJson, java.io.OutputStream out) throws IOException {
+    public static void renderToStream(String projectionJson, java.io.OutputStream out)
+            throws IOException {
         long startNanos = System.nanoTime();
         boolean success = false;
         try {
@@ -69,7 +72,8 @@ public final class PdfRenderer {
         }
     }
 
-    private static void renderToStreamImpl(String projectionJson, java.io.OutputStream out) throws IOException {
+    private static void renderToStreamImpl(String projectionJson, java.io.OutputStream out)
+            throws IOException {
         JsonNode root = MAPPER.readTree(projectionJson);
         JsonNode templates = root.get("templates");
 
@@ -92,8 +96,8 @@ public final class PdfRenderer {
 
         // Tenant info for tenant* elements: projection-level _tenant overrides
         // the process-wide provider (issue #54)
-        JsonNode tenant = root.hasNonNull("_tenant")
-                ? root.get("_tenant") : TenantInfoProvider.get();
+        JsonNode tenant =
+                root.hasNonNull("_tenant") ? root.get("_tenant") : TenantInfoProvider.get();
 
         try (PDDocument doc = new PDDocument()) {
             if (templates == null || !templates.isArray() || templates.isEmpty()) {
@@ -102,7 +106,9 @@ public final class PdfRenderer {
                 int tmplCount = 0;
                 for (JsonNode tmpl : templates) {
                     if (++tmplCount > MAX_TEMPLATES_PER_PROJECTION) {
-                        log.warn("Template count exceeds limit ({}), truncating", MAX_TEMPLATES_PER_PROJECTION);
+                        log.warn(
+                                "Template count exceeds limit ({}), truncating",
+                                MAX_TEMPLATES_PER_PROJECTION);
                         break;
                     }
                     renderTemplate(doc, tmpl, formData, variantId, printDate, tenant);
@@ -113,9 +119,14 @@ public final class PdfRenderer {
         }
     }
 
-    private static void renderTemplate(PDDocument doc, JsonNode tmpl, JsonNode formData,
-                                        String variantId, java.time.LocalDate printDate,
-                                        JsonNode tenant) throws IOException {
+    private static void renderTemplate(
+            PDDocument doc,
+            JsonNode tmpl,
+            JsonNode formData,
+            String variantId,
+            java.time.LocalDate printDate,
+            JsonNode tenant)
+            throws IOException {
         // Clear per-render image cache at template boundary
         ImagePdfRenderer.clearImageCache();
 
@@ -144,7 +155,8 @@ public final class PdfRenderer {
         // its own rows-per-page and row count; the document's page count is the
         // max across sections, and each section flows independently.
         java.util.List<JsonNode> orderedSections = new java.util.ArrayList<>();
-        java.util.List<int[]> sectionParams = new java.util.ArrayList<>(); // {rowsPerPage, totalRows}
+        java.util.List<int[]> sectionParams =
+                new java.util.ArrayList<>(); // {rowsPerPage, totalRows}
         int totalPages = 1;
 
         for (JsonNode section : sections) {
@@ -160,16 +172,19 @@ public final class PdfRenderer {
                 totalPages = Math.max(totalPages, renderer.physicalPages(section, formData));
             } else {
                 // Pushdown overflow (issue #55) and band flow (issue #64) add continuation pages
-                totalPages = Math.max(totalPages,
-                        com.report.server.pdf.SectionRenderHelper.sectionOverflowPages(section, formData));
+                totalPages =
+                        Math.max(
+                                totalPages,
+                                com.report.server.pdf.SectionRenderHelper.sectionOverflowPages(
+                                        section, formData));
             }
-            sectionParams.add(new int[]{rowsPerPage, totalRows});
+            sectionParams.add(new int[] {rowsPerPage, totalRows});
         }
 
         Map<String, PDFont> fontCache = new HashMap<>();
 
         try (com.report.server.pdf.PageContext ctx =
-                 new com.report.server.pdf.PageContext(doc, pageSize, fontCache, variantCtx)) {
+                new com.report.server.pdf.PageContext(doc, pageSize, fontCache, variantCtx)) {
             ctx.setTotalPages(totalPages);
             ctx.setPrintDate(printDate);
             ctx.setTenant(tenant);
@@ -183,8 +198,8 @@ public final class PdfRenderer {
                     String sectionType = resolveSectionType(section);
                     SectionPdfRenderer renderer = SECTION_REGISTRY.getOrFallback(sectionType);
                     int[] params = sectionParams.get(i);
-                    renderer.renderPage(ctx, section, formData, null,
-                            pageIdx, params[0], params[1]);
+                    renderer.renderPage(
+                            ctx, section, formData, null, pageIdx, params[0], params[1]);
                 }
             }
         }
@@ -200,17 +215,16 @@ public final class PdfRenderer {
     }
 
     /**
-     * Render a V2 {@code ReportDefinition} directly, preserving designed page
-     * boundaries (issue #52) — replaces the V2ProjectionBuilder → V1 bridge.
+     * Render a V2 {@code ReportDefinition} directly, preserving designed page boundaries (issue
+     * #52) — replaces the V2ProjectionBuilder → V1 bridge.
      *
-     * <p>Each {@code pages[]} entry is rendered at its own size, expanded by its
-     * own data pagination; the physical page counter and {@code totalPages}
-     * accumulate across the whole document so {@code {{page}}/{{pages}}} run
-     * continuously. Reuses the section registry and SectionRenderHelper, which
-     * already understand V2 element {@code type}s.
+     * <p>Each {@code pages[]} entry is rendered at its own size, expanded by its own data
+     * pagination; the physical page counter and {@code totalPages} accumulate across the whole
+     * document so {@code {{page}}/{{pages}}} run continuously. Reuses the section registry and
+     * SectionRenderHelper, which already understand V2 element {@code type}s.
      *
-     * <p>Root-level control keys mirror the V1 path: {@code _formData} /
-     * {@code testData}, {@code _variantId}, {@code _printDate}, {@code _tenant}.
+     * <p>Root-level control keys mirror the V1 path: {@code _formData} / {@code testData}, {@code
+     * _variantId}, {@code _printDate}, {@code _tenant}.
      */
     public static void renderDefinitionToStream(String definitionJson, java.io.OutputStream out)
             throws IOException {
@@ -269,7 +283,8 @@ public final class PdfRenderer {
                 if (sections.isArray()) {
                     for (JsonNode section : sections) {
                         ordered.add(section);
-                        SectionPdfRenderer r = SECTION_REGISTRY.getOrFallback(resolveSectionType(section));
+                        SectionPdfRenderer r =
+                                SECTION_REGISTRY.getOrFallback(resolveSectionType(section));
                         int rowsPerPage = 10, totalRows = 0;
                         if (r.isPaginating()) {
                             rowsPerPage = Math.max(r.rowsPerPage(section), 1);
@@ -278,10 +293,13 @@ public final class PdfRenderer {
                             localCount = Math.max(localCount, r.physicalPages(section, formData));
                         } else {
                             // Pushdown overflow (issue #55) and band flow (issue #64)
-                            localCount = Math.max(localCount,
-                                    com.report.server.pdf.SectionRenderHelper.sectionOverflowPages(section, formData));
+                            localCount =
+                                    Math.max(
+                                            localCount,
+                                            com.report.server.pdf.SectionRenderHelper
+                                                    .sectionOverflowPages(section, formData));
                         }
-                        params.add(new int[]{rowsPerPage, totalRows});
+                        params.add(new int[] {rowsPerPage, totalRows});
                     }
                 }
                 pageSections.add(ordered);
@@ -289,14 +307,17 @@ public final class PdfRenderer {
                 localCounts.add(localCount);
                 globalTotal += localCount;
                 if (globalTotal > MAX_PHYSICAL_PAGES) {
-                    log.warn("Physical page count exceeds limit ({}), truncating", MAX_PHYSICAL_PAGES);
+                    log.warn(
+                            "Physical page count exceeds limit ({}), truncating",
+                            MAX_PHYSICAL_PAGES);
                     break;
                 }
             }
 
             Map<String, PDFont> fontCache = new HashMap<>();
-            try (com.report.server.pdf.PageContext ctx = new com.report.server.pdf.PageContext(
-                    doc, pageSizes.get(0), fontCache, variantCtx)) {
+            try (com.report.server.pdf.PageContext ctx =
+                    new com.report.server.pdf.PageContext(
+                            doc, pageSizes.get(0), fontCache, variantCtx)) {
                 ctx.setTotalPages(globalTotal);
                 ctx.setPrintDate(printDate);
                 ctx.setTenant(tenant);
@@ -324,7 +345,9 @@ public final class PdfRenderer {
         }
     }
 
-    /** Page size for a designed page: its own width/height (mm) wins, else the pageSettings preset. */
+    /**
+     * Page size for a designed page: its own width/height (mm) wins, else the pageSettings preset.
+     */
     private static PDRectangle resolvePageSizeForPage(JsonNode page, JsonNode pageSettings) {
         float wMm = PdfUtils.floatOf(page, "width", 0);
         float hMm = PdfUtils.floatOf(page, "height", 0);
@@ -339,25 +362,38 @@ public final class PdfRenderer {
         if (ps == null || ps.isMissingNode()) return PDRectangle.A4;
         String id = PdfUtils.textOf(ps, "paperSize", "A4");
         String orient = PdfUtils.textOf(ps, "orientation", "portrait");
-        PDRectangle base = switch (id) {
-            case "A3" -> PDRectangle.A3;
-            case "A5" -> PDRectangle.A5;
-            case "Letter" -> PDRectangle.LETTER;
-            case "Legal" -> PDRectangle.LEGAL;
-            default -> PDRectangle.A4;
-        };
-        return "landscape".equals(orient) ? new PDRectangle(base.getHeight(), base.getWidth()) : base;
+        PDRectangle base =
+                switch (id) {
+                    case "A3" -> PDRectangle.A3;
+                    case "A5" -> PDRectangle.A5;
+                    case "Letter" -> PDRectangle.LETTER;
+                    case "Legal" -> PDRectangle.LEGAL;
+                    default -> PDRectangle.A4;
+                };
+        return "landscape".equals(orient)
+                ? new PDRectangle(base.getHeight(), base.getWidth())
+                : base;
     }
 
     // ── Fallback renderer for unsupported kinds ─────────────────────
     private static final class FallbackRenderer implements ElementPdfRenderer {
         @Override
-        public String kind() { return "__fallback__"; }
+        public String kind() {
+            return "__fallback__";
+        }
 
         @Override
-        public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                           float w, float h, float pageHeight, PDDocument doc,
-                           Map<String, PDFont> fontCache) throws IOException {
+        public void render(
+                PDPageContentStream cs,
+                JsonNode el,
+                float x,
+                float y,
+                float w,
+                float h,
+                float pageHeight,
+                PDDocument doc,
+                Map<String, PDFont> fontCache)
+                throws IOException {
             PdfUtils.renderBorder(cs, x, y, w, h);
         }
     }
@@ -365,20 +401,19 @@ public final class PdfRenderer {
     // ── Section type resolution ────────────────────────────────────────
     /** V1 uses "type"; V2 uses "sectionType" — fall back accordingly. */
     /**
-     * Resolve the opt-in margin clip box (issue #55). Returns
-     * {top, right, bottom, left} in mm when {@code clipToMargins: true} is set
-     * on the page setup/settings node, or null (no clipping — margins stay
-     * data-only, the historical behavior).
+     * Resolve the opt-in margin clip box (issue #55). Returns {top, right, bottom, left} in mm when
+     * {@code clipToMargins: true} is set on the page setup/settings node, or null (no clipping —
+     * margins stay data-only, the historical behavior).
      */
     private static float[] resolveClipMargins(JsonNode setup) {
         if (setup == null || !setup.path("clipToMargins").asBoolean(false)) return null;
         JsonNode m = setup.get("margins");
         if (m == null || !m.isObject()) return null;
-        return new float[]{
-                PdfUtils.floatOf(m, "top", 0),
-                PdfUtils.floatOf(m, "right", 0),
-                PdfUtils.floatOf(m, "bottom", 0),
-                PdfUtils.floatOf(m, "left", 0),
+        return new float[] {
+            PdfUtils.floatOf(m, "top", 0),
+            PdfUtils.floatOf(m, "right", 0),
+            PdfUtils.floatOf(m, "bottom", 0),
+            PdfUtils.floatOf(m, "left", 0),
         };
     }
 
@@ -399,14 +434,17 @@ public final class PdfRenderer {
             if ("preset".equals(kind)) {
                 String id = PdfUtils.textOf(ps, "paperSizeId", "A4");
                 String orient = PdfUtils.textOf(ps, "orientation", "portrait");
-                PDRectangle base = switch (id) {
-                    case "A3" -> PDRectangle.A3;
-                    case "A5" -> PDRectangle.A5;
-                    case "Letter" -> PDRectangle.LETTER;
-                    case "Legal" -> PDRectangle.LEGAL;
-                    default -> PDRectangle.A4;
-                };
-                return "landscape".equals(orient) ? new PDRectangle(base.getHeight(), base.getWidth()) : base;
+                PDRectangle base =
+                        switch (id) {
+                            case "A3" -> PDRectangle.A3;
+                            case "A5" -> PDRectangle.A5;
+                            case "Letter" -> PDRectangle.LETTER;
+                            case "Legal" -> PDRectangle.LEGAL;
+                            default -> PDRectangle.A4;
+                        };
+                return "landscape".equals(orient)
+                        ? new PDRectangle(base.getHeight(), base.getWidth())
+                        : base;
             } else {
                 float w = Math.min(PdfUtils.floatOf(ps, "customWidthMm", 210), 1000) * MM_TO_PT;
                 float h = Math.min(PdfUtils.floatOf(ps, "customHeightMm", 297), 1000) * MM_TO_PT;

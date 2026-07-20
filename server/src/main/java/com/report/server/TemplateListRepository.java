@@ -1,13 +1,9 @@
 package com.report.server;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,13 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Simple file-based template metadata store.
- * Stores template list as JSON in data/templates.json.
+ * Simple file-based template metadata store. Stores template list as JSON in data/templates.json.
  *
- * ScalarDB's partition-key-only table doesn't support full scans efficiently,
- * so we use a simple JSON file for the template index (lightweight for local dev).
+ * <p>ScalarDB's partition-key-only table doesn't support full scans efficiently, so we use a simple
+ * JSON file for the template index (lightweight for local dev).
  */
 public final class TemplateListRepository {
 
@@ -32,19 +29,17 @@ public final class TemplateListRepository {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record FormSettings(
-        boolean published,
-        @JsonProperty("passwordHash") String passwordHash,
-        String defaultMode
-    ) {
+            boolean published,
+            @JsonProperty("passwordHash") String passwordHash,
+            String defaultMode) {
         public static final FormSettings DEFAULT = new FormSettings(false, null, "standard");
     }
 
     public record TemplateMeta(
-        String id,
-        String name,
-        long updatedAt,
-        @JsonInclude(JsonInclude.Include.NON_NULL) FormSettings formSettings
-    ) {
+            String id,
+            String name,
+            long updatedAt,
+            @JsonInclude(JsonInclude.Include.NON_NULL) FormSettings formSettings) {
         /** Backwards-compatible constructor for existing code. */
         public TemplateMeta(String id, String name, long updatedAt) {
             this(id, name, updatedAt, null);
@@ -125,7 +120,11 @@ public final class TemplateListRepository {
             // Atomic write: write to temp file then rename to prevent corrupt index on crash
             Path tmp = INDEX_FILE.resolveSibling("templates.json.tmp");
             MAPPER.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), index);
-            Files.move(tmp, INDEX_FILE, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            Files.move(
+                    tmp,
+                    INDEX_FILE,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
             log.error("Failed to write template index", e);
         }

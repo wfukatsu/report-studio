@@ -3,24 +3,22 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * POST /api/v2/schemas/infer
  *
- * Infers a SchemaDefinition from a JSON sample.
+ * <p>Infers a SchemaDefinition from a JSON sample.
  *
- * Input:  {"sample": {...}}  — a single JSON object representing one record
- * Output: SchemaDefinition (groups + fields) compatible with the frontend SchemaDefinition type
+ * <p>Input: {"sample": {...}} — a single JSON object representing one record Output:
+ * SchemaDefinition (groups + fields) compatible with the frontend SchemaDefinition type
  *
- * Inference rules:
- *  - Top-level keys whose value is an ARRAY of objects → detail group (role="detail")
- *  - All other top-level keys → master group fields
- *  - Value types: number, boolean, string (fallback), array (nested arrays kept as "array")
- *  - Objects are treated as "string" (JSON.stringify in binding context)
+ * <p>Inference rules: - Top-level keys whose value is an ARRAY of objects → detail group
+ * (role="detail") - All other top-level keys → master group fields - Value types: number, boolean,
+ * string (fallback), array (nested arrays kept as "array") - Objects are treated as "string"
+ * (JSON.stringify in binding context)
  */
 public final class SchemaInferController {
 
@@ -90,8 +88,11 @@ public final class SchemaInferController {
             groups.addAll(detailGroups);
 
             ctx.json(Map.of("groups", groups));
-            log.info("Inferred schema: {} groups, {} master fields, {} detail groups",
-                    groups.size(), masterFields.size(), detailGroups.size());
+            log.info(
+                    "Inferred schema: {} groups, {} master fields, {} detail groups",
+                    groups.size(),
+                    masterFields.size(),
+                    detailGroups.size());
 
         } catch (Exception e) {
             log.error("Schema inference failed", e);

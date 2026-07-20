@@ -3,6 +3,7 @@ package com.report.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.report.server.auth.RateLimiter;
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
@@ -14,30 +15,29 @@ import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.ServiceUnavailableResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.report.server.auth.RateLimiter;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * GET /api/v2/scalardb/tables/{ns}/{table}/rows
  *
- * <p>Full-table scan for the data browser. Returns a paginated slice of rows from a
- * ScalarDB table together with column metadata. This endpoint is intentionally
- * <em>read-only</em> and <em>unauthenticated-friendly</em> (any authenticated user may
- * call it — data isolation is at the application layer, not per-user row filtering).
+ * <p>Full-table scan for the data browser. Returns a paginated slice of rows from a ScalarDB table
+ * together with column metadata. This endpoint is intentionally <em>read-only</em> and
+ * <em>unauthenticated-friendly</em> (any authenticated user may call it — data isolation is at the
+ * application layer, not per-user row filtering).
  *
  * <p>Query parameters:
+ *
  * <ul>
- *   <li>{@code offset} — 0-based row skip (default 0)</li>
- *   <li>{@code limit}  — rows to return, max {@value #PAGE_LIMIT} (default 50)</li>
+ *   <li>{@code offset} — 0-based row skip (default 0)
+ *   <li>{@code limit} — rows to return, max {@value #PAGE_LIMIT} (default 50)
  * </ul>
  *
  * <p>Response shape:
+ *
  * <pre>{@code
  * {
  *   "columns": [{"name":"id","type":"TEXT","keyType":"partition"}, ...],
@@ -49,8 +49,8 @@ import java.util.Map;
  * }
  * }</pre>
  *
- * <p><b>Column mapping is name-based, never positional.</b>
- * (see docs/solutions/integration-issues/scalardb-column-ordering-positional-binding-mismatch.md)
+ * <p><b>Column mapping is name-based, never positional.</b> (see
+ * docs/solutions/integration-issues/scalardb-column-ordering-positional-binding-mismatch.md)
  */
 public final class ScalarDbScanController {
 
@@ -65,12 +65,16 @@ public final class ScalarDbScanController {
     private final RateLimiter rateLimiter;
 
     /** Production constructor: 20 scans per minute per user. */
-    public ScalarDbScanController(TransactionFactory factory, DistributedTransactionManager manager) {
+    public ScalarDbScanController(
+            TransactionFactory factory, DistributedTransactionManager manager) {
         this(factory, manager, new RateLimiter(20, 60_000L));
     }
 
     /** Package-private for testing with custom rate limiter. */
-    ScalarDbScanController(TransactionFactory factory, DistributedTransactionManager manager, RateLimiter rateLimiter) {
+    ScalarDbScanController(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            RateLimiter rateLimiter) {
         this.factory = factory;
         this.manager = manager;
         this.rateLimiter = rateLimiter;
@@ -108,8 +112,11 @@ public final class ScalarDbScanController {
         // generic table browser — see SystemNamespaces. Mirrors the write-side
         // guard in ScalarDbRowController so read and write cannot drift.
         if (SystemNamespaces.isProtected(namespace)) {
-            log.warn("ScalarDB scan blocked on protected namespace ns={} table={} user={}",
-                namespace, tableName, userId);
+            log.warn(
+                    "ScalarDB scan blocked on protected namespace ns={} table={} user={}",
+                    namespace,
+                    tableName,
+                    userId);
             ctx.status(HttpStatus.FORBIDDEN);
             ctx.json(Map.of("error", "Access to this namespace is not allowed"));
             return;
@@ -117,7 +124,7 @@ public final class ScalarDbScanController {
 
         // Parse pagination params
         int offset = parseIntParam(ctx.queryParam("offset"), 0, 0, MAX_SCAN_ROWS);
-        int limit  = parseIntParam(ctx.queryParam("limit"),  PAGE_LIMIT, 1, PAGE_LIMIT);
+        int limit = parseIntParam(ctx.queryParam("limit"), PAGE_LIMIT, 1, PAGE_LIMIT);
 
         DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
@@ -137,12 +144,13 @@ public final class ScalarDbScanController {
             // This bounds heap usage to O(offset + limit) rather than O(MAX_SCAN_ROWS).
             // We fetch one extra row to detect truncation at the MAX_SCAN_ROWS boundary.
             int fetchCount = Math.min(offset + limit + 1, MAX_SCAN_ROWS + 1);
-            Scan scan = Scan.newBuilder()
-                    .namespace(namespace)
-                    .table(tableName)
-                    .all()
-                    .limit(fetchCount)
-                    .build();
+            Scan scan =
+                    Scan.newBuilder()
+                            .namespace(namespace)
+                            .table(tableName)
+                            .all()
+                            .limit(fetchCount)
+                            .build();
 
             tx = mgr.start();
             List<Result> fetched = tx.scan(scan);
@@ -150,12 +158,13 @@ public final class ScalarDbScanController {
             tx = null;
 
             // Detect truncation: if we reached the overall MAX_SCAN_ROWS boundary
-            boolean truncated = (fetchCount >= MAX_SCAN_ROWS + 1) && (fetched.size() >= MAX_SCAN_ROWS + 1);
+            boolean truncated =
+                    (fetchCount >= MAX_SCAN_ROWS + 1) && (fetched.size() >= MAX_SCAN_ROWS + 1);
             int total = Math.min(fetched.size(), MAX_SCAN_ROWS);
 
             // Apply pagination in Java
             int fromIdx = Math.min(offset, total);
-            int toIdx   = Math.min(fromIdx + limit, total);
+            int toIdx = Math.min(fromIdx + limit, total);
             List<Result> pageRows = fetched.subList(fromIdx, toIdx);
 
             // Build column metadata (name-based — order from TableMetadata)
@@ -185,7 +194,13 @@ public final class ScalarDbScanController {
 
             ctx.contentType("application/json");
             ctx.result(MAPPER.writeValueAsString(response));
-            log.debug("ScalarDB scan ns={} table={} total={} offset={} limit={}", namespace, tableName, total, fromIdx, limit);
+            log.debug(
+                    "ScalarDB scan ns={} table={} total={} offset={} limit={}",
+                    namespace,
+                    tableName,
+                    total,
+                    fromIdx,
+                    limit);
 
         } catch (Exception e) {
             abortQuietly(tx);
@@ -230,12 +245,12 @@ public final class ScalarDbScanController {
             ObjectNode node, String fieldKey, String colName, Result result, TableMetadata meta) {
         DataType dt = meta.getColumnDataType(colName);
         switch (dt) {
-            case INT     -> node.put(fieldKey, result.getInt(colName));
-            case BIGINT  -> node.put(fieldKey, result.getBigInt(colName));
-            case FLOAT   -> node.put(fieldKey, result.getFloat(colName));
-            case DOUBLE  -> node.put(fieldKey, result.getDouble(colName));
+            case INT -> node.put(fieldKey, result.getInt(colName));
+            case BIGINT -> node.put(fieldKey, result.getBigInt(colName));
+            case FLOAT -> node.put(fieldKey, result.getFloat(colName));
+            case DOUBLE -> node.put(fieldKey, result.getDouble(colName));
             case BOOLEAN -> node.put(fieldKey, result.getBoolean(colName));
-            default      -> node.put(fieldKey, result.getText(colName)); // TEXT, BLOB → string
+            default -> node.put(fieldKey, result.getText(colName)); // TEXT, BLOB → string
         }
     }
 
@@ -254,6 +269,9 @@ public final class ScalarDbScanController {
 
     private static void abortQuietly(DistributedTransaction tx) {
         if (tx == null) return;
-        try { tx.abort(); } catch (Exception ignored) {}
+        try {
+            tx.abort();
+        } catch (Exception ignored) {
+        }
     }
 }

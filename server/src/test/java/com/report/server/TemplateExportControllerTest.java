@@ -1,20 +1,19 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class TemplateExportControllerTest {
 
@@ -44,8 +43,13 @@ class TemplateExportControllerTest {
         def.put("id", id);
         var meta = def.putObject("metadata");
         meta.put("documentName", name);
-        def.putArray("pages").addObject().put("id", "page-1")
-            .putArray("elements").addObject().put("id", "el-1").put("type", "text");
+        def.putArray("pages")
+                .addObject()
+                .put("id", "page-1")
+                .putArray("elements")
+                .addObject()
+                .put("id", "el-1")
+                .put("type", "text");
         env.set("definition", def);
         return MAPPER.writeValueAsString(env);
     }
@@ -54,7 +58,8 @@ class TemplateExportControllerTest {
 
     @Test
     void export_returnsJsonWithFormatVersion2() throws Exception {
-        when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(makeEnvelope("tpl-1", "My Template")));
+        when(definitionsRepo.get("tpl-1"))
+                .thenReturn(Optional.of(makeEnvelope("tpl-1", "My Template")));
 
         controller.export(ctx);
 
@@ -70,7 +75,8 @@ class TemplateExportControllerTest {
 
     @Test
     void export_setsContentDispositionHeader() throws Exception {
-        when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(makeEnvelope("tpl-1", "My Report")));
+        when(definitionsRepo.get("tpl-1"))
+                .thenReturn(Optional.of(makeEnvelope("tpl-1", "My Report")));
 
         controller.export(ctx);
 
@@ -92,8 +98,11 @@ class TemplateExportControllerTest {
     @Test
     void export_returns404_whenNonOwnerRequests() throws Exception {
         // Template belongs to "owner-user" — another user should get 404
-        var env = MAPPER.createObjectNode()
-                .put("id", "tpl-1").put("name", "Secret").put("created_by", "owner-user");
+        var env =
+                MAPPER.createObjectNode()
+                        .put("id", "tpl-1")
+                        .put("name", "Secret")
+                        .put("created_by", "owner-user");
         env.set("definition", MAPPER.createObjectNode().put("id", "tpl-1"));
         when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(MAPPER.writeValueAsString(env)));
         var principal = mock(com.report.server.auth.Principal.class);
@@ -108,8 +117,11 @@ class TemplateExportControllerTest {
 
     @Test
     void export_allowsOwnerToExport() throws Exception {
-        var env = MAPPER.createObjectNode()
-                .put("id", "tpl-1").put("name", "My Report").put("created_by", "owner-user");
+        var env =
+                MAPPER.createObjectNode()
+                        .put("id", "tpl-1")
+                        .put("name", "My Report")
+                        .put("created_by", "owner-user");
         var def = MAPPER.createObjectNode().put("id", "tpl-1");
         env.set("definition", def);
         when(definitionsRepo.get("tpl-1")).thenReturn(Optional.of(MAPPER.writeValueAsString(env)));
@@ -142,16 +154,21 @@ class TemplateExportControllerTest {
         def.put("id", defId);
         var meta = def.putObject("metadata");
         meta.put("documentName", name);
-        def.putArray("pages").addObject().put("id", "page-old")
-           .putArray("elements").addObject().put("id", "el-old").put("type", "text");
+        def.putArray("pages")
+                .addObject()
+                .put("id", "page-old")
+                .putArray("elements")
+                .addObject()
+                .put("id", "el-old")
+                .put("type", "text");
         pkg.set("definition", def);
         return MAPPER.writeValueAsString(pkg);
     }
 
     @BeforeEach
     void setUpPrincipal() {
-        when(ctx.attribute("principal")).thenReturn(
-            new Principal("user-1", "User One", Set.of("user")));
+        when(ctx.attribute("principal"))
+                .thenReturn(new Principal("user-1", "User One", Set.of("user")));
     }
 
     @Test
@@ -185,8 +202,8 @@ class TemplateExportControllerTest {
         // Page ID should be regenerated
         assertNotEquals("page-old", def.path("pages").get(0).path("id").asText());
         // Element ID should be regenerated
-        assertNotEquals("el-old",
-            def.path("pages").get(0).path("elements").get(0).path("id").asText());
+        assertNotEquals(
+                "el-old", def.path("pages").get(0).path("elements").get(0).path("id").asText());
     }
 
     @Test
@@ -244,7 +261,10 @@ class TemplateExportControllerTest {
 
     @Test
     void importTemplate_returns400_forOversizedBody() throws Exception {
-        String huge = "{\"formatVersion\":2,\"definition\":{\"id\":\"x\",\"pages\":[]},\"padding\":\"" + "x".repeat(5_100_000) + "\"}";
+        String huge =
+                "{\"formatVersion\":2,\"definition\":{\"id\":\"x\",\"pages\":[]},\"padding\":\""
+                        + "x".repeat(5_100_000)
+                        + "\"}";
         when(ctx.body()).thenReturn(huge);
 
         controller.importTemplate(ctx);

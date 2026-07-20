@@ -2,27 +2,24 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.InputStream;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Server-side structural validation for a saved ReportDefinition (issue #52).
  *
- * <p>The frontend Zod schema enforces structural bounds (max pages/sections/
- * elements) but the server previously stored any JSON unchecked, so the limits
- * did not hold for direct API callers. This validator re-applies the same
- * bounds and basic shape checks at the save boundary. It is intentionally
- * lenient about per-element-type fields (those fail gracefully at render time)
- * — the goal is to reject documents that are structurally abusive or malformed,
- * not to fully mirror the type union.
+ * <p>The frontend Zod schema enforces structural bounds (max pages/sections/ elements) but the
+ * server previously stored any JSON unchecked, so the limits did not hold for direct API callers.
+ * This validator re-applies the same bounds and basic shape checks at the save boundary. It is
+ * intentionally lenient about per-element-type fields (those fail gracefully at render time) — the
+ * goal is to reject documents that are structurally abusive or malformed, not to fully mirror the
+ * type union.
  *
- * <p>Limits are loaded from {@code report-definition-limits.json} — the single
- * source at {@code schemas/report-definition-limits.json}, bundled into
- * resources by the {@code processResources} task and shared with the frontend
- * Zod schema (src/lib/schemas/limits.ts).
+ * <p>Limits are loaded from {@code report-definition-limits.json} — the single source at {@code
+ * schemas/report-definition-limits.json}, bundled into resources by the {@code processResources}
+ * task and shared with the frontend Zod schema (src/lib/schemas/limits.ts).
  */
 public final class ReportDefinitionValidator {
 
@@ -53,14 +50,20 @@ public final class ReportDefinitionValidator {
     }
 
     private static JsonNode loadLimits() {
-        try (InputStream in = ReportDefinitionValidator.class.getResourceAsStream(LIMITS_RESOURCE)) {
+        try (InputStream in =
+                ReportDefinitionValidator.class.getResourceAsStream(LIMITS_RESOURCE)) {
             if (in == null) {
-                log.warn("Limits resource {} not found — falling back to built-in defaults", LIMITS_RESOURCE);
+                log.warn(
+                        "Limits resource {} not found — falling back to built-in defaults",
+                        LIMITS_RESOURCE);
                 return null;
             }
             return new ObjectMapper().readTree(in);
         } catch (Exception e) {
-            log.warn("Failed to read limits resource {} — falling back to built-in defaults", LIMITS_RESOURCE, e);
+            log.warn(
+                    "Failed to read limits resource {} — falling back to built-in defaults",
+                    LIMITS_RESOURCE,
+                    e);
             return null;
         }
     }
@@ -73,7 +76,9 @@ public final class ReportDefinitionValidator {
 
     private ReportDefinitionValidator() {}
 
-    /** @return an error message if the definition is invalid, or empty if it passes. */
+    /**
+     * @return an error message if the definition is invalid, or empty if it passes.
+     */
     public static Optional<String> validate(JsonNode def) {
         if (def == null || !def.isObject()) {
             return Optional.of("Definition must be a JSON object");
@@ -92,11 +97,14 @@ public final class ReportDefinitionValidator {
         }
 
         Optional<String> arrErr = checkArrayLimit(def, "calculationRules", MAX_CALCULATION_RULES);
-        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "validationRules", MAX_VALIDATION_RULES);
+        if (arrErr.isEmpty())
+            arrErr = checkArrayLimit(def, "validationRules", MAX_VALIDATION_RULES);
         if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "outputVariants", MAX_OUTPUT_VARIANTS);
-        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "templateVariables", MAX_TEMPLATE_VARIABLES);
+        if (arrErr.isEmpty())
+            arrErr = checkArrayLimit(def, "templateVariables", MAX_TEMPLATE_VARIABLES);
         if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "dataSources", MAX_DATA_SOURCES);
-        if (arrErr.isEmpty()) arrErr = checkArrayLimit(def, "submissionModels", MAX_SUBMISSION_MODELS);
+        if (arrErr.isEmpty())
+            arrErr = checkArrayLimit(def, "submissionModels", MAX_SUBMISSION_MODELS);
         return arrErr;
     }
 
@@ -114,17 +122,33 @@ public final class ReportDefinitionValidator {
         }
         JsonNode sections = page.get("sections");
         if (sections == null || sections.isNull()) return Optional.empty();
-        if (!sections.isArray()) return Optional.of("pages[" + pageIdx + "].sections must be an array");
+        if (!sections.isArray())
+            return Optional.of("pages[" + pageIdx + "].sections must be an array");
         if (sections.size() > MAX_SECTIONS_PER_PAGE) {
-            return Optional.of("pages[" + pageIdx + "] has too many sections ("
-                    + sections.size() + " > " + MAX_SECTIONS_PER_PAGE + ")");
+            return Optional.of(
+                    "pages["
+                            + pageIdx
+                            + "] has too many sections ("
+                            + sections.size()
+                            + " > "
+                            + MAX_SECTIONS_PER_PAGE
+                            + ")");
         }
         for (int s = 0; s < sections.size(); s++) {
             JsonNode elements = sections.get(s).get("elements");
-            if (elements != null && elements.isArray() && elements.size() > MAX_ELEMENTS_PER_SECTION) {
-                return Optional.of("pages[" + pageIdx + "].sections[" + s
-                        + "] has too many elements (" + elements.size()
-                        + " > " + MAX_ELEMENTS_PER_SECTION + ")");
+            if (elements != null
+                    && elements.isArray()
+                    && elements.size() > MAX_ELEMENTS_PER_SECTION) {
+                return Optional.of(
+                        "pages["
+                                + pageIdx
+                                + "].sections["
+                                + s
+                                + "] has too many elements ("
+                                + elements.size()
+                                + " > "
+                                + MAX_ELEMENTS_PER_SECTION
+                                + ")");
             }
         }
         return Optional.empty();

@@ -2,9 +2,6 @@ package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,26 +10,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Resolves element Y positions for sections with {@code layoutMode: "relative"}.
  *
- * <p>Elements may declare {@code props.layout.anchorTo} (an element id) and
- * {@code props.layout.pushDown} (boolean). When pushDown is true the element's
- * effective Y is computed as:
+ * <p>Elements may declare {@code props.layout.anchorTo} (an element id) and {@code
+ * props.layout.pushDown} (boolean). When pushDown is true the element's effective Y is computed as:
+ *
  * <pre>
  *   effectiveY(el) = effectiveY(anchor) + anchor.frame.height + offsetY
  * </pre>
- * where {@code offsetY} is the delta between the element's nominal Y and the
- * anchor's nominal Y (i.e. the original gap is preserved).
+ *
+ * where {@code offsetY} is the delta between the element's nominal Y and the anchor's nominal Y
+ * (i.e. the original gap is preserved).
  *
  * <p>Elements without {@code anchorTo} keep their original frame Y.
  *
- * <p>Circular anchor chains are detected via Kahn's algorithm and logged as
- * warnings; elements in a cycle keep their original frame Y.
+ * <p>Circular anchor chains are detected via Kahn's algorithm and logged as warnings; elements in a
+ * cycle keep their original frame Y.
  *
- * <p>Only called for sections with {@code layoutMode: "relative"}. Absolute
- * sections skip this resolver entirely.
+ * <p>Only called for sections with {@code layoutMode: "relative"}. Absolute sections skip this
+ * resolver entirely.
  */
 public final class RelativeLayoutResolver {
 
@@ -41,8 +41,8 @@ public final class RelativeLayoutResolver {
     private RelativeLayoutResolver() {}
 
     /**
-     * Given a section's element list, return a map of elementId → computed Y (in mm).
-     * Elements not in the map use their original frame.y.
+     * Given a section's element list, return a map of elementId → computed Y (in mm). Elements not
+     * in the map use their original frame.y.
      *
      * @param elements JSON array of elements in the section
      * @return map of elementId → effective Y (mm), only for elements whose Y differs from frame.y
@@ -65,8 +65,10 @@ public final class RelativeLayoutResolver {
             if (layout == null || !layout.isObject()) continue;
             boolean pushDown = layout.has("pushDown") && layout.get("pushDown").asBoolean(false);
             if (!pushDown) continue;
-            String anchorId = layout.has("anchorTo") && layout.get("anchorTo").isTextual()
-                    ? layout.get("anchorTo").asText() : "";
+            String anchorId =
+                    layout.has("anchorTo") && layout.get("anchorTo").isTextual()
+                            ? layout.get("anchorTo").asText()
+                            : "";
             if (!anchorId.isEmpty() && byId.containsKey(anchorId)) {
                 anchorOf.put(id, anchorId);
             }
@@ -98,10 +100,9 @@ public final class RelativeLayoutResolver {
     }
 
     /**
-     * Apply the effective Y map to a copy of an element node.
-     * Returns a new node with the Y coordinate overridden (V1 {@code frame.y}
-     * or V2 {@code position.y}) if the element has a computed Y; otherwise
-     * returns the original node unchanged.
+     * Apply the effective Y map to a copy of an element node. Returns a new node with the Y
+     * coordinate overridden (V1 {@code frame.y} or V2 {@code position.y}) if the element has a
+     * computed Y; otherwise returns the original node unchanged.
      */
     public static JsonNode applyEffectiveY(JsonNode el, Map<String, Float> effectiveY) {
         String id = PdfUtils.textOf(el, "id", "");
@@ -133,32 +134,31 @@ public final class RelativeLayoutResolver {
     static final int MAX_PUSHDOWN_PAGES = 100;
 
     /**
-     * Paged layout of a relative section: {@code pageOf} maps elementId → the
-     * section-local physical page it renders on; {@code pagedY} maps
-     * elementId → the Y (mm) it renders at on that page. Elements absent from
-     * {@code pageOf} render on page 0 (and, for base-layer sections, repeat on
-     * every physical page — unchanged behavior).
+     * Paged layout of a relative section: {@code pageOf} maps elementId → the section-local
+     * physical page it renders on; {@code pagedY} maps elementId → the Y (mm) it renders at on that
+     * page. Elements absent from {@code pageOf} render on page 0 (and, for base-layer sections,
+     * repeat on every physical page — unchanged behavior).
      */
-    public record PagedLayout(Map<String, Integer> pageOf, Map<String, Float> pagedY, int pageCount) {
+    public record PagedLayout(
+            Map<String, Integer> pageOf, Map<String, Float> pagedY, int pageCount) {
         public static final PagedLayout SINGLE_PAGE = new PagedLayout(Map.of(), Map.of(), 1);
     }
 
     /**
      * Compute the page-overflow layout for a relative section (issue #55).
      *
-     * <p>Elements are first positioned via {@link #resolveEffectiveY}. Any
-     * element whose resolved Y lands beyond the section's bottom edge — which
-     * was previously drawn off-page and lost — is assigned to a continuation
-     * page: page {@code k = floor((y - top) / regionHeight)}, rendered at the
-     * wrapped position {@code top + (y - top) % regionHeight}. An element that
-     * would straddle the bottom edge is promoted to the top of the next page
-     * when it fits a page; elements taller than the region stay and clip.
+     * <p>Elements are first positioned via {@link #resolveEffectiveY}. Any element whose resolved Y
+     * lands beyond the section's bottom edge — which was previously drawn off-page and lost — is
+     * assigned to a continuation page: page {@code k = floor((y - top) / regionHeight)}, rendered
+     * at the wrapped position {@code top + (y - top) % regionHeight}. An element that would
+     * straddle the bottom edge is promoted to the top of the next page when it fits a page;
+     * elements taller than the region stay and clip.
      *
-     * <p>Elements that fit within the region keep today's behavior exactly
-     * (only their effective Y, if any, is applied).
+     * <p>Elements that fit within the region keep today's behavior exactly (only their effective Y,
+     * if any, is applied).
      *
-     * @param elements     the section's element array
-     * @param regionTop    section top edge (mm)
+     * @param elements the section's element array
+     * @param regionTop section top edge (mm)
      * @param regionHeight section height (mm); non-positive disables paging
      */
     public static PagedLayout paginate(JsonNode elements, float regionTop, float regionHeight) {
@@ -190,7 +190,10 @@ public final class RelativeLayoutResolver {
             if (page <= 0) continue; // fits the first page — unchanged behavior
 
             if (page >= MAX_PUSHDOWN_PAGES) {
-                log.warn("Element {} overflows beyond {} pushdown pages; clamping", id, MAX_PUSHDOWN_PAGES);
+                log.warn(
+                        "Element {} overflows beyond {} pushdown pages; clamping",
+                        id,
+                        MAX_PUSHDOWN_PAGES);
                 page = MAX_PUSHDOWN_PAGES - 1;
                 wrappedY = regionTop;
             }
@@ -239,8 +242,10 @@ public final class RelativeLayoutResolver {
         if (order.size() < allIds.size()) {
             Set<String> inCycle = new HashSet<>(allIds);
             inCycle.removeAll(order);
-            log.warn("Circular anchorTo reference detected among elements {}. " +
-                     "These elements will use their original frame.y.", inCycle);
+            log.warn(
+                    "Circular anchorTo reference detected among elements {}. "
+                            + "These elements will use their original frame.y.",
+                    inCycle);
         }
         return order;
     }

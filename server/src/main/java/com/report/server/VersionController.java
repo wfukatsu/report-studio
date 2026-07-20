@@ -10,23 +10,23 @@ import com.scalar.db.io.Key;
 import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.time.Instant;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.util.*;
-
 /**
  * Handles V2 version management endpoints:
+ *
  * <ul>
- *   <li>GET  /api/v2/templates/{id}/versions               — list versions</li>
- *   <li>POST /api/v2/templates/{id}/versions               — create version snapshot</li>
- *   <li>POST /api/v2/templates/{id}/versions/{vid}/restore — restore version</li>
+ *   <li>GET /api/v2/templates/{id}/versions — list versions
+ *   <li>POST /api/v2/templates/{id}/versions — create version snapshot
+ *   <li>POST /api/v2/templates/{id}/versions/{vid}/restore — restore version
  * </ul>
  *
- * <p>The inner {@link V2VersionRepository} owns the {@code v2_template_versions} table.
- * Versions store the full ReportDefinition JSON. {@code versionNumber} uses
- * {@link System#currentTimeMillis()} for uniqueness in a single-user tool.
+ * <p>The inner {@link V2VersionRepository} owns the {@code v2_template_versions} table. Versions
+ * store the full ReportDefinition JSON. {@code versionNumber} uses {@link
+ * System#currentTimeMillis()} for uniqueness in a single-user tool.
  */
 public final class VersionController {
 
@@ -37,8 +37,10 @@ public final class VersionController {
     private final JsonBlobRepository definitionsRepo;
 
     /** Production constructor — creates its own V2VersionRepository. */
-    public VersionController(TransactionFactory factory, DistributedTransactionManager manager,
-                             JsonBlobRepository definitionsRepo) {
+    public VersionController(
+            TransactionFactory factory,
+            DistributedTransactionManager manager,
+            JsonBlobRepository definitionsRepo) {
         this(new V2VersionRepository(factory, manager), definitionsRepo);
     }
 
@@ -56,8 +58,8 @@ public final class VersionController {
     // ── HTTP handlers ─────────────────────────────────────────────────────────
 
     /**
-     * GET /api/v2/templates/{id}/versions
-     * Returns array of version items sorted by versionNumber descending.
+     * GET /api/v2/templates/{id}/versions Returns array of version items sorted by versionNumber
+     * descending.
      */
     public void list(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
@@ -73,9 +75,8 @@ public final class VersionController {
     }
 
     /**
-     * POST /api/v2/templates/{id}/versions
-     * Snapshots the current definition stored in v2_definitions.
-     * Returns the new version item.
+     * POST /api/v2/templates/{id}/versions Snapshots the current definition stored in
+     * v2_definitions. Returns the new version item.
      */
     public void create(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
@@ -99,7 +100,8 @@ public final class VersionController {
 
         String versionId = UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
-        versionRepo.createVersion(versionId, templateId, MAPPER.writeValueAsString(definition), now);
+        versionRepo.createVersion(
+                versionId, templateId, MAPPER.writeValueAsString(definition), now);
 
         V2VersionRepository.VersionMeta meta =
                 new V2VersionRepository.VersionMeta(versionId, templateId, now, null);
@@ -109,9 +111,9 @@ public final class VersionController {
     }
 
     /**
-     * POST /api/v2/templates/{id}/versions/{vid}/restore
-     * Returns the restored ReportDefinition JSON (frontend loads it via loadFromBackend).
-     * Validates that the version belongs to this template (ownership check).
+     * POST /api/v2/templates/{id}/versions/{vid}/restore Returns the restored ReportDefinition JSON
+     * (frontend loads it via loadFromBackend). Validates that the version belongs to this template
+     * (ownership check).
      */
     public void restore(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
@@ -152,9 +154,9 @@ public final class VersionController {
     // ── Inner repository ──────────────────────────────────────────────────────
 
     /**
-     * ScalarDB-backed version store for V2 templates.
-     * Table: {@code v2_template_versions}
-     * Schema: version_id (PK) + template_id (secondary index) + json_data + version_number (BIGINT) + created_by (TEXT)
+     * ScalarDB-backed version store for V2 templates. Table: {@code v2_template_versions} Schema:
+     * version_id (PK) + template_id (secondary index) + json_data + version_number (BIGINT) +
+     * created_by (TEXT)
      */
     static final class V2VersionRepository {
 
@@ -176,25 +178,28 @@ public final class VersionController {
             this.manager = manager;
         }
 
-        record VersionMeta(String versionId, String templateId, long versionNumber, String createdBy) {}
+        record VersionMeta(
+                String versionId, String templateId, long versionNumber, String createdBy) {}
 
         void ensureTable() {
             try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
                 if (!admin.tableExists(NAMESPACE, TABLE)) {
-                    TableMetadata metadata = TableMetadata.newBuilder()
-                            .addColumn(COL_VERSION_ID, DataType.TEXT)
-                            .addColumn(COL_TEMPLATE_ID, DataType.TEXT)
-                            .addColumn(COL_JSON, DataType.TEXT)
-                            .addColumn(COL_VERSION_NUMBER, DataType.BIGINT)
-                            .addColumn(COL_CREATED_BY, DataType.TEXT)
-                            .addPartitionKey(COL_VERSION_ID)
-                            .addSecondaryIndex(COL_TEMPLATE_ID)
-                            .build();
+                    TableMetadata metadata =
+                            TableMetadata.newBuilder()
+                                    .addColumn(COL_VERSION_ID, DataType.TEXT)
+                                    .addColumn(COL_TEMPLATE_ID, DataType.TEXT)
+                                    .addColumn(COL_JSON, DataType.TEXT)
+                                    .addColumn(COL_VERSION_NUMBER, DataType.BIGINT)
+                                    .addColumn(COL_CREATED_BY, DataType.TEXT)
+                                    .addPartitionKey(COL_VERSION_ID)
+                                    .addSecondaryIndex(COL_TEMPLATE_ID)
+                                    .build();
                     admin.createTable(NAMESPACE, TABLE, metadata);
                     log.info("Created table: {}.{}", NAMESPACE, TABLE);
                 }
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to ensure table " + NAMESPACE + "." + TABLE, e);
+                throw new IllegalStateException(
+                        "Failed to ensure table " + NAMESPACE + "." + TABLE, e);
             }
         }
 
@@ -203,15 +208,16 @@ public final class VersionController {
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();
-                Put put = Put.newBuilder()
-                        .namespace(NAMESPACE)
-                        .table(TABLE)
-                        .partitionKey(Key.ofText(COL_VERSION_ID, versionId))
-                        .textValue(COL_TEMPLATE_ID, templateId)
-                        .textValue(COL_JSON, json)
-                        .bigIntValue(COL_VERSION_NUMBER, versionNumber)
-                        .textValue(COL_CREATED_BY, "")
-                        .build();
+                Put put =
+                        Put.newBuilder()
+                                .namespace(NAMESPACE)
+                                .table(TABLE)
+                                .partitionKey(Key.ofText(COL_VERSION_ID, versionId))
+                                .textValue(COL_TEMPLATE_ID, templateId)
+                                .textValue(COL_JSON, json)
+                                .bigIntValue(COL_VERSION_NUMBER, versionNumber)
+                                .textValue(COL_CREATED_BY, "")
+                                .build();
                 tx.put(put);
                 tx.commit();
                 log.info("Created V2 version {} for template {}", versionId, templateId);
@@ -228,22 +234,23 @@ public final class VersionController {
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();
-                Scan scan = Scan.newBuilder()
-                        .namespace(NAMESPACE)
-                        .table(TABLE)
-                        .indexKey(Key.ofText(COL_TEMPLATE_ID, templateId))
-                        .build();
+                Scan scan =
+                        Scan.newBuilder()
+                                .namespace(NAMESPACE)
+                                .table(TABLE)
+                                .indexKey(Key.ofText(COL_TEMPLATE_ID, templateId))
+                                .build();
                 List<Result> results = tx.scan(scan);
                 tx.commit();
 
                 List<VersionMeta> versions = new ArrayList<>();
                 for (Result r : results) {
-                    versions.add(new VersionMeta(
-                            r.getText(COL_VERSION_ID),
-                            r.getText(COL_TEMPLATE_ID),
-                            r.getBigInt(COL_VERSION_NUMBER),
-                            nullIfBlank(r.getText(COL_CREATED_BY))
-                    ));
+                    versions.add(
+                            new VersionMeta(
+                                    r.getText(COL_VERSION_ID),
+                                    r.getText(COL_TEMPLATE_ID),
+                                    r.getBigInt(COL_VERSION_NUMBER),
+                                    nullIfBlank(r.getText(COL_CREATED_BY))));
                 }
                 versions.sort(Comparator.comparingLong(VersionMeta::versionNumber).reversed());
                 return versions;
@@ -255,19 +262,20 @@ public final class VersionController {
         }
 
         /**
-         * Get version JSON by ID, with ownership verification.
-         * Returns empty if not found OR if the version belongs to a different template.
+         * Get version JSON by ID, with ownership verification. Returns empty if not found OR if the
+         * version belongs to a different template.
          */
         Optional<String> getVersion(String versionId, String expectedTemplateId) {
             DistributedTransactionManager mgr = manager;
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();
-                Get get = Get.newBuilder()
-                        .namespace(NAMESPACE)
-                        .table(TABLE)
-                        .partitionKey(Key.ofText(COL_VERSION_ID, versionId))
-                        .build();
+                Get get =
+                        Get.newBuilder()
+                                .namespace(NAMESPACE)
+                                .table(TABLE)
+                                .partitionKey(Key.ofText(COL_VERSION_ID, versionId))
+                                .build();
                 Optional<Result> result = tx.get(get);
                 tx.commit();
 
@@ -276,8 +284,11 @@ public final class VersionController {
                 // Ownership check: reject cross-template access
                 String storedTemplateId = result.get().getText(COL_TEMPLATE_ID);
                 if (!expectedTemplateId.equals(storedTemplateId)) {
-                    log.warn("V2 version ownership mismatch: versionId={} expectedTemplate={} actualTemplate={}",
-                            versionId, expectedTemplateId, storedTemplateId);
+                    log.warn(
+                            "V2 version ownership mismatch: versionId={} expectedTemplate={} actualTemplate={}",
+                            versionId,
+                            expectedTemplateId,
+                            storedTemplateId);
                     return Optional.empty();
                 }
 
@@ -291,7 +302,10 @@ public final class VersionController {
 
         private static void abortQuietly(DistributedTransaction tx) {
             if (tx != null) {
-                try { tx.abort(); } catch (Exception ignored) { }
+                try {
+                    tx.abort();
+                } catch (Exception ignored) {
+                }
             }
         }
 

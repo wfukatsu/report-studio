@@ -1,19 +1,18 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 class TenantControllerTest {
 
@@ -22,8 +21,10 @@ class TenantControllerTest {
     private JsonBlobRepository tenantRepo;
     private TenantController controller;
     private Context ctx;
+
     /** PUT /api/v2/tenant requires the admin role, so the happy-path principal is an admin. */
     private Principal adminPrincipal;
+
     private Principal nonAdminPrincipal;
 
     @BeforeEach
@@ -51,9 +52,11 @@ class TenantControllerTest {
 
     @Test
     void get_returnsStoredTenantInfo() throws Exception {
-        String stored = """
+        String stored =
+                """
             {"companyName":"株式会社サンプル","phone":"03-1234-5678"}
-            """.strip();
+            """
+                        .strip();
         when(tenantRepo.get("singleton")).thenReturn(Optional.of(stored));
 
         controller.get(ctx);
@@ -71,9 +74,11 @@ class TenantControllerTest {
     @Test
     void put_savesTenantInfoAndReturnsIt() throws Exception {
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
-        String body = """
+        String body =
+                """
             {"companyName":"テスト株式会社","address":"東京都"}
-            """.strip();
+            """
+                        .strip();
         when(ctx.body()).thenReturn(body);
 
         controller.put(ctx);
@@ -154,9 +159,11 @@ class TenantControllerTest {
     void put_savedDataIsReturnedBySubsequentGet() throws Exception {
         // PUT
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
-        String body = """
+        String body =
+                """
             {"companyName":"株式会社テスト"}
-            """.strip();
+            """
+                        .strip();
         when(ctx.body()).thenReturn(body);
         controller.put(ctx);
 

@@ -1,22 +1,20 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
 /**
- * Parse-back tests for render-time system values (issue #54):
- * pageNumber / currentDate elements and legacy {pageNumber}-style
- * bindingRef substitution, with _printDate for deterministic output.
+ * Parse-back tests for render-time system values (issue #54): pageNumber / currentDate elements and
+ * legacy {pageNumber}-style bindingRef substitution, with _printDate for deterministic output.
  */
 class PdfSystemVariableParseBackTest {
 
     /**
-     * Two-page document (detail_table with 4 rows, 2 per page) with a footer
-     * page_base section containing the given elements.
+     * Two-page document (detail_table with 4 rows, 2 per page) with a footer page_base section
+     * containing the given elements.
      */
     private static String twoPagesWith(String footerElements) {
         return """
@@ -33,12 +31,17 @@ class PdfSystemVariableParseBackTest {
               ]
             }],
             "_formData":{"items":[{"name":"甲"},{"name":"乙"},{"name":"丙"},{"name":"丁"}]},
-            "_printDate":"2026-07-16"}""".formatted(footerElements);
+            "_printDate":"2026-07-16"}"""
+                .formatted(footerElements);
     }
 
     @Test
     void pageNumberElement_rendersCurrentAndTotalOnEveryPage() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(twoPagesWith("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                twoPagesWith(
+                                        """
             {"id":"pn","type":"pageNumber","name":"ページ番号",
              "position":{"x":90,"y":282},"size":{"width":30,"height":8},
              "format":"{{page}} / {{pages}}","style":{"fontSize":10,"textAlign":"center"}}""")));
@@ -50,7 +53,11 @@ class PdfSystemVariableParseBackTest {
 
     @Test
     void currentDateElement_usesPrintDateWithWarekiFormat() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(twoPagesWith("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                twoPagesWith(
+                                        """
             {"id":"cd","type":"currentDate","name":"発行日",
              "position":{"x":150,"y":282},"size":{"width":45,"height":8},
              "format":"wareki_full","style":{"fontSize":10}}""")));
@@ -60,7 +67,11 @@ class PdfSystemVariableParseBackTest {
 
     @Test
     void currentDateElement_dayOfWeekFormat() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(twoPagesWith("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                twoPagesWith(
+                                        """
             {"id":"cd","type":"currentDate","name":"発行日",
              "position":{"x":140,"y":282},"size":{"width":55,"height":8},
              "format":"yyyy年MM月dd日 (ddd)","style":{"fontSize":10}}""")));
@@ -70,7 +81,11 @@ class PdfSystemVariableParseBackTest {
 
     @Test
     void legacyBindingRefs_substitutePageAndDateValues() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(twoPagesWith("""
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                twoPagesWith(
+                                        """
             {"id":"pn","kind":"text","name":"ページ",
              "frame":{"x":20,"y":282,"width":20,"height":8,"rotation":0},
              "bindingRef":"{pageNumber}","props":{"fontSize":10}},
@@ -88,7 +103,8 @@ class PdfSystemVariableParseBackTest {
 
     @Test
     void pageNumberOnSinglePageDocument_showsOneOfOne() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"OnePage",
               "sections":[{
