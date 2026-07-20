@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>All cases use IP literals or hostname-shape rules that are decided without a real DNS
  * lookup, so the suite is network-independent. The send path pins to the exact address vetted
- * here (issue #199), closing the DNS-rebinding TOCTOU; that pinning is structural (the socket
+ * here (issue #200), closing the DNS-rebinding TOCTOU; that pinning is structural (the socket
  * connects to {@code ResolvedTarget.pinnedIp} from this single resolution) and is not exercised
  * over a live TLS server here.
  */

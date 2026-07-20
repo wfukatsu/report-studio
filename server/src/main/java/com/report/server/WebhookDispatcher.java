@@ -28,7 +28,7 @@ import java.util.List;
  *   <li>https:// only</li>
  *   <li>Private IPs, loopback, cloud metadata blocked</li>
  *   <li>Redirect following disabled (a 3xx is logged, never followed)</li>
- *   <li><b>DNS pinning (issue #199):</b> the host is resolved <em>once</em>; every resolved
+ *   <li><b>DNS pinning (issue #200):</b> the host is resolved <em>once</em>; every resolved
  *       address is validated, and the TLS connection is made to that exact validated IP while
  *       SNI and certificate hostname verification still target the original hostname. This
  *       closes the DNS-rebinding TOCTOU where a host resolved to a public IP at validation
@@ -51,7 +51,7 @@ public final class WebhookDispatcher {
     public void dispatch(String url, String secret, String payloadJson) {
         try {
             // Resolve + validate once, and remember the exact address we vetted so the socket
-            // connects to it directly — no second, unvalidated DNS lookup at send time (#199).
+            // connects to it directly — no second, unvalidated DNS lookup at send time (#200).
             ResolvedTarget target = validateAndResolve(url);
 
             String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
