@@ -372,4 +372,22 @@ class FormResponseControllerTest {
         verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), anyString(), eq("tmpl-1"));
         verify(tx).commit();
     }
+
+    // ── listDocuments — unbounded-scan guard (#208) ────────────────────────────
+
+    @Test
+    void listDocuments_aboveInlineCap_returns422() {
+        java.util.List<String> huge = new java.util.ArrayList<>();
+        for (int i = 0; i < 2_001; i++) { // MAX_INLINE_RESPONSES = 2000
+            huge.add("{\"id\":\"r" + i + "\",\"templateId\":\"t\",\"status\":\"issued\",\"submittedBy\":\"user-1\"}");
+        }
+        when(responseRepo.list()).thenReturn(huge);
+        when(ctx.status(anyInt())).thenReturn(ctx);
+
+        controller.listDocuments(ctx);
+
+        verify(ctx).status(422);
+        // Must bail out before doing the O(n) per-template envelope lookups.
+        verify(definitionsRepo, never()).get(anyString());
+    }
 }
