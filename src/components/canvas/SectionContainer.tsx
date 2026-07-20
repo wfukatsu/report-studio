@@ -124,7 +124,7 @@ export const SectionContainer = memo(function SectionContainer({
     const newHeight = Math.max(minHeightMm, resizeStartRef.current.startHeightMm + (isFooter ? -deltaMm : deltaMm))
     // Update local state only — no store write until pointerup
     setLocalHeightMm(newHeight)
-  }, [zoom, minHeightMm, isFooter])
+  }, [zoom, minHeightMm, isFooter, onResizeSection])
 
   const handleResizePointerUp = useCallback(() => {
     // Commit the local height to the store once on release

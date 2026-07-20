@@ -44,14 +44,18 @@ export const ElementPanel = memo(function ElementPanel({
     return n
   }, [pages])
 
+  // Destructured so the callback dependency arrays can list the functions
+  // directly (bs itself is a fresh object every render).
+  const { connect, disconnect } = bs
+
   const handleConnect = useCallback(
-    (pageId: string, elementId: string) => bs.connect(pageId, elementId),
-    [bs.connect],
+    (pageId: string, elementId: string) => connect(pageId, elementId),
+    [connect],
   )
 
   const handleDisconnect = useCallback(
-    (pageId: string, elementId: string) => bs.disconnect(pageId, elementId),
-    [bs.disconnect],
+    (pageId: string, elementId: string) => disconnect(pageId, elementId),
+    [disconnect],
   )
 
   // Filter elements by search query (filter within sub-groups)

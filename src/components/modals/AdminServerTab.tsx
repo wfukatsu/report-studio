@@ -18,27 +18,25 @@ export function AdminServerTab() {
   const [error, setError] = useState<string | null>(null)
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
 
-  async function loadConfig() {
-    try {
-      const cfg = await getServerConfig()
-      setConfig(cfg)
-    } catch {
-      setError('設定の読み込みに失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Initial fetch — state updates happen asynchronously in the promise
+  // callbacks (loading already starts true), keeping the effect body sync-free.
   useEffect(() => {
-    loadConfig()
+    getServerConfig()
+      .then((cfg) => setConfig(cfg))
+      .catch(() => setError('設定の読み込みに失敗しました'))
+      .finally(() => setLoading(false))
   }, [])
 
-  // Watch backendConnected to detect server restart completion
+  // Watch backendConnected to detect server restart completion. The clear is
+  // deferred to a task so the effect body performs no synchronous setState;
+  // the cleanup cancels it if the inputs change first.
   useEffect(() => {
-    if (restarting && backendConnected) {
+    if (!(restarting && backendConnected)) return
+    const id = setTimeout(() => {
       setRestarting(false)
       setError(null)
-    }
+    }, 0)
+    return () => clearTimeout(id)
   }, [backendConnected, restarting])
 
   function setField(key: string, value: string) {

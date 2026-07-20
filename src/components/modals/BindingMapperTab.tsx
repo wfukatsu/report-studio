@@ -56,7 +56,9 @@ interface ConnectionOverlayProps {
   dragState: DragState | null
   fieldRefs: React.MutableRefObject<Map<string, HTMLButtonElement | null>>
   elementRefs: React.MutableRefObject<Map<string, HTMLButtonElement | null>>
-  containerRef: React.RefObject<HTMLDivElement | null>
+  /** Container element, held in state by the parent (not a ref — refs must not
+   *  be read during render, and the overlay measures it while rendering). */
+  containerEl: HTMLDivElement | null
 }
 
 function ConnectionOverlay({
@@ -64,9 +66,9 @@ function ConnectionOverlay({
   dragState,
   fieldRefs,
   elementRefs,
-  containerRef,
+  containerEl,
 }: ConnectionOverlayProps) {
-  const containerRect = containerRef.current?.getBoundingClientRect()
+  const containerRect = containerEl?.getBoundingClientRect()
 
   return (
     <svg
@@ -254,8 +256,9 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [dragState, setDragState] = useState<DragState | null>(null)
 
-  // Refs for SVG connection lines
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  // Container element in state (read during render by the SVG overlay);
+  // per-item DOM maps stay in refs (only read inside the overlay's subtree).
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
   const fieldRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map())
   const elementRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map())
 
@@ -373,7 +376,7 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
 
   return (
     <div
-      ref={containerRef}
+      ref={setContainerEl}
       className="flex h-full overflow-hidden relative"
       onPointerUp={handleContainerPointerUp}
     >
@@ -383,7 +386,7 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
         dragState={dragState}
         fieldRefs={fieldRefs}
         elementRefs={elementRefs}
-        containerRef={containerRef}
+        containerEl={containerEl}
       />
 
       {/* Left panel: Schema fields */}

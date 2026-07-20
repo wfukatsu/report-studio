@@ -27,14 +27,16 @@ export default tseslint.config(
         caughtErrorsIgnorePattern: '^_',
       }],
       // Staged adoption (#251): eslint-plugin-react-hooks 7 (React Compiler rules)
-      // and ESLint 10 core added these as errors. Surface them as warnings for now
-      // so the upgrade lands without a 62-finding code churn; fix and promote to
-      // 'error' incrementally in follow-up work.
+      // and ESLint 10 core added these as errors. They were surfaced as warnings
+      // first so the upgrade landed without a 62-finding code churn.
       // Promoted to error in #263: immutability, preserve-caught-error,
       // no-useless-assignment, react-refresh/only-export-components (above).
-      'react-hooks/refs': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/preserve-manual-memoization': 'warn',
+      // Promoted to error in #264: refs, set-state-in-effect,
+      // preserve-manual-memoization, exhaustive-deps (all findings resolved).
+      'react-hooks/refs': 'error',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/preserve-manual-memoization': 'error',
+      'react-hooks/exhaustive-deps': 'error',
     },
   },
   {

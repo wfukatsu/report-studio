@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useReportStore } from '@/store'
 import { useBindingAnalysis } from '@/hooks/useBindingAnalysis'
 import { usePreviewData } from '@/hooks/usePreviewData'
@@ -150,19 +150,27 @@ function LivePreviewSection() {
   const livePreviewData = useReportStore((s) => s.livePreviewData)
 
   const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' })
-  // partitionKeys: { [groupId]: { [columnName]: value } }
-  const [partitionKeys, setPartitionKeys] = useState<Record<string, Record<string, string>>>({})
   const abortRef = useRef<AbortController | null>(null)
   const sampleData = usePreviewData()
 
   // Seed partition-key inputs from sample data when a new template loads, so a
-  // DB-bound template can be resolved with one click. Keyed on the loaded
-  // template id — user edits within a template are preserved.
-  useEffect(() => {
-    if (!currentTemplateId || !schema) return
-    setPartitionKeys(computeDefaultPartitionKeys(schema, sampleData))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on template change
-  }, [currentTemplateId])
+  // DB-bound template can be resolved with one click. The defaults are memoized
+  // per loaded template id; user edits are stored alongside the template id so
+  // a template switch naturally falls back to the fresh defaults — no reset
+  // effect needed. partitionKeys: { [groupId]: { [columnName]: value } }
+  const seededPartitionKeys = useMemo(
+    () => (currentTemplateId && schema ? computeDefaultPartitionKeys(schema, sampleData) : {}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once per loaded template (user edits within a template are preserved)
+    [currentTemplateId],
+  )
+  const [editedPartitionKeys, setEditedPartitionKeys] = useState<{
+    templateId: string | null
+    keys: Record<string, Record<string, string>>
+  } | null>(null)
+  const partitionKeys =
+    editedPartitionKeys !== null && editedPartitionKeys.templateId === currentTemplateId
+      ? editedPartitionKeys.keys
+      : seededPartitionKeys
 
   // Only show master groups with tableMeta bound
   const boundMasterGroups = schema?.groups.filter(
@@ -193,10 +201,13 @@ function LivePreviewSection() {
   }
 
   function handleKeyChange(groupId: string, colName: string, value: string) {
-    setPartitionKeys((prev) => ({
-      ...prev,
-      [groupId]: { ...prev[groupId], [colName]: value },
-    }))
+    setEditedPartitionKeys({
+      templateId: currentTemplateId,
+      keys: {
+        ...partitionKeys,
+        [groupId]: { ...partitionKeys[groupId], [colName]: value },
+      },
+    })
   }
 
   async function handleRefreshPreview() {

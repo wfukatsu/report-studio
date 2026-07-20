@@ -280,7 +280,7 @@ export const CanvasElement = memo(function CanvasElement({
       expandPending.current = true
       const newHeightMm = pxToMm(contentHeightPx) + EXPAND_PADDING_MM
       updateElement(activePageId, element.id, {
-        size: { ...element.size, height: newHeightMm },
+        size: { width: element.size.width, height: newHeightMm },
       })
       // Allow next check after the store update has rendered
       requestAnimationFrame(() => { expandPending.current = false })

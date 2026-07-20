@@ -46,9 +46,11 @@ export function DataSourceTree({ onSelect, selected }: Props) {
   const [catalogTick, setCatalogTick] = useState(0)
   const [templatesTick, setTemplatesTick] = useState(0)
 
+  // The 'loading' status is set by the initial state and by the retry event
+  // handlers below — the effects only perform async updates in the promise
+  // callbacks (no synchronous setState in the effect body).
   useEffect(() => {
     let cancelled = false
-    setCatalog({ status: 'loading' })
     fetchScalarDbCatalogCached()
       .then((data) => { if (!cancelled) setCatalog({ status: 'ok', namespaces: data.namespaces }) })
       .catch((err) => { if (!cancelled) setCatalog({ status: 'error', error: classifyError(err) }) })
@@ -57,15 +59,20 @@ export function DataSourceTree({ onSelect, selected }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    setTemplates({ status: 'loading' })
     listReports()
       .then((data) => { if (!cancelled) setTemplates({ status: 'ok', items: data.items }) })
       .catch((err) => { if (!cancelled) setTemplates({ status: 'error', error: classifyError(err) }) })
     return () => { cancelled = true }
   }, [templatesTick])
 
-  const retryCatalog = () => setCatalogTick((n) => n + 1)
-  const retryTemplates = () => setTemplatesTick((n) => n + 1)
+  const retryCatalog = () => {
+    setCatalog({ status: 'loading' })
+    setCatalogTick((n) => n + 1)
+  }
+  const retryTemplates = () => {
+    setTemplates({ status: 'loading' })
+    setTemplatesTick((n) => n + 1)
+  }
 
   const productMasterNode: DataSourceNode = { kind: 'product-master' }
 

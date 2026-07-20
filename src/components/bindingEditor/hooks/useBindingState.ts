@@ -283,7 +283,7 @@ export function useBindingState() {
     return allElements
       .filter((e) => !existingKeys.has(e.elementLabel))
       .map((e) => ({ name: e.elementLabel, type: 'string' }))
-  }, [bulk, schema?.groups, allElements, allFields])
+  }, [bulk, schema?.groups, allElements])
 
   // -----------------------------------------------------------------------
   // Actions: field selection (click-to-connect)

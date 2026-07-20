@@ -17,23 +17,25 @@ interface Props {
   saving?: boolean
 }
 
-export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', defaultCategory, defaultTags = [], saving = false }: Props) {
+export function SaveTemplateDialog({ open, ...rest }: Props) {
+  // Mount the content only while open: the fields initialize from the default
+  // props at mount and die on close — no props→state sync effect needed.
+  if (!open) return null
+  return <SaveTemplateDialogContent {...rest} />
+}
+
+function SaveTemplateDialogContent({
+  onSave, onCancel, defaultName = '', defaultCategory, defaultTags = [], saving = false,
+}: Omit<Props, 'open'>) {
   const [name, setName] = useState(defaultName)
   const [category, setCategory] = useState<string | undefined>(defaultCategory)
   const [tags, setTags] = useState<string[]>(defaultTags)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Focus the name input once the dialog content mounts (= dialog opened)
   useEffect(() => {
-    if (open) {
-      setName(defaultName)
-      setCategory(defaultCategory)
-      setTags(defaultTags)
-      // Focus input after dialog opens
-      requestAnimationFrame(() => inputRef.current?.select())
-    }
-  }, [open, defaultName, defaultCategory, defaultTags])
-
-  if (!open) return null
+    requestAnimationFrame(() => inputRef.current?.select())
+  }, [])
 
   const canSave = name.trim().length > 0 && !saving
 

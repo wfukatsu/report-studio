@@ -11,10 +11,15 @@
  * Race condition fixes applied (from v1 port analysis):
  * - Race #1: viewRef nulled BEFORE destroy() to prevent stale reads
  * - Race #3: IME blur/focus trick removed — CM6 handles composing dispatch
- * - Race #7: tooltipParent managed via Compartment (not baked into baseExtensions)
+ * - Race #7: tooltipParent managed via Compartment (not baked into the static
+ *   extension list)
+ *
+ * The container element is held in React state (callback ref → setState) and
+ * the EditorView is created/destroyed in a layout effect. All refs are only
+ * touched inside effects and event handlers — never during render.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { EditorState, Compartment, Prec, type Extension } from '@codemirror/state'
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
@@ -99,101 +104,110 @@ export function useFormulaEditor(options: UseFormulaEditorOptions): UseFormulaEd
   const viewRef = useRef<EditorView | null>(null)
   const insertRafRef = useRef<number | null>(null)
 
-  // Stable callback refs — avoid recreating the EditorView when callbacks change
-  const onChangeRef = useRef(options.onChange)
-  const onBlurRef = useRef(options.onBlur)
-  const onReadyRef = useRef(options.onReady)
-  onChangeRef.current = options.onChange
-  onBlurRef.current = options.onBlur
-  onReadyRef.current = options.onReady
+  // Latest-options ref — avoids recreating the EditorView when callbacks or
+  // presentation options change. Synced in a layout effect declared BEFORE the
+  // view-creating effect so it always runs first within the same commit.
+  const optionsRef = useRef(options)
+  useLayoutEffect(() => {
+    optionsRef.current = options
+  })
 
   // ── Compartments for dynamic reconfiguration ────────────────────────
 
   const tooltipCompartment = useRef(new Compartment())
   const dynamicCompartment = useRef(new Compartment())
 
-  // ── Static base extensions (stable identity — never changes) ────────
+  // ── Container node — callback ref stores it in state ────────────────
 
-  const baseExtensions = useMemo((): Extension[] => [
-    formula(),
-    syntaxHighlighting(formulaHighlight),
-    history(),
-    keymap.of(historyKeymap),
-    closeBrackets(),
-    singleLineFilter,
-    maxLengthFilter,
-    pasteSanitizer,
-    cmPlaceholder(options.placeholderText ?? '式を入力...'),
-
-    // Enter key → fire submit event instead of newline
-    Prec.highest(keymap.of([{
-      key: 'Enter',
-      run: (view) => {
-        view.dom.dispatchEvent(new CustomEvent('cm-submit', { bubbles: true }))
-        return true
-      },
-    }])),
-
-    // onChange listener
-    EditorView.updateListener.of((update) => {
-      if (update.view.composing) return // IME in progress — wait
-      if (update.docChanged) {
-        onChangeRef.current?.(update.state.doc.toString())
-      }
-    }),
-
-    // onBlur handler
-    EditorView.domEventHandlers({
-      blur: (_, view) => {
-        onBlurRef.current?.(view.state.doc.toString())
-      },
-    }),
-
-    // Theme: single-line editor look
-    EditorView.theme({
-      '&': { fontSize: '13px', fontFamily: 'var(--font-mono, ui-monospace, monospace)' },
-      '&.cm-focused': { outline: 'none' },
-      '.cm-scroller': { overflowX: 'auto', overflowY: 'hidden', padding: '0 8px', height: '100%' },
-      '.cm-content': { padding: '2px 0', minHeight: 'auto' },
-      '.cm-line': { padding: '0' },
-      '.cm-placeholder': { color: 'var(--muted-foreground, #94a3b8)', fontStyle: 'italic' },
-    }),
-
-    // Tooltip parent — initial value, reconfigured via Compartment (Race #7)
-    tooltipCompartment.current.of(tooltips({ parent: document.body })),
-
-    // Dynamic extensions slot — reconfigured when props change
-    dynamicCompartment.current.of([]),
-  ], []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally stable
-
-  // ── Container ref callback — creates/destroys EditorView ────────────
-
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const containerRef = useCallback((node: HTMLDivElement | null) => {
-    // Cleanup previous view
-    if (viewRef.current) {
+    setContainer(node)
+  }, [])
+
+  // Recreate the view when the initial value changes (matches the previous
+  // behaviour where the ref callback depended on options.initialValue).
+  const initialValue = options.initialValue
+
+  // ── Create/destroy the EditorView ────────────────────────────────────
+
+  useLayoutEffect(() => {
+    if (!container) return
+
+    const opts = optionsRef.current
+
+    const extensions: Extension[] = [
+      formula(),
+      syntaxHighlighting(formulaHighlight),
+      history(),
+      keymap.of(historyKeymap),
+      closeBrackets(),
+      singleLineFilter,
+      maxLengthFilter,
+      pasteSanitizer,
+      cmPlaceholder(opts.placeholderText ?? '式を入力...'),
+
+      // Enter key → fire submit event instead of newline
+      Prec.highest(keymap.of([{
+        key: 'Enter',
+        run: (v) => {
+          v.dom.dispatchEvent(new CustomEvent('cm-submit', { bubbles: true }))
+          return true
+        },
+      }])),
+
+      // onChange listener — reads the latest callback at event time
+      EditorView.updateListener.of((update) => {
+        if (update.view.composing) return // IME in progress — wait
+        if (update.docChanged) {
+          optionsRef.current.onChange?.(update.state.doc.toString())
+        }
+      }),
+
+      // onBlur handler
+      EditorView.domEventHandlers({
+        blur: (_, v) => {
+          optionsRef.current.onBlur?.(v.state.doc.toString())
+        },
+      }),
+
+      // Theme: single-line editor look
+      EditorView.theme({
+        '&': { fontSize: '13px', fontFamily: 'var(--font-mono, ui-monospace, monospace)' },
+        '&.cm-focused': { outline: 'none' },
+        '.cm-scroller': { overflowX: 'auto', overflowY: 'hidden', padding: '0 8px', height: '100%' },
+        '.cm-content': { padding: '2px 0', minHeight: 'auto' },
+        '.cm-line': { padding: '0' },
+        '.cm-placeholder': { color: 'var(--muted-foreground, #94a3b8)', fontStyle: 'italic' },
+      }),
+
+      // Tooltip parent — initial value, reconfigured via Compartment (Race #7)
+      tooltipCompartment.current.of(tooltips({ parent: opts.tooltipParent ?? document.body })),
+
+      // Dynamic extensions slot — reconfigured when props change
+      dynamicCompartment.current.of(opts.dynamicExtensions ? [...opts.dynamicExtensions] : []),
+    ]
+
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: initialValue ?? '',
+        extensions,
+      }),
+      parent: container,
+    })
+
+    viewRef.current = view
+    optionsRef.current.onReady?.()
+
+    return () => {
       if (insertRafRef.current !== null) {
         cancelAnimationFrame(insertRafRef.current)
         insertRafRef.current = null
       }
       // Race #1: null BEFORE destroy to prevent stale reads from polling/listeners
-      const toDestroy = viewRef.current
       viewRef.current = null
-      toDestroy.destroy()
+      view.destroy()
     }
-
-    if (!node) return
-
-    const view = new EditorView({
-      state: EditorState.create({
-        doc: options.initialValue ?? '',
-        extensions: baseExtensions,
-      }),
-      parent: node,
-    })
-
-    viewRef.current = view
-    onReadyRef.current?.()
-  }, [baseExtensions, options.initialValue])
+  }, [container, initialValue])
 
   // ── Reconfigure tooltipParent when it changes (Race #7) ─────────────
 

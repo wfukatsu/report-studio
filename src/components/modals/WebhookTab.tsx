@@ -14,6 +14,7 @@ export function WebhookTab() {
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [loadError, setLoadError] = useState<UserFacingError | null>(null)
 
+  // Retry handler (event) — clears the error immediately for instant feedback.
   const loadConfig = useCallback(async () => {
     if (!currentTemplateId) return
     setLoadError(null)
@@ -25,9 +26,17 @@ export function WebhookTab() {
     }
   }, [currentTemplateId])
 
+  // Initial fetch — state updates happen only in the promise callbacks so the
+  // effect body performs no synchronous setState.
   useEffect(() => {
-    loadConfig()
-  }, [loadConfig])
+    if (!currentTemplateId) return
+    getWebhookConfig(currentTemplateId)
+      .then((cfg) => {
+        setConfig({ url: cfg.url ?? '', secret: cfg.secret ?? '' })
+        setLoadError(null)
+      })
+      .catch((err) => setLoadError(classifyError(err)))
+  }, [currentTemplateId])
 
   const handleSave = async () => {
     if (!currentTemplateId || saving) return

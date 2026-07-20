@@ -55,9 +55,14 @@ export default function App() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false)
+  // Restore prompt: shown when a restorable autosave was found for the current
+  // user and the user hasn't acted on it yet (復元する / 破棄 record the user id
+  // in restoreHandledFor). Derived — no state syncing in effects.
+  const [restoreHandledFor, setRestoreHandledFor] = useState<string | null>(null)
   const [showTemplateChangeConfirm, setShowTemplateChangeConfirm] = useState(false)
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  // Onboarding dismissal is recorded per user id so a user change naturally
+  // re-shows the guidance (no reset effect needed).
+  const [onboardingDismissedBy, setOnboardingDismissedBy] = useState<{ userId: string | null } | null>(null)
   const [pendingTemplateDefinition, setPendingTemplateDefinition] = useState<Parameters<typeof loadReport>[0] | null>(null)
   // Server template id the pending definition should bind to once the user
   // confirms discarding unsaved changes (null = blank/builtin start). Kept
@@ -143,20 +148,18 @@ export default function App() {
   // The autosave key is user-scoped (getAutoSaveKey(userId)); running this on bare
   // mount — before checkAuth populates currentUser — always computed a null key and
   // silently skipped the prompt, so unsaved work was never offered for restore on
-  // reload (#160). Gate on currentUser?.userId and guard with a ref so it fires
-  // exactly once per user session.
-  const restoreCheckedForRef = useRef<string | null>(null)
-  useEffect(() => {
-    const uid = currentUser?.userId ?? null
-    if (!uid || restoreCheckedForRef.current === uid) return
-    restoreCheckedForRef.current = uid
-    const key = getAutoSaveKey(uid)
+  // reload (#160). The memo is keyed on the user id so the check runs exactly once
+  // per user (localStorage reads are idempotent; the result is frozen until the
+  // user changes — the buttons below hide the prompt via restoreHandledFor).
+  const currentUserId = currentUser?.userId ?? null
+  const restoreCandidate = useMemo(() => {
+    if (!currentUserId) return false
+    const key = getAutoSaveKey(currentUserId)
     const saved = key ? localStorage.getItem(key) : null
     // Read historyIndex at check-time (pristine editor only); it is not a dep.
-    if (saved && useReportStore.getState().historyIndex === 0) {
-      setShowRestorePrompt(true)
-    }
-  }, [currentUser?.userId])
+    return !!saved && useReportStore.getState().historyIndex === 0
+  }, [currentUserId])
+  const showRestorePrompt = restoreCandidate && restoreHandledFor !== currentUserId
 
   // Authenticate on mount — restores existing session or flags as unauthenticated
   const checkAuth = useReportStore((s) => s.checkAuth)
@@ -164,11 +167,10 @@ export default function App() {
     checkAuth()
   }, [checkAuth])
 
-  // Reset onboarding dismissal when the logged-in user changes, so each user
-  // gets the empty-canvas guidance once per session.
-  useEffect(() => {
-    setOnboardingDismissed(false)
-  }, [currentUser?.userId])
+  // Onboarding dismissal is derived per user (see onboardingDismissedBy above),
+  // so each user gets the empty-canvas guidance once per session.
+  const onboardingDismissed =
+    onboardingDismissedBy !== null && onboardingDismissedBy.userId === currentUserId
 
   // Tenant info is fetched by the auth flow (checkAuth on session-restore,
   // loginUser on login) — see authSlice. Fetching here on bare mount would run
@@ -321,7 +323,7 @@ export default function App() {
             onClick={() => {
               const saved = autoSaveKey ? localStorage.getItem(autoSaveKey) : null
               if (saved) importReportJSON(saved)
-              setShowRestorePrompt(false)
+              setRestoreHandledFor(currentUserId)
             }}
             className="font-medium text-primary hover:underline"
           >
@@ -330,7 +332,7 @@ export default function App() {
           <button
             onClick={() => {
               if (autoSaveKey) localStorage.removeItem(autoSaveKey)
-              setShowRestorePrompt(false)
+              setRestoreHandledFor(currentUserId)
             }}
             className="text-muted-foreground hover:text-foreground"
           >
@@ -437,7 +439,7 @@ export default function App() {
               {isDocumentEmpty && !onboardingDismissed && !showRestorePrompt && (
                 <EmptyCanvasOnboarding
                   onOpenTemplates={() => openTemplateModal('new')}
-                  onDismiss={() => setOnboardingDismissed(true)}
+                  onDismiss={() => setOnboardingDismissedBy({ userId: currentUserId })}
                 />
               )}
             </div>

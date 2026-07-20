@@ -44,7 +44,9 @@ interface Props {
  */
 export function TemplateManagerContent() {
   const [backendTemplates, setBackendTemplates] = useState<TemplateListItem[]>([])
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('idle')
+  // Starts 'loading': the initial fetch begins on mount, so deriving the
+  // initial spinner from state avoids a synchronous setState in the effect.
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'error'>('loading')
   const [hasFetched, setHasFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,8 +78,20 @@ export function TemplateManagerContent() {
   }, [])
 
   // Auto-load the list on mount so the management view isn't blank until the user
-  // finds the "一覧を取得" button (#162).
-  useEffect(() => { void handleFetch() }, [handleFetch])
+  // finds the "一覧を取得" button (#162). Inlined promise chain: loadState already
+  // starts 'loading', so the effect body performs no synchronous setState.
+  useEffect(() => {
+    listReports()
+      .then((result) => {
+        setBackendTemplates(result.items)
+        setLoadState('idle')
+        setHasFetched(true)
+      })
+      .catch(() => {
+        setLoadState('error')
+        setError('テンプレート一覧の取得に失敗しました')
+      })
+  }, [])
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)

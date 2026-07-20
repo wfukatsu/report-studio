@@ -1,4 +1,3 @@
-import { useMemo, useRef, useLayoutEffect } from 'react'
 import { useReportStore } from '@/store'
 import { flattenPageElements } from '@/store/selectors'
 import { fieldExists } from '@/lib/dataBinding'
@@ -84,139 +83,137 @@ function bindingFingerprint(
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useBindingAnalysis(): BindingAnalysis {
-  // Subscribe to stable fingerprints to control when the analysis re-runs.
-  // Fingerprints change only when binding-relevant data changes, NOT when elements
-  // are dragged or resized — preventing ~60 re-computations per second during editing.
-  const pageFingerprint = useReportStore((s) => bindingFingerprint(s.definition.pages))
-  const hasDataSource = useReportStore((s) => s.definition.dataSources.length > 0)
-  const fieldKeyFingerprint = useReportStore((s) => {
-    const fields = s.definition.dataSources[0]?.fields ?? {}
-    return Object.keys(fields as Record<string, unknown>).sort().join(',')
-  })
+// Module-level fingerprint cache. The zustand selector below recomputes the
+// (cheap) fingerprint on every store change but only re-runs the (expensive)
+// traversal when the fingerprint actually changed — and, crucially, returns the
+// cached result object so the selector output is referentially stable. That
+// keeps drag/resize (which create new immer references without changing any
+// binding-relevant data) from re-rendering subscribers or re-running the
+// analysis, without holding store data in refs.
+let cachedKey: string | null = null
+let cachedResult: BindingAnalysis | null = null
 
-  // Raw data needed for the traversal inside useMemo.
-  // These are kept in refs so the memo body can always read the current values
-  // without listing them as deps (which would defeat the fingerprint optimization
-  // by triggering the memo on every drag/resize via new immer references).
-  const pages = useReportStore((s) => s.definition.pages)
-  const dataSources = useReportStore((s) => s.definition.dataSources)
-  const pagesRef = useRef(pages)
-  const dataSourcesRef = useRef(dataSources)
+function computeBindingAnalysis(
+  pages: Parameters<typeof flattenPageElements>[0][],
+  dataSources: readonly { fields?: unknown }[],
+): BindingAnalysis {
+  const hasDataSource = dataSources.length > 0
+  const dataSource = dataSources[0] ?? null
+  const fields = (dataSource?.fields ?? {}) as Record<string, unknown>
 
-  // Sync refs after every render so the memo always reads the latest values
-  // when it does re-execute (triggered by a fingerprint change).
-  // useLayoutEffect (not useEffect) ensures the refs are updated before any
-  // child layout reads, maintaining consistency within a single render pass.
-  useLayoutEffect(() => {
-    pagesRef.current = pages
-    dataSourcesRef.current = dataSources
-  })
+  const unboundElements: ElementBinding[] = []
+  const fieldMappings: ElementBinding[] = []
+  const missingInSampleElements: ElementBinding[] = []
 
-  return useMemo(() => {
-    // Read from refs — current at the time this memo executes (fingerprint changed)
-    const pages = pagesRef.current
-    const dataSources = dataSourcesRef.current
-    const dataSource = dataSources[0] ?? null
-    const fields = (dataSource?.fields ?? {}) as Record<string, unknown>
-
-    const unboundElements: ElementBinding[] = []
-    const fieldMappings: ElementBinding[] = []
-    const missingInSampleElements: ElementBinding[] = []
-
-    /** Register a bound field key for an element */
-    function registerBound(base: Omit<ElementBinding, 'fieldKey'>, fk: string) {
-      const binding: ElementBinding = { ...base, fieldKey: fk }
-      fieldMappings.push(binding)
-      if (hasDataSource && !fieldExists(fields, fk)) {
-        missingInSampleElements.push(binding)
-      }
+  /** Register a bound field key for an element */
+  function registerBound(base: Omit<ElementBinding, 'fieldKey'>, fk: string) {
+    const binding: ElementBinding = { ...base, fieldKey: fk }
+    fieldMappings.push(binding)
+    if (hasDataSource && !fieldExists(fields, fk)) {
+      missingInSampleElements.push(binding)
     }
+  }
 
-    for (const page of pages) {
-      const elements = flattenPageElements(page)
+  for (const page of pages) {
+    const elements = flattenPageElements(page)
 
-      for (const el of elements) {
-        const base: Omit<ElementBinding, 'fieldKey'> = {
-          elementId: el.id,
-          elementLabel: labelFor(el),
-          pageId: page.id,
+    for (const el of elements) {
+      const base: Omit<ElementBinding, 'fieldKey'> = {
+        elementId: el.id,
+        elementLabel: labelFor(el),
+        pageId: page.id,
+      }
+
+      switch (el.type) {
+        case 'text': {
+          // Extract {{key}} tokens, skip system variables ($page etc.)
+          const tokens = [...(el.content ?? '').matchAll(/\{\{([^}]+)\}\}/g)]
+            .map((m) => m[1].trim())
+            .filter((k) => !k.startsWith('$'))
+
+          if (tokens.length === 0) {
+            unboundElements.push(base)
+          } else {
+            for (const token of tokens) {
+              registerBound(base, token)
+            }
+          }
+          break
         }
 
-        switch (el.type) {
-          case 'text': {
-            // Extract {{key}} tokens, skip system variables ($page etc.)
-            const tokens = [...(el.content ?? '').matchAll(/\{\{([^}]+)\}\}/g)]
-              .map((m) => m[1].trim())
-              .filter((k) => !k.startsWith('$'))
-
-            if (tokens.length === 0) {
-              unboundElements.push(base)
-            } else {
-              for (const token of tokens) {
-                registerBound(base, token)
-              }
-            }
-            break
+        case 'dataField': {
+          const fk = el.fieldKey?.trim() ?? ''
+          if (!fk) {
+            unboundElements.push(base)
+          } else {
+            registerBound(base, fk)
           }
+          break
+        }
 
-          case 'dataField': {
-            const fk = el.fieldKey?.trim() ?? ''
-            if (!fk) {
-              unboundElements.push(base)
-            } else {
-              registerBound(base, fk)
-            }
-            break
+        // checkbox and eraSelect both bind via dataSource — identical handling
+        case 'checkbox':
+        case 'eraSelect': {
+          const ds = el.dataSource?.trim() ?? ''
+          if (!ds) {
+            unboundElements.push(base)
+          } else {
+            registerBound(base, ds)
           }
+          break
+        }
 
-          // checkbox and eraSelect both bind via dataSource — identical handling
-          case 'checkbox':
-          case 'eraSelect': {
-            const ds = el.dataSource?.trim() ?? ''
-            if (!ds) {
-              unboundElements.push(base)
-            } else {
-              registerBound(base, ds)
-            }
-            break
-          }
-
-          case 'formTable': {
-            for (const row of el.rows) {
-              for (const cell of row.cells) {
-                if (cell.type === 'dataField') {
-                  // Use the parent formTable element ID so clicking the row selects
-                  // the formTable element (cell IDs are not addressable via selectElement)
-                  const cellBase: Omit<ElementBinding, 'fieldKey'> = {
-                    elementId: el.id,
-                    elementLabel: `${labelFor(el)} > ${cell.text?.trim() || cell.id}`,
-                    pageId: page.id,
-                  }
-                  const fk = cell.fieldKey?.trim() ?? ''
-                  if (!fk) {
-                    unboundElements.push(cellBase)
-                  } else {
-                    registerBound(cellBase, fk)
-                  }
+        case 'formTable': {
+          for (const row of el.rows) {
+            for (const cell of row.cells) {
+              if (cell.type === 'dataField') {
+                // Use the parent formTable element ID so clicking the row selects
+                // the formTable element (cell IDs are not addressable via selectElement)
+                const cellBase: Omit<ElementBinding, 'fieldKey'> = {
+                  elementId: el.id,
+                  elementLabel: `${labelFor(el)} > ${cell.text?.trim() || cell.id}`,
+                  pageId: page.id,
+                }
+                const fk = cell.fieldKey?.trim() ?? ''
+                if (!fk) {
+                  unboundElements.push(cellBase)
+                } else {
+                  registerBound(cellBase, fk)
                 }
               }
             }
-            break
           }
-
-          // Non-bindable types: image, shape, chart, barcode, etc.
-          default:
-            break
+          break
         }
+
+        // Non-bindable types: image, shape, chart, barcode, etc.
+        default:
+          break
       }
     }
+  }
 
-    return { hasDataSource, unboundElements, fieldMappings, missingInSampleElements }
-    // Fingerprints are the only deps — NOT the raw pages/dataSources references.
-    // Raw refs are intentionally read via pagesRef/dataSourcesRef (synced in useLayoutEffect)
-    // to avoid triggering re-analysis on every drag/resize (which creates new immer references
-    // but does not change any binding-relevant data).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageFingerprint, fieldKeyFingerprint, hasDataSource])
+  return { hasDataSource, unboundElements, fieldMappings, missingInSampleElements }
+}
+
+export function useBindingAnalysis(): BindingAnalysis {
+  // Subscribe via a fingerprint-gated selector: fingerprints change only when
+  // binding-relevant data changes, NOT when elements are dragged or resized —
+  // preventing ~60 re-computations per second during editing.
+  return useReportStore((s) => {
+    const pages = s.definition.pages
+    const dataSources = s.definition.dataSources
+    const fields = (dataSources[0]?.fields ?? {}) as Record<string, unknown>
+    const key = [
+      bindingFingerprint(pages),
+      Object.keys(fields).sort().join(','),
+      String(dataSources.length > 0),
+    ].join('\u0000')
+
+    if (key !== cachedKey || cachedResult === null) {
+      cachedKey = key
+      cachedResult = computeBindingAnalysis(pages, dataSources)
+    }
+    return cachedResult
+  })
 }
