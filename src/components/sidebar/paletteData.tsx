@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- data-only file; JSX used for icon values, not component exports */
 /**
  * Palette category and item data.
  *
