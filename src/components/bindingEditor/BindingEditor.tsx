@@ -21,6 +21,7 @@ import { SummaryBar } from './internals/SummaryBar'
 import { BulkGenerateBar } from './internals/BulkGenerateBar'
 import { RelationshipView } from './internals/RelationshipView'
 import { SchemaLibraryModal } from '@/components/modals/SchemaLibraryModal'
+import { PromptDialog } from '@/components/common/PromptDialog'
 import { saveToSchemaLibrary } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
 import { toast } from 'sonner'
@@ -131,17 +132,17 @@ export function BindingEditor() {
 
   // Schema Library modal state
   const [libraryModalOpen, setLibraryModalOpen] = useState(false)
+  const [libraryNameDialogOpen, setLibraryNameDialogOpen] = useState(false)
   const [savingToLibrary, setSavingToLibrary] = useState(false)
   const dataSources = useReportStore((s) => s.definition.dataSources)
   const addSchemaRelation = useReportStore((s) => s.addSchemaRelation)
   const removeSchemaRelation = useReportStore((s) => s.removeSchemaRelation)
 
-  const handleSaveToLibrary = useCallback(async () => {
-    const name = window.prompt('スキーマの名前を入力してください:', '')
-    if (!name?.trim()) return
+  const handleSaveToLibrary = useCallback(async (name: string) => {
+    setLibraryNameDialogOpen(false)
     setSavingToLibrary(true)
     try {
-      await saveToSchemaLibrary(name.trim(), {
+      await saveToSchemaLibrary(name, {
         schema: bs.schema ?? { groups: [] },
         dataSources: dataSources ?? [],
       })
@@ -174,7 +175,7 @@ export function BindingEditor() {
         </button>
         <button
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/50"
-          onClick={handleSaveToLibrary}
+          onClick={() => setLibraryNameDialogOpen(true)}
           disabled={savingToLibrary || !bs.hasSchema}
           title={bs.hasSchema ? 'テンプレートのスキーマをライブラリに保存' : 'スキーマが未定義です'}
         >
@@ -185,6 +186,17 @@ export function BindingEditor() {
 
       {/* Schema Library Modal */}
       <SchemaLibraryModal open={libraryModalOpen} onClose={() => setLibraryModalOpen(false)} />
+
+      {/* Schema name input for ライブラリに保存 (#269 — replaces window.prompt) */}
+      <PromptDialog
+        open={libraryNameDialogOpen}
+        title="スキーマをライブラリに保存"
+        message="スキーマの名前を入力してください。"
+        placeholder="スキーマ名"
+        confirmLabel="保存"
+        onSubmit={(name) => { void handleSaveToLibrary(name) }}
+        onCancel={() => setLibraryNameDialogOpen(false)}
+      />
 
       {/* Relationship view (#141/#142/#143/#144) — model-view of master/detail/product,
           with product master exposed as a lookup source, shared-key inference, and

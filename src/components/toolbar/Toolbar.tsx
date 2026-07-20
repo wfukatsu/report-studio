@@ -11,11 +11,10 @@ import {
   ArrowUpToLine, ArrowDownToLine,
   AlignVerticalJustifyCenter, AlignHorizontalJustifyCenter,
   Layers, ChevronDown, FolderOpen, Save, FilePlus,
-  ShieldCheck, ShieldAlert, Database, RefreshCw, User,
+  ShieldCheck, ShieldAlert, Database, User,
   Paintbrush, PaintBucket, Download,
 } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { useShallow } from 'zustand/shallow'
 import { cn } from '@/lib/utils'
 import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
@@ -81,11 +80,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
   const masterFooter = useReportStore((s) => s.definition.masterFooter)
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
-  const sourceTemplateId = useReportStore((s) => s.definition.metadata.sourceTemplateId)
-  const sourceTemplate = sourceTemplateId
-    ? BUILTIN_TEMPLATES.find((t) => t.id === sourceTemplateId) ?? null
-    : null
-
   const violationCount = useReportStore((s) => s.computedViolations.length)
   const hasTemplateId = useReportStore((s) => s.currentTemplateId !== null)
   const backendConnected = useReportStore((s) => s.backendConnected)
@@ -106,7 +100,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     showDataModal, setShowDataModal,
     showManagerModal, setShowManagerModal,
     showVariantDialog, setShowVariantDialog,
-    showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm,
     showOpenLocalConfirm, setShowOpenLocalConfirm,
     showOpenServerConfirm, setShowOpenServerConfirm,
     showDeleteHeaderConfirm, setShowDeleteHeaderConfirm,
@@ -164,7 +157,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
 
   const {
     handleNew: handleNewFn,
-    handleUpdateFromBuiltin,
     handleOpenLocal,
     handleFileChange,
     handleToggleMasterHeader,
@@ -176,7 +168,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     reportName,
     backendConnected,
     hasUnsavedChanges,
-    sourceTemplateId,
     masterHeader,
     masterFooter,
     headerEditMode,
@@ -187,7 +178,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     setShowManagerModal,
     setShowOpenLocalConfirm,
     setShowOpenServerConfirm,
-    setShowUpdateFromBuiltinConfirm,
     setShowDeleteHeaderConfirm,
     setShowDeleteFooterConfirm,
     setShowSaveMenu,
@@ -282,14 +272,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             </div>
           )}
         </div>
-        {sourceTemplate && (
-          <ToolbarButton
-            onClick={() => setShowUpdateFromBuiltinConfirm(true)}
-            title={`ビルトインテンプレート「${sourceTemplate.name}」から最新定義で更新`}
-          >
-            <RefreshCw className="w-4 h-4" />
-          </ToolbarButton>
-        )}
         <div className="relative flex items-center" ref={saveMenuRef}>
           <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
             <Save className="w-4 h-4" />
@@ -707,12 +689,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
     {/* All dialogs rendered via ToolbarDialogs — no duplicates here */}
     <ToolbarDialogs
       reportName={reportName}
-      sourceTemplateName={sourceTemplate?.name}
       showDataModal={showDataModal}
       showServerSettings={showServerSettings}
       showSaveDialog={showSaveDialog}
       showManagerModal={showManagerModal}
-      showUpdateFromBuiltinConfirm={showUpdateFromBuiltinConfirm}
       showVariantDialog={showVariantDialog}
       showValidationWarnConfirm={showValidationWarnConfirm}
       showOpenLocalConfirm={showOpenLocalConfirm}
@@ -726,8 +706,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
       onSaveNew={handleSaveNew}
       onCancelSave={() => setShowSaveDialog(false)}
       onCloseManagerModal={() => setShowManagerModal(false)}
-      onConfirmUpdateFromBuiltin={handleUpdateFromBuiltin}
-      onCancelUpdateFromBuiltin={() => setShowUpdateFromBuiltinConfirm(false)}
       onSelectVariant={(variant) => { setShowVariantDialog(false); void doExportPdf(variant) }}
       onCancelVariantDialog={() => setShowVariantDialog(false)}
       onConfirmExportWithWarnings={() => { setShowValidationWarnConfirm(false); void handleExportPdf(true) }}

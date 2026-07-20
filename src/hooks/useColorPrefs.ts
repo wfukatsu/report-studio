@@ -3,7 +3,8 @@
  *   - Brand colors (rds2:brandColors): named palette, max 12 entries
  *   - Recent colors (rds2:recentColors): auto-tracked MRU list, max 8 entries
  *
- * Follows the same useSyncExternalStore pattern as useBuiltinPrefs.ts.
+ * Implemented with useSyncExternalStore over localStorage + a custom
+ * change event so every consumer re-renders on any update.
  */
 
 import { useSyncExternalStore, useCallback } from 'react'

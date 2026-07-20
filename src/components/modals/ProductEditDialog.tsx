@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type { Product, ProductCustomFieldDef, CreateProductRequest, UpdateProductPayload, CustomFieldValue } from '@/types'
 import { DuplicateCodeError, VersionConflictError } from '@/api/reportApi'
@@ -163,7 +164,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
       if (e instanceof DuplicateCodeError) {
         setFieldErrors((prev) => ({ ...prev, code: 'この商品コードは既に使用されています' }))
       } else if (e instanceof VersionConflictError) {
-        alert('他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。')
+        toast.error('他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。', { duration: 8000 })
         onClose()
       } else {
         setError('保存に失敗しました。再試行してください。')

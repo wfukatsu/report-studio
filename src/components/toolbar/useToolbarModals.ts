@@ -20,7 +20,6 @@ export function useToolbarModals() {
   const [showDataModal, setShowDataModal] = useState(false)
   const [showManagerModal, setShowManagerModal] = useState(false)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
-  const [showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm] = useState(false)
   const [showOpenLocalConfirm, setShowOpenLocalConfirm] = useState(false)
   const [showOpenServerConfirm, setShowOpenServerConfirm] = useState(false)
   const [showDeleteHeaderConfirm, setShowDeleteHeaderConfirm] = useState(false)
@@ -71,7 +70,6 @@ export function useToolbarModals() {
     showDataModal, setShowDataModal,
     showManagerModal, setShowManagerModal,
     showVariantDialog, setShowVariantDialog,
-    showUpdateFromBuiltinConfirm, setShowUpdateFromBuiltinConfirm,
     showOpenLocalConfirm, setShowOpenLocalConfirm,
     showOpenServerConfirm, setShowOpenServerConfirm,
     showDeleteHeaderConfirm, setShowDeleteHeaderConfirm,

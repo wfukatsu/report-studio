@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from 'sonner'
 import { isSafeImageSrc } from '@/lib/exportUtils'
 
 const MAX_RASTER_SIZE = 2 * 1024 * 1024 // 2 MB
@@ -24,7 +25,7 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
     if (!file) return
 
     if (file.size > MAX_RASTER_SIZE) {
-      alert('ファイルサイズが 2MB を超えています。')
+      toast.error('ファイルサイズが 2MB を超えています。')
       return
     }
 
@@ -32,7 +33,7 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
     reader.onload = () => {
       const dataUrl = reader.result as string
       if (!isSafeImageSrc(dataUrl)) {
-        alert('安全でない画像形式です。PNG/JPG/GIF/WebP を使用してください。')
+        toast.error('安全でない画像形式です。PNG/JPG/GIF/WebP を使用してください。')
         return
       }
       onChange(dataUrl)
