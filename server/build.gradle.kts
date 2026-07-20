@@ -57,6 +57,7 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.16")
 
     // Test
+    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.3")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation("org.mockito:mockito-core:5.14.2")
     testImplementation("io.javalin:javalin-testtools:6.6.0")
