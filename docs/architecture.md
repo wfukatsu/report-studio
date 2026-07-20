@@ -11,7 +11,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
 | アプリ形態 | シングルページアプリケーション（SPA）+ REST API バックエンド |
 | フロントエンド | Vite 6 + React 19 + TypeScript 5.7（Zustand で状態管理） |
 | バックエンド | Java 21 + Javalin 6（仮想スレッド活用） |
-| データストア | ScalarDB 3.14.4 → SQLite（開発）/ 任意の JDBC（本番） |
+| データストア | ScalarDB 3.17.3 → SQLite（開発）/ 任意の JDBC（本番） |
 | 帳票エンジン | Apache PDFBox 3.0.3（和文フォント埋め込み・ページ分割） |
 | 式エンジン | Apache Commons JEXL 3.4.0（サンドボックス） |
 | 主な用途 | 見積書・請求書・発注書・納品書・領収書などの帳票、公開フォームによる回答収集 |
@@ -48,7 +48,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
                            │ ScalarDB Transaction API
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ ScalarDB 3.14.4                                                │
+│ ScalarDB 3.17.3                                                │
 │  名前空間 report_studio: v2_definitions / template_versions /  │
 │   v2_form_responses / tenant / products / sequences /          │
 │   webhooks / jobs / schemas / users ...                        │
