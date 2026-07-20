@@ -18,6 +18,7 @@ import { useReportStore, selectActivePage, flattenPageElements } from '@/store/r
 import { clearHistoryTimer } from '@/store/historyTimer'
 import { useResolvedData } from '@/hooks/useResolvedData'
 import { SectionContainer } from './SectionContainer'
+import { snapAxis, findSectionAtY, topmostElementAt } from './canvasGeometry'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import type { PageDef } from '@/types'
@@ -35,46 +36,6 @@ interface Props {
   canvasRef?: React.RefObject<HTMLDivElement | null>
 }
 
-
-// Snap a single axis position to the nearest of: grid point or margin boundary.
-// Used for margin-aware snap-to-grid during drag and drop.
-// threshold: max distance (mm) to trigger margin snap (default 1mm ≈ 2.7px)
-function snapAxis(
-  value: number,        // mm — position of the near edge (left or top)
-  elementSize: number | undefined, // mm — width or height of the element
-  marginNear: number,   // mm — near margin (left or top)
-  marginFar: number,    // mm — far margin (right or bottom)
-  pageSize: number,     // mm — page width or height
-  doSnap: boolean,
-  gridSize: number,
-  threshold = 1,
-): number {
-  // Grid snap (always as baseline when snapToGrid is on)
-  const gridSnapped = doSnap ? Math.round(value / gridSize) * gridSize : value
-  if (!doSnap) return gridSnapped
-
-  let best = gridSnapped
-  let bestDist = Math.abs(value - gridSnapped)
-
-  // Near margin boundary: snap left/top edge
-  const nearBound = marginNear
-  const distNear = Math.abs(value - nearBound)
-  if (distNear < threshold && distNear < bestDist) {
-    best = nearBound
-    bestDist = distNear
-  }
-
-  // Far margin boundary: snap right/bottom edge so far edge aligns with margin
-  if (elementSize !== undefined) {
-    const farBound = pageSize - marginFar
-    const distFar = Math.abs((value + elementSize) - farBound)
-    if (distFar < threshold && distFar < bestDist) {
-      best = farBound - elementSize
-    }
-  }
-
-  return best
-}
 
 // Trim mark dimensions (in mm, scaled by zoom at render time)
 const TRIM_GAP_MM = 3    // gap between paper edge and mark
@@ -268,33 +229,14 @@ export function ReportCanvas({
         const xMm = pxToMm((e.clientX - rect.left) / zoom)
         const yMm = pxToMm((e.clientY - rect.top) / zoom)
 
-        let sectionOffsetY = 0
-        let targetSection: typeof page.sections[number] | undefined
-        for (const sec of page.sections) {
-          if (yMm < sectionOffsetY + sec.height) {
-            targetSection = sec
-            break
-          }
-          sectionOffsetY += sec.height
-        }
-        const relativeY = yMm - sectionOffsetY
-        const sectionElements = targetSection?.elements ?? []
-        const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
-
-        let hitId: string | null = null
-        for (const el of sorted) {
-          if (
-            xMm >= el.position.x &&
-            xMm <= el.position.x + el.size.width &&
-            relativeY >= el.position.y &&
-            relativeY <= el.position.y + el.size.height &&
-            (el.type === 'repeatingBand' || el.type === 'repeatingList')
-          ) {
-            hitId = el.id
-            break
-          }
-        }
-        setDropHighlightId(hitId)
+        const { section: targetSection, relativeY } = findSectionAtY(page.sections, yMm)
+        const hit = topmostElementAt(
+          targetSection?.elements ?? [],
+          xMm,
+          relativeY,
+          (el) => el.type === 'repeatingBand' || el.type === 'repeatingList',
+        )
+        setDropHighlightId(hit?.id ?? null)
       }
     },
     [page, zoom, ref],
@@ -319,20 +261,10 @@ export function ReportCanvas({
       const yMm = pxToMm((e.clientY - rect.top) / zoom)
 
       // Determine which section the drop landed in based on Y coordinate
-      let sectionId: string | undefined
-      let sectionOffsetY = 0
-      for (const sec of page.sections) {
-        if (yMm < sectionOffsetY + sec.height) {
-          sectionId = sec.id
-          break
-        }
-        sectionOffsetY += sec.height
-      }
-      // Position relative to the target section
-      const relativeY = yMm - sectionOffsetY
+      const { section: targetSection, relativeY } = findSectionAtY(page.sections, yMm)
+      const sectionId = targetSection?.id
 
       // Clamp within section bounds
-      const targetSection = page.sections.find((s) => s.id === sectionId)
       const sectionH = targetSection?.height ?? page.height
       const clampedX = Math.max(0, Math.min(xMm, page.width))
       const clampedY = Math.max(0, Math.min(relativeY, sectionH))
