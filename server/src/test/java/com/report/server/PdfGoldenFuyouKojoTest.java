@@ -1,23 +1,20 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
- * Golden-template regression test for the 扶養控除等（異動）申告書 fixture
- * (issue #59; designer-vs-PDF diffs were previously tracked manually in
- * docs/issues/fuyou-kojo-pdf-comparison-issues.md).
+ * Golden-template regression test for the 扶養控除等（異動）申告書 fixture (issue #59; designer-vs-PDF diffs
+ * were previously tracked manually in docs/issues/fuyou-kojo-pdf-comparison-issues.md).
  *
- * <p>Exercises the Japanese-form features the server engine supports today:
- * landscape A4, formTable with label/dataField/eraSelect/checkbox cells, and
- * scalar bindingRef resolution.
+ * <p>Exercises the Japanese-form features the server engine supports today: landscape A4, formTable
+ * with label/dataField/eraSelect/checkbox cells, and scalar bindingRef resolution.
  */
 class PdfGoldenFuyouKojoTest {
 
@@ -28,8 +25,9 @@ class PdfGoldenFuyouKojoTest {
     @BeforeAll
     static void renderGolden() throws IOException {
         String json;
-        try (InputStream is = PdfGoldenFuyouKojoTest.class
-                .getResourceAsStream("/golden/fuyou-kojo-projection.json")) {
+        try (InputStream is =
+                PdfGoldenFuyouKojoTest.class.getResourceAsStream(
+                        "/golden/fuyou-kojo-projection.json")) {
             assertNotNull(is, "golden fixture missing");
             json = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
@@ -45,8 +43,12 @@ class PdfGoldenFuyouKojoTest {
 
     @Test
     void titleAndYearRenderAtDesignPosition() {
-        PdfProbe.TextRun title = probe.findRun(0, "扶養控除等（異動）申告書").orElseThrow(
-                () -> new AssertionError("title missing; runs:\n" + probe.dumpRuns()));
+        PdfProbe.TextRun title =
+                probe.findRun(0, "扶養控除等（異動）申告書")
+                        .orElseThrow(
+                                () ->
+                                        new AssertionError(
+                                                "title missing; runs:\n" + probe.dumpRuns()));
         assertEquals(PdfProbe.expectedXMm(70), title.xMm(), POS_TOL_MM);
         assertEquals(PdfProbe.expectedBaselineYMm(10, 14), title.baselineYMm(), POS_TOL_MM);
         assertTrue(probe.pageContains(0, "令和8年分"));

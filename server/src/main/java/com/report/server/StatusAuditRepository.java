@@ -3,7 +3,6 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,10 +12,10 @@ import java.util.UUID;
 /**
  * Persistent status-transition audit trail for issued documents (#188).
  *
- * <p>Each transition of a form response's lifecycle status (draft/issued/sent/void)
- * is recorded as an immutable entry: who changed it, when, and from → to. Entries are
- * stored as JSON blobs keyed by a unique id, grouped by {@code responseId} via the
- * repository's secondary index so a response's full history is a single indexed scan.
+ * <p>Each transition of a form response's lifecycle status (draft/issued/sent/void) is recorded as
+ * an immutable entry: who changed it, when, and from → to. Entries are stored as JSON blobs keyed
+ * by a unique id, grouped by {@code responseId} via the repository's secondary index so a
+ * response's full history is a single indexed scan.
  */
 public final class StatusAuditRepository {
 
@@ -37,9 +36,9 @@ public final class StatusAuditRepository {
      *
      * @param responseId the document (form response) id
      * @param templateId the owning template id
-     * @param from       the previous status, or null for the initial creation entry
-     * @param to         the new status
-     * @param by         the user id that made the change
+     * @param from the previous status, or null for the initial creation entry
+     * @param to the new status
+     * @param by the user id that made the change
      */
     public void append(String responseId, String templateId, String from, String to, String by) {
         ObjectNode entry = MAPPER.createObjectNode();
@@ -47,7 +46,8 @@ public final class StatusAuditRepository {
         entry.put("id", id);
         entry.put("responseId", responseId);
         entry.put("templateId", templateId);
-        if (from == null) entry.putNull("from"); else entry.put("from", from);
+        if (from == null) entry.putNull("from");
+        else entry.put("from", from);
         entry.put("to", to);
         entry.put("by", by);
         entry.put("at", System.currentTimeMillis());
@@ -75,9 +75,11 @@ public final class StatusAuditRepository {
                 // skip unparseable records
             }
         }
-        out.sort((a, b) -> Long.compare(
-                ((Number) b.getOrDefault("at", 0L)).longValue(),
-                ((Number) a.getOrDefault("at", 0L)).longValue()));
+        out.sort(
+                (a, b) ->
+                        Long.compare(
+                                ((Number) b.getOrDefault("at", 0L)).longValue(),
+                                ((Number) a.getOrDefault("at", 0L)).longValue()));
         return out;
     }
 }

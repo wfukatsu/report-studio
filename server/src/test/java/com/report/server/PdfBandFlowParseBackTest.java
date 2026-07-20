@@ -1,22 +1,21 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
 /**
- * Parse-back tests for V2 repeatingBand / repeatingList page flow (issue #64):
- * records beyond the element frame flow onto continuation pages instead of
- * being silently clipped; maxItems truncation stays a designer choice.
+ * Parse-back tests for V2 repeatingBand / repeatingList page flow (issue #64): records beyond the
+ * element frame flow onto continuation pages instead of being silently clipped; maxItems truncation
+ * stays a designer choice.
  */
 class PdfBandFlowParseBackTest {
 
     /**
-     * A5-landscape-ish page with a repeatingBand: size.height 40, header 8 +
-     * itemHeight 8 → capacity floor((40−8)/8) = 4 rows/page.
+     * A5-landscape-ish page with a repeatingBand: size.height 40, header 8 + itemHeight 8 →
+     * capacity floor((40−8)/8) = 4 rows/page.
      */
     private static String bandJson(int records, String extraBandFields) {
         StringBuilder items = new StringBuilder();
@@ -42,13 +41,15 @@ class PdfBandFlowParseBackTest {
                   "oddRowColor":"#fff","evenRowColor":"#fff",
                   "borderColor":"#000","borderWidth":0.3}
                ]}]}],
-             "testData":{"items":[%s]}}""".formatted(extraBandFields, items);
+             "testData":{"items":[%s]}}"""
+                .formatted(extraBandFields, items);
     }
 
     @Test
     void recordsBeyondCapacity_flowToContinuationPages() throws IOException {
         // 10 records / 4 per page → 3 pages
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
         assertEquals(3, probe.pageCount());
         assertTrue(probe.pageContains(0, "品目1"), probe.pageText(0));
         assertTrue(probe.pageContains(0, "品目4"), probe.pageText(0));
@@ -61,7 +62,8 @@ class PdfBandFlowParseBackTest {
 
     @Test
     void headerRepeatsOnContinuationPages() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
         assertTrue(probe.pageContains(0, "品名"), probe.pageText(0));
         assertTrue(probe.pageContains(1, "品名"), probe.pageText(1));
         assertTrue(probe.pageContains(2, "品名"), probe.pageText(2));
@@ -69,7 +71,8 @@ class PdfBandFlowParseBackTest {
 
     @Test
     void staticElements_repeatOnEveryPage() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(10, "\"maxItems\":0,")));
         assertTrue(probe.pageContains(0, "バンド見出し"), probe.pageText(0));
         assertTrue(probe.pageContains(2, "バンド見出し"), probe.pageText(2));
     }
@@ -77,7 +80,8 @@ class PdfBandFlowParseBackTest {
     @Test
     void maxItemsTruncation_doesNotFlow() throws IOException {
         // 100 records but maxItems 4 → everything fits page 0, single page
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(100, "\"maxItems\":4,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(100, "\"maxItems\":4,")));
         assertEquals(1, probe.pageCount());
         assertTrue(probe.pageContains(0, "品目4"), probe.pageText(0));
         assertFalse(probe.pageContains(0, "品目5"), probe.pageText(0));
@@ -86,7 +90,8 @@ class PdfBandFlowParseBackTest {
     @Test
     void maxItemsBeyondCapacity_flowsTheCappedSet() throws IOException {
         // maxItems 6 of 100 → 2 pages (4 + 2), 品目7 never renders
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(100, "\"maxItems\":6,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(100, "\"maxItems\":6,")));
         assertEquals(2, probe.pageCount());
         assertTrue(probe.pageContains(1, "品目6"), probe.pageText(1));
         assertFalse(probe.pageContains(1, "品目7"), probe.pageText(1));
@@ -94,7 +99,8 @@ class PdfBandFlowParseBackTest {
 
     @Test
     void allRecordsFit_singlePage() throws IOException {
-        PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(3, "\"maxItems\":0,")));
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(3, "\"maxItems\":0,")));
         assertEquals(1, probe.pageCount());
         assertTrue(probe.pageContains(0, "品目3"), probe.pageText(0));
     }
@@ -120,7 +126,8 @@ class PdfBandFlowParseBackTest {
                   "itemWidth":50,"itemHeight":20,"gap":2,"maxItems":0,"pageBreak":"none",
                   "fields":[{"id":"f1","key":"name","x":2,"y":2,"width":45,"height":6}]}
                ]}]}],
-             "testData":{"items":[%s]}}""".formatted(layout, items);
+             "testData":{"items":[%s]}}"""
+                .formatted(layout, items);
     }
 
     @Test

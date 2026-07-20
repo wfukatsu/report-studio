@@ -1,5 +1,9 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.RateLimiter;
@@ -7,10 +11,6 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 class EvaluateControllerTest {
 
@@ -33,7 +33,8 @@ class EvaluateControllerTest {
 
     @Test
     void wrapForCalculation_mapsKeyToTargetField() throws Exception {
-        String defJson = """
+        String defJson =
+                """
             {
               "calculationRules": [
                 {"key":"total","expression":"qty * price","resultType":"number","onError":"zero","label":"合計"}
@@ -52,7 +53,8 @@ class EvaluateControllerTest {
 
     @Test
     void wrapForCalculation_skipsRulesWithoutKeyOrExpression() throws Exception {
-        String defJson = """
+        String defJson =
+                """
             {
               "calculationRules": [
                 {"expression":"1+1"},
@@ -61,8 +63,7 @@ class EvaluateControllerTest {
               ]
             }
             """;
-        JsonNode projection = EvaluateController.wrapForCalculation(
-                "t1", MAPPER.readTree(defJson));
+        JsonNode projection = EvaluateController.wrapForCalculation("t1", MAPPER.readTree(defJson));
         JsonNode rules = projection.path("templates").get(0).path("calculationRules");
         assertEquals(1, rules.size());
         assertEquals("good", rules.get(0).path("targetField").asText());
@@ -72,7 +73,8 @@ class EvaluateControllerTest {
 
     @Test
     void evaluate_returnsComputedResults() throws Exception {
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "calculationRules": [
@@ -126,7 +128,9 @@ class EvaluateControllerTest {
     @Test
     void evaluate_returns400ForExpressionTooLong() throws Exception {
         String longExpr = "x".repeat(1001);
-        String body = String.format("""
+        String body =
+                String.format(
+                        """
             {
               "definition": {
                 "calculationRules": [
@@ -135,7 +139,8 @@ class EvaluateControllerTest {
               },
               "testData": {}
             }
-            """, longExpr);
+            """,
+                        longExpr);
         when(ctx.body()).thenReturn(body);
 
         controller.evaluate(ctx);
@@ -145,7 +150,8 @@ class EvaluateControllerTest {
 
     @Test
     void evaluate_returns422ForCircularDependency() throws Exception {
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "calculationRules": [
@@ -166,7 +172,8 @@ class EvaluateControllerTest {
     @Test
     void evaluate_returns400ForTooManyTestDataFields() throws Exception {
         // Build testData with 1001 fields
-        StringBuilder sb = new StringBuilder("{\"definition\":{\"calculationRules\":[]},\"testData\":{");
+        StringBuilder sb =
+                new StringBuilder("{\"definition\":{\"calculationRules\":[]},\"testData\":{");
         for (int i = 0; i < 1001; i++) {
             if (i > 0) sb.append(',');
             sb.append("\"f").append(i).append("\":").append(i);
@@ -184,7 +191,8 @@ class EvaluateControllerTest {
     @Test
     void validate_returnsViolationWhenConditionTrue() throws Exception {
         // Use a concrete comparison that JEXL strict mode can evaluate without undefined vars
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "validationRules": [
@@ -208,7 +216,8 @@ class EvaluateControllerTest {
 
     @Test
     void validate_noViolationWhenConditionFalse() throws Exception {
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "validationRules": [
@@ -230,7 +239,8 @@ class EvaluateControllerTest {
 
     @Test
     void validate_skipsRuleWithEmptyCondition() throws Exception {
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "validationRules": [
@@ -253,7 +263,8 @@ class EvaluateControllerTest {
     @Test
     void validate_includesElementIdWhenPresent() throws Exception {
         // "1 == 1" is a valid JEXL expression that always evaluates to true
-        String body = """
+        String body =
+                """
             {
               "definition": {
                 "validationRules": [

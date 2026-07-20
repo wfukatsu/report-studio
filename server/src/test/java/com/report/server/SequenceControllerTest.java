@@ -1,24 +1,5 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.report.server.auth.Principal;
-import com.scalar.db.api.DistributedTransaction;
-import com.scalar.db.api.DistributedTransactionManager;
-import com.scalar.db.exception.transaction.CommitConflictException;
-import com.scalar.db.exception.transaction.CrudConflictException;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,13 +14,30 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.auth.Principal;
+import com.scalar.db.api.DistributedTransaction;
+import com.scalar.db.api.DistributedTransactionManager;
+import com.scalar.db.exception.transaction.CommitConflictException;
+import com.scalar.db.exception.transaction.CrudConflictException;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
 /**
- * Unit tests for {@link SequenceController} — document auto-numbering (採番)
- * config CRUD and the atomic {@code nextAndStamp} increment, including
- * counter integrity, zero-padding, year reset and OCC retry behavior.
+ * Unit tests for {@link SequenceController} — document auto-numbering (採番) config CRUD and the
+ * atomic {@code nextAndStamp} increment, including counter integrity, zero-padding, year reset and
+ * OCC retry behavior.
  *
- * <p>Mocks {@link JsonBlobRepository} (Mockito inline mock maker) following
- * the pattern of {@code UserRepositoryTest}.
+ * <p>Mocks {@link JsonBlobRepository} (Mockito inline mock maker) following the pattern of {@code
+ * UserRepositoryTest}.
  */
 class SequenceControllerTest {
 
@@ -195,14 +193,17 @@ class SequenceControllerTest {
         ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
         verify(seqRepo).putWithinTx(eq(tx), eq("tpl_1"), saved.capture());
         verify(tx).commit();
-        verify(seqRepo, never()).put(anyString(), anyString()); // non-transactional write must not be used
+        verify(seqRepo, never())
+                .put(anyString(), anyString()); // non-transactional write must not be used
         return MAPPER.readTree(saved.getValue());
     }
 
     @Test
     void putConfig_createsConfigWithCounterInitialized() throws Exception {
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.empty());
-        when(ctx.body()).thenReturn("{\"prefix\":\"INV-\",\"suffix\":\"-X\",\"digits\":4,\"resetOn\":\"year\"}");
+        when(ctx.body())
+                .thenReturn(
+                        "{\"prefix\":\"INV-\",\"suffix\":\"-X\",\"digits\":4,\"resetOn\":\"year\"}");
 
         JsonNode config = putConfigAndCaptureWrite();
         assertEquals("INV-", config.get("prefix").asText());
@@ -267,11 +268,14 @@ class SequenceControllerTest {
 
     @Test
     void nextAndStamp_incrementsCounterAndFormatsNumber() throws Exception {
-        String config = "{\"prefix\":\"INV-\",\"suffix\":\"-T\",\"digits\":4,\"counter\":41,\"resetYear\":0}";
+        String config =
+                "{\"prefix\":\"INV-\",\"suffix\":\"-T\",\"digits\":4,\"counter\":41,\"resetYear\":0}";
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
-        String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{\"fields\":{}}", "tpl_1");
+        String docNumber =
+                controller.nextAndStamp(
+                        "tpl_1", responseRepo, "resp-1", "{\"fields\":{}}", "tpl_1");
 
         assertEquals("INV-0042-T", docNumber);
 
@@ -283,7 +287,8 @@ class SequenceControllerTest {
         // Response stamped with documentNumber in the same TX
         ArgumentCaptor<String> savedResp = ArgumentCaptor.forClass(String.class);
         verify(responseRepo).putWithinTx(eq(tx), eq("resp-1"), savedResp.capture(), eq("tpl_1"));
-        assertEquals("INV-0042-T", MAPPER.readTree(savedResp.getValue()).get("documentNumber").asText());
+        assertEquals(
+                "INV-0042-T", MAPPER.readTree(savedResp.getValue()).get("documentNumber").asText());
 
         verify(tx).commit();
         verify(tx, never()).abort();
@@ -295,10 +300,13 @@ class SequenceControllerTest {
         final String[] stored = {"{\"prefix\":\"NO-\",\"digits\":3,\"counter\":0,\"resetYear\":0}"};
         when(seqRepo.get("tpl_1")).thenAnswer(inv -> Optional.of(stored[0]));
         when(seqRepo.getWithinTx(any(), eq("tpl_1"))).thenAnswer(inv -> Optional.of(stored[0]));
-        org.mockito.Mockito.doAnswer(inv -> {
-            stored[0] = inv.getArgument(2);
-            return null;
-        }).when(seqRepo).putWithinTx(any(), eq("tpl_1"), anyString());
+        org.mockito.Mockito.doAnswer(
+                        inv -> {
+                            stored[0] = inv.getArgument(2);
+                            return null;
+                        })
+                .when(seqRepo)
+                .putWithinTx(any(), eq("tpl_1"), anyString());
 
         assertEquals("NO-001", controller.nextAndStamp("tpl_1", responseRepo, "r1", "{}", "tpl_1"));
         assertEquals("NO-002", controller.nextAndStamp("tpl_1", responseRepo, "r2", "{}", "tpl_1"));
@@ -320,8 +328,11 @@ class SequenceControllerTest {
     @Test
     void nextAndStamp_yearReset_restartsCounterAndUpdatesResetYear() throws Exception {
         int currentYear = ZonedDateTime.now(ZoneId.of("Asia/Tokyo")).getYear();
-        String config = "{\"prefix\":\"A-\",\"digits\":4,\"counter\":250,"
-                + "\"resetOn\":\"year\",\"resetYear\":" + (currentYear - 1) + "}";
+        String config =
+                "{\"prefix\":\"A-\",\"digits\":4,\"counter\":250,"
+                        + "\"resetOn\":\"year\",\"resetYear\":"
+                        + (currentYear - 1)
+                        + "}";
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
@@ -338,12 +349,16 @@ class SequenceControllerTest {
     @Test
     void nextAndStamp_sameYear_noReset() throws Exception {
         int currentYear = ZonedDateTime.now(ZoneId.of("Asia/Tokyo")).getYear();
-        String config = "{\"prefix\":\"A-\",\"digits\":4,\"counter\":250,"
-                + "\"resetOn\":\"year\",\"resetYear\":" + currentYear + "}";
+        String config =
+                "{\"prefix\":\"A-\",\"digits\":4,\"counter\":250,"
+                        + "\"resetOn\":\"year\",\"resetYear\":"
+                        + currentYear
+                        + "}";
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
 
-        assertEquals("A-0251", controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
+        assertEquals(
+                "A-0251", controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
     }
 
     // ── OCC retry ────────────────────────────────────────────────────────────
@@ -372,7 +387,8 @@ class SequenceControllerTest {
         when(txManager.start()).thenReturn(tx, tx2);
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         // First attempt: conflict during the in-tx read; second attempt: succeeds.
-        when(seqRepo.getWithinTx(tx, "tpl_1")).thenThrow(new CrudConflictException("conflict", "tx-1"));
+        when(seqRepo.getWithinTx(tx, "tpl_1"))
+                .thenThrow(new CrudConflictException("conflict", "tx-1"));
         when(seqRepo.getWithinTx(tx2, "tpl_1")).thenReturn(Optional.of(config));
 
         String docNumber = controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1");
@@ -389,8 +405,12 @@ class SequenceControllerTest {
         when(seqRepo.getWithinTx(any(), eq("tpl_1"))).thenReturn(Optional.of(config));
         doThrow(new CommitConflictException("conflict", "tx-1")).when(tx).commit();
 
-        RuntimeException e = assertThrows(RuntimeException.class,
-                () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
+        RuntimeException e =
+                assertThrows(
+                        RuntimeException.class,
+                        () ->
+                                controller.nextAndStamp(
+                                        "tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
 
         assertTrue(e.getMessage().contains("OCC conflict unresolved"));
         verify(tx, times(5)).commit();
@@ -403,9 +423,11 @@ class SequenceControllerTest {
         when(seqRepo.get("tpl_1")).thenReturn(Optional.of(config));
         when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.of(config));
         doThrow(new IllegalStateException("boom"))
-                .when(seqRepo).putWithinTx(eq(tx), eq("tpl_1"), anyString());
+                .when(seqRepo)
+                .putWithinTx(eq(tx), eq("tpl_1"), anyString());
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(
+                IllegalStateException.class,
                 () -> controller.nextAndStamp("tpl_1", responseRepo, "resp-1", "{}", "tpl_1"));
 
         verify(tx).abort();

@@ -1,25 +1,24 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
- * Renders seal_box (印鑑枠) and signature_line elements to PDF.
- * seal_box: single red circle + centered text (matching frontend rendering).
- * signature_line: underline + label text.
+ * Renders seal_box (印鑑枠) and signature_line elements to PDF. seal_box: single red circle + centered
+ * text (matching frontend rendering). signature_line: underline + label text.
  */
 public final class SealBoxPdfRenderer implements ElementPdfRenderer {
 
     private static final Color SEAL_RED = new Color(0xCC, 0x00, 0x00);
     private final String elementKind;
+
     public SealBoxPdfRenderer(String kind) {
         this.elementKind = kind;
     }
@@ -30,9 +29,17 @@ public final class SealBoxPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         cs.saveGraphicsState();
         switch (elementKind) {
             case "seal_box" -> renderSealBox(cs, el, x, y, w, h, doc, fontCache);
@@ -41,9 +48,16 @@ public final class SealBoxPdfRenderer implements ElementPdfRenderer {
         cs.restoreGraphicsState();
     }
 
-    private void renderSealBox(PDPageContentStream cs, JsonNode el, float x, float y,
-                               float w, float h, PDDocument doc,
-                               Map<String, PDFont> fontCache) throws IOException {
+    private void renderSealBox(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         float cx = x + w / 2;
         float cy = y - h / 2;
         float r = Math.min(w, h) / 2;
@@ -69,9 +83,16 @@ public final class SealBoxPdfRenderer implements ElementPdfRenderer {
         cs.endText();
     }
 
-    private void renderSignatureLine(PDPageContentStream cs, JsonNode el, float x, float y,
-                                     float w, float h, PDDocument doc,
-                                     Map<String, PDFont> fontCache) throws IOException {
+    private void renderSignatureLine(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         // Underline
         float lineY = y - h + 2;
         cs.setStrokingColor(Color.BLACK);
@@ -95,7 +116,8 @@ public final class SealBoxPdfRenderer implements ElementPdfRenderer {
         }
     }
 
-    private static void drawCircle(PDPageContentStream cs, float cx, float cy, float r) throws IOException {
+    private static void drawCircle(PDPageContentStream cs, float cx, float cy, float r)
+            throws IOException {
         float k = 0.5522848f * r;
         cs.moveTo(cx - r, cy);
         cs.curveTo(cx - r, cy + k, cx - k, cy + r, cx, cy + r);

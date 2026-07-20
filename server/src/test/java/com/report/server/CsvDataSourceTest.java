@@ -1,17 +1,17 @@
 package com.report.server;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class CsvDataSourceTest {
 
     @Test
     void parsesSimpleCsv() {
-        String csv = """
+        String csv =
+                """
             name,age,address
             田中太郎,30,東京都
             佐藤花子,25,大阪府
@@ -30,7 +30,8 @@ class CsvDataSourceTest {
 
     @Test
     void handlesQuotedFields() {
-        String csv = """
+        String csv =
+                """
             name,description
             "田中,太郎","住所は""東京""です"
             """;
@@ -44,7 +45,8 @@ class CsvDataSourceTest {
 
     @Test
     void handlesEmptyFields() {
-        String csv = """
+        String csv =
+                """
             name,age,address
             田中太郎,,東京都
             """;
@@ -59,7 +61,8 @@ class CsvDataSourceTest {
 
     @Test
     void trimsHeaderWhitespace() {
-        String csv = """
+        String csv =
+                """
             name , age , address\s
             田中太郎,30,東京都
             """;
@@ -89,7 +92,8 @@ class CsvDataSourceTest {
 
     @Test
     void skipsEmptyLines() {
-        String csv = """
+        String csv =
+                """
             name,age
             田中太郎,30
 
@@ -113,7 +117,8 @@ class CsvDataSourceTest {
 
     @Test
     void handlesFewColumnsInRow() {
-        String csv = """
+        String csv =
+                """
             name,age,address
             田中太郎,30
             """;

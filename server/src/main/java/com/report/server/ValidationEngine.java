@@ -4,20 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ValidationEngine — server-side field constraint and validation rule evaluation.
  *
- * Mirrors the client-side validators.ts logic. Run before PDF generation to catch
- * constraint violations early and return HTTP 422 with structured error details.
+ * <p>Mirrors the client-side validators.ts logic. Run before PDF generation to catch constraint
+ * violations early and return HTTP 422 with structured error details.
  *
- * Phase 2: element-level FieldConstraint + template-level ValidationRule (stub condition).
- * Phase 5: ValidationRule condition will delegate to JEXL ExpressionEngine.
+ * <p>Phase 2: element-level FieldConstraint + template-level ValidationRule (stub condition). Phase
+ * 5: ValidationRule condition will delegate to JEXL ExpressionEngine.
  */
 public final class ValidationEngine {
 
@@ -29,18 +28,18 @@ public final class ValidationEngine {
     /**
      * Represents a single validation violation.
      *
-     * @param elementId  the ID of the violating element (may be null for template-level rules)
-     * @param field      a human-readable field identifier
-     * @param message    the error or warning message
-     * @param severity   "error" or "warning"
+     * @param elementId the ID of the violating element (may be null for template-level rules)
+     * @param field a human-readable field identifier
+     * @param message the error or warning message
+     * @param severity "error" or "warning"
      */
     public record Violation(String elementId, String field, String message, String severity) {}
 
     /**
-     * Validate a projection JSON string against its embedded FieldConstraints
-     * and ValidationRules. Uses `_formData` from the projection if present.
+     * Validate a projection JSON string against its embedded FieldConstraints and ValidationRules.
+     * Uses `_formData` from the projection if present.
      *
-     * @param projectionJson  the full projection JSON (templates + optional _formData)
+     * @param projectionJson the full projection JSON (templates + optional _formData)
      * @return list of violations (may be empty)
      */
     public static List<Violation> validate(String projectionJson) {
@@ -58,7 +57,9 @@ public final class ValidationEngine {
             }
         } catch (Exception e) {
             // Malformed JSON — caller validates structure before invoking; log for visibility
-            log.warn("ValidationEngine: malformed projection JSON — validation skipped: {}", e.getMessage());
+            log.warn(
+                    "ValidationEngine: malformed projection JSON — validation skipped: {}",
+                    e.getMessage());
         }
 
         return violations;
@@ -66,8 +67,8 @@ public final class ValidationEngine {
 
     // ── Template-level validation ─────────────────────────────────────────────
 
-    private static void validateTemplate(JsonNode template, JsonNode formData,
-                                         List<Violation> out) {
+    private static void validateTemplate(
+            JsonNode template, JsonNode formData, List<Violation> out) {
         // Element-level FieldConstraint
         JsonNode sections = template.path("sections");
         if (sections.isArray()) {
@@ -85,8 +86,7 @@ public final class ValidationEngine {
         }
     }
 
-    private static void validateSection(JsonNode section, JsonNode formData,
-                                        List<Violation> out) {
+    private static void validateSection(JsonNode section, JsonNode formData, List<Violation> out) {
         JsonNode elements = section.path("elements");
         if (!elements.isArray()) return;
         for (JsonNode element : elements) {
@@ -96,8 +96,7 @@ public final class ValidationEngine {
 
     // ── Element-level FieldConstraint ─────────────────────────────────────────
 
-    private static void validateElement(JsonNode element, JsonNode formData,
-                                        List<Violation> out) {
+    private static void validateElement(JsonNode element, JsonNode formData, List<Violation> out) {
         JsonNode props = element.path("props");
         JsonNode constraint = props.path("constraint");
         if (constraint.isMissingNode() || constraint.isNull()) return;
@@ -107,18 +106,23 @@ public final class ValidationEngine {
         String constraintType = constraint.path("constraintType").asText("");
         String elementId = element.path("id").asText("");
 
-        String violation = switch (constraintType) {
-            case "text" -> validateTextConstraint(value, constraint);
-            case "numeric" -> validateNumericConstraint(value, constraint);
-            case "date" -> validateDateConstraint(value, constraint);
-            case "codeSet" -> validateCodeSetConstraint(value, constraint);
-            default -> null;
-        };
+        String violation =
+                switch (constraintType) {
+                    case "text" -> validateTextConstraint(value, constraint);
+                    case "numeric" -> validateNumericConstraint(value, constraint);
+                    case "date" -> validateDateConstraint(value, constraint);
+                    case "codeSet" -> validateCodeSetConstraint(value, constraint);
+                    default -> null;
+                };
 
         if (violation != null) {
             String severity = constraint.path("severity").asText("error");
-            out.add(new Violation(elementId, bindingRef != null ? bindingRef : elementId,
-                    violation, severity));
+            out.add(
+                    new Violation(
+                            elementId,
+                            bindingRef != null ? bindingRef : elementId,
+                            violation,
+                            severity));
         }
     }
 
@@ -146,10 +150,12 @@ public final class ValidationEngine {
 
         String inputPattern = c.path("inputPattern").asText(null);
         if (inputPattern != null && !inputPattern.isBlank()) {
-            if (!RequestValidator.isValidPattern(inputPattern)) return null; // skip invalid patterns
+            if (!RequestValidator.isValidPattern(inputPattern))
+                return null; // skip invalid patterns
             try {
                 if (!Pattern.compile(inputPattern).matcher(value).matches()) {
-                    return c.path("errorMessage").asText("Value does not match the required format.");
+                    return c.path("errorMessage")
+                            .asText("Value does not match the required format.");
                 }
             } catch (PatternSyntaxException e) {
                 // Should not reach here — isValidPattern filters these out
@@ -161,15 +167,21 @@ public final class ValidationEngine {
     private static String validateCharType(String value, String charType) {
         return switch (charType) {
             case "half-width" ->
-                value.chars().anyMatch(ch -> ch > 0x7F) ? "Only half-width characters are allowed." : null;
+                    value.chars().anyMatch(ch -> ch > 0x7F)
+                            ? "Only half-width characters are allowed."
+                            : null;
             case "full-width" ->
-                value.chars().anyMatch(ch -> ch <= 0x7F) ? "Only full-width characters are allowed." : null;
+                    value.chars().anyMatch(ch -> ch <= 0x7F)
+                            ? "Only full-width characters are allowed."
+                            : null;
             case "alpha-numeric" ->
-                value.chars().anyMatch(ch -> !Character.isLetterOrDigit(ch) || ch > 0x7F)
-                    ? "Only alphanumeric characters are allowed." : null;
+                    value.chars().anyMatch(ch -> !Character.isLetterOrDigit(ch) || ch > 0x7F)
+                            ? "Only alphanumeric characters are allowed."
+                            : null;
             case "kana" ->
-                value.chars().anyMatch(ch -> ch < 0x30A0 || ch > 0x30FF)
-                    ? "Only katakana characters are allowed." : null;
+                    value.chars().anyMatch(ch -> ch < 0x30A0 || ch > 0x30FF)
+                            ? "Only katakana characters are allowed."
+                            : null;
             default -> null;
         };
     }
@@ -191,16 +203,19 @@ public final class ValidationEngine {
         JsonNode range = c.path("numericRange");
         if (!range.isMissingNode()) {
             if (range.has("min") && num < range.get("min").asDouble()) {
-                return c.path("errorMessage").asText("Value must be at least " + range.get("min").asDouble() + ".");
+                return c.path("errorMessage")
+                        .asText("Value must be at least " + range.get("min").asDouble() + ".");
             }
             if (range.has("max") && num > range.get("max").asDouble()) {
-                return c.path("errorMessage").asText("Value must be at most " + range.get("max").asDouble() + ".");
+                return c.path("errorMessage")
+                        .asText("Value must be at most " + range.get("max").asDouble() + ".");
             }
         }
         return null;
     }
 
-    private static final java.util.regex.Pattern ISO_DATE = java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
+    private static final java.util.regex.Pattern ISO_DATE =
+            java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
 
     private static String validateDateConstraint(String value, JsonNode c) {
         boolean required = c.path("required").asBoolean(false);
@@ -249,7 +264,8 @@ public final class ValidationEngine {
     private static void validateRule(JsonNode rule, JsonNode formData, List<Violation> out) {
         String condition = rule.path("condition").asText(null);
         // Phase 2: only fire rules with null/blank conditions (unconditional rules)
-        if (!ExpressionEngine.evaluate(condition, CalculationEngine.formDataToMap(formData), 0)) return;
+        if (!ExpressionEngine.evaluate(condition, CalculationEngine.formDataToMap(formData), 0))
+            return;
 
         String message = rule.path("message").asText("Validation rule violated.");
         String severity = rule.path("severity").asText("error");
@@ -268,7 +284,10 @@ public final class ValidationEngine {
     // ── Utilities ─────────────────────────────────────────────────────────────
 
     private static String resolveValue(String bindingRef, JsonNode formData) {
-        if (bindingRef == null || bindingRef.isBlank() || formData == null || formData.isMissingNode()) {
+        if (bindingRef == null
+                || bindingRef.isBlank()
+                || formData == null
+                || formData.isMissingNode()) {
             return null;
         }
         // Simple top-level field lookup (detail row binding deferred to full implementation)

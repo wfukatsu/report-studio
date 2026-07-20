@@ -1,13 +1,5 @@
 package com.report.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,34 +11,44 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.List;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Sends Webhook POST requests with SSRF protection and HMAC-SHA256 signature.
  *
  * <p>Security:
+ *
  * <ul>
- *   <li>https:// only</li>
- *   <li>Private IPs, loopback, cloud metadata blocked</li>
- *   <li>Redirect following disabled (a 3xx is logged, never followed)</li>
- *   <li><b>DNS pinning (issue #200):</b> the host is resolved <em>once</em>; every resolved
- *       address is validated, and the TLS connection is made to that exact validated IP while
- *       SNI and certificate hostname verification still target the original hostname. This
- *       closes the DNS-rebinding TOCTOU where a host resolved to a public IP at validation
- *       time and to {@code 169.254.169.254} (or another internal address) at send time.</li>
- *   <li>X-Webhook-Signature header with HMAC-SHA256</li>
- *   <li>Payload body NOT logged (PII protection)</li>
+ *   <li>https:// only
+ *   <li>Private IPs, loopback, cloud metadata blocked
+ *   <li>Redirect following disabled (a 3xx is logged, never followed)
+ *   <li><b>DNS pinning (issue #200):</b> the host is resolved <em>once</em>; every resolved address
+ *       is validated, and the TLS connection is made to that exact validated IP while SNI and
+ *       certificate hostname verification still target the original hostname. This closes the
+ *       DNS-rebinding TOCTOU where a host resolved to a public IP at validation time and to {@code
+ *       169.254.169.254} (or another internal address) at send time.
+ *   <li>X-Webhook-Signature header with HMAC-SHA256
+ *   <li>Payload body NOT logged (PII protection)
  * </ul>
  */
 public final class WebhookDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookDispatcher.class);
     private static final int TIMEOUT_MS = 5_000;
+
     /** Cap the status-line read so a hostile endpoint cannot stream unbounded data. */
     private static final int MAX_STATUS_LINE = 512;
 
     /**
      * Validate the URL and dispatch a POST to the pre-validated IP. Does NOT retry on failure.
-     * Failure is logged (without body) and silently swallowed — the caller's response is unaffected.
+     * Failure is logged (without body) and silently swallowed — the caller's response is
+     * unaffected.
      */
     public void dispatch(String url, String secret, String payloadJson) {
         try {
@@ -71,9 +73,9 @@ public final class WebhookDispatcher {
     }
 
     /**
-     * Validate that the URL is safe to call (https, public IP, not a metadata endpoint) and
-     * return the vetted connection target. Every address the host resolves to is checked, and
-     * the returned pinned address is one of those checked addresses.
+     * Validate that the URL is safe to call (https, public IP, not a metadata endpoint) and return
+     * the vetted connection target. Every address the host resolves to is checked, and the returned
+     * pinned address is one of those checked addresses.
      *
      * @throws IllegalArgumentException if the URL is unsafe
      */
@@ -82,7 +84,8 @@ public final class WebhookDispatcher {
     }
 
     /** A resolved, validated webhook target: original host/port/path plus the pinned IP. */
-    private record ResolvedTarget(String host, int port, String requestTarget, InetAddress pinnedIp) {}
+    private record ResolvedTarget(
+            String host, int port, String requestTarget, InetAddress pinnedIp) {}
 
     private static ResolvedTarget validateAndResolve(String url) throws Exception {
         if (url == null || url.isBlank()) throw new IllegalArgumentException("URL is required");
@@ -109,8 +112,11 @@ public final class WebhookDispatcher {
         // Resolve ONCE. Validate every address so a multi-record host cannot slip an internal
         // IP past us, and pin to the first (all are vetted) so send() reuses this exact result.
         InetAddress[] addrs;
-        try { addrs = InetAddress.getAllByName(host); }
-        catch (Exception e) { throw new IllegalArgumentException("Cannot resolve host: " + host); }
+        try {
+            addrs = InetAddress.getAllByName(host);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Cannot resolve host: " + host);
+        }
         if (addrs.length == 0) throw new IllegalArgumentException("Cannot resolve host: " + host);
         for (InetAddress addr : addrs) {
             assertPublicAddress(addr);
@@ -126,8 +132,11 @@ public final class WebhookDispatcher {
 
     /** Reject loopback / private / link-local / metadata / zero addresses. */
     private static void assertPublicAddress(InetAddress addr) {
-        if (addr.isLoopbackAddress() || addr.isLinkLocalAddress() || addr.isSiteLocalAddress()
-                || addr.isAnyLocalAddress() || addr.isMulticastAddress()) {
+        if (addr.isLoopbackAddress()
+                || addr.isLinkLocalAddress()
+                || addr.isSiteLocalAddress()
+                || addr.isAnyLocalAddress()
+                || addr.isMulticastAddress()) {
             throw new IllegalArgumentException("Private/loopback IPs are not allowed");
         }
         String ip = addr.getHostAddress();
@@ -144,18 +153,30 @@ public final class WebhookDispatcher {
      * Open a TLS connection to the pinned IP (no re-resolution), verifying the certificate against
      * the original hostname, write the signed POST, and return the HTTP status code.
      */
-    private static int sendPinned(ResolvedTarget target, String timestamp, String signature,
-                                  String payloadJson) throws Exception {
+    private static int sendPinned(
+            ResolvedTarget target, String timestamp, String signature, String payloadJson)
+            throws Exception {
         byte[] body = payloadJson.getBytes(StandardCharsets.UTF_8);
-        String requestHead = "POST " + target.requestTarget() + " HTTP/1.1\r\n"
-                + "Host: " + target.host() + "\r\n"
-                + "Content-Type: application/json\r\n"
-                + "X-Timestamp: " + timestamp + "\r\n"
-                + "X-Webhook-Signature: " + signature + "\r\n"
-                + "Content-Length: " + body.length + "\r\n"
-                + "Connection: close\r\n"
-                + "User-Agent: ReportStudio-Webhook/1\r\n"
-                + "\r\n";
+        String requestHead =
+                "POST "
+                        + target.requestTarget()
+                        + " HTTP/1.1\r\n"
+                        + "Host: "
+                        + target.host()
+                        + "\r\n"
+                        + "Content-Type: application/json\r\n"
+                        + "X-Timestamp: "
+                        + timestamp
+                        + "\r\n"
+                        + "X-Webhook-Signature: "
+                        + signature
+                        + "\r\n"
+                        + "Content-Length: "
+                        + body.length
+                        + "\r\n"
+                        + "Connection: close\r\n"
+                        + "User-Agent: ReportStudio-Webhook/1\r\n"
+                        + "\r\n";
 
         SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         // Connect a plain socket to the vetted IP, then layer TLS over it passing the original
@@ -165,10 +186,12 @@ public final class WebhookDispatcher {
         Socket plain = new Socket();
         try {
             plain.connect(new InetSocketAddress(target.pinnedIp(), target.port()), TIMEOUT_MS);
-            try (SSLSocket ssl = (SSLSocket) factory.createSocket(plain, target.host(), target.port(), true)) {
+            try (SSLSocket ssl =
+                    (SSLSocket) factory.createSocket(plain, target.host(), target.port(), true)) {
                 ssl.setSoTimeout(TIMEOUT_MS);
                 SSLParameters params = ssl.getSSLParameters();
-                params.setEndpointIdentificationAlgorithm("HTTPS"); // verify cert against target.host()
+                params.setEndpointIdentificationAlgorithm(
+                        "HTTPS"); // verify cert against target.host()
                 ssl.setSSLParameters(params);
                 ssl.startHandshake();
 
@@ -181,14 +204,18 @@ public final class WebhookDispatcher {
             }
         } finally {
             if (!plain.isClosed()) {
-                try { plain.close(); } catch (Exception ignored) { }
+                try {
+                    plain.close();
+                } catch (Exception ignored) {
+                }
             }
         }
     }
 
     /** Read only the HTTP status line (e.g. {@code HTTP/1.1 200 OK}) and return the code. */
     private static int readStatusCode(InputStream in) throws Exception {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
+        BufferedReader reader =
+                new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
         char[] buf = new char[MAX_STATUS_LINE];
         int read = 0;
         int c;

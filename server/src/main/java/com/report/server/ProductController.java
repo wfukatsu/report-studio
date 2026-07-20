@@ -7,9 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -19,23 +16,23 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Product Master CRUD endpoints.
  *
- * <p>Products are stored in the dedicated {@code products} table via
- * {@link JsonBlobRepository}. All products share the group key {@code "products"}
- * for efficient listing.
+ * <p>Products are stored in the dedicated {@code products} table via {@link JsonBlobRepository}.
+ * All products share the group key {@code "products"} for efficient listing.
  *
  * <p>Additional singletons in the same table:
+ *
  * <ul>
- *   <li>{@code product-code:{code}} — sentinel blobs that enforce code uniqueness</li>
- *   <li>{@code product-fields} — custom field definitions (array of
- *       {@code ProductCustomFieldDef})</li>
+ *   <li>{@code product-code:{code}} — sentinel blobs that enforce code uniqueness
+ *   <li>{@code product-fields} — custom field definitions (array of {@code ProductCustomFieldDef})
  * </ul>
  *
- * <p>Authentication: read endpoints are public; write endpoints require a
- * non-anonymous principal.
+ * <p>Authentication: read endpoints are public; write endpoints require a non-anonymous principal.
  */
 public final class ProductController {
 
@@ -52,6 +49,7 @@ public final class ProductController {
 
     /** Custom field keys must be alphanumeric/hyphen/underscore, no reserved names */
     private static final Pattern SAFE_KEY = Pattern.compile("^[a-zA-Z0-9_-]{1,64}$");
+
     private static final java.util.Set<String> RESERVED_KEYS =
             java.util.Set.of("__proto__", "constructor", "prototype");
 
@@ -63,10 +61,7 @@ public final class ProductController {
 
     // ── Read endpoints ────────────────────────────────────────────────────────
 
-    /**
-     * GET /api/v1/products
-     * Returns all non-deleted products.
-     */
+    /** GET /api/v1/products Returns all non-deleted products. */
     public void list(Context ctx) throws Exception {
         List<String> blobs = repo.listByGroupKey(GROUP_KEY);
         ArrayNode result = MAPPER.createArrayNode();
@@ -85,10 +80,7 @@ public final class ProductController {
         ctx.result(MAPPER.writeValueAsString(result));
     }
 
-    /**
-     * GET /api/v1/products/{id}
-     * Returns a single product by ID (including soft-deleted).
-     */
+    /** GET /api/v1/products/{id} Returns a single product by ID (including soft-deleted). */
     public void get(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
         if (id == null) return;
@@ -103,10 +95,7 @@ public final class ProductController {
         ctx.result(stored.get());
     }
 
-    /**
-     * POST /api/v1/products
-     * Creates a new product.
-     */
+    /** POST /api/v1/products Creates a new product. */
     public void create(Context ctx) throws Exception {
         if (!requireAuth(ctx)) return;
 
@@ -132,7 +121,10 @@ public final class ProductController {
         }
         if (!SAFE_KEY.matcher(code).matches()) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "code must be alphanumeric, hyphen, or underscore (max 64 chars)"));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "code must be alphanumeric, hyphen, or underscore (max 64 chars)"));
             return;
         }
 
@@ -166,9 +158,19 @@ public final class ProductController {
         product.put("taxType", req.path("taxType").asText("none"));
         product.put("unit", req.path("unit").asText(""));
         product.put("manufacturer", req.path("manufacturer").asText(""));
-        product.set("subscriptionPeriod", req.path("subscriptionPeriod").isNull() ? MAPPER.nullNode() : req.path("subscriptionPeriod"));
-        product.set("subscriptionPriceUnit", req.path("subscriptionPriceUnit").isNull() ? MAPPER.nullNode() : req.path("subscriptionPriceUnit"));
-        product.set("customFields", req.has("customFields") ? req.path("customFields") : MAPPER.createObjectNode());
+        product.set(
+                "subscriptionPeriod",
+                req.path("subscriptionPeriod").isNull()
+                        ? MAPPER.nullNode()
+                        : req.path("subscriptionPeriod"));
+        product.set(
+                "subscriptionPriceUnit",
+                req.path("subscriptionPriceUnit").isNull()
+                        ? MAPPER.nullNode()
+                        : req.path("subscriptionPriceUnit"));
+        product.set(
+                "customFields",
+                req.has("customFields") ? req.path("customFields") : MAPPER.createObjectNode());
         product.set("priceHistory", MAPPER.createArrayNode());
         product.putNull("deletedAt");
         product.put("createdAt", now);
@@ -188,9 +190,8 @@ public final class ProductController {
     }
 
     /**
-     * PUT /api/v1/products/{id}
-     * Updates an existing product. Appends to priceHistory if unitPrice changes.
-     * Uses optimistic concurrency via {@code If-Match: <version>} header.
+     * PUT /api/v1/products/{id} Updates an existing product. Appends to priceHistory if unitPrice
+     * changes. Uses optimistic concurrency via {@code If-Match: <version>} header.
      */
     public void update(Context ctx) throws Exception {
         if (!requireAuth(ctx)) return;
@@ -220,9 +221,14 @@ public final class ProductController {
                 int expectedVersion = Integer.parseInt(ifMatch);
                 if (expectedVersion != currentVersion) {
                     ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(Map.of("error", "VERSION_CONFLICT",
-                            "message", "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。",
-                            "currentVersion", currentVersion));
+                    ctx.json(
+                            Map.of(
+                                    "error",
+                                    "VERSION_CONFLICT",
+                                    "message",
+                                    "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。",
+                                    "currentVersion",
+                                    currentVersion));
                     return;
                 }
             } catch (NumberFormatException e) {
@@ -283,8 +289,10 @@ public final class ProductController {
         if (req.has("taxType")) updated.put("taxType", req.path("taxType").asText());
         if (req.has("unit")) updated.put("unit", req.path("unit").asText());
         if (req.has("manufacturer")) updated.put("manufacturer", req.path("manufacturer").asText());
-        if (req.has("subscriptionPeriod")) updated.set("subscriptionPeriod", req.path("subscriptionPeriod"));
-        if (req.has("subscriptionPriceUnit")) updated.set("subscriptionPriceUnit", req.path("subscriptionPriceUnit"));
+        if (req.has("subscriptionPeriod"))
+            updated.set("subscriptionPeriod", req.path("subscriptionPeriod"));
+        if (req.has("subscriptionPriceUnit"))
+            updated.set("subscriptionPriceUnit", req.path("subscriptionPriceUnit"));
         if (req.has("customFields")) updated.set("customFields", req.path("customFields"));
 
         // Price history: append entry if unitPrice changes
@@ -306,7 +314,8 @@ public final class ProductController {
                 }
                 ObjectNode histEntry = MAPPER.createObjectNode();
                 histEntry.put("price", oldPrice);
-                histEntry.put("effectiveFrom", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                histEntry.put(
+                        "effectiveFrom", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
                 history.insert(0, histEntry);
                 updated.set("priceHistory", history);
             }
@@ -331,10 +340,7 @@ public final class ProductController {
         ctx.result(updatedJson);
     }
 
-    /**
-     * DELETE /api/v1/products/{id}
-     * Soft-deletes a product by setting {@code deletedAt}.
-     */
+    /** DELETE /api/v1/products/{id} Soft-deletes a product by setting {@code deletedAt}. */
     public void softDelete(Context ctx) throws Exception {
         if (!requireAuth(ctx)) return;
 
@@ -369,20 +375,14 @@ public final class ProductController {
 
     // ── Custom field definition endpoints ────────────────────────────────────
 
-    /**
-     * GET /api/v1/products/fields
-     * Returns custom field definitions.
-     */
+    /** GET /api/v1/products/fields Returns custom field definitions. */
     public void getFields(Context ctx) throws Exception {
         Optional<String> stored = repo.get(FIELDS_ID);
         ctx.contentType("application/json");
         ctx.result(stored.orElse(EMPTY_ARRAY));
     }
 
-    /**
-     * PUT /api/v1/products/fields
-     * Replaces custom field definitions.
-     */
+    /** PUT /api/v1/products/fields Replaces custom field definitions. */
     public void putFields(Context ctx) throws Exception {
         if (!requireAuth(ctx)) return;
 
@@ -409,7 +409,10 @@ public final class ProductController {
             String key = def.path("key").asText(null);
             if (key == null || !SAFE_KEY.matcher(key).matches()) {
                 ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid field key: must be alphanumeric, hyphen, or underscore"));
+                ctx.json(
+                        Map.of(
+                                "error",
+                                "Invalid field key: must be alphanumeric, hyphen, or underscore"));
                 return;
             }
             if (RESERVED_KEYS.contains(key)) {
@@ -420,7 +423,10 @@ public final class ProductController {
             String type = def.path("type").asText(null);
             if (!java.util.Set.of("text", "number", "date", "boolean").contains(type)) {
                 ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid field type: must be text, number, date, or boolean"));
+                ctx.json(
+                        Map.of(
+                                "error",
+                                "Invalid field type: must be text, number, date, or boolean"));
                 return;
             }
         }
@@ -436,21 +442,29 @@ public final class ProductController {
     private static final int IMPORT_MAX_CUSTOM_KEYS = 50;
 
     // Known field column aliases (Japanese and English)
-    private static final java.util.Map<String, String> COLUMN_ALIASES = java.util.Map.ofEntries(
-        java.util.Map.entry("code", "code"),       java.util.Map.entry("商品コード", "code"),
-        java.util.Map.entry("name", "name"),       java.util.Map.entry("商品名", "name"),
-        java.util.Map.entry("unitprice", "unitPrice"), java.util.Map.entry("単価", "unitPrice"),
-        java.util.Map.entry("category", "category"), java.util.Map.entry("カテゴリ", "category"),
-        java.util.Map.entry("taxtype", "taxType"),
-        java.util.Map.entry("unit", "unit"),       java.util.Map.entry("単位", "unit"),
-        java.util.Map.entry("manufacturer", "manufacturer"), java.util.Map.entry("メーカー", "manufacturer"),
-        java.util.Map.entry("description", "description"), java.util.Map.entry("説明", "description"),
-        java.util.Map.entry("stockcount", "stockCount"), java.util.Map.entry("在庫数", "stockCount")
-    );
+    private static final java.util.Map<String, String> COLUMN_ALIASES =
+            java.util.Map.ofEntries(
+                    java.util.Map.entry("code", "code"),
+                    java.util.Map.entry("商品コード", "code"),
+                    java.util.Map.entry("name", "name"),
+                    java.util.Map.entry("商品名", "name"),
+                    java.util.Map.entry("unitprice", "unitPrice"),
+                    java.util.Map.entry("単価", "unitPrice"),
+                    java.util.Map.entry("category", "category"),
+                    java.util.Map.entry("カテゴリ", "category"),
+                    java.util.Map.entry("taxtype", "taxType"),
+                    java.util.Map.entry("unit", "unit"),
+                    java.util.Map.entry("単位", "unit"),
+                    java.util.Map.entry("manufacturer", "manufacturer"),
+                    java.util.Map.entry("メーカー", "manufacturer"),
+                    java.util.Map.entry("description", "description"),
+                    java.util.Map.entry("説明", "description"),
+                    java.util.Map.entry("stockcount", "stockCount"),
+                    java.util.Map.entry("在庫数", "stockCount"));
 
     /**
-     * POST /api/v1/products/import
-     * Bulk-import products from CSV text. Skips rows that fail validation (no full abort).
+     * POST /api/v1/products/import Bulk-import products from CSV text. Skips rows that fail
+     * validation (no full abort).
      */
     public void importCsv(Context ctx) throws Exception {
         if (!requireAuth(ctx)) return;
@@ -459,8 +473,13 @@ public final class ProductController {
         if (!RequestValidator.validateJson(ctx, body)) return;
 
         JsonNode req;
-        try { req = MAPPER.readTree(body); }
-        catch (Exception e) { ctx.status(HttpStatus.BAD_REQUEST); ctx.json(Map.of("error","Invalid JSON")); return; }
+        try {
+            req = MAPPER.readTree(body);
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST);
+            ctx.json(Map.of("error", "Invalid JSON"));
+            return;
+        }
 
         String csvText = req.path("csv").asText(null);
         if (csvText == null || csvText.isBlank()) {
@@ -508,9 +527,11 @@ public final class ProductController {
                     // Unknown column → customFields
                     String origKey = entry.getKey().trim();
                     if (RESERVED_KEYS.contains(origKey)) {
-                        hasReservedKey = true; break;
+                        hasReservedKey = true;
+                        break;
                     }
-                    if (SAFE_KEY.matcher(origKey).matches() && custom.size() < IMPORT_MAX_CUSTOM_KEYS) {
+                    if (SAFE_KEY.matcher(origKey).matches()
+                            && custom.size() < IMPORT_MAX_CUSTOM_KEYS) {
                         custom.put(origKey, entry.getValue());
                     }
                 }
@@ -539,8 +560,9 @@ public final class ProductController {
             double unitPrice = 0.0;
             if (known.containsKey("unitPrice")) {
                 String priceStr = known.get("unitPrice").trim();
-                try { unitPrice = Double.parseDouble(priceStr); }
-                catch (NumberFormatException e) {
+                try {
+                    unitPrice = Double.parseDouble(priceStr);
+                } catch (NumberFormatException e) {
                     skipped++;
                     addError(errors, rowNum, "unitPrice", priceStr, "数値ではありません");
                     continue;
@@ -569,7 +591,10 @@ public final class ProductController {
             // stockCount
             int stockCount = 0;
             if (known.containsKey("stockCount")) {
-                try { stockCount = Integer.parseInt(known.get("stockCount").trim()); } catch (NumberFormatException ignored) {}
+                try {
+                    stockCount = Integer.parseInt(known.get("stockCount").trim());
+                } catch (NumberFormatException ignored) {
+                }
             }
             product.put("stockCount", stockCount);
             product.putNull("subscriptionPeriod");
@@ -598,18 +623,23 @@ public final class ProductController {
         ctx.result(MAPPER.writeValueAsString(result));
     }
 
-    private static void addError(com.fasterxml.jackson.databind.node.ArrayNode errors,
-                                  int row, String column, String value, String reason) {
+    private static void addError(
+            com.fasterxml.jackson.databind.node.ArrayNode errors,
+            int row,
+            String column,
+            String value,
+            String reason) {
         com.fasterxml.jackson.databind.node.ObjectNode e = errors.objectNode();
-        e.put("row", row); e.put("column", column); e.put("value", value); e.put("reason", reason);
+        e.put("row", row);
+        e.put("column", column);
+        e.put("value", value);
+        e.put("reason", reason);
         errors.add(e);
     }
 
     // ── Package-private helpers (used by ProductMasterResolver) ──────────────
 
-    /**
-     * Returns all active (non-deleted) products. Used by the resolve-bindings pipeline.
-     */
+    /** Returns all active (non-deleted) products. Used by the resolve-bindings pipeline. */
     List<JsonNode> listActiveProducts() {
         try {
             List<String> blobs = repo.listByGroupKey(GROUP_KEY);
@@ -620,7 +650,8 @@ public final class ProductController {
                     if (product.path("deletedAt").isNull()) {
                         result.add(product);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             return result;
         } catch (Exception e) {
@@ -629,9 +660,7 @@ public final class ProductController {
         }
     }
 
-    /**
-     * Returns a single active product by code. Used by the resolve-bindings pipeline.
-     */
+    /** Returns a single active product by code. Used by the resolve-bindings pipeline. */
     Optional<JsonNode> findByCode(String code) {
         try {
             Optional<String> sentinel = repo.get(SENTINEL_PREFIX + code);
@@ -684,7 +713,9 @@ public final class ProductController {
             }
             JsonNode val = entry.getValue();
             if (!val.isTextual() && !val.isNumber() && !val.isBoolean() && !val.isNull()) {
-                return "customFields value for key '" + key + "' must be string, number, boolean, or null";
+                return "customFields value for key '"
+                        + key
+                        + "' must be string, number, boolean, or null";
             }
             if (val.isTextual() && val.asText().length() > MAX_CUSTOM_FIELD_VALUE_LEN) {
                 return "customFields string value for key '" + key + "' exceeds max length";

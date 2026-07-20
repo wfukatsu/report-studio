@@ -1,16 +1,15 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.javalin.http.Context;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.*;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.javalin.http.Context;
+import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class SchemaInferControllerTest {
 
@@ -25,21 +24,28 @@ class SchemaInferControllerTest {
     void setUp() {
         controller = new SchemaInferController();
         ctx = mock(Context.class);
-        when(ctx.status(anyInt())).thenAnswer(inv -> {
-            capturedStatus = (int) inv.getArguments()[0];
-            return ctx;
-        });
-        doAnswer(inv -> {
-            capturedJson = inv.getArguments()[0];
-            return null;
-        }).when(ctx).json(any());
+        when(ctx.status(anyInt()))
+                .thenAnswer(
+                        inv -> {
+                            capturedStatus = (int) inv.getArguments()[0];
+                            return ctx;
+                        });
+        doAnswer(
+                        inv -> {
+                            capturedJson = inv.getArguments()[0];
+                            return null;
+                        })
+                .when(ctx)
+                .json(any());
     }
 
     // ── Happy path ───────────────────────────────────────────────────────────
 
     @Test
     void infersMasterGroupFromFlatObject() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {"name": "Alice", "age": 30, "active": true}}
         """);
 
@@ -70,7 +76,9 @@ class SchemaInferControllerTest {
 
     @Test
     void infersDetailGroupFromArrayOfObjects() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {
                 "title": "Invoice",
                 "items": [
@@ -100,7 +108,9 @@ class SchemaInferControllerTest {
 
     @Test
     void handlesEmptyObject() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {}}
         """);
 
@@ -113,7 +123,9 @@ class SchemaInferControllerTest {
 
     @Test
     void handlesOnlyDetailGroups() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {"rows": [{"x": 1}, {"x": 2}]}}
         """);
 
@@ -128,7 +140,9 @@ class SchemaInferControllerTest {
 
     @Test
     void infersArrayTypeForNestedArray() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {"tags": ["a", "b", "c"]}}
         """);
 
@@ -146,7 +160,9 @@ class SchemaInferControllerTest {
 
     @Test
     void mergesFieldsFromMultipleDetailRows() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {
                 "rows": [
                     {"a": 1},
@@ -166,7 +182,9 @@ class SchemaInferControllerTest {
 
     @Test
     void eachFieldHasIdLabelKeyType() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": {"foo": "bar"}}
         """);
 
@@ -184,7 +202,9 @@ class SchemaInferControllerTest {
 
     @Test
     void returns400WhenNoSampleField() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"data": {"name": "Alice"}}
         """);
 
@@ -195,7 +215,9 @@ class SchemaInferControllerTest {
 
     @Test
     void returns400WhenSampleIsNotObject() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"sample": ["not", "an", "object"]}
         """);
 

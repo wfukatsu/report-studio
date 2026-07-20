@@ -3,9 +3,8 @@ package com.report.server;
 /**
  * ScalarDB table size limits — mirrored in {@code src/lib/scalardbLimits.ts}.
  *
- * <p>Keep these values in sync with the TypeScript constants. The frontend
- * uses them for client-side validation (before POST); the backend uses them
- * for final server-side enforcement.
+ * <p>Keep these values in sync with the TypeScript constants. The frontend uses them for
+ * client-side validation (before POST); the backend uses them for final server-side enforcement.
  */
 public final class ScalarDbLimits {
 
@@ -26,9 +25,9 @@ public final class ScalarDbLimits {
     /**
      * Maximum length for a ScalarDB identifier (namespace, table, or column name).
      *
-     * <p>64 is a safe conservative cap for common backends. Cassandra limits
-     * identifiers to 48 chars; most JDBC backends allow 63–128. The frontend
-     * mirrors this constant in {@code scalardbLimits.ts} — keep them in sync.
+     * <p>64 is a safe conservative cap for common backends. Cassandra limits identifiers to 48
+     * chars; most JDBC backends allow 63–128. The frontend mirrors this constant in {@code
+     * scalardbLimits.ts} — keep them in sync.
      */
     public static final int MAX_IDENTIFIER_LENGTH = 64;
 }

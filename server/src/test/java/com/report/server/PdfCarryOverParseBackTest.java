@@ -1,18 +1,17 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Parse-back tests for carry-over totals (繰越小計, issue #55 phase 2).
  *
- * <p>12 rows (amounts 100..1200), 5 rows per page → 3 pages.
- * Page sums: rows 1–5 = 1,500; rows 1–10 = 5,500; total 7,800.
+ * <p>12 rows (amounts 100..1200), 5 rows per page → 3 pages. Page sums: rows 1–5 = 1,500; rows 1–10
+ * = 5,500; total 7,800.
  */
 class PdfCarryOverParseBackTest {
 
@@ -23,10 +22,15 @@ class PdfCarryOverParseBackTest {
         StringBuilder items = new StringBuilder();
         for (int i = 1; i <= 12; i++) {
             if (i > 1) items.append(',');
-            items.append("{\"name\":\"品目").append(i).append("\",\"amount\":").append(i * 100).append("}");
+            items.append("{\"name\":\"品目")
+                    .append(i)
+                    .append("\",\"amount\":")
+                    .append(i * 100)
+                    .append("}");
         }
         // Section bottom edge 72, rows start 32, stride 8 → 5 rows/page
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"CarryOver",
               "sections":[{
@@ -53,7 +57,8 @@ class PdfCarryOverParseBackTest {
                 ]
               }]
             }],
-            "_formData":{"items":[%s]}}""".formatted(items);
+            "_formData":{"items":[%s]}}"""
+                        .formatted(items);
         probe = PdfProbe.parse(PdfRenderer.render(json));
     }
 
@@ -92,7 +97,8 @@ class PdfCarryOverParseBackTest {
 
     @Test
     void singlePageTable_rendersNoCarryOverAtAll() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"OnePage",
               "sections":[{

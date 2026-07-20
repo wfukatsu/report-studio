@@ -1,6 +1,9 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.AdminUserController;
 import com.report.server.auth.Principal;
@@ -8,18 +11,13 @@ import com.report.server.auth.UserRecord;
 import com.report.server.auth.UserRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class AdminUserControllerTest {
 
@@ -37,7 +35,7 @@ class AdminUserControllerTest {
         controller = new AdminUserController(userRepo);
         ctx = mock(Context.class);
         adminPrincipal = new Principal("admin", "管理者", Set.of("admin", "user"));
-        userPrincipal  = new Principal("user1", "一般ユーザー", Set.of("user"));
+        userPrincipal = new Principal("user1", "一般ユーザー", Set.of("user"));
     }
 
     // ── admin required ────────────────────────────────────────────────────────
@@ -48,22 +46,22 @@ class AdminUserControllerTest {
     @Test
     void adminFilter_rejectsNonAdminPrincipal() {
         when(ctx.attribute("principal")).thenReturn(userPrincipal);
-        assertThrows(io.javalin.http.ForbiddenResponse.class,
-            () -> ApiRoutes.requireAdminRole(ctx));
+        assertThrows(
+                io.javalin.http.ForbiddenResponse.class, () -> ApiRoutes.requireAdminRole(ctx));
     }
 
     @Test
     void adminFilter_rejectsMissingPrincipal() {
         when(ctx.attribute("principal")).thenReturn(null);
-        assertThrows(io.javalin.http.ForbiddenResponse.class,
-            () -> ApiRoutes.requireAdminRole(ctx));
+        assertThrows(
+                io.javalin.http.ForbiddenResponse.class, () -> ApiRoutes.requireAdminRole(ctx));
     }
 
     @Test
     void adminFilter_rejectsAnonymousPrincipal() {
         when(ctx.attribute("principal")).thenReturn(Principal.ANONYMOUS);
-        assertThrows(io.javalin.http.ForbiddenResponse.class,
-            () -> ApiRoutes.requireAdminRole(ctx));
+        assertThrows(
+                io.javalin.http.ForbiddenResponse.class, () -> ApiRoutes.requireAdminRole(ctx));
     }
 
     @Test
@@ -77,10 +75,11 @@ class AdminUserControllerTest {
     @Test
     void list_returnsUsersWithoutPasswords() throws Exception {
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
-        when(userRepo.list()).thenReturn(List.of(
-            new UserRecord("admin", "管理者", "$2a$hash", Set.of("admin", "user")),
-            new UserRecord("user1", "ユーザー1", "$2a$hash2", Set.of("user"))
-        ));
+        when(userRepo.list())
+                .thenReturn(
+                        List.of(
+                                new UserRecord("admin", "管理者", "$2a$hash", Set.of("admin", "user")),
+                                new UserRecord("user1", "ユーザー1", "$2a$hash2", Set.of("user"))));
 
         controller.list(ctx);
 
@@ -102,27 +101,32 @@ class AdminUserControllerTest {
     void create_savesNewUser() throws Exception {
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         when(userRepo.findById("newuser")).thenReturn(Optional.empty());
-        when(ctx.bodyAsClass(Map.class)).thenReturn(Map.of(
-            "userId", "newuser",
-            "displayName", "新しいユーザー",
-            "password", "password123",
-            "roles", List.of("user")
-        ));
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(
+                        Map.of(
+                                "userId", "newuser",
+                                "displayName", "新しいユーザー",
+                                "password", "password123",
+                                "roles", List.of("user")));
 
         controller.create(ctx);
 
-        verify(userRepo).save(argThat(u -> u.userId().equals("newuser") && u.displayName().equals("新しいユーザー")));
+        verify(userRepo)
+                .save(
+                        argThat(
+                                u ->
+                                        u.userId().equals("newuser")
+                                                && u.displayName().equals("新しいユーザー")));
         verify(ctx).status(HttpStatus.CREATED);
     }
 
     @Test
     void create_returns409ForDuplicateUser() throws Exception {
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
-        when(userRepo.findById("admin")).thenReturn(
-            Optional.of(new UserRecord("admin", "管理者", "hash", Set.of("admin"))));
-        when(ctx.bodyAsClass(Map.class)).thenReturn(Map.of(
-            "userId", "admin", "password", "password123"
-        ));
+        when(userRepo.findById("admin"))
+                .thenReturn(Optional.of(new UserRecord("admin", "管理者", "hash", Set.of("admin"))));
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(Map.of("userId", "admin", "password", "password123"));
 
         controller.create(ctx);
 
@@ -157,8 +161,8 @@ class AdminUserControllerTest {
     void delete_removesUser() throws Exception {
         when(ctx.attribute("principal")).thenReturn(adminPrincipal);
         when(ctx.pathParam("id")).thenReturn("user1");
-        when(userRepo.findById("user1")).thenReturn(
-            Optional.of(new UserRecord("user1", "ユーザー1", "hash", Set.of("user"))));
+        when(userRepo.findById("user1"))
+                .thenReturn(Optional.of(new UserRecord("user1", "ユーザー1", "hash", Set.of("user"))));
 
         controller.delete(ctx);
 

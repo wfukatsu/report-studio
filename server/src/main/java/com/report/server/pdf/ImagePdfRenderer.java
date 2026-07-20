@@ -1,13 +1,8 @@
 package com.report.server.pdf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.report.server.pdf.PdfUtils.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,13 +15,16 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Renders image elements to PDF.
- * Supports Base64 data URI and HTTP/HTTPS URL images.
- * Falls back to placeholder for unsupported formats or fetch failures.
+ * Renders image elements to PDF. Supports Base64 data URI and HTTP/HTTPS URL images. Falls back to
+ * placeholder for unsupported formats or fetch failures.
  */
 public final class ImagePdfRenderer implements ElementPdfRenderer {
 
@@ -34,18 +32,26 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     private static final int MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB limit
 
     /** Per-render image cache. Access via {@link #clearImageCache()} — do not use directly. */
-    static final ThreadLocal<Map<String, byte[]>> IMAGE_CACHE = ThreadLocal.withInitial(java.util.HashMap::new);
+    static final ThreadLocal<Map<String, byte[]>> IMAGE_CACHE =
+            ThreadLocal.withInitial(java.util.HashMap::new);
 
-    /** Clear and remove the per-render image cache for the current thread. Call at template boundaries. */
+    /**
+     * Clear and remove the per-render image cache for the current thread. Call at template
+     * boundaries.
+     */
     public static void clearImageCache() {
         IMAGE_CACHE.get().clear();
         IMAGE_CACHE.remove();
     }
+
     private static final Duration FETCH_TIMEOUT = Duration.ofSeconds(10);
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(FETCH_TIMEOUT)
-            .followRedirects(HttpClient.Redirect.NEVER) // SSRF: never follow redirects to internal hosts
-            .build();
+    private static final HttpClient HTTP_CLIENT =
+            HttpClient.newBuilder()
+                    .connectTimeout(FETCH_TIMEOUT)
+                    .followRedirects(
+                            HttpClient.Redirect
+                                    .NEVER) // SSRF: never follow redirects to internal hosts
+                    .build();
 
     @Override
     public String kind() {
@@ -53,9 +59,17 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode props = el.get("props");
         String src = props != null ? textOf(props, "src", "") : "";
 
@@ -74,12 +88,11 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * Resolve an image source — Base64 data URI or SSRF-guarded HTTP/HTTPS
-     * URL — to raw bytes. URL fetches go through the per-render
-     * {@link #IMAGE_CACHE}. Returns {@code null} (never throws) when the
-     * source is unsupported, blocked, or fails to load, so callers can fall
-     * back without aborting the whole PDF. Shared with
-     * {@link ApprovalStampRowPdfRenderer} for {@code stampSrc} images.
+     * Resolve an image source — Base64 data URI or SSRF-guarded HTTP/HTTPS URL — to raw bytes. URL
+     * fetches go through the per-render {@link #IMAGE_CACHE}. Returns {@code null} (never throws)
+     * when the source is unsupported, blocked, or fails to load, so callers can fall back without
+     * aborting the whole PDF. Shared with {@link ApprovalStampRowPdfRenderer} for {@code stampSrc}
+     * images.
      */
     static byte[] resolveImageBytes(String src) {
         if (src == null || src.isEmpty()) return null;
@@ -129,13 +142,15 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
 
     private static byte[] fetchUrl(String url) throws IOException {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(FETCH_TIMEOUT)
-                    .GET()
-                    .build();
+            HttpRequest request =
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(url))
+                            .timeout(FETCH_TIMEOUT)
+                            .GET()
+                            .build();
 
-            HttpResponse<InputStream> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> response =
+                    HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
             if (response.statusCode() != 200) {
                 throw new IOException("HTTP " + response.statusCode() + " fetching image");
@@ -162,12 +177,20 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * Draw {@code imageBytes} aspect-fit and centred inside the box whose top-left
-     * is ({@code x}, {@code y}) in PDF coordinates ({@code y} = box top).
+     * Draw {@code imageBytes} aspect-fit and centred inside the box whose top-left is ({@code x},
+     * {@code y}) in PDF coordinates ({@code y} = box top).
      */
-    static void drawImage(PDPageContentStream cs, float x, float y,
-                          float w, float h, PDDocument doc, byte[] imageBytes) throws IOException {
-        PDImageXObject image = PDImageXObject.createFromByteArray(doc, imageBytes, "embedded-image");
+    static void drawImage(
+            PDPageContentStream cs,
+            float x,
+            float y,
+            float w,
+            float h,
+            PDDocument doc,
+            byte[] imageBytes)
+            throws IOException {
+        PDImageXObject image =
+                PDImageXObject.createFromByteArray(doc, imageBytes, "embedded-image");
 
         // Draw with aspect ratio preservation
         float imgAspect = (float) image.getWidth() / image.getHeight();
@@ -187,12 +210,11 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * SSRF protection: block dangerous schemes and private/internal network
-     * addresses. Validates EVERY resolved address ({@code getAllByName}) so a
-     * host with mixed public/private records is rejected outright, and is
-     * re-run inside {@link #fetchUrl} right before the request — combined with
-     * the JVM's positive DNS cache (default 30s) this closes the practical
-     * DNS-rebinding window between check and use (issue #58).
+     * SSRF protection: block dangerous schemes and private/internal network addresses. Validates
+     * EVERY resolved address ({@code getAllByName}) so a host with mixed public/private records is
+     * rejected outright, and is re-run inside {@link #fetchUrl} right before the request — combined
+     * with the JVM's positive DNS cache (default 30s) this closes the practical DNS-rebinding
+     * window between check and use (issue #58).
      */
     static boolean isSafeUrl(String url) {
         try {
@@ -224,8 +246,10 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     private static boolean isForbiddenAddress(InetAddress addr) {
-        if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
-                || addr.isSiteLocalAddress() || addr.isMulticastAddress()
+        if (addr.isLoopbackAddress()
+                || addr.isLinkLocalAddress()
+                || addr.isSiteLocalAddress()
+                || addr.isMulticastAddress()
                 || addr.isAnyLocalAddress()) {
             return true;
         }
@@ -245,7 +269,8 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
         return false;
     }
 
-    private static void renderPlaceholder(PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
+    private static void renderPlaceholder(
+            PDPageContentStream cs, float x, float y, float w, float h) throws IOException {
         cs.setStrokingColor(Color.LIGHT_GRAY);
         cs.setLineWidth(0.5f);
         cs.addRect(x, y - h, w, h);

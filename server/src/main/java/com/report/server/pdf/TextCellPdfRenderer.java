@@ -1,20 +1,18 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
- * Renders text_cell elements — text inside table/form_grid cells.
- * Handles horizontal alignment (left/center/right), vertical centering via font metrics,
- * and truncation for overflow.
+ * Renders text_cell elements — text inside table/form_grid cells. Handles horizontal alignment
+ * (left/center/right), vertical centering via font metrics, and truncation for overflow.
  */
 public final class TextCellPdfRenderer implements ElementPdfRenderer {
 
@@ -24,9 +22,17 @@ public final class TextCellPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode props = el.path("props");
         String text = textOf(props, "text", "");
         if (text.isEmpty()) return;
@@ -41,11 +47,12 @@ public final class TextCellPdfRenderer implements ElementPdfRenderer {
         String truncated = truncateToWidth(text, font, fontSize, w - padding * 2);
 
         float textWidth = font.getStringWidth(truncated) / 1000f * fontSize;
-        float textX = switch (textAlign) {
-            case "right"  -> x + w - textWidth - padding;
-            case "center" -> x + (w - textWidth) / 2f;
-            default       -> x + padding;
-        };
+        float textX =
+                switch (textAlign) {
+                    case "right" -> x + w - textWidth - padding;
+                    case "center" -> x + (w - textWidth) / 2f;
+                    default -> x + padding;
+                };
 
         // Vertical center using font metrics (ascent/descent)
         float ascent = font.getFontDescriptor().getAscent() / 1000f * fontSize;

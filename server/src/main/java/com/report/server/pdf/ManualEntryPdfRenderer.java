@@ -1,29 +1,26 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
  * Renders V2 {@code manualEntry} (記入欄) elements to PDF (issue #53).
  *
- * <p>Mirrors the frontend ManualEntryRenderer: an optional label (top/left),
- * an input area drawn as an underline ({@code line}), a full box
- * ({@code box}), or evenly-spaced grid cells ({@code grid} with
- * {@code gridCount}), plus an optional faint placeholder. The furigana zone
- * ({@code furiganaEnabled}) adds an underlined ruby strip above the main area.
+ * <p>Mirrors the frontend ManualEntryRenderer: an optional label (top/left), an input area drawn as
+ * an underline ({@code line}), a full box ({@code box}), or evenly-spaced grid cells ({@code grid}
+ * with {@code gridCount}), plus an optional faint placeholder. The furigana zone ({@code
+ * furiganaEnabled}) adds an underlined ruby strip above the main area.
  *
- * <p>The area is meant to be filled in by hand, so bound values are not
- * resolved here except the optional furigana preview
- * ({@code props.furiganaText}, resolved upstream from
- * {@code furiganaDataSource}).
+ * <p>The area is meant to be filled in by hand, so bound values are not resolved here except the
+ * optional furigana preview ({@code props.furiganaText}, resolved upstream from {@code
+ * furiganaDataSource}).
  */
 public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
 
@@ -37,9 +34,17 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         String label = elementTextOf(el, "label", "");
         String labelPos = elementTextOf(el, "labelPosition", "top");
         String mode = elementTextOf(el, "displayMode", "line");
@@ -56,16 +61,28 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
             if (furigana) {
                 float ratio = clamp(elementFloatOf(el, "furiganaRatio", 0.35f), 0.1f, 0.8f);
                 float zoneH = h * ratio;
-                drawLabelText(cs, font, "フリガナ", 2.2f * MM_TO_PT, lineColor,
-                        areaX, areaTop - 2.2f * MM_TO_PT);
+                drawLabelText(
+                        cs,
+                        font,
+                        "フリガナ",
+                        2.2f * MM_TO_PT,
+                        lineColor,
+                        areaX,
+                        areaTop - 2.2f * MM_TO_PT);
                 float furiLineY = areaTop - zoneH + 1f;
                 stroke(cs, lineColor, areaX, furiLineY, areaX + w, furiLineY);
                 // Furigana preview value is resolved upstream into props.text
                 JsonNode props = el.get("props");
                 String furiText = props != null ? textOf(props, "text", "") : "";
                 if (!furiText.isEmpty()) {
-                    drawLabelText(cs, font, furiText, 2.8f * MM_TO_PT, Color.BLACK,
-                            areaX, furiLineY + 1f);
+                    drawLabelText(
+                            cs,
+                            font,
+                            furiText,
+                            2.8f * MM_TO_PT,
+                            Color.BLACK,
+                            areaX,
+                            furiLineY + 1f);
                 }
                 areaTop -= zoneH;
                 areaH -= zoneH;
@@ -74,14 +91,27 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
             // Label placement in the main zone
             if (!"none".equals(labelPos) && !label.isEmpty()) {
                 if ("left".equals(labelPos)) {
-                    float labelW = font.getStringWidth(label) / 1000 * LABEL_FONT_PT + 1f * MM_TO_PT;
-                    drawLabelText(cs, font, label, LABEL_FONT_PT, Color.BLACK,
-                            areaX, areaTop - areaH / 2 - LABEL_FONT_PT * 0.35f);
+                    float labelW =
+                            font.getStringWidth(label) / 1000 * LABEL_FONT_PT + 1f * MM_TO_PT;
+                    drawLabelText(
+                            cs,
+                            font,
+                            label,
+                            LABEL_FONT_PT,
+                            Color.BLACK,
+                            areaX,
+                            areaTop - areaH / 2 - LABEL_FONT_PT * 0.35f);
                     areaX += labelW;
                     areaW -= labelW;
                 } else { // top
-                    drawLabelText(cs, font, label, LABEL_FONT_PT, Color.BLACK,
-                            areaX, areaTop - LABEL_FONT_PT);
+                    drawLabelText(
+                            cs,
+                            font,
+                            label,
+                            LABEL_FONT_PT,
+                            Color.BLACK,
+                            areaX,
+                            areaTop - LABEL_FONT_PT);
                     areaTop -= LABEL_FONT_PT * 1.4f;
                     areaH -= LABEL_FONT_PT * 1.4f;
                 }
@@ -107,7 +137,14 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
                         cs.stroke();
                     }
                 }
-                default -> stroke(cs, lineColor, areaX, bottom + 1f, areaX + areaW, bottom + 1f); // line
+                default ->
+                        stroke(
+                                cs,
+                                lineColor,
+                                areaX,
+                                bottom + 1f,
+                                areaX + areaW,
+                                bottom + 1f); // line
             }
 
             // Placeholder (faint, centered)
@@ -126,8 +163,15 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
         }
     }
 
-    private static void drawLabelText(PDPageContentStream cs, PDFont font, String text,
-                                      float size, Color color, float x, float baselineY) throws IOException {
+    private static void drawLabelText(
+            PDPageContentStream cs,
+            PDFont font,
+            String text,
+            float size,
+            Color color,
+            float x,
+            float baselineY)
+            throws IOException {
         cs.beginText();
         cs.setFont(font, size);
         cs.setNonStrokingColor(color);
@@ -136,8 +180,9 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
         cs.endText();
     }
 
-    private static void stroke(PDPageContentStream cs, Color color,
-                               float x1, float y1, float x2, float y2) throws IOException {
+    private static void stroke(
+            PDPageContentStream cs, Color color, float x1, float y1, float x2, float y2)
+            throws IOException {
         cs.setStrokingColor(color);
         cs.setLineWidth(BORDER_PT);
         cs.moveTo(x1, y1);

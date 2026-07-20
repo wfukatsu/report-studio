@@ -1,9 +1,9 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class TemplateEnvelopeTest {
 
@@ -29,7 +29,9 @@ class TemplateEnvelopeTest {
 
     @Test
     void unwrap_migratesV1SchemaMarker() throws Exception {
-        var root = MAPPER.readTree("{\"$schema\":\"report-definition/v1\",\"id\":\"t1\",\"pages\":[]}");
+        var root =
+                MAPPER.readTree(
+                        "{\"$schema\":\"report-definition/v1\",\"id\":\"t1\",\"pages\":[]}");
         var result = TemplateEnvelope.unwrap(root);
         assertFalse(result.isError());
         assertEquals("t1", result.definition().path("id").asText());
@@ -94,7 +96,9 @@ class TemplateEnvelopeTest {
 
     @Test
     void unwrapStrict_acceptsV1SchemaMarker() throws Exception {
-        var root = MAPPER.readTree("{\"$schema\":\"report-definition/v1\",\"id\":\"t1\",\"pages\":[]}");
+        var root =
+                MAPPER.readTree(
+                        "{\"$schema\":\"report-definition/v1\",\"id\":\"t1\",\"pages\":[]}");
         var result = TemplateEnvelope.unwrapStrict(root);
         assertFalse(result.isError());
         assertEquals("t1", result.definition().path("id").asText());

@@ -1,16 +1,5 @@
 package com.report.server;
 
-import com.report.server.auth.Principal;
-import com.report.server.auth.RateLimiter;
-import com.scalar.db.api.DistributedTransactionManager;
-import com.scalar.db.service.TransactionFactory;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.Set;
-
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -18,12 +7,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.report.server.auth.Principal;
+import com.report.server.auth.RateLimiter;
+import com.scalar.db.api.DistributedTransactionManager;
+import com.scalar.db.service.TransactionFactory;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 /**
- * Unit tests for {@link ScalarDbScanController} — focused on the auth/rate-limit
- * gate and the protected-namespace guard (issue #197: the read side must reject
- * system namespaces the same way the write side does, so the raw table browser
- * can never expose {@code report_studio.users} password hashes, API-token hashes,
- * webhook secrets or form-response PII).
+ * Unit tests for {@link ScalarDbScanController} — focused on the auth/rate-limit gate and the
+ * protected-namespace guard (issue #197: the read side must reject system namespaces the same way
+ * the write side does, so the raw table browser can never expose {@code report_studio.users}
+ * password hashes, API-token hashes, webhook secrets or form-response PII).
  */
 class ScalarDbScanControllerTest {
 

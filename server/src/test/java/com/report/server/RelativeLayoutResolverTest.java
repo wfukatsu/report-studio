@@ -1,26 +1,30 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.pdf.RelativeLayoutResolver;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class RelativeLayoutResolverTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonNode parse(String json) {
-        try { return MAPPER.readTree(json); }
-        catch (Exception e) { throw new RuntimeException(e); }
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
     void noAnchorElements_returnsEmptyMap() throws Exception {
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
               {"id":"e2","frame":{"x":0,"y":40,"width":100,"height":10},"props":{}}
@@ -37,7 +41,9 @@ class RelativeLayoutResolverTest {
         // But gap is nominal_y(e2) - nominal_y(e1) = 35 - 10 = 25
         // effectiveY(e2) = effectiveY(e1) + height(e1) + (nominalY(e2) - nominalY(e1))
         //                = 10 + 20 + (35 - 10) = 55
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
               {"id":"e2","frame":{"x":0,"y":35,"width":100,"height":10},
@@ -53,7 +59,9 @@ class RelativeLayoutResolverTest {
     void chainedAnchors_resolvedInOrder() throws Exception {
         // e1: y=0, h=10. e2 anchors e1 at y=15 → effective 0+10+(15-0)=25
         // e3 anchors e2 at y=20 → effective 25+10+(20-15)=40
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":0,"width":100,"height":10},"props":{}},
               {"id":"e2","frame":{"x":0,"y":15,"width":100,"height":10},
@@ -70,7 +78,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void noPushDown_ignoredEvenWithAnchorTo() throws Exception {
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
               {"id":"e2","frame":{"x":0,"y":35,"width":100,"height":10},
@@ -83,7 +93,9 @@ class RelativeLayoutResolverTest {
     @Test
     void circularAnchor_doesNotDeadlock() throws Exception {
         // e1 → e2 → e1 (cycle) — both keep original y
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":0,"width":100,"height":10},
                "props":{"layout":{"anchorTo":"e2","pushDown":true}}},
@@ -96,7 +108,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void applyEffectiveY_modifiesFrameY() throws Exception {
-        JsonNode el = parse("""
+        JsonNode el =
+                parse(
+                        """
             {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}}""");
         Map<String, Float> effectiveY = Map.of("e1", 55f);
         JsonNode result = RelativeLayoutResolver.applyEffectiveY(el, effectiveY);
@@ -107,7 +121,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void applyEffectiveY_supportsV2PositionGeometry() throws Exception {
-        JsonNode el = parse("""
+        JsonNode el =
+                parse(
+                        """
             {"id":"e1","position":{"x":0,"y":10},"size":{"width":100,"height":20}}""");
         JsonNode result = RelativeLayoutResolver.applyEffectiveY(el, Map.of("e1", 55f));
         assertEquals(55f, result.get("position").get("y").floatValue(), 0.01f);
@@ -117,7 +133,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void paginate_allElementsFit_singlePage() throws Exception {
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
               {"id":"e2","frame":{"x":0,"y":40,"width":100,"height":30},"props":{}}
@@ -131,7 +149,9 @@ class RelativeLayoutResolverTest {
     void paginate_pushedChainOverflows_assignsContinuationPage() throws Exception {
         // e1 y=10 h=20; e2 anchored → effY 60, h=30 (fits page 0: 60+30=90 ≤ 100)
         // e3 anchored to e2 → effY = 60+30+(80-40)=130 → page 1 at wrapped y=30
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":10,"width":100,"height":20},"props":{}},
               {"id":"e2","frame":{"x":0,"y":40,"width":100,"height":30},
@@ -150,7 +170,9 @@ class RelativeLayoutResolverTest {
     @Test
     void paginate_straddlingElement_promotedToNextPageTop() throws Exception {
         // Static element at y=90 h=30 would cross the bottom edge (100) → next page top
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":90,"width":100,"height":30},"props":{}}
             ]""");
@@ -162,7 +184,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void paginate_elementTallerThanRegion_staysAndClips() throws Exception {
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":0,"width":100,"height":250},"props":{}}
             ]""");
@@ -173,7 +197,9 @@ class RelativeLayoutResolverTest {
 
     @Test
     void paginate_nonPositiveRegionHeight_disablesPaging() throws Exception {
-        JsonNode elements = parse("""
+        JsonNode elements =
+                parse(
+                        """
             [
               {"id":"e1","frame":{"x":0,"y":500,"width":100,"height":30},"props":{}}
             ]""");

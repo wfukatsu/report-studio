@@ -1,27 +1,29 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-
+import java.io.StringWriter;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.StringWriter;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 class WithholdingTaxXmlBuilderTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonNode parse(String json) {
-        try { return MAPPER.readTree(json); }
-        catch (Exception e) { throw new RuntimeException(e); }
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String toXmlString(Document doc) throws Exception {
@@ -48,7 +50,9 @@ class WithholdingTaxXmlBuilderTest {
     @Test
     void build_payerBlock_populatedFromFormData() throws Exception {
         JsonNode projection = parse("{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}");
-        JsonNode formData = parse("""
+        JsonNode formData =
+                parse(
+                        """
             {
               "payerName": "テスト株式会社",
               "payerAddress": "東京都千代田区1-1-1",
@@ -64,7 +68,9 @@ class WithholdingTaxXmlBuilderTest {
     @Test
     void build_payeeBlock_populatedFromFormData() throws Exception {
         JsonNode projection = parse("{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}");
-        JsonNode formData = parse("""
+        JsonNode formData =
+                parse(
+                        """
             {
               "payeeName": "田中太郎",
               "payeeAddress": "大阪府大阪市北区1-2-3",
@@ -80,7 +86,9 @@ class WithholdingTaxXmlBuilderTest {
     @Test
     void build_amounts_populatedFromFormData() throws Exception {
         JsonNode projection = parse("{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}");
-        JsonNode formData = parse("""
+        JsonNode formData =
+                parse(
+                        """
             {
               "salaryAmount": "5000000",
               "withholdingTax": "450000",
@@ -98,7 +106,9 @@ class WithholdingTaxXmlBuilderTest {
     @Test
     void build_xmlSpecialChars_areEscaped() throws Exception {
         JsonNode projection = parse("{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}");
-        JsonNode formData = parse("""
+        JsonNode formData =
+                parse(
+                        """
             {
               "payerName": "<script>alert('xss')</script>",
               "payeeName": "O'Reilly & Sons"
@@ -170,8 +180,9 @@ class WithholdingTaxXmlBuilderTest {
         JsonNode projection = parse("{\"templates\":[{\"id\":\"t1\",\"sections\":[]}]}");
         JsonNode formData = parse("{\"payerName\":\"テスト\"}");
 
-        byte[] bytes = WithholdingTaxXmlBuilder.toXmlBytes(
-                WithholdingTaxXmlBuilder.build(projection, formData));
+        byte[] bytes =
+                WithholdingTaxXmlBuilder.toXmlBytes(
+                        WithholdingTaxXmlBuilder.build(projection, formData));
         assertNotNull(bytes);
         assertTrue(bytes.length > 0);
         String xml = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
@@ -183,7 +194,9 @@ class WithholdingTaxXmlBuilderTest {
     @Test
     void build_withProjectionBindings_usesFormDataValues() throws Exception {
         // Projection contains elements with bindingRef — formData should fill those values
-        JsonNode projection = parse("""
+        JsonNode projection =
+                parse(
+                        """
             {"templates":[{"id":"t1","sections":[{
               "id":"s1","type":"page_base","elements":[
                 {"id":"e1","kind":"text","bindingRef":"payerName",

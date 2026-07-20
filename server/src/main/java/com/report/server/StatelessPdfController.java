@@ -3,31 +3,32 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stateless PDF generation endpoint — accepts template + data inline.
  *
  * <p>POST /api/v2/pdf/generate
+ *
  * <pre>
  * Body: { "template": { V2 ReportDefinition }, "data": { key-value pairs } }
  * Response: 200 application/pdf | 400/413/429/500/504 JSON error
  * </pre>
  *
  * <p>Pipeline:
+ *
  * <ol>
- *   <li>Parse and validate request body (size, depth, required fields)</li>
- *   <li>Render the V2 definition natively (issue #52)</li>
- *   <li>Enrich with {@link CalculationEngine} (best-effort)</li>
- *   <li>Render PDF with 30-second timeout</li>
+ *   <li>Parse and validate request body (size, depth, required fields)
+ *   <li>Render the V2 definition natively (issue #52)
+ *   <li>Enrich with {@link CalculationEngine} (best-effort)
+ *   <li>Render PDF with 30-second timeout
  * </ol>
  */
 public final class StatelessPdfController {
@@ -44,8 +45,7 @@ public final class StatelessPdfController {
     }
 
     /**
-     * POST /api/v2/pdf/generate
-     * Body: {@code { template: ReportDefinition, data?: {key: value} }}
+     * POST /api/v2/pdf/generate Body: {@code { template: ReportDefinition, data?: {key: value} }}
      * Returns: PDF bytes or JSON error.
      */
     public void generate(Context ctx) throws Exception {
@@ -81,8 +81,8 @@ public final class StatelessPdfController {
         }
 
         JsonNode templateNode = root.get("template");
-        JsonNode dataNode = root.has("data") && !root.get("data").isNull()
-                ? root.get("data") : null;
+        JsonNode dataNode =
+                root.has("data") && !root.get("data").isNull() ? root.get("data") : null;
 
         // Prepare the V2 definition for native rendering (issue #52)
         String definitionJson;
@@ -104,15 +104,17 @@ public final class StatelessPdfController {
     private void renderAndRespond(Context ctx, String definitionJson) {
         final String defJson = definitionJson;
         try {
-            byte[] pdfBytes = CompletableFuture
-                    .supplyAsync(() -> {
-                        try {
-                            return PdfRenderer.renderDefinition(defJson);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }, pdfExecutor)
-                    .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            byte[] pdfBytes =
+                    CompletableFuture.supplyAsync(
+                                    () -> {
+                                        try {
+                                            return PdfRenderer.renderDefinition(defJson);
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    },
+                                    pdfExecutor)
+                            .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             ctx.contentType("application/pdf");
             ctx.header("Content-Disposition", "attachment; filename=\"generated.pdf\"");
             ctx.result(pdfBytes);

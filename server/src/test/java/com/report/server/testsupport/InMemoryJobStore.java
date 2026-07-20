@@ -2,7 +2,6 @@ package com.report.server.testsupport;
 
 import com.report.server.job.JobRecord;
 import com.report.server.job.JobStore;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,8 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Map-backed {@link JobStore} for controller tests — no ScalarDB, artifacts in
- * a temp directory.
+ * Map-backed {@link JobStore} for controller tests — no ScalarDB, artifacts in a temp directory.
  */
 public final class InMemoryJobStore implements JobStore {
 
@@ -82,13 +80,21 @@ public final class InMemoryJobStore implements JobStore {
     private static void deleteRecursively(Path dir) {
         if (!Files.exists(dir)) return;
         try (var files = Files.walk(dir)) {
-            files.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try { Files.deleteIfExists(p); } catch (IOException ignored) { }
-            });
-        } catch (IOException ignored) { }
+            files.sorted(Comparator.reverseOrder())
+                    .forEach(
+                            p -> {
+                                try {
+                                    Files.deleteIfExists(p);
+                                } catch (IOException ignored) {
+                                }
+                            });
+        } catch (IOException ignored) {
+        }
     }
 
     private static final class UncheckedIOExceptionWrapper extends RuntimeException {
-        UncheckedIOExceptionWrapper(IOException e) { super(e); }
+        UncheckedIOExceptionWrapper(IOException e) {
+            super(e);
+        }
     }
 }

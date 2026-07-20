@@ -1,18 +1,17 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class VersionControllerTest {
 
@@ -39,10 +38,13 @@ class VersionControllerTest {
     @Test
     void list_returnsVersionsAsArray() throws Exception {
         long ts1 = 1_000_000L, ts2 = 2_000_000L;
-        when(mockVersionRepo.listVersions("t1")).thenReturn(List.of(
-                new VersionController.V2VersionRepository.VersionMeta("v2", "t1", ts2, null),
-                new VersionController.V2VersionRepository.VersionMeta("v1", "t1", ts1, "user@example.com")
-        ));
+        when(mockVersionRepo.listVersions("t1"))
+                .thenReturn(
+                        List.of(
+                                new VersionController.V2VersionRepository.VersionMeta(
+                                        "v2", "t1", ts2, null),
+                                new VersionController.V2VersionRepository.VersionMeta(
+                                        "v1", "t1", ts1, "user@example.com")));
 
         controller.list(ctx);
 
@@ -58,9 +60,11 @@ class VersionControllerTest {
 
     @Test
     void list_omitsCreatedByWhenNull() throws Exception {
-        when(mockVersionRepo.listVersions("t1")).thenReturn(List.of(
-                new VersionController.V2VersionRepository.VersionMeta("v1", "t1", 1000L, null)
-        ));
+        when(mockVersionRepo.listVersions("t1"))
+                .thenReturn(
+                        List.of(
+                                new VersionController.V2VersionRepository.VersionMeta(
+                                        "v1", "t1", 1000L, null)));
 
         controller.list(ctx);
 
@@ -85,12 +89,14 @@ class VersionControllerTest {
     @Test
     void create_snapshotsDefinitionAndReturns201() throws Exception {
         String defJson = "{\"id\":\"t1\",\"metadata\":{\"documentName\":\"Test\"}}";
-        String envelope = MAPPER.createObjectNode()
-                .put("id", "t1")
-                .put("name", "Test")
-                .put("created_at", 1000L)
-                .put("updated_at", 2000L)
-                .set("definition", MAPPER.readTree(defJson)).toString();
+        String envelope =
+                MAPPER.createObjectNode()
+                        .put("id", "t1")
+                        .put("name", "Test")
+                        .put("created_at", 1000L)
+                        .put("updated_at", 2000L)
+                        .set("definition", MAPPER.readTree(defJson))
+                        .toString();
         when(mockDefinitionsRepo.get("t1")).thenReturn(Optional.of(envelope));
 
         controller.create(ctx);
@@ -118,8 +124,8 @@ class VersionControllerTest {
 
     @Test
     void create_returns404WhenEnvelopeLacksDefinition() throws Exception {
-        String noDefEnvelope = MAPPER.createObjectNode()
-                .put("id", "t1").put("name", "x").toString();
+        String noDefEnvelope =
+                MAPPER.createObjectNode().put("id", "t1").put("name", "x").toString();
         when(mockDefinitionsRepo.get("t1")).thenReturn(Optional.of(noDefEnvelope));
 
         controller.create(ctx);
@@ -141,7 +147,8 @@ class VersionControllerTest {
         var captor = org.mockito.ArgumentCaptor.forClass(String.class);
         verify(ctx).result(captor.capture());
         var resource = MAPPER.readTree(captor.getValue());
-        assertEquals(TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
+        assertEquals(
+                TemplateEnvelope.CURRENT_FORMAT_VERSION, resource.path("formatVersion").asInt());
         assertEquals("t1", resource.path("definition").path("id").asText());
     }
 

@@ -1,22 +1,21 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
 /**
- * Parse-back tests for the V2-native render path (issue #52):
- * PdfRenderer.renderDefinition consumes a ReportDefinition directly,
- * preserving designed page boundaries.
+ * Parse-back tests for the V2-native render path (issue #52): PdfRenderer.renderDefinition consumes
+ * a ReportDefinition directly, preserving designed page boundaries.
  */
 class PdfRenderDefinitionParseBackTest {
 
     @Test
     void multiplePages_renderAsSeparatePhysicalPages_noOverlap() throws IOException {
-        String def = """
+        String def =
+                """
             {
               "id":"d1","metadata":{"documentName":"MultiPage"},
               "pageSettings":{"paperSize":"A4","orientation":"portrait","unit":"mm"},
@@ -36,7 +35,8 @@ class PdfRenderDefinitionParseBackTest {
         PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(def));
         assertEquals(2, probe.pageCount());
         assertTrue(probe.pageContains(0, "PAGE1ONLY"), probe.pageText(0));
-        assertFalse(probe.pageContains(0, "PAGE2ONLY"), "page 2 content must not bleed onto page 1");
+        assertFalse(
+                probe.pageContains(0, "PAGE2ONLY"), "page 2 content must not bleed onto page 1");
         assertTrue(probe.pageContains(1, "PAGE2ONLY"), probe.pageText(1));
         assertFalse(probe.pageContains(1, "PAGE1ONLY"));
     }
@@ -44,7 +44,8 @@ class PdfRenderDefinitionParseBackTest {
     @Test
     void eachPageUsesItsOwnSizeAndOrientation() throws IOException {
         // Page 1: A4 portrait (210×297), page 2: A3 landscape (420×297)
-        String def = """
+        String def =
+                """
             {
               "id":"d1","metadata":{"documentName":"MixedSize"},
               "pageSettings":{"paperSize":"A4","orientation":"portrait","unit":"mm"},
@@ -71,7 +72,8 @@ class PdfRenderDefinitionParseBackTest {
             if (i > 1) items.append(',');
             items.append("{\"name\":\"品目").append(i).append("\"}");
         }
-        String def = """
+        String def =
+                """
             {
               "id":"d1","metadata":{"documentName":"Overflow"},
               "pageSettings":{"paperSize":"A4","orientation":"portrait","unit":"mm"},
@@ -84,7 +86,8 @@ class PdfRenderDefinitionParseBackTest {
                     {"id":"row","kind":"row_block","frame":{"x":15,"y":32,"width":80,"height":8,"rotation":0},
                      "bindingRef":"items[].name","props":{"fontSize":9}}]}]}],
               "_formData":{"items":[%s]}
-            }""".formatted(items);
+            }"""
+                        .formatted(items);
         PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(def));
         assertEquals(3, probe.pageCount());
         assertTrue(probe.pageContains(0, "品目1"), probe.pageText(0));
@@ -100,7 +103,8 @@ class PdfRenderDefinitionParseBackTest {
             if (i > 1) items.append(',');
             items.append("{\"v\":\"R").append(i).append("\"}");
         }
-        String def = """
+        String def =
+                """
             {
               "id":"d1","metadata":{"documentName":"CoverOverflow"},
               "pageSettings":{"paperSize":"A4","orientation":"portrait","unit":"mm"},
@@ -124,18 +128,20 @@ class PdfRenderDefinitionParseBackTest {
                        "position":{"x":90,"y":285},"size":{"width":30,"height":8},"style":{"fontSize":10}}]}]}
               ],
               "_formData":{"items":[%s]}
-            }""".formatted(items);
+            }"""
+                        .formatted(items);
         PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(def));
         assertEquals(3, probe.pageCount());
-        assertTrue(probe.pageContains(0, "1 / 3"), probe.pageText(0));  // cover
-        assertTrue(probe.pageContains(1, "2 / 3"), probe.pageText(1));  // detail page 1
-        assertTrue(probe.pageContains(2, "3 / 3"), probe.pageText(2));  // detail page 2
+        assertTrue(probe.pageContains(0, "1 / 3"), probe.pageText(0)); // cover
+        assertTrue(probe.pageContains(1, "2 / 3"), probe.pageText(1)); // detail page 1
+        assertTrue(probe.pageContains(2, "3 / 3"), probe.pageText(2)); // detail page 2
     }
 
     @Test
     void variantMasking_appliesViaOutputVariants() throws IOException {
         // V2 outputVariant shape: id, hiddenElementIds[], maskingRules[].type
-        String def = """
+        String def =
+                """
             {
               "id":"d1","metadata":{"documentName":"Variant"},
               "pageSettings":{"paperSize":"A4","orientation":"portrait","unit":"mm"},
@@ -161,7 +167,8 @@ class PdfRenderDefinitionParseBackTest {
 
     @Test
     void emptyPages_produceOneBlankPageSizedFromSettings() throws IOException {
-        String def = """
+        String def =
+                """
             {"id":"d1","metadata":{},"pageSettings":{"paperSize":"A3","orientation":"landscape","unit":"mm"},
              "pages":[]}""";
         PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(def));

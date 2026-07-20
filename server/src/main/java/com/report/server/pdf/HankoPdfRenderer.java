@@ -1,26 +1,23 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
  * Renders V2 {@code hanko} (印鑑) elements to PDF (issue #53).
  *
- * <p>Mirrors the frontend HankoRenderer (src/elements/hanko/Renderer.tsx):
- * circle or rectangle frame, optional double border, red default colors,
- * and vertical-rl or horizontal text. V2 stores fields at the element top
- * level ({@code text}, {@code shape}, {@code borderColor}, {@code textColor},
- * {@code fontSize} in mm, {@code writingMode}, {@code doubleBorder});
- * data-bound values arrive via {@code props.text} (resolved upstream by
- * SectionRenderHelper), which takes precedence.
+ * <p>Mirrors the frontend HankoRenderer (src/elements/hanko/Renderer.tsx): circle or rectangle
+ * frame, optional double border, red default colors, and vertical-rl or horizontal text. V2 stores
+ * fields at the element top level ({@code text}, {@code shape}, {@code borderColor}, {@code
+ * textColor}, {@code fontSize} in mm, {@code writingMode}, {@code doubleBorder}); data-bound values
+ * arrive via {@code props.text} (resolved upstream by SectionRenderHelper), which takes precedence.
  */
 public final class HankoPdfRenderer implements ElementPdfRenderer {
 
@@ -33,9 +30,17 @@ public final class HankoPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         // props.text carries the resolved binding; fall back to the design-time text
         JsonNode props = el.get("props");
         String text = props != null ? textOf(props, "text", "") : "";
@@ -97,8 +102,9 @@ public final class HankoPdfRenderer implements ElementPdfRenderer {
     }
 
     /** Stack characters top-to-bottom, centered on the seal. */
-    private static void drawVertical(PDPageContentStream cs, PDFont font, float fontSize,
-                                     String text, float cx, float cy) throws IOException {
+    private static void drawVertical(
+            PDPageContentStream cs, PDFont font, float fontSize, String text, float cx, float cy)
+            throws IOException {
         int[] codePoints = text.codePoints().toArray();
         float totalHeight = codePoints.length * fontSize;
         float top = cy + totalHeight / 2;
@@ -114,7 +120,8 @@ public final class HankoPdfRenderer implements ElementPdfRenderer {
         }
     }
 
-    private static void drawCircle(PDPageContentStream cs, float cx, float cy, float r) throws IOException {
+    private static void drawCircle(PDPageContentStream cs, float cx, float cy, float r)
+            throws IOException {
         float k = 0.5522848f * r;
         cs.moveTo(cx - r, cy);
         cs.curveTo(cx - r, cy + k, cx - k, cy + r, cx, cy + r);

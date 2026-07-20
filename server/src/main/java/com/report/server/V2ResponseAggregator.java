@@ -1,20 +1,20 @@
 package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.*;
 
 /**
  * Aggregates V2 form response data into per-field summaries.
  *
  * <p>For each field key found across all responses, computes:
+ *
  * <ul>
- *   <li>{@code count} — number of responses that have a non-null value for this field</li>
- *   <li>{@code topValues} — up to 5 most frequent values for the field</li>
+ *   <li>{@code count} — number of responses that have a non-null value for this field
+ *   <li>{@code topValues} — up to 5 most frequent values for the field
  * </ul>
  *
- * <p>Usage: pass up to 5000 {@link ResponseEntry} items (enforced by caller).
- * This class is stateless and has no side effects.
+ * <p>Usage: pass up to 5000 {@link ResponseEntry} items (enforced by caller). This class is
+ * stateless and has no side effects.
  */
 public final class V2ResponseAggregator {
 
@@ -46,7 +46,7 @@ public final class V2ResponseAggregator {
 
                 String value = toDisplayString(valueNode);
                 freqMap.computeIfAbsent(key, k -> new LinkedHashMap<>())
-                       .merge(value, 1, Integer::sum);
+                        .merge(value, 1, Integer::sum);
             }
         }
 
@@ -55,11 +55,12 @@ public final class V2ResponseAggregator {
             String key = entry.getKey();
             Map<String, Integer> freq = entry.getValue();
             int count = freq.values().stream().mapToInt(Integer::intValue).sum();
-            List<Object> topValues = freq.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .limit(TOP_VALUES_LIMIT)
-                .map(e -> (Object) e.getKey())
-                .toList();
+            List<Object> topValues =
+                    freq.entrySet().stream()
+                            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                            .limit(TOP_VALUES_LIMIT)
+                            .map(e -> (Object) e.getKey())
+                            .toList();
             result.put(key, new FieldSummary(count, topValues));
         }
         return result;
@@ -75,10 +76,5 @@ public final class V2ResponseAggregator {
 
     /** Parsed form response, used as input to aggregation. */
     public record ResponseEntry(
-            String id,
-            String templateId,
-            long submittedAt,
-            String submittedBy,
-            JsonNode data
-    ) {}
+            String id, String templateId, long submittedAt, String submittedBy, JsonNode data) {}
 }

@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 /**
- * Manages form access sessions (password-protected public forms).
- * Sessions are stored in-memory with a 1-hour TTL.
+ * Manages form access sessions (password-protected public forms). Sessions are stored in-memory
+ * with a 1-hour TTL.
  */
 public final class FormSessionManager {
 
@@ -33,18 +33,19 @@ public final class FormSessionManager {
     /** Package-private for tests — inject a controllable clock. */
     FormSessionManager(LongSupplier clock) {
         this.clock = clock;
-        evictionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = Thread.ofVirtual().unstarted(r);
-            t.setName("form-session-eviction");
-            t.setDaemon(true);
-            return t;
-        });
+        evictionScheduler =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            Thread t = Thread.ofVirtual().unstarted(r);
+                            t.setName("form-session-eviction");
+                            t.setDaemon(true);
+                            return t;
+                        });
         evictionScheduler.scheduleAtFixedRate(
-            this::cleanExpired,
-            EVICTION_INTERVAL_MINUTES,
-            EVICTION_INTERVAL_MINUTES,
-            TimeUnit.MINUTES
-        );
+                this::cleanExpired,
+                EVICTION_INTERVAL_MINUTES,
+                EVICTION_INTERVAL_MINUTES,
+                TimeUnit.MINUTES);
     }
 
     /** Graceful shutdown — call from AppWiring.shutdown(). */

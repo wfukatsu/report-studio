@@ -39,6 +39,11 @@ jobs:
         timeout-minutes: 20
         run: npx vitest run --coverage --reporter=basic
 
+      - name: Storybook build
+        # Catches preview-config / addon-compat breakage that the unit suite
+        # never exercises — stories otherwise rot silently (#226).
+        run: npm run build-storybook
+
   backend:
     name: Backend (JUnit + golden PDF regression)
     runs-on: ubuntu-latest
@@ -55,6 +60,13 @@ jobs:
 
       - name: Prepare ScalarDB config
         run: cp server/scalardb.properties.example server/scalardb.properties
+
+      - name: Spotless (google-java-format AOSP) check
+        # Format gate wired into `check`; run explicitly so a formatting drift
+        # fails fast before the (slower) test task (#226). Fix locally with
+        # `./gradlew spotlessApply`.
+        working-directory: server
+        run: ./gradlew spotlessCheck
 
       - name: Test
         working-directory: server

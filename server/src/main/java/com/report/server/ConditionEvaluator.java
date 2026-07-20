@@ -1,13 +1,12 @@
 package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Evaluates conditional display rules against form data (Jackson API).
- * Used by PdfRenderer to determine element visibility.
+ * Evaluates conditional display rules against form data (Jackson API). Used by PdfRenderer to
+ * determine element visibility.
  */
 public final class ConditionEvaluator {
 
@@ -16,8 +15,8 @@ public final class ConditionEvaluator {
     private ConditionEvaluator() {}
 
     /**
-     * Check if an element should be visible based on its conditionalDisplay rules.
-     * Returns true if the element should be rendered.
+     * Check if an element should be visible based on its conditionalDisplay rules. Returns true if
+     * the element should be rendered.
      */
     public static boolean shouldRender(JsonNode element, JsonNode formData, int detailRowIndex) {
         JsonNode cd = element.get("conditionalDisplay");
@@ -41,7 +40,8 @@ public final class ConditionEvaluator {
         }
     }
 
-    private static boolean evaluateCondition(JsonNode condition, JsonNode formData, int detailRowIndex) {
+    private static boolean evaluateCondition(
+            JsonNode condition, JsonNode formData, int detailRowIndex) {
         String fieldPath = condition.has("fieldPath") ? condition.get("fieldPath").asText() : "";
         String operator = condition.has("operator") ? condition.get("operator").asText() : "equals";
 
@@ -54,9 +54,10 @@ public final class ConditionEvaluator {
             return fieldValue != null && !fieldValue.isEmpty();
         }
 
-        String conditionValue = condition.has("value") && !condition.get("value").isNull()
-                ? condition.get("value").asText("")
-                : "";
+        String conditionValue =
+                condition.has("value") && !condition.get("value").isNull()
+                        ? condition.get("value").asText("")
+                        : "";
 
         return switch (operator) {
             case "equals" -> String.valueOf(fieldValue).equals(conditionValue);
@@ -71,7 +72,8 @@ public final class ConditionEvaluator {
         };
     }
 
-    private static String resolveFieldValue(String fieldPath, JsonNode formData, int detailRowIndex) {
+    private static String resolveFieldValue(
+            String fieldPath, JsonNode formData, int detailRowIndex) {
         if (formData == null) return null;
 
         Matcher m = DETAIL_FIELD_PATTERN.matcher(fieldPath);

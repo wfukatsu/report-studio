@@ -6,27 +6,26 @@ import com.report.server.job.JobStore;
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Detailed health and metrics endpoints for operators (admin-only).
  *
  * <ul>
- *   <li>GET /api/v1/admin/health  — ScalarDB connectivity, job-queue backlog, jobs-disk headroom</li>
- *   <li>GET /api/v1/admin/metrics — process-lifetime counters (PDF, jobs, rate-limit trips)</li>
+ *   <li>GET /api/v1/admin/health — ScalarDB connectivity, job-queue backlog, jobs-disk headroom
+ *   <li>GET /api/v1/admin/metrics — process-lifetime counters (PDF, jobs, rate-limit trips)
  * </ul>
  *
  * <p>The lightweight public liveness probes ({@code GET /api/v1/health} → {@code {"status":"ok"}}
  * and {@code GET /api/v2/health} → 204) are intentionally left untouched for external monitors.
- * This endpoint exposes internal state (namespaces, disk paths) and so is gated behind the
- * {@code /api/v1/admin/*} role filter.
+ * This endpoint exposes internal state (namespaces, disk paths) and so is gated behind the {@code
+ * /api/v1/admin/*} role filter.
  */
 public final class HealthController {
 
@@ -37,8 +36,10 @@ public final class HealthController {
 
     /** Backlog (PENDING + PROCESSING) at or above this marks the system DEGRADED. */
     static final int QUEUE_BACKLOG_DEGRADED = 100;
+
     /** Absolute usable-space floor (512 MiB) for the jobs disk before DEGRADED. */
     static final long DISK_FREE_DEGRADED_BYTES = 512L * 1024 * 1024;
+
     /** Fractional usable-space floor (10%) for the jobs disk before DEGRADED. */
     static final double DISK_FREE_DEGRADED_RATIO = 0.10;
 
@@ -47,7 +48,8 @@ public final class HealthController {
     private final Path jobsRoot;
     private final Metrics metrics;
 
-    public HealthController(TransactionFactory factory, JobStore jobStore, Path jobsRoot, Metrics metrics) {
+    public HealthController(
+            TransactionFactory factory, JobStore jobStore, Path jobsRoot, Metrics metrics) {
         this.factory = factory;
         this.jobStore = jobStore;
         this.jobsRoot = jobsRoot;
@@ -61,8 +63,9 @@ public final class HealthController {
         Map<String, Object> disk = checkJobsDisk();
 
         boolean down = "down".equals(scalardb.get("status"));
-        boolean degraded = Boolean.TRUE.equals(jobs.get("degraded"))
-                || Boolean.TRUE.equals(disk.get("degraded"));
+        boolean degraded =
+                Boolean.TRUE.equals(jobs.get("degraded"))
+                        || Boolean.TRUE.equals(disk.get("degraded"));
         String status = down ? "DOWN" : (degraded ? "DEGRADED" : "UP");
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -128,11 +131,14 @@ public final class HealthController {
         File dir = jobsRoot.toFile();
         long usable = dir.getUsableSpace();
         long total = dir.getTotalSpace();
-        // getUsableSpace/getTotalSpace return 0 for a non-existent path — treat as unknown, not degraded.
+        // getUsableSpace/getTotalSpace return 0 for a non-existent path — treat as unknown, not
+        // degraded.
         boolean unknown = total == 0;
         double freeRatio = total > 0 ? (double) usable / total : 1.0;
-        boolean degraded = !unknown
-                && (usable < DISK_FREE_DEGRADED_BYTES || freeRatio < DISK_FREE_DEGRADED_RATIO);
+        boolean degraded =
+                !unknown
+                        && (usable < DISK_FREE_DEGRADED_BYTES
+                                || freeRatio < DISK_FREE_DEGRADED_RATIO);
 
         result.put("path", jobsRoot.toString());
         result.put("usableBytes", usable);

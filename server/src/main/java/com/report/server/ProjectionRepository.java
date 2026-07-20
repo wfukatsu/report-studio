@@ -2,13 +2,11 @@ package com.report.server;
 
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
-
-import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Projection-specific repository backed by JsonBlobRepository.
- * Table: report_studio.designer_projections
+ * Projection-specific repository backed by JsonBlobRepository. Table:
+ * report_studio.designer_projections
  */
 public final class ProjectionRepository {
 

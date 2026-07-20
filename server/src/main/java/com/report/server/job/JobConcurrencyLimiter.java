@@ -5,10 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Unified admission control for job submission (issue #60).
  *
- * <p>Each job stack previously rolled its own counter with slightly different
- * (and in one case racy check-then-increment) semantics; one stack had no cap
- * at all. This is the single implementation: atomic acquire-or-reject, release
- * in the worker's {@code finally}.
+ * <p>Each job stack previously rolled its own counter with slightly different (and in one case racy
+ * check-then-increment) semantics; one stack had no cap at all. This is the single implementation:
+ * atomic acquire-or-reject, release in the worker's {@code finally}.
  */
 public final class JobConcurrencyLimiter {
 

@@ -1,28 +1,25 @@
 package com.report.server.pdf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
+import static com.report.server.pdf.PdfUtils.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
  * Renders V2 {@code repeatingList} elements to PDF (issue #53).
  *
- * <p>Lays out one card per data record — vertical, horizontal, or grid
- * ({@code gridColumns}) — each {@code itemWidth}×{@code itemHeight} mm with
- * {@code gap} spacing, bounded by {@code maxItems} and the element frame.
- * Inside each card, {@code fields[]} place text at relative mm coordinates
- * ({@code isLabel} fields render their {@code key} as a static label; others
- * resolve {@code key} from the record). Data resolved upstream into
- * {@code props.data}.
+ * <p>Lays out one card per data record — vertical, horizontal, or grid ({@code gridColumns}) — each
+ * {@code itemWidth}×{@code itemHeight} mm with {@code gap} spacing, bounded by {@code maxItems} and
+ * the element frame. Inside each card, {@code fields[]} place text at relative mm coordinates
+ * ({@code isLabel} fields render their {@code key} as a static label; others resolve {@code key}
+ * from the record). Data resolved upstream into {@code props.data}.
  */
 public final class RepeatingListPdfRenderer implements ElementPdfRenderer {
 
@@ -35,9 +32,17 @@ public final class RepeatingListPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode rows = arrayData(el);
         List<JsonNode> fields = readFields(el);
         if (rows == null || rows.isEmpty() || fields.isEmpty()) {
@@ -93,12 +98,15 @@ public final class RepeatingListPdfRenderer implements ElementPdfRenderer {
                     float fy = cardTop - floatOf(f, "y", 0) * MM_TO_PT;
                     JsonNode style = f.get("style");
                     float size = style != null ? floatOf(style, "fontSize", 8) : 8;
-                    Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
+                    Color color =
+                            parseColor(
+                                    style != null ? textOf(style, "color", "") : "", Color.BLACK);
                     cs.beginText();
                     cs.setFont(font, size);
                     cs.setNonStrokingColor(color);
                     cs.newLineAtOffset(fx + 1, fy - size);
-                    cs.showText(truncateToWidth(text, font, size, floatOf(f, "width", 20) * MM_TO_PT));
+                    cs.showText(
+                            truncateToWidth(text, font, size, floatOf(f, "width", 20) * MM_TO_PT));
                     cs.endText();
                 }
             }
@@ -110,7 +118,10 @@ public final class RepeatingListPdfRenderer implements ElementPdfRenderer {
     private static List<JsonNode> readFields(JsonNode el) {
         List<JsonNode> out = new ArrayList<>();
         JsonNode fields = el.get("fields");
-        if (fields == null) { JsonNode p = el.get("props"); if (p != null) fields = p.get("fields"); }
+        if (fields == null) {
+            JsonNode p = el.get("props");
+            if (p != null) fields = p.get("fields");
+        }
         if (fields != null && fields.isArray()) fields.forEach(out::add);
         return out;
     }
@@ -128,7 +139,9 @@ public final class RepeatingListPdfRenderer implements ElementPdfRenderer {
         if (n == null) return "";
         if (n.isNumber()) {
             double d = n.asDouble();
-            return (d == Math.rint(d) && Math.abs(d) < 1e15) ? String.valueOf((long) d) : String.valueOf(d);
+            return (d == Math.rint(d) && Math.abs(d) < 1e15)
+                    ? String.valueOf((long) d)
+                    : String.valueOf(d);
         }
         return n.asText("");
     }

@@ -1,17 +1,15 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 /**
- * Registry of element-kind-specific PDF renderers.
- * Mirrors the frontend ElementRegistry pattern.
+ * Registry of element-kind-specific PDF renderers. Mirrors the frontend ElementRegistry pattern.
  */
 public final class ElementPdfRendererRegistry {
 
@@ -69,12 +67,27 @@ public final class ElementPdfRendererRegistry {
         registry.register(new StyledTextPdfRenderer("tenantCustom"));
         // tenantLogo reaches the registry only when no logo is configured
         // (with a logo it is rewritten to "image") — draw nothing, not a fallback box
-        registry.register(new ElementPdfRenderer() {
-            @Override public String kind() { return "tenantLogo"; }
-            @Override public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                                          float w, float h, float pageHeight, PDDocument doc,
-                                          Map<String, PDFont> fontCache) { /* no logo configured */ }
-        });
+        registry.register(
+                new ElementPdfRenderer() {
+                    @Override
+                    public String kind() {
+                        return "tenantLogo";
+                    }
+
+                    @Override
+                    public void render(
+                            PDPageContentStream cs,
+                            JsonNode el,
+                            float x,
+                            float y,
+                            float w,
+                            float h,
+                            float pageHeight,
+                            PDDocument doc,
+                            Map<String, PDFont> fontCache) {
+                        /* no logo configured */
+                    }
+                });
         // Table and grid elements
         registry.register(new TablePdfRenderer());
         registry.register(new FormGridPdfRenderer());

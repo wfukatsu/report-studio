@@ -1,27 +1,26 @@
 package com.report.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * AES-256-GCM encryption for secrets at rest (webhook signing secrets).
  *
- * <p>The master key comes from the {@code WEBHOOK_SECRET_KEY} environment variable
- * (Base64-encoded 32 bytes). When the key is not configured the instance operates
- * in passthrough mode: {@link #encrypt(String)} returns the plaintext unchanged so
- * local development keeps working, and a WARN is logged at startup.</p>
+ * <p>The master key comes from the {@code WEBHOOK_SECRET_KEY} environment variable (Base64-encoded
+ * 32 bytes). When the key is not configured the instance operates in passthrough mode: {@link
+ * #encrypt(String)} returns the plaintext unchanged so local development keeps working, and a WARN
+ * is logged at startup.
  *
- * <p>Storage format: {@code enc:v1:<base64(iv)>:<base64(ciphertext+tag)>}.
- * Values without the {@code enc:v1:} prefix are treated as legacy plaintext by
- * {@link #decrypt(String)} (lazy migration — they are encrypted on the next save).</p>
+ * <p>Storage format: {@code enc:v1:<base64(iv)>:<base64(ciphertext+tag)>}. Values without the
+ * {@code enc:v1:} prefix are treated as legacy plaintext by {@link #decrypt(String)} (lazy
+ * migration — they are encrypted on the next save).
  */
 public final class SecretCrypto {
 
@@ -40,8 +39,8 @@ public final class SecretCrypto {
 
     /**
      * @param base64Key Base64-encoded 32-byte AES key, or null/blank for passthrough mode.
-     * @throws IllegalArgumentException if the key is present but not valid Base64
-     *                                  or does not decode to exactly 32 bytes.
+     * @throws IllegalArgumentException if the key is present but not valid Base64 or does not
+     *     decode to exactly 32 bytes.
      */
     public SecretCrypto(String base64Key) {
         if (base64Key == null || base64Key.isBlank()) {
@@ -56,21 +55,28 @@ public final class SecretCrypto {
         }
         if (raw.length != KEY_LENGTH_BYTES) {
             throw new IllegalArgumentException(
-                    ENV_KEY + " must decode to " + KEY_LENGTH_BYTES + " bytes (got " + raw.length + ")");
+                    ENV_KEY
+                            + " must decode to "
+                            + KEY_LENGTH_BYTES
+                            + " bytes (got "
+                            + raw.length
+                            + ")");
         }
         this.key = new SecretKeySpec(raw, "AES");
     }
 
     /**
-     * Build from the {@code WEBHOOK_SECRET_KEY} environment variable.
-     * Logs a WARN when the key is not set (plaintext fallback for development).
+     * Build from the {@code WEBHOOK_SECRET_KEY} environment variable. Logs a WARN when the key is
+     * not set (plaintext fallback for development).
      */
     public static SecretCrypto fromEnv() {
         SecretCrypto crypto = new SecretCrypto(System.getenv(ENV_KEY));
         if (!crypto.isEnabled()) {
-            log.warn("{} is not set — webhook secrets will be stored in PLAINTEXT. "
-                    + "Set a Base64-encoded 32-byte key before running in production "
-                    + "(e.g. `openssl rand -base64 32`).", ENV_KEY);
+            log.warn(
+                    "{} is not set — webhook secrets will be stored in PLAINTEXT. "
+                            + "Set a Base64-encoded 32-byte key before running in production "
+                            + "(e.g. `openssl rand -base64 32`).",
+                    ENV_KEY);
         }
         return crypto;
     }
@@ -86,8 +92,8 @@ public final class SecretCrypto {
     }
 
     /**
-     * Encrypt a plaintext secret. Returns the input unchanged when null or when
-     * no key is configured (passthrough mode).
+     * Encrypt a plaintext secret. Returns the input unchanged when null or when no key is
+     * configured (passthrough mode).
      */
     public String encrypt(String plaintext) {
         if (plaintext == null || key == null) {
@@ -109,12 +115,11 @@ public final class SecretCrypto {
     }
 
     /**
-     * Decrypt a stored value. Values without the {@code enc:v1:} prefix are
-     * returned as-is (legacy plaintext passthrough). Null returns null.
+     * Decrypt a stored value. Values without the {@code enc:v1:} prefix are returned as-is (legacy
+     * plaintext passthrough). Null returns null.
      *
-     * @throws IllegalStateException if the value is encrypted but no key is
-     *                               configured, or if decryption fails
-     *                               (wrong key / tampered ciphertext).
+     * @throws IllegalStateException if the value is encrypted but no key is configured, or if
+     *     decryption fails (wrong key / tampered ciphertext).
      */
     public String decrypt(String stored) {
         if (!isEncrypted(stored)) {

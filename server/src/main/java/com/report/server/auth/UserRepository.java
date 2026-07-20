@@ -1,22 +1,20 @@
 package com.report.server.auth;
 
-import com.report.server.JsonBlobRepository;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.JsonBlobRepository;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import at.favre.lib.crypto.bcrypt.BCrypt;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * ScalarDB-backed user repository for authentication.
- * Stores users as JSON blobs in report_studio.users table.
+ * ScalarDB-backed user repository for authentication. Stores users as JSON blobs in
+ * report_studio.users table.
  */
 public final class UserRepository {
 
@@ -42,14 +40,16 @@ public final class UserRepository {
 
     /** Find a user by userId. */
     public Optional<UserRecord> findById(String userId) {
-        return blob.get(userId).flatMap(json -> {
-            try {
-                return Optional.of(MAPPER.readValue(json, UserRecord.class));
-            } catch (Exception e) {
-                log.warn("Failed to parse user {}: {}", userId, e.getMessage());
-                return Optional.empty();
-            }
-        });
+        return blob.get(userId)
+                .flatMap(
+                        json -> {
+                            try {
+                                return Optional.of(MAPPER.readValue(json, UserRecord.class));
+                            } catch (Exception e) {
+                                log.warn("Failed to parse user {}: {}", userId, e.getMessage());
+                                return Optional.empty();
+                            }
+                        });
     }
 
     /** List all users (passwords excluded by callers — return full record for internal use). */
@@ -90,12 +90,9 @@ public final class UserRepository {
      * Ensure a default admin user exists.
      *
      * <ul>
-     *   <li>admin が存在しない場合: ADMIN_PASSWORD 環境変数（未設定時は既定値
-     *       "changeme"）で作成する</li>
-     *   <li>admin が既に存在する場合: ADMIN_PASSWORD が明示的に設定されている
-     *       ときだけパスワードをその値へリセットする（ロックアウト復旧用）。
-     *       未設定なら一切変更しない — UI からのパスワード変更が再起動で
-     *       巻き戻らないようにするため</li>
+     *   <li>admin が存在しない場合: ADMIN_PASSWORD 環境変数（未設定時は既定値 "changeme"）で作成する
+     *   <li>admin が既に存在する場合: ADMIN_PASSWORD が明示的に設定されている ときだけパスワードをその値へリセットする（ロックアウト復旧用）。
+     *       未設定なら一切変更しない — UI からのパスワード変更が再起動で 巻き戻らないようにするため
      * </ul>
      */
     public void ensureDefaultUser() {
@@ -118,13 +115,16 @@ public final class UserRepository {
         save(admin);
 
         if (envSet) {
-            log.info(adminExists
-                    ? "Admin password reset from ADMIN_PASSWORD env var"
-                    : "Admin user created (password from ADMIN_PASSWORD env var)");
+            log.info(
+                    adminExists
+                            ? "Admin password reset from ADMIN_PASSWORD env var"
+                            : "Admin user created (password from ADMIN_PASSWORD env var)");
         } else {
-            log.warn("SECURITY: admin user created with the default password '{}'. "
-                    + "Set the ADMIN_PASSWORD environment variable (or change the password "
-                    + "from the admin UI) before exposing this server.", DEFAULT_PASSWORD);
+            log.warn(
+                    "SECURITY: admin user created with the default password '{}'. "
+                            + "Set the ADMIN_PASSWORD environment variable (or change the password "
+                            + "from the admin UI) before exposing this server.",
+                    DEFAULT_PASSWORD);
         }
     }
 }

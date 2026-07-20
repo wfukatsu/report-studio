@@ -1,13 +1,12 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class V2ResponseAggregatorTest {
 
@@ -20,17 +19,18 @@ class V2ResponseAggregatorTest {
 
     @Test
     void build_returnsEmptyForNoEntries() {
-        Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(List.of());
+        Map<String, V2ResponseAggregator.FieldSummary> result =
+                V2ResponseAggregator.build(List.of());
         assertTrue(result.isEmpty());
     }
 
     @Test
     void build_countsFieldOccurrences() throws Exception {
-        List<V2ResponseAggregator.ResponseEntry> entries = List.of(
-            entry("{\"name\": \"Alice\"}"),
-            entry("{\"name\": \"Bob\"}"),
-            entry("{\"name\": \"Alice\"}")
-        );
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                List.of(
+                        entry("{\"name\": \"Alice\"}"),
+                        entry("{\"name\": \"Bob\"}"),
+                        entry("{\"name\": \"Alice\"}"));
 
         Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(entries);
 
@@ -40,12 +40,12 @@ class V2ResponseAggregatorTest {
 
     @Test
     void build_topValuesRankedByFrequency() throws Exception {
-        List<V2ResponseAggregator.ResponseEntry> entries = List.of(
-            entry("{\"status\": \"open\"}"),
-            entry("{\"status\": \"open\"}"),
-            entry("{\"status\": \"closed\"}"),
-            entry("{\"status\": \"open\"}")
-        );
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                List.of(
+                        entry("{\"status\": \"open\"}"),
+                        entry("{\"status\": \"open\"}"),
+                        entry("{\"status\": \"closed\"}"),
+                        entry("{\"status\": \"open\"}"));
 
         Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(entries);
         List<Object> topValues = result.get("status").topValues();
@@ -56,10 +56,8 @@ class V2ResponseAggregatorTest {
 
     @Test
     void build_skipsNullValues() throws Exception {
-        List<V2ResponseAggregator.ResponseEntry> entries = List.of(
-            entry("{\"field\": null}"),
-            entry("{\"field\": \"value\"}")
-        );
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                List.of(entry("{\"field\": null}"), entry("{\"field\": \"value\"}"));
 
         Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(entries);
         // null is skipped, only "value" counted
@@ -68,26 +66,26 @@ class V2ResponseAggregatorTest {
 
     @Test
     void build_skipsEntriesWithNullData() {
-        V2ResponseAggregator.ResponseEntry entry = new V2ResponseAggregator.ResponseEntry(
-            "id1", "tmpl1", 1000L, "user1", null
-        );
+        V2ResponseAggregator.ResponseEntry entry =
+                new V2ResponseAggregator.ResponseEntry("id1", "tmpl1", 1000L, "user1", null);
 
-        Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(List.of(entry));
+        Map<String, V2ResponseAggregator.FieldSummary> result =
+                V2ResponseAggregator.build(List.of(entry));
         assertTrue(result.isEmpty());
     }
 
     @Test
     void build_limitsTopValuesToFive() throws Exception {
         // Create 7 unique values
-        List<V2ResponseAggregator.ResponseEntry> entries = List.of(
-            entry("{\"x\": \"a\"}"),
-            entry("{\"x\": \"b\"}"),
-            entry("{\"x\": \"c\"}"),
-            entry("{\"x\": \"d\"}"),
-            entry("{\"x\": \"e\"}"),
-            entry("{\"x\": \"f\"}"),
-            entry("{\"x\": \"g\"}")
-        );
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                List.of(
+                        entry("{\"x\": \"a\"}"),
+                        entry("{\"x\": \"b\"}"),
+                        entry("{\"x\": \"c\"}"),
+                        entry("{\"x\": \"d\"}"),
+                        entry("{\"x\": \"e\"}"),
+                        entry("{\"x\": \"f\"}"),
+                        entry("{\"x\": \"g\"}"));
 
         Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(entries);
         assertTrue(result.get("x").topValues().size() <= 5);
@@ -95,10 +93,10 @@ class V2ResponseAggregatorTest {
 
     @Test
     void build_handlesMultipleFields() throws Exception {
-        List<V2ResponseAggregator.ResponseEntry> entries = List.of(
-            entry("{\"name\": \"Alice\", \"score\": 90}"),
-            entry("{\"name\": \"Bob\", \"score\": 80}")
-        );
+        List<V2ResponseAggregator.ResponseEntry> entries =
+                List.of(
+                        entry("{\"name\": \"Alice\", \"score\": 90}"),
+                        entry("{\"name\": \"Bob\", \"score\": 80}"));
 
         Map<String, V2ResponseAggregator.FieldSummary> result = V2ResponseAggregator.build(entries);
         assertTrue(result.containsKey("name"));

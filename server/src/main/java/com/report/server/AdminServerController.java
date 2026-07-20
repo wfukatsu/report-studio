@@ -3,11 +3,7 @@ package com.report.server;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,14 +14,17 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Admin-only server configuration endpoints:
+ *
  * <ul>
- *   <li>GET  /api/v1/admin/server-config        — read scalardb.properties (password masked)</li>
- *   <li>PUT  /api/v1/admin/server-config        — write scalardb.properties</li>
- *   <li>POST /api/v1/admin/server-config/test   — test connection with given config</li>
- *   <li>POST /api/v1/admin/server/restart       — schedule JVM exit (process manager restarts)</li>
+ *   <li>GET /api/v1/admin/server-config — read scalardb.properties (password masked)
+ *   <li>PUT /api/v1/admin/server-config — write scalardb.properties
+ *   <li>POST /api/v1/admin/server-config/test — test connection with given config
+ *   <li>POST /api/v1/admin/server/restart — schedule JVM exit (process manager restarts)
  * </ul>
  */
 public final class AdminServerController {
@@ -33,16 +32,16 @@ public final class AdminServerController {
     private static final Logger log = LoggerFactory.getLogger(AdminServerController.class);
 
     /** Properties that are exposed to the UI (subset to avoid exposing internal keys). */
-    private static final Set<String> EXPOSED_KEYS = Set.of(
-        "scalar.db.storage",
-        "scalar.db.contact_points",
-        "scalar.db.username",
-        "scalar.db.password",
-        "scalar.db.transaction_manager",
-        "scalar.db.jdbc.connection_pool.min_idle",
-        "scalar.db.jdbc.connection_pool.max_idle",
-        "scalar.db.jdbc.connection_pool.max_total"
-    );
+    private static final Set<String> EXPOSED_KEYS =
+            Set.of(
+                    "scalar.db.storage",
+                    "scalar.db.contact_points",
+                    "scalar.db.username",
+                    "scalar.db.password",
+                    "scalar.db.transaction_manager",
+                    "scalar.db.jdbc.connection_pool.min_idle",
+                    "scalar.db.jdbc.connection_pool.max_idle",
+                    "scalar.db.jdbc.connection_pool.max_total");
 
     private static final long RESTART_COOLDOWN_MS = 60_000; // 1 minute between restarts
 
@@ -93,8 +92,8 @@ public final class AdminServerController {
     }
 
     /**
-     * POST /api/v1/admin/server-config/test — test ScalarDB connection with given config.
-     * Accepts same body as PUT. Creates a temporary TransactionFactory to test connectivity.
+     * POST /api/v1/admin/server-config/test — test ScalarDB connection with given config. Accepts
+     * same body as PUT. Creates a temporary TransactionFactory to test connectivity.
      */
     public void testConfig(Context ctx) {
 
@@ -118,9 +117,9 @@ public final class AdminServerController {
     }
 
     /**
-     * POST /api/v1/admin/server/restart — schedule graceful JVM exit after 2s.
-     * The process manager (gradle, shell script) is expected to restart the server.
-     * Returns 200 before exiting. Rate-limited to 1 request per minute.
+     * POST /api/v1/admin/server/restart — schedule graceful JVM exit after 2s. The process manager
+     * (gradle, shell script) is expected to restart the server. Returns 200 before exiting.
+     * Rate-limited to 1 request per minute.
      */
     public void restart(Context ctx) {
 
@@ -138,15 +137,21 @@ public final class AdminServerController {
         ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。"));
         log.warn("Admin [{}] requested server restart — exiting JVM in 2 seconds", userId);
 
-        CompletableFuture.runAsync(() -> {
-            try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            System.exit(0);
-        });
+        CompletableFuture.runAsync(
+                () -> {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ignored) {
+                    }
+                    System.exit(0);
+                });
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    /** Merge incoming config into current properties, skipping unknown keys and masked passwords. */
+    /**
+     * Merge incoming config into current properties, skipping unknown keys and masked passwords.
+     */
     private Properties mergeIncoming(Map<String, String> incoming) throws IOException {
         Properties props = loadProps();
         for (Map.Entry<String, String> entry : incoming.entrySet()) {
@@ -172,6 +177,10 @@ public final class AdminServerController {
         props.store(sw, "ScalarDB configuration (managed by Report Design Studio)");
         Path tmp = propsPath.resolveSibling(propsPath.getFileName() + ".tmp");
         Files.writeString(tmp, sw.toString());
-        Files.move(tmp, propsPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        Files.move(
+                tmp,
+                propsPath,
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE);
     }
 }

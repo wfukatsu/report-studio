@@ -1,13 +1,12 @@
 package com.report.server;
 
-import com.report.server.job.JobStatus;
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.report.server.job.JobStatus;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 /** Unit tests for the in-process {@link Metrics} registry. */
 class MetricsTest {
@@ -54,9 +53,9 @@ class MetricsTest {
         m.recordJobOutcome(JobStatus.COMPLETED);
         m.recordJobOutcome(JobStatus.FAILED);
         m.recordJobOutcome(JobStatus.CANCELLED);
-        m.recordJobOutcome(JobStatus.PENDING);     // ignored (not an outcome)
-        m.recordJobOutcome(JobStatus.PROCESSING);  // ignored
-        m.recordJobOutcome(null);                  // ignored
+        m.recordJobOutcome(JobStatus.PENDING); // ignored (not an outcome)
+        m.recordJobOutcome(JobStatus.PROCESSING); // ignored
+        m.recordJobOutcome(null); // ignored
 
         Map<String, Object> jobs = section(m, "jobs");
         assertEquals(2L, jobs.get("completed"));

@@ -1,27 +1,24 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 /**
  * Parse-back tests for pushdown-layout auto page-break (issue #55).
  *
- * <p>A {@code free} section with {@code layoutMode: "relative"} whose pushdown
- * chain flows past the section bottom gains continuation pages; overflowing
- * elements render on their continuation page at the wrapped position, while
- * elements that fit the first page keep the historical repeat-on-every-page
- * behavior.
+ * <p>A {@code free} section with {@code layoutMode: "relative"} whose pushdown chain flows past the
+ * section bottom gains continuation pages; overflowing elements render on their continuation page
+ * at the wrapped position, while elements that fit the first page keep the historical
+ * repeat-on-every-page behavior.
  */
 class PdfPushdownParseBackTest {
 
     /**
-     * Free section y=0 height=100 (mm), relative layout:
-     * ヘッダA y=10 h=20 (static); 本文B anchored to A → effY 60 h=30 (fits);
-     * 続きC anchored to B → effY 130 → overflows onto page 2 at y=30.
+     * Free section y=0 height=100 (mm), relative layout: ヘッダA y=10 h=20 (static); 本文B anchored to A
+     * → effY 60 h=30 (fits); 続きC anchored to B → effY 130 → overflows onto page 2 at y=30.
      */
     private static String overflowJson() {
         return """
@@ -69,7 +66,8 @@ class PdfPushdownParseBackTest {
 
     @Test
     void noOverflow_staysSinglePage() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"NoOverflow",
               "sections":[{

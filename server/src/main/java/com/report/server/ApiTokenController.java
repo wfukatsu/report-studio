@@ -10,9 +10,6 @@ import com.report.server.auth.UserRecord;
 import com.report.server.auth.UserRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -22,20 +19,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Personal Access Token (PAT) management and Bearer authentication (#195).
  *
- * <p>Tokens let CI jobs and the CLI authenticate without the cookie-session login
- * ritual. Only a SHA-256 hash of each token is stored — the plaintext is shown
- * exactly once, at creation. Management endpoints require a real logged-in session
- * (so a token cannot mint further tokens); the token itself is then presented as
- * {@code Authorization: Bearer <token>} on subsequent requests.
+ * <p>Tokens let CI jobs and the CLI authenticate without the cookie-session login ritual. Only a
+ * SHA-256 hash of each token is stored — the plaintext is shown exactly once, at creation.
+ * Management endpoints require a real logged-in session (so a token cannot mint further tokens);
+ * the token itself is then presented as {@code Authorization: Bearer <token>} on subsequent
+ * requests.
  *
  * <ul>
- *   <li>{@code POST   /api/v1/auth/tokens}      — create; returns the plaintext once</li>
- *   <li>{@code GET    /api/v1/auth/tokens}      — list the caller's tokens (metadata only)</li>
- *   <li>{@code DELETE /api/v1/auth/tokens/{id}} — revoke</li>
+ *   <li>{@code POST /api/v1/auth/tokens} — create; returns the plaintext once
+ *   <li>{@code GET /api/v1/auth/tokens} — list the caller's tokens (metadata only)
+ *   <li>{@code DELETE /api/v1/auth/tokens/{id}} — revoke
  * </ul>
  */
 public final class ApiTokenController {
@@ -45,27 +44,40 @@ public final class ApiTokenController {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String TOKEN_PREFIX = "rpat_";
     private static final int TOKEN_BYTES = 32;
+
     /** Skip a lastUsedAt write if it was touched within this window (reduce write load). */
     private static final long LAST_USED_THROTTLE_MS = 60_000L;
+
     /** Max active (non-expired) tokens a single user may hold (#209). */
     static final int MAX_TOKENS_PER_USER = 20;
+
     /** Upper bound on a token's requested lifetime; 0 days means "never expires" (#209). */
     static final int MAX_EXPIRY_DAYS = 365;
+
     private static final long DAY_MS = 86_400_000L;
 
     private final AuthController authCtrl;
     private final UserRepository userRepo;
     private final JsonBlobRepository tokenRepo;
+
     /** Per-user throttle on token creation (#209). */
     private final RateLimiter createLimiter;
 
-    public ApiTokenController(AuthController authCtrl, UserRepository userRepo, JsonBlobRepository tokenRepo) {
-        this(authCtrl, userRepo, tokenRepo, new RateLimiter(10, 60_000L)); // 10 creations / min / user
+    public ApiTokenController(
+            AuthController authCtrl, UserRepository userRepo, JsonBlobRepository tokenRepo) {
+        this(
+                authCtrl,
+                userRepo,
+                tokenRepo,
+                new RateLimiter(10, 60_000L)); // 10 creations / min / user
     }
 
     /** Package-private for tests to inject a tighter limiter. */
-    ApiTokenController(AuthController authCtrl, UserRepository userRepo, JsonBlobRepository tokenRepo,
-                       RateLimiter createLimiter) {
+    ApiTokenController(
+            AuthController authCtrl,
+            UserRepository userRepo,
+            JsonBlobRepository tokenRepo,
+            RateLimiter createLimiter) {
         this.authCtrl = authCtrl;
         this.userRepo = userRepo;
         this.tokenRepo = tokenRepo;
@@ -123,14 +135,19 @@ public final class ApiTokenController {
         }
         if (activeCount >= MAX_TOKENS_PER_USER) {
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error",
-                    "Token limit reached (max " + MAX_TOKENS_PER_USER + "); revoke unused tokens first"));
+            ctx.json(
+                    Map.of(
+                            "error",
+                            "Token limit reached (max "
+                                    + MAX_TOKENS_PER_USER
+                                    + "); revoke unused tokens first"));
             return;
         }
 
         byte[] raw = new byte[TOKEN_BYTES];
         RANDOM.nextBytes(raw);
-        String plaintext = TOKEN_PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
+        String plaintext =
+                TOKEN_PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
         String hash = sha256(plaintext);
         String preview = plaintext.substring(0, Math.min(plaintext.length(), 12)) + "…";
 
@@ -160,7 +177,11 @@ public final class ApiTokenController {
         out.put("expiresAt", expiresAt);
         ctx.status(HttpStatus.CREATED);
         ctx.json(out);
-        log.info("Created API token {} for user {} (expiresAt={})", preview, principal.userId(), expiresAt);
+        log.info(
+                "Created API token {} for user {} (expiresAt={})",
+                preview,
+                principal.userId(),
+                expiresAt);
     }
 
     /** Count a user's stored tokens that have not expired as of {@code now}. */
@@ -170,7 +191,9 @@ public final class ApiTokenController {
             try {
                 long expiresAt = MAPPER.readTree(json).path("expiresAt").asLong(0);
                 if (expiresAt == 0 || now <= expiresAt) count++;
-            } catch (Exception ignored) { /* skip malformed */ }
+            } catch (Exception ignored) {
+                /* skip malformed */
+            }
         }
         return count;
     }
@@ -194,11 +217,15 @@ public final class ApiTokenController {
                 m.put("lastUsedAt", n.path("lastUsedAt").asLong());
                 m.put("expiresAt", n.path("expiresAt").asLong(0));
                 items.add(m);
-            } catch (Exception ignored) { /* skip */ }
+            } catch (Exception ignored) {
+                /* skip */
+            }
         }
-        items.sort((a, b) -> Long.compare(
-                ((Number) b.getOrDefault("createdAt", 0L)).longValue(),
-                ((Number) a.getOrDefault("createdAt", 0L)).longValue()));
+        items.sort(
+                (a, b) ->
+                        Long.compare(
+                                ((Number) b.getOrDefault("createdAt", 0L)).longValue(),
+                                ((Number) a.getOrDefault("createdAt", 0L)).longValue()));
         ctx.json(Map.of("tokens", items));
     }
 
@@ -245,9 +272,8 @@ public final class ApiTokenController {
     // ── Bearer resolution (called from the auth before-filter) ──────────────────
 
     /**
-     * Resolve a principal from an {@code Authorization: Bearer <token>} header.
-     * Returns {@link Principal#ANONYMOUS} when absent, malformed, unknown, or the
-     * backing user no longer exists.
+     * Resolve a principal from an {@code Authorization: Bearer <token>} header. Returns {@link
+     * Principal#ANONYMOUS} when absent, malformed, unknown, or the backing user no longer exists.
      */
     public Principal resolveFromBearer(Context ctx) {
         String header = ctx.header("Authorization");
@@ -257,13 +283,19 @@ public final class ApiTokenController {
 
         String hash = sha256(token);
         Optional<String> stored;
-        try { stored = tokenRepo.get(hash); }
-        catch (Exception e) { return Principal.ANONYMOUS; }
+        try {
+            stored = tokenRepo.get(hash);
+        } catch (Exception e) {
+            return Principal.ANONYMOUS;
+        }
         if (stored.isEmpty()) return Principal.ANONYMOUS;
 
         JsonNode rec;
-        try { rec = MAPPER.readTree(stored.get()); }
-        catch (Exception e) { return Principal.ANONYMOUS; }
+        try {
+            rec = MAPPER.readTree(stored.get());
+        } catch (Exception e) {
+            return Principal.ANONYMOUS;
+        }
 
         // Reject expired tokens (#209). Legacy tokens without expiresAt (0) never expire.
         long expiresAt = rec.path("expiresAt").asLong(0);
@@ -286,7 +318,9 @@ public final class ApiTokenController {
             ObjectNode updated = (ObjectNode) rec;
             updated.put("lastUsedAt", now);
             tokenRepo.put(hash, MAPPER.writeValueAsString(updated), rec.path("userId").asText(""));
-        } catch (Exception ignored) { /* best-effort */ }
+        } catch (Exception ignored) {
+            /* best-effort */
+        }
     }
 
     private static void unauthorized(Context ctx) {

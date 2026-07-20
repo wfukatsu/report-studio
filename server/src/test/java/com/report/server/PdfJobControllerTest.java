@@ -1,19 +1,18 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class PdfJobControllerTest {
 
@@ -30,22 +29,32 @@ class PdfJobControllerTest {
     void setUp() {
         definitionsRepo = mock(JsonBlobRepository.class);
         executor = Executors.newSingleThreadExecutor();
-        controller = new PdfJobController(definitionsRepo,
-                new com.report.server.testsupport.InMemoryJobStore(), executor);
+        controller =
+                new PdfJobController(
+                        definitionsRepo,
+                        new com.report.server.testsupport.InMemoryJobStore(),
+                        executor);
 
         ctx = mock(Context.class);
-        when(ctx.status(anyInt())).thenAnswer(inv -> {
-            capturedStatus = (int) inv.getArguments()[0];
-            return ctx;
-        });
-        when(ctx.status(any(HttpStatus.class))).thenAnswer(inv -> {
-            capturedStatus = ((HttpStatus) inv.getArguments()[0]).getCode();
-            return ctx;
-        });
-        doAnswer(inv -> {
-            capturedJson = inv.getArguments()[0];
-            return null;
-        }).when(ctx).json(any());
+        when(ctx.status(anyInt()))
+                .thenAnswer(
+                        inv -> {
+                            capturedStatus = (int) inv.getArguments()[0];
+                            return ctx;
+                        });
+        when(ctx.status(any(HttpStatus.class)))
+                .thenAnswer(
+                        inv -> {
+                            capturedStatus = ((HttpStatus) inv.getArguments()[0]).getCode();
+                            return ctx;
+                        });
+        doAnswer(
+                        inv -> {
+                            capturedJson = inv.getArguments()[0];
+                            return null;
+                        })
+                .when(ctx)
+                .json(any());
         when(ctx.header(anyString(), anyString())).thenReturn(ctx);
         when(ctx.attribute("principal")).thenReturn(null);
     }
@@ -54,7 +63,9 @@ class PdfJobControllerTest {
 
     @Test
     void submitReturns400WhenTemplateIdMissing() {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"testData": {}}
         """);
 
@@ -65,7 +76,9 @@ class PdfJobControllerTest {
 
     @Test
     void submitReturns404WhenTemplateNotFound() {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"templateId": "nonexistent"}
         """);
         when(definitionsRepo.get("nonexistent")).thenReturn(Optional.empty());
@@ -77,7 +90,9 @@ class PdfJobControllerTest {
 
     @Test
     void submitReturns202WithJobIdWhenTemplateExists() {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"templateId": "tmpl-1"}
         """);
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of("{\"pages\":[]}"));
@@ -115,7 +130,9 @@ class PdfJobControllerTest {
 
     @Test
     void getStatusReturnsPendingAfterSubmit() throws Exception {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"templateId": "tmpl-1"}
         """);
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of("{\"pages\":[]}"));
@@ -149,7 +166,9 @@ class PdfJobControllerTest {
 
     @Test
     void getResultReturns409WhenJobNotCompleted() {
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"templateId": "tmpl-1"}
         """);
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of("{\"pages\":[]}"));
@@ -188,7 +207,9 @@ class PdfJobControllerTest {
         }
 
         // The 11th should get 429
-        when(ctx.body()).thenReturn("""
+        when(ctx.body())
+                .thenReturn(
+                        """
             {"templateId": "tmpl-overflow"}
         """);
         capturedStatus = 200;

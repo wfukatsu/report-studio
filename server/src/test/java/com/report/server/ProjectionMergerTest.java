@@ -1,12 +1,11 @@
 package com.report.server;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ProjectionMergerTest {
 
@@ -16,7 +15,8 @@ class ProjectionMergerTest {
 
     @Test
     void mergesMasterFieldIntoTextElement() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -45,7 +45,8 @@ class ProjectionMergerTest {
 
     @Test
     void mergesMultipleFields() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -73,7 +74,8 @@ class ProjectionMergerTest {
 
     @Test
     void mergesIntoValuePropForBarcode() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -93,14 +95,21 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("employee.code", "EMP-001");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("EMP-001", el.get("props").get("value").asText());
     }
 
     @Test
     void mergesIntoCheckedPropForCheckbox() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -120,14 +129,21 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("is_active", "true");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("true", el.get("props").get("checked").asText());
     }
 
     @Test
     void mergesIntoValuePropForQrcode() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -147,8 +163,14 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("url", "https://example.com");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("https://example.com", el.get("props").get("value").asText());
     }
 
@@ -156,7 +178,8 @@ class ProjectionMergerTest {
 
     @Test
     void skipsElementsWithoutBindingRef() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -175,14 +198,21 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("anything", "value");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("static label", el.get("props").get("text").asText());
     }
 
     @Test
     void skipsSystemVariables() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -202,14 +232,21 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("{currentDate}", "should-not-appear");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("", el.get("props").get("text").asText());
     }
 
     @Test
     void leavesUnmatchedBindingRefUnchanged() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -229,14 +266,21 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of("other.field", "value");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("original", el.get("props").get("text").asText());
     }
 
     @Test
     void handlesMultipleSections() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -258,13 +302,16 @@ class ProjectionMergerTest {
         String merged = ProjectionMerger.merge(projection, row);
 
         JsonNode sections = MAPPER.readTree(merged).get("templates").get(0).get("sections");
-        assertEquals("テスト", sections.get(0).get("elements").get(0).get("props").get("text").asText());
-        assertEquals("10000", sections.get(1).get("elements").get(0).get("props").get("text").asText());
+        assertEquals(
+                "テスト", sections.get(0).get("elements").get(0).get("props").get("text").asText());
+        assertEquals(
+                "10000", sections.get(1).get("elements").get(0).get("props").get("text").asText());
     }
 
     @Test
     void handlesMultipleTemplates() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [
                 {
@@ -289,15 +336,34 @@ class ProjectionMergerTest {
         String merged = ProjectionMerger.merge(projection, row);
 
         JsonNode templates = MAPPER.readTree(merged).get("templates");
-        assertEquals("両方に適用",
-            templates.get(0).get("sections").get(0).get("elements").get(0).get("props").get("text").asText());
-        assertEquals("両方に適用",
-            templates.get(1).get("sections").get(0).get("elements").get(0).get("props").get("text").asText());
+        assertEquals(
+                "両方に適用",
+                templates
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0)
+                        .get("props")
+                        .get("text")
+                        .asText());
+        assertEquals(
+                "両方に適用",
+                templates
+                        .get(1)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0)
+                        .get("props")
+                        .get("text")
+                        .asText());
     }
 
     @Test
     void preservesNonElementFields() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -338,7 +404,8 @@ class ProjectionMergerTest {
 
     @Test
     void handlesEmptyProjection() throws Exception {
-        String projection = """
+        String projection =
+                """
             { "templates": [] }
             """;
 
@@ -351,7 +418,8 @@ class ProjectionMergerTest {
 
     @Test
     void handlesEmptyDataRow() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -371,8 +439,14 @@ class ProjectionMergerTest {
         Map<String, String> row = Map.of();
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("original", el.get("props").get("text").asText());
     }
 
@@ -380,7 +454,8 @@ class ProjectionMergerTest {
 
     @Test
     void mergesDetailFieldFromFlatRow() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",
@@ -397,18 +472,26 @@ class ProjectionMergerTest {
             }
             """;
 
-        // In batch context, detail fields are flattened: "income[].payment_amount" → "income[].payment_amount"
+        // In batch context, detail fields are flattened: "income[].payment_amount" →
+        // "income[].payment_amount"
         Map<String, String> row = Map.of("income[].payment_amount", "500000");
         String merged = ProjectionMerger.merge(projection, row);
 
-        JsonNode el = MAPPER.readTree(merged)
-            .get("templates").get(0).get("sections").get(0).get("elements").get(0);
+        JsonNode el =
+                MAPPER.readTree(merged)
+                        .get("templates")
+                        .get(0)
+                        .get("sections")
+                        .get(0)
+                        .get("elements")
+                        .get(0);
         assertEquals("500000", el.get("props").get("text").asText());
     }
 
     @Test
     void doesNotProduceFormDataField() throws Exception {
-        String projection = """
+        String projection =
+                """
             {
               "templates": [{
                 "id": "t1",

@@ -1,20 +1,19 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Registry of section-type-specific PDF renderers.
- * Mirrors the ElementPdfRendererRegistry pattern for section-level dispatch.
+ * Registry of section-type-specific PDF renderers. Mirrors the ElementPdfRendererRegistry pattern
+ * for section-level dispatch.
  *
- * <p>Add support for a new section type by creating a {@link SectionPdfRenderer}
- * implementation and registering it in {@link #createDefault()}.
- * Unknown section types fall back to {@link FreeSectionRenderer} with a warning log.
+ * <p>Add support for a new section type by creating a {@link SectionPdfRenderer} implementation and
+ * registering it in {@link #createDefault()}. Unknown section types fall back to {@link
+ * FreeSectionRenderer} with a warning log.
  */
 public final class SectionPdfRendererRegistry {
 
@@ -32,14 +31,16 @@ public final class SectionPdfRendererRegistry {
     }
 
     /**
-     * Look up a renderer, falling back to the free-section renderer for unknown types.
-     * Logs a warning on the first encounter of an unknown type to aid debugging during rollback.
+     * Look up a renderer, falling back to the free-section renderer for unknown types. Logs a
+     * warning on the first encounter of an unknown type to aid debugging during rollback.
      */
     public SectionPdfRenderer getOrFallback(String sectionType) {
         SectionPdfRenderer renderer = handlers.get(sectionType);
         if (renderer != null) return renderer;
-        log.warn("Unknown section type '{}' — falling back to free-section renderer. " +
-                 "This may indicate a rollback or forward-compatibility scenario.", sectionType);
+        log.warn(
+                "Unknown section type '{}' — falling back to free-section renderer. "
+                        + "This may indicate a rollback or forward-compatibility scenario.",
+                sectionType);
         return handlers.get("free");
     }
 

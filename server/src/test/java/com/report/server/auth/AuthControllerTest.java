@@ -1,19 +1,5 @@
 package com.report.server.auth;
 
-import at.favre.lib.crypto.bcrypt.BCrypt;
-import io.javalin.http.Context;
-import io.javalin.http.Cookie;
-import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -25,22 +11,36 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import io.javalin.http.Context;
+import io.javalin.http.Cookie;
+import io.javalin.http.HttpStatus;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
 /**
- * Unit tests for {@link AuthController} — login success/failure, logout,
- * session TTL expiry, per-IP login rate limiting (default 5 attempts / 5 min)
- * and the DUMMY_HASH timing-attack mitigation.
+ * Unit tests for {@link AuthController} — login success/failure, logout, session TTL expiry, per-IP
+ * login rate limiting (default 5 attempts / 5 min) and the DUMMY_HASH timing-attack mitigation.
  *
- * <p>Follows the mock pattern of {@link UserRepositoryTest}: the final
- * {@link UserRepository} is mocked via the Mockito inline mock maker and time
- * is injected through the package-private clock-seam constructor.
+ * <p>Follows the mock pattern of {@link UserRepositoryTest}: the final {@link UserRepository} is
+ * mocked via the Mockito inline mock maker and time is injected through the package-private
+ * clock-seam constructor.
  */
 class AuthControllerTest {
 
     private static final long SESSION_TTL_MS = 86_400_000L; // 24 hours
     private static final String PASSWORD = "correct-pw";
+
     /** Low-cost hash keeps the wrong/right password verifications fast. */
     private static final String PASSWORD_HASH =
             BCrypt.withDefaults().hashToString(4, PASSWORD.toCharArray());
+
     private static final UserRecord ADMIN =
             new UserRecord("admin", "管理者", PASSWORD_HASH, Set.of("admin", "user"));
 
@@ -172,9 +172,11 @@ class AuthControllerTest {
         long elapsedMs = (System.nanoTime() - start) / 1_000_000;
 
         verify(ctx).status(HttpStatus.UNAUTHORIZED);
-        assertTrue(elapsedMs >= 50,
-                "unknown-user login returned in " + elapsedMs
-                + "ms — DUMMY_HASH bcrypt verification did not run");
+        assertTrue(
+                elapsedMs >= 50,
+                "unknown-user login returned in "
+                        + elapsedMs
+                        + "ms — DUMMY_HASH bcrypt verification did not run");
     }
 
     @Test
@@ -284,7 +286,8 @@ class AuthControllerTest {
 
     @Test
     void resolveWithUnknownSessionId_isAnonymous() {
-        Principal principal = controller.resolveFromRequest(requestWithSession("forged-session-id"));
+        Principal principal =
+                controller.resolveFromRequest(requestWithSession("forged-session-id"));
 
         assertTrue(principal.isAnonymous());
     }
@@ -317,7 +320,8 @@ class AuthControllerTest {
         controller.resolveFromRequest(requestWithSession(cookie.getValue()));
         now.addAndGet(-(SESSION_TTL_MS + 1));
 
-        assertTrue(controller.resolveFromRequest(requestWithSession(cookie.getValue())).isAnonymous());
+        assertTrue(
+                controller.resolveFromRequest(requestWithSession(cookie.getValue())).isAnonymous());
     }
 
     @Test
@@ -326,9 +330,11 @@ class AuthControllerTest {
         Cookie second = loginAndCaptureCookie();
         assertNotEquals(first.getValue(), second.getValue());
 
-        assertTrue(controller.resolveFromRequest(requestWithSession(first.getValue())).isAnonymous(),
+        assertTrue(
+                controller.resolveFromRequest(requestWithSession(first.getValue())).isAnonymous(),
                 "old session must be invalidated on re-login");
-        assertEquals("admin",
+        assertEquals(
+                "admin",
                 controller.resolveFromRequest(requestWithSession(second.getValue())).userId());
     }
 
@@ -343,7 +349,8 @@ class AuthControllerTest {
 
         verify(logoutCtx).removeCookie("session_id", "/api/");
         assertEquals("logged_out", capturedJson(logoutCtx).get("status"));
-        assertTrue(controller.resolveFromRequest(requestWithSession(cookie.getValue())).isAnonymous(),
+        assertTrue(
+                controller.resolveFromRequest(requestWithSession(cookie.getValue())).isAnonymous(),
                 "session must be unusable after logout");
     }
 
@@ -405,7 +412,8 @@ class AuthControllerTest {
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
         verify(userRepo).save(saved.capture());
         assertEquals("New Name", saved.getValue().displayName());
-        assertEquals(PASSWORD_HASH, saved.getValue().passwordHash(), "password hash must be untouched");
+        assertEquals(
+                PASSWORD_HASH, saved.getValue().passwordHash(), "password hash must be untouched");
         assertEquals("New Name", capturedJson(ctx).get("displayName"));
     }
 
@@ -425,8 +433,8 @@ class AuthControllerTest {
     void changeProfile_wrongCurrentPassword_401() {
         Cookie cookie = loginAndCaptureCookie();
         Context ctx = requestWithSession(cookie.getValue());
-        when(ctx.bodyAsClass(Map.class)).thenReturn(
-                Map.of("currentPassword", "wrong-pw", "newPassword", "next-pw"));
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(Map.of("currentPassword", "wrong-pw", "newPassword", "next-pw"));
 
         controller.changeProfile(ctx);
 
@@ -438,16 +446,18 @@ class AuthControllerTest {
     void changeProfile_changesPassword_whenCurrentPasswordCorrect() {
         Cookie cookie = loginAndCaptureCookie();
         Context ctx = requestWithSession(cookie.getValue());
-        when(ctx.bodyAsClass(Map.class)).thenReturn(
-                Map.of("currentPassword", PASSWORD, "newPassword", "next-pw"));
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(Map.of("currentPassword", PASSWORD, "newPassword", "next-pw"));
 
         controller.changeProfile(ctx);
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
         verify(userRepo).save(saved.capture());
         assertNotEquals(PASSWORD_HASH, saved.getValue().passwordHash());
-        assertTrue(BCrypt.verifyer()
-                        .verify("next-pw".toCharArray(), saved.getValue().passwordHash()).verified,
+        assertTrue(
+                BCrypt.verifyer()
+                        .verify("next-pw".toCharArray(), saved.getValue().passwordHash())
+                        .verified,
                 "saved hash must verify the new password");
     }
 
@@ -472,12 +482,13 @@ class AuthControllerTest {
         assertFalse(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous());
 
         Context ctx = requestWithSession(oldSession);
-        when(ctx.bodyAsClass(Map.class)).thenReturn(
-                Map.of("currentPassword", PASSWORD, "newPassword", "next-pw"));
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(Map.of("currentPassword", PASSWORD, "newPassword", "next-pw"));
         controller.changeProfile(ctx);
 
         // The old cookie must no longer authenticate (a stolen cookie is now useless).
-        assertTrue(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
+        assertTrue(
+                controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
                 "old session must be invalidated after a password change (#202)");
 
         // A fresh session was issued so the caller stays logged in, and it works.
@@ -485,7 +496,8 @@ class AuthControllerTest {
         verify(ctx).cookie(newCookie.capture());
         String newSession = newCookie.getValue().getValue();
         assertNotEquals(oldSession, newSession, "a new session id must be issued");
-        assertFalse(controller.resolveFromRequest(requestWithSession(newSession)).isAnonymous(),
+        assertFalse(
+                controller.resolveFromRequest(requestWithSession(newSession)).isAnonymous(),
                 "the re-issued session must authenticate");
     }
 
@@ -499,7 +511,8 @@ class AuthControllerTest {
         controller.changeProfile(ctx);
 
         // No password change → session stays valid and no new cookie is issued.
-        assertFalse(controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
+        assertFalse(
+                controller.resolveFromRequest(requestWithSession(oldSession)).isAnonymous(),
                 "display-name-only change must not invalidate the session");
         verify(ctx, never()).cookie(any(Cookie.class));
     }

@@ -1,17 +1,16 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDate;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import org.junit.jupiter.api.Test;
+
 /**
- * Cross-language contract tests for {@link ValueFormatter} (issues #53/#57).
- * Mirrors the fixtures in src/lib/numberFormatter.test.ts — if either side
- * changes formatting behavior, this suite and the frontend suite must agree.
+ * Cross-language contract tests for {@link ValueFormatter} (issues #53/#57). Mirrors the fixtures
+ * in src/lib/numberFormatter.test.ts — if either side changes formatting behavior, this suite and
+ * the frontend suite must agree.
  */
 class ValueFormatterTest {
 
@@ -81,10 +80,13 @@ class ValueFormatterTest {
         LocalDate d = LocalDate.of(2026, 4, 1);
         assertEquals("2026/04/01", ValueFormatter.formatDate(d, "yyyy/MM/dd", null));
         assertEquals("2026年4月1日", ValueFormatter.formatDate(d, "yyyy年MM月dd日", null));
-        assertEquals("04/15/2026", ValueFormatter.formatDate(LocalDate.of(2026, 4, 15), "MM/dd/yyyy", null));
+        assertEquals(
+                "04/15/2026",
+                ValueFormatter.formatDate(LocalDate.of(2026, 4, 15), "MM/dd/yyyy", null));
         assertEquals("令和8年4月1日", ValueFormatter.formatDate(d, "wareki_full", null));
         assertEquals("R08.04.01", ValueFormatter.formatDate(d, "wareki_short", null));
-        assertEquals("2026-04-15",
+        assertEquals(
+                "2026-04-15",
                 ValueFormatter.formatDate(LocalDate.of(2026, 4, 15), "custom", "yyyy-MM-dd"));
     }
 
@@ -93,40 +95,53 @@ class ValueFormatterTest {
     @Test
     void applyFormat_nullAndMissingReturnEmpty() throws Exception {
         assertEquals("", ValueFormatter.applyFormat(null, fmt("{\"type\":\"integer\"}")));
-        assertEquals("", ValueFormatter.applyFormat(MAPPER.nullNode(), fmt("{\"type\":\"integer\"}")));
+        assertEquals(
+                "", ValueFormatter.applyFormat(MAPPER.nullNode(), fmt("{\"type\":\"integer\"}")));
     }
 
     @Test
     void applyFormat_dateStringWithDateType() throws Exception {
-        assertEquals("令和8年4月1日",
-                ValueFormatter.applyFormat(fmt("\"2026-04-01\""), fmt("{\"type\":\"wareki_full\"}")));
-        assertEquals("2026/04/01",
-                ValueFormatter.applyFormat(fmt("\"2026/04/01\""), fmt("{\"type\":\"yyyy/MM/dd\"}")));
+        assertEquals(
+                "令和8年4月1日",
+                ValueFormatter.applyFormat(
+                        fmt("\"2026-04-01\""), fmt("{\"type\":\"wareki_full\"}")));
+        assertEquals(
+                "2026/04/01",
+                ValueFormatter.applyFormat(
+                        fmt("\"2026/04/01\""), fmt("{\"type\":\"yyyy/MM/dd\"}")));
     }
 
     @Test
     void applyFormat_numericStringWithNumberType() throws Exception {
-        assertEquals("1,000",
-                ValueFormatter.applyFormat(fmt("\"1000\""), fmt("{\"type\":\"comma\"}")));
-        assertEquals("¥1,234",
+        assertEquals(
+                "1,000", ValueFormatter.applyFormat(fmt("\"1000\""), fmt("{\"type\":\"comma\"}")));
+        assertEquals(
+                "¥1,234",
                 ValueFormatter.applyFormat(fmt("1234"), fmt("{\"type\":\"currency_jpy\"}")));
     }
 
     @Test
     void applyFormat_nonNumericStringPassesThrough() throws Exception {
-        assertEquals("hello",
+        assertEquals(
+                "hello",
                 ValueFormatter.applyFormat(fmt("\"hello\""), fmt("{\"type\":\"integer\"}")));
-        assertEquals("not-a-date",
-                ValueFormatter.applyFormat(fmt("\"not-a-date\""), fmt("{\"type\":\"yyyy/MM/dd\"}")));
+        assertEquals(
+                "not-a-date",
+                ValueFormatter.applyFormat(
+                        fmt("\"not-a-date\""), fmt("{\"type\":\"yyyy/MM/dd\"}")));
     }
 
     @Test
     void applyFormat_addressObject() throws Exception {
-        JsonNode addr = fmt("""
+        JsonNode addr =
+                fmt(
+                        """
             {"postalCode":"100-0001","address1":"東京都千代田区千代田1-1","address2":"皇居ビル2F"}""");
-        assertEquals("〒100-0001 東京都千代田区千代田1-1皇居ビル2F",
+        assertEquals(
+                "〒100-0001 東京都千代田区千代田1-1皇居ビル2F",
                 ValueFormatter.applyFormat(addr, fmt("{\"type\":\"address_single\"}")));
-        assertEquals("〒100-0001\n東京都千代田区千代田1-1\n皇居ビル2F",
+        assertEquals(
+                "〒100-0001\n東京都千代田区千代田1-1\n皇居ビル2F",
                 ValueFormatter.applyFormat(addr, fmt("{\"type\":\"address_multiline\"}")));
     }
 

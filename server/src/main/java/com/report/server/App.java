@@ -8,10 +8,11 @@ import org.slf4j.LoggerFactory;
  * Report Design Studio — local development server entry point.
  *
  * <p>Startup sequence:
+ *
  * <ol>
- *   <li>{@link AppConfig} — port resolution, data directory, ScalarDB factory</li>
- *   <li>{@link AppWiring} — repository + controller instantiation</li>
- *   <li>{@link ApiRoutes} — middleware and route registration</li>
+ *   <li>{@link AppConfig} — port resolution, data directory, ScalarDB factory
+ *   <li>{@link AppWiring} — repository + controller instantiation
+ *   <li>{@link ApiRoutes} — middleware and route registration
  * </ol>
  */
 public final class App {

@@ -5,10 +5,9 @@ import java.util.Locale;
 /**
  * Unified job status vocabulary (issue #60).
  *
- * <p>Historically each job stack had its own strings: V1 used UPPERCASE
- * constants (plus a bare {@code "CANCELLED"} literal that was not terminal),
- * the V2 stacks used lowercase literals with no cancelled state. This enum is
- * the single source; the API layers keep their historical casing via
+ * <p>Historically each job stack had its own strings: V1 used UPPERCASE constants (plus a bare
+ * {@code "CANCELLED"} literal that was not terminal), the V2 stacks used lowercase literals with no
+ * cancelled state. This enum is the single source; the API layers keep their historical casing via
  * {@link #v1Name()} / {@link #v2Name()}.
  */
 public enum JobStatus {
@@ -34,9 +33,8 @@ public enum JobStatus {
     }
 
     /**
-     * Parse a status string in either casing. Unknown values map to
-     * {@code PENDING} — the safest non-terminal interpretation for a record
-     * whose vocabulary predates this enum.
+     * Parse a status string in either casing. Unknown values map to {@code PENDING} — the safest
+     * non-terminal interpretation for a record whose vocabulary predates this enum.
      */
     public static JobStatus from(String value) {
         if (value == null) return PENDING;

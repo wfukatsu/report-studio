@@ -3,10 +3,9 @@ package com.report.server.pdf;
 /**
  * Canonical unit-conversion constants for the PDF engine (issue #57).
  *
- * <p>1 pt = 1/72 inch, 1 inch = 25.4 mm → 1 mm = 72/25.4 pt (≈ 2.8346457).
- * Previously the rounded literal {@code 2.835f} was duplicated across four
- * renderer classes, accumulating ~0.5 mm of drift across an A4 width; every
- * mm→pt conversion must go through these constants instead.
+ * <p>1 pt = 1/72 inch, 1 inch = 25.4 mm → 1 mm = 72/25.4 pt (≈ 2.8346457). Previously the rounded
+ * literal {@code 2.835f} was duplicated across four renderer classes, accumulating ~0.5 mm of drift
+ * across an A4 width; every mm→pt conversion must go through these constants instead.
  */
 public final class PdfUnits {
 

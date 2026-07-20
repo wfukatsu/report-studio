@@ -1,5 +1,9 @@
 package com.report.server.pdf;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
@@ -8,16 +12,9 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Provides PDF fonts with JVM-level byte caching.
- * Font bytes are loaded once at class initialization;
- * PDFont instances are created per-document (required for subsetting).
+ * Provides PDF fonts with JVM-level byte caching. Font bytes are loaded once at class
+ * initialization; PDFont instances are created per-document (required for subsetting).
  */
 public final class FontProvider {
 
@@ -30,12 +27,14 @@ public final class FontProvider {
 
     static {
         byte[] sansBytes = null;
-        try (InputStream is = FontProvider.class.getResourceAsStream("/fonts/NotoSansJP-Regular.ttf")) {
+        try (InputStream is =
+                FontProvider.class.getResourceAsStream("/fonts/NotoSansJP-Regular.ttf")) {
             if (is != null) {
                 sansBytes = is.readAllBytes();
                 log.info("Loaded Noto Sans JP font ({} bytes)", sansBytes.length);
             } else {
-                log.warn("Noto Sans JP font not found on classpath — Japanese text will not render correctly");
+                log.warn(
+                        "Noto Sans JP font not found on classpath — Japanese text will not render correctly");
             }
         } catch (IOException e) {
             log.warn("Failed to load Noto Sans JP font: {}", e.getMessage());
@@ -46,12 +45,14 @@ public final class FontProvider {
         // Real Bold weight (OFL) — a true bold face for Japanese, replacing the
         // stroke-widened synthetic bold when present (issue #56)
         byte[] boldBytes = null;
-        try (InputStream is = FontProvider.class.getResourceAsStream("/fonts/NotoSansJP-Bold.ttf")) {
+        try (InputStream is =
+                FontProvider.class.getResourceAsStream("/fonts/NotoSansJP-Bold.ttf")) {
             if (is != null) {
                 boldBytes = is.readAllBytes();
                 log.info("Loaded Noto Sans JP Bold font ({} bytes)", boldBytes.length);
             } else {
-                log.info("Noto Sans JP Bold font not found — bold falls back to synthetic (stroke)");
+                log.info(
+                        "Noto Sans JP Bold font not found — bold falls back to synthetic (stroke)");
             }
         } catch (IOException e) {
             log.warn("Failed to load Noto Sans JP Bold font: {}", e.getMessage());
@@ -60,7 +61,8 @@ public final class FontProvider {
         CJK_BOLD_AVAILABLE = boldBytes != null;
 
         byte[] serifBytes = null;
-        try (InputStream is = FontProvider.class.getResourceAsStream("/fonts/NotoSerifJP-Regular.otf")) {
+        try (InputStream is =
+                FontProvider.class.getResourceAsStream("/fonts/NotoSerifJP-Regular.otf")) {
             if (is != null) {
                 serifBytes = is.readAllBytes();
                 log.info("Loaded Noto Serif JP font ({} bytes)", serifBytes.length);
@@ -81,11 +83,10 @@ public final class FontProvider {
     }
 
     /**
-     * Get a font for the given document.
-     * Uses Noto Sans JP if available, falls back to Helvetica.
+     * Get a font for the given document. Uses Noto Sans JP if available, falls back to Helvetica.
      * Font instances are cached per document in the provided cache map.
      *
-     * @param doc       the PDF document (font is bound to document for subsetting)
+     * @param doc the PDF document (font is bound to document for subsetting)
      * @param fontCache per-document cache — pass the same map for all calls within one render()
      * @return a font suitable for Japanese text
      */
@@ -94,36 +95,41 @@ public final class FontProvider {
     }
 
     /**
-     * Get a bold font variant. Uses the embedded Noto Sans JP Bold face when
-     * available (issue #56); otherwise falls back to the regular CJK font
-     * (callers may apply synthetic bold — see {@link #isSyntheticBold}) or
-     * Helvetica-Bold when no CJK font is present.
+     * Get a bold font variant. Uses the embedded Noto Sans JP Bold face when available (issue #56);
+     * otherwise falls back to the regular CJK font (callers may apply synthetic bold — see {@link
+     * #isSyntheticBold}) or Helvetica-Bold when no CJK font is present.
      */
     public static PDFont getBoldFont(PDDocument doc, Map<String, PDFont> fontCache) {
-        return fontCache.computeIfAbsent("bold", k -> {
-            if (CJK_BOLD_AVAILABLE) {
-                try {
-                    return PDType0Font.load(doc, new ByteArrayInputStream(NOTO_SANS_JP_BOLD_BYTES), true);
-                } catch (IOException e) {
-                    log.warn("Failed to load Bold CJK font, falling back: {}", e.getMessage());
-                }
-            }
-            if (CJK_AVAILABLE) return loadCjkFont(doc);
-            return new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-        });
+        return fontCache.computeIfAbsent(
+                "bold",
+                k -> {
+                    if (CJK_BOLD_AVAILABLE) {
+                        try {
+                            return PDType0Font.load(
+                                    doc, new ByteArrayInputStream(NOTO_SANS_JP_BOLD_BYTES), true);
+                        } catch (IOException e) {
+                            log.warn(
+                                    "Failed to load Bold CJK font, falling back: {}",
+                                    e.getMessage());
+                        }
+                    }
+                    if (CJK_AVAILABLE) return loadCjkFont(doc);
+                    return new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                });
     }
 
     /**
-     * Whether a bold request for {@code fontFamily} resolves to a face without a
-     * real bold weight, so the caller should stroke-widen glyphs (synthetic
-     * bold). True for bold serif (no serif bold bundled) and for bold sans when
-     * the Bold face is unavailable.
+     * Whether a bold request for {@code fontFamily} resolves to a face without a real bold weight,
+     * so the caller should stroke-widen glyphs (synthetic bold). True for bold serif (no serif bold
+     * bundled) and for bold sans when the Bold face is unavailable.
      */
     public static boolean isSyntheticBold(String fontFamily, boolean bold) {
         if (!bold) return false;
-        boolean serif = fontFamily != null && (fontFamily.contains("Serif") || fontFamily.contains("Mincho"));
-        if (serif) return true;             // no serif bold face bundled
-        return !CJK_BOLD_AVAILABLE;          // sans: real bold only when the Bold TTF is present
+        boolean serif =
+                fontFamily != null
+                        && (fontFamily.contains("Serif") || fontFamily.contains("Mincho"));
+        if (serif) return true; // no serif bold face bundled
+        return !CJK_BOLD_AVAILABLE; // sans: real bold only when the Bold TTF is present
     }
 
     /** Whether a real (embedded) Japanese bold face is available. */
@@ -139,12 +145,11 @@ public final class FontProvider {
     }
 
     /**
-     * Get the appropriate font based on fontFamily property.
-     * Serif families ("Mincho", "Noto Serif JP") use Noto Serif JP;
-     * everything else uses Noto Sans JP.
+     * Get the appropriate font based on fontFamily property. Serif families ("Mincho", "Noto Serif
+     * JP") use Noto Serif JP; everything else uses Noto Sans JP.
      */
-    public static PDFont getFontForFamily(PDDocument doc, Map<String, PDFont> fontCache,
-                                           String fontFamily, boolean bold) {
+    public static PDFont getFontForFamily(
+            PDDocument doc, Map<String, PDFont> fontCache, String fontFamily, boolean bold) {
         if (fontFamily != null && (fontFamily.contains("Serif") || fontFamily.contains("Mincho"))) {
             return fontCache.computeIfAbsent("serif", k -> loadSerifFont(doc));
         }
@@ -155,7 +160,9 @@ public final class FontProvider {
         try {
             return PDType0Font.load(doc, new ByteArrayInputStream(NOTO_SANS_JP_BYTES), true);
         } catch (IOException e) {
-            log.warn("Failed to load CJK font for document, falling back to Helvetica: {}", e.getMessage());
+            log.warn(
+                    "Failed to load CJK font for document, falling back to Helvetica: {}",
+                    e.getMessage());
             return new PDType1Font(Standard14Fonts.FontName.HELVETICA);
         }
     }
@@ -165,7 +172,9 @@ public final class FontProvider {
             try {
                 return PDType0Font.load(doc, new ByteArrayInputStream(NOTO_SERIF_JP_BYTES), true);
             } catch (IOException e) {
-                log.warn("Failed to load Serif font, falling back to sans-serif: {}", e.getMessage());
+                log.warn(
+                        "Failed to load Serif font, falling back to sans-serif: {}",
+                        e.getMessage());
             }
         }
         // Fall back to sans-serif if serif not available

@@ -7,29 +7,28 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles V2 template CRUD endpoints:
+ *
  * <ul>
- *   <li>GET    /api/v2/templates</li>
- *   <li>POST   /api/v2/templates</li>
- *   <li>GET    /api/v2/templates/{id}</li>
- *   <li>PUT    /api/v2/templates/{id}</li>
- *   <li>DELETE /api/v2/templates/{id}</li>
+ *   <li>GET /api/v2/templates
+ *   <li>POST /api/v2/templates
+ *   <li>GET /api/v2/templates/{id}
+ *   <li>PUT /api/v2/templates/{id}
+ *   <li>DELETE /api/v2/templates/{id}
  * </ul>
  *
- * Storage: {@code v2_definitions} table via {@link JsonBlobRepository}.
- * Stored envelope: canonical envelope + server metadata
- * {@code {formatVersion, id, name, created_at, updated_at, created_by, visibility, definition}}
- * (see docs/template-envelope-spec.md). Blobs stored before {@code formatVersion}
- * was introduced are read as the current version.
+ * Storage: {@code v2_definitions} table via {@link JsonBlobRepository}. Stored envelope: canonical
+ * envelope + server metadata {@code {formatVersion, id, name, created_at, updated_at, created_by,
+ * visibility, definition}} (see docs/template-envelope-spec.md). Blobs stored before {@code
+ * formatVersion} was introduced are read as the current version.
  */
 public final class TemplateController {
 
@@ -37,7 +36,8 @@ public final class TemplateController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_NAME_LENGTH = 200;
     private static final String DEFAULT_NAME = "新しいテンプレート";
-    private static final java.util.Set<String> VALID_VISIBILITY = java.util.Set.of("private", "shared", "public");
+    private static final java.util.Set<String> VALID_VISIBILITY =
+            java.util.Set.of("private", "shared", "public");
 
     private final JsonBlobRepository definitionsRepo;
 
@@ -46,14 +46,13 @@ public final class TemplateController {
     }
 
     /**
-     * GET /api/v2/templates
-     * Returns {@code {items: [{id, name, createdAt, updatedAt}], total: N}}
+     * GET /api/v2/templates Returns {@code {items: [{id, name, createdAt, updatedAt}], total: N}}
      *
-     * <p>Ownership filtering: returns only templates owned by the calling principal.
-     * Legacy templates (created before authentication was introduced, {@code created_by} empty)
-     * are returned for every authenticated caller. This is intentional for backwards
-     * compatibility with single-user deployments. To restrict access to legacy templates,
-     * backfill their {@code created_by} field with the owning user's ID.
+     * <p>Ownership filtering: returns only templates owned by the calling principal. Legacy
+     * templates (created before authentication was introduced, {@code created_by} empty) are
+     * returned for every authenticated caller. This is intentional for backwards compatibility with
+     * single-user deployments. To restrict access to legacy templates, backfill their {@code
+     * created_by} field with the owning user's ID.
      */
     public void list(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");
@@ -69,7 +68,8 @@ public final class TemplateController {
 
                 String owner = envelope.path("created_by").asText("");
                 String vis = envelope.path("visibility").asText("private");
-                boolean isOwner = principal == null || owner.isEmpty() || owner.equals(principal.userId());
+                boolean isOwner =
+                        principal == null || owner.isEmpty() || owner.equals(principal.userId());
 
                 // Apply visibility filter
                 if ("public".equals(visibilityFilter)) {
@@ -102,9 +102,8 @@ public final class TemplateController {
     }
 
     /**
-     * POST /api/v2/templates
-     * Body: {@code {name?: string}}
-     * Returns 201 with {@code {id, name, createdAt, updatedAt}}
+     * POST /api/v2/templates Body: {@code {name?: string}} Returns 201 with {@code {id, name,
+     * createdAt, updatedAt}}
      */
     public void create(Context ctx) throws Exception {
         String name = extractName(ctx);
@@ -127,13 +126,12 @@ public final class TemplateController {
     }
 
     /**
-     * GET /api/v2/templates/{id}
-     * Returns the canonical template envelope
-     * {@code {formatVersion, id, name, createdAt, updatedAt, visibility, definition}}.
+     * GET /api/v2/templates/{id} Returns the canonical template envelope {@code {formatVersion, id,
+     * name, createdAt, updatedAt, visibility, definition}}.
      *
-     * <p>Ownership check: if the template has a {@code created_by} field, only that user
-     * (or an unauthenticated caller in dev mode) may read it. Returns 404 for both missing
-     * and forbidden cases to prevent template ID enumeration.
+     * <p>Ownership check: if the template has a {@code created_by} field, only that user (or an
+     * unauthenticated caller in dev mode) may read it. Returns 404 for both missing and forbidden
+     * cases to prevent template ID enumeration.
      */
     public void get(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -169,14 +167,14 @@ public final class TemplateController {
         }
 
         ctx.contentType("application/json");
-        ctx.result(MAPPER.writeValueAsString(buildResourceEnvelope(id, storedEnvelope, definition)));
+        ctx.result(
+                MAPPER.writeValueAsString(buildResourceEnvelope(id, storedEnvelope, definition)));
     }
 
     /**
-     * PUT /api/v2/templates/{id}
-     * Body: canonical envelope {@code {formatVersion: 2, definition}} — a bare
-     * ReportDefinition body is still accepted as a deprecated transport form.
-     * Returns the updated canonical envelope.
+     * PUT /api/v2/templates/{id} Body: canonical envelope {@code {formatVersion: 2, definition}} —
+     * a bare ReportDefinition body is still accepted as a deprecated transport form. Returns the
+     * updated canonical envelope.
      */
     public void put(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -232,7 +230,9 @@ public final class TemplateController {
                 createdAt = existingEnvelope.path("created_at").asLong(createdAt);
                 String existing = existingEnvelope.path("created_by").asText(null);
                 if (existing != null && !existing.isBlank()) createdBy = existing;
-            } catch (Exception ignored) { /* use current time */ }
+            } catch (Exception ignored) {
+                /* use current time */
+            }
         }
 
         // Canonical name lives in metadata.documentName. Fall back to metadata.name
@@ -254,9 +254,8 @@ public final class TemplateController {
     }
 
     /**
-     * POST /api/v2/templates/{id}/duplicate
-     * Creates a copy of the template with a new ID.
-     * Returns 201 with {@code {id, name}}.
+     * POST /api/v2/templates/{id}/duplicate Creates a copy of the template with a new ID. Returns
+     * 201 with {@code {id, name}}.
      */
     public void duplicate(Context ctx) throws Exception {
         String sourceId = RequestValidator.validateId(ctx);
@@ -313,17 +312,14 @@ public final class TemplateController {
         ctx.json(Map.of("id", newId, "name", newName));
     }
 
-    /**
-     * DELETE /api/v2/templates/{id}
-     * Returns 204.
-     */
+    /** DELETE /api/v2/templates/{id} Returns 204. */
     public void delete(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
         if (id == null) return;
 
         var stored = definitionsRepo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NO_CONTENT);  // idempotent delete
+            ctx.status(HttpStatus.NO_CONTENT); // idempotent delete
             return;
         }
         if (!isOwner(ctx, stored.get())) {
@@ -337,10 +333,8 @@ public final class TemplateController {
     }
 
     /**
-     * PUT /api/v2/templates/{id}/visibility
-     * Body: {@code {visibility: "private"|"shared"|"public"}}
-     * Returns 200 with {@code {id, visibility}}.
-     * Only the owner can change visibility.
+     * PUT /api/v2/templates/{id}/visibility Body: {@code {visibility: "private"|"shared"|"public"}}
+     * Returns 200 with {@code {id, visibility}}. Only the owner can change visibility.
      */
     public void updateVisibility(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -357,7 +351,8 @@ public final class TemplateController {
         String visibility = body.path("visibility").asText("");
         if (!VALID_VISIBILITY.contains(visibility)) {
             ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid visibility. Must be one of: private, shared, public"));
+            ctx.json(
+                    Map.of("error", "Invalid visibility. Must be one of: private, shared, public"));
             return;
         }
 
@@ -370,9 +365,8 @@ public final class TemplateController {
     }
 
     /**
-     * POST /api/v2/templates/{id}/copy
-     * Creates a copy of a shared/public template for the calling user.
-     * Returns 201 with {@code {id, name}}.
+     * POST /api/v2/templates/{id}/copy Creates a copy of a shared/public template for the calling
+     * user. Returns 201 with {@code {id, name}}.
      */
     public void copy(Context ctx) throws Exception {
         String id = RequestValidator.validateId(ctx);
@@ -403,7 +397,8 @@ public final class TemplateController {
         String originalName = envelope.path("name").asText(DEFAULT_NAME);
         String newName = originalName + " (コピー)";
 
-        ObjectNode newEnvelope = buildEnvelope(newId, newName, now, now, envelope.path("definition").deepCopy());
+        ObjectNode newEnvelope =
+                buildEnvelope(newId, newName, now, now, envelope.path("definition").deepCopy());
         newEnvelope.put("created_by", copiedBy);
         newEnvelope.put("visibility", "private");
         definitionsRepo.put(newId, MAPPER.writeValueAsString(newEnvelope));
@@ -421,8 +416,8 @@ public final class TemplateController {
      * <p>Returning true for legacy templates (empty {@code created_by}) preserves backwards
      * compatibility with single-user deployments created before authentication was introduced.
      *
-     * <p>On JSON parse failure the envelope is treated as inaccessible (fail-closed) and
-     * {@code false} is returned, preventing malformed envelopes from bypassing ownership.
+     * <p>On JSON parse failure the envelope is treated as inaccessible (fail-closed) and {@code
+     * false} is returned, preventing malformed envelopes from bypassing ownership.
      *
      * <p>Callers should return HTTP 404 (not 403) on {@code false} to prevent template ID
      * enumeration attacks.
@@ -430,7 +425,7 @@ public final class TemplateController {
     /** Package-private to allow reuse from sibling controllers (e.g., TemplateExportController). */
     static boolean isOwner(Context ctx, String storedEnvelopeJson) {
         Principal principal = ctx.attribute("principal");
-        if (principal == null) return true;  // unauthenticated / dev mode — allow all
+        if (principal == null) return true; // unauthenticated / dev mode — allow all
         JsonNode envelope;
         try {
             envelope = MAPPER.readTree(storedEnvelopeJson);
@@ -440,26 +435,26 @@ public final class TemplateController {
             return false;
         }
         String owner = envelope.path("created_by").asText("");
-        if (owner.isEmpty()) return true;  // legacy template without created_by — allow all
+        if (owner.isEmpty()) return true; // legacy template without created_by — allow all
         return owner.equals(principal.userId());
     }
 
     /**
-     * Ownership guard for template-scoped sub-resources (webhooks, sequences, …). Returns true
-     * iff the template exists in {@code definitionsRepo} <b>and</b> the caller owns it (or it is a
+     * Ownership guard for template-scoped sub-resources (webhooks, sequences, …). Returns true iff
+     * the template exists in {@code definitionsRepo} <b>and</b> the caller owns it (or it is a
      * legacy/dev template per {@link #isOwner}). A non-existent template yields false so that
-     * callers respond 404 uniformly — preventing an unauthenticated/non-owning user from writing
-     * or reading a sibling resource (webhook URL, sequence config) attached to a template ID they
-     * do not own (issue #198, IDOR). Callers must return 404 (never 403) to avoid ID enumeration.
+     * callers respond 404 uniformly — preventing an unauthenticated/non-owning user from writing or
+     * reading a sibling resource (webhook URL, sequence config) attached to a template ID they do
+     * not own (issue #198, IDOR). Callers must return 404 (never 403) to avoid ID enumeration.
      */
-    static boolean ownsTemplate(Context ctx, JsonBlobRepository definitionsRepo, String templateId) {
+    static boolean ownsTemplate(
+            Context ctx, JsonBlobRepository definitionsRepo, String templateId) {
         java.util.Optional<String> stored = definitionsRepo.get(templateId);
         return stored.isPresent() && isOwner(ctx, stored.get());
     }
 
     /**
-     * Extract and validate name from request body.
-     * Returns null (response already sent) if invalid.
+     * Extract and validate name from request body. Returns null (response already sent) if invalid.
      */
     private String extractName(Context ctx) throws Exception {
         String body = ctx.body();
@@ -484,8 +479,8 @@ public final class TemplateController {
         return name;
     }
 
-    private static ObjectNode buildEnvelope(String id, String name, long createdAt, long updatedAt,
-                                            JsonNode definition) {
+    private static ObjectNode buildEnvelope(
+            String id, String name, long createdAt, long updatedAt, JsonNode definition) {
         ObjectNode env = MAPPER.createObjectNode();
         env.put("formatVersion", TemplateEnvelope.CURRENT_FORMAT_VERSION);
         env.put("id", id);
@@ -497,12 +492,11 @@ public final class TemplateController {
     }
 
     /**
-     * Build the canonical API resource envelope
-     * {@code {formatVersion, id, name, createdAt, updatedAt, visibility, definition}}
-     * from a stored envelope (docs/template-envelope-spec.md).
+     * Build the canonical API resource envelope {@code {formatVersion, id, name, createdAt,
+     * updatedAt, visibility, definition}} from a stored envelope (docs/template-envelope-spec.md).
      */
-    private static ObjectNode buildResourceEnvelope(String id, JsonNode storedEnvelope,
-                                                    JsonNode definition) {
+    private static ObjectNode buildResourceEnvelope(
+            String id, JsonNode storedEnvelope, JsonNode definition) {
         ObjectNode resource = MAPPER.createObjectNode();
         resource.put("formatVersion", TemplateEnvelope.CURRENT_FORMAT_VERSION);
         resource.put("id", id);
@@ -514,7 +508,8 @@ public final class TemplateController {
         return resource;
     }
 
-    private static ObjectNode buildListItem(String id, String name, long createdAt, long updatedAt) {
+    private static ObjectNode buildListItem(
+            String id, String name, long createdAt, long updatedAt) {
         ObjectNode item = MAPPER.createObjectNode();
         item.put("id", id);
         item.put("name", name);

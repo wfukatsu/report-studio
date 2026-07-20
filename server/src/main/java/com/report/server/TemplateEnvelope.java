@@ -6,19 +6,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * Canonical template envelope handling (docs/template-envelope-spec.md).
  *
- * <p>The interchange format for a ReportDefinition is the versioned envelope
- * {@code {formatVersion: 2, definition: {...}}}. This class unwraps incoming
- * bodies, walking the migration ladder for older formats:
+ * <p>The interchange format for a ReportDefinition is the versioned envelope {@code {formatVersion:
+ * 2, definition: {...}}}. This class unwraps incoming bodies, walking the migration ladder for
+ * older formats:
+ *
  * <ul>
- *   <li>v2 — {@code {formatVersion: 2, definition}} (canonical)</li>
- *   <li>v1 — bare definition marked with {@code $schema: "report-definition/v1"}</li>
- *   <li>bare definition without any marker — accepted by {@link #unwrap} as a
- *       deprecated transport form (treated as the current version), rejected by
- *       {@link #unwrapStrict}</li>
+ *   <li>v2 — {@code {formatVersion: 2, definition}} (canonical)
+ *   <li>v1 — bare definition marked with {@code $schema: "report-definition/v1"}
+ *   <li>bare definition without any marker — accepted by {@link #unwrap} as a deprecated transport
+ *       form (treated as the current version), rejected by {@link #unwrapStrict}
  * </ul>
- * Versions newer than {@link #CURRENT_FORMAT_VERSION} are always rejected —
- * forward compatibility is not attempted. The legacy v0 {@code Report} format
- * is only migratable client-side (see src/lib/migration.ts).
+ *
+ * Versions newer than {@link #CURRENT_FORMAT_VERSION} are always rejected — forward compatibility
+ * is not attempted. The legacy v0 {@code Report} format is only migratable client-side (see
+ * src/lib/migration.ts).
  */
 public final class TemplateEnvelope {
 
@@ -30,25 +31,32 @@ public final class TemplateEnvelope {
 
     /** Result of unwrapping: exactly one of {@code definition} / {@code error} is non-null. */
     public record Unwrapped(ObjectNode definition, String error) {
-        static Unwrapped ok(ObjectNode definition) { return new Unwrapped(definition, null); }
-        static Unwrapped fail(String error) { return new Unwrapped(null, error); }
-        public boolean isError() { return error != null; }
+        static Unwrapped ok(ObjectNode definition) {
+            return new Unwrapped(definition, null);
+        }
+
+        static Unwrapped fail(String error) {
+            return new Unwrapped(null, error);
+        }
+
+        public boolean isError() {
+            return error != null;
+        }
     }
 
     private TemplateEnvelope() {}
 
     /**
-     * Unwrap a request body into a definition, accepting the canonical v2
-     * envelope, the v1 {@code $schema} marker form, and (deprecated) a bare
-     * definition without markers.
+     * Unwrap a request body into a definition, accepting the canonical v2 envelope, the v1 {@code
+     * $schema} marker form, and (deprecated) a bare definition without markers.
      */
     public static Unwrapped unwrap(JsonNode root) {
         return unwrap(root, false);
     }
 
     /**
-     * Like {@link #unwrap} but rejects bodies without an explicit version
-     * marker. Used at the file-import boundary where an envelope is required.
+     * Like {@link #unwrap} but rejects bodies without an explicit version marker. Used at the
+     * file-import boundary where an envelope is required.
      */
     public static Unwrapped unwrapStrict(JsonNode root) {
         return unwrap(root, true);
@@ -66,8 +74,12 @@ public final class TemplateEnvelope {
             }
             int version = fv.asInt();
             if (version > CURRENT_FORMAT_VERSION) {
-                return Unwrapped.fail("Unsupported format version: " + version
-                        + " (expected " + CURRENT_FORMAT_VERSION + ")");
+                return Unwrapped.fail(
+                        "Unsupported format version: "
+                                + version
+                                + " (expected "
+                                + CURRENT_FORMAT_VERSION
+                                + ")");
             }
             if (version == CURRENT_FORMAT_VERSION) {
                 JsonNode def = root.get("definition");
@@ -84,8 +96,12 @@ public final class TemplateEnvelope {
                 def.remove("$schema");
                 return Unwrapped.ok(def);
             }
-            return Unwrapped.fail("Unsupported format version: " + version
-                    + " (expected " + CURRENT_FORMAT_VERSION + ")");
+            return Unwrapped.fail(
+                    "Unsupported format version: "
+                            + version
+                            + " (expected "
+                            + CURRENT_FORMAT_VERSION
+                            + ")");
         }
 
         JsonNode schema = root.get("$schema");
@@ -100,8 +116,8 @@ public final class TemplateEnvelope {
         }
 
         if (requireEnvelope) {
-            return Unwrapped.fail("Unsupported format version: 0 (expected "
-                    + CURRENT_FORMAT_VERSION + ")");
+            return Unwrapped.fail(
+                    "Unsupported format version: 0 (expected " + CURRENT_FORMAT_VERSION + ")");
         }
         // Bare definition (deprecated transport form) — treat as current version
         return Unwrapped.ok(root.deepCopy());

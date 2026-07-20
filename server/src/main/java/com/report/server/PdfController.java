@@ -3,27 +3,28 @@ package com.report.server;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles POST /api/v2/templates/{id}/pdf.
  *
  * <p>Pipeline:
+ *
  * <ol>
- *   <li>Load V2 template definition from {@code v2_definitions} repository</li>
- *   <li>Parse optional request body for {@code testData} + {@code variantId}</li>
- *   <li>Validate {@code variantId} against {@code outputVariants} if provided</li>
- *   <li>Prepare the V2 definition ({@link V2RenderSupport}) — enrich data via
- *       {@link CalculationEngine}, attach control keys</li>
- *   <li>Render the definition natively ({@link PdfRenderer#renderDefinition}) with a 30-second timeout</li>
+ *   <li>Load V2 template definition from {@code v2_definitions} repository
+ *   <li>Parse optional request body for {@code testData} + {@code variantId}
+ *   <li>Validate {@code variantId} against {@code outputVariants} if provided
+ *   <li>Prepare the V2 definition ({@link V2RenderSupport}) — enrich data via {@link
+ *       CalculationEngine}, attach control keys
+ *   <li>Render the definition natively ({@link PdfRenderer#renderDefinition}) with a 30-second
+ *       timeout
  * </ol>
  */
 public final class PdfController {
@@ -41,9 +42,8 @@ public final class PdfController {
     }
 
     /**
-     * POST /api/v2/templates/{id}/pdf
-     * Body (optional JSON): {@code { testData?: {key: value}, variantId?: string }}
-     * Returns: PDF bytes with {@code Content-Disposition: attachment}.
+     * POST /api/v2/templates/{id}/pdf Body (optional JSON): {@code { testData?: {key: value},
+     * variantId?: string }} Returns: PDF bytes with {@code Content-Disposition: attachment}.
      */
     public void generate(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx);
@@ -116,7 +116,10 @@ public final class PdfController {
         try {
             definitionJson = V2RenderSupport.prepare(definition, testData, variantId);
         } catch (Exception e) {
-            log.error("Failed to prepare V2 definition for template {}: {}", templateId, e.getMessage());
+            log.error(
+                    "Failed to prepare V2 definition for template {}: {}",
+                    templateId,
+                    e.getMessage());
             ctx.status(500);
             ctx.json(Map.of("error", "Failed to prepare definition"));
             return;
@@ -130,17 +133,20 @@ public final class PdfController {
     private void renderAndRespond(Context ctx, String templateId, String definitionJson) {
         final String defJson = definitionJson;
         try {
-            byte[] pdfBytes = CompletableFuture
-                    .supplyAsync(() -> {
-                        try {
-                            return PdfRenderer.renderDefinition(defJson);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }, pdfExecutor)
-                    .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            byte[] pdfBytes =
+                    CompletableFuture.supplyAsync(
+                                    () -> {
+                                        try {
+                                            return PdfRenderer.renderDefinition(defJson);
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    },
+                                    pdfExecutor)
+                            .get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             ctx.contentType("application/pdf");
-            ctx.header("Content-Disposition",
+            ctx.header(
+                    "Content-Disposition",
                     "attachment; filename=\"template-" + templateId + ".pdf\"");
             ctx.result(pdfBytes);
             log.info("Generated V2 PDF for template {} ({} bytes)", templateId, pdfBytes.length);

@@ -1,10 +1,9 @@
 package com.report.server;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class PdfRendererTest {
 
@@ -22,7 +21,8 @@ class PdfRendererTest {
 
     @Test
     void render_templateWithTextElement() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Test",
               "pageSetup":{"kind":"preset","paperSizeId":"A4","orientation":"portrait"},
@@ -41,7 +41,8 @@ class PdfRendererTest {
 
     @Test
     void render_templateWithShapes() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Shapes",
               "sections":[{
@@ -58,7 +59,8 @@ class PdfRendererTest {
 
     @Test
     void render_templateWithBarcode() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Barcode",
               "sections":[{
@@ -76,7 +78,8 @@ class PdfRendererTest {
 
     @Test
     void render_templateWithQrCode() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"QR",
               "sections":[{
@@ -94,7 +97,8 @@ class PdfRendererTest {
 
     @Test
     void render_landscapeOrientation() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Landscape",
               "pageSetup":{"kind":"preset","paperSizeId":"A4","orientation":"landscape"},
@@ -106,7 +110,8 @@ class PdfRendererTest {
 
     @Test
     void render_customPageSize() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Custom",
               "pageSetup":{"kind":"custom","customWidthMm":100,"customHeightMm":150,"orientation":"portrait"},
@@ -118,7 +123,8 @@ class PdfRendererTest {
 
     @Test
     void render_lineElement() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Line",
               "sections":[{
@@ -136,7 +142,8 @@ class PdfRendererTest {
 
     @Test
     void render_unknownElementKind() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Unknown",
               "sections":[{
@@ -155,7 +162,8 @@ class PdfRendererTest {
     @Test
     void render_relativeSectionLayout_absoluteElementsUnchanged() throws IOException {
         // page_base with layoutMode: relative but no anchorTo — elements keep original positions
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Relative",
               "sections":[{
@@ -179,7 +187,8 @@ class PdfRendererTest {
     @Test
     void render_relativeSectionLayout_pushDownElement() throws IOException {
         // Element e2 anchors to e1 with pushDown — Y is computed from e1's bottom
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"RelativePushDown",
               "sections":[{
@@ -203,7 +212,8 @@ class PdfRendererTest {
     @Test
     void render_unknownSectionType_fallsBackGracefully() throws IOException {
         // Unknown section types must not crash — graceful fallback (todo-066 requirement)
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"UnknownSection",
               "sections":[{
@@ -222,7 +232,8 @@ class PdfRendererTest {
 
     @Test
     void render_multiRowTableSection_singlePage() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"MultiRow",
               "sections":[{
@@ -243,7 +254,8 @@ class PdfRendererTest {
 
     @Test
     void render_multiRowTableSection_withFormDataRows() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"MultiRowWithData",
               "sections":[

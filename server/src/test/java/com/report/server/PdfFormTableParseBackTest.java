@@ -1,27 +1,25 @@
 package com.report.server;
 
-import com.report.server.testsupport.PdfProbe;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import com.report.server.testsupport.PdfProbe;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 /**
  * Parse-back tests for FormTablePdfRenderer (issue #59).
  *
- * <p>Covers label/dataField/checkbox/eraSelect cells, merged-cell skipping,
- * and pins the production-path gap: the renderer reads form data from the
- * <em>element-level</em> {@code _formData} field, which no production code
- * ever injects — so dataField cells are always empty on the real render path
- * (issues #52/#53).
+ * <p>Covers label/dataField/checkbox/eraSelect cells, merged-cell skipping, and pins the
+ * production-path gap: the renderer reads form data from the <em>element-level</em> {@code
+ * _formData} field, which no production code ever injects — so dataField cells are always empty on
+ * the real render path (issues #52/#53).
  */
 class PdfFormTableParseBackTest {
 
     /**
-     * A 2-column × 2-row formTable; {@code elementFormData} is injected as the
-     * element-level {@code _formData} (renderer contract), or empty to exercise
-     * the production shape where only the projection root carries form data.
+     * A 2-column × 2-row formTable; {@code elementFormData} is injected as the element-level {@code
+     * _formData} (renderer contract), or empty to exercise the production shape where only the
+     * projection root carries form data.
      */
     private static String tableJson(String elementFormData, String rootFormData) {
         return """
@@ -49,7 +47,8 @@ class PdfFormTableParseBackTest {
                   ]%s
                 }]
               }]
-            }]%s}""".formatted(elementFormData, rootFormData);
+            }]%s}"""
+                .formatted(elementFormData, rootFormData);
     }
 
     private static final String PERSON_DATA =
@@ -65,7 +64,8 @@ class PdfFormTableParseBackTest {
         // Column order: 氏名 (col 0, x=15mm) precedes フリガナ (col 1, x=45mm)
         PdfProbe.TextRun name = probe.findRun(0, "氏名").orElseThrow();
         PdfProbe.TextRun kana = probe.findRun(0, "フリガナ").orElseThrow();
-        assertTrue(name.xMm() < kana.xMm(),
+        assertTrue(
+                name.xMm() < kana.xMm(),
                 "氏名 (x=%.1f) should be left of フリガナ (x=%.1f)".formatted(name.xMm(), kana.xMm()));
         assertEquals(45f, kana.xMm(), 2.0f, "col-1 cell should start near x=45mm (+padding)");
     }
@@ -105,7 +105,8 @@ class PdfFormTableParseBackTest {
 
     @Test
     void mergedCells_areSkipped() throws IOException {
-        String json = """
+        String json =
+                """
             {"templates":[{
               "id":"t1","name":"Merged",
               "sections":[{

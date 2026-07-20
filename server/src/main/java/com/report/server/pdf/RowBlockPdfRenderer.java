@@ -1,29 +1,26 @@
 package com.report.server.pdf;
 
+import static com.report.server.pdf.PdfUtils.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.report.server.ValueFormatter;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
-
 /**
- * Renders {@code row_block} elements — the per-row cells of detail_table /
- * multi_row_table sections (issue #55).
+ * Renders {@code row_block} elements — the per-row cells of detail_table / multi_row_table sections
+ * (issue #55).
  *
- * <p>Replaces the previous no-op registration, which silently dropped every
- * data row from the PDF. The bound value arrives via {@code props.text}
- * (resolved per row by SectionRenderHelper.resolveDetailRow with the frame
- * already offset to the row's position); an optional {@code format}
- * (CalculationFormat) is applied through {@link ValueFormatter}.
+ * <p>Replaces the previous no-op registration, which silently dropped every data row from the PDF.
+ * The bound value arrives via {@code props.text} (resolved per row by
+ * SectionRenderHelper.resolveDetailRow with the frame already offset to the row's position); an
+ * optional {@code format} (CalculationFormat) is applied through {@link ValueFormatter}.
  *
- * <p>Rows with no resolved value draw nothing — an empty cell, never a
- * design-time placeholder.
+ * <p>Rows with no resolved value draw nothing — an empty cell, never a design-time placeholder.
  */
 public final class RowBlockPdfRenderer implements ElementPdfRenderer {
 
@@ -35,9 +32,17 @@ public final class RowBlockPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         JsonNode props = el.get("props");
         if (props == null || textOf(props, "text", "").isEmpty()) return;
 
@@ -55,11 +60,12 @@ public final class RowBlockPdfRenderer implements ElementPdfRenderer {
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
         String truncated = truncateToWidth(text, font, fontSize, w);
         float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
-        float tx = switch (align) {
-            case "center" -> x + (w - textWidth) / 2;
-            case "right" -> x + w - textWidth;
-            default -> x;
-        };
+        float tx =
+                switch (align) {
+                    case "center" -> x + (w - textWidth) / 2;
+                    case "right" -> x + w - textWidth;
+                    default -> x;
+                };
 
         cs.beginText();
         cs.setFont(font, fontSize);

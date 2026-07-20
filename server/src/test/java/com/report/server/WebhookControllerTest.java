@@ -1,23 +1,22 @@
 package com.report.server;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.report.server.auth.Principal;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Base64;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.report.server.auth.Principal;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import java.util.Base64;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class WebhookControllerTest {
 
@@ -48,7 +47,8 @@ class WebhookControllerTest {
         controller = new WebhookController(repo, definitionsRepo, dispatcher, crypto);
         ctx = mock(Context.class);
         when(ctx.pathParam("templateId")).thenReturn(TEMPLATE_ID);
-        when(ctx.attribute("principal")).thenReturn(new Principal("u1", "User One", Set.of("admin")));
+        when(ctx.attribute("principal"))
+                .thenReturn(new Principal("u1", "User One", Set.of("admin")));
         // Default: the caller owns the template, so ownership guard (#198) lets requests through.
         when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("u1")));
     }
@@ -83,7 +83,8 @@ class WebhookControllerTest {
 
     @Test
     void putConfig_withoutKey_storesPlaintext() throws Exception {
-        controller = new WebhookController(repo, definitionsRepo, dispatcher, new SecretCrypto(null));
+        controller =
+                new WebhookController(repo, definitionsRepo, dispatcher, new SecretCrypto(null));
         when(ctx.body()).thenReturn("{\"secret\":\"hook-secret-1234\"}");
         when(repo.get(TEMPLATE_ID)).thenReturn(Optional.empty());
 
@@ -96,8 +97,8 @@ class WebhookControllerTest {
     @Test
     void putConfig_lazilyEncryptsLegacyPlaintextSecret() throws Exception {
         // Existing config from before encryption was introduced
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"legacy-plain\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"legacy-plain\"}"));
         // Update that does not touch the secret
         when(ctx.body()).thenReturn("{\"url\":\"" + URL + "\"}");
 
@@ -105,15 +106,17 @@ class WebhookControllerTest {
 
         JsonNode saved = MAPPER.readTree(capturePutJson());
         String storedSecret = saved.path("secret").asText();
-        assertTrue(SecretCrypto.isEncrypted(storedSecret), "legacy secret must be migrated on save");
+        assertTrue(
+                SecretCrypto.isEncrypted(storedSecret), "legacy secret must be migrated on save");
         assertEquals("legacy-plain", crypto.decrypt(storedSecret));
     }
 
     @Test
     void putConfig_maskSentinelDoesNotOverwriteStoredSecret() throws Exception {
         String encrypted = crypto.encrypt("original-secret");
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(
+                        Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
         when(ctx.body()).thenReturn("{\"url\":\"" + URL + "\",\"secret\":\"****\"}");
 
         controller.putConfig(ctx);
@@ -150,8 +153,9 @@ class WebhookControllerTest {
     @Test
     void getConfig_masksSecret() throws Exception {
         String encrypted = crypto.encrypt("hook-secret-1234");
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(
+                        Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
 
         controller.getConfig(ctx);
 
@@ -176,7 +180,8 @@ class WebhookControllerTest {
     @Test
     void getConfig_otherUsersTemplate_404_noWebhookRead() throws Exception {
         when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+        when(definitionsRepo.get(TEMPLATE_ID))
+                .thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
 
         controller.getConfig(ctx);
 
@@ -198,7 +203,8 @@ class WebhookControllerTest {
     @Test
     void putConfig_otherUsersTemplate_404_noWrite() throws Exception {
         when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+        when(definitionsRepo.get(TEMPLATE_ID))
+                .thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
         when(ctx.body()).thenReturn("{\"url\":\"" + URL + "\",\"secret\":\"x\"}");
 
         controller.putConfig(ctx);
@@ -210,7 +216,8 @@ class WebhookControllerTest {
     @Test
     void testWebhook_otherUsersTemplate_404_noDispatch() throws Exception {
         when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+        when(definitionsRepo.get(TEMPLATE_ID))
+                .thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
 
         controller.testWebhook(ctx);
 
@@ -223,8 +230,9 @@ class WebhookControllerTest {
     @Test
     void testWebhook_decryptsSecretBeforeDispatch() throws Exception {
         String encrypted = crypto.encrypt("hook-secret-1234");
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(
+                        Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
 
         controller.testWebhook(ctx);
 
@@ -234,12 +242,19 @@ class WebhookControllerTest {
     @Test
     void dispatchAsync_decryptsSecretBeforeDispatch() throws Exception {
         String encrypted = crypto.encrypt("hook-secret-1234");
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(
+                        Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
 
-        java.util.concurrent.ExecutorService direct = mock(java.util.concurrent.ExecutorService.class);
-        doAnswer(inv -> { ((Runnable) inv.getArgument(0)).run(); return null; })
-                .when(direct).execute(any(Runnable.class));
+        java.util.concurrent.ExecutorService direct =
+                mock(java.util.concurrent.ExecutorService.class);
+        doAnswer(
+                        inv -> {
+                            ((Runnable) inv.getArgument(0)).run();
+                            return null;
+                        })
+                .when(direct)
+                .execute(any(Runnable.class));
 
         controller.dispatchAsync(TEMPLATE_ID, "resp-1", "{\"data\":{}}", direct);
 
@@ -248,12 +263,18 @@ class WebhookControllerTest {
 
     @Test
     void dispatchAsync_legacyPlaintextSecretStillWorks() throws Exception {
-        when(repo.get(TEMPLATE_ID)).thenReturn(
-                Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"legacy-plain\"}"));
+        when(repo.get(TEMPLATE_ID))
+                .thenReturn(Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"legacy-plain\"}"));
 
-        java.util.concurrent.ExecutorService direct = mock(java.util.concurrent.ExecutorService.class);
-        doAnswer(inv -> { ((Runnable) inv.getArgument(0)).run(); return null; })
-                .when(direct).execute(any(Runnable.class));
+        java.util.concurrent.ExecutorService direct =
+                mock(java.util.concurrent.ExecutorService.class);
+        doAnswer(
+                        inv -> {
+                            ((Runnable) inv.getArgument(0)).run();
+                            return null;
+                        })
+                .when(direct)
+                .execute(any(Runnable.class));
 
         controller.dispatchAsync(TEMPLATE_ID, "resp-1", "{\"data\":{}}", direct);
 

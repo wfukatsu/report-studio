@@ -1,25 +1,29 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.io.IOException;
 
 /**
- * Renders {@code detail_table} sections with pagination.
- * Handles header-row repetition and variable/fixed row-count modes.
+ * Renders {@code detail_table} sections with pagination. Handles header-row repetition and
+ * variable/fixed row-count modes.
  *
- * <p>Rows per page (issue #55): {@code tableMode: "fixed"} +
- * {@code fixedRowCount} wins; otherwise the capacity is derived from the
- * actual geometry — how many row units fit between the topmost row_block
- * and the section's bottom edge — falling back to 10 only when the
- * geometry is unusable.
+ * <p>Rows per page (issue #55): {@code tableMode: "fixed"} + {@code fixedRowCount} wins; otherwise
+ * the capacity is derived from the actual geometry — how many row units fit between the topmost
+ * row_block and the section's bottom edge — falling back to 10 only when the geometry is unusable.
  */
 final class DetailTableSectionRenderer implements SectionPdfRenderer {
 
     private static final int LEGACY_DEFAULT_ROWS_PER_PAGE = 10;
 
-    @Override public String sectionType() { return "detail_table"; }
-    @Override public boolean isPaginating() { return true; }
+    @Override
+    public String sectionType() {
+        return "detail_table";
+    }
+
+    @Override
+    public boolean isPaginating() {
+        return true;
+    }
 
     @Override
     public int countRows(JsonNode section, JsonNode formData) {
@@ -56,8 +60,14 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
     }
 
     @Override
-    public void renderPage(PageContext ctx, JsonNode section, JsonNode formData,
-                           SectionRenderHelper helper, int pageIdx, int rowsPerPage, int totalRows)
+    public void renderPage(
+            PageContext ctx,
+            JsonNode section,
+            JsonNode formData,
+            SectionRenderHelper helper,
+            int pageIdx,
+            int rowsPerPage,
+            int totalRows)
             throws IOException {
         var plan = SectionRenderHelper.buildPagePlan(section, formData, rowsPerPage);
         // Beyond this section's own pages: draw nothing (other sections may
@@ -80,8 +90,14 @@ final class DetailTableSectionRenderer implements SectionPdfRenderer {
         float[] region = SectionRenderHelper.computeRowRegion(section);
         float stride = region != null ? region[1] : Float.NaN;
         for (int rowIdx = slice.startRow(); rowIdx < slice.endRow(); rowIdx++) {
-            SectionRenderHelper.renderRowAtPosition(ctx, section, formData,
-                    rowIdx, rowIdx - slice.startRow(), ctx.variantCtx(), stride);
+            SectionRenderHelper.renderRowAtPosition(
+                    ctx,
+                    section,
+                    formData,
+                    rowIdx,
+                    rowIdx - slice.startRow(),
+                    ctx.variantCtx(),
+                    stride);
         }
 
         // 繰越小計 — carried-forward / to-be-continued totals (issue #55)

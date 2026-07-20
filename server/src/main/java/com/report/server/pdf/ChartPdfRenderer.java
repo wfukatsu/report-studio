@@ -1,27 +1,25 @@
 package com.report.server.pdf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDFont;
+import static com.report.server.pdf.PdfUtils.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static com.report.server.pdf.PdfUtils.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
  * Renders V2 {@code chart} elements to PDF natively with PDFBox (issue #53).
  *
- * <p>Supports bar / line / pie / donut using the frontend's default palette.
- * Data is resolved from {@code _formData[dataBinding]} (an array of objects);
- * {@code xAxisKey} labels the category axis and {@code yAxisKeys} select the
- * numeric series ({@code ['value']} by default). This is a static chart —
- * no animation, no interactivity — matching the exported (non-interactive)
- * appearance of the Recharts preview.
+ * <p>Supports bar / line / pie / donut using the frontend's default palette. Data is resolved from
+ * {@code _formData[dataBinding]} (an array of objects); {@code xAxisKey} labels the category axis
+ * and {@code yAxisKeys} select the numeric series ({@code ['value']} by default). This is a static
+ * chart — no animation, no interactivity — matching the exported (non-interactive) appearance of
+ * the Recharts preview.
  */
 public final class ChartPdfRenderer implements ElementPdfRenderer {
 
@@ -29,12 +27,13 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
 
     /** Mirror of DEFAULT_CHART_COLORS (src/elements/_blocks/constants.ts). */
     private static final Color[] PALETTE = {
-            new Color(0x88, 0x84, 0xd8),
-            new Color(0x82, 0xca, 0x9d),
-            new Color(0xff, 0xc6, 0x58),
-            new Color(0xff, 0x73, 0x00),
-            new Color(0xa4, 0xde, 0x6c),
+        new Color(0x88, 0x84, 0xd8),
+        new Color(0x82, 0xca, 0x9d),
+        new Color(0xff, 0xc6, 0x58),
+        new Color(0xff, 0x73, 0x00),
+        new Color(0xa4, 0xde, 0x6c),
     };
+
     private static final Color AXIS = new Color(0x99, 0x99, 0x99);
 
     @Override
@@ -43,9 +42,17 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     }
 
     @Override
-    public void render(PDPageContentStream cs, JsonNode el, float x, float y,
-                       float w, float h, float pageHeight, PDDocument doc,
-                       Map<String, PDFont> fontCache) throws IOException {
+    public void render(
+            PDPageContentStream cs,
+            JsonNode el,
+            float x,
+            float y,
+            float w,
+            float h,
+            float pageHeight,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
         String chartType = elementTextOf(el, "chartType", "bar");
         String xKey = elementTextOf(el, "xAxisKey", "name");
         List<String> yKeys = readYKeys(el);
@@ -77,12 +84,23 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
             }
 
             switch (chartType) {
-                case "pie", "donut" -> renderPie(cs, rows, yKeys.get(0), colors,
-                        left, right, chartTop, bottom, "donut".equals(chartType));
-                case "line" -> renderLine(cs, rows, xKey, yKeys, colors, font,
-                        left, right, chartTop, bottom);
-                default -> renderBar(cs, rows, xKey, yKeys, colors, font,
-                        left, right, chartTop, bottom);
+                case "pie", "donut" ->
+                        renderPie(
+                                cs,
+                                rows,
+                                yKeys.get(0),
+                                colors,
+                                left,
+                                right,
+                                chartTop,
+                                bottom,
+                                "donut".equals(chartType));
+                case "line" ->
+                        renderLine(
+                                cs, rows, xKey, yKeys, colors, font, left, right, chartTop, bottom);
+                default ->
+                        renderBar(
+                                cs, rows, xKey, yKeys, colors, font, left, right, chartTop, bottom);
             }
         } finally {
             cs.restoreGraphicsState();
@@ -91,9 +109,18 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
 
     // ── Bar ─────────────────────────────────────────────────────────────
 
-    private void renderBar(PDPageContentStream cs, JsonNode rows, String xKey, List<String> yKeys,
-                           List<Color> colors, PDFont font, float left, float right,
-                           float top, float bottom) throws IOException {
+    private void renderBar(
+            PDPageContentStream cs,
+            JsonNode rows,
+            String xKey,
+            List<String> yKeys,
+            List<Color> colors,
+            PDFont font,
+            float left,
+            float right,
+            float top,
+            float bottom)
+            throws IOException {
         float plotLeft = left + 6 * MM_TO_PT;
         float plotBottom = bottom + 5 * MM_TO_PT;
         double max = maxValue(rows, yKeys);
@@ -119,9 +146,18 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
 
     // ── Line ────────────────────────────────────────────────────────────
 
-    private void renderLine(PDPageContentStream cs, JsonNode rows, String xKey, List<String> yKeys,
-                            List<Color> colors, PDFont font, float left, float right,
-                            float top, float bottom) throws IOException {
+    private void renderLine(
+            PDPageContentStream cs,
+            JsonNode rows,
+            String xKey,
+            List<String> yKeys,
+            List<Color> colors,
+            PDFont font,
+            float left,
+            float right,
+            float top,
+            float bottom)
+            throws IOException {
         float plotLeft = left + 6 * MM_TO_PT;
         float plotBottom = bottom + 5 * MM_TO_PT;
         double max = maxValue(rows, yKeys);
@@ -142,14 +178,24 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
             cs.stroke();
         }
         for (int i = 0; i < n; i++) {
-            drawAxisLabel(cs, font, str(rows.get(i).get(xKey)), plotLeft + step * i, plotBottom - 3f);
+            drawAxisLabel(
+                    cs, font, str(rows.get(i).get(xKey)), plotLeft + step * i, plotBottom - 3f);
         }
     }
 
     // ── Pie / donut ─────────────────────────────────────────────────────
 
-    private void renderPie(PDPageContentStream cs, JsonNode rows, String valueKey, List<Color> colors,
-                           float left, float right, float top, float bottom, boolean donut) throws IOException {
+    private void renderPie(
+            PDPageContentStream cs,
+            JsonNode rows,
+            String valueKey,
+            List<Color> colors,
+            float left,
+            float right,
+            float top,
+            float bottom,
+            boolean donut)
+            throws IOException {
         float cx = (left + right) / 2, cy = (top + bottom) / 2;
         float r = Math.min(right - left, top - bottom) / 2 * 0.9f;
         double total = 0;
@@ -172,8 +218,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
 
     // ── Drawing helpers ─────────────────────────────────────────────────
 
-    private static void drawAxes(PDPageContentStream cs, float left, float right,
-                                 float bottom, float top) throws IOException {
+    private static void drawAxes(
+            PDPageContentStream cs, float left, float right, float bottom, float top)
+            throws IOException {
         cs.setStrokingColor(AXIS);
         cs.setLineWidth(0.5f);
         cs.moveTo(left, top);
@@ -182,8 +229,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void drawAxisLabel(PDPageContentStream cs, PDFont font, String text,
-                                      float centerX, float baselineY) throws IOException {
+    private static void drawAxisLabel(
+            PDPageContentStream cs, PDFont font, String text, float centerX, float baselineY)
+            throws IOException {
         if (text.isEmpty()) return;
         float size = 2f * MM_TO_PT;
         float tw = font.getStringWidth(text) / 1000 * size;
@@ -195,8 +243,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         cs.endText();
     }
 
-    private static void renderEmpty(PDPageContentStream cs, PDFont font, float left, float right,
-                                    float top, float bottom) throws IOException {
+    private static void renderEmpty(
+            PDPageContentStream cs, PDFont font, float left, float right, float top, float bottom)
+            throws IOException {
         cs.setStrokingColor(new Color(0xD1, 0xD5, 0xDB));
         cs.setLineWidth(0.5f);
         cs.addRect(left, bottom, right - left, top - bottom);
@@ -213,8 +262,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     }
 
     /** Fill a pie sector from angle a1 to a2 (degrees) with a fan of bezier-free line segments. */
-    private static void fillSector(PDPageContentStream cs, float cx, float cy, float r,
-                                   double a1, double a2) throws IOException {
+    private static void fillSector(
+            PDPageContentStream cs, float cx, float cy, float r, double a1, double a2)
+            throws IOException {
         cs.moveTo(cx, cy);
         int steps = Math.max(2, (int) Math.ceil(Math.abs(a1 - a2) / 6));
         for (int i = 0; i <= steps; i++) {
@@ -225,7 +275,8 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         cs.fill();
     }
 
-    private static void fillCircle(PDPageContentStream cs, float cx, float cy, float r) throws IOException {
+    private static void fillCircle(PDPageContentStream cs, float cx, float cy, float r)
+            throws IOException {
         float k = 0.5522848f * r;
         cs.moveTo(cx - r, cy);
         cs.curveTo(cx - r, cy + k, cx - k, cy + r, cx, cy + r);
@@ -252,7 +303,10 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     private static List<String> readYKeys(JsonNode el) {
         List<String> keys = new ArrayList<>();
         JsonNode y = el.get("yAxisKeys");
-        if (y == null) { JsonNode p = el.get("props"); if (p != null) y = p.get("yAxisKeys"); }
+        if (y == null) {
+            JsonNode p = el.get("props");
+            if (p != null) y = p.get("yAxisKeys");
+        }
         if (y != null && y.isArray()) y.forEach(n -> keys.add(n.asText()));
         if (keys.isEmpty()) keys.add("value");
         return keys;
@@ -261,7 +315,10 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     private static List<Color> readColors(JsonNode el) {
         List<Color> colors = new ArrayList<>();
         JsonNode c = el.get("colors");
-        if (c == null) { JsonNode p = el.get("props"); if (p != null) c = p.get("colors"); }
+        if (c == null) {
+            JsonNode p = el.get("props");
+            if (p != null) c = p.get("colors");
+        }
         if (c != null && c.isArray()) {
             c.forEach(n -> colors.add(parseColor(n.asText(""), PALETTE[0])));
         }
@@ -280,7 +337,11 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     private static double num(JsonNode n) {
         if (n == null) return 0;
         if (n.isNumber()) return n.asDouble();
-        try { return Double.parseDouble(n.asText().trim()); } catch (Exception e) { return 0; }
+        try {
+            return Double.parseDouble(n.asText().trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private static String str(JsonNode n) {

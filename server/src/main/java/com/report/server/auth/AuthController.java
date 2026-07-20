@@ -5,45 +5,52 @@ import com.report.server.AppConfig;
 import io.javalin.http.Context;
 import io.javalin.http.Cookie;
 import io.javalin.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Authentication controller with session-based login/logout.
- * Sessions are stored in-memory (suitable for local development).
+ * Authentication controller with session-based login/logout. Sessions are stored in-memory
+ * (suitable for local development).
  */
 public final class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private static final String SESSION_COOKIE = "session_id";
-    /** Dummy hash used for constant-time comparison when user doesn't exist (timing attack prevention). */
+
+    /**
+     * Dummy hash used for constant-time comparison when user doesn't exist (timing attack
+     * prevention).
+     */
     private static final String DUMMY_HASH =
             BCrypt.withDefaults().hashToString(12, "dummy".toCharArray());
 
     private static final long SESSION_TTL_MS = 86_400_000L; // 24 hours
+
     /** Evict expired sessions every 30 minutes regardless of login traffic. */
     private static final long EVICTION_INTERVAL_MINUTES = 30;
 
     private final UserRepository userRepo;
     private static final int LOGIN_MAX_ATTEMPTS;
     private static final long LOGIN_WINDOW_MS;
+
     static {
         String envMax = System.getenv("LOGIN_RATE_LIMIT_MAX");
-        String envMs  = System.getenv("LOGIN_RATE_LIMIT_WINDOW_MS");
+        String envMs = System.getenv("LOGIN_RATE_LIMIT_WINDOW_MS");
         LOGIN_MAX_ATTEMPTS = (envMax != null && !envMax.isBlank()) ? Integer.parseInt(envMax) : 5;
-        LOGIN_WINDOW_MS    = (envMs  != null && !envMs.isBlank())  ? Long.parseLong(envMs)     : 5 * 60 * 1000L;
+        LOGIN_WINDOW_MS =
+                (envMs != null && !envMs.isBlank()) ? Long.parseLong(envMs) : 5 * 60 * 1000L;
     }
-    private final RateLimiter loginRateLimiter = new RateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
+
+    private final RateLimiter loginRateLimiter =
+            new RateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
     private final ConcurrentHashMap<String, SessionEntry> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService evictionScheduler;
     private final LongSupplier clock;
@@ -58,18 +65,19 @@ public final class AuthController {
     AuthController(UserRepository userRepo, LongSupplier clock) {
         this.userRepo = userRepo;
         this.clock = clock;
-        evictionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = Thread.ofVirtual().unstarted(r);
-            t.setName("session-eviction");
-            t.setDaemon(true);
-            return t;
-        });
+        evictionScheduler =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            Thread t = Thread.ofVirtual().unstarted(r);
+                            t.setName("session-eviction");
+                            t.setDaemon(true);
+                            return t;
+                        });
         evictionScheduler.scheduleAtFixedRate(
-            this::evictExpiredSessions,
-            EVICTION_INTERVAL_MINUTES,
-            EVICTION_INTERVAL_MINUTES,
-            TimeUnit.MINUTES
-        );
+                this::evictExpiredSessions,
+                EVICTION_INTERVAL_MINUTES,
+                EVICTION_INTERVAL_MINUTES,
+                TimeUnit.MINUTES);
     }
 
     /** Graceful shutdown — call from AppWiring.shutdown(). */
@@ -95,13 +103,16 @@ public final class AuthController {
             }
         }
         if (removed > 0) {
-            log.debug("Session eviction: removed {} expired sessions ({} active)", removed, sessions.size());
+            log.debug(
+                    "Session eviction: removed {} expired sessions ({} active)",
+                    removed,
+                    sessions.size());
         }
     }
 
     /**
-     * Resolve the principal for the current request from the session cookie.
-     * Returns ANONYMOUS if no valid session exists.
+     * Resolve the principal for the current request from the session cookie. Returns ANONYMOUS if
+     * no valid session exists.
      */
     public Principal resolveFromRequest(Context ctx) {
         String sessionId = ctx.cookie(SESSION_COOKIE);
@@ -118,16 +129,14 @@ public final class AuthController {
     /**
      * POST /api/v1/auth/login — authenticate with userId + password.
      *
-     * <p><b>Rate limiting:</b> attempts are throttled per client IP. A successful
-     * login clears that IP's counter (see {@link RateLimiter#reset}), so the limit
-     * targets failed attempts and does not throttle genuine repeat logins — including
-     * several users behind a shared/NAT IP.
+     * <p><b>Rate limiting:</b> attempts are throttled per client IP. A successful login clears that
+     * IP's counter (see {@link RateLimiter#reset}), so the limit targets failed attempts and does
+     * not throttle genuine repeat logins — including several users behind a shared/NAT IP.
      *
-     * <p><b>Single active session (intentional):</b> a successful login invalidates
-     * every existing session of the same user. This is a deliberate security posture —
-     * one active session per user — and therefore does <em>not</em> support the same
-     * account being signed in on multiple devices simultaneously; the most recent
-     * login always wins.
+     * <p><b>Single active session (intentional):</b> a successful login invalidates every existing
+     * session of the same user. This is a deliberate security posture — one active session per user
+     * — and therefore does <em>not</em> support the same account being signed in on multiple
+     * devices simultaneously; the most recent login always wins.
      */
     public void login(Context ctx) {
         // Rate limit by IP
@@ -173,12 +182,12 @@ public final class AuthController {
 
         Principal principal = new Principal(user.userId(), user.displayName(), user.roles());
         issueSession(ctx, principal);
-        ctx.json(Map.of(
-            "userId", principal.userId(),
-            "displayName", principal.displayName(),
-            "roles", principal.roles(),
-            "anonymous", false
-        ));
+        ctx.json(
+                Map.of(
+                        "userId", principal.userId(),
+                        "displayName", principal.displayName(),
+                        "roles", principal.roles(),
+                        "anonymous", false));
 
         log.info("User logged in: {}", userId);
     }
@@ -213,9 +222,9 @@ public final class AuthController {
     }
 
     /**
-     * POST /api/v1/auth/change-profile — update displayName and/or password.
-     * Body: { displayName?: string, currentPassword?: string, newPassword?: string }
-     * If newPassword is provided, currentPassword is required.
+     * POST /api/v1/auth/change-profile — update displayName and/or password. Body: { displayName?:
+     * string, currentPassword?: string, newPassword?: string } If newPassword is provided,
+     * currentPassword is required.
      */
     public void changeProfile(Context ctx) {
         // Resolve session directly (auth middleware sets principal=ANONYMOUS for /api/v1/auth/*)
@@ -237,10 +246,12 @@ public final class AuthController {
         var body = ctx.bodyAsClass(Map.class);
         String newDisplayName = (String) body.get("displayName");
         String currentPassword = (String) body.get("currentPassword");
-        String newPassword     = (String) body.get("newPassword");
+        String newPassword = (String) body.get("newPassword");
 
-        String updatedDisplayName = (newDisplayName != null && !newDisplayName.isBlank())
-                ? newDisplayName.strip() : user.displayName();
+        String updatedDisplayName =
+                (newDisplayName != null && !newDisplayName.isBlank())
+                        ? newDisplayName.strip()
+                        : user.displayName();
 
         String updatedHash = user.passwordHash();
         boolean passwordChanged = false;
@@ -250,7 +261,9 @@ public final class AuthController {
                 ctx.json(Map.of("error", "currentPassword required to change password"));
                 return;
             }
-            if (!BCrypt.verifyer().verify(currentPassword.toCharArray(), user.passwordHash()).verified) {
+            if (!BCrypt.verifyer()
+                    .verify(currentPassword.toCharArray(), user.passwordHash())
+                    .verified) {
                 ctx.status(HttpStatus.UNAUTHORIZED);
                 ctx.json(Map.of("error", "Current password is incorrect"));
                 return;
@@ -259,7 +272,8 @@ public final class AuthController {
             passwordChanged = true;
         }
 
-        UserRecord updated = new UserRecord(user.userId(), updatedDisplayName, updatedHash, user.roles());
+        UserRecord updated =
+                new UserRecord(user.userId(), updatedDisplayName, updatedHash, user.roles());
         userRepo.save(updated);
 
         if (passwordChanged) {
@@ -267,34 +281,36 @@ public final class AuthController {
             // older cookie can no longer be used (#202); then re-issue a fresh session for this
             // caller so they stay logged in. (PATs are separate — revoke them via the token API.)
             invalidateSessionsFor(updated.userId());
-            issueSession(ctx, new Principal(updated.userId(), updated.displayName(), updated.roles()));
+            issueSession(
+                    ctx, new Principal(updated.userId(), updated.displayName(), updated.roles()));
         }
 
-        ctx.json(Map.of(
-            "userId", updated.userId(),
-            "displayName", updated.displayName(),
-            "roles", updated.roles(),
-            "anonymous", false
-        ));
-        log.info("User {} updated profile{}", principal.userId(),
+        ctx.json(
+                Map.of(
+                        "userId", updated.userId(),
+                        "displayName", updated.displayName(),
+                        "roles", updated.roles(),
+                        "anonymous", false));
+        log.info(
+                "User {} updated profile{}",
+                principal.userId(),
                 passwordChanged ? " (password changed — sessions reset)" : "");
     }
 
     /**
      * GET /api/v1/auth/me — return the current session user.
      *
-     * <p>Note: the auth middleware exempts all /api/v1/auth/ paths and sets
-     * principal = ANONYMOUS. This endpoint must resolve the session itself to
-     * return the actual logged-in user.
+     * <p>Note: the auth middleware exempts all /api/v1/auth/ paths and sets principal = ANONYMOUS.
+     * This endpoint must resolve the session itself to return the actual logged-in user.
      */
     public void me(Context ctx) {
         // Resolve from session cookie directly (not from middleware-set attribute)
         Principal principal = resolveFromRequest(ctx);
-        ctx.json(Map.of(
-            "userId", principal.userId(),
-            "displayName", principal.displayName(),
-            "roles", principal.roles(),
-            "anonymous", principal.isAnonymous()
-        ));
+        ctx.json(
+                Map.of(
+                        "userId", principal.userId(),
+                        "displayName", principal.displayName(),
+                        "roles", principal.roles(),
+                        "anonymous", principal.isAnonymous()));
     }
 }

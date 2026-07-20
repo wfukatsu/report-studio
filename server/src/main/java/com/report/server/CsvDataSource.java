@@ -12,11 +12,12 @@ import java.util.Map;
  * Parses CSV text into a list of row maps (header → value).
  *
  * <p>Supports:
+ *
  * <ul>
- *   <li>RFC 4180 quoting (double-quote enclosure, escaped quotes)</li>
- *   <li>Windows (CRLF) and Unix (LF) line endings</li>
- *   <li>Japanese text (UTF-8)</li>
- *   <li>Empty fields and short rows (padded with "")</li>
+ *   <li>RFC 4180 quoting (double-quote enclosure, escaped quotes)
+ *   <li>Windows (CRLF) and Unix (LF) line endings
+ *   <li>Japanese text (UTF-8)
+ *   <li>Empty fields and short rows (padded with "")
  * </ul>
  *
  * <p>Row count is limited to {@value #MAX_ROWS} to prevent resource exhaustion.
@@ -45,15 +46,12 @@ public final class CsvDataSource {
         }
 
         // First record is the header
-        List<String> headers = records.get(0).stream()
-                .map(String::trim)
-                .toList();
+        List<String> headers = records.get(0).stream().map(String::trim).toList();
 
         List<Map<String, String>> result = new ArrayList<>();
         for (int i = 1; i < records.size(); i++) {
             if (result.size() >= MAX_ROWS) {
-                throw new IllegalArgumentException(
-                    "CSV exceeds maximum row count of " + MAX_ROWS);
+                throw new IllegalArgumentException("CSV exceeds maximum row count of " + MAX_ROWS);
             }
             List<String> fields = records.get(i);
             Map<String, String> row = new LinkedHashMap<>();
@@ -66,8 +64,8 @@ public final class CsvDataSource {
     }
 
     /**
-     * Low-level RFC 4180 CSV parser.
-     * Returns a list of records, each record being a list of field strings.
+     * Low-level RFC 4180 CSV parser. Returns a list of records, each record being a list of field
+     * strings.
      */
     private static List<List<String>> parseCsvRecords(String text) {
         List<List<String>> records = new ArrayList<>();
