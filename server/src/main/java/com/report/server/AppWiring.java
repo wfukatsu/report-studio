@@ -263,13 +263,17 @@ public final class AppWiring {
         batchPdfCtrl.shutdown();
         jobExecutor.shutdown();
         pdfExecutor.shutdown();
+        webhookExecutor.shutdown();
         try {
             if (!jobExecutor.awaitTermination(10, TimeUnit.SECONDS)) jobExecutor.shutdownNow();
             if (!pdfExecutor.awaitTermination(10, TimeUnit.SECONDS)) pdfExecutor.shutdownNow();
+            if (!webhookExecutor.awaitTermination(10, TimeUnit.SECONDS))
+                webhookExecutor.shutdownNow();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             jobExecutor.shutdownNow();
             pdfExecutor.shutdownNow();
+            webhookExecutor.shutdownNow();
         }
         // Close the single shared transaction manager and its connection pool (issue #203).
         try {
