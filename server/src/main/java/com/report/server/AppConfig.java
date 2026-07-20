@@ -22,13 +22,17 @@ public final class AppConfig {
     private AppConfig() {}
 
     public static int resolvePort(String[] args) {
+        return resolvePort(args, System.getenv("PORT"));
+    }
+
+    /** Testable overload: same precedence (args over env over default), explicit env value. */
+    static int resolvePort(String[] args, String envPort) {
         if (args.length > 0) {
             try {
                 return Integer.parseInt(args[0]);
             } catch (NumberFormatException ignored) {
             }
         }
-        String envPort = System.getenv("PORT");
         if (envPort != null) {
             try {
                 return Integer.parseInt(envPort);
@@ -113,10 +117,13 @@ public final class AppConfig {
      * false} on localhost to keep development cookie-sending intact.
      */
     public static boolean secureCookies() {
-        String explicit = System.getenv("COOKIE_SECURE");
-        if ("true".equalsIgnoreCase(explicit)) return true;
-        String origin = System.getenv("ALLOWED_ORIGIN");
-        return origin != null && origin.startsWith("https://");
+        return secureCookies(System.getenv("COOKIE_SECURE"), System.getenv("ALLOWED_ORIGIN"));
+    }
+
+    /** Testable overload: explicit COOKIE_SECURE / ALLOWED_ORIGIN values, same behavior. */
+    static boolean secureCookies(String cookieSecure, String allowedOrigin) {
+        if ("true".equalsIgnoreCase(cookieSecure)) return true;
+        return allowedOrigin != null && allowedOrigin.startsWith("https://");
     }
 
     private static String envOrDefault(String envKey, String defaultValue) {
