@@ -2,7 +2,7 @@ plugins {
     java
     application
     jacoco
-    id("com.diffplug.spotless") version "7.0.2"
+    id("com.diffplug.spotless") version "8.8.0"
 }
 
 group = "com.report"
@@ -58,8 +58,8 @@ dependencies {
 
     // Test
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.3")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.2")
+    testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("io.javalin:javalin-testtools:6.6.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -91,7 +91,7 @@ tasks.processResources {
 spotless {
     java {
         target("src/**/*.java")
-        googleJavaFormat("1.25.2").aosp()
+        googleJavaFormat("1.35.0").aosp()
         removeUnusedImports()
     }
 }
