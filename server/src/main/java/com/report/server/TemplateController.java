@@ -139,15 +139,13 @@ public final class TemplateController {
 
         var stored = definitionsRepo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
         // Ownership check — return 404 (not 403) to prevent template ID enumeration
         if (!isOwner(ctx, stored.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -155,14 +153,12 @@ public final class TemplateController {
         try {
             storedEnvelope = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         JsonNode definition = storedEnvelope.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -182,8 +178,8 @@ public final class TemplateController {
 
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
 
@@ -191,16 +187,14 @@ public final class TemplateController {
         try {
             root = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         // Unwrap the envelope (migrating v1 bodies; rejecting newer versions)
         var unwrapped = TemplateEnvelope.unwrap(root);
         if (unwrapped.isError()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", unwrapped.error()));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", unwrapped.error());
             return;
         }
         JsonNode definition = unwrapped.definition();
@@ -209,8 +203,8 @@ public final class TemplateController {
         // no longer stores unbounded documents that only the browser rejected
         var validationError = ReportDefinitionValidator.validate(definition);
         if (validationError.isPresent()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", validationError.get()));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", validationError.get());
             return;
         }
 
@@ -221,8 +215,7 @@ public final class TemplateController {
         if (stored.isPresent()) {
             // Ownership check — return 404 (not 403) to prevent template ID enumeration
             if (!isOwner(ctx, stored.get())) {
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Template not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
                 return;
             }
             try {
@@ -265,8 +258,7 @@ public final class TemplateController {
 
         var stored = definitionsRepo.get(sourceId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -274,16 +266,18 @@ public final class TemplateController {
         try {
             original = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read template"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read template");
             return;
         }
 
         // Ownership check: only the creator can duplicate (or legacy templates without createdBy).
         // Returns 404 (not 403) to prevent template ID enumeration — consistent with get/put.
         if (!isOwner(ctx, stored.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -323,8 +317,7 @@ public final class TemplateController {
             return;
         }
         if (!isOwner(ctx, stored.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -342,17 +335,18 @@ public final class TemplateController {
 
         var stored = definitionsRepo.get(id);
         if (stored.isEmpty() || !isOwner(ctx, stored.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
         JsonNode body = MAPPER.readTree(ctx.body());
         String visibility = body.path("visibility").asText("");
         if (!VALID_VISIBILITY.contains(visibility)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of("error", "Invalid visibility. Must be one of: private, shared, public"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Invalid visibility. Must be one of: private, shared, public");
             return;
         }
 
@@ -374,8 +368,7 @@ public final class TemplateController {
 
         var stored = definitionsRepo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -385,8 +378,7 @@ public final class TemplateController {
 
         // Only allow copy of own, shared, or public templates
         if (!isOwnerCheck && !"shared".equals(vis) && !"public".equals(vis)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -465,15 +457,17 @@ public final class TemplateController {
         try {
             req = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return null;
         }
         String name = req.path("name").asText("").strip();
         if (name.isEmpty()) return DEFAULT_NAME;
         if (name.length() > MAX_NAME_LENGTH) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "name too long (max " + MAX_NAME_LENGTH + " chars)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "name too long (max " + MAX_NAME_LENGTH + " chars)");
             return null;
         }
         return name;

@@ -1,6 +1,7 @@
 package com.report.server.auth;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import com.report.server.ApiError;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import java.util.List;
@@ -65,29 +66,38 @@ public final class AdminUserController {
         String password = (String) body.get("password");
 
         if (userId == null || userId.isBlank() || password == null || password.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "userId and password are required"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "userId and password are required");
             return;
         }
         if (userId.length() > 64) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "userId must be 64 characters or less"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "userId must be 64 characters or less");
             return;
         }
         if (!USERID_PATTERN.matcher(userId).matches()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "userId に使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "userId に使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです");
             return;
         }
         if (password.length() < 8 || password.length() > 128) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "パスワードは8〜128文字で入力してください"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "パスワードは8〜128文字で入力してください");
             return;
         }
 
         if (userRepo.findById(userId).isPresent()) {
-            ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "User already exists: " + userId));
+            ApiError.respond(
+                    ctx, HttpStatus.CONFLICT, "CONFLICT", "User already exists: " + userId);
             return;
         }
 
@@ -96,8 +106,11 @@ public final class AdminUserController {
                 body.get("roles") instanceof List<?> l ? (List<String>) l : List.of("user");
         Set<String> roles = Set.copyOf(rolesList);
         if (!VALID_ROLES.containsAll(roles)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "無効なロールが含まれています。使用可能: user, admin"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "無効なロールが含まれています。使用可能: user, admin");
             return;
         }
 
@@ -125,8 +138,7 @@ public final class AdminUserController {
         String targetId = ctx.pathParam("id");
         var existing = userRepo.findById(targetId);
         if (existing.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "User not found: " + targetId));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "User not found: " + targetId);
             return;
         }
 
@@ -144,8 +156,8 @@ public final class AdminUserController {
         String updatedHash = user.passwordHash();
         if (newPassword != null && !newPassword.isBlank()) {
             if (newPassword.length() < 8 || newPassword.length() > 128) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "パスワードは8〜128文字で入力してください"));
+                ApiError.respond(
+                        ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "パスワードは8〜128文字で入力してください");
                 return;
             }
             updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
@@ -157,8 +169,11 @@ public final class AdminUserController {
                         ? Set.copyOf((List<String>) l)
                         : user.roles();
         if (!VALID_ROLES.containsAll(updatedRoles)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "無効なロールが含まれています。使用可能: user, admin"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "無効なロールが含まれています。使用可能: user, admin");
             return;
         }
 
@@ -181,14 +196,16 @@ public final class AdminUserController {
         String targetId = ctx.pathParam("id");
 
         if (targetId.equals(principal.userId())) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Cannot delete your own account"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Cannot delete your own account");
             return;
         }
 
         if (userRepo.findById(targetId).isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "User not found: " + targetId));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "User not found: " + targetId);
             return;
         }
 

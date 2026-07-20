@@ -68,9 +68,12 @@ public final class PdfJobController {
 
     public void submit(Context ctx) {
         if (!limiter.tryAcquire()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             ctx.header("Retry-After", "5");
-            ctx.json(Map.of("error", "Too many concurrent PDF jobs; retry shortly"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many concurrent PDF jobs; retry shortly");
             return;
         }
         boolean handedOff = false;
@@ -87,8 +90,7 @@ public final class PdfJobController {
     private boolean doSubmit(Context ctx) {
         String body = ctx.body();
         if (body.length() > 512_000) {
-            ctx.status(413);
-            ctx.json(Map.of("error", "Request body too large"));
+            ApiError.respond(ctx, 413, "PAYLOAD_TOO_LARGE", "Request body too large");
             return false;
         }
         if (!RequestValidator.validateJson(ctx, body)) return false;
@@ -100,8 +102,8 @@ public final class PdfJobController {
             JsonNode root = MAPPER.readTree(body);
             JsonNode tidNode = root.get("templateId");
             if (tidNode == null || !tidNode.isTextual() || tidNode.asText().trim().isEmpty()) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "templateId is required"));
+                ApiError.respond(
+                        ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "templateId is required");
                 return false;
             }
             templateId = tidNode.asText().trim();
@@ -116,16 +118,14 @@ public final class PdfJobController {
             variantId = (varNode != null && varNode.isTextual()) ? varNode.asText() : null;
 
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON body"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON body");
             return false;
         }
 
         // Ensure template exists
         Optional<String> rawOpt = definitionsRepo.get(templateId);
         if (rawOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return false;
         }
         String raw = rawOpt.get();
@@ -224,8 +224,7 @@ public final class PdfJobController {
         String jobId = ctx.pathParam("jobId");
         JobRecord job = findV2Job(jobId).orElse(null);
         if (job == null || !canAccess(ctx, job)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
 
@@ -249,20 +248,26 @@ public final class PdfJobController {
         String jobId = ctx.pathParam("jobId");
         JobRecord job = findV2Job(jobId).orElse(null);
         if (job == null || !canAccess(ctx, job)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
         if (job.statusEnum() != JobStatus.COMPLETED) {
-            ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "Job not completed", "status", job.statusEnum().v2Name()));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.CONFLICT,
+                    "CONFLICT",
+                    "Job not completed",
+                    Map.of("status", job.statusEnum().v2Name()));
             return;
         }
 
         Path resultFile = job.artifactPath() != null ? Path.of(job.artifactPath()) : null;
         if (resultFile == null || !Files.exists(resultFile)) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "PDF result unavailable"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "PDF result unavailable");
             return;
         }
 
@@ -270,8 +275,11 @@ public final class PdfJobController {
         try {
             pdfBytes = Files.readAllBytes(resultFile);
         } catch (java.io.IOException e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "PDF result unavailable"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "PDF result unavailable");
             return;
         }
 

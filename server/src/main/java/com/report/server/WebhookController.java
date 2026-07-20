@@ -48,8 +48,7 @@ public final class WebhookController {
      */
     private boolean denyIfNotOwner(Context ctx, String templateId) {
         if (TemplateController.ownsTemplate(ctx, definitionsRepo, templateId)) return false;
-        ctx.status(HttpStatus.NOT_FOUND);
-        ctx.json(Map.of("error", "Template not found"));
+        ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
         return true;
     }
 
@@ -86,8 +85,7 @@ public final class WebhookController {
         try {
             req = MAPPER.readTree(ctx.body());
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -97,8 +95,7 @@ public final class WebhookController {
             try {
                 WebhookDispatcher.validateUrl(url);
             } catch (IllegalArgumentException e) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", e.getMessage()));
+                ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", e.getMessage());
                 return;
             }
         }
@@ -154,16 +151,15 @@ public final class WebhookController {
 
         Optional<String> stored = webhookRepo.get(templateId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Webhook not configured"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Webhook not configured");
             return;
         }
 
         JsonNode config = MAPPER.readTree(stored.get());
         String url = config.path("url").asText(null);
         if (url == null || url.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "No webhook URL configured"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "No webhook URL configured");
             return;
         }
         String secret = crypto.decrypt(config.path("secret").asText(null));
@@ -227,8 +223,8 @@ public final class WebhookController {
     private boolean requireAuth(Context ctx) {
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return false;
         }
         return true;

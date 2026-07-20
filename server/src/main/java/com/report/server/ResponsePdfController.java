@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.Principal;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -59,8 +58,7 @@ public final class ResponsePdfController {
         // Load template envelope
         Optional<String> defBlob = definitionsRepo.get(templateId);
         if (defBlob.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -69,16 +67,18 @@ public final class ResponsePdfController {
             envelope = MAPPER.readTree(defBlob.get());
         } catch (Exception e) {
             log.error("V2 response PDF: failed to parse template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to load template"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to load template");
             return;
         }
 
         // Ownership check
         String createdBy = envelope.path("created_by").asText("");
         if (!createdBy.isEmpty() && principal != null && !principal.userId().equals(createdBy)) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
@@ -90,8 +90,7 @@ public final class ResponsePdfController {
         // Load response
         Optional<String> responseBlob = responseRepo.get(responseId);
         if (responseBlob.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
 
@@ -100,15 +99,17 @@ public final class ResponsePdfController {
             responseNode = MAPPER.readTree(responseBlob.get());
         } catch (Exception e) {
             log.error("V2 response PDF: failed to parse response {}", responseId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read response");
             return;
         }
 
         // Verify response belongs to this template
         if (!templateId.equals(responseNode.path("templateId").asText(""))) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
 
@@ -144,12 +145,14 @@ public final class ResponsePdfController {
                     "Generated V2 response PDF for response {} ({} bytes)", responseId, pdf.length);
         } catch (TimeoutException e) {
             log.warn("V2 response PDF generation timed out for response {}", responseId);
-            ctx.status(504);
-            ctx.json(Map.of("error", "PDF generation timed out"));
+            ApiError.respond(ctx, 504, "TIMEOUT", "PDF generation timed out");
         } catch (Exception e) {
             log.error("V2 response PDF generation failed for response {}", responseId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "PDF generation failed"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "PDF generation failed");
         }
     }
 }

@@ -85,16 +85,15 @@ public final class ScalarDbScanController {
         // Auth guard
         com.report.server.auth.Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return;
         }
 
         // Rate limiting: 20 req/min per user
         String userId = principal.userId();
         if (!rateLimiter.isAllowed(userId)) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many requests"));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many requests");
             return;
         }
 
@@ -102,8 +101,11 @@ public final class ScalarDbScanController {
         String namespace = ctx.pathParam("ns");
         String tableName = ctx.pathParam("table");
         if (!isValidIdentifier(namespace) || !isValidIdentifier(tableName)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid namespace or table name"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Invalid namespace or table name");
             return;
         }
 
@@ -117,8 +119,11 @@ public final class ScalarDbScanController {
                     namespace,
                     tableName,
                     userId);
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access to this namespace is not allowed"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "Access to this namespace is not allowed");
             return;
         }
 
@@ -135,8 +140,11 @@ public final class ScalarDbScanController {
                 meta = admin.getTableMetadata(namespace, tableName);
             }
             if (meta == null) {
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Table not found: " + namespace + "." + tableName));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.NOT_FOUND,
+                        "NOT_FOUND",
+                        "Table not found: " + namespace + "." + tableName);
                 return;
             }
 

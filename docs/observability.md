@@ -89,8 +89,11 @@ Report Studio の運用可視性（ヘルスチェック・メトリクス・ロ
 - **ロギング実装**: `slf4j-simple` 2.0.16（logback/log4j は不使用、`simplelogger.properties` は未配置でデフォルト設定）。出力は標準エラー。
 - **監査ログ**: `AuditLog.op(...)` が `AUDIT op=... user=... ns=... table=... outcome=... correlationId=...` の
   **key=value（logfmt）形式**で出力。ログ集約基盤でのパースが可能です。
-- **相関 ID**: 状態変更系エンドポイントは 8 文字の `correlationId` をレスポンス本文とログの両方に付与し、
-  ログ行とクライアントが受け取ったエラーを突き合わせられます。
+- **相関 ID**: すべてのエラーレスポンスは統一フォーマット（#267）
+  `{"error": <人間可読メッセージ>, "code": <機械可読コード>, "correlationId": <8文字ID>}` で返却されます
+  （`ApiError` ヘルパー経由）。`code` は `NOT_FOUND` / `VALIDATION_ERROR` / `CONFLICT` /
+  `DUPLICATE_CODE` / `VERSION_CONFLICT` / `RATE_LIMITED` / `INTERNAL_ERROR` 等の UPPER_SNAKE。
+  `correlationId` はログにも出力され、ログ行とクライアントが受け取ったエラーを突き合わせられます。
 
 ### 現状の評価と今後の選択肢
 

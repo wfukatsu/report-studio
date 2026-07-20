@@ -937,8 +937,12 @@ export async function updateProduct(
     credentials: 'include',
   })
   if (res.status === 409) {
-    const body = await res.json().catch(() => ({}))
-    if ((body as { error?: string }).error === 'VERSION_CONFLICT') throw new VersionConflictError()
+    const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+    // #267 unified error format carries the machine-readable code in `code`;
+    // older servers put it in `error` — accept both for backward compatibility.
+    if (body.code === 'VERSION_CONFLICT' || body.error === 'VERSION_CONFLICT') {
+      throw new VersionConflictError()
+    }
     throw new DuplicateCodeError()
   }
   if (!res.ok) throw new Error(`PUT /api/v1/products/${id} failed: ${res.status}`)

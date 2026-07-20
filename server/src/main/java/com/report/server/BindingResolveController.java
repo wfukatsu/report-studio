@@ -110,8 +110,7 @@ public final class BindingResolveController {
         Principal principal = ctx.attribute("principal");
         String userId = (principal != null) ? principal.userId() : "anonymous";
         if (!rateLimiter.isAllowed(userId)) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many requests"));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many requests");
             return;
         }
 
@@ -122,13 +121,16 @@ public final class BindingResolveController {
         // ── Body size guard ──────────────────────────────────────────────────
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         if (body.length() > MAX_BODY_BYTES) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body too large (max 64 KB)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Request body too large (max 64 KB)");
             return;
         }
 
@@ -137,21 +139,18 @@ public final class BindingResolveController {
         try {
             req = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         // ── Template ownership verification ──────────────────────────────────
         Optional<String> storedOpt = definitionsRepo.get(templateId);
         if (storedOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         if (!TemplateController.isOwner(ctx, storedOpt.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -162,20 +161,29 @@ public final class BindingResolveController {
         JsonNode schemaNode = req.path("schema");
         JsonNode groupsNode = schemaNode.path("groups");
         if (!groupsNode.isArray()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "schema.groups must be an array"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "schema.groups must be an array");
             return;
         }
         if (groupsNode.size() > MAX_GROUPS) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Too many groups (max " + MAX_GROUPS + ")"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Too many groups (max " + MAX_GROUPS + ")");
             return;
         }
 
         JsonNode partitionKeysNode = req.path("partitionKeys");
         if (!partitionKeysNode.isObject()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "partitionKeys must be an object"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "partitionKeys must be an object");
             return;
         }
 

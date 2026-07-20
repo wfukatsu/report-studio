@@ -132,8 +132,18 @@ components:
   schemas:
     Error:
       type: object
+      description: >-
+        Unified error response (#267). Every error body carries the human-readable
+        message in `error`, a machine-readable UPPER_SNAKE code in `code`
+        (e.g. NOT_FOUND, VALIDATION_ERROR, CONFLICT, DUPLICATE_CODE, VERSION_CONFLICT,
+        RATE_LIMITED, INTERNAL_ERROR), and a short `correlationId` that is also written
+        to the server logs. Some endpoints append extra context fields
+        (e.g. `currentVersion`, `total`).
+      required: [error, code, correlationId]
       properties:
-        error: { type: string }
+        error: { type: string, description: Human-readable message }
+        code: { type: string, description: Machine-readable error code (UPPER_SNAKE) }
+        correlationId: { type: string, description: Short id for joining server logs }
     Ok:
       type: object
       properties:

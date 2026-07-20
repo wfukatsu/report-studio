@@ -86,8 +86,11 @@ public final class PublicFormController {
         // Rate limit by IP + templateId
         String clientKey = ctx.ip() + ":" + templateId;
         if (!rateLimiter.isAllowed(clientKey)) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error", "Too many attempts. Please try again later."));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many attempts. Please try again later.");
             return;
         }
 
@@ -113,8 +116,8 @@ public final class PublicFormController {
         var body = ctx.bodyAsClass(Map.class);
         Object rawPassword = body.get("password");
         if (!(rawPassword instanceof String password) || password.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Password is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Password is required");
             return;
         }
 
@@ -122,8 +125,7 @@ public final class PublicFormController {
         BCrypt.Result result =
                 BCrypt.verifyer().verify(password.toCharArray(), settings.passwordHash());
         if (!result.verified) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Invalid password"));
+            ApiError.respond(ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid password");
             log.info("Failed form password attempt for template {} from {}", templateId, ctx.ip());
             return;
         }
@@ -151,8 +153,8 @@ public final class PublicFormController {
         // Check session if password-protected
         var meta = metaOpt.get();
         if (requiresPassword(meta) && !hasValidSession(ctx, templateId)) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return;
         }
 
@@ -194,8 +196,8 @@ public final class PublicFormController {
 
         var meta = metaOpt.get();
         if (requiresPassword(meta) && !hasValidSession(ctx, templateId)) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return;
         }
 
@@ -220,8 +222,11 @@ public final class PublicFormController {
             log.info("Public form response {} for template {}", responseId, templateId);
         } catch (Exception e) {
             log.error("Failed to save public form response for template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to save response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to save response");
         }
     }
 
@@ -259,7 +264,6 @@ public final class PublicFormController {
     }
 
     private static void notFound(Context ctx) {
-        ctx.status(HttpStatus.NOT_FOUND);
-        ctx.json(Map.of("error", "Form not found"));
+        ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Form not found");
     }
 }

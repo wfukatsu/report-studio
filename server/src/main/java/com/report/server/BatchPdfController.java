@@ -112,8 +112,8 @@ public final class BatchPdfController {
     public void submitBatch(Context ctx) throws Exception {
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return;
         }
 
@@ -121,15 +121,14 @@ public final class BatchPdfController {
         try {
             req = MAPPER.readTree(ctx.body());
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         String templateId = req.path("templateId").asText(null);
         if (templateId == null || templateId.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "templateId is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "templateId is required");
             return;
         }
 
@@ -140,17 +139,20 @@ public final class BatchPdfController {
         boolean hasIds = idsNode.isArray() && idsNode.size() > 0;
         boolean hasRows = rowsNode.isArray() && rowsNode.size() > 0;
         if (hasIds == hasRows) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "Provide exactly one of a non-empty responseIds or rows array"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Provide exactly one of a non-empty responseIds or rows array");
             return;
         }
         int inputSize = hasIds ? idsNode.size() : rowsNode.size();
         if (inputSize > MAX_BATCH_SIZE) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Maximum batch size is " + MAX_BATCH_SIZE));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Maximum batch size is " + MAX_BATCH_SIZE);
             return;
         }
 
@@ -171,24 +173,26 @@ public final class BatchPdfController {
             }
         }
         if (inputs.isEmpty()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "No valid items to render"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "No valid items to render");
             return;
         }
 
         // Ensure template exists
         Optional<String> rawOpt = definitionsRepo.get(templateId);
         if (rawOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
         // Admission control (issue #60) — previously this stack had no cap
         if (!limiter.tryAcquire()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             ctx.header("Retry-After", "5");
-            ctx.json(Map.of("error", "Too many concurrent batch jobs; retry shortly"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many concurrent batch jobs; retry shortly");
             return;
         }
 
@@ -446,8 +450,7 @@ public final class BatchPdfController {
         // own. Previously any authenticated user who knew a job ID could read another user's
         // batch status (issue #199). Mirrors PdfJobController / JobController.
         if (job == null || !JobController.canAccess(ctx, job)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Batch job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch job not found");
             return;
         }
         ObjectNode resp = MAPPER.createObjectNode();
@@ -469,19 +472,25 @@ public final class BatchPdfController {
         // Owner-scoped: a non-owner must not download (and, via the one-shot delete below,
         // destroy) another user's result ZIP (issue #199). 404 to avoid job-ID enumeration.
         if (job == null || !JobController.canAccess(ctx, job)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Batch job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch job not found");
             return;
         }
         if (job.statusEnum() != JobStatus.COMPLETED) {
-            ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "Job not completed", "status", job.statusEnum().v2Name()));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.CONFLICT,
+                    "CONFLICT",
+                    "Job not completed",
+                    Map.of("status", job.statusEnum().v2Name()));
             return;
         }
         Path zipPath = job.artifactPath() != null ? Path.of(job.artifactPath()) : null;
         if (zipPath == null || !Files.exists(zipPath)) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "ZIP result unavailable"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "ZIP result unavailable");
             return;
         }
         // Stream the ZIP straight from disk instead of loading up to MAX_ZIP_BYTES (100 MB)
@@ -514,8 +523,11 @@ public final class BatchPdfController {
                         }
                     });
         } catch (java.io.IOException e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "ZIP result unavailable"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "ZIP result unavailable");
         }
     }
 

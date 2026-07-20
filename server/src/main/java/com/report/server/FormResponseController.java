@@ -120,53 +120,55 @@ public final class FormResponseController {
 
         // Rate limit by userId (not IP — prevents IP-rotation bypass)
         if (!submitLimiter.isAllowed(principal.userId())) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many submissions. Please wait."));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many submissions. Please wait.");
             return;
         }
 
         // Verify template exists and requester owns it
         Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         if (!canAccess(principal, defOpt.get())) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
         // Parse and validate request body: { data: Object }
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         JsonNode reqNode;
         try {
             reqNode = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
         JsonNode data = reqNode.path("data");
         if (data.isMissingNode() || !data.isObject()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "'data' field is required and must be an object"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "'data' field is required and must be an object");
             return;
         }
         if (data.size() > 1000) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Too many fields (max 1000)"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Too many fields (max 1000)");
             return;
         }
         if (hasExcessiveDepth(data, MAX_NEST_DEPTH)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Data nesting too deep (max " + MAX_NEST_DEPTH + " levels)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Data nesting too deep (max " + MAX_NEST_DEPTH + " levels)");
             return;
         }
 
@@ -200,8 +202,11 @@ public final class FormResponseController {
             }
         } catch (Exception e) {
             log.error("Failed to save V2 form response for template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to save response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to save response");
             return;
         }
 
@@ -238,13 +243,11 @@ public final class FormResponseController {
 
         Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         if (!canAccess(principal, defOpt.get())) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
@@ -261,20 +264,22 @@ public final class FormResponseController {
             allJson = responseRepo.listByGroupKey(templateId);
         } catch (Exception e) {
             log.error("Failed to list V2 responses for template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to list responses"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to list responses");
             return;
         }
 
         // Guard: above threshold, direct to export endpoint
         if (allJson.size() > MAX_INLINE_RESPONSES) {
-            ctx.status(422);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "Too many responses for inline listing. Use the export endpoint.",
-                            "total",
-                            allJson.size()));
+            ApiError.respond(
+                    ctx,
+                    422,
+                    "VALIDATION_ERROR",
+                    "Too many responses for inline listing. Use the export endpoint.",
+                    Map.of("total", allJson.size()));
             return;
         }
 
@@ -354,20 +359,17 @@ public final class FormResponseController {
 
         Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         if (!canAccess(principal, defOpt.get())) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
         Optional<String> stored = responseRepo.get(responseId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
 
@@ -375,16 +377,18 @@ public final class FormResponseController {
         try {
             JsonNode node = MAPPER.readTree(stored.get());
             if (!templateId.equals(node.path("templateId").asText(""))) {
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Response not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
                 return;
             }
             ctx.contentType("application/json");
             ctx.result(stored.get());
         } catch (Exception e) {
             log.error("Failed to parse V2 response {}", responseId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to retrieve response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to retrieve response");
         }
     }
 
@@ -400,8 +404,7 @@ public final class FormResponseController {
 
         Optional<String> stored = responseRepo.get(responseId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
 
@@ -409,15 +412,17 @@ public final class FormResponseController {
         try {
             node = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read response");
             return;
         }
 
         // Verify response belongs to this template (return 404 to prevent enumeration)
         if (!templateId.equals(node.path("templateId").asText(""))) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
 
@@ -428,8 +433,7 @@ public final class FormResponseController {
         boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
 
         if (!isSubmitter && !isOwner) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
@@ -438,8 +442,11 @@ public final class FormResponseController {
             responseRepo.delete(responseId);
         } catch (Exception e) {
             log.warn("Response deletion failed for id={}: {}", responseId, e.getMessage());
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to delete response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to delete response");
             return;
         }
         ctx.json(Map.of("deleted", true, "id", responseId));
@@ -466,13 +473,15 @@ public final class FormResponseController {
             JsonNode body = MAPPER.readTree(ctx.body());
             newStatus = body.path("status").asText("");
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
         if (!VALID_STATUSES.contains(newStatus)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid status. Allowed: " + VALID_STATUSES));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Invalid status. Allowed: " + VALID_STATUSES);
             return;
         }
 
@@ -492,15 +501,13 @@ public final class FormResponseController {
                 Optional<String> storedOpt = responseRepo.getWithinTx(tx, responseId);
                 if (storedOpt.isEmpty()) {
                     tx.abort();
-                    ctx.status(HttpStatus.NOT_FOUND);
-                    ctx.json(Map.of("error", "Response not found"));
+                    ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
                     return;
                 }
                 ObjectNode node = (ObjectNode) MAPPER.readTree(storedOpt.get());
                 if (!templateId.equals(node.path("templateId").asText(""))) {
                     tx.abort();
-                    ctx.status(HttpStatus.NOT_FOUND);
-                    ctx.json(Map.of("error", "Response not found"));
+                    ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
                     return;
                 }
 
@@ -511,8 +518,7 @@ public final class FormResponseController {
                         !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
                 if (!isSubmitter && !isOwner) {
                     tx.abort();
-                    ctx.status(HttpStatus.FORBIDDEN);
-                    ctx.json(Map.of("error", "Access denied"));
+                    ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
                     return;
                 }
 
@@ -528,11 +534,11 @@ public final class FormResponseController {
                 }
                 if (!isValidTransition(oldStatus, newStatus)) {
                     tx.abort();
-                    ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(
-                            Map.of(
-                                    "error",
-                                    "Invalid status transition: " + oldStatus + " → " + newStatus));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.CONFLICT,
+                            "CONFLICT",
+                            "Invalid status transition: " + oldStatus + " → " + newStatus);
                     return;
                 }
 
@@ -569,14 +575,17 @@ public final class FormResponseController {
             } catch (Exception e) {
                 abortQuietly(tx);
                 log.error("Failed to update status for response {}", responseId, e);
-                ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-                ctx.json(Map.of("error", "Failed to update status"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "INTERNAL_ERROR",
+                        "Failed to update status");
                 return;
             }
         }
         // Retries exhausted under sustained contention.
-        ctx.status(HttpStatus.CONFLICT);
-        ctx.json(Map.of("error", "Status update conflict; please retry"));
+        ApiError.respond(
+                ctx, HttpStatus.CONFLICT, "CONFLICT", "Status update conflict; please retry");
     }
 
     private static final int STATUS_MAX_OCC_RETRIES = 3;
@@ -615,21 +624,22 @@ public final class FormResponseController {
         // Access is governed by the response itself: template owner or original submitter.
         Optional<String> stored = responseRepo.get(responseId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
         JsonNode node;
         try {
             node = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read response"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read response");
             return;
         }
         if (!templateId.equals(node.path("templateId").asText(""))) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Response not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
             return;
         }
         String submittedBy = node.path("submittedBy").asText("");
@@ -637,8 +647,7 @@ public final class FormResponseController {
         boolean isSubmitter = principal.userId().equals(submittedBy);
         boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
         if (!isSubmitter && !isOwner) {
-            ctx.status(HttpStatus.FORBIDDEN);
-            ctx.json(Map.of("error", "Access denied"));
+            ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
@@ -682,8 +691,11 @@ public final class FormResponseController {
             allJson = responseRepo.list();
         } catch (Exception e) {
             log.error("Failed to list documents", e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to list documents"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to list documents");
             return;
         }
 
@@ -692,13 +704,12 @@ public final class FormResponseController {
         // the stored total. Cap it like the per-template listing (#208) — above the threshold,
         // the caller must narrow the query (templateId/status) or use the export endpoint.
         if (allJson.size() > MAX_INLINE_RESPONSES) {
-            ctx.status(422);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "Too many documents for inline listing. Narrow by templateId/status or use export.",
-                            "total",
-                            allJson.size()));
+            ApiError.respond(
+                    ctx,
+                    422,
+                    "VALIDATION_ERROR",
+                    "Too many documents for inline listing. Narrow by templateId/status or use export.",
+                    Map.of("total", allJson.size()));
             return;
         }
 

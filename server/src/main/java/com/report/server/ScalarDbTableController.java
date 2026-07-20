@@ -96,11 +96,11 @@ public final class ScalarDbTableController {
         // ── Parse body ────────────────────────────────────────────────────────
         String bodyStr = ctx.body();
         if (bodyStr == null || bodyStr.isBlank()) {
-            ctx.status(400).json(Map.of("error", "Request body is required"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         if (bodyStr.length() > MAX_BODY_BYTES) {
-            ctx.status(413).json(Map.of("error", "Request body too large (max 1 MB)"));
+            ApiError.respond(ctx, 413, "PAYLOAD_TOO_LARGE", "Request body too large (max 1 MB)");
             return;
         }
 
@@ -108,7 +108,7 @@ public final class ScalarDbTableController {
         try {
             req = MAPPER.readTree(bodyStr);
         } catch (Exception e) {
-            ctx.status(400).json(Map.of("error", "Invalid JSON body"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid JSON body");
             return;
         }
 
@@ -117,63 +117,62 @@ public final class ScalarDbTableController {
         String tableName = req.path("tableName").asText(null);
 
         if (namespace == null || namespace.isBlank()) {
-            ctx.status(400).json(Map.of("error", "Field 'namespace' is required"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Field 'namespace' is required");
             return;
         }
         if (tableName == null || tableName.isBlank()) {
-            ctx.status(400).json(Map.of("error", "Field 'tableName' is required"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Field 'tableName' is required");
             return;
         }
         if (namespace.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Identifier too long (max "
-                                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
-                                            + " chars): '"
-                                            + namespace.substring(
-                                                    0, Math.min(namespace.length(), 20))
-                                            + "...'"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Identifier too long (max "
+                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                            + " chars): '"
+                            + namespace.substring(0, Math.min(namespace.length(), 20))
+                            + "...'");
             return;
         }
         if (!IDENTIFIER.matcher(namespace).matches()) {
-            ctx.status(400).json(Map.of("error", "Invalid identifier: '" + namespace + "'"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + namespace + "'");
             return;
         }
         if (tableName.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Identifier too long (max "
-                                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
-                                            + " chars): '"
-                                            + tableName.substring(
-                                                    0, Math.min(tableName.length(), 20))
-                                            + "...'"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Identifier too long (max "
+                            + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                            + " chars): '"
+                            + tableName.substring(0, Math.min(tableName.length(), 20))
+                            + "...'");
             return;
         }
         if (!IDENTIFIER.matcher(tableName).matches()) {
-            ctx.status(400).json(Map.of("error", "Invalid identifier: '" + tableName + "'"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + tableName + "'");
             return;
         }
 
         // ── Validate arrays ───────────────────────────────────────────────────
         if (!req.path("columns").isArray()) {
-            ctx.status(400).json(Map.of("error", "Field 'columns' must be an array of objects"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Field 'columns' must be an array of objects");
             return;
         }
 
         JsonNode columnsNode = req.path("columns");
         if (columnsNode.size() > ScalarDbLimits.MAX_COLUMNS_PER_TABLE) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Too many columns (max "
-                                            + ScalarDbLimits.MAX_COLUMNS_PER_TABLE
-                                            + ")"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Too many columns (max " + ScalarDbLimits.MAX_COLUMNS_PER_TABLE + ")");
             return;
         }
 
@@ -184,38 +183,41 @@ public final class ScalarDbTableController {
             String name = col.path("name").asText(null);
             String type = col.path("type").asText(null);
             if (name == null || name.isBlank()) {
-                ctx.status(400).json(Map.of("error", "Each column must have a 'name' field"));
+                ApiError.respond(
+                        ctx, 400, "VALIDATION_ERROR", "Each column must have a 'name' field");
                 return;
             }
             if (name.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-                ctx.status(400)
-                        .json(
-                                Map.of(
-                                        "error",
-                                        "Identifier too long (max "
-                                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
-                                                + " chars): '"
-                                                + name.substring(0, Math.min(name.length(), 20))
-                                                + "...'"));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Identifier too long (max "
+                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                + " chars): '"
+                                + name.substring(0, Math.min(name.length(), 20))
+                                + "...'");
                 return;
             }
             if (!IDENTIFIER.matcher(name).matches()) {
-                ctx.status(400).json(Map.of("error", "Invalid identifier: '" + name + "'"));
+                ApiError.respond(
+                        ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + name + "'");
                 return;
             }
             if (!columnNameSet.add(name)) {
-                ctx.status(400).json(Map.of("error", "Duplicate column name: '" + name + "'"));
+                ApiError.respond(
+                        ctx, 400, "VALIDATION_ERROR", "Duplicate column name: '" + name + "'");
                 return;
             }
             DataType dataType = parseDataType(type);
             if (dataType == null) {
-                ctx.status(400)
-                        .json(
-                                Map.of(
-                                        "error",
-                                        "Invalid column type: '"
-                                                + type
-                                                + "'. Must be one of BOOLEAN, INT, BIGINT, FLOAT, DOUBLE, TEXT, BLOB"));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Invalid column type: '"
+                                + type
+                                + "'. Must be one of BOOLEAN, INT, BIGINT, FLOAT, DOUBLE, TEXT, BLOB");
                 return;
             }
             columns.add(new ColumnDef(name, dataType));
@@ -227,47 +229,46 @@ public final class ScalarDbTableController {
         List<String> secondaryIndexes = parseStringList(req.path("secondaryIndexes"));
 
         if (partitionKeys == null) {
-            ctx.status(400).json(Map.of("error", "Field 'partitionKeys' must be an array"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Field 'partitionKeys' must be an array");
             return;
         }
         if (clusteringKeys == null) {
-            ctx.status(400).json(Map.of("error", "Field 'clusteringKeys' must be an array"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Field 'clusteringKeys' must be an array");
             return;
         }
         if (secondaryIndexes == null) {
-            ctx.status(400).json(Map.of("error", "Field 'secondaryIndexes' must be an array"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Field 'secondaryIndexes' must be an array");
             return;
         }
 
         // Length caps for key lists
         if (partitionKeys.size() > ScalarDbLimits.MAX_PARTITION_KEYS) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Too many partition keys (max "
-                                            + ScalarDbLimits.MAX_PARTITION_KEYS
-                                            + ")"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Too many partition keys (max " + ScalarDbLimits.MAX_PARTITION_KEYS + ")");
             return;
         }
         if (clusteringKeys.size() > ScalarDbLimits.MAX_CLUSTERING_KEYS) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Too many clustering keys (max "
-                                            + ScalarDbLimits.MAX_CLUSTERING_KEYS
-                                            + ")"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Too many clustering keys (max " + ScalarDbLimits.MAX_CLUSTERING_KEYS + ")");
             return;
         }
         if (secondaryIndexes.size() > ScalarDbLimits.MAX_SECONDARY_INDEXES) {
-            ctx.status(400)
-                    .json(
-                            Map.of(
-                                    "error",
-                                    "Too many secondary indexes (max "
-                                            + ScalarDbLimits.MAX_SECONDARY_INDEXES
-                                            + ")"));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Too many secondary indexes (max "
+                            + ScalarDbLimits.MAX_SECONDARY_INDEXES
+                            + ")");
             return;
         }
 
@@ -282,7 +283,8 @@ public final class ScalarDbTableController {
 
         // At least one partition key
         if (partitionKeys.isEmpty()) {
-            ctx.status(400).json(Map.of("error", "At least one partition key is required"));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "At least one partition key is required");
             return;
         }
 
@@ -308,11 +310,12 @@ public final class ScalarDbTableController {
             if (admin.tableExists(namespace, tableName)) {
                 AuditLog.op(
                         "create_table", userId, namespace, tableName, "conflict", correlationId);
-                ctx.status(409)
-                        .json(
-                                Map.of(
-                                        "error",
-                                        "Table already exists: " + namespace + "." + tableName));
+                ApiError.respond(
+                        ctx,
+                        409,
+                        "CONFLICT",
+                        "Table already exists: " + namespace + "." + tableName,
+                        correlationId);
                 return;
             }
 
@@ -382,14 +385,12 @@ public final class ScalarDbTableController {
                             tableName,
                             "conflict",
                             correlationId);
-                    ctx.status(409)
-                            .json(
-                                    Map.of(
-                                            "error",
-                                            "Table already exists: "
-                                                    + namespace
-                                                    + "."
-                                                    + tableName));
+                    ApiError.respond(
+                            ctx,
+                            409,
+                            "CONFLICT",
+                            "Table already exists: " + namespace + "." + tableName,
+                            correlationId);
                     return;
                 }
             } catch (Exception checkEx) {
@@ -461,19 +462,19 @@ public final class ScalarDbTableController {
     private static boolean rejectInvalidIdentifiers(List<String> keys, Context ctx) {
         for (String k : keys) {
             if (k.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) {
-                ctx.status(400)
-                        .json(
-                                Map.of(
-                                        "error",
-                                        "Identifier too long (max "
-                                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
-                                                + " chars): '"
-                                                + k.substring(0, Math.min(k.length(), 20))
-                                                + "...'"));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Identifier too long (max "
+                                + ScalarDbLimits.MAX_IDENTIFIER_LENGTH
+                                + " chars): '"
+                                + k.substring(0, Math.min(k.length(), 20))
+                                + "...'");
                 return true;
             }
             if (!IDENTIFIER.matcher(k).matches()) {
-                ctx.status(400).json(Map.of("error", "Invalid identifier: '" + k + "'"));
+                ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + k + "'");
                 return true;
             }
         }
@@ -488,7 +489,7 @@ public final class ScalarDbTableController {
         Set<String> seen = new HashSet<>();
         for (String k : keys) {
             if (!seen.add(k)) {
-                ctx.status(400).json(Map.of("error", "Duplicate key column: '" + k + "'"));
+                ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Duplicate key column: '" + k + "'");
                 return true;
             }
         }
@@ -499,8 +500,11 @@ public final class ScalarDbTableController {
     private static boolean rejectUnknownKeys(List<String> keys, Set<String> columns, Context ctx) {
         for (String k : keys) {
             if (!columns.contains(k)) {
-                ctx.status(400)
-                        .json(Map.of("error", "Key column '" + k + "' not found in columns list"));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Key column '" + k + "' not found in columns list");
                 return true;
             }
         }

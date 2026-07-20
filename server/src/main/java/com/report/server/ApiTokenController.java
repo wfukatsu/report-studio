@@ -96,8 +96,11 @@ public final class ApiTokenController {
         // Rate-limit creation per user (#209) — the login endpoint is throttled, token
         // minting was not, so a session could spray tokens unbounded.
         if (!createLimiter.isAllowed(principal.userId())) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error", "Too many token creations; retry shortly"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many token creations; retry shortly");
             return;
         }
         String label = "";
@@ -109,8 +112,7 @@ public final class ApiTokenController {
                 expiresInDays = body.path("expiresInDays").asLong(0);
             }
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
         if (label.length() > 100) label = label.substring(0, 100);
@@ -129,18 +131,21 @@ public final class ApiTokenController {
             activeCount = countActiveTokens(principal.userId(), now);
         } catch (Exception e) {
             log.error("Failed to count API tokens for {}", principal.userId(), e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to create token"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to create token");
             return;
         }
         if (activeCount >= MAX_TOKENS_PER_USER) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "Token limit reached (max "
-                                    + MAX_TOKENS_PER_USER
-                                    + "); revoke unused tokens first"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Token limit reached (max "
+                            + MAX_TOKENS_PER_USER
+                            + "); revoke unused tokens first");
             return;
         }
 
@@ -163,8 +168,11 @@ public final class ApiTokenController {
             tokenRepo.put(hash, MAPPER.writeValueAsString(rec), principal.userId());
         } catch (Exception e) {
             log.error("Failed to persist API token for {}", principal.userId(), e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to create token"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to create token");
             return;
         }
 
@@ -239,21 +247,22 @@ public final class ApiTokenController {
         String id = ctx.pathParam("id");
         Optional<String> stored = tokenRepo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Token not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Token not found");
             return;
         }
         try {
             JsonNode n = MAPPER.readTree(stored.get());
             if (!principal.userId().equals(n.path("userId").asText(""))) {
                 // Don't reveal existence of other users' tokens
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Token not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Token not found");
                 return;
             }
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read token"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read token");
             return;
         }
         // Only report success if the delete actually committed. A swallowed failure here
@@ -262,8 +271,11 @@ public final class ApiTokenController {
             tokenRepo.delete(id);
         } catch (Exception e) {
             log.warn("Token revocation failed for id={}: {}", id, e.getMessage());
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to revoke token"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to revoke token");
             return;
         }
         ctx.json(Map.of("revoked", true, "id", id));
@@ -324,8 +336,11 @@ public final class ApiTokenController {
     }
 
     private static void unauthorized(Context ctx) {
-        ctx.status(HttpStatus.UNAUTHORIZED);
-        ctx.json(Map.of("error", "Authentication required (session login)"));
+        ApiError.respond(
+                ctx,
+                HttpStatus.UNAUTHORIZED,
+                "UNAUTHORIZED",
+                "Authentication required (session login)");
     }
 
     static String sha256(String input) {

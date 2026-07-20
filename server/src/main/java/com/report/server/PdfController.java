@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +51,7 @@ public final class PdfController {
         // Load definition envelope
         var stored = definitionsRepo.get(templateId);
         if (stored.isEmpty()) {
-            ctx.status(404);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, 404, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -61,15 +59,13 @@ public final class PdfController {
         try {
             envelope = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(500);
-            ctx.json(Map.of("error", "Failed to read template"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "Failed to read template");
             return;
         }
 
         JsonNode definition = envelope.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(404);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, 404, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -82,8 +78,7 @@ public final class PdfController {
             try {
                 req = MAPPER.readTree(body);
             } catch (Exception e) {
-                ctx.status(400);
-                ctx.json(Map.of("error", "Invalid JSON in request body"));
+                ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid JSON in request body");
                 return;
             }
             JsonNode td = req.path("testData");
@@ -105,8 +100,7 @@ public final class PdfController {
                 }
             }
             if (!found) {
-                ctx.status(400);
-                ctx.json(Map.of("error", "Unknown variantId: " + variantId));
+                ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Unknown variantId: " + variantId);
                 return;
             }
         }
@@ -120,8 +114,7 @@ public final class PdfController {
                     "Failed to prepare V2 definition for template {}: {}",
                     templateId,
                     e.getMessage());
-            ctx.status(500);
-            ctx.json(Map.of("error", "Failed to prepare definition"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "Failed to prepare definition");
             return;
         }
 
@@ -152,12 +145,10 @@ public final class PdfController {
             log.info("Generated V2 PDF for template {} ({} bytes)", templateId, pdfBytes.length);
         } catch (TimeoutException e) {
             log.error("V2 PDF generation timed out for template {}", templateId);
-            ctx.status(504);
-            ctx.json(Map.of("error", "PDF generation timed out (30s limit)"));
+            ApiError.respond(ctx, 504, "TIMEOUT", "PDF generation timed out (30s limit)");
         } catch (Exception e) {
             log.error("V2 PDF generation failed for template {}", templateId, e);
-            ctx.status(500);
-            ctx.json(Map.of("error", "PDF generation failed"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "PDF generation failed");
         }
     }
 }

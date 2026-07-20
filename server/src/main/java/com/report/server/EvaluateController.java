@@ -57,8 +57,7 @@ public final class EvaluateController {
      */
     public void evaluate(Context ctx) throws Exception {
         if (!rateLimiter.isAllowed(ctx.ip())) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many requests"));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many requests");
             return;
         }
 
@@ -70,18 +69,18 @@ public final class EvaluateController {
 
         JsonNode definition = req.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Missing 'definition' field"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Missing 'definition' field");
             return;
         }
 
         JsonNode testData = req.path("testData");
         if (testData.isObject() && testData.size() > MAX_TEST_DATA_FIELDS) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)");
             return;
         }
 
@@ -93,8 +92,11 @@ public final class EvaluateController {
         }
 
         if (calcRules.size() > MAX_RULES) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Too many calculationRules (max " + MAX_RULES + ")"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Too many calculationRules (max " + MAX_RULES + ")");
             return;
         }
 
@@ -102,13 +104,13 @@ public final class EvaluateController {
         for (JsonNode rule : calcRules) {
             String expr = rule.path("expression").asText("");
             if (expr.length() > MAX_EXPRESSION_LENGTH) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(
-                        Map.of(
-                                "error",
-                                "Expression too long in rule '"
-                                        + sanitize(rule.path("key").asText(""))
-                                        + "'"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Expression too long in rule '"
+                                + sanitize(rule.path("key").asText(""))
+                                + "'");
                 return;
             }
         }
@@ -127,12 +129,14 @@ public final class EvaluateController {
                 putValue(results, key, value);
             }
         } catch (CircularDependencyException e) {
-            ctx.status(422);
-            ctx.json(Map.of("error", "Circular dependency in calculationRules: " + e.getMessage()));
+            ApiError.respond(
+                    ctx,
+                    422,
+                    "VALIDATION_ERROR",
+                    "Circular dependency in calculationRules: " + e.getMessage());
             return;
         } catch (ExpressionTimeoutException e) {
-            ctx.status(422);
-            ctx.json(Map.of("error", "Expression evaluation timed out"));
+            ApiError.respond(ctx, 422, "VALIDATION_ERROR", "Expression evaluation timed out");
             return;
         } catch (JexlException e) {
             // Per-field error — return partial results with error entry
@@ -162,8 +166,7 @@ public final class EvaluateController {
      */
     public void validate(Context ctx) throws Exception {
         if (!rateLimiter.isAllowed(ctx.ip())) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many requests"));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many requests");
             return;
         }
 
@@ -175,18 +178,18 @@ public final class EvaluateController {
 
         JsonNode definition = req.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Missing 'definition' field"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Missing 'definition' field");
             return;
         }
 
         JsonNode testData = req.path("testData");
         if (testData.isObject() && testData.size() > MAX_TEST_DATA_FIELDS) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "testData too large (max " + MAX_TEST_DATA_FIELDS + " fields)");
             return;
         }
 
@@ -260,15 +263,14 @@ public final class EvaluateController {
     private static JsonNode parseBody(Context ctx) throws Exception {
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return null;
         }
         try {
             return MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return null;
         }
     }

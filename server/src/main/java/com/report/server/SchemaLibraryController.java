@@ -114,8 +114,8 @@ public final class SchemaLibraryController {
     public void create(Context ctx) throws Exception {
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
 
@@ -123,8 +123,7 @@ public final class SchemaLibraryController {
         try {
             input = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -137,8 +136,8 @@ public final class SchemaLibraryController {
 
         JsonNode definition = input.path("definition");
         if (definition.isMissingNode() || definition.isNull()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "definition is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "definition is required");
             return;
         }
 
@@ -181,8 +180,7 @@ public final class SchemaLibraryController {
 
         var stored = repo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Schema not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Schema not found");
             return;
         }
 
@@ -190,8 +188,7 @@ public final class SchemaLibraryController {
 
         // Access check: owner or shared
         if (!canRead(ctx, envelope)) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Schema not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Schema not found");
             return;
         }
 
@@ -219,8 +216,8 @@ public final class SchemaLibraryController {
 
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
 
@@ -228,8 +225,7 @@ public final class SchemaLibraryController {
         try {
             input = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -240,8 +236,7 @@ public final class SchemaLibraryController {
             var stored = repo.getWithinTx(tx, id);
             if (stored.isEmpty()) {
                 tx.abort();
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Schema not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Schema not found");
                 return;
             }
 
@@ -250,8 +245,7 @@ public final class SchemaLibraryController {
             // Only owner can update
             if (!isOwner(ctx, existingEnvelope)) {
                 tx.abort();
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Schema not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Schema not found");
                 return;
             }
 
@@ -262,13 +256,12 @@ public final class SchemaLibraryController {
                 long requestUpdatedAt = clientUpdatedAt.asLong(0);
                 if (requestUpdatedAt != 0 && storedUpdatedAt != requestUpdatedAt) {
                     tx.abort();
-                    ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(
-                            Map.of(
-                                    "error",
-                                    "Schema has been modified by another user. Please reload.",
-                                    "serverUpdatedAt",
-                                    storedUpdatedAt));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.CONFLICT,
+                            "CONFLICT",
+                            "Schema has been modified by another user. Please reload.",
+                            Map.of("serverUpdatedAt", storedUpdatedAt));
                     return;
                 }
             }
@@ -335,8 +328,7 @@ public final class SchemaLibraryController {
         if (stored.isPresent()) {
             JsonNode envelope = MAPPER.readTree(stored.get());
             if (!isOwner(ctx, envelope)) {
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Schema not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Schema not found");
                 return;
             }
         }

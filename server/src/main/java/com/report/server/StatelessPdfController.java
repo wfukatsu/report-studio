@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -52,13 +51,11 @@ public final class StatelessPdfController {
         // Size check
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(400);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         if (body.length() > MAX_BODY_BYTES) {
-            ctx.status(413);
-            ctx.json(Map.of("error", "Request body too large (max 512KB)"));
+            ApiError.respond(ctx, 413, "PAYLOAD_TOO_LARGE", "Request body too large (max 512KB)");
             return;
         }
 
@@ -67,16 +64,14 @@ public final class StatelessPdfController {
         try {
             root = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(400);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         // Validate structure
         String validationError = RequestValidator.validatePdfGenerateRequest(root);
         if (validationError != null) {
-            ctx.status(400);
-            ctx.json(Map.of("error", validationError));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", validationError);
             return;
         }
 
@@ -90,8 +85,7 @@ public final class StatelessPdfController {
             definitionJson = V2RenderSupport.prepare(templateNode, dataNode, null);
         } catch (Exception e) {
             log.error("Failed to prepare V2 definition for stateless PDF: {}", e.getMessage());
-            ctx.status(500);
-            ctx.json(Map.of("error", "Failed to prepare definition"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "Failed to prepare definition");
             return;
         }
 
@@ -121,12 +115,10 @@ public final class StatelessPdfController {
             log.info("Generated stateless PDF ({} bytes)", pdfBytes.length);
         } catch (TimeoutException e) {
             log.error("Stateless PDF generation timed out");
-            ctx.status(504);
-            ctx.json(Map.of("error", "PDF generation timed out (30s limit)"));
+            ApiError.respond(ctx, 504, "TIMEOUT", "PDF generation timed out (30s limit)");
         } catch (Exception e) {
             log.error("Stateless PDF generation failed", e);
-            ctx.status(500);
-            ctx.json(Map.of("error", "PDF generation failed"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "PDF generation failed");
         }
     }
 }

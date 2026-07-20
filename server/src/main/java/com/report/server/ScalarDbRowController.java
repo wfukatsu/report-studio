@@ -109,11 +109,12 @@ public final class ScalarDbRowController {
 
         JsonNode values = rc.body.path("values");
         if (!values.isObject() || values.isEmpty()) {
-            ctx.status(400)
-                    .json(
-                            errorResponse(
-                                    "Request must include a non-empty 'values' object",
-                                    correlationId));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Request must include a non-empty 'values' object",
+                    correlationId);
             return;
         }
 
@@ -123,15 +124,23 @@ public final class ScalarDbRowController {
 
         for (String pk : partitionKeys) {
             if (values.path(pk).isMissingNode() || values.path(pk).isNull()) {
-                ctx.status(400)
-                        .json(errorResponse("Missing required partition key", correlationId));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Missing required partition key",
+                        correlationId);
                 return;
             }
         }
         for (String ck : clusteringKeys) {
             if (values.path(ck).isMissingNode() || values.path(ck).isNull()) {
-                ctx.status(400)
-                        .json(errorResponse("Missing required clustering key", correlationId));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Missing required clustering key",
+                        correlationId);
                 return;
             }
         }
@@ -140,7 +149,7 @@ public final class ScalarDbRowController {
         while (fieldNames.hasNext()) {
             String col = fieldNames.next();
             if (!meta.getColumnNames().contains(col)) {
-                ctx.status(400).json(errorResponse("Invalid request", correlationId));
+                ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid request", correlationId);
                 log.warn(
                         "{} rejected: unknown column '{}' in {}.{} correlationId={}",
                         opName,
@@ -178,7 +187,7 @@ public final class ScalarDbRowController {
                     tx.abort();
                     AuditLog.op(
                             opName, rc.userId, rc.namespace, rc.table, "not_found", correlationId);
-                    ctx.status(404).json(errorResponse("Row not found", correlationId));
+                    ApiError.respond(ctx, 404, "NOT_FOUND", "Row not found", correlationId);
                     return;
                 }
             }
@@ -201,8 +210,8 @@ public final class ScalarDbRowController {
         } catch (CommitConflictException e) {
             abortQuietly(tx);
             AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "conflict", correlationId);
-            ctx.status(409)
-                    .json(errorResponse("Conflict: row was modified concurrently", correlationId));
+            ApiError.respond(
+                    ctx, 409, "CONFLICT", "Conflict: row was modified concurrently", correlationId);
         } catch (TransactionException e) {
             abortQuietly(tx);
             AuditLog.op(opName, rc.userId, rc.namespace, rc.table, "unreachable", correlationId);
@@ -234,11 +243,12 @@ public final class ScalarDbRowController {
 
         JsonNode keys = rc.body.path("keys");
         if (!keys.isObject() || keys.isEmpty()) {
-            ctx.status(400)
-                    .json(
-                            errorResponse(
-                                    "Request must include a non-empty 'keys' object",
-                                    correlationId));
+            ApiError.respond(
+                    ctx,
+                    400,
+                    "VALIDATION_ERROR",
+                    "Request must include a non-empty 'keys' object",
+                    correlationId);
             return;
         }
 
@@ -248,15 +258,23 @@ public final class ScalarDbRowController {
 
         for (String pk : partitionKeys) {
             if (keys.path(pk).isMissingNode() || keys.path(pk).isNull()) {
-                ctx.status(400)
-                        .json(errorResponse("Missing required partition key", correlationId));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Missing required partition key",
+                        correlationId);
                 return;
             }
         }
         for (String ck : clusteringKeys) {
             if (keys.path(ck).isMissingNode() || keys.path(ck).isNull()) {
-                ctx.status(400)
-                        .json(errorResponse("Missing required clustering key", correlationId));
+                ApiError.respond(
+                        ctx,
+                        400,
+                        "VALIDATION_ERROR",
+                        "Missing required clustering key",
+                        correlationId);
                 return;
             }
         }
@@ -285,8 +303,8 @@ public final class ScalarDbRowController {
         } catch (CommitConflictException e) {
             abortQuietly(tx);
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "conflict", correlationId);
-            ctx.status(409)
-                    .json(errorResponse("Conflict: row was modified concurrently", correlationId));
+            ApiError.respond(
+                    ctx, 409, "CONFLICT", "Conflict: row was modified concurrently", correlationId);
         } catch (TransactionException e) {
             abortQuietly(tx);
             AuditLog.op(
@@ -333,14 +351,14 @@ public final class ScalarDbRowController {
         // Auth
         Object attr = ctx.attribute("principal");
         if (attr == null || (attr instanceof Principal p && p.isAnonymous())) {
-            ctx.status(401).json(errorResponse("Authentication required", correlationId));
+            ApiError.respond(ctx, 401, "UNAUTHORIZED", "Authentication required", correlationId);
             return null;
         }
         String userId = (attr instanceof Principal p) ? p.userId() : "unknown";
 
         // Rate limit
         if (!rateLimiter.isAllowed(userId)) {
-            ctx.status(429).json(errorResponse("Rate limit exceeded", correlationId));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Rate limit exceeded", correlationId);
             return null;
         }
 
@@ -349,29 +367,33 @@ public final class ScalarDbRowController {
         String table = ctx.pathParam("table");
 
         if (!isValidIdentifier(namespace) || !isValidIdentifier(table)) {
-            ctx.status(400).json(errorResponse("Invalid namespace or table name", correlationId));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Invalid namespace or table name", correlationId);
             return null;
         }
 
         // Namespace protection
         if (PROTECTED_NAMESPACES.contains(namespace)) {
             AuditLog.op("row_write_blocked", userId, namespace, table, "forbidden", correlationId);
-            ctx.status(403)
-                    .json(
-                            errorResponse(
-                                    "Write operations are not allowed on this namespace",
-                                    correlationId));
+            ApiError.respond(
+                    ctx,
+                    403,
+                    "FORBIDDEN",
+                    "Write operations are not allowed on this namespace",
+                    correlationId);
             return null;
         }
 
         // Body
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(400).json(errorResponse("Request body is required", correlationId));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Request body is required", correlationId);
             return null;
         }
         if (body.length() > MAX_BODY_BYTES) {
-            ctx.status(400).json(errorResponse("Request body exceeds size limit", correlationId));
+            ApiError.respond(
+                    ctx, 400, "VALIDATION_ERROR", "Request body exceeds size limit", correlationId);
             return null;
         }
 
@@ -379,7 +401,7 @@ public final class ScalarDbRowController {
         try {
             parsed = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(400).json(errorResponse("Invalid JSON", correlationId));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid JSON", correlationId);
             return null;
         }
 
@@ -397,7 +419,7 @@ public final class ScalarDbRowController {
             throw new ServiceUnavailableResponse();
         }
         if (meta == null) {
-            ctx.status(404).json(errorResponse("Table not found", correlationId));
+            ApiError.respond(ctx, 404, "NOT_FOUND", "Table not found", correlationId);
             return null;
         }
 
@@ -493,10 +515,6 @@ public final class ScalarDbRowController {
 
     private static boolean isValidIdentifier(String s) {
         return s != null && s.length() <= MAX_IDENTIFIER_LENGTH && IDENTIFIER.matcher(s).matches();
-    }
-
-    private static Map<String, String> errorResponse(String message, String correlationId) {
-        return Map.of("error", message, "correlationId", correlationId);
     }
 
     private static void abortQuietly(DistributedTransaction tx) {
