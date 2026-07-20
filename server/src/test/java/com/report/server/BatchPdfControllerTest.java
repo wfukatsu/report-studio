@@ -7,6 +7,7 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -187,6 +188,29 @@ class BatchPdfControllerTest {
         controller.getStatus(ctx);
 
         assertEquals(200, capturedStatus);
+    }
+
+    // ── getResult streams the ZIP off-disk, one-shot delete on close (#210) ─────
+
+    @Test
+    void getResult_streamsZip_andDeletesJobOnStreamClose() throws Exception {
+        java.nio.file.Path zip = java.nio.file.Files.createTempFile("batch-result", ".zip");
+        java.nio.file.Files.write(zip, new byte[]{1, 2, 3, 4});
+        jobStore.save(JobRecord.create("batch-1", "t1", JobRecord.TYPE_V2_BATCH, "alice", 1, 0)
+                .withArtifact(zip.toString())); // withArtifact → status COMPLETED + artifactPath
+        when(ctx.pathParam("id")).thenReturn("batch-1");
+
+        controller.getResult(ctx);
+
+        // Streamed, not buffered to a byte[]: result is an InputStream.
+        ArgumentCaptor<java.io.InputStream> stream = ArgumentCaptor.forClass(java.io.InputStream.class);
+        verify(ctx).result(stream.capture());
+        // One-shot delete is deferred until the stream is fully written (closed).
+        assertTrue(jobStore.findById("batch-1").isPresent(), "job must survive until the stream closes");
+        stream.getValue().close();
+        assertTrue(jobStore.findById("batch-1").isEmpty(), "job dropped after the download completes");
+
+        java.nio.file.Files.deleteIfExists(zip);
     }
 
     /**

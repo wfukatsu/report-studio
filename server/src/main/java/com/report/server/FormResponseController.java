@@ -646,6 +646,19 @@ public final class FormResponseController {
             return;
         }
 
+        // Guard: this is a full-table scan that materialises every response across all
+        // templates before filtering/sorting/paging, so heap and latency grow linearly with
+        // the stored total. Cap it like the per-template listing (#208) — above the threshold,
+        // the caller must narrow the query (templateId/status) or use the export endpoint.
+        if (allJson.size() > MAX_INLINE_RESPONSES) {
+            ctx.status(422);
+            ctx.json(Map.of(
+                "error", "Too many documents for inline listing. Narrow by templateId/status or use export.",
+                "total", allJson.size()
+            ));
+            return;
+        }
+
         // Cache template envelope lookups (owner + display name) by templateId.
         Map<String, JsonNode> envCache = new HashMap<>();
         Set<String> unknownTemplates = new HashSet<>();

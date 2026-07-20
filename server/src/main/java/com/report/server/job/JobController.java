@@ -32,6 +32,9 @@ public final class JobController {
     private static final Logger log = LoggerFactory.getLogger(JobController.class);
     private static final int MAX_ACTIVE_JOBS = 20;
     private static final int MAX_ROW_COUNT = 10_000;
+    /** v1 job listing page defaults (#210). */
+    private static final int JOBS_DEFAULT_LIMIT = 100;
+    private static final int JOBS_MAX_LIMIT = 500;
 
     private final JobRepository jobRepo;
     private final BatchPdfProcessor processor;
@@ -192,7 +195,24 @@ public final class JobController {
 
     /** GET /api/v1/jobs — list V1 batch jobs (V2 jobs share the store but not this API) */
     public void list(Context ctx) {
-        ctx.json(jobRepo.listAll().stream().filter(JobRecord::isV1).toList());
+        // Paginate the v1 job list (#210): the previous version returned every job unbounded.
+        // Newest first; total count is surfaced via X-Total-Count so paging isn't silent.
+        List<JobRecord> all = jobRepo.listAll().stream()
+                .filter(JobRecord::isV1)
+                .sorted(java.util.Comparator.comparingLong(JobRecord::createdAt).reversed())
+                .toList();
+        int offset = Math.max(0, parseIntParam(ctx.queryParam("offset"), 0));
+        int limit = Math.min(Math.max(1, parseIntParam(ctx.queryParam("limit"), JOBS_DEFAULT_LIMIT)), JOBS_MAX_LIMIT);
+        int from = Math.min(offset, all.size());
+        int to = Math.min(from + limit, all.size());
+        ctx.header("X-Total-Count", String.valueOf(all.size()));
+        ctx.json(all.subList(from, to));
+    }
+
+    private static int parseIntParam(String raw, int defaultVal) {
+        if (raw == null || raw.isBlank()) return defaultVal;
+        try { return Integer.parseInt(raw.trim()); }
+        catch (NumberFormatException e) { return defaultVal; }
     }
 
     // ── Unified V2 job API (issue #191) ─────────────────────────────────────────
