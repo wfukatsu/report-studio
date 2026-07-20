@@ -49,3 +49,6 @@ server/scalardb.properties
 # Internal product-strategy artifacts (not for the public repo)
 reports/
 work/
+
+# Claude Code session artifacts (agent worktrees etc.)
+.claude/worktrees/
