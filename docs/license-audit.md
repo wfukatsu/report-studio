@@ -29,7 +29,7 @@
 |---|---|---|
 | io.javalin:javalin 7.2.2 | Apache-2.0 | ✅ |
 | com.fasterxml.jackson.core:jackson-databind 2.22.1 | Apache-2.0 | ✅ |
-| com.scalar-labs:scalardb 3.14.4（Community Edition） | Apache-2.0 | ✅ |
+| com.scalar-labs:scalardb 3.17.3（Community Edition） | Apache-2.0 | ✅ |
 | org.xerial:sqlite-jdbc 3.53.2.0 | Apache-2.0（同梱 SQLite は Public Domain） | ✅ |
 | org.apache.pdfbox:pdfbox 3.0.8 | Apache-2.0 | ✅ |
 | com.google.zxing:core / javase 3.5.4 | Apache-2.0 | ✅ |

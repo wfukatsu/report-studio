@@ -2,7 +2,7 @@ plugins {
     java
     application
     jacoco
-    id("com.diffplug.spotless") version "7.0.2"
+    id("com.diffplug.spotless") version "8.8.0"
 }
 
 group = "com.report"
@@ -26,10 +26,11 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
 
     // ScalarDB
-    // Pinned to 3.14.4 — contains a JDBC storage connection leak fix that matters
-    // under the catalog-listing workload introduced by V2ScalarDbCatalogController.
+    // 3.17.3 — supersedes the 3.14.4 pin (the JDBC storage connection leak fix that
+    // mattered under the catalog-listing workload of ScalarDbCatalogController is
+    // included in all 3.15+ releases).
     // See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md (Risks table).
-    implementation("com.scalar-labs:scalardb:3.14.4")
+    implementation("com.scalar-labs:scalardb:3.17.3")
 
     // SQLite JDBC (ScalarDB storage backend)
     implementation("org.xerial:sqlite-jdbc:3.53.2.0")
@@ -58,8 +59,8 @@ dependencies {
 
     // Test
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.2")
+    testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("io.javalin:javalin-testtools:7.2.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -91,7 +92,7 @@ tasks.processResources {
 spotless {
     java {
         target("src/**/*.java")
-        googleJavaFormat("1.25.2").aosp()
+        googleJavaFormat("1.35.0").aosp()
         removeUnusedImports()
     }
 }
