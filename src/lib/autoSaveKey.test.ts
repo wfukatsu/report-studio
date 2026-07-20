@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getAutoSaveKey, LEGACY_AUTOSAVE_KEY } from './autoSaveKey'
+import { getAutoSaveKey } from './autoSaveKey'
 
 describe('getAutoSaveKey', () => {
   it('returns null when userId is null', () => {
@@ -20,9 +20,5 @@ describe('getAutoSaveKey', () => {
 
   it('returns distinct keys for different userIds', () => {
     expect(getAutoSaveKey('alice')).not.toBe(getAutoSaveKey('bob'))
-  })
-
-  it('exposes the legacy unkeyed value as a constant for one-shot cleanup', () => {
-    expect(LEGACY_AUTOSAVE_KEY).toBe('rds-autosave')
   })
 })

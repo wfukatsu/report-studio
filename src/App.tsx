@@ -21,7 +21,7 @@ import { EditorStatusBar } from '@/components/common/EditorStatusBar'
 import { EmptyCanvasOnboarding } from '@/components/canvas/EmptyCanvasOnboarding'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
-import { getAutoSaveKey, LEGACY_AUTOSAVE_KEY } from '@/lib/autoSaveKey'
+import { getAutoSaveKey } from '@/lib/autoSaveKey'
 import { saveReport } from '@/api/reportApi'
 import { ChevronLeft, ChevronRight, LayoutTemplate, Layers, BookOpen, Database } from 'lucide-react'
 
@@ -147,12 +147,6 @@ export default function App() {
   // exactly once per user session.
   const restoreCheckedForRef = useRef<string | null>(null)
   useEffect(() => {
-    // Best-effort cleanup of any pre-multiuser unkeyed draft so it cannot
-    // resurface as a phantom restore prompt for the wrong user.
-    // TODO(2026-08-01): drop this shim and the LEGACY_AUTOSAVE_KEY export once
-    // every active session has remounted at least once after the multiuser
-    // autosave key migration. Track via review-feedback ticket.
-    try { localStorage.removeItem(LEGACY_AUTOSAVE_KEY) } catch { /* storage disabled */ }
     const uid = currentUser?.userId ?? null
     if (!uid || restoreCheckedForRef.current === uid) return
     restoreCheckedForRef.current = uid
