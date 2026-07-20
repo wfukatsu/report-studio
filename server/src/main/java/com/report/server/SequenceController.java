@@ -85,26 +85,57 @@ public final class SequenceController {
         try { req = MAPPER.readTree(ctx.body()); }
         catch (Exception e) { ctx.status(HttpStatus.BAD_REQUEST); ctx.json(Map.of("error","Invalid JSON")); return; }
 
-        // Read existing or create new
-        Optional<String> stored = seqRepo.get(templateId);
-        ObjectNode config = stored.isPresent()
-                ? (ObjectNode) MAPPER.readTree(stored.get())
-                : MAPPER.createObjectNode();
+        // Transactional read-modify-write with OCC retry (#207). The previous plain
+        // get()→put() read the counter outside any transaction, so a concurrent nextAndStamp
+        // increment could be overwritten with the stale counter — rewinding the sequence and
+        // re-issuing already-used document numbers. Here the config is re-read inside the
+        // transaction and only the presentation fields (prefix/suffix/digits/resetOn) come
+        // from the request; counter/resetYear are always preserved from stored state, never
+        // taken from the client.
+        Exception lastException = null;
+        for (int attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
+            if (attempt > 0) {
+                Thread.sleep((long) Math.pow(2, attempt - 1) * INITIAL_BACKOFF_MS);
+            }
+            DistributedTransaction tx = null;
+            try {
+                tx = seqRepo.getTransactionManager().start();
 
-        if (req.has("prefix"))   config.put("prefix",   req.path("prefix").asText(""));
-        if (req.has("suffix"))   config.put("suffix",   req.path("suffix").asText(""));
-        if (req.has("digits"))   config.put("digits",   Math.max(1, Math.min(10, req.path("digits").asInt(4))));
-        if (req.has("resetOn")) {
-            String resetOn = req.path("resetOn").asText(null);
-            if ("year".equals(resetOn)) config.put("resetOn", "year");
-            else config.putNull("resetOn");
+                Optional<String> storedOpt = seqRepo.getWithinTx(tx, templateId);
+                ObjectNode config = storedOpt.isPresent()
+                        ? (ObjectNode) MAPPER.readTree(storedOpt.get())
+                        : MAPPER.createObjectNode();
+
+                if (req.has("prefix"))   config.put("prefix",   req.path("prefix").asText(""));
+                if (req.has("suffix"))   config.put("suffix",   req.path("suffix").asText(""));
+                if (req.has("digits"))   config.put("digits",   Math.max(1, Math.min(10, req.path("digits").asInt(4))));
+                if (req.has("resetOn")) {
+                    String resetOn = req.path("resetOn").asText(null);
+                    if ("year".equals(resetOn)) config.put("resetOn", "year");
+                    else config.putNull("resetOn");
+                }
+                // counter / resetYear are sequence state — preserve stored values, never accept
+                // them from the request; initialise only when absent.
+                if (!config.has("counter"))   config.put("counter", 0);
+                if (!config.has("resetYear")) config.put("resetYear", 0);
+
+                seqRepo.putWithinTx(tx, templateId, MAPPER.writeValueAsString(config));
+                tx.commit();
+
+                ctx.contentType("application/json");
+                ctx.result(MAPPER.writeValueAsString(config));
+                return;
+
+            } catch (CommitConflictException | CrudConflictException e) {
+                lastException = e;
+                try { if (tx != null) tx.abort(); } catch (Exception ignored) {}
+            } catch (Exception e) {
+                try { if (tx != null) tx.abort(); } catch (Exception ignored) {}
+                throw e;
+            }
         }
-        if (!config.has("counter")) config.put("counter", 0);
-        if (!config.has("resetYear")) config.put("resetYear", 0);
-
-        seqRepo.put(templateId, MAPPER.writeValueAsString(config));
-        ctx.contentType("application/json");
-        ctx.result(MAPPER.writeValueAsString(config));
+        throw new RuntimeException(
+                "Sequence config OCC conflict unresolved after " + MAX_OCC_RETRIES + " retries", lastException);
     }
 
     // ── Atomic next() — called during form response submission ────────────────

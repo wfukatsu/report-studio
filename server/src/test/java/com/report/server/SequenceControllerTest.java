@@ -155,7 +155,7 @@ class SequenceControllerTest {
         controller.putConfig(ctx);
 
         verify(ctx).status(HttpStatus.NOT_FOUND);
-        verify(seqRepo, never()).put(anyString(), anyString());
+        verify(seqRepo, never()).putWithinTx(any(), anyString(), anyString());
     }
 
     // ── PUT /api/v1/sequences/{templateId} ───────────────────────────────────
@@ -167,7 +167,7 @@ class SequenceControllerTest {
         controller.putConfig(ctx);
 
         verify(ctx).status(HttpStatus.UNAUTHORIZED);
-        verify(seqRepo, never()).put(anyString(), anyString());
+        verify(seqRepo, never()).putWithinTx(any(), anyString(), anyString());
     }
 
     @Test
@@ -181,25 +181,30 @@ class SequenceControllerTest {
 
     @Test
     void putConfig_invalidJson_400() throws Exception {
-        when(seqRepo.get("tpl_1")).thenReturn(Optional.empty());
         when(ctx.body()).thenReturn("{not json");
 
         controller.putConfig(ctx);
 
         verify(ctx).status(HttpStatus.BAD_REQUEST);
-        verify(seqRepo, never()).put(anyString(), anyString());
+        verify(seqRepo, never()).putWithinTx(any(), anyString(), anyString());
+    }
+
+    /** Captures the config JSON written within the transaction and commits (#207). */
+    private JsonNode putConfigAndCaptureWrite() throws Exception {
+        controller.putConfig(ctx);
+        ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
+        verify(seqRepo).putWithinTx(eq(tx), eq("tpl_1"), saved.capture());
+        verify(tx).commit();
+        verify(seqRepo, never()).put(anyString(), anyString()); // non-transactional write must not be used
+        return MAPPER.readTree(saved.getValue());
     }
 
     @Test
     void putConfig_createsConfigWithCounterInitialized() throws Exception {
-        when(seqRepo.get("tpl_1")).thenReturn(Optional.empty());
+        when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.empty());
         when(ctx.body()).thenReturn("{\"prefix\":\"INV-\",\"suffix\":\"-X\",\"digits\":4,\"resetOn\":\"year\"}");
 
-        controller.putConfig(ctx);
-
-        ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
-        verify(seqRepo).put(eq("tpl_1"), saved.capture());
-        JsonNode config = MAPPER.readTree(saved.getValue());
+        JsonNode config = putConfigAndCaptureWrite();
         assertEquals("INV-", config.get("prefix").asText());
         assertEquals("-X", config.get("suffix").asText());
         assertEquals(4, config.get("digits").asInt());
@@ -210,38 +215,29 @@ class SequenceControllerTest {
 
     @Test
     void putConfig_clampsDigitsBetween1And10() throws Exception {
-        when(seqRepo.get("tpl_1")).thenReturn(Optional.empty());
+        when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.empty());
         when(ctx.body()).thenReturn("{\"digits\":99}");
 
-        controller.putConfig(ctx);
-
-        ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
-        verify(seqRepo).put(eq("tpl_1"), saved.capture());
-        assertEquals(10, MAPPER.readTree(saved.getValue()).get("digits").asInt());
+        assertEquals(10, putConfigAndCaptureWrite().get("digits").asInt());
     }
 
     @Test
     void putConfig_invalidResetOn_storedAsNull() throws Exception {
-        when(seqRepo.get("tpl_1")).thenReturn(Optional.empty());
+        when(seqRepo.getWithinTx(tx, "tpl_1")).thenReturn(Optional.empty());
         when(ctx.body()).thenReturn("{\"resetOn\":\"month\"}");
 
-        controller.putConfig(ctx);
-
-        ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
-        verify(seqRepo).put(eq("tpl_1"), saved.capture());
-        assertTrue(MAPPER.readTree(saved.getValue()).get("resetOn").isNull());
+        assertTrue(putConfigAndCaptureWrite().get("resetOn").isNull());
     }
 
     @Test
-    void putConfig_preservesExistingCounter() throws Exception {
-        when(seqRepo.get("tpl_1")).thenReturn(Optional.of("{\"prefix\":\"OLD-\",\"counter\":42,\"resetYear\":2025}"));
+    void putConfig_preservesExistingCounter_readWithinTx() throws Exception {
+        // The counter must be re-read inside the transaction so a concurrent nextAndStamp
+        // increment cannot be clobbered by a stale value (#207).
+        when(seqRepo.getWithinTx(tx, "tpl_1"))
+                .thenReturn(Optional.of("{\"prefix\":\"OLD-\",\"counter\":42,\"resetYear\":2025}"));
         when(ctx.body()).thenReturn("{\"prefix\":\"NEW-\"}");
 
-        controller.putConfig(ctx);
-
-        ArgumentCaptor<String> saved = ArgumentCaptor.forClass(String.class);
-        verify(seqRepo).put(eq("tpl_1"), saved.capture());
-        JsonNode config = MAPPER.readTree(saved.getValue());
+        JsonNode config = putConfigAndCaptureWrite();
         assertEquals("NEW-", config.get("prefix").asText());
         assertEquals(42, config.get("counter").asInt(), "counter must survive config updates");
     }
