@@ -41,7 +41,7 @@ npm run build:backend
 ```
 
 ### Backend architecture
-- **Framework**: Javalin 6 (Java 21)
+- **Framework**: Javalin 7 (Java 21)
 - **DB**: ScalarDB 3.14 + SQLite (dev) / any JDBC (prod)
 - **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
 - **API routes** (authoritative registration: `ApiRoutes.java`): the API was migrated to a `/api/v2` stack; the dead v1 duplicate stack (templates/schemas/versions/responses/export/pdf/thumbnail + designer-projection/export-submission) was **removed** along with its controllers, and the surviving controllers dropped their `V2` class-name prefix (e.g. `TemplateController`, `PdfController`). URL paths keep the `/api/v2` version — the version lives in the URL, not the class name. The split is now **by resource, with no duplicated routes**:

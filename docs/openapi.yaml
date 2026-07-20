@@ -538,6 +538,16 @@ paths:
       tags: [template-responses]
       summary: Delete a response
       responses: { '200': { description: Deleted } }
+  /api/v2/templates/{id}/responses/{rid}/status:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Rid' }
+    patch:
+      tags: [template-responses]
+      summary: Update a response's document status (draft/issued/sent/void, #163)
+      responses:
+        '200': { description: Status updated }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/v2/templates/{id}/responses/{rid}/audit:
     parameters:
       - { $ref: '#/components/parameters/Id' }
@@ -613,6 +623,17 @@ paths:
       tags: [schemas]
       summary: Delete a schema
       responses: { '200': { description: Deleted } }
+  /api/v2/schema-library:
+    get:
+      tags: [schemas]
+      summary: Deprecated alias — 301 redirects to /api/v2/schemas
+      responses: { '301': { description: Moved Permanently } }
+  /api/v2/schema-library/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [schemas]
+      summary: Deprecated alias — 301 redirects to /api/v2/schemas/{id}
+      responses: { '301': { description: Moved Permanently } }
 
   # ── Excel ───────────────────────────────────────────────────────────────────
   /api/v2/excel/generate:

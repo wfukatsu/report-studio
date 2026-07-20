@@ -33,9 +33,13 @@ public final class App {
             throw new IllegalStateException("Failed to initialize server infrastructure", e);
         }
 
-        Javalin app = Javalin.create(AppConfig::configure);
-        ApiRoutes.register(app, wiring);
-        app.events(event -> event.serverStopping(wiring::shutdown));
+        Javalin app =
+                Javalin.create(
+                        config -> {
+                            AppConfig.configure(config);
+                            ApiRoutes.register(config, wiring);
+                            config.events.serverStopping(wiring::shutdown);
+                        });
 
         app.start(port);
         log.info("Server started on port {}", port);

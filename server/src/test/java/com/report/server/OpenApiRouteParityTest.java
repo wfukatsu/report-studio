@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
  */
 class OpenApiRouteParityTest {
 
-    // Matches app.get("/x", …) / app.post(...) etc. in ApiRoutes.java.
+    // Matches config.routes.get("/x", …) / config.routes.post(...) etc. in ApiRoutes.java.
     private static final Pattern ROUTE =
-            Pattern.compile("app\\.(get|post|put|delete|patch)\\(\"([^\"]+)\"");
+            Pattern.compile("config\\.routes\\.(get|post|put|delete|patch)\\(\\s*\"([^\"]+)\"");
 
     /** Resolve a repo file from the server/ working dir (gradle test default). */
     private static Path repoFile(String relativeToServer) {
