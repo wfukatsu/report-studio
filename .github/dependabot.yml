@@ -1,0 +1,74 @@
+# Dependabot 設定 (#260)
+#
+# メジャー更新の結合関係（#250/#251/#253 の知見）:
+#   - Storybook ↔ Vite（Storybook 10 は Vite ≤8 を要求）→ build-chain グループ
+#   - ESLint ↔ eslint-plugin-react-hooks（ESLint 10 は react-hooks 7 を要求）→ eslint グループ
+#   - Tailwind ↔ tailwind-merge（tailwind-merge 3 は Tailwind 4 を要求）→ tailwind グループ
+version: 2
+updates:
+  # ── フロントエンド (npm, リポジトリルート) ──────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    groups:
+      build-chain:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - vitest
+          - "@vitest/*"
+          - storybook
+          - "@storybook/*"
+          - jsdom
+      eslint:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - typescript-eslint
+          - "eslint-plugin-*"
+          - globals
+      tailwind:
+        patterns:
+          - tailwindcss
+          - "@tailwindcss/*"
+          - tailwind-merge
+          - tw-animate-css
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # TypeScript 7 primary 移行は typescript-eslint の TS 7.1 対応待ち (#252)。
+      # それまで typescript の major 更新 PR は不要（TS7 検証は tsgo 併用で実施中）。
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+
+  # ── バックエンド (Gradle, server/) ──────────────────────────────────────
+  - package-ecosystem: gradle
+    directory: /server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # ── GitHub Actions ──────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 3
