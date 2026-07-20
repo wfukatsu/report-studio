@@ -19,10 +19,6 @@ import { FORMAT_VERSION } from '@/lib/formatVersion'
 import type { ReportDefinition } from '@/types'
 
 export function useAutoSave(): void {
-  const pages      = useReportStore((s) => s.definition.pages)
-  const rules      = useReportStore((s) => s.definition.calculationRules)
-  const meta       = useReportStore((s) => s.definition.metadata)
-  const schema     = useReportStore((s) => s.definition.schema)
   const id         = useReportStore((s) => s.currentTemplateId)
   const setSave    = useReportStore((s) => s.setSaveState)
   const definition = useReportStore((s) => s.definition)
@@ -59,8 +55,12 @@ export function useAutoSave(): void {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
+  // Keyed on the whole `definition` object (immer gives it a fresh reference on ANY content
+  // change) so auto-save also fires for pageSettings / dataSources / outputVariants /
+  // validationRules edits, not just pages / rules / metadata / schema (#216). Selection and
+  // UI state live outside `definition`, so they don't trigger a save.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages, rules, meta, schema, id])  // structural deps only — not selection/ui state
+  }, [definition, id])
 
   // Tab close: sendBeacon is the only guaranteed delivery mechanism on pagehide
   useEffect(() => {

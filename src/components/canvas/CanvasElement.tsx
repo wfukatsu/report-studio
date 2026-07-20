@@ -8,6 +8,7 @@ import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { constrainAspectRatio } from '@/lib/aspectRatioConstraint'
 import { computeOverflowWarning } from '@/lib/overflowWarning'
 import { useReportStore, selectActivePageId } from '@/store/reportStore'
+import { clearHistoryTimer } from '@/store/historyTimer'
 import type { ReportElement, FormTableElement, TextStyle } from '@/types'
 import { EXPAND_OVERFLOW_TOLERANCE_PX, EXPAND_PADDING_MM } from '@/elements/_blocks/constants'
 import { FormTableEditor } from '@/elements/formTable/FormTableEditor'
@@ -29,6 +30,8 @@ interface Props {
   totalPages?: number
   computedValues?: Record<string, unknown>
   defaultTextStyle?: import('@/types').TextStyle
+  /** Calculation-output keys — lifted to SectionContainer to avoid N subscriptions (#218) */
+  calcOutputKeys?: Set<string>
 }
 
 type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w'
@@ -49,13 +52,23 @@ export const CanvasElement = memo(function CanvasElement({
   totalPages,
   computedValues,
   defaultTextStyle,
+  calcOutputKeys,
 }: Props) {
   const removeElement = useReportStore((s) => s.removeElement)
   const updateElement = useReportStore((s) => s.updateElement)
+  const pushHistory = useReportStore((s) => s.pushHistory)
   const activePageId = useReportStore(selectActivePageId)
 
   // Table edit mode state
   const [tableEditMode, setTableEditMode] = useState(false)
+
+  // Live resize preview (#218): during a resize gesture the new geometry is kept in local
+  // state and applied to THIS element's style only — the store is written once on pointerup,
+  // instead of every pointermove (which produced ~120 store writes/sec that re-ran every
+  // subscriber's selectors). A ref mirrors the latest value for the pointerup commit.
+  const [resizePreview, setResizePreview] =
+    useState<{ width: number; height: number; x: number; y: number } | null>(null)
+  const resizePreviewRef = useRef<{ width: number; height: number; x: number; y: number } | null>(null)
 
   const handleDeleteElement = useCallback(
     (id: string) => {
@@ -208,10 +221,10 @@ export const CanvasElement = memo(function CanvasElement({
           if (handle.includes('n')) newYMm = resizeStart.current.yMm + resizeStart.current.heightMm - newHeightMm
         }
 
-        onResize(el.id, { width: newWidthMm, height: newHeightMm })
-        if (handle.includes('w') || handle.includes('n')) {
-          onMove(el.id, { x: newXMm, y: newYMm })
-        }
+        // Preview locally (no store write per frame — #218). Committed on pointerup.
+        const preview = { width: newWidthMm, height: newHeightMm, x: newXMm, y: newYMm }
+        resizePreviewRef.current = preview
+        setResizePreview(preview)
       }
 
       const cleanup = () => {
@@ -221,6 +234,19 @@ export const CanvasElement = memo(function CanvasElement({
       }
 
       const onPointerUp = () => {
+        const el = elementRef.current
+        const preview = resizePreviewRef.current
+        if (preview) {
+          // Commit the whole gesture as a single store write + one history entry (#215, #218).
+          onResize(el.id, { width: preview.width, height: preview.height })
+          if (handle.includes('w') || handle.includes('n')) {
+            onMove(el.id, { x: preview.x, y: preview.y })
+          }
+          clearHistoryTimer()
+          pushHistory()
+        }
+        resizePreviewRef.current = null
+        setResizePreview(null)
         setResizing(null)
         resizeStart.current = null
         cleanup()
@@ -232,7 +258,7 @@ export const CanvasElement = memo(function CanvasElement({
       resizeCleanupRef.current = cleanup
     },
     // element is intentionally excluded — read from elementRef.current inside the handler
-    [onMove, onResize, readonly],
+    [onMove, onResize, pushHistory, readonly],
   )
 
   // --- expandFrame: auto-grow element height to fit text content ---
@@ -261,11 +287,16 @@ export const CanvasElement = memo(function CanvasElement({
     }
   }, [textFit, element.size.height, element.size.width, element.id, activePageId, updateElement])
 
-  // Convert mm → px for rendering
-  const xPx = mmToPx(element.position.x) + (transform?.x ?? 0)
-  const yPx = mmToPx(element.position.y) + (transform?.y ?? 0)
-  const widthPx = mmToPx(element.size.width)
-  const heightPx = mmToPx(element.size.height)
+  // Convert mm → px for rendering. During a resize gesture, use the local preview so only
+  // this element re-renders (the store is untouched until pointerup — #218).
+  const effX = resizePreview?.x ?? element.position.x
+  const effY = resizePreview?.y ?? element.position.y
+  const effW = resizePreview?.width ?? element.size.width
+  const effH = resizePreview?.height ?? element.size.height
+  const xPx = mmToPx(effX) + (transform?.x ?? 0)
+  const yPx = mmToPx(effY) + (transform?.y ?? 0)
+  const widthPx = mmToPx(effW)
+  const heightPx = mmToPx(effH)
 
   const handles: ResizeHandle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
 
@@ -381,7 +412,7 @@ export const CanvasElement = memo(function CanvasElement({
               onCancel={handleInlineCancel}
             />
           ) : (
-            <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} />
+            <ElementRenderer element={element} data={data} readonly={readonly} pageIndex={pageIndex} totalPages={totalPages} computedValues={computedValues} defaultTextStyle={defaultTextStyle} calcOutputKeys={calcOutputKeys} />
           )}
         </div>
       </ElementErrorBoundary>

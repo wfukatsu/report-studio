@@ -91,6 +91,10 @@ export const SectionContainer = memo(function SectionContainer({
   // to avoid N individual store subscriptions firing on every evaluation API response.
   const computedValues = useReportStore(useShallow((s) => s.computedValues))
   const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
+  // Calculation-output keys, subscribed once here rather than in each ElementRenderer (#218).
+  const calcOutputKeys = useReportStore(useShallow((s) =>
+    new Set(s.definition.calculationRules.map((r) => r.key)),
+  ))
 
   // Local resize height: updated on pointermove without writing to the store.
   // Only committed to the store on pointerup to avoid 120 writes/second at 120Hz.
@@ -210,6 +214,7 @@ export const SectionContainer = memo(function SectionContainer({
             totalPages={totalPages}
             computedValues={computedValues}
             defaultTextStyle={defaultTextStyle}
+            calcOutputKeys={calcOutputKeys}
           />
         )
       })}

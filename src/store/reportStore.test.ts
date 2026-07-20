@@ -91,6 +91,29 @@ describe('reportStore', () => {
     expect(flattenPageElements(getStore().definition.pages[0])).toHaveLength(1)
   })
 
+  it('addPage is undoable (#215)', () => {
+    const store = getStore()
+    expect(store.definition.pages).toHaveLength(1)
+    store.addPage()
+    expect(getStore().definition.pages).toHaveLength(2)
+
+    getStore().undo()
+    expect(getStore().definition.pages).toHaveLength(1)
+
+    getStore().redo()
+    expect(getStore().definition.pages).toHaveLength(2)
+  })
+
+  it('updateSettings (page settings) is undoable (#215)', () => {
+    const store = getStore()
+    const originalSize = store.definition.pageSettings.paperSize
+    store.updateSettings({ paperSize: 'A3' })
+    expect(getStore().definition.pageSettings.paperSize).toBe('A3')
+
+    getStore().undo()
+    expect(getStore().definition.pageSettings.paperSize).toBe(originalSize)
+  })
+
   it('selectActivePage returns first page when no activePageId', () => {
     const state = getStore()
     const page = selectActivePage(state)

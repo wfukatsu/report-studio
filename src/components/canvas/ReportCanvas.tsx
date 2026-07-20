@@ -15,6 +15,7 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePage, flattenPageElements } from '@/store/reportStore'
+import { clearHistoryTimer } from '@/store/historyTimer'
 import { useResolvedData } from '@/hooks/useResolvedData'
 import { SectionContainer } from './SectionContainer'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
@@ -91,6 +92,7 @@ export function ReportCanvas({
   const clearSelection = useReportStore((s) => s.clearSelection)
   const setSelectionIds = useReportStore((s) => s.setSelectionIds)
   const moveElement = useReportStore((s) => s.moveElement)
+  const pushHistory = useReportStore((s) => s.pushHistory)
   const resizeElement = useReportStore((s) => s.resizeElement)
   const updateElement = useReportStore((s) => s.updateElement)
   const removeElement = useReportStore((s) => s.removeElement)
@@ -210,9 +212,13 @@ export function ReportCanvas({
       const snappedX = snapAxis(newX, el.size.width, margins?.left ?? 0, margins?.right ?? 0, currentPage.width, snapToGrid, gridSize)
       const snappedY = snapAxis(newY, el.size.height, margins?.top ?? 0, margins?.bottom ?? 0, currentPage.height, snapToGrid, gridSize)
       moveElement(currentPage.id, el.id, { x: snappedX, y: snappedY })
+      // moveElement itself does not push history (too noisy mid-drag); commit one entry at
+      // the end of the drag gesture so the move is undoable as a single step (#215).
+      clearHistoryTimer()
+      pushHistory()
     },
     // shiftRef is a stable useRef object — excluded from deps intentionally
-    [getActivePage, moveElement, zoom, snapToGrid, gridSize, margins],
+    [getActivePage, moveElement, pushHistory, zoom, snapToGrid, gridSize, margins],
   )
 
   const handleResize = useCallback(

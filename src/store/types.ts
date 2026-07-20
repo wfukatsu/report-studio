@@ -56,6 +56,8 @@ export interface HistoryEntry {
   schema?: import('@/types').SchemaDefinition
   calculationRules?: import('@/types').CalculationRule[]
   validationRules?: import('@/types').ValidationRule[]
+  /** Captured so page-settings changes (paper size, margins) are undoable (#215). */
+  pageSettings?: import('@/types').PageSettings
 }
 
 // ---------------------------------------------------------------------------
