@@ -30,7 +30,7 @@ dependencies {
     // mattered under the catalog-listing workload of ScalarDbCatalogController is
     // included in all 3.15+ releases).
     // See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md (Risks table).
-    implementation("com.scalar-labs:scalardb:3.17.3")
+    implementation("com.scalar-labs:scalardb:3.18.0")
 
     // SQLite JDBC (ScalarDB storage backend)
     implementation("org.xerial:sqlite-jdbc:3.53.2.0")
