@@ -28,14 +28,27 @@ public final class WebhookController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final JsonBlobRepository webhookRepo;
+    private final JsonBlobRepository definitionsRepo;
     private final WebhookDispatcher dispatcher;
     private final SecretCrypto crypto;
 
-    public WebhookController(JsonBlobRepository webhookRepo, WebhookDispatcher dispatcher,
-                             SecretCrypto crypto) {
+    public WebhookController(JsonBlobRepository webhookRepo, JsonBlobRepository definitionsRepo,
+                             WebhookDispatcher dispatcher, SecretCrypto crypto) {
         this.webhookRepo = webhookRepo;
+        this.definitionsRepo = definitionsRepo;
         this.dispatcher = dispatcher;
         this.crypto = crypto;
+    }
+
+    /**
+     * Reject access to a webhook config whose template the caller does not own (issue #198).
+     * Returns true and sends a 404 when access is denied — callers must {@code return} on true.
+     */
+    private boolean denyIfNotOwner(Context ctx, String templateId) {
+        if (TemplateController.ownsTemplate(ctx, definitionsRepo, templateId)) return false;
+        ctx.status(HttpStatus.NOT_FOUND);
+        ctx.json(Map.of("error", "Template not found"));
+        return true;
     }
 
     // ── GET /api/v1/webhooks/{templateId} ────────────────────────────────────
@@ -43,6 +56,7 @@ public final class WebhookController {
     public void getConfig(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx, "templateId");
         if (templateId == null) return;
+        if (denyIfNotOwner(ctx, templateId)) return;
 
         Optional<String> stored = webhookRepo.get(templateId);
         if (stored.isEmpty()) {
@@ -64,6 +78,7 @@ public final class WebhookController {
         if (!requireAuth(ctx)) return;
         String templateId = RequestValidator.validateId(ctx, "templateId");
         if (templateId == null) return;
+        if (denyIfNotOwner(ctx, templateId)) return;
 
         JsonNode req;
         try { req = MAPPER.readTree(ctx.body()); }
@@ -124,6 +139,7 @@ public final class WebhookController {
         if (!requireAuth(ctx)) return;
         String templateId = RequestValidator.validateId(ctx, "templateId");
         if (templateId == null) return;
+        if (denyIfNotOwner(ctx, templateId)) return;
 
         Optional<String> stored = webhookRepo.get(templateId);
         if (stored.isEmpty()) {

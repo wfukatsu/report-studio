@@ -38,9 +38,22 @@ public final class SequenceController {
     private static final long INITIAL_BACKOFF_MS = 50;
 
     private final JsonBlobRepository seqRepo;
+    private final JsonBlobRepository definitionsRepo;
 
-    public SequenceController(JsonBlobRepository seqRepo) {
+    public SequenceController(JsonBlobRepository seqRepo, JsonBlobRepository definitionsRepo) {
         this.seqRepo = seqRepo;
+        this.definitionsRepo = definitionsRepo;
+    }
+
+    /**
+     * Reject access to a sequence config whose template the caller does not own (issue #198).
+     * Returns true and sends a 404 when access is denied — callers must {@code return} on true.
+     */
+    private boolean denyIfNotOwner(Context ctx, String templateId) {
+        if (TemplateController.ownsTemplate(ctx, definitionsRepo, templateId)) return false;
+        ctx.status(HttpStatus.NOT_FOUND);
+        ctx.json(Map.of("error", "Template not found"));
+        return true;
     }
 
     // ── GET /api/v1/sequences/{templateId} ───────────────────────────────────
@@ -48,6 +61,7 @@ public final class SequenceController {
     public void getConfig(Context ctx) throws Exception {
         String templateId = RequestValidator.validateId(ctx, "templateId");
         if (templateId == null) return;
+        if (denyIfNotOwner(ctx, templateId)) return;
 
         Optional<String> stored = seqRepo.get(templateId);
         if (stored.isEmpty()) {
@@ -65,6 +79,7 @@ public final class SequenceController {
         if (!requireAuth(ctx)) return;
         String templateId = RequestValidator.validateId(ctx, "templateId");
         if (templateId == null) return;
+        if (denyIfNotOwner(ctx, templateId)) return;
 
         JsonNode req;
         try { req = MAPPER.readTree(ctx.body()); }

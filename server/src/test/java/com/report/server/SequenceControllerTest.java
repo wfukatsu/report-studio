@@ -47,26 +47,35 @@ class SequenceControllerTest {
     private static final Principal ADMIN = new Principal("admin", "管理者", Set.of("admin", "user"));
 
     private JsonBlobRepository seqRepo;
+    private JsonBlobRepository definitionsRepo;
     private JsonBlobRepository responseRepo;
     private DistributedTransactionManager txManager;
     private DistributedTransaction tx;
     private SequenceController controller;
     private Context ctx;
 
+    /** Template envelope owned by the given user (empty = legacy/no owner). */
+    private static String envelopeOwnedBy(String owner) {
+        return "{\"id\":\"tpl_1\",\"created_by\":\"" + owner + "\"}";
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         seqRepo = mock(JsonBlobRepository.class);
+        definitionsRepo = mock(JsonBlobRepository.class);
         responseRepo = mock(JsonBlobRepository.class);
         txManager = mock(DistributedTransactionManager.class);
         tx = mock(DistributedTransaction.class);
         when(seqRepo.getTransactionManager()).thenReturn(txManager);
         when(txManager.start()).thenReturn(tx);
 
-        controller = new SequenceController(seqRepo);
+        controller = new SequenceController(seqRepo, definitionsRepo);
 
         ctx = mock(Context.class);
         when(ctx.pathParam("templateId")).thenReturn("tpl_1");
         when(ctx.attribute("principal")).thenReturn(ADMIN);
+        // Default: the caller owns the template, so ownership guard (#198) lets requests through.
+        when(definitionsRepo.get("tpl_1")).thenReturn(Optional.of(envelopeOwnedBy("admin")));
     }
 
     private JsonNode capturedJson() {
@@ -111,6 +120,42 @@ class SequenceControllerTest {
 
         verify(ctx).status(HttpStatus.BAD_REQUEST);
         verify(seqRepo, never()).get(anyString());
+    }
+
+    // ── Ownership guard (issue #198, IDOR) ─────────────────────────────────────
+
+    @Test
+    void getConfig_otherUsersTemplate_404_noSequenceRead() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get("tpl_1")).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+
+        controller.getConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(seqRepo, never()).get("tpl_1");
+    }
+
+    @Test
+    void getConfig_unknownTemplate_404() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get("tpl_1")).thenReturn(Optional.empty());
+
+        controller.getConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(seqRepo, never()).get("tpl_1");
+    }
+
+    @Test
+    void putConfig_otherUsersTemplate_404_noWrite() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get("tpl_1")).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+        when(ctx.body()).thenReturn("{\"prefix\":\"INV-\",\"digits\":4}");
+
+        controller.putConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(seqRepo, never()).put(anyString(), anyString());
     }
 
     // ── PUT /api/v1/sequences/{templateId} ───────────────────────────────────
