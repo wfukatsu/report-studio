@@ -431,20 +431,30 @@ public final class BatchPdfController {
             ctx.json(Map.of("error", "ZIP result unavailable"));
             return;
         }
-        byte[] zipBytes;
+        // Stream the ZIP straight from disk instead of loading up to MAX_ZIP_BYTES (100 MB)
+        // onto the heap (#210). The one-shot delete is deferred to stream close() so the
+        // record/artifacts are dropped only after the download has been fully written.
+        final String jobId = job.jobId();
         try {
-            zipBytes = Files.readAllBytes(zipPath);
+            java.io.InputStream fileStream = Files.newInputStream(zipPath);
+            ctx.contentType("application/zip");
+            ctx.header("Content-Disposition", "attachment; filename=\"batch-" + id + ".zip\"");
+            ctx.header("Content-Length", String.valueOf(Files.size(zipPath)));
+            ctx.result(new java.io.FilterInputStream(fileStream) {
+                @Override public void close() throws java.io.IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        // One-shot download: drop the record and its artifacts after streaming.
+                        try { jobStore.delete(jobId); }
+                        catch (Exception e) { log.warn("Failed to clean up batch job {}: {}", jobId, e.getMessage()); }
+                    }
+                }
+            });
         } catch (java.io.IOException e) {
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             ctx.json(Map.of("error", "ZIP result unavailable"));
-            return;
         }
-        ctx.contentType("application/zip");
-        ctx.header("Content-Disposition", "attachment; filename=\"batch-" + id + ".zip\"");
-        ctx.header("Content-Length", String.valueOf(zipBytes.length));
-        ctx.result(zipBytes);
-        // One-shot download: drop the record and its artifacts
-        jobStore.delete(job.jobId());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
