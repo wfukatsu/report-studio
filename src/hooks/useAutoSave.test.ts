@@ -58,6 +58,38 @@ describe('useAutoSave', () => {
     expect(saveReport).toHaveBeenCalledWith('template-1', expect.objectContaining({ id: expect.any(String) }))
   })
 
+  it('saves when only pageSettings change (not just pages/rules/meta/schema) (#216)', async () => {
+    renderHook(() => useAutoSave())
+
+    // A margins-only edit changes definition.pageSettings but not the pages reference.
+    act(() => {
+      const s = useReportStore.getState()
+      useReportStore.getState().updateSettings({
+        margins: { ...s.definition.pageSettings.margins, left: 25 },
+      })
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    expect(saveReport).toHaveBeenCalledTimes(1)
+  })
+
+  it('saves when outputVariants change (#216)', async () => {
+    renderHook(() => useAutoSave())
+
+    act(() => {
+      // Any definition mutation outside pages/rules/meta/schema must still schedule a save.
+      useReportStore.getState().setDataSource(null)
+      useReportStore.setState((s) => ({
+        definition: { ...s.definition, outputVariants: [{ id: 'v1', name: 'V1', fieldMasks: [] }] },
+      }))
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    expect(saveReport).toHaveBeenCalledTimes(1)
+  })
+
   it('debounces multiple rapid changes into a single save', async () => {
     renderHook(() => useAutoSave())
 
