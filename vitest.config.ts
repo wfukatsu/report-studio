@@ -8,6 +8,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Unit/component tests live under src/. Scope the glob there so the default
+    // `**/*.spec.ts` pattern does NOT sweep up the Playwright E2E specs in e2e/
+    // (they import @playwright/test and must run via `playwright test`, #221).
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     // Default 5s is too tight under load: coverage instrumentation and busy CI
     // runners slow jsdom+RTL tests ~4x, turning healthy tests into timeout
     // flakes. This is a ceiling, not a delay — fast tests stay fast.
