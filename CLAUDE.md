@@ -37,13 +37,14 @@ npm run dev:full
 # Run backend tests
 npm run test:backend
 
-# Build backend fat-jar
-npm run build:backend
+# Build backend distribution (npm run build:backend calls shadowJar, which is
+# NOT defined — use installDist, the same path the Docker build uses)
+cd server && ./gradlew installDist
 ```
 
 ### Backend architecture
 - **Framework**: Javalin 7 (Java 21)
-- **DB**: ScalarDB 3.14 + SQLite (dev) / any JDBC (prod)
+- **DB**: ScalarDB 3.17 + SQLite (dev) / any JDBC (prod)
 - **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
 - **API routes** (authoritative registration: `ApiRoutes.java`): the API was migrated to a `/api/v2` stack; the dead v1 duplicate stack (templates/schemas/versions/responses/export/pdf/thumbnail + designer-projection/export-submission) was **removed** along with its controllers, and the surviving controllers dropped their `V2` class-name prefix (e.g. `TemplateController`, `PdfController`). URL paths keep the `/api/v2` version — the version lives in the URL, not the class name. The split is now **by resource, with no duplicated routes**:
   - **v2**: `templates` and everything under it (`evaluate`, `validate`, `versions`, `responses`(+`/{rid}/status`, `/{rid}/audit`), `export`/`import`, `pdf`, `thumbnail`, `duplicate`/`copy`/`visibility`, `resolve-bindings`), `documents` (cross-template issued-documents list, #190), `schemas`(+`infer`, with `schema-library` redirecting to `schemas`), `excel`, `pdf`/`pdf-jobs`(+`batch`; `GET /pdf-jobs` unified list + `DELETE /pdf-jobs/{id}` cancel span all job types, #191), `scalardb`, `tenant`, `health`

@@ -38,13 +38,14 @@ Log in → pick a template → edit → preview → bind → export → response
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Vite 6 + React 19 + TypeScript 5.7 |
+| Frontend | Vite 8 + React 19 + TypeScript 5.7 (TS 7 type-checking via tsgo) |
 | State | Zustand 5 (Immer middleware) |
-| Styling | Tailwind CSS 3.4 + Radix UI |
+| Styling | Tailwind CSS 4 + Radix UI |
 | Drag & drop | @dnd-kit/core |
-| Backend | Java 21 + Javalin 6 |
-| Database | ScalarDB 3.14 + SQLite (development) |
-| Testing | Vitest (frontend) / JUnit 5 (backend) |
+| Backend | Java 21 + Javalin 7 |
+| Database | ScalarDB 3.17 + SQLite (development) |
+| Testing | Vitest 4 + Playwright (frontend) / JUnit 5 (backend) |
+| Component catalog | Storybook 10 |
 
 ## Quick Start with Docker (recommended)
 
@@ -78,7 +79,7 @@ Then open **http://localhost:8080** and log in as `admin` / `changeme`.
 
 ### Prerequisites
 
-- Node.js 20+ / npm 10+
+- Node.js 22+ / npm 10+ (CI runs on Node 22)
 - JDK 21 ([Temurin](https://adoptium.net/) or `brew install openjdk@21`)
 
 > **Mind the JDK version:** the backend Gradle build requires a Java 21 toolchain.

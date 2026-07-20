@@ -125,7 +125,7 @@ npx vitest run src/lib/dataBinding.test.ts
 ```bash
 npm run dev:backend      # バックエンド起動 (http://localhost:8080)
 npm run test:backend     # バックエンドテスト（JUnit 5 + ゴールデン PDF 回帰テスト）
-npm run seed             # サンプルテーブル・データを投入（SeedData）
+npm run seed             # サンプルテーブル・データを投入（Gradle SeedData。サンプル帳票 5 種の seed:samples とは別系統 → 「サンプル帳票」の節を参照）
 ```
 
 > **注意（`build:backend`）:** `npm run build:backend` は `./gradlew shadowJar` を呼びますが、`server/build.gradle.kts` には Shadow プラグイン/`shadowJar` タスクが定義されていないため、このスクリプトは現状失敗します。実行可能な成果物を生成する動作する経路は `./gradlew installDist`（`server/build/install/` に自己完結ディストリビューションを生成、Docker ビルドと同じ方法）です。
