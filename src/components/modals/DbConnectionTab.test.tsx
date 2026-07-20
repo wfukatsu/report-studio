@@ -113,6 +113,23 @@ async function waitForTableOption(value: string): Promise<HTMLSelectElement> {
   return screen.getByLabelText(/テーブル/) as HTMLSelectElement
 }
 
+/**
+ * Change the namespace <select> to `value` and wait until the *live* select
+ * actually reflects it. Under heavy CI load (coverage instrumentation slows
+ * jsdom+RTL ~4x) a single fireEvent.change can land before React commits, or on
+ * a select node about to be re-rendered, leaving the dependent table options
+ * stale with no retry — a passive waitFor on the table options can't recover
+ * because the namespace change was never re-dispatched. Re-querying and
+ * re-firing each poll until the live value sticks makes this robust (#220).
+ */
+async function selectNamespace(value: string): Promise<void> {
+  await waitFor(() => {
+    const sel = screen.getByLabelText(/ネームスペース/) as HTMLSelectElement
+    if (sel.value !== value) fireEvent.change(sel, { target: { value } })
+    expect(sel.value).toBe(value)
+  }, WAIT)
+}
+
 // ---------------------------------------------------------------------------
 // Suites
 // ---------------------------------------------------------------------------
@@ -172,10 +189,8 @@ describe('DbConnectionTab — happy path binding flow', () => {
     const { groupId } = seedMasterGroupWithFields()
     render(<DbConnectionTab />)
 
-    // Wait for the catalog to load.
-    const nsSelect = await screen.findByLabelText(/ネームスペース/)
-
-    fireEvent.change(nsSelect, { target: { value: 'app' } })
+    // Wait for the catalog to load, then pick the namespace.
+    await selectNamespace('app')
     const tableSelect = await waitForTableOption('users')
     fireEvent.change(tableSelect, { target: { value: 'users' } })
 
@@ -191,8 +206,7 @@ describe('DbConnectionTab — happy path binding flow', () => {
     const { groupId, fieldIds } = seedMasterGroupWithFields()
     render(<DbConnectionTab />)
 
-    const nsSelect = await screen.findByLabelText(/ネームスペース/)
-    fireEvent.change(nsSelect, { target: { value: 'app' } })
+    await selectNamespace('app')
     const tableSelect = await waitForTableOption('users')
     fireEvent.change(tableSelect, { target: { value: 'users' } })
 
@@ -214,9 +228,7 @@ describe('DbConnectionTab — happy path binding flow', () => {
     const tableSelect = await screen.findByLabelText(/テーブル/)
     expect(tableSelect).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText(/ネームスペース/), {
-      target: { value: 'app' },
-    })
+    await selectNamespace('app')
 
     // Re-query inside waitFor: enabling follows the namespace state update, which under CI
     // load can flush after this synchronous point (the whole file uses this pattern; see
@@ -244,10 +256,9 @@ describe('DbConnectionTab — non-destructive namespace browsing', () => {
     })
 
     render(<DbConnectionTab />)
-    const nsSelect = await screen.findByLabelText(/ネームスペース/)
 
     // User browses a different namespace, but hasn't picked a table yet.
-    fireEvent.change(nsSelect, { target: { value: 'audit' } })
+    await selectNamespace('audit')
 
     // The store binding must be preserved — no destructive unbind happened.
     const group = getGroup(groupId)
@@ -266,10 +277,9 @@ describe('DbConnectionTab — non-destructive namespace browsing', () => {
     })
 
     render(<DbConnectionTab />)
-    const nsSelect = await screen.findByLabelText(/ネームスペース/)
 
     // Browse audit…
-    fireEvent.change(nsSelect, { target: { value: 'audit' } })
+    await selectNamespace('audit')
     expect(getGroup(groupId).tableMeta).toEqual({ namespace: 'app', tableName: 'users' })
 
     // …then pick its table. NOW the store is written.
