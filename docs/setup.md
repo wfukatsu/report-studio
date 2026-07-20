@@ -169,6 +169,9 @@ scalar.db.transaction_manager=jdbc
 | `SCALARDB_USERNAME` | （空） | 接続ユーザー |
 | `SCALARDB_PASSWORD` | （空） | 接続パスワード |
 | `SCALARDB_TX_MANAGER` | `jdbc` | トランザクションマネージャ |
+| `SCALARDB_POOL_MIN_IDLE` | `1` | JDBC 接続プール min_idle（#274。properties ファイル使用時もファイル値を上書き） |
+| `SCALARDB_POOL_MAX_IDLE` | `5` | JDBC 接続プール max_idle（同上。ScalarDB 3.18 では本プロパティは無視され警告が出ます） |
+| `SCALARDB_POOL_MAX_TOTAL` | `10` | JDBC 接続プール max_total（同上） |
 
 ---
 
@@ -183,6 +186,10 @@ scalar.db.transaction_manager=jdbc
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓（ミリ秒、既定 5 分） |
 | `WEBHOOK_SECRET_KEY` | （未設定） | Webhook シークレット暗号化キー（Base64 32 バイト、例: `openssl rand -base64 32`）。未設定時は平文保存 + 起動時警告 |
 | `COOKIE_SECURE` | （未設定） | `true` でセッション Cookie に `Secure` 属性を付与（HTTPS の `ALLOWED_ORIGIN` 指定時は自動） |
+| `LOG_LEVEL` | `INFO` | ルートログレベル（`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`、#274） |
+| `LOG_FORMAT` | （未設定） | `json` で 1 行 1 JSON の構造化ログ出力（logstash 形式）。未設定時は人間可読パターン |
+| `MAX_REQUEST_SIZE` | `5000000` | HTTP リクエストボディの最大サイズ（バイト） |
+| `CORS_DEV_PORT_RANGE` | `5173-5200` | CORS で許可するローカル開発サーバのポート範囲（`lo-hi` 形式） |
 
 ---
 

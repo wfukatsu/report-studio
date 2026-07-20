@@ -37,7 +37,9 @@
 | com.google.re2j:re2j 1.8 | Go License（BSD-3-Clause 系） | ✅ |
 | org.apache.commons:commons-jexl3 3.7.0 | Apache-2.0 | ✅ |
 | org.apache.poi:poi-ooxml 5.5.1 | Apache-2.0 | ✅ |
-| org.slf4j:slf4j-simple 2.0.18 | MIT | ✅ |
+| ch.qos.logback:logback-classic 1.5.18 | EPL-1.0 / LGPL-2.1（デュアル） | ✅（EPL 選択で利用） |
+| net.logstash.logback:logstash-logback-encoder 8.1 | Apache-2.0 | ✅ |
+| org.codehaus.janino:janino 3.1.12 | BSD-3-Clause | ✅ |
 | junit-jupiter 6.1.2（test） | EPL-2.0 | ✅（テストのみ、配布物に含まれない） |
 | mockito-core 5.23.0（test） | MIT | ✅ |
 | javalin-testtools 7.2.2（test） | Apache-2.0 | ✅ |

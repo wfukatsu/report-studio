@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging configuration (#274).
+
+  Environment variables (logback resolves ${VAR:-default} against the OS
+  environment when no system property of the same name is defined):
+
+    LOG_LEVEL   root log level (TRACE/DEBUG/INFO/WARN/ERROR). Default: INFO
+    LOG_FORMAT  "json" switches console output to logstash JSON encoding
+                (one JSON object per line, for log aggregation pipelines).
+                Any other value (or unset) keeps the human-readable pattern.
+
+  The LOG_FORMAT switch uses Joran's <if> conditional, which requires janino
+  on the runtime classpath (declared in build.gradle.kts).
+
+  AuditLog emits key=value (logfmt) message bodies; under the text pattern the
+  line stays grep-able as before, under JSON mode the logfmt string becomes the
+  "message" field.
+-->
+<configuration>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+  </appender>
+
+  <!-- <if> must wrap the <root> element (not nest inside it): logback.qos.ch/codes.html#nested_if_element -->
+  <if condition='"json".equalsIgnoreCase(property("LOG_FORMAT"))'>
+    <then>
+      <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="JSON"/>
+      </root>
+    </then>
+    <else>
+      <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="CONSOLE"/>
+      </root>
+    </else>
+  </if>
+
+</configuration>

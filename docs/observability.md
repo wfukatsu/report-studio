@@ -86,7 +86,12 @@ Report Studio の運用可視性（ヘルスチェック・メトリクス・ロ
 
 ## 3. 構造化ログ（現状）
 
-- **ロギング実装**: `slf4j-simple` 2.0.16（logback/log4j は不使用、`simplelogger.properties` は未配置でデフォルト設定）。出力は標準エラー。
+- **ロギング実装**（#274）: `logback-classic` 1.5 + `logstash-logback-encoder`（`server/src/main/resources/logback.xml`）。
+  出力は標準出力（コンソールアペンダ）。
+  - `LOG_LEVEL`（既定 `INFO`）: ルートログレベルを環境変数で変更（`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`）。
+  - `LOG_FORMAT=json`: 1 行 1 JSON の logstash 形式に切替（ログ集約基盤向け）。未設定時は
+    `timestamp level [thread] logger - message` の人間可読パターン。切替は logback.xml の
+    `<if>` 条件（janino を runtimeOnly 依存として追加）で実現。
 - **監査ログ**: `AuditLog.op(...)` が `AUDIT op=... user=... ns=... table=... outcome=... correlationId=...` の
   **key=value（logfmt）形式**で出力。ログ集約基盤でのパースが可能です。
 - **相関 ID**: すべてのエラーレスポンスは統一フォーマット（#267）
@@ -95,15 +100,12 @@ Report Studio の運用可視性（ヘルスチェック・メトリクス・ロ
   `DUPLICATE_CODE` / `VERSION_CONFLICT` / `RATE_LIMITED` / `INTERNAL_ERROR` 等の UPPER_SNAKE。
   `correlationId` はログにも出力され、ログ行とクライアントが受け取ったエラーを突き合わせられます。
 
-### 現状の評価と今後の選択肢
+### 現状の評価
 
-現状は完全な JSON 構造化ログではありませんが、logfmt + correlationId により実用的な追跡性は確保されています。
-本番で JSON 構造化ログ（フィールド抽出・集約）が必要になった場合の選択肢:
-
-- `slf4j-simple` を logback + `logstash-logback-encoder` に差し替え、JSON エンコーダを設定する。
-- ログ収集側（Fluent Bit / Vector 等）で logfmt をパースする（アプリ変更不要）。
-
-いずれも本番導入後のフィードバックを見て優先度を判断します（scope-definition.md の Must/Should 対象外）。
+`LOG_FORMAT=json` で JSON 構造化ログ（フィールド抽出・集約）に切替可能になりました（#274）。
+テキストモードでも `AuditLog` の logfmt メッセージ + correlationId により実用的な追跡性は確保されて
+います（JSON モードでは logfmt 文字列が `message` フィールドに入るため、必要ならログ収集側
+（Fluent Bit / Vector 等）で二次パースします）。
 
 ---
 
