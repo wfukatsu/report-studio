@@ -166,7 +166,16 @@ public final class ApiTokenController {
             ctx.json(Map.of("error", "Failed to read token"));
             return;
         }
-        tokenRepo.delete(id);
+        // Only report success if the delete actually committed. A swallowed failure here
+        // would leave a "revoked" token still usable for Bearer auth (issue #206).
+        try {
+            tokenRepo.delete(id);
+        } catch (Exception e) {
+            log.warn("Token revocation failed for id={}: {}", id, e.getMessage());
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(Map.of("error", "Failed to revoke token"));
+            return;
+        }
         ctx.json(Map.of("revoked", true, "id", id));
     }
 

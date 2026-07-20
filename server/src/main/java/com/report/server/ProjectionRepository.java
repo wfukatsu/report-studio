@@ -1,5 +1,6 @@
 package com.report.server;
 
+import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
 
 import java.io.IOException;
@@ -16,8 +17,8 @@ public final class ProjectionRepository {
 
     private final JsonBlobRepository blob;
 
-    public ProjectionRepository(TransactionFactory factory) {
-        this.blob = new JsonBlobRepository(factory, NAMESPACE, TABLE);
+    public ProjectionRepository(TransactionFactory factory, DistributedTransactionManager manager) {
+        this.blob = new JsonBlobRepository(factory, manager, NAMESPACE, TABLE);
     }
 
     public void ensureTable() {

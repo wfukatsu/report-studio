@@ -31,6 +31,7 @@ class BindingResolveControllerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TransactionFactory factory;
+    private DistributedTransactionManager manager;
     private JsonBlobRepository definitionsRepo;
     private BindingResolveController controller;
     private Context ctx;
@@ -39,9 +40,10 @@ class BindingResolveControllerTest {
     @BeforeEach
     void setUp() {
         factory = mock(TransactionFactory.class);
+        manager = mock(DistributedTransactionManager.class);
         definitionsRepo = mock(JsonBlobRepository.class);
         // Unlimited rate limiter for tests
-        controller = new BindingResolveController(factory, definitionsRepo, new RateLimiter(1000, 60_000L));
+        controller = new BindingResolveController(factory, manager, definitionsRepo, new RateLimiter(1000, 60_000L));
         ctx = mock(Context.class);
         principal = mock(Principal.class);
         when(principal.userId()).thenReturn("test-user");
@@ -102,12 +104,9 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("cust_id", DataType.TEXT);
         when(admin.getTableMetadata("default", "customers")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         when(tx.scan(any(Scan.class))).thenReturn(List.of()); // empty result is fine
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = MAPPER.writeValueAsString(MAPPER.readTree("""
             {
@@ -168,14 +167,12 @@ class BindingResolveControllerTest {
         when(factory.getTransactionAdmin()).thenReturn(admin);
 
         // Mock TransactionManager for Get
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
         Result result = mock(Result.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         when(tx.get(any(Get.class))).thenReturn(Optional.of(result));
         when(result.isNull("customer_name")).thenReturn(false);
         when(result.getText("customer_name")).thenReturn("山田太郎");
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = buildBody("grp1", "master", "default", "customers", "cust_id", "C001",
                 "customer_name", "name");
@@ -201,12 +198,9 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("cust_id", DataType.TEXT);
         when(admin.getTableMetadata("default", "customers")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         when(tx.get(any(Get.class))).thenReturn(Optional.empty()); // row not found
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = buildBody("grp1", "master", "default", "customers", "cust_id", "NOTEXIST");
         when(ctx.body()).thenReturn(body);
@@ -252,16 +246,13 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("cust_id", DataType.TEXT, "amount", DataType.INT, "customer_name", DataType.TEXT);
         when(admin.getTableMetadata("default", "customers")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
         Result result = mock(Result.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         when(tx.get(any(Get.class))).thenReturn(Optional.of(result));
         when(result.isNull(anyString())).thenReturn(false);
         when(result.getText("customer_name")).thenReturn("山田");
         when(result.getInt("amount")).thenReturn(9999);
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         // Fields in request in different order than the meta columns
         String body = buildBody("grp1", "master", "default", "customers", "cust_id", "C001",
@@ -351,10 +342,8 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product", DataType.TEXT, "qty", DataType.INT);
         when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
 
         Result row1 = mock(Result.class);
         when(row1.isNull(anyString())).thenReturn(false);
@@ -367,7 +356,6 @@ class BindingResolveControllerTest {
         when(row2.getInt("qty")).thenReturn(1);
 
         when(tx.scan(any(Scan.class))).thenReturn(List.of(row1, row2));
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = buildDetailBody("grp1", "default", "order_items", "order_id", "ORD-001",
                 "product", "productName", "qty", "quantity");
@@ -396,15 +384,12 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product_code", DataType.TEXT);
         when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         Result row = mock(Result.class);
         when(row.isNull(anyString())).thenReturn(false);
         when(row.getText("product_code")).thenReturn(productCode);
         when(tx.scan(any(Scan.class))).thenReturn(List.of(row));
-        when(factory.getTransactionManager()).thenReturn(mgr);
         return tx;
     }
 
@@ -484,12 +469,9 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "product", DataType.TEXT);
         when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
-        when(mgr.start()).thenReturn(tx);
+        when(manager.start()).thenReturn(tx);
         when(tx.scan(any(Scan.class))).thenReturn(List.of()); // empty result
-        when(factory.getTransactionManager()).thenReturn(mgr);
 
         String body = buildDetailBody("grp1", "default", "order_items", "order_id", "NOT-EXIST",
                 "product", "product");
@@ -517,16 +499,13 @@ class BindingResolveControllerTest {
         TableMetadata meta = mockTableMetadata("order_id", DataType.TEXT, "qty", DataType.INT, "product", DataType.TEXT);
         when(admin.getTableMetadata("default", "order_items")).thenReturn(meta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
         Result row = mock(Result.class);
         when(row.isNull(anyString())).thenReturn(false);
         when(row.getText("product")).thenReturn("商品X");
         when(row.getInt("qty")).thenReturn(99);
         when(tx.scan(any(Scan.class))).thenReturn(List.of(row));
-        when(mgr.start()).thenReturn(tx);
-        when(factory.getTransactionManager()).thenReturn(mgr);
+        when(manager.start()).thenReturn(tx);
 
         // Request fields in different order than meta columns
         String body = buildDetailBody("grp1", "default", "order_items", "order_id", "ORD-1",
@@ -563,8 +542,6 @@ class BindingResolveControllerTest {
         when(admin.getTableMetadata("default", "customers")).thenReturn(custMeta);
         when(admin.getTableMetadata("default", "orders")).thenReturn(ordMeta);
         when(factory.getTransactionAdmin()).thenReturn(admin);
-
-        DistributedTransactionManager mgr = mock(DistributedTransactionManager.class);
         DistributedTransaction tx = mock(DistributedTransaction.class);
 
         Result custRow = mock(Result.class);
@@ -577,8 +554,7 @@ class BindingResolveControllerTest {
         when(ordRow.getText("product")).thenReturn("商品Z");
         when(tx.scan(any(Scan.class))).thenReturn(List.of(ordRow));
 
-        when(mgr.start()).thenReturn(tx);
-        when(factory.getTransactionManager()).thenReturn(mgr);
+        when(manager.start()).thenReturn(tx);
 
         String body = """
                 {"schema":{"groups":[

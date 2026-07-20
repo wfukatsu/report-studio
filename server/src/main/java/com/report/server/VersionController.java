@@ -37,8 +37,9 @@ public final class VersionController {
     private final JsonBlobRepository definitionsRepo;
 
     /** Production constructor — creates its own V2VersionRepository. */
-    public VersionController(TransactionFactory factory, JsonBlobRepository definitionsRepo) {
-        this(new V2VersionRepository(factory), definitionsRepo);
+    public VersionController(TransactionFactory factory, DistributedTransactionManager manager,
+                             JsonBlobRepository definitionsRepo) {
+        this(new V2VersionRepository(factory, manager), definitionsRepo);
     }
 
     /** Package-private constructor for testing — accepts pre-built repository. */
@@ -168,9 +169,11 @@ public final class VersionController {
         private static final String COL_CREATED_BY = "created_by";
 
         private final TransactionFactory factory;
+        private final DistributedTransactionManager manager;
 
-        V2VersionRepository(TransactionFactory factory) {
+        V2VersionRepository(TransactionFactory factory, DistributedTransactionManager manager) {
             this.factory = factory;
+            this.manager = manager;
         }
 
         record VersionMeta(String versionId, String templateId, long versionNumber, String createdBy) {}
@@ -196,7 +199,7 @@ public final class VersionController {
         }
 
         void createVersion(String versionId, String templateId, String json, long versionNumber) {
-            DistributedTransactionManager mgr = factory.getTransactionManager();
+            DistributedTransactionManager mgr = manager;
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();
@@ -221,7 +224,7 @@ public final class VersionController {
 
         /** List versions for a template, sorted by versionNumber descending. */
         List<VersionMeta> listVersions(String templateId) {
-            DistributedTransactionManager mgr = factory.getTransactionManager();
+            DistributedTransactionManager mgr = manager;
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();
@@ -256,7 +259,7 @@ public final class VersionController {
          * Returns empty if not found OR if the version belongs to a different template.
          */
         Optional<String> getVersion(String versionId, String expectedTemplateId) {
-            DistributedTransactionManager mgr = factory.getTransactionManager();
+            DistributedTransactionManager mgr = manager;
             DistributedTransaction tx = null;
             try {
                 tx = mgr.start();

@@ -1,6 +1,7 @@
 package com.report.server.job;
 
 import com.report.server.JsonBlobRepository;
+import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.service.TransactionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +39,8 @@ public final class JobRepository implements JobStore {
 
     private final JsonBlobRepository blob;
 
-    public JobRepository(TransactionFactory factory) {
-        this.blob = new JsonBlobRepository(factory, NAMESPACE, TABLE);
+    public JobRepository(TransactionFactory factory, DistributedTransactionManager manager) {
+        this.blob = new JsonBlobRepository(factory, manager, NAMESPACE, TABLE);
         try {
             Files.createDirectories(JOBS_DIR);
         } catch (IOException e) {

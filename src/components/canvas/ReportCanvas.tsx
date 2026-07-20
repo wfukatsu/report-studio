@@ -94,7 +94,6 @@ export function ReportCanvas({
   const resizeElement = useReportStore((s) => s.resizeElement)
   const updateElement = useReportStore((s) => s.updateElement)
   const removeElement = useReportStore((s) => s.removeElement)
-  const removeElements = useReportStore((s) => s.removeElements)
   const duplicateElement = useReportStore((s) => s.duplicateElement)
   const copyElements = useReportStore((s) => s.copyElements)
   const cutElements = useReportStore((s) => s.cutElements)
@@ -194,29 +193,9 @@ export function ReportCanvas({
     return state.definition.pages.find((p) => p.id === id) ?? null
   }, [])
 
-  // Delete / Backspace — remove selected elements (skip when a text input has focus)
-  useEffect(() => {
-    if (readonly) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) return
-      // Use batch removeElements to create a single undo state for multi-element deletes.
-      // Also guard activePage before calling preventDefault to avoid suppressing
-      // browser back-navigation (Backspace) when no page is loaded.
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
-        const currentPage = getActivePage()
-        if (!currentPage) return
-        e.preventDefault()
-        removeElements(currentPage.id, selectedIds)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [readonly, getActivePage, selectedIds, removeElements])
+  // Delete / Backspace is handled centrally in App.tsx (single keyboard authority,
+  // with the design-tab + input/contenteditable guards). Handling it here too fired
+  // both listeners on one keypress and polluted the undo history (#211).
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {

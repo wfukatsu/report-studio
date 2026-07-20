@@ -34,9 +34,15 @@ public final class VersionRepository {
     private static final long AUTO_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
     private final TransactionFactory factory;
+    private final DistributedTransactionManager manager;
 
-    public VersionRepository(TransactionFactory factory) {
+    /**
+     * @param factory used only for admin/DDL ({@link #ensureTable}).
+     * @param manager the single app-wide manager (issue #203) — never create one per operation.
+     */
+    public VersionRepository(TransactionFactory factory, DistributedTransactionManager manager) {
         this.factory = factory;
+        this.manager = manager;
     }
 
     /** Create table if it doesn't exist. */
@@ -66,7 +72,7 @@ public final class VersionRepository {
     /** Create a new version snapshot. Returns the version ID. */
     public String createVersion(String templateId, String json, String label, boolean isAuto) {
         String versionId = "ver-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8);
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -92,7 +98,7 @@ public final class VersionRepository {
 
     /** List versions for a template, sorted by createdAt descending. */
     public List<VersionMeta> listVersions(String templateId) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -124,7 +130,7 @@ public final class VersionRepository {
 
     /** Get version JSON by ID. */
     public Optional<String> getVersion(String versionId) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -144,7 +150,7 @@ public final class VersionRepository {
 
     /** Update version label. */
     public void updateLabel(String versionId, String label) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -165,7 +171,7 @@ public final class VersionRepository {
 
     /** Delete a version. */
     public void deleteVersion(String versionId) {
-        DistributedTransactionManager mgr = factory.getTransactionManager();
+        DistributedTransactionManager mgr = manager;
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
