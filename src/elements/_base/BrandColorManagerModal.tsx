@@ -20,6 +20,11 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
   const [editingHex, setEditingHex] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
 
+  const handleClose = () => {
+    onClose()
+    setTimeout(() => openerRef.current?.focus(), 0)
+  }
+
   // Record opener, set up focus trap and Escape handler
   useEffect(() => {
     openerRef.current = document.activeElement as HTMLElement
@@ -52,11 +57,6 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
     return () => document.removeEventListener('keydown', handleKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const handleClose = () => {
-    onClose()
-    setTimeout(() => openerRef.current?.focus(), 0)
-  }
 
   const handleAdd = () => {
     const expanded = expandHex(newHex)

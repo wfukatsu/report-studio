@@ -18,6 +18,17 @@ export function AdminServerTab() {
   const [error, setError] = useState<string | null>(null)
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
 
+  async function loadConfig() {
+    try {
+      const cfg = await getServerConfig()
+      setConfig(cfg)
+    } catch {
+      setError('設定の読み込みに失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadConfig()
   }, [])
@@ -29,17 +40,6 @@ export function AdminServerTab() {
       setError(null)
     }
   }, [backendConnected, restarting])
-
-  async function loadConfig() {
-    try {
-      const cfg = await getServerConfig()
-      setConfig(cfg)
-    } catch {
-      setError('設定の読み込みに失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function setField(key: string, value: string) {
     setConfig((prev) => ({ ...prev, [key]: value }))

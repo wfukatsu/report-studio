@@ -136,16 +136,8 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [historyIndex, definition, autoSaveKey])
 
-  // Clear autosave data on logout
-  useEffect(() => {
-    const prevUserId = prevUserRef.current
-    const currUserId = currentUser?.userId ?? null
-    if (prevUserId !== null && currUserId === null) {
-      // User just logged out — remove their autosave data
-      const prevKey = getAutoSaveKey(prevUserId)
-      if (prevKey) localStorage.removeItem(prevKey)
-    }
-  }, [currentUser])
+  // Autosave removal + template clear on logout live in authSlice.logoutUser
+  // (post-logout cleanup runs for every logout path, no prev-user ref needed).
 
   // Check for a restorable autosave once per user, AFTER authentication resolves.
   // The autosave key is user-scoped (getAutoSaveKey(userId)); running this on bare
@@ -183,21 +175,6 @@ export default function App() {
   useEffect(() => {
     setOnboardingDismissed(false)
   }, [currentUser?.userId])
-
-  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
-  const newReport = useReportStore((s) => s.newReport)
-  const prevUserRef = useRef<string | null>(null)
-  // Clear current template on logout (prevent data leakage between users)
-  useEffect(() => {
-    const prevUserId = prevUserRef.current
-    const currUserId = currentUser?.userId ?? null
-    prevUserRef.current = currUserId
-    // Only clear if we transitioned from logged-in to logged-out
-    if (prevUserId !== null && currUserId === null) {
-      setCurrentTemplateId(null)
-      newReport()
-    }
-  }, [currentUser, setCurrentTemplateId, newReport])
 
   // Tenant info is fetched by the auth flow (checkAuth on session-restore,
   // loginUser on login) — see authSlice. Fetching here on bare mount would run

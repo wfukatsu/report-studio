@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { DataGridToolbar, exportToCsv } from './DataGridToolbar'
+import { DataGridToolbar } from './DataGridToolbar'
+import { exportToCsv } from './exportToCsv'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()

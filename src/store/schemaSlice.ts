@@ -175,7 +175,9 @@ export const createSchemaSlice: StateCreator<
       }
     } catch (err) {
       if (isApiError(err) && err.status === 409) {
-        throw new Error('他のユーザーがこのスキーマを更新しました。再読み込みしてください。')
+        throw new Error('他のユーザーがこのスキーマを更新しました。再読み込みしてください。', {
+          cause: err,
+        })
       }
       throw err // caller (UI hook) handles toast
     } finally {

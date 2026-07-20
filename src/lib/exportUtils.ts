@@ -194,7 +194,7 @@ export async function exportPageToPng(
     link.click()
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`PNG export failed: ${message}`)
+    throw new Error(`PNG export failed: ${message}`, { cause: err })
   } finally {
     restoreAutoFields(snapshots)
   }
@@ -265,7 +265,7 @@ export async function exportReportToPdfBlob(
     return pdf.output('blob')
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`PDF export failed: ${message}`)
+    throw new Error(`PDF export failed: ${message}`, { cause: err })
   } finally {
     for (const snapshots of allSnapshots) restoreAutoFields(snapshots)
   }

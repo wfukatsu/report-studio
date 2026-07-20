@@ -33,7 +33,7 @@ function cellStyle(
 }
 
 /** Build CSS Grid column template from column widths */
-export function gridTemplateColumns(el: FormTableElement): string {
+function gridTemplateColumns(el: FormTableElement): string {
   return el.columns.map((c) => `${c.width}mm`).join(' ')
 }
 
