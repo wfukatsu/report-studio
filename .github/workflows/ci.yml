@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -95,7 +95,7 @@ jobs:
           cache: npm
 
       # Backend runs as a Playwright webServer (dev:backend → gradlew run).
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
