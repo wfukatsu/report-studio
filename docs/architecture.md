@@ -181,6 +181,7 @@ scalar.db.transaction_manager=jdbc
 
 ## 8. API 設計方針
 
+- **機械可読仕様**: 全エンドポイントの OpenAPI 3.0 定義は [`docs/openapi.yaml`](./openapi.yaml)。`ApiRoutes.java` との経路一致は `OpenApiRouteParityTest` が CI で強制する（#225）。
 - **バージョニング**: `/api/v2/*` が現行の主 API（ReportDefinition ベース）。`/api/v1/*` は未移行の周辺 API のみ（認証/PAT・admin・商品・ジョブ・Webhook・シーケンス・公開フォーム・binding-trees）。かつての投影ベース v1 デッドスタックは削除済み。
 - **認証**: Cookie セッション。公開フォームとヘルスチェックのみ免除。
 - **CSRF 防御**: 状態変更メソッドに Origin チェック。

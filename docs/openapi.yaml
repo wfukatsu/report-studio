@@ -1,0 +1,724 @@
+openapi: 3.0.3
+info:
+  title: Report Studio API
+  version: "2.0"
+  description: |
+    Report Studio backend HTTP API (Javalin).
+
+    The API is split by resource, not by a single version prefix: `/api/v2/*`
+    carries the current ReportDefinition-based stack (templates and everything
+    under them, schemas, pdf/pdf-jobs, scalardb, documents, excel, tenant,
+    health), while `/api/v1/*` holds the not-yet-migrated peripheral APIs
+    (auth/PAT, admin, products, jobs, webhooks, sequences, public forms,
+    binding-trees, health). The version lives in the URL, not in a class name.
+
+    **Authoritative route registration:** `server/src/main/java/com/report/server/ApiRoutes.java`.
+    A parity test (`OpenApiRouteParityTest`) fails CI if this document and that
+    file diverge, so every registered route is documented here and vice-versa.
+
+    ## Authentication
+    Two mechanisms, resolved by the `/api/*` before-filter:
+    - **cookieAuth** — browser session cookie issued by `POST /api/v1/auth/login`.
+    - **bearerAuth** — Personal Access Token (`rpat_…`) in `Authorization: Bearer`
+      (#195), the official path for CLI / CI / external programmatic use.
+
+    Public endpoints (`/api/v1/public/*`, `/api/v1/auth/login|logout|me`, and both
+    `/health`) require no authentication. `/api/v1/admin/*` additionally requires
+    the `admin` role. State-changing cookie-authenticated requests are CSRF-checked
+    (Origin/Referer); Bearer requests are exempt.
+servers:
+  - url: http://localhost:8080
+    description: Local dev server (VITE_API_PORT)
+tags:
+  - name: health
+  - name: auth
+  - name: tokens
+  - name: admin
+  - name: products
+  - name: jobs
+  - name: webhooks
+  - name: sequences
+  - name: binding-trees
+  - name: public-forms
+  - name: templates
+  - name: template-responses
+  - name: template-versions
+  - name: documents
+  - name: schemas
+  - name: pdf
+  - name: pdf-jobs
+  - name: excel
+  - name: scalardb
+  - name: tenant
+
+# Applied to every operation unless overridden with `security: []`.
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Browser session cookie from POST /api/v1/auth/login.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Personal Access Token (rpat_…), for CLI / CI / external clients (#195).
+  responses:
+    BadRequest:
+      description: Validation failed (invalid id/body).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Insufficient privileges (e.g. non-admin, ownership check, CSRF).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Rate limit exceeded (Retry-After header set).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema: { type: string }
+    Rid:
+      name: rid
+      in: path
+      required: true
+      schema: { type: string }
+    Vid:
+      name: vid
+      in: path
+      required: true
+      schema: { type: string }
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string }
+    Ns:
+      name: ns
+      in: path
+      required: true
+      schema: { type: string }
+    Table:
+      name: table
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    Ok:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+
+paths:
+  # ── Health ────────────────────────────────────────────────────────────────
+  /api/v1/health:
+    get:
+      tags: [health]
+      summary: v1 liveness probe
+      security: []
+      responses: { '200': { description: OK } }
+  /api/v2/health:
+    get:
+      tags: [health]
+      summary: v2 liveness probe
+      security: []
+      responses: { '200': { description: OK } }
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      summary: Current principal (anonymous if not logged in)
+      security: []
+      responses: { '200': { description: Principal } }
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Password login; sets the session cookie
+      security: []
+      responses:
+        '200': { description: Logged in }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Invalidate the current session
+      security: []
+      responses: { '200': { description: Logged out } }
+  /api/v1/auth/change-profile:
+    post:
+      tags: [auth]
+      summary: Change display name / password (invalidates other sessions)
+      responses:
+        '200': { description: Updated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ── Personal Access Tokens (#195) ──────────────────────────────────────────
+  /api/v1/auth/tokens:
+    get:
+      tags: [tokens]
+      summary: List the caller's PATs (metadata only)
+      responses:
+        '200': { description: Token list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [tokens]
+      summary: Create a PAT (plaintext returned once)
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/auth/tokens/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    delete:
+      tags: [tokens]
+      summary: Revoke a PAT
+      responses:
+        '200': { description: Revoked }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Admin (requires admin role) ─────────────────────────────────────────────
+  /api/v1/admin/users:
+    get:
+      tags: [admin]
+      summary: List users
+      responses: { '200': { description: Users } }
+    post:
+      tags: [admin]
+      summary: Create a user
+      responses: { '201': { description: Created } }
+  /api/v1/admin/users/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    put:
+      tags: [admin]
+      summary: Update a user
+      responses: { '200': { description: Updated } }
+    delete:
+      tags: [admin]
+      summary: Delete a user
+      responses: { '200': { description: Deleted } }
+  /api/v1/admin/server-config:
+    get:
+      tags: [admin]
+      summary: Read server config
+      responses: { '200': { description: Config } }
+    put:
+      tags: [admin]
+      summary: Update server config
+      responses: { '200': { description: Updated } }
+  /api/v1/admin/server-config/test:
+    post:
+      tags: [admin]
+      summary: Test a server-config (e.g. DB connectivity)
+      responses: { '200': { description: Result } }
+  /api/v1/admin/server/restart:
+    post:
+      tags: [admin]
+      summary: Restart the server process
+      responses: { '200': { description: Restarting } }
+  /api/v1/admin/health:
+    get:
+      tags: [admin]
+      summary: Detailed health (admin)
+      responses: { '200': { description: Health } }
+  /api/v1/admin/metrics:
+    get:
+      tags: [admin]
+      summary: Server metrics (admin)
+      responses: { '200': { description: Metrics } }
+
+  # ── Binding trees ───────────────────────────────────────────────────────────
+  /api/v1/binding-trees/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [binding-trees]
+      summary: Get a binding tree
+      responses:
+        '200': { description: Binding tree }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [binding-trees]
+      summary: Upsert a binding tree
+      responses: { '200': { description: Saved } }
+
+  # ── Products ────────────────────────────────────────────────────────────────
+  /api/v1/products:
+    get:
+      tags: [products]
+      summary: List products
+      responses: { '200': { description: Products } }
+    post:
+      tags: [products]
+      summary: Create a product
+      responses: { '201': { description: Created } }
+  /api/v1/products/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [products]
+      summary: Get a product
+      responses:
+        '200': { description: Product }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [products]
+      summary: Update a product (optimistic concurrency)
+      responses: { '200': { description: Updated } }
+    delete:
+      tags: [products]
+      summary: Delete a product
+      responses: { '200': { description: Deleted } }
+  /api/v1/products/fields:
+    get:
+      tags: [products]
+      summary: Get product custom-field definitions
+      responses: { '200': { description: Field defs } }
+    put:
+      tags: [products]
+      summary: Replace product custom-field definitions
+      responses: { '200': { description: Updated } }
+  /api/v1/products/import:
+    post:
+      tags: [products]
+      summary: Bulk import products
+      responses: { '200': { description: Imported } }
+
+  # ── Jobs (v1 batch) ─────────────────────────────────────────────────────────
+  /api/v1/jobs:
+    get:
+      tags: [jobs]
+      summary: List batch jobs
+      responses: { '200': { description: Jobs } }
+    post:
+      tags: [jobs]
+      summary: Enqueue a batch job
+      responses: { '202': { description: Accepted } }
+  /api/v1/jobs/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [jobs]
+      summary: Get job status
+      responses:
+        '200': { description: Job }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [jobs]
+      summary: Cancel / delete a job
+      responses: { '200': { description: Deleted } }
+  /api/v1/jobs/{id}/output:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [jobs]
+      summary: Download a job's output artifact
+      responses:
+        '200': { description: Artifact (ZIP/PDF) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Public forms (unauthenticated) ──────────────────────────────────────────
+  /api/v1/public/forms/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [public-forms]
+      summary: Public form info (published + password requirement)
+      security: []
+      responses:
+        '200': { description: Form info }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/public/forms/{id}/projection:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [public-forms]
+      summary: Public form projection (session required if password-protected)
+      security: []
+      responses:
+        '200': { description: Projection (schemaGroups stripped) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/public/forms/{id}/verify:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [public-forms]
+      summary: Verify form password (rate-limited); sets form_session cookie
+      security: []
+      responses:
+        '200': { description: Verified }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/public/forms/{id}/submit:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [public-forms]
+      summary: Submit a public form response
+      security: []
+      responses:
+        '201': { description: Created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ── Sequences ───────────────────────────────────────────────────────────────
+  /api/v1/sequences/{templateId}:
+    parameters: [{ $ref: '#/components/parameters/TemplateId' }]
+    get:
+      tags: [sequences]
+      summary: Get the document-number sequence config
+      responses: { '200': { description: Sequence } }
+    put:
+      tags: [sequences]
+      summary: Update the sequence config
+      responses: { '200': { description: Updated } }
+
+  # ── Webhooks ────────────────────────────────────────────────────────────────
+  /api/v1/webhooks/{templateId}:
+    parameters: [{ $ref: '#/components/parameters/TemplateId' }]
+    get:
+      tags: [webhooks]
+      summary: Get the webhook config
+      responses: { '200': { description: Webhook } }
+    put:
+      tags: [webhooks]
+      summary: Update the webhook config
+      responses: { '200': { description: Updated } }
+  /api/v1/webhooks/{templateId}/test:
+    parameters: [{ $ref: '#/components/parameters/TemplateId' }]
+    post:
+      tags: [webhooks]
+      summary: Send a test webhook (SSRF-guarded)
+      responses: { '200': { description: Dispatched } }
+
+  # ── Templates ───────────────────────────────────────────────────────────────
+  /api/v2/templates:
+    get:
+      tags: [templates]
+      summary: List templates
+      responses: { '200': { description: Templates } }
+    post:
+      tags: [templates]
+      summary: Create a template
+      responses: { '201': { description: Created } }
+  /api/v2/templates/import:
+    post:
+      tags: [templates]
+      summary: Import a template envelope
+      responses: { '201': { description: Imported } }
+  /api/v2/templates/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [templates]
+      summary: Get a template
+      responses:
+        '200': { description: Template }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [templates]
+      summary: Replace a template
+      responses: { '200': { description: Updated } }
+    post:
+      tags: [templates]
+      summary: Update a template (POST alias)
+      responses: { '200': { description: Updated } }
+    delete:
+      tags: [templates]
+      summary: Delete a template
+      responses: { '200': { description: Deleted } }
+  /api/v2/templates/{id}/export:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [templates]
+      summary: Export a template envelope (.rds2.json)
+      responses: { '200': { description: Envelope } }
+  /api/v2/templates/{id}/thumbnail:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [templates]
+      summary: Template thumbnail (PNG)
+      responses: { '200': { description: PNG } }
+  /api/v2/templates/{id}/copy:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [templates]
+      summary: Copy a template
+      responses: { '201': { description: Copied } }
+  /api/v2/templates/{id}/duplicate:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [templates]
+      summary: Duplicate a template
+      responses: { '201': { description: Duplicated } }
+  /api/v2/templates/{id}/visibility:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    put:
+      tags: [templates]
+      summary: Change template visibility (public/private)
+      responses: { '200': { description: Updated } }
+  /api/v2/templates/{id}/evaluate:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [templates]
+      summary: Evaluate calculations for a data payload
+      responses: { '200': { description: Evaluation } }
+  /api/v2/templates/{id}/validate:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [templates]
+      summary: Validate a data payload against the template rules
+      responses:
+        '200': { description: Valid }
+        '422': { description: Validation failed }
+  /api/v2/templates/{id}/resolve-bindings:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [templates]
+      summary: Resolve schema bindings against ScalarDB
+      responses:
+        '200': { description: Resolved }
+        '207': { description: Partial success }
+  /api/v2/templates/{id}/pdf:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [pdf]
+      summary: Render a template to PDF (synchronous)
+      responses: { '200': { description: PDF } }
+
+  # ── Template responses ──────────────────────────────────────────────────────
+  /api/v2/templates/{id}/responses:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [template-responses]
+      summary: List responses for a template
+      responses: { '200': { description: Responses } }
+    post:
+      tags: [template-responses]
+      summary: Create a response (may stamp a document number)
+      responses: { '201': { description: Created } }
+  /api/v2/templates/{id}/responses/export:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [template-responses]
+      summary: Export responses (CSV/JSON)
+      responses: { '200': { description: Export } }
+  /api/v2/templates/{id}/responses/{rid}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Rid' }
+    get:
+      tags: [template-responses]
+      summary: Get a response
+      responses:
+        '200': { description: Response }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [template-responses]
+      summary: Delete a response
+      responses: { '200': { description: Deleted } }
+  /api/v2/templates/{id}/responses/{rid}/audit:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Rid' }
+    get:
+      tags: [template-responses]
+      summary: Status-transition audit trail for a response
+      responses: { '200': { description: Audit entries } }
+  /api/v2/templates/{id}/responses/{rid}/pdf:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Rid' }
+    get:
+      tags: [pdf]
+      summary: Render a stored response to PDF
+      responses: { '200': { description: PDF } }
+
+  # ── Template versions ───────────────────────────────────────────────────────
+  /api/v2/templates/{id}/versions:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [template-versions]
+      summary: List template versions
+      responses: { '200': { description: Versions } }
+    post:
+      tags: [template-versions]
+      summary: Snapshot a new version
+      responses: { '201': { description: Created } }
+  /api/v2/templates/{id}/versions/{vid}/restore:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/Vid' }
+    post:
+      tags: [template-versions]
+      summary: Restore a template to a prior version
+      responses: { '200': { description: Restored } }
+
+  # ── Documents ───────────────────────────────────────────────────────────────
+  /api/v2/documents:
+    get:
+      tags: [documents]
+      summary: Cross-template issued-documents list (#190)
+      responses: { '200': { description: Documents } }
+
+  # ── Schemas ─────────────────────────────────────────────────────────────────
+  /api/v2/schemas:
+    get:
+      tags: [schemas]
+      summary: List schemas
+      responses: { '200': { description: Schemas } }
+    post:
+      tags: [schemas]
+      summary: Create a schema
+      responses: { '201': { description: Created } }
+  /api/v2/schemas/infer:
+    post:
+      tags: [schemas]
+      summary: Infer a schema from sample data
+      responses: { '200': { description: Inferred schema } }
+  /api/v2/schemas/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [schemas]
+      summary: Get a schema
+      responses:
+        '200': { description: Schema }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [schemas]
+      summary: Update a schema
+      responses: { '200': { description: Updated } }
+    delete:
+      tags: [schemas]
+      summary: Delete a schema
+      responses: { '200': { description: Deleted } }
+
+  # ── Excel ───────────────────────────────────────────────────────────────────
+  /api/v2/excel/generate:
+    post:
+      tags: [excel]
+      summary: Generate an Excel workbook (SXSSF streaming)
+      responses: { '200': { description: XLSX } }
+
+  # ── PDF (direct) ────────────────────────────────────────────────────────────
+  /api/v2/pdf/generate:
+    post:
+      tags: [pdf]
+      summary: Generate a PDF from an inline definition + data
+      responses: { '200': { description: PDF } }
+
+  # ── PDF jobs (async, unified list #191) ─────────────────────────────────────
+  /api/v2/pdf-jobs:
+    get:
+      tags: [pdf-jobs]
+      summary: Unified list of all PDF jobs (single + batch)
+      responses: { '200': { description: Jobs } }
+    post:
+      tags: [pdf-jobs]
+      summary: Enqueue a single-PDF job
+      responses: { '202': { description: Accepted } }
+  /api/v2/pdf-jobs/{jobId}:
+    parameters: [{ $ref: '#/components/parameters/JobId' }]
+    get:
+      tags: [pdf-jobs]
+      summary: Get a PDF job's status
+      responses:
+        '200': { description: Job }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [pdf-jobs]
+      summary: Cancel a PDF job (any type)
+      responses: { '200': { description: Cancelled } }
+  /api/v2/pdf-jobs/{jobId}/result:
+    parameters: [{ $ref: '#/components/parameters/JobId' }]
+    get:
+      tags: [pdf-jobs]
+      summary: Download a single-PDF job result
+      responses:
+        '200': { description: PDF }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v2/pdf-jobs/batch:
+    post:
+      tags: [pdf-jobs]
+      summary: Enqueue a batch PDF job (responseIds or inline rows, #193)
+      responses: { '202': { description: Accepted } }
+  /api/v2/pdf-jobs/batch/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pdf-jobs]
+      summary: Get a batch job's status
+      responses:
+        '200': { description: Job }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v2/pdf-jobs/batch/{id}/result:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pdf-jobs]
+      summary: Download a batch job result (ZIP, streamed)
+      responses:
+        '200': { description: ZIP }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── ScalarDB ────────────────────────────────────────────────────────────────
+  /api/v2/scalardb/catalog:
+    get:
+      tags: [scalardb]
+      summary: List ScalarDB namespaces + tables + columns
+      responses: { '200': { description: Catalog } }
+  /api/v2/scalardb/tables:
+    post:
+      tags: [scalardb]
+      summary: Create a ScalarDB table from a schema group
+      responses: { '201': { description: Created } }
+  /api/v2/scalardb/tables/{ns}/{table}/rows:
+    parameters:
+      - { $ref: '#/components/parameters/Ns' }
+      - { $ref: '#/components/parameters/Table' }
+    get:
+      tags: [scalardb]
+      summary: Scan rows
+      responses: { '200': { description: Rows } }
+    post:
+      tags: [scalardb]
+      summary: Insert a row
+      responses: { '201': { description: Inserted } }
+    put:
+      tags: [scalardb]
+      summary: Upsert a row
+      responses: { '200': { description: Upserted } }
+    delete:
+      tags: [scalardb]
+      summary: Delete a row (by key params)
+      responses: { '200': { description: Deleted } }
+
+  # ── Tenant ──────────────────────────────────────────────────────────────────
+  /api/v2/tenant:
+    get:
+      tags: [tenant]
+      summary: Get tenant metadata
+      responses: { '200': { description: Tenant } }
+    put:
+      tags: [tenant]
+      summary: Update tenant metadata
+      responses: { '200': { description: Updated } }
