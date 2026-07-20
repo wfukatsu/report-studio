@@ -44,6 +44,14 @@ import java.util.zip.ZipOutputStream;
  * <p>Generates PDFs in parallel using the shared pdfExecutor (max 4 threads).
  * Partial failures produce a ZIP of successful PDFs + summary.json.
  * All-fail → failed job with no ZIP.
+ *
+ * <p><b>Threading (issue #204):</b> the per-job <em>coordinator</em> runs on a dedicated
+ * {@link #coordinatorExecutor}, never on {@code pdfExecutor}. The coordinator blocks on
+ * {@code allOf(...).get()} waiting for the render tasks it submits to {@code pdfExecutor};
+ * if coordinators ran on {@code pdfExecutor} too, enough concurrent batches would occupy
+ * every rendering thread with blocked coordinators and their own render tasks could never
+ * be scheduled — a self-inflicted deadlock until the timeout. Keeping the two pools
+ * separate makes that impossible.
  */
 public final class BatchPdfController {
 
@@ -60,6 +68,12 @@ public final class BatchPdfController {
     private final JsonBlobRepository responseRepo;
     private final JobStore jobStore;
     private final ExecutorService pdfExecutor;
+    /**
+     * Runs the batch coordinators. Sized to {@link #MAX_ACTIVE_JOBS} so every admitted batch
+     * (admission is capped by {@link #limiter}) gets its own thread to block on without ever
+     * competing with the render tasks on {@code pdfExecutor} (issue #204).
+     */
+    private final ExecutorService coordinatorExecutor;
     private final JobConcurrencyLimiter limiter = new JobConcurrencyLimiter(MAX_ACTIVE_JOBS);
 
     public BatchPdfController(JsonBlobRepository definitionsRepo,
@@ -70,6 +84,24 @@ public final class BatchPdfController {
         this.responseRepo = responseRepo;
         this.jobStore = jobStore;
         this.pdfExecutor = pdfExecutor;
+        this.coordinatorExecutor = Executors.newFixedThreadPool(MAX_ACTIVE_JOBS, r -> {
+            Thread t = new Thread(r, "batch-pdf-coordinator");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    /** Stops the coordinator pool. Call from {@code AppWiring.shutdown()}. */
+    public void shutdown() {
+        coordinatorExecutor.shutdown();
+        try {
+            if (!coordinatorExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                coordinatorExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            coordinatorExecutor.shutdownNow();
+        }
     }
 
     // ── POST /api/v2/pdf-jobs/batch ───────────────────────────────────────────
@@ -163,6 +195,7 @@ public final class BatchPdfController {
         CompletableFuture.runAsync(() -> {
             jobStore.save(job.withStatus(JobStatus.PROCESSING));
             try {
+                // NB: coordinatorExecutor, NOT pdfExecutor — see class Javadoc (#204).
                 Path zipPath = generateBatchZip(batchJobId, finalTemplateId, finalRaw,
                         finalInputs, finalFilenameTemplate, userId);
                 JobRecord latest = jobStore.findById(batchJobId).orElse(job);
@@ -175,7 +208,7 @@ public final class BatchPdfController {
             } finally {
                 limiter.release();
             }
-        }, pdfExecutor);
+        }, coordinatorExecutor);
 
         ctx.status(HttpStatus.ACCEPTED);
         ctx.json(Map.of(
@@ -258,9 +291,17 @@ public final class BatchPdfController {
             futures.add(future);
         }
 
-        // Wait for all (with timeout)
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        // Wait for all (with timeout). On timeout, cancel the outstanding render futures
+        // so a stuck batch stops holding slots and completes as failed promptly (issue #204).
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException te) {
+            for (CompletableFuture<PdfResult> f : futures) {
+                f.cancel(true);
+            }
+            throw te;
+        }
 
         List<PdfResult> results = futures.stream()
                 .map(f -> f.getNow(null))

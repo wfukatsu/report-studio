@@ -239,6 +239,7 @@ public final class AppWiring {
         authCtrl.shutdown();
         formSessionManager.shutdown();
         jobTtlReaper.close();
+        batchPdfCtrl.shutdown();
         jobExecutor.shutdown();
         pdfExecutor.shutdown();
         try {

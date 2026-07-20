@@ -149,4 +149,42 @@ class BatchPdfControllerTest {
         controller.getResult(ctx);
         assertEquals(409, capturedStatus);
     }
+
+    /**
+     * Issue #204: the batch coordinator must not run on {@code pdfExecutor}. Here that pool
+     * has a single thread and the batch produces real render tasks submitted to it. If the
+     * coordinator also ran on {@code pdfExecutor}, it would seize the only thread and then
+     * block on {@code allOf().get()} waiting for render tasks that can never be scheduled —
+     * a deadlock that would leave the job non-terminal until the 5-minute timeout. With the
+     * coordinator on its own pool, the job reaches a terminal state promptly.
+     */
+    @Test
+    void submitBatch_coordinatorDoesNotStarvePdfExecutor() throws Exception {
+        Principal alice = user("alice");
+        when(ctx.attribute("principal")).thenReturn(alice);
+        when(ctx.body()).thenReturn("{\"templateId\":\"t1\",\"responseIds\":[\"r1\",\"r2\",\"r3\"]}");
+        when(definitionsRepo.get("t1"))
+                .thenReturn(Optional.of("{\"definition\":{\"pages\":[]}}"));
+        // Valid responses → each input becomes a real render task on the single-thread pdfExecutor
+        // (the deadlock-prone path), not a short-circuited "not found" completed future.
+        when(responseRepo.get(anyString()))
+                .thenReturn(Optional.of("{\"data\":{\"field\":\"value\"}}"));
+
+        controller.submitBatch(ctx);
+        assertEquals(202, capturedStatus);
+
+        // Poll for a terminal state. Without the fix this never happens (deadlock) and the
+        // test fails on timeout; with the fix it settles in well under a second.
+        long deadline = System.currentTimeMillis() + 15_000;
+        JobRecord job = null;
+        while (System.currentTimeMillis() < deadline) {
+            job = jobStore.listAll().stream().findFirst().orElse(null);
+            if (job != null && job.isTerminal()) break;
+            Thread.sleep(25);
+        }
+        assertNotNull(job, "batch job should have been persisted");
+        assertTrue(job.isTerminal(),
+                "batch job must reach a terminal state — a non-terminal job indicates the "
+                        + "coordinator/render pool deadlock (#204)");
+    }
 }
