@@ -33,11 +33,13 @@ jobs:
         # runs test:coverage locally (#220).
         # vitest 3 (pool rewrite) — vitest 2.1.9 workers deadlocked
         # intermittently on this runner regardless of pool (forks and threads),
-        # always right before ResponsesPanel.test.tsx started. basic reporter
-        # keeps per-file progress visible; the step timeout is the safety net.
+        # always right before ResponsesPanel.test.tsx started. The default
+        # reporter keeps per-file progress visible; the step timeout is the
+        # safety net. (Vitest 4 removed the old `basic` reporter — `default`
+        # is its per-file-progress successor.)
         # Coverage instrumentation slows jsdom+RTL ~4x, so allow more headroom.
         timeout-minutes: 20
-        run: npx vitest run --coverage --reporter=basic
+        run: npx vitest run --coverage --reporter=default
 
       - name: Storybook build
         # Catches preview-config / addon-compat breakage that the unit suite
