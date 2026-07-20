@@ -108,7 +108,7 @@ npm run test:coverage    # カバレッジ（ラチェット閾値 — 現状値
 ### バックエンド
 
 ```bash
-npm run test:backend     # JUnit 5 + ゴールデン PDF リグレッション（JaCoCo ゲート含む）
+npm run test:backend     # JUnit 5 + ゴールデン PDF リグレッション（JaCoCo カバレッジレポート生成）
 ```
 
 単一テストファイルだけ実行する例:
