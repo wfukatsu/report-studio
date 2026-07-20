@@ -182,7 +182,12 @@ scalar.db.transaction_manager=jdbc
 ## 8. API 設計方針
 
 - **機械可読仕様**: 全エンドポイントの OpenAPI 3.0 定義は [`docs/openapi.yaml`](./openapi.yaml)。`ApiRoutes.java` との経路一致は `OpenApiRouteParityTest` が CI で強制する（#225）。
-- **バージョニング**: `/api/v2/*` が現行の主 API（ReportDefinition ベース）。`/api/v1/*` は未移行の周辺 API のみ（認証/PAT・admin・商品・ジョブ・Webhook・シーケンス・公開フォーム・binding-trees）。かつての投影ベース v1 デッドスタックは削除済み。
+- **バージョニング**: `/api/v2/*` が現行の主 API（ReportDefinition ベース）。`/api/v1/*` は周辺プラットフォーム API（認証/PAT・admin・商品・ジョブ・Webhook・シーケンス・公開フォーム・binding-trees）。かつての投影ベース v1 デッドスタックは削除済み。
+- **v1 名前空間の方針（#278 で決定）**: v1 は「未移行」ではなく**恒久的な周辺プラットフォーム API 名前空間**として維持する。同梱 SPA / CLI 専用であり、URL を v2 へ移す機能的価値がないため。ただし:
+  - **v1 は凍結** — 新規リソースは常に `/api/v2/*` に追加する
+  - **例外は `jobs` のみ** — `/api/v2/pdf-jobs`（#191 の統一リスト + cancel）と機能重複しており、次回バッチ API 変更時に v2 へ統合する
+  - **`public/forms` は最優先で凍結** — フォーム URL は外部配布されうるため変更しない
+  - **互換ポリシー** — 移行・削除時は新旧 URL を dual-register し `Deprecation` ヘッダ + openapi.yaml の `deprecated: true` を付与、2 マイナーリリース後に旧 URL を削除
 - **認証**: Cookie セッション。公開フォームとヘルスチェックのみ免除。
 - **CSRF 防御**: 状態変更メソッドに Origin チェック。
 - **エラー形式**: JSON。検証失敗は 422、レート制限超過は 429（`Retry-After` 付き）、権限不足は 403、未認証は 401。バインド解決の部分成功は 207。

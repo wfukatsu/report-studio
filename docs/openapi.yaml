@@ -8,9 +8,12 @@ info:
     The API is split by resource, not by a single version prefix: `/api/v2/*`
     carries the current ReportDefinition-based stack (templates and everything
     under them, schemas, pdf/pdf-jobs, scalardb, documents, excel, tenant,
-    health), while `/api/v1/*` holds the not-yet-migrated peripheral APIs
+    health), while `/api/v1/*` is the permanent peripheral-platform namespace
     (auth/PAT, admin, products, jobs, webhooks, sequences, public forms,
-    binding-trees, health). The version lives in the URL, not in a class name.
+    binding-trees, health). The v1 namespace is frozen — new resources always
+    go to v2 — and only `jobs` is slated for eventual consolidation into
+    `/api/v2/pdf-jobs` (policy decided in #278). The version lives in the URL,
+    not in a class name.
 
     **Authoritative route registration:** `server/src/main/java/com/report/server/ApiRoutes.java`.
     A parity test (`OpenApiRouteParityTest`) fails CI if this document and that
