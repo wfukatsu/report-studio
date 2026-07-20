@@ -21,15 +21,18 @@ import org.slf4j.LoggerFactory;
 public final class ApiRoutes {
 
     private static final Logger log = LoggerFactory.getLogger(ApiRoutes.class);
-    private static final int SERVER_PORT = 8080;
 
     /** Allowed cross-origin for CORS/CSRF; null means dev-only (localhost:5173). */
     private static final String ALLOWED_ORIGIN = System.getenv("ALLOWED_ORIGIN");
 
     private ApiRoutes() {}
 
-    public static void register(JavalinConfig config, AppWiring w) {
-        registerMiddleware(config, w);
+    /**
+     * @param serverPort the actual listen port (from {@link AppConfig#resolvePort}) — used by the
+     *     CSRF filter to recognize same-origin requests (#259)
+     */
+    public static void register(JavalinConfig config, AppWiring w, int serverPort) {
+        registerMiddleware(config, w, serverPort);
         registerAuthRoutes(config, w);
         registerBindingTreeRoutes(config, w);
         registerPublicFormRoutes(config, w);
@@ -41,7 +44,7 @@ public final class ApiRoutes {
 
     // ── Middleware ─────────────────────────────────────────────────────────────
 
-    private static void registerMiddleware(JavalinConfig config, AppWiring w) {
+    private static void registerMiddleware(JavalinConfig config, AppWiring w, int serverPort) {
         // Global exception handler — returns JSON error body without stack traces
         config.routes.exception(
                 Exception.class,
@@ -87,7 +90,8 @@ public final class ApiRoutes {
                                     ctx.path(),
                                     ctx.header("Origin"),
                                     ctx.header("Referer"),
-                                    ctx.header("Authorization"));
+                                    ctx.header("Authorization"),
+                                    serverPort);
                     if (reason != null) throw new io.javalin.http.ForbiddenResponse(reason);
                 });
 
@@ -149,7 +153,12 @@ public final class ApiRoutes {
      * </ul>
      */
     static String csrfRejectReason(
-            String method, String path, String origin, String referer, String authorization) {
+            String method,
+            String path,
+            String origin,
+            String referer,
+            String authorization,
+            int serverPort) {
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) return null;
         if (authorization != null && authorization.startsWith("Bearer ")) return null;
 
@@ -161,14 +170,14 @@ public final class ApiRoutes {
         if (candidate == null || candidate.isBlank()) {
             return exemptPath ? null : "Missing Origin/Referer on state-changing request";
         }
-        return isAllowedOrigin(candidate) ? null : "Cross-origin request rejected";
+        return isAllowedOrigin(candidate, serverPort) ? null : "Cross-origin request rejected";
     }
 
     /**
      * True if the origin is this server, the configured ALLOWED_ORIGIN, or a local Vite dev port.
      */
-    private static boolean isAllowedOrigin(String origin) {
-        if (origin.equals("http://localhost:" + SERVER_PORT)) return true;
+    private static boolean isAllowedOrigin(String origin, int serverPort) {
+        if (origin.equals("http://localhost:" + serverPort)) return true;
         if (ALLOWED_ORIGIN != null && origin.equals(ALLOWED_ORIGIN)) return true;
         for (int port = 5173; port <= 5200; port++) {
             if (origin.equals("http://localhost:" + port)) return true;

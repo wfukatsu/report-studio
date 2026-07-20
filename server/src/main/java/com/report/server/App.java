@@ -37,7 +37,7 @@ public final class App {
                 Javalin.create(
                         config -> {
                             AppConfig.configure(config);
-                            ApiRoutes.register(config, wiring);
+                            ApiRoutes.register(config, wiring, port);
                             config.events.serverStopping(wiring::shutdown);
                         });
 
