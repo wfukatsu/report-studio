@@ -97,6 +97,13 @@ spotless {
     }
 }
 
+// Compiler lint for main + test compilation (#266). Deprecation warnings exist
+// today (ScalarDB/Javalin API churn), so warnings stay visible but are not
+// errors (-Werror intentionally omitted).
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-Xlint:all,-processing")
+}
+
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
@@ -108,4 +115,32 @@ tasks.jacocoTestReport {
         xml.required.set(true)
         html.required.set(true)
     }
+}
+
+// Coverage ratchet (#266): thresholds are set just below the measured overall
+// coverage at the time of introduction (instruction 64.8%, branch 58.8% —
+// rounded down to the nearest whole percent). Raise them as coverage grows;
+// never lower them to admit a regression.
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            limit {
+                counter = "INSTRUCTION"
+                value = "COVEREDRATIO"
+                minimum = "0.64".toBigDecimal()
+            }
+        }
+        rule {
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.58".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }

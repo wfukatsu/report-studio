@@ -70,9 +70,11 @@ jobs:
         working-directory: server
         run: ./gradlew spotlessCheck
 
-      - name: Test
+      - name: Test (+ coverage ratchet)
+        # jacocoTestCoverageVerification enforces the ratchet thresholds in
+        # build.gradle.kts (#266), so a backend coverage regression fails CI.
         working-directory: server
-        run: ./gradlew test
+        run: ./gradlew test jacocoTestCoverageVerification
 
       - name: Upload test report on failure
         if: failure()

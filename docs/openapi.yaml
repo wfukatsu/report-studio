@@ -418,11 +418,44 @@ paths:
     get:
       tags: [templates]
       summary: List templates
-      responses: { '200': { description: Templates } }
+      responses:
+        '200':
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, createdAt, updatedAt, visibility, isOwner]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        createdAt: { type: string }
+                        updatedAt: { type: string }
+                        visibility: { type: string }
+                        isOwner: { type: boolean }
+                  total: { type: integer }
     post:
       tags: [templates]
       summary: Create a template
-      responses: { '201': { description: Created } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, createdAt, updatedAt]
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  createdAt: { type: string }
+                  updatedAt: { type: string }
   /api/v2/templates/import:
     post:
       tags: [templates]
@@ -434,7 +467,21 @@ paths:
       tags: [templates]
       summary: Get a template
       responses:
-        '200': { description: Template }
+        '200':
+          description: Template (canonical envelope)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [formatVersion, id, name, createdAt, updatedAt, visibility, definition]
+                properties:
+                  formatVersion: { type: integer }
+                  id: { type: string }
+                  name: { type: string }
+                  createdAt: { type: string }
+                  updatedAt: { type: string }
+                  visibility: { type: string }
+                  definition: { type: object }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [templates]
@@ -513,11 +560,48 @@ paths:
     get:
       tags: [template-responses]
       summary: List responses for a template
-      responses: { '200': { description: Responses } }
+      responses:
+        '200':
+          description: Responses (paginated summary items)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, offset, limit, hasMore]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, templateId, submittedAt, status, summary]
+                      properties:
+                        id: { type: string }
+                        templateId: { type: string }
+                        submittedAt: { type: integer }
+                        submittedBy: { type: string }
+                        status: { type: string }
+                        summary:
+                          type: array
+                          items: { type: string }
+                  total: { type: integer }
+                  offset: { type: integer }
+                  limit: { type: integer }
+                  hasMore: { type: boolean }
     post:
       tags: [template-responses]
       summary: Create a response (may stamp a document number)
-      responses: { '201': { description: Created } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, templateId, submittedAt]
+                properties:
+                  id: { type: string }
+                  templateId: { type: string }
+                  submittedAt: { type: integer }
   /api/v2/templates/{id}/responses/export:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -532,7 +616,20 @@ paths:
       tags: [template-responses]
       summary: Get a response
       responses:
-        '200': { description: Response }
+        '200':
+          description: Response (stored document, raw)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, templateId, data]
+                properties:
+                  id: { type: string }
+                  templateId: { type: string }
+                  data: { type: object }
+                  submittedAt: { type: integer }
+                  submittedBy: { type: string }
+                  status: { type: string }
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
       tags: [template-responses]
@@ -597,11 +694,43 @@ paths:
     get:
       tags: [schemas]
       summary: List schemas
-      responses: { '200': { description: Schemas } }
+      responses:
+        '200':
+          description: Schemas (own + shared)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, visibility, createdBy, createdAt, updatedAt]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        visibility: { type: string }
+                        createdBy: { type: string }
+                        createdAt: { type: string }
+                        updatedAt: { type: string }
+                  total: { type: integer }
     post:
       tags: [schemas]
       summary: Create a schema
-      responses: { '201': { description: Created } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, updatedAt]
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  updatedAt: { type: integer }
   /api/v2/schemas/infer:
     post:
       tags: [schemas]
@@ -613,7 +742,22 @@ paths:
       tags: [schemas]
       summary: Get a schema
       responses:
-        '200': { description: Schema }
+        '200':
+          description: Schema (full envelope; timestamps are epoch millis here,
+            unlike the ISO strings in the list view)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, visibility, createdBy, createdAt, updatedAt, definition]
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  visibility: { type: string }
+                  createdBy: { type: string }
+                  createdAt: { type: integer }
+                  updatedAt: { type: integer }
+                  definition: { type: object }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [schemas]
@@ -654,18 +798,62 @@ paths:
     get:
       tags: [pdf-jobs]
       summary: Unified list of all PDF jobs (single + batch)
-      responses: { '200': { description: Jobs } }
+      responses:
+        '200':
+          description: Jobs (unified DTO, lowercase status vocabulary)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    [jobId, jobType, status, total, completed, failed, createdAt, updatedAt]
+                  properties:
+                    jobId: { type: string }
+                    jobType: { type: string }
+                    status: { type: string }
+                    templateId: { type: string }
+                    total: { type: integer }
+                    completed: { type: integer }
+                    failed: { type: integer }
+                    error: { type: string }
+                    createdAt: { type: integer }
+                    updatedAt: { type: integer }
+                    completedAt: { type: integer }
     post:
       tags: [pdf-jobs]
       summary: Enqueue a single-PDF job
-      responses: { '202': { description: Accepted } }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobId, status, statusUrl, resultUrl]
+                properties:
+                  jobId: { type: string }
+                  status: { type: string }
+                  statusUrl: { type: string }
+                  resultUrl: { type: string }
   /api/v2/pdf-jobs/{jobId}:
     parameters: [{ $ref: '#/components/parameters/JobId' }]
     get:
       tags: [pdf-jobs]
       summary: Get a PDF job's status
       responses:
-        '200': { description: Job }
+        '200':
+          description: Job
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobId, status]
+                properties:
+                  jobId: { type: string }
+                  status: { type: string }
+                  error: { type: string }
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
       tags: [pdf-jobs]
