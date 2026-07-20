@@ -7,7 +7,13 @@
 
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { enableMapSet } from 'immer'
 import type { StateCreator } from 'zustand'
+
+// productSlice keeps its per-entity operation lock in a Map held in immer state.
+// immer only drafts Map/Set when this plugin is enabled — without it, any produce
+// that touches `productOps` throws "plugin for 'MapSet' has not been loaded" (#223).
+enableMapSet()
 import type { StoreState } from './types'
 import { createLayoutSlice } from './layoutSlice'
 import { createClipboardSlice } from './clipboardSlice'
