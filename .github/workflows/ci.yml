@@ -9,7 +9,7 @@ jobs:
   frontend:
     name: Frontend (lint / build / test)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -27,13 +27,17 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      - name: Test
+      - name: Test (+ coverage ratchet)
+        # --coverage enforces the ratchet thresholds in vitest.config.ts, so a
+        # coverage regression fails CI instead of only being caught by whoever
+        # runs test:coverage locally (#220).
         # vitest 3 (pool rewrite) — vitest 2.1.9 workers deadlocked
         # intermittently on this runner regardless of pool (forks and threads),
         # always right before ResponsesPanel.test.tsx started. basic reporter
         # keeps per-file progress visible; the step timeout is the safety net.
-        timeout-minutes: 15
-        run: npx vitest run --reporter=basic
+        # Coverage instrumentation slows jsdom+RTL ~4x, so allow more headroom.
+        timeout-minutes: 20
+        run: npx vitest run --coverage --reporter=basic
 
   backend:
     name: Backend (JUnit + golden PDF regression)
