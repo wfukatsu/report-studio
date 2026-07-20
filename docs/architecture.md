@@ -9,7 +9,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
 | 特性 | 内容 |
 |------|------|
 | アプリ形態 | シングルページアプリケーション（SPA）+ REST API バックエンド |
-| フロントエンド | Vite 6 + React 19 + TypeScript 5.7（Zustand で状態管理） |
+| フロントエンド | Vite 8 + React 19 + TypeScript 5.7（Zustand で状態管理） |
 | バックエンド | Java 21 + Javalin 7（仮想スレッド活用） |
 | データストア | ScalarDB 3.17.3 → SQLite（開発）/ 任意の JDBC（本番） |
 | 帳票エンジン | Apache PDFBox 3.0.8（和文フォント埋め込み・ページ分割） |

@@ -19,7 +19,7 @@
 | 数式エディタ | CodeMirror 6 | — |
 | バリデーション | zod | 4 |
 | バーコード/QR | react-barcode / qrcode.react | — |
-| ビルド/テスト | Vite 6 / Vitest 3 / TypeScript 5.7 | — |
+| ビルド/テスト | Vite 8 / Vitest 4 / TypeScript 5.7（TS 7 型検査は tsgo 併用） | — |
 | コンポーネントカタログ | Storybook 8 | — |
 
 ### 画面構成

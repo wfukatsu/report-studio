@@ -63,5 +63,7 @@ npm run cli -- templates list --json | jq '.[].name'
 - `batch` renders each row through the per-template PDF endpoint (reliable for V2
   templates) rather than the legacy V1 CSV job, which depends on V1 projections
   that V2-created templates don't have.
-- Auth is session-cookie based today. A future API-token flow would let CI use the
-  CLI without an interactive login (tracked in #165).
+- Auth supports both session cookies (interactive `login`) and API tokens
+  (PAT/Bearer, #195): issue a token with `tokens create`, then use
+  `login --token <token>` or set `$REPORT_STUDIO_TOKEN` (the env var takes
+  precedence) — no interactive login needed in CI.
