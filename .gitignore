@@ -8,6 +8,12 @@ dist/
 build/
 storybook-static/
 
+# Playwright E2E
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Env
 .env
 .env.local
