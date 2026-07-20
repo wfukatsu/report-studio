@@ -8,7 +8,6 @@ import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 import { classifyError, type UserFacingError } from '@/lib/userFacingError'
 import { getErrorCopy } from '@/lib/userFacingErrorMessages'
 import { PAPER_SIZES, PAPER_SIZE_ORDER, getMarginPresets } from '@/lib/paperSizes'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
 import { TagInput } from '@/components/common/TagInput'
 import type { PaperSize, Section } from '@/types'
@@ -335,7 +334,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               <label className="text-xs text-muted-foreground">カテゴリ</label>
               <CategoryCombobox
                 value={metadata.category}
-                options={[...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]}
+                options={[]}
                 onChange={(v) => updateMetadata({ category: v })}
               />
             </div>

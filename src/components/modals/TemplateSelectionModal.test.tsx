@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import { TemplateSelectionModal } from './TemplateSelectionModal'
-import { BUILTIN_TEMPLATES, SAMPLE_CATEGORY } from '@/templates/builtinTemplates'
 import { createBlankDefinition } from '@/lib/templateUtils'
 import type { ReportDefinition } from '@/types'
 
@@ -87,14 +86,6 @@ describe('TemplateSelectionModal — 基本表示', () => {
     expect(screen.getByText('白紙から作成')).toBeInTheDocument()
   })
 
-  it('shows built-in templates', () => {
-    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    // Verify at least one built-in template is shown
-    if (BUILTIN_TEMPLATES.length > 0) {
-      expect(screen.getByText(BUILTIN_TEMPLATES[0].name)).toBeInTheDocument()
-    }
-  })
-
   it('confirm button is disabled initially', () => {
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
     const confirmBtn = screen.getByText('作成')
@@ -120,19 +111,9 @@ describe('TemplateSelectionModal — テンプレート選択', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('selects a built-in template', () => {
-    if (BUILTIN_TEMPLATES.length === 0) return
+  it('calls onSelect with a blank definition when confirmed', () => {
     render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    const templateName = BUILTIN_TEMPLATES[0].name
-    fireEvent.click(screen.getByText(templateName))
-    expect(screen.getByText('作成')).not.toBeDisabled()
-  })
-
-  it('calls onSelect with definition when built-in template is confirmed', () => {
-    if (BUILTIN_TEMPLATES.length === 0) return
-    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    const templateName = BUILTIN_TEMPLATES[0].name
-    fireEvent.click(screen.getByText(templateName))
+    fireEvent.click(screen.getByText('空白'))
     fireEvent.click(screen.getByText('作成'))
     expect(onSelect).toHaveBeenCalledTimes(1)
     const definition = onSelect.mock.calls[0][0] as ReportDefinition
@@ -343,32 +324,5 @@ describe('TemplateSelectionModal — エクスポート/インポート', () => 
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('Invalid format'),
     )
-  })
-})
-
-describe('TemplateSelectionModal — 検証・サンプルの出し分け (#109)', () => {
-  const sample = BUILTIN_TEMPLATES.find((t) => t.category === SAMPLE_CATEGORY)
-
-  it('hides developer/QA sample templates by default', () => {
-    if (!sample) return // no sample templates registered — nothing to assert
-    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    expect(screen.queryByText(sample.name)).not.toBeInTheDocument()
-    expect(screen.getByText('検証・サンプルを表示')).toBeInTheDocument()
-  })
-
-  it('reveals sample templates when the toggle is turned on', () => {
-    if (!sample) return
-    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('検証・サンプルを表示'))
-    expect(screen.getByText(sample.name)).toBeInTheDocument()
-    expect(screen.getByText('検証・サンプルを隠す')).toBeInTheDocument()
-  })
-
-  it('hides them again when toggled back off', () => {
-    if (!sample) return
-    render(<TemplateSelectionModal open={true} onClose={onClose} onSelect={onSelect} />)
-    fireEvent.click(screen.getByText('検証・サンプルを表示'))
-    fireEvent.click(screen.getByText('検証・サンプルを隠す'))
-    expect(screen.queryByText(sample.name)).not.toBeInTheDocument()
   })
 })

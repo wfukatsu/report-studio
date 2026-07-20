@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
 import { TagInput } from '@/components/common/TagInput'
 
@@ -42,7 +41,7 @@ export function SaveTemplateDialog({ open, onSave, onCancel, defaultName = '', d
     if (canSave) onSave(name.trim(), category, tags.length > 0 ? tags : undefined)
   }
 
-  const categoryOptions = [...new Set(BUILTIN_TEMPLATES.map((t) => t.category).filter(Boolean) as string[])]
+  const categoryOptions: string[] = []
 
   return (
     <div

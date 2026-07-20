@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyTemplate, createBlankDefinition, loadBuiltinTemplate } from './templateUtils'
-import { BUILTIN_TEMPLATES } from '@/templates/builtinTemplates'
+import { applyTemplate, createBlankDefinition } from './templateUtils'
 import type { Template } from '@/types'
 
 function makeTemplate(overrides: Partial<Template> = {}): Template {
@@ -74,21 +73,6 @@ describe('applyTemplate — sourceTemplateId + deep clone', () => {
     expect(def.metadata.sourceTemplateId).toBe('my-template')
   })
 
-  it('deep-clones definition so BUILTIN_TEMPLATES is not mutated', () => {
-    if (BUILTIN_TEMPLATES.length === 0) return
-    const entry = BUILTIN_TEMPLATES[0]
-    const originalPageId = entry.definition.pages[0].id
-
-    const def = loadBuiltinTemplate(entry.id)!
-
-    // loadBuiltinTemplate deep-clones, so page objects must be different references
-    expect(def.pages[0]).not.toBe(entry.definition.pages[0])
-    // But IDs are the same (no remap — just cloned)
-    expect(def.pages[0].id).toBe(originalPageId)
-    // Original template must be untouched
-    expect(entry.definition.pages[0].id).toBe(originalPageId)
-  })
-
   it('applying the same template twice produces independent page objects', () => {
     const template = makeTemplate({
       pages: [
@@ -105,26 +89,5 @@ describe('applyTemplate — sourceTemplateId + deep clone', () => {
     expect(def1.pages[0].id).not.toBe(def2.pages[0].id)
     // Original untouched
     expect(template.pages[0].id).toBe('original-p1')
-  })
-})
-
-describe('loadBuiltinTemplate', () => {
-  it('存在しない id は null を返す', () => {
-    expect(loadBuiltinTemplate('nonexistent-id')).toBeNull()
-  })
-
-  it('組み込みテンプレートが存在する場合は ReportDefinition を返す', () => {
-    if (BUILTIN_TEMPLATES.length === 0) return
-    const first = BUILTIN_TEMPLATES[0]
-    const def = loadBuiltinTemplate(first.id)
-    expect(def).not.toBeNull()
-    expect(def!.pages).toBeDefined()
-  })
-
-  it('stamps sourceTemplateId from the built-in template', () => {
-    if (BUILTIN_TEMPLATES.length === 0) return
-    const first = BUILTIN_TEMPLATES[0]
-    const def = loadBuiltinTemplate(first.id)
-    expect(def!.metadata.sourceTemplateId).toBe(first.id)
   })
 })

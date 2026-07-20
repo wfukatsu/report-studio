@@ -2,14 +2,12 @@ import { toast } from 'sonner'
 import type { Section } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { createReport, saveReport } from '@/api/reportApi'
-import { loadBuiltinTemplate } from '@/lib/templateUtils'
 import { exportToJSON } from '@/lib/exportUtils'
 
 interface FileContext {
   reportName: string
   backendConnected: boolean
   hasUnsavedChanges: boolean
-  sourceTemplateId: string | null | undefined
   masterHeader: Section | null | undefined
   masterFooter: Section | null | undefined
   headerEditMode: boolean
@@ -21,7 +19,6 @@ interface FileContext {
   setShowManagerModal: (v: boolean) => void
   setShowOpenLocalConfirm: (v: boolean) => void
   setShowOpenServerConfirm: (v: boolean) => void
-  setShowUpdateFromBuiltinConfirm: (v: boolean) => void
   setShowDeleteHeaderConfirm: (v: boolean) => void
   setShowDeleteFooterConfirm: (v: boolean) => void
   setShowSaveMenu: (v: boolean) => void
@@ -35,7 +32,6 @@ export function useToolbarFile({
   reportName,
   backendConnected,
   hasUnsavedChanges,
-  sourceTemplateId,
   masterHeader,
   masterFooter,
   headerEditMode,
@@ -46,33 +42,17 @@ export function useToolbarFile({
   setShowManagerModal,
   setShowOpenLocalConfirm,
   setShowOpenServerConfirm,
-  setShowUpdateFromBuiltinConfirm,
   setShowDeleteHeaderConfirm,
   setShowDeleteFooterConfirm,
   setShowSaveMenu,
 }: FileContext) {
   const importReportJSON = useReportStore((s) => s.importReportJSON)
-  const loadReport = useReportStore((s) => s.loadReport)
-  const setCurrentTemplateId = useReportStore((s) => s.setCurrentTemplateId)
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
   const toggleHeaderEditMode = useReportStore((s) => s.toggleHeaderEditMode)
 
   const handleNew = (onRequestTemplateModal?: () => void) => {
     onRequestTemplateModal?.()
-  }
-
-  const handleUpdateFromBuiltin = () => {
-    if (!sourceTemplateId) return
-    const definition = loadBuiltinTemplate(sourceTemplateId)
-    if (!definition) {
-      toast.error('ビルトインテンプレートが見つかりませんでした', { duration: 8000 })
-      setShowUpdateFromBuiltinConfirm(false)
-      return
-    }
-    loadReport(definition)
-    setCurrentTemplateId(null)
-    setShowUpdateFromBuiltinConfirm(false)
   }
 
   const handleOpenLocal = () => {
@@ -202,7 +182,6 @@ export function useToolbarFile({
 
   return {
     handleNew,
-    handleUpdateFromBuiltin,
     handleOpenLocal,
     handleOpenServer,
     handleFileChange,

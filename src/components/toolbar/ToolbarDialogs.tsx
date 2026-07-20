@@ -15,13 +15,11 @@ const PLACEHOLDER_TEMPLATE_NAMES = new Set(['無題の帳票', 'Untitled Report'
 
 interface Props {
   reportName: string
-  sourceTemplateName?: string
   // Dialog open states
   showDataModal: boolean
   showServerSettings: boolean
   showSaveDialog: boolean
   showManagerModal: boolean
-  showUpdateFromBuiltinConfirm: boolean
   showVariantDialog: boolean
   showValidationWarnConfirm: boolean
   showOpenLocalConfirm: boolean
@@ -36,8 +34,6 @@ interface Props {
   onSaveNew: (name: string) => void
   onCancelSave: () => void
   onCloseManagerModal: () => void
-  onConfirmUpdateFromBuiltin: () => void
-  onCancelUpdateFromBuiltin: () => void
   onSelectVariant: (variant: OutputVariant | null) => void
   onCancelVariantDialog: () => void
   onConfirmExportWithWarnings: () => void
@@ -54,12 +50,10 @@ interface Props {
 
 export function ToolbarDialogs({
   reportName,
-  sourceTemplateName,
   showDataModal,
   showServerSettings,
   showSaveDialog,
   showManagerModal,
-  showUpdateFromBuiltinConfirm,
   showVariantDialog,
   showValidationWarnConfirm,
   showOpenLocalConfirm,
@@ -73,8 +67,6 @@ export function ToolbarDialogs({
   onSaveNew,
   onCancelSave,
   onCloseManagerModal,
-  onConfirmUpdateFromBuiltin,
-  onCancelUpdateFromBuiltin,
   onSelectVariant,
   onCancelVariantDialog,
   onConfirmExportWithWarnings,
@@ -105,18 +97,6 @@ export function ToolbarDialogs({
       />
 
       <TemplateManagerModal open={showManagerModal} onClose={onCloseManagerModal} />
-
-      <ConfirmDialog
-        open={showUpdateFromBuiltinConfirm}
-        title="ビルトインテンプレートから更新"
-        message={sourceTemplateName
-          ? `現在のレポートを最新のビルトインテンプレート「${sourceTemplateName}」の定義で上書きします。これまでの変更は失われます。続行しますか？`
-          : ''}
-        confirmLabel="更新"
-        confirmVariant="danger"
-        onConfirm={onConfirmUpdateFromBuiltin}
-        onCancel={onCancelUpdateFromBuiltin}
-      />
 
       <ExportVariantDialog
         open={showVariantDialog}

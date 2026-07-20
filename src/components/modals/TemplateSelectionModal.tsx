@@ -1,16 +1,12 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings, FlaskConical } from 'lucide-react'
+import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
-import { BUILTIN_TEMPLATES, SAMPLE_CATEGORY } from '@/templates/builtinTemplates'
-
-import { loadBuiltinTemplate, createBlankDefinition } from '@/lib/templateUtils'
+import { createBlankDefinition } from '@/lib/templateUtils'
 import { filterTemplates, collectCategories, collectTags } from '@/lib/templateFilter'
-import { useBuiltinPrefs } from '@/hooks/useBuiltinPrefs'
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl, listPublicReports, copyTemplate } from '@/api/reportApi'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { TemplateManagerModal } from './TemplateManagerModal'
-import { TemplateThumbnail } from './TemplateThumbnail'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
@@ -42,8 +38,6 @@ export function TemplateSelectionModal({
   confirmLabel = '作成',
 }: TemplateSelectionModalProps) {
   const backendConnected = useReportStore((s) => s.backendConnected)
-  const { prefs } = useBuiltinPrefs()
-  const [selectedBuiltinId, setSelectedBuiltinId] = useState<string | null>(null)
   const [selectedDefinition, setSelectedDefinition] = useState<ReportDefinition | null>(null)
 
   // Backend template state (own templates)
@@ -76,48 +70,17 @@ export function TemplateSelectionModal({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([])
-  // Developer/QA templates are hidden by default (#109); this toggle reveals them.
-  const [showSamples, setShowSamples] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Apply overrides and filter hidden builtins
-  const visibleBuiltins = useMemo(
-    () => BUILTIN_TEMPLATES
-      .filter((t) => !prefs.hidden.includes(t.id))
-      .map((t) => {
-        const override = prefs.overrides[t.id]
-        if (!override) return t
-        return { ...t, category: override.category ?? t.category, tags: override.tags ?? t.tags }
-      }),
-    [prefs],
-  )
-
-  // Hide developer/QA (検証・サンプル) templates unless explicitly revealed (#109).
-  const displayBuiltins = useMemo(
-    () => showSamples ? visibleBuiltins : visibleBuiltins.filter((t) => t.category !== SAMPLE_CATEGORY),
-    [visibleBuiltins, showSamples],
-  )
-  // Whether any sample templates exist at all (controls toggle visibility).
-  const hasSampleTemplates = useMemo(
-    () => visibleBuiltins.some((t) => t.category === SAMPLE_CATEGORY),
-    [visibleBuiltins],
-  )
-
-  // Compute categories and tags from currently displayed templates
+  // Compute categories and tags from the server templates
   const allCategories = useMemo(
-    () => collectCategories([...displayBuiltins, ...backendTemplates]),
-    [displayBuiltins, backendTemplates],
+    () => collectCategories(backendTemplates),
+    [backendTemplates],
   )
   const allTags = useMemo(
-    () => collectTags([...displayBuiltins, ...backendTemplates]),
-    [displayBuiltins, backendTemplates],
-  )
-
-  // Filter builtin templates
-  const filteredBuiltins = useMemo(
-    () => filterTemplates(displayBuiltins, { query: searchQuery, category: selectedCategory ?? undefined, tags: selectedFilterTags }),
-    [displayBuiltins, searchQuery, selectedCategory, selectedFilterTags],
+    () => collectTags(backendTemplates),
+    [backendTemplates],
   )
 
   // Filter backend templates
@@ -302,20 +265,14 @@ export function TemplateSelectionModal({
     }
   }
 
-  const handleSelectBuiltin = (id: string | null) => {
-    setSelectedBuiltinId(id)
-    if (id === null) {
-      setSelectedDefinition(createBlankDefinition())
-    } else {
-      const definition = loadBuiltinTemplate(id)
-      if (definition) setSelectedDefinition(definition)
-    }
+  const handleSelectBlank = () => {
+    setSelectedDefinition(createBlankDefinition())
   }
 
   const handleConfirm = () => {
     if (selectedDefinition) {
-      // Blank / builtin start: no server template backs it yet, so clear the
-      // bound id (null) — the first 保存 must create a NEW template rather than
+      // Blank start: no server template backs it yet, so clear the bound id
+      // (null) — the first 保存 must create a NEW template rather than
       // overwrite whatever was open before (#152).
       onSelect(selectedDefinition, null)
       onClose()
@@ -323,12 +280,10 @@ export function TemplateSelectionModal({
   }
 
   const handleClose = () => {
-    setSelectedBuiltinId(null)
     setSelectedDefinition(null)
     setSearchQuery('')
     setSelectedCategory(null)
     setSelectedFilterTags([])
-    setShowSamples(false)
     setDeleteConfirmId(null)
     setRenamingId(null)
     setManagerOpen(false)
@@ -434,36 +389,11 @@ export function TemplateSelectionModal({
               )}
             </div>
           )}
-          {/* Developer/QA templates toggle — hidden by default (#109) */}
-          {hasSampleTemplates && (
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setShowSamples((v) => {
-                    const next = !v
-                    // Leaving the sample view: drop a now-hidden category filter.
-                    if (!next && selectedCategory === SAMPLE_CATEGORY) setSelectedCategory(null)
-                    return next
-                  })
-                }}
-                aria-pressed={showSamples}
-                className={`flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
-                  showSamples
-                    ? 'bg-primary/10 text-primary border-primary/30'
-                    : 'bg-background text-muted-foreground hover:text-foreground border-border'
-                }`}
-                title="開発者向けの検証・サンプルテンプレートの表示を切り替えます"
-              >
-                <FlaskConical className="w-3 h-3" />
-                {showSamples ? '検証・サンプルを隠す' : '検証・サンプルを表示'}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Built-in templates */}
+          {/* Blank template */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               テンプレート
@@ -471,9 +401,9 @@ export function TemplateSelectionModal({
             <div className="grid grid-cols-3 gap-3">
               {/* Blank option */}
               <button
-                onClick={() => handleSelectBuiltin(null)}
+                onClick={handleSelectBlank}
                 className={`flex flex-col rounded-lg border-2 transition-colors text-sm overflow-hidden text-left ${
-                  selectedBuiltinId === null && selectedDefinition !== null
+                  selectedDefinition !== null
                     ? 'border-primary bg-primary/5'
                     : 'border-border bg-card hover:bg-accent'
                 }`}
@@ -487,30 +417,6 @@ export function TemplateSelectionModal({
                 </div>
                 <p className="px-2 py-1.5 font-medium text-xs">空白</p>
               </button>
-
-              {filteredBuiltins.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => handleSelectBuiltin(t.id)}
-                  title={t.description ?? t.name}
-                  className={`flex flex-col rounded-lg border-2 transition-colors text-sm overflow-hidden text-left ${
-                    selectedBuiltinId === t.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-card hover:bg-accent'
-                  }`}
-                >
-                  {/* Wireframe thumbnail of the first page */}
-                  <div className="w-full border-b bg-white">
-                    <TemplateThumbnail definition={t.definition} />
-                  </div>
-                  <div className="px-2 py-1.5">
-                    <p className="font-medium text-xs truncate">{t.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {t.definition.pages.length}ページ · {t.definition.pageSettings?.paperSize ?? 'A4'}
-                    </p>
-                  </div>
-                </button>
-              ))}
             </div>
           </div>
 
