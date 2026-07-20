@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ColorPickerPopover } from './ColorPickerPopover'
 import { isValidHex, expandHex } from '@/lib/colorUtils'
@@ -47,12 +47,12 @@ describe('expandHex', () => {
 // ---------------------------------------------------------------------------
 
 describe('ColorPickerPopover', () => {
-  let onChange: ReturnType<typeof vi.fn>
-  let onClose: ReturnType<typeof vi.fn>
+  let onChange: Mock<(hex: string) => void>
+  let onClose: Mock<() => void>
 
   beforeEach(() => {
-    onChange = vi.fn()
-    onClose = vi.fn()
+    onChange = vi.fn<(hex: string) => void>()
+    onClose = vi.fn<() => void>()
   })
 
   function renderPopover(value = '#FF0000') {

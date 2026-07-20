@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TextInlineEditor } from './InlineEditor'
@@ -20,12 +20,12 @@ function makeElement(overrides: Partial<TextElement> = {}): TextElement {
 }
 
 describe('TextInlineEditor', () => {
-  let onCommit: ReturnType<typeof vi.fn>
-  let onCancel: ReturnType<typeof vi.fn>
+  let onCommit: Mock<(content: string) => void>
+  let onCancel: Mock<() => void>
 
   beforeEach(() => {
-    onCommit = vi.fn()
-    onCancel = vi.fn()
+    onCommit = vi.fn<(content: string) => void>()
+    onCancel = vi.fn<() => void>()
   })
 
   it('renders a contenteditable div', () => {

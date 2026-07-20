@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { exportToJSON, isSafeImageSrc, exportPageToPng, exportReportToPdf } from './exportUtils'
 import { importFromJSON } from './migration'
 import type { ReportDefinition } from '@/types'
@@ -269,12 +269,16 @@ const mockAddImage = vi.fn()
 const mockAddPage = vi.fn()
 
 vi.mock('jspdf', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    save: mockSave,
-    output: mockOutput,
-    addImage: mockAddImage,
-    addPage: mockAddPage,
-  })),
+  // Vitest 4 requires constructor mocks to use `function`/`class` (an arrow
+  // function throws "is not a constructor" under `new jsPDF()`).
+  default: vi.fn().mockImplementation(function () {
+    return {
+      save: mockSave,
+      output: mockOutput,
+      addImage: mockAddImage,
+      addPage: mockAddPage,
+    }
+  }),
 }))
 
 import html2canvas from 'html2canvas'
@@ -315,6 +319,14 @@ beforeEach(() => {
     }
     return originalCreate(tag, ...args)
   })
+})
+
+// Vitest 4: vi.spyOn on an already-spied method returns the same spy and mutates
+// it in place, so a leaked document.createElement spy makes the beforeEach capture
+// bind to the mock and recurse infinitely. Restore spies after every test so each
+// beforeEach re-spies the genuine createElement.
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('exportPageToPng', () => {
