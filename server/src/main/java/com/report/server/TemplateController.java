@@ -445,6 +445,19 @@ public final class TemplateController {
     }
 
     /**
+     * Ownership guard for template-scoped sub-resources (webhooks, sequences, …). Returns true
+     * iff the template exists in {@code definitionsRepo} <b>and</b> the caller owns it (or it is a
+     * legacy/dev template per {@link #isOwner}). A non-existent template yields false so that
+     * callers respond 404 uniformly — preventing an unauthenticated/non-owning user from writing
+     * or reading a sibling resource (webhook URL, sequence config) attached to a template ID they
+     * do not own (issue #198, IDOR). Callers must return 404 (never 403) to avoid ID enumeration.
+     */
+    static boolean ownsTemplate(Context ctx, JsonBlobRepository definitionsRepo, String templateId) {
+        java.util.Optional<String> stored = definitionsRepo.get(templateId);
+        return stored.isPresent() && isOwner(ctx, stored.get());
+    }
+
+    /**
      * Extract and validate name from request body.
      * Returns null (response already sent) if invalid.
      */

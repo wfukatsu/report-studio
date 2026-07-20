@@ -214,7 +214,7 @@ public final class AppWiring {
         batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
         sequenceRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "sequences");
         sequenceRepo.ensureTable();
-        sequenceCtrl = new SequenceController(sequenceRepo);
+        sequenceCtrl = new SequenceController(sequenceRepo, v2DefinitionsRepo);
         formResponseCtrl.setSequenceController(sequenceCtrl);
         // Status-transition audit trail (#188)
         statusAuditRepo = new StatusAuditRepository(new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
@@ -227,7 +227,7 @@ public final class AppWiring {
             2, 8, 60L, java.util.concurrent.TimeUnit.SECONDS,
             new java.util.concurrent.LinkedBlockingQueue<>(100),
             new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
-        webhookCtrl = new WebhookController(webhookRepo, webhookDispatcher, SecretCrypto.fromEnv());
+        webhookCtrl = new WebhookController(webhookRepo, v2DefinitionsRepo, webhookDispatcher, SecretCrypto.fromEnv());
         formResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         healthCtrl = new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);

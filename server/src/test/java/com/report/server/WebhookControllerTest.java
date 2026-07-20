@@ -28,20 +28,29 @@ class WebhookControllerTest {
     private static final String URL = "https://8.8.8.8/hook";
 
     private JsonBlobRepository repo;
+    private JsonBlobRepository definitionsRepo;
     private WebhookDispatcher dispatcher;
     private SecretCrypto crypto;
     private WebhookController controller;
     private Context ctx;
 
+    /** Template envelope owned by the given user (empty = legacy/no owner). */
+    private static String envelopeOwnedBy(String owner) {
+        return "{\"id\":\"" + TEMPLATE_ID + "\",\"created_by\":\"" + owner + "\"}";
+    }
+
     @BeforeEach
     void setUp() {
         repo = mock(JsonBlobRepository.class);
+        definitionsRepo = mock(JsonBlobRepository.class);
         dispatcher = mock(WebhookDispatcher.class);
         crypto = new SecretCrypto(KEY);
-        controller = new WebhookController(repo, dispatcher, crypto);
+        controller = new WebhookController(repo, definitionsRepo, dispatcher, crypto);
         ctx = mock(Context.class);
         when(ctx.pathParam("templateId")).thenReturn(TEMPLATE_ID);
         when(ctx.attribute("principal")).thenReturn(new Principal("u1", "User One", Set.of("admin")));
+        // Default: the caller owns the template, so ownership guard (#198) lets requests through.
+        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("u1")));
     }
 
     private String capturePutJson() {
@@ -74,7 +83,7 @@ class WebhookControllerTest {
 
     @Test
     void putConfig_withoutKey_storesPlaintext() throws Exception {
-        controller = new WebhookController(repo, dispatcher, new SecretCrypto(null));
+        controller = new WebhookController(repo, definitionsRepo, dispatcher, new SecretCrypto(null));
         when(ctx.body()).thenReturn("{\"secret\":\"hook-secret-1234\"}");
         when(repo.get(TEMPLATE_ID)).thenReturn(Optional.empty());
 
@@ -160,6 +169,53 @@ class WebhookControllerTest {
         controller.getConfig(ctx);
 
         verify(ctx).json(java.util.Map.of("configured", false));
+    }
+
+    // ── Ownership guard (issue #198, IDOR) ─────────────────────────────────────
+
+    @Test
+    void getConfig_otherUsersTemplate_404_noWebhookRead() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+
+        controller.getConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(repo, never()).get(TEMPLATE_ID);
+    }
+
+    @Test
+    void getConfig_unknownTemplate_404() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.empty());
+
+        controller.getConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(repo, never()).get(TEMPLATE_ID);
+    }
+
+    @Test
+    void putConfig_otherUsersTemplate_404_noWrite() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+        when(ctx.body()).thenReturn("{\"url\":\"" + URL + "\",\"secret\":\"x\"}");
+
+        controller.putConfig(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(repo, never()).put(anyString(), anyString());
+    }
+
+    @Test
+    void testWebhook_otherUsersTemplate_404_noDispatch() throws Exception {
+        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
+        when(definitionsRepo.get(TEMPLATE_ID)).thenReturn(Optional.of(envelopeOwnedBy("someone-else")));
+
+        controller.testWebhook(ctx);
+
+        verify(ctx).status(HttpStatus.NOT_FOUND);
+        verify(dispatcher, never()).dispatch(anyString(), any(), anyString());
     }
 
     // ── Dispatch: secret is decrypted for signing ─────────────────────────────
