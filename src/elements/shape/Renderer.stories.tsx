@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ShapeRenderer } from './Renderer'
 import type { ShapeElement } from '@/types'
 

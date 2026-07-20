@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { BrandColorManagerModal } from './BrandColorManagerModal'
 
@@ -21,10 +21,10 @@ vi.mock('@/hooks/useColorPrefs', () => ({
 
 
 describe('BrandColorManagerModal', () => {
-  let onClose: ReturnType<typeof vi.fn>
+  let onClose: Mock<() => void>
 
   beforeEach(() => {
-    onClose = vi.fn()
+    onClose = vi.fn<() => void>()
     mockAdd.mockClear()
     mockRemove.mockClear()
     mockUpdate.mockClear()

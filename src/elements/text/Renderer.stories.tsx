@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { TextRenderer } from './Renderer'
 import type { TextElement } from '@/types'
 

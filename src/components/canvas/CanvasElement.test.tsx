@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import { CanvasElement } from './CanvasElement'
 import type { ReportElement } from '@/types'
@@ -49,14 +49,14 @@ function makeTextElement(overrides: Partial<ReportElement> = {}): ReportElement 
 }
 
 describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => {
-  let onResize: ReturnType<typeof vi.fn>
-  let onMove: ReturnType<typeof vi.fn>
-  let onSelect: ReturnType<typeof vi.fn>
+  let onResize: Mock<(id: string, size: { width: number; height: number }) => void>
+  let onMove: Mock<(id: string, position: { x: number; y: number }) => void>
+  let onSelect: Mock<(id: string, multi: boolean) => void>
 
   beforeEach(() => {
-    onResize = vi.fn()
-    onMove = vi.fn()
-    onSelect = vi.fn()
+    onResize = vi.fn<(id: string, size: { width: number; height: number }) => void>()
+    onMove = vi.fn<(id: string, position: { x: number; y: number }) => void>()
+    onSelect = vi.fn<(id: string, multi: boolean) => void>()
     storeState.editorZoom = 1
   })
 
