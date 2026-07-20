@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from 'sonner'
 import type { ImageElement } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
 
@@ -23,7 +24,7 @@ export function ImagePropertiesPanel({ el, onChange }: Props) {
 
     if (file.size > maxSize) {
       const limitLabel = isSvg ? '512KB' : '2MB'
-      alert(`ファイルサイズが${limitLabel}を超えています。`)
+      toast.error(`ファイルサイズが${limitLabel}を超えています。`)
       return
     }
 

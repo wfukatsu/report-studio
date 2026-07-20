@@ -279,10 +279,14 @@ describe('BindingEditor — スキーマライブラリ保存', () => {
   it('saves the current schema under the prompted name', async () => {
     setupSchemaAndElements()
     vi.mocked(saveToSchemaLibrary).mockResolvedValueOnce({} as never)
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('  請求書スキーマ  ')
 
     render(<BindingEditor />)
     fireEvent.click(screen.getByText('ライブラリに保存'))
+
+    // Name dialog opens (#269 — PromptDialog replaces window.prompt)
+    const input = screen.getByPlaceholderText('スキーマ名')
+    fireEvent.change(input, { target: { value: '  請求書スキーマ  ' } })
+    fireEvent.click(screen.getByText('保存'))
 
     await waitFor(() => {
       expect(saveToSchemaLibrary).toHaveBeenCalledTimes(1)
@@ -291,17 +295,15 @@ describe('BindingEditor — スキーマライブラリ保存', () => {
     expect(name).toBe('請求書スキーマ') // trimmed
     const { schema } = payload as { schema: { groups: unknown[] } }
     expect(schema.groups).toHaveLength(1)
-    promptSpy.mockRestore()
   })
 
-  it('does not call the API when the prompt is cancelled', () => {
+  it('does not call the API when the name dialog is cancelled', () => {
     setupSchemaAndElements()
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null)
 
     render(<BindingEditor />)
     fireEvent.click(screen.getByText('ライブラリに保存'))
+    fireEvent.click(screen.getByText('キャンセル'))
 
     expect(saveToSchemaLibrary).not.toHaveBeenCalled()
-    promptSpy.mockRestore()
   })
 })

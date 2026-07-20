@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type { Product, ProductCustomFieldDef } from '@/types'
 import { cn } from '@/lib/utils'
@@ -75,7 +76,7 @@ export function ProductMasterTab() {
     try {
       await deleteProduct(product.id)
     } catch {
-      alert('削除に失敗しました。再試行してください。')
+      toast.error('削除に失敗しました。再試行してください。', { duration: 8000 })
     } finally {
       setProductOp(product.id, 'idle')
     }
