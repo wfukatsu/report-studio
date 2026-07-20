@@ -1,5 +1,4 @@
 import { Search, Download } from 'lucide-react'
-import { downloadBlob } from '@/api/client'
 
 interface Props {
   searchQuery: string
@@ -45,25 +44,4 @@ export function DataGridToolbar({ searchQuery, onSearchChange, onExportCsv, tota
       </button>
     </div>
   )
-}
-
-// ---------------------------------------------------------------------------
-// CSV export utility
-// ---------------------------------------------------------------------------
-
-export function exportToCsv(
-  columns: string[],
-  rows: Record<string, unknown>[],
-  filename: string,
-) {
-  const escape = (v: unknown): string => {
-    const s = v == null ? '' : String(v)
-    return s.includes(',') || s.includes('"') || s.includes('\n')
-      ? `"${s.replace(/"/g, '""')}"`
-      : s
-  }
-  const header = columns.map(escape).join(',')
-  const body = rows.map((row) => columns.map((col) => escape(row[col])).join(',')).join('\n')
-  const csv = header + '\n' + body
-  downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename)
 }

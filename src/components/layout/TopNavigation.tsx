@@ -47,7 +47,7 @@ export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationPro
     (currentTabId: AppTab) => (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.nativeEvent.isComposing) return
       const idx = tabIds.indexOf(currentTabId)
-      let targetIdx: number | null = null
+      let targetIdx: number
       switch (e.key) {
         case 'ArrowLeft':  targetIdx = idx === 0 ? tabIds.length - 1 : idx - 1; break
         case 'ArrowRight': targetIdx = idx === tabIds.length - 1 ? 0 : idx + 1; break
@@ -58,7 +58,7 @@ export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationPro
         default: return
       }
       e.preventDefault()
-      if (targetIdx !== null) focusTab(tabIds[targetIdx])
+      focusTab(tabIds[targetIdx])
     },
     [tabIds, focusTab, onTabChange],
   )

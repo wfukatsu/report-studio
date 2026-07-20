@@ -173,4 +173,25 @@ describe('authSlice — logoutUser', () => {
     await expect(useReportStore.getState().logoutUser()).rejects.toBeInstanceOf(NetworkError)
     expect(useReportStore.getState().currentUser).toBeNull()
   })
+
+  it('clears the loaded template and the user-scoped autosave draft on logout', async () => {
+    useReportStore.setState({ currentUser: ADMIN, currentTemplateId: 'tpl-1' })
+    localStorage.setItem('rds-autosave:admin', '{"pages":[]}')
+    vi.mocked(logout).mockResolvedValueOnce(undefined)
+
+    await useReportStore.getState().logoutUser()
+
+    expect(useReportStore.getState().currentTemplateId).toBeNull()
+    expect(localStorage.getItem('rds-autosave:admin')).toBeNull()
+  })
+
+  it('does not reset the editor when logout is called while already logged out', async () => {
+    useReportStore.setState({ currentUser: null, currentTemplateId: 'tpl-1' })
+    vi.mocked(logout).mockResolvedValueOnce(undefined)
+
+    await useReportStore.getState().logoutUser()
+
+    // No logged-in → logged-out transition: template stays untouched
+    expect(useReportStore.getState().currentTemplateId).toBe('tpl-1')
+  })
 })
