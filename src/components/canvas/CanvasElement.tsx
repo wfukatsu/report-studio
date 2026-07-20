@@ -131,6 +131,12 @@ export const CanvasElement = memo(function CanvasElement({
     elementRef.current = element
   }, [element])
 
+  // Current editor zoom, mirrored into a ref so the pointer-move resize handler always
+  // reads the live value without re-subscribing or stale closures (#214).
+  const editorZoom = useReportStore((s) => s.editorZoom)
+  const zoomRef = useRef(editorZoom || 1)
+  zoomRef.current = editorZoom || 1
+
   // Track resize cleanup so we can remove window listeners on unmount
   const resizeCleanupRef = useRef<(() => void) | null>(null)
   useEffect(() => {
@@ -160,9 +166,13 @@ export const CanvasElement = memo(function CanvasElement({
 
       const onPointerMove = (ev: PointerEvent) => {
         if (!resizeStart.current) return
-        // delta in px — convert to mm
-        const dxMm = pxToMm(ev.clientX - resizeStart.current.mouseX)
-        const dyMm = pxToMm(ev.clientY - resizeStart.current.mouseY)
+        // The canvas renders under `transform: scale(zoom)`, so a screen-pixel delta is
+        // zoom× the mm-space delta. Divide by the current editor zoom before converting to mm,
+        // matching the drag-move path (ReportCanvas: `pxToMm(delta / zoom)`); otherwise the
+        // handle tracks the cursor at the wrong speed whenever zoom ≠ 1 (#214).
+        const zoom = zoomRef.current
+        const dxMm = pxToMm((ev.clientX - resizeStart.current.mouseX) / zoom)
+        const dyMm = pxToMm((ev.clientY - resizeStart.current.mouseY) / zoom)
 
         // Minimum size: 5mm
         const MIN_MM = 5

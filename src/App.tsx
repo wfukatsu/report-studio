@@ -86,7 +86,7 @@ export default function App() {
   const cutElements = useReportStore((s) => s.cutElements)
   const pasteElements = useReportStore((s) => s.pasteElements)
   const duplicateElement = useReportStore((s) => s.duplicateElement)
-  const removeElement = useReportStore((s) => s.removeElement)
+  const removeElements = useReportStore((s) => s.removeElements)
   const selectAll = useReportStore((s) => s.selectAll)
   const moveElement = useReportStore((s) => s.moveElement)
   const setZoom = useReportStore((s) => s.setZoom)
@@ -227,12 +227,23 @@ export default function App() {
 
       const meta = e.metaKey || e.ctrlKey
       const target = e.target as HTMLElement
-      // Don't intercept when typing in inputs
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return
+      // Don't intercept when typing in inputs or in an inline text/contenteditable editor.
+      // isContentEditable also covers IME composition inside the inline editor, where the
+      // editor returns before stopPropagation — without this guard a composition Backspace
+      // reaches here and deletes the element being edited (#211).
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) return
 
-      if (meta && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
-      if (meta && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo() }
-      if (meta && e.key === 'y') { e.preventDefault(); redo() }
+      // Shift+z reports e.key as uppercase 'Z' — compare case-insensitively so
+      // Cmd/Ctrl+Shift+Z (redo) actually fires (#212).
+      const key = e.key.toLowerCase()
+      if (meta && key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if (meta && key === 'z' && e.shiftKey) { e.preventDefault(); redo() }
+      if (meta && key === 'y') { e.preventDefault(); redo() }
 
       if (meta && e.key === 'c') {
         if (activePageId && selectedIds.length > 0) {
@@ -266,12 +277,13 @@ export default function App() {
         if (activePageId) { e.preventDefault(); selectAll(activePageId) }
       }
 
-      // Delete selected
+      // Delete selected — single source of truth for element deletion (#211).
+      // Batch removeElements → one undo entry (not N); ReportCanvas no longer duplicates this.
       if ((e.key === 'Delete' || e.key === 'Backspace') && !meta) {
         if (activePageId && selectedIds.length > 0) {
           e.preventDefault()
           const count = selectedIds.length
-          selectedIds.forEach((id) => removeElement(activePageId, id))
+          removeElements(activePageId, selectedIds)
           toast(`${count}件の要素を削除しました`, {
             action: { label: '元に戻す', onClick: () => undo() },
             duration: 5000,
@@ -311,7 +323,7 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [activePageId, selectedIds, undo, redo, copyElements, cutElements, pasteElements,
-    duplicateElement, removeElement, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, activePage,
+    duplicateElement, removeElements, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, activePage,
     snapToGrid, gridSize, headerEditMode, setHeaderEditMode])
 
   return (

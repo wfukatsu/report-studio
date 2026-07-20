@@ -14,12 +14,16 @@ vi.mock('@dnd-kit/core', () => ({
   }),
 }))
 
+// Mutable editor zoom the mocked store reports — lets tests exercise zoom ≠ 1 (#214).
+const storeState = vi.hoisted(() => ({ editorZoom: 1 }))
+
 // Mock store calls used inside CanvasElement
 vi.mock('@/store/reportStore', () => ({
   useReportStore: (selector: (s: unknown) => unknown) => {
     const fakeStore = {
       removeElement: vi.fn(),
       updateElement: vi.fn(),
+      editorZoom: storeState.editorZoom,
     }
     return selector(fakeStore)
   },
@@ -52,6 +56,7 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
     onResize = vi.fn()
     onMove = vi.fn()
     onSelect = vi.fn()
+    storeState.editorZoom = 1
   })
 
   function renderElement(element: ReportElement) {
@@ -93,6 +98,34 @@ describe('CanvasElement — Shift+リサイズ アスペクト比固定', () => 
     const { width, height } = onResize.mock.calls[onResize.mock.calls.length - 1][1]
     expect(width).toBeGreaterThan(100)
     expect(height).toBeCloseTo(50, 0) // height unchanged
+  })
+
+  it('ズーム率2倍のとき: 同じスクリーン移動量で幅の増分が半分になる (#214)', () => {
+    // Baseline at zoom=1: 20px right → some width increase.
+    const el1 = makeTextElement({ size: { width: 100, height: 50 } })
+    const r1 = renderElement(el1)
+    const h1 = getHandle(r1.container as HTMLElement, 'se')
+    if (!h1) return
+    fireEvent.pointerDown(h1, { clientX: 0, clientY: 0, pointerId: 1 })
+    dispatchWindowPointerMove(20, 0, false)
+    dispatchWindowPointerUp(20, 0)
+    const widthAtZoom1 = onResize.mock.calls[onResize.mock.calls.length - 1][1].width
+    const deltaAtZoom1 = widthAtZoom1 - 100
+
+    // Same gesture at zoom=2: the screen-pixel delta maps to half the mm delta.
+    onResize.mockClear()
+    storeState.editorZoom = 2
+    const el2 = makeTextElement({ size: { width: 100, height: 50 } })
+    const r2 = renderElement(el2)
+    const h2 = getHandle(r2.container as HTMLElement, 'se')
+    if (!h2) return
+    fireEvent.pointerDown(h2, { clientX: 0, clientY: 0, pointerId: 1 })
+    dispatchWindowPointerMove(20, 0, false)
+    dispatchWindowPointerUp(20, 0)
+    const deltaAtZoom2 = onResize.mock.calls[onResize.mock.calls.length - 1][1].width - 100
+
+    expect(deltaAtZoom1).toBeGreaterThan(0)
+    expect(deltaAtZoom2).toBeCloseTo(deltaAtZoom1 / 2, 3)
   })
 
   it('SE ハンドルで Shift+ドラッグ: アスペクト比 (2:1) が維持される', () => {

@@ -199,6 +199,10 @@ public final class ApiRoutes {
         app.post("/api/v2/templates", w.templateCtrl::create);
         app.get("/api/v2/templates/{id}", w.templateCtrl::get);
         app.put("/api/v2/templates/{id}", w.templateCtrl::put);
+        // navigator.sendBeacon (tab-close auto-save, #213) can only issue POST, so the
+        // beacon save hits POST /templates/{id}. Bind it to the same handler as PUT — without
+        // this the beacon 404s and the last edits are silently lost.
+        app.post("/api/v2/templates/{id}", w.templateCtrl::put);
         app.delete("/api/v2/templates/{id}", w.templateCtrl::delete);
         app.post("/api/v2/templates/{id}/duplicate", w.templateCtrl::duplicate);
         app.put("/api/v2/templates/{id}/visibility", w.templateCtrl::updateVisibility);
