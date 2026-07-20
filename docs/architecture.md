@@ -181,7 +181,7 @@ scalar.db.transaction_manager=jdbc
 
 ## 8. API 設計方針
 
-- **バージョニング**: `/api/v2/*` が現行の主 API（ReportDefinition ベース）。`/api/v1/*` はレガシー投影ベース + 認証・公開フォーム・ジョブ・商品などの周辺 API。
+- **バージョニング**: `/api/v2/*` が現行の主 API（ReportDefinition ベース）。`/api/v1/*` は未移行の周辺 API のみ（認証/PAT・admin・商品・ジョブ・Webhook・シーケンス・公開フォーム・binding-trees）。かつての投影ベース v1 デッドスタックは削除済み。
 - **認証**: Cookie セッション。公開フォームとヘルスチェックのみ免除。
 - **CSRF 防御**: 状態変更メソッドに Origin チェック。
 - **エラー形式**: JSON。検証失敗は 422、レート制限超過は 429（`Retry-After` 付き）、権限不足は 403、未認証は 401。バインド解決の部分成功は 207。
