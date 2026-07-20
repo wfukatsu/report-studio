@@ -1,7 +1,9 @@
 package com.report.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.report.server.auth.AuthController;
 import com.report.server.auth.Principal;
+import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRecord;
 import com.report.server.auth.UserRepository;
 import io.javalin.http.Context;
@@ -19,12 +21,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link ApiTokenController} — Bearer resolution + management (#195). */
 class ApiTokenControllerTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final UserRecord ADMIN =
             new UserRecord("admin", "管理者", "hash", Set.of("admin", "user"));
 
@@ -172,5 +176,101 @@ class ApiTokenControllerTest {
         ArgumentCaptor<Map<String, Object>> resp = ArgumentCaptor.forClass(Map.class);
         verify(ctx).json(resp.capture());
         assertNull(resp.getValue().get("revoked"), "must not report revoked:true on a failed delete");
+    }
+
+    // ── Expiry / limits / rate-limit (#209) ────────────────────────────────────
+
+    @Test
+    void create_withExpiresInDays_persistsFutureExpiry() throws Exception {
+        Context ctx = ctx();
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.body()).thenReturn("{\"label\":\"ci\",\"expiresInDays\":30}");
+
+        controller.create(ctx);
+
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(tokenRepo).put(anyString(), json.capture(), eq("admin"));
+        long expiresAt = MAPPER.readTree(json.getValue()).path("expiresAt").asLong();
+        assertTrue(expiresAt > System.currentTimeMillis(), "expiresAt must be a future timestamp");
+    }
+
+    @Test
+    void create_withoutExpiry_neverExpires() throws Exception {
+        Context ctx = ctx();
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.body()).thenReturn("{\"label\":\"ci\"}");
+
+        controller.create(ctx);
+
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(tokenRepo).put(anyString(), json.capture(), eq("admin"));
+        assertEquals(0L, MAPPER.readTree(json.getValue()).path("expiresAt").asLong());
+    }
+
+    @Test
+    void resolveFromBearer_expiredToken_returnsAnonymous() {
+        String plaintext = "rpat_expired";
+        String hash = ApiTokenController.sha256(plaintext);
+        long past = System.currentTimeMillis() - 1_000;
+        when(tokenRepo.get(hash)).thenReturn(Optional.of(
+                "{\"id\":\"" + hash + "\",\"userId\":\"admin\",\"expiresAt\":" + past + "}"));
+
+        Context ctx = ctx();
+        when(ctx.header("Authorization")).thenReturn("Bearer " + plaintext);
+
+        assertTrue(controller.resolveFromBearer(ctx).isAnonymous(), "expired token must not authenticate");
+    }
+
+    @Test
+    void create_atPerUserLimit_returns429_noWrite() {
+        Context ctx = ctx();
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.body()).thenReturn("{}");
+        java.util.List<String> active = new java.util.ArrayList<>();
+        for (int i = 0; i < ApiTokenController.MAX_TOKENS_PER_USER; i++) {
+            active.add("{\"id\":\"h" + i + "\",\"userId\":\"admin\",\"expiresAt\":0}");
+        }
+        when(tokenRepo.listByGroupKey("admin")).thenReturn(active);
+
+        controller.create(ctx);
+
+        verify(ctx).status(HttpStatus.TOO_MANY_REQUESTS);
+        verify(tokenRepo, never()).put(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void create_expiredTokensDoNotCountTowardLimit() {
+        Context ctx = ctx();
+        when(authCtrl.resolveFromRequest(ctx)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(ctx.body()).thenReturn("{}");
+        long past = System.currentTimeMillis() - 1_000;
+        java.util.List<String> expired = new java.util.ArrayList<>();
+        for (int i = 0; i < ApiTokenController.MAX_TOKENS_PER_USER; i++) {
+            expired.add("{\"id\":\"h" + i + "\",\"userId\":\"admin\",\"expiresAt\":" + past + "}");
+        }
+        when(tokenRepo.listByGroupKey("admin")).thenReturn(expired);
+
+        controller.create(ctx);
+
+        // All existing tokens are expired → creation is allowed.
+        verify(tokenRepo).put(anyString(), anyString(), eq("admin"));
+    }
+
+    @Test
+    void create_rateLimited_returns429() {
+        RateLimiter tight = new RateLimiter(1, 60_000L); // one creation per minute
+        ApiTokenController limited = new ApiTokenController(authCtrl, userRepo, tokenRepo, tight);
+
+        Context first = ctx();
+        when(authCtrl.resolveFromRequest(first)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(first.body()).thenReturn("{}");
+        limited.create(first);
+        verify(first).status(HttpStatus.CREATED);
+
+        Context second = ctx();
+        when(authCtrl.resolveFromRequest(second)).thenReturn(new Principal("admin", "管理者", Set.of("admin")));
+        when(second.body()).thenReturn("{}");
+        limited.create(second);
+        verify(second).status(HttpStatus.TOO_MANY_REQUESTS);
     }
 }
