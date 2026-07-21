@@ -841,6 +841,495 @@
           "sum_total_inc_tax": 154000
         }
       ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "bandflow_header",
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [],
+      "secondaryIndexes": [
+        "doc_no"
+      ],
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_no",
+          "type": "TEXT"
+        },
+        {
+          "name": "doc_issue_date",
+          "type": "TEXT"
+        },
+        {
+          "name": "cust_customer_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "sum_total_inc_tax",
+          "type": "DOUBLE"
+        }
+      ],
+      "rows": [
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "doc_no": "SLS-2026-0001",
+          "doc_issue_date": "2026年4月30日",
+          "cust_customer_name": "株式会社サンプル商事",
+          "sum_total_inc_tax": 473000
+        }
+      ]
+    },
+    {
+      "namespace": "demo",
+      "tableName": "bandflow_items",
+      "partitionKeys": [
+        "report_id"
+      ],
+      "clusteringKeys": [
+        "line_no"
+      ],
+      "secondaryIndexes": [],
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "line_no",
+          "type": "INT"
+        },
+        {
+          "name": "product_code",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_item_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_quantity",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_unit",
+          "type": "TEXT"
+        },
+        {
+          "name": "item_unit_price",
+          "type": "DOUBLE"
+        },
+        {
+          "name": "item_amount",
+          "type": "DOUBLE"
+        }
+      ],
+      "rows": [
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 1,
+          "product_code": "P-001",
+          "item_item_name": "サンプル商品 01",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 1500,
+          "item_amount": 3000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 2,
+          "product_code": "P-002",
+          "item_item_name": "サンプル商品 02",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 2000,
+          "item_amount": 6000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 3,
+          "product_code": "P-003",
+          "item_item_name": "サンプル商品 03",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 2500,
+          "item_amount": 10000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 4,
+          "product_code": "P-004",
+          "item_item_name": "サンプル商品 04",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 3000,
+          "item_amount": 15000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 5,
+          "product_code": "P-005",
+          "item_item_name": "サンプル商品 05",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 3500,
+          "item_amount": 3500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 6,
+          "product_code": "P-006",
+          "item_item_name": "サンプル商品 06",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 4000,
+          "item_amount": 8000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 7,
+          "product_code": "P-007",
+          "item_item_name": "サンプル商品 07",
+          "item_quantity": 3,
+          "item_unit": "式",
+          "item_unit_price": 4500,
+          "item_amount": 13500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 8,
+          "product_code": "P-008",
+          "item_item_name": "サンプル商品 08",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 20000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 9,
+          "product_code": "P-009",
+          "item_item_name": "サンプル商品 09",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 5500,
+          "item_amount": 27500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 10,
+          "product_code": "P-010",
+          "item_item_name": "サンプル商品 10",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 1000,
+          "item_amount": 1000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 11,
+          "product_code": "P-011",
+          "item_item_name": "サンプル商品 11",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 1500,
+          "item_amount": 3000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 12,
+          "product_code": "P-012",
+          "item_item_name": "サンプル商品 12",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 2000,
+          "item_amount": 6000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 13,
+          "product_code": "P-013",
+          "item_item_name": "サンプル商品 13",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 2500,
+          "item_amount": 10000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 14,
+          "product_code": "P-014",
+          "item_item_name": "サンプル商品 14",
+          "item_quantity": 5,
+          "item_unit": "式",
+          "item_unit_price": 3000,
+          "item_amount": 15000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 15,
+          "product_code": "P-015",
+          "item_item_name": "サンプル商品 15",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 3500,
+          "item_amount": 3500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 16,
+          "product_code": "P-016",
+          "item_item_name": "サンプル商品 16",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 4000,
+          "item_amount": 8000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 17,
+          "product_code": "P-017",
+          "item_item_name": "サンプル商品 17",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 4500,
+          "item_amount": 13500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 18,
+          "product_code": "P-018",
+          "item_item_name": "サンプル商品 18",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 20000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 19,
+          "product_code": "P-019",
+          "item_item_name": "サンプル商品 19",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 5500,
+          "item_amount": 27500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 20,
+          "product_code": "P-020",
+          "item_item_name": "サンプル商品 20",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 1000,
+          "item_amount": 1000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 21,
+          "product_code": "P-021",
+          "item_item_name": "サンプル商品 21",
+          "item_quantity": 2,
+          "item_unit": "式",
+          "item_unit_price": 1500,
+          "item_amount": 3000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 22,
+          "product_code": "P-022",
+          "item_item_name": "サンプル商品 22",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 2000,
+          "item_amount": 6000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 23,
+          "product_code": "P-023",
+          "item_item_name": "サンプル商品 23",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 2500,
+          "item_amount": 10000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 24,
+          "product_code": "P-024",
+          "item_item_name": "サンプル商品 24",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 3000,
+          "item_amount": 15000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 25,
+          "product_code": "P-025",
+          "item_item_name": "サンプル商品 25",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 3500,
+          "item_amount": 3500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 26,
+          "product_code": "P-026",
+          "item_item_name": "サンプル商品 26",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 4000,
+          "item_amount": 8000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 27,
+          "product_code": "P-027",
+          "item_item_name": "サンプル商品 27",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 4500,
+          "item_amount": 13500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 28,
+          "product_code": "P-028",
+          "item_item_name": "サンプル商品 28",
+          "item_quantity": 4,
+          "item_unit": "式",
+          "item_unit_price": 5000,
+          "item_amount": 20000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 29,
+          "product_code": "P-029",
+          "item_item_name": "サンプル商品 29",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 5500,
+          "item_amount": 27500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 30,
+          "product_code": "P-030",
+          "item_item_name": "サンプル商品 30",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 1000,
+          "item_amount": 1000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 31,
+          "product_code": "P-031",
+          "item_item_name": "サンプル商品 31",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 1500,
+          "item_amount": 3000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 32,
+          "product_code": "P-032",
+          "item_item_name": "サンプル商品 32",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 2000,
+          "item_amount": 6000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 33,
+          "product_code": "P-033",
+          "item_item_name": "サンプル商品 33",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 2500,
+          "item_amount": 10000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 34,
+          "product_code": "P-034",
+          "item_item_name": "サンプル商品 34",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 3000,
+          "item_amount": 15000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 35,
+          "product_code": "P-035",
+          "item_item_name": "サンプル商品 35",
+          "item_quantity": 1,
+          "item_unit": "式",
+          "item_unit_price": 3500,
+          "item_amount": 3500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 36,
+          "product_code": "P-036",
+          "item_item_name": "サンプル商品 36",
+          "item_quantity": 2,
+          "item_unit": "個",
+          "item_unit_price": 4000,
+          "item_amount": 8000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 37,
+          "product_code": "P-037",
+          "item_item_name": "サンプル商品 37",
+          "item_quantity": 3,
+          "item_unit": "個",
+          "item_unit_price": 4500,
+          "item_amount": 13500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 38,
+          "product_code": "P-038",
+          "item_item_name": "サンプル商品 38",
+          "item_quantity": 4,
+          "item_unit": "個",
+          "item_unit_price": 5000,
+          "item_amount": 20000
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 39,
+          "product_code": "P-039",
+          "item_item_name": "サンプル商品 39",
+          "item_quantity": 5,
+          "item_unit": "個",
+          "item_unit_price": 5500,
+          "item_amount": 27500
+        },
+        {
+          "report_id": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+          "line_no": 40,
+          "product_code": "P-040",
+          "item_item_name": "サンプル商品 40",
+          "item_quantity": 1,
+          "item_unit": "個",
+          "item_unit_price": 1000,
+          "item_amount": 1000
+        }
+      ]
     }
   ]
 }

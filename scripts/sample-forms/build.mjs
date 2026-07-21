@@ -8,7 +8,8 @@
  *   templates/purchase-order.json  御注文書      （同上）
  *   templates/delivery-note.json   納品書        ← 請求書から機械変換して生成
  *   templates/receipt.json         領収書        ← 新規構築（明細なし）
- *   db-seed.json                   5フォーム分の ScalarDB テーブル定義＋サンプル行
+ *   templates/band-flow.json       売上明細一覧  ← 新規構築（継続ページ／バンドフロー実演）
+ *   db-seed.json                   全フォーム分の ScalarDB テーブル定義＋サンプル行
  *
  * 冪等: 決定的 id を使うため何度実行しても同じ出力。
  * Run:  node scripts/sample-forms/build.mjs
@@ -115,23 +116,30 @@ function buildDeliveryNote() {
 }
 
 // ---------------------------------------------------------------------------
+// 新規構築ヘルパー（ns ごとに決定的 id を採番）
+// ---------------------------------------------------------------------------
+function makeEls(ns) {
+  const el = (type, seed, position, size, extra = {}) =>
+    ({ id: sid(ns + '/' + seed), type, position, size, zIndex: 2, locked: false, visible: true, ...extra })
+  const txt = (seed, content, position, size, style = {}, name) =>
+    el('text', seed, position, size, { content, name: name ?? content, style: { fontSize: 9, color: '#1a1a1a', ...style } })
+  const fld = (seed, fieldKey, fallbackText, position, size, style = {}, name) =>
+    el('dataField', seed, position, size, { fieldKey, fallbackText, label: fallbackText, name: name ?? fieldKey, style: { fontSize: 9, color: '#1a1a1a', ...style } })
+  // 通貨（¥・カンマ区切り）表示の dataField
+  const yen = (seed, fieldKey, fallbackText, position, size, style = {}, name) =>
+    ({ ...fld(seed, fieldKey, fallbackText, position, size, style, name), format: { type: 'currency_jpy' } })
+  // shape 要素は請求書テンプレと同じスキーマ（shape/stroke/strokeWidth/fill/borderRadius）
+  const line = (seed, position, size, stroke = '#888888', strokeWidth = 0.3, name = '区切り線') =>
+    el('shape', seed, position, size, { shape: 'line', stroke, strokeWidth, zIndex: 1, locked: true, name })
+  const rect = (seed, position, size, { fill, stroke = '#cccccc', strokeWidth = 0.3, borderRadius = 0 } = {}, name = '枠線') =>
+    el('shape', seed, position, size, { shape: 'rectangle', fill, stroke, strokeWidth, borderRadius, zIndex: 1, locked: true, name })
+  return { el, txt, fld, yen, line, rect }
+}
+
+// ---------------------------------------------------------------------------
 // 領収書 — 新規構築（明細なし・ヘッダのみ）
 // ---------------------------------------------------------------------------
-function el(type, seed, position, size, extra = {}) {
-  return { id: sid('receipt/' + seed), type, position, size, zIndex: 2, locked: false, visible: true, ...extra }
-}
-const txt = (seed, content, position, size, style = {}, name) =>
-  el('text', seed, position, size, { content, name: name ?? content, style: { fontSize: 9, color: '#1a1a1a', ...style } })
-const fld = (seed, fieldKey, fallbackText, position, size, style = {}, name) =>
-  el('dataField', seed, position, size, { fieldKey, fallbackText, label: fallbackText, name: name ?? fieldKey, style: { fontSize: 9, color: '#1a1a1a', ...style } })
-// 通貨（¥・カンマ区切り）表示の dataField
-const yen = (seed, fieldKey, fallbackText, position, size, style = {}, name) =>
-  ({ ...fld(seed, fieldKey, fallbackText, position, size, style, name), format: { type: 'currency_jpy' } })
-// shape 要素は請求書テンプレと同じスキーマ（shape/stroke/strokeWidth/fill/borderRadius）
-const line = (seed, position, size, stroke = '#888888', strokeWidth = 0.3, name = '区切り線') =>
-  el('shape', seed, position, size, { shape: 'line', stroke, strokeWidth, zIndex: 1, locked: true, name })
-const rect = (seed, position, size, { fill, stroke = '#cccccc', strokeWidth = 0.3, borderRadius = 0 } = {}, name = '枠線') =>
-  el('shape', seed, position, size, { shape: 'rectangle', fill, stroke, strokeWidth, borderRadius, zIndex: 1, locked: true, name })
+const { el, txt, fld, yen, line, rect } = makeEls('receipt')
 
 function buildReceipt() {
   const elements = [
@@ -245,11 +253,179 @@ function buildReceipt() {
 }
 
 // ---------------------------------------------------------------------------
-// DBシード — 5フォーム分のテーブル＋サンプル行
+// 売上明細一覧 — 新規構築（継続ページ／バンドフロー実演）
+//
+// 明細 40 行 × 行高 7mm をバンド枠高 112mm（容量 = floor((112−7)/7) = 15 行/頁）に
+// バインドし、サーバ PDF 出力で 3 ページ（15+15+10）に自動分割される。
+// デザイナー上では同じ式であふれ警告バッジ（40件中15件表示）が出る。
+// 仕様: docs/pagination-spec.md「V2 バンドフロー」
+// ---------------------------------------------------------------------------
+function bandFlowItems() {
+  const rows = []
+  for (let i = 1; i <= 40; i++) {
+    const quantity = (i % 5) + 1
+    const unitPrice = 1000 + (i % 10) * 500
+    rows.push({
+      itemCode: `P-${String(i).padStart(3, '0')}`,
+      itemName: `サンプル商品 ${String(i).padStart(2, '0')}`,
+      quantity,
+      unit: i % 7 === 0 ? '式' : '個',
+      unitPrice,
+      amount: quantity * unitPrice,
+    })
+  }
+  return rows
+}
+const BF_ITEMS = bandFlowItems()
+const BF_SUBTOTAL = BF_ITEMS.reduce((s, r) => s + r.amount, 0)
+const BF_TOTAL = Math.round(BF_SUBTOTAL * 1.1)
+
+function buildBandFlow() {
+  const { el, txt, fld, yen, line, rect } = makeEls('band-flow')
+  const elements = [
+    // タイトル（静的要素は全継続ページに繰返し描画される）
+    txt('title', '売 上 明 細 一 覧', { x: 55, y: 12 }, { width: 100, height: 10 }, { fontSize: 18, fontWeight: 'bold', textAlign: 'center', letterSpacing: 3 }, '売 上 明 細 一 覧'),
+    line('title-rule', { x: 60, y: 23 }, { width: 90, height: 0.4 }, '#333333', 0.4),
+    // 右上: 伝票番号・発行日
+    txt('no-label', '伝票番号:', { x: 130, y: 30 }, { width: 22, height: 5 }, { fontSize: 8 }),
+    fld('no', 'document.documentNo', 'SLS-2026-0001', { x: 152, y: 30 }, { width: 48, height: 5 }, { fontSize: 8 }, '伝票番号'),
+    txt('date-label', '発行日:', { x: 130, y: 35 }, { width: 22, height: 5 }, { fontSize: 8 }),
+    fld('date', 'document.issueDate', '2026年4月30日', { x: 152, y: 35 }, { width: 48, height: 5 }, { fontSize: 8 }, '発行日'),
+    // 宛名
+    fld('to', 'customer.customerName', '株式会社サンプル商事', { x: 12, y: 32 }, { width: 95, height: 8 }, { fontSize: 12, fontWeight: 'bold' }, '宛名'),
+    txt('to-suffix', '様', { x: 108, y: 34 }, { width: 10, height: 6 }, { fontSize: 10 }),
+    line('to-rule', { x: 12, y: 41 }, { width: 106, height: 0.3 }, '#888888', 0.3),
+    // 合計ボックス
+    rect('total-box', { x: 12, y: 46 }, { width: 90, height: 10 }, { fill: '#f5f7fa', stroke: '#333333', strokeWidth: 0.4, borderRadius: 1 }, '合計ボックス'),
+    txt('total-label', '合計金額（税込）', { x: 14, y: 46 }, { width: 34, height: 10 }, { fontSize: 9, fontWeight: 'bold', verticalAlign: 'middle' }),
+    yen('total', 'summary.totalIncTax', `¥${BF_TOTAL.toLocaleString('ja-JP')}`, { x: 48, y: 46 }, { width: 52, height: 10 }, { fontSize: 13, fontWeight: 'bold', textAlign: 'right', verticalAlign: 'middle' }, '合計金額（税込）'),
+    // 発行元
+    el('tenantCompanyName', 'company', { x: 130, y: 44 }, { width: 68, height: 5 }, { name: '自社名', style: { fontSize: 9, fontWeight: 'bold' } }),
+    el('tenantAddress', 'address', { x: 130, y: 49 }, { width: 68, height: 4 }, { name: '自社住所', style: { fontSize: 7 } }),
+    el('tenantPhone', 'phone', { x: 130, y: 53 }, { width: 68, height: 4 }, { name: '自社電話', style: { fontSize: 7 } }),
+    // 明細バンド — 容量 15 行/頁 < 40 行なので継続ページにフローする
+    {
+      id: sid('band-flow/band'),
+      type: 'repeatingBand',
+      position: { x: 10, y: 62 },
+      size: { width: 190, height: 112 },
+      zIndex: 2,
+      locked: false,
+      visible: true,
+      dataSource: 'items',
+      itemHeight: 7,
+      headerHeight: 7,
+      showHeader: true,
+      showFooter: false,
+      maxItems: 0,
+      showEmptyRowLines: false,
+      pageBreak: 'none',
+      totals: [],
+      oddRowColor: '#ffffff',
+      evenRowColor: '#fafafa',
+      borderColor: '#e0e0e0',
+      borderWidth: 0.2,
+      headerStyle: { fontSize: 8, fontWeight: 'bold', color: '#333333', backgroundColor: '#f5f5f5' },
+      style: { fontSize: 8, color: '#1a1a1a' },
+      fields: [
+        { key: 'itemCode', label: '品番', width: 28, align: 'left' },
+        { key: 'itemName', label: '品名', width: 72, align: 'left' },
+        { key: 'quantity', label: '数量', width: 18, align: 'right', format: { type: 'comma' } },
+        { key: 'unit', label: '単位', width: 14, align: 'center' },
+        { key: 'unitPrice', label: '単価', width: 28, align: 'right', format: { type: 'currency_jpy' } },
+        { key: 'amount', label: '金額', width: 30, align: 'right', format: { type: 'currency_jpy' } },
+      ],
+      name: '明細バンド（継続ページ実演）',
+    },
+    txt('flow-note', '※ 明細がバンド枠（15行）に収まらない場合、サーバPDF出力では継続ページへ自動的に行送りされます。', { x: 10, y: 178 }, { width: 190, height: 5 }, { fontSize: 7, color: '#888888' }, 'バンドフロー注記'),
+    // ページ番号 — 継続ページで 1 / 3, 2 / 3, … と展開される
+    el('pageNumber', 'page-no', { x: 90, y: 285 }, { width: 30, height: 6 }, { format: '{{page}} / {{pages}}', style: { fontSize: 8.5, color: '#666666', textAlign: 'center' }, name: 'ページ番号' }),
+  ]
+
+  const definition = {
+    id: sid('sample-forms/band-flow'),
+    metadata: {
+      documentName: '売上明細一覧（継続ページ）', name: '売上明細一覧（継続ページ）', version: '1.0', reportType: 'general',
+      sourceTemplateId: 'band-flow',
+      description: '繰り返しバンドの継続ページ分割（バンドフロー）の実演。明細40行が1ページ15行で3ページに分割される。demo.bandflow_* にライブバインド。',
+    },
+    pageSettings: { paperSize: 'A4', orientation: 'portrait', margins: { top: 10, right: 10, bottom: 10, left: 10 }, unit: 'mm' },
+    defaultTextStyle: {},
+    pages: [
+      {
+        id: sid('band-flow/page1'),
+        name: 'ページ 1',
+        background: '#ffffff',
+        width: 210,
+        height: 297,
+        sections: [{ id: sid('band-flow/sec1'), sectionType: 'body', height: 297, elements }],
+      },
+    ],
+    schema: {
+      relations: [],
+      groups: [
+        {
+          id: 'bf-grp-doc', dataKey: 'document', label: '書類情報', role: 'master',
+          tableMeta: { namespace: NS, tableName: 'bandflow_header' },
+          fields: [
+            { id: 'bf-f-report-id', key: 'reportId', label: '帳票ID', type: 'string', dbColumnName: 'report_id' },
+            { id: 'bf-f-doc-no', key: 'documentNo', label: '伝票番号', type: 'string', dbColumnName: 'doc_no' },
+            { id: 'bf-f-issue-date', key: 'issueDate', label: '発行日', type: 'date', dbColumnName: 'doc_issue_date' },
+          ],
+        },
+        {
+          id: 'bf-grp-cust', dataKey: 'customer', label: '顧客情報', role: 'master',
+          tableMeta: { namespace: NS, tableName: 'bandflow_header' }, linkedMasterGroupId: 'bf-grp-doc',
+          fields: [{ id: 'bf-f-cust-name', key: 'customerName', label: '宛名', type: 'string', dbColumnName: 'cust_customer_name' }],
+        },
+        {
+          id: 'bf-grp-sum', dataKey: 'summary', label: '集計情報', role: 'master',
+          tableMeta: { namespace: NS, tableName: 'bandflow_header' }, linkedMasterGroupId: 'bf-grp-doc',
+          fields: [{ id: 'bf-f-total', key: 'totalIncTax', label: '合計(税込)', type: 'number', dbColumnName: 'sum_total_inc_tax' }],
+        },
+        {
+          id: 'bf-grp-items', dataKey: 'items', label: '明細', role: 'detail',
+          tableMeta: { namespace: NS, tableName: 'bandflow_items' }, linkedMasterGroupId: 'bf-grp-doc',
+          fields: [
+            { id: 'bf-f-code', key: 'itemCode', label: '品番', type: 'string', dbColumnName: 'product_code' },
+            { id: 'bf-f-name', key: 'itemName', label: '品名', type: 'string', dbColumnName: 'item_item_name' },
+            { id: 'bf-f-qty', key: 'quantity', label: '数量', type: 'number', dbColumnName: 'item_quantity' },
+            { id: 'bf-f-unit', key: 'unit', label: '単位', type: 'string', dbColumnName: 'item_unit' },
+            { id: 'bf-f-price', key: 'unitPrice', label: '単価', type: 'number', dbColumnName: 'item_unit_price' },
+            { id: 'bf-f-amount', key: 'amount', label: '金額', type: 'number', dbColumnName: 'item_amount' },
+          ],
+        },
+      ],
+    },
+    dataSources: [
+      {
+        id: sid('band-flow/sample'),
+        name: '売上明細サンプルデータ（40行）',
+        type: null,
+        fields: {
+          document: { reportId: RID.bandflow, documentNo: 'SLS-2026-0001', issueDate: '2026年4月30日' },
+          customer: { customerName: '株式会社サンプル商事' },
+          summary: { totalIncTax: BF_TOTAL },
+          items: BF_ITEMS,
+        },
+      },
+    ],
+    calculationRules: [],
+    validationRules: [],
+    outputVariants: [],
+    templateVariables: [],
+    submissionModels: [],
+  }
+  return { formatVersion: 2, definition }
+}
+
+// ---------------------------------------------------------------------------
+// DBシード — 全フォーム分のテーブル＋サンプル行
 // ---------------------------------------------------------------------------
 const RID = {
   delivery: sid('row/delivery-0001'),
   receipt: sid('row/receipt-0007'),
+  bandflow: sid('row/bandflow-0001'),
 }
 
 function deliveryTables() {
@@ -306,6 +482,33 @@ function receiptTables() {
   return [header]
 }
 
+function bandflowTables() {
+  const header = {
+    namespace: NS, tableName: 'bandflow_header', partitionKeys: ['report_id'], clusteringKeys: [], secondaryIndexes: ['doc_no'],
+    columns: [
+      { name: 'report_id', type: 'TEXT' }, { name: 'doc_no', type: 'TEXT' }, { name: 'doc_issue_date', type: 'TEXT' },
+      { name: 'cust_customer_name', type: 'TEXT' }, { name: 'sum_total_inc_tax', type: 'DOUBLE' },
+    ],
+    rows: [{
+      report_id: RID.bandflow, doc_no: 'SLS-2026-0001', doc_issue_date: '2026年4月30日',
+      cust_customer_name: '株式会社サンプル商事', sum_total_inc_tax: BF_TOTAL,
+    }],
+  }
+  const items = {
+    namespace: NS, tableName: 'bandflow_items', partitionKeys: ['report_id'], clusteringKeys: ['line_no'], secondaryIndexes: [],
+    columns: [
+      { name: 'report_id', type: 'TEXT' }, { name: 'line_no', type: 'INT' }, { name: 'product_code', type: 'TEXT' },
+      { name: 'item_item_name', type: 'TEXT' }, { name: 'item_quantity', type: 'DOUBLE' },
+      { name: 'item_unit', type: 'TEXT' }, { name: 'item_unit_price', type: 'DOUBLE' }, { name: 'item_amount', type: 'DOUBLE' },
+    ],
+    rows: BF_ITEMS.map((r, i) => ({
+      report_id: RID.bandflow, line_no: i + 1, product_code: r.itemCode, item_item_name: r.itemName,
+      item_quantity: r.quantity, item_unit: r.unit, item_unit_price: r.unitPrice, item_amount: r.amount,
+    })),
+  }
+  return [header, items]
+}
+
 // ---------------------------------------------------------------------------
 // 実行
 // ---------------------------------------------------------------------------
@@ -313,11 +516,14 @@ const delivery = buildDeliveryNote()
 write(join(TPL, 'delivery-note.json'), delivery)
 const receipt = buildReceipt()
 write(join(TPL, 'receipt.json'), receipt)
+const bandFlow = buildBandFlow()
+write(join(TPL, 'band-flow.json'), bandFlow)
 
 const base = read(join(DIR, '_base-seed.json'))
-const seed = { namespace: NS, tables: [...base.tables, ...deliveryTables(), ...receiptTables()] }
+const seed = { namespace: NS, tables: [...base.tables, ...deliveryTables(), ...receiptTables(), ...bandflowTables()] }
 write(join(DIR, 'db-seed.json'), seed)
 
 console.log('✓ generated templates/delivery-note.json (%d elements)', delivery.definition.pages[0].sections[0].elements.length)
 console.log('✓ generated templates/receipt.json (%d elements)', receipt.definition.pages[0].sections[0].elements.length)
+console.log('✓ generated templates/band-flow.json (%d elements, %d 明細行)', bandFlow.definition.pages[0].sections[0].elements.length, BF_ITEMS.length)
 console.log('✓ generated db-seed.json (%d tables)', seed.tables.length)

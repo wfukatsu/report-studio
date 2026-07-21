@@ -1,4 +1,4 @@
-# サンプル帳票（一般的な帳票 5 種）
+# サンプル帳票（一般的な帳票 5 種 + 継続ページ実演 1 種）
 
 GUI で後から編集できるフラットな構造のサンプルテンプレートと、そのライブバインド先の
 ScalarDB サンプルスキーマ・サンプルデータ一式。
@@ -10,6 +10,13 @@ ScalarDB サンプルスキーマ・サンプルデータ一式。
 | `templates/purchase-order.json` | 御注文書 | `demo.pomod_header` / `demo.pomod_items` |
 | `templates/delivery-note.json` | 納品書 | `demo.delivery_header` / `demo.delivery_items` |
 | `templates/receipt.json` | 領収書 | `demo.receipt_header`（明細なし） |
+| `templates/band-flow.json` | 売上明細一覧（継続ページ） | `demo.bandflow_header` / `demo.bandflow_items` |
+
+`band-flow.json` は **継続ページ（バンドフロー）の実演用**: 明細 40 行を行高 7mm ×
+バンド枠高 112mm（容量 15 行/頁）にバインドしており、サーバ PDF 出力で 3 ページ
+（15+15+10 行）に自動分割される。デザイナー上では同じ式によるあふれ警告バッジが表示され、
+静的要素（タイトル・宛名等）とバンドヘッダは全ページに繰返し描画、`pageNumber` 要素は
+`1 / 3` … と展開される。仕様は `docs/pagination-spec.md`「V2 バンドフロー」を参照。
 
 ## 構成
 
