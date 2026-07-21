@@ -27,6 +27,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  // Cross-browser policy (#261): chromium-only, workers: 1 for now.
+  // The suite drives pointer-heavy flows (@dnd-kit drags, custom resize
+  // handles, HTML5 palette DnD) against a stateful shared backend; running a
+  // single engine serially keeps signal high while these flows stabilize.
+  // firefox/webkit projects are deliberately deferred — revisit once the
+  // chromium suite has been flake-free in CI for a while.
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
