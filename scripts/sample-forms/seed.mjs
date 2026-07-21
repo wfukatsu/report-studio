@@ -22,20 +22,33 @@ const DIR = dirname(fileURLToPath(import.meta.url))
 const TPL = join(DIR, 'templates')
 const ID_MAP_PATH = join(DIR, '..', '..', 'server', 'data', 'sample-form-ids.json')
 const BASE = process.env.API_BASE ?? 'http://localhost:8080'
+const ORIGIN = process.env.API_ORIGIN ?? 'http://localhost:5173'
 const USER = process.env.ADMIN_USER ?? 'admin'
 const PASS = process.env.ADMIN_PASSWORD ?? 'changeme'
 
 // テンプレート表示順（ファイル名 → 表示名は metadata.name）
-const TEMPLATE_ORDER = ['invoice', 'quotation', 'purchase-order', 'delivery-note', 'receipt']
+const TEMPLATE_ORDER = ['invoice', 'quotation', 'purchase-order', 'delivery-note', 'receipt', 'band-flow']
 
 let cookie = ''
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 async function api(method, path, body) {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  return { status: res.status, text: await res.text(), setCookie: res.headers.get('set-cookie') }
+  // 行 upsert はサーバのレートリミット（例: rows 60req/分）に当たり得るため、
+  // 429 はウィンドウが明けるまで待って再試行する（最大 9 回 × 8 秒 > 60 秒窓）
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      // CSRF ガードが state-changing リクエストに Origin/Referer を必須とするため
+      // （ApiRoutes.csrfRejectReason）、Vite dev オリジンを送る。サーバ自身のオリジン
+      // (:8080) は CORS プラグインの許可リスト外で 400 になるので使えない。
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN, ...(cookie ? { Cookie: cookie } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+    if (res.status === 429 && attempt < 9) {
+      await sleep(8000)
+      continue
+    }
+    return { status: res.status, text: await res.text(), setCookie: res.headers.get('set-cookie') }
+  }
 }
 
 async function login() {

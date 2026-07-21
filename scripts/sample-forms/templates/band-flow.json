@@ -1,0 +1,979 @@
+{
+  "formatVersion": 2,
+  "definition": {
+    "id": "b1922a18-9a7d-c33f-81a4-9567980af02c",
+    "metadata": {
+      "documentName": "売上明細一覧（継続ページ）",
+      "name": "売上明細一覧（継続ページ）",
+      "version": "1.0",
+      "reportType": "general",
+      "sourceTemplateId": "band-flow",
+      "description": "繰り返しバンドの継続ページ分割（バンドフロー）の実演。明細40行が1ページ15行で3ページに分割される。demo.bandflow_* にライブバインド。"
+    },
+    "pageSettings": {
+      "paperSize": "A4",
+      "orientation": "portrait",
+      "margins": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      },
+      "unit": "mm"
+    },
+    "defaultTextStyle": {},
+    "pages": [
+      {
+        "id": "63e92836-202c-86c3-7540-df4ab380cf56",
+        "name": "ページ 1",
+        "background": "#ffffff",
+        "width": 210,
+        "height": 297,
+        "sections": [
+          {
+            "id": "a5fd14f7-89f1-4ead-39db-a74f2cff18d5",
+            "sectionType": "body",
+            "height": 297,
+            "elements": [
+              {
+                "id": "761f5d77-1201-9c21-52a3-5921571fe8af",
+                "type": "text",
+                "position": {
+                  "x": 55,
+                  "y": 12
+                },
+                "size": {
+                  "width": 100,
+                  "height": 10
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "売 上 明 細 一 覧",
+                "name": "売 上 明 細 一 覧",
+                "style": {
+                  "fontSize": 18,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "textAlign": "center",
+                  "letterSpacing": 3
+                }
+              },
+              {
+                "id": "0dca7f13-ffa8-b478-59f5-47ec9665946f",
+                "type": "shape",
+                "position": {
+                  "x": 60,
+                  "y": 23
+                },
+                "size": {
+                  "width": 90,
+                  "height": 0.4
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#333333",
+                "strokeWidth": 0.4,
+                "name": "区切り線"
+              },
+              {
+                "id": "4ffb9b6d-1b57-3972-8819-e6cd6038c030",
+                "type": "text",
+                "position": {
+                  "x": 130,
+                  "y": 30
+                },
+                "size": {
+                  "width": 22,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "伝票番号:",
+                "name": "伝票番号:",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "8cc74758-274d-9fcc-bb24-e6a50e2591d0",
+                "type": "dataField",
+                "position": {
+                  "x": 152,
+                  "y": 30
+                },
+                "size": {
+                  "width": 48,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.documentNo",
+                "fallbackText": "SLS-2026-0001",
+                "label": "SLS-2026-0001",
+                "name": "伝票番号",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "cbba3394-9de0-ee15-f8c1-ddf34036122b",
+                "type": "text",
+                "position": {
+                  "x": 130,
+                  "y": 35
+                },
+                "size": {
+                  "width": 22,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "発行日:",
+                "name": "発行日:",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "f2d35d38-835b-127a-4032-5801a12d4421",
+                "type": "dataField",
+                "position": {
+                  "x": 152,
+                  "y": 35
+                },
+                "size": {
+                  "width": 48,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "document.issueDate",
+                "fallbackText": "2026年4月30日",
+                "label": "2026年4月30日",
+                "name": "発行日",
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "fedd0f00-5612-75a5-d13c-3cae40a91424",
+                "type": "dataField",
+                "position": {
+                  "x": 12,
+                  "y": 32
+                },
+                "size": {
+                  "width": 95,
+                  "height": 8
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "customer.customerName",
+                "fallbackText": "株式会社サンプル商事",
+                "label": "株式会社サンプル商事",
+                "name": "宛名",
+                "style": {
+                  "fontSize": 12,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "b12e65a2-7cb2-524b-6349-5b7858159325",
+                "type": "text",
+                "position": {
+                  "x": 108,
+                  "y": 34
+                },
+                "size": {
+                  "width": 10,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "様",
+                "name": "様",
+                "style": {
+                  "fontSize": 10,
+                  "color": "#1a1a1a"
+                }
+              },
+              {
+                "id": "bfa9582d-cb5d-4b42-46e3-3e4f88a7ddd9",
+                "type": "shape",
+                "position": {
+                  "x": 12,
+                  "y": 41
+                },
+                "size": {
+                  "width": 106,
+                  "height": 0.3
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "line",
+                "stroke": "#888888",
+                "strokeWidth": 0.3,
+                "name": "区切り線"
+              },
+              {
+                "id": "a762309e-9ab8-f465-f0ab-2f4a829cfd18",
+                "type": "shape",
+                "position": {
+                  "x": 12,
+                  "y": 46
+                },
+                "size": {
+                  "width": 90,
+                  "height": 10
+                },
+                "zIndex": 1,
+                "locked": true,
+                "visible": true,
+                "shape": "rectangle",
+                "fill": "#f5f7fa",
+                "stroke": "#333333",
+                "strokeWidth": 0.4,
+                "borderRadius": 1,
+                "name": "合計ボックス"
+              },
+              {
+                "id": "e9e0b578-8f9b-bf91-b262-8c701b98cfe7",
+                "type": "text",
+                "position": {
+                  "x": 14,
+                  "y": 46
+                },
+                "size": {
+                  "width": 34,
+                  "height": 10
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "合計金額（税込）",
+                "name": "合計金額（税込）",
+                "style": {
+                  "fontSize": 9,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "verticalAlign": "middle"
+                }
+              },
+              {
+                "id": "6ce4bcaf-7059-8c51-74b4-a1f89f35b43f",
+                "type": "dataField",
+                "position": {
+                  "x": 48,
+                  "y": 46
+                },
+                "size": {
+                  "width": 52,
+                  "height": 10
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "fieldKey": "summary.totalIncTax",
+                "fallbackText": "¥473,000",
+                "label": "¥473,000",
+                "name": "合計金額（税込）",
+                "style": {
+                  "fontSize": 13,
+                  "color": "#1a1a1a",
+                  "fontWeight": "bold",
+                  "textAlign": "right",
+                  "verticalAlign": "middle"
+                },
+                "format": {
+                  "type": "currency_jpy"
+                }
+              },
+              {
+                "id": "c3a01048-aa10-5396-3bf5-ffc557b472ce",
+                "type": "tenantCompanyName",
+                "position": {
+                  "x": 130,
+                  "y": 44
+                },
+                "size": {
+                  "width": 68,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社名",
+                "style": {
+                  "fontSize": 9,
+                  "fontWeight": "bold"
+                }
+              },
+              {
+                "id": "d71e5494-4c71-ab1a-4f93-eae111cf6730",
+                "type": "tenantAddress",
+                "position": {
+                  "x": 130,
+                  "y": 49
+                },
+                "size": {
+                  "width": 68,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社住所",
+                "style": {
+                  "fontSize": 7
+                }
+              },
+              {
+                "id": "671f5ed9-db1c-4850-a06e-dfe69578650e",
+                "type": "tenantPhone",
+                "position": {
+                  "x": 130,
+                  "y": 53
+                },
+                "size": {
+                  "width": 68,
+                  "height": 4
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "name": "自社電話",
+                "style": {
+                  "fontSize": 7
+                }
+              },
+              {
+                "id": "dfbf3087-a4db-326e-016f-2a4358959b21",
+                "type": "repeatingBand",
+                "position": {
+                  "x": 10,
+                  "y": 62
+                },
+                "size": {
+                  "width": 190,
+                  "height": 112
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "dataSource": "items",
+                "itemHeight": 7,
+                "headerHeight": 7,
+                "showHeader": true,
+                "showFooter": false,
+                "maxItems": 0,
+                "showEmptyRowLines": false,
+                "pageBreak": "none",
+                "totals": [],
+                "oddRowColor": "#ffffff",
+                "evenRowColor": "#fafafa",
+                "borderColor": "#e0e0e0",
+                "borderWidth": 0.2,
+                "headerStyle": {
+                  "fontSize": 8,
+                  "fontWeight": "bold",
+                  "color": "#333333",
+                  "backgroundColor": "#f5f5f5"
+                },
+                "style": {
+                  "fontSize": 8,
+                  "color": "#1a1a1a"
+                },
+                "fields": [
+                  {
+                    "key": "itemCode",
+                    "label": "品番",
+                    "width": 28,
+                    "align": "left"
+                  },
+                  {
+                    "key": "itemName",
+                    "label": "品名",
+                    "width": 72,
+                    "align": "left"
+                  },
+                  {
+                    "key": "quantity",
+                    "label": "数量",
+                    "width": 18,
+                    "align": "right",
+                    "format": {
+                      "type": "comma"
+                    }
+                  },
+                  {
+                    "key": "unit",
+                    "label": "単位",
+                    "width": 14,
+                    "align": "center"
+                  },
+                  {
+                    "key": "unitPrice",
+                    "label": "単価",
+                    "width": 28,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  },
+                  {
+                    "key": "amount",
+                    "label": "金額",
+                    "width": 30,
+                    "align": "right",
+                    "format": {
+                      "type": "currency_jpy"
+                    }
+                  }
+                ],
+                "name": "明細バンド（継続ページ実演）"
+              },
+              {
+                "id": "8ad884d5-3559-6f75-5a90-da5f44950f00",
+                "type": "text",
+                "position": {
+                  "x": 10,
+                  "y": 178
+                },
+                "size": {
+                  "width": 190,
+                  "height": 5
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "content": "※ 明細がバンド枠（15行）に収まらない場合、サーバPDF出力では継続ページへ自動的に行送りされます。",
+                "name": "バンドフロー注記",
+                "style": {
+                  "fontSize": 7,
+                  "color": "#888888"
+                }
+              },
+              {
+                "id": "e4b1ef53-3c75-3b96-be2b-59fa3cf76366",
+                "type": "pageNumber",
+                "position": {
+                  "x": 90,
+                  "y": 285
+                },
+                "size": {
+                  "width": 30,
+                  "height": 6
+                },
+                "zIndex": 2,
+                "locked": false,
+                "visible": true,
+                "format": "{{page}} / {{pages}}",
+                "style": {
+                  "fontSize": 8.5,
+                  "color": "#666666",
+                  "textAlign": "center"
+                },
+                "name": "ページ番号"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "schema": {
+      "relations": [],
+      "groups": [
+        {
+          "id": "bf-grp-doc",
+          "dataKey": "document",
+          "label": "書類情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "bandflow_header"
+          },
+          "fields": [
+            {
+              "id": "bf-f-report-id",
+              "key": "reportId",
+              "label": "帳票ID",
+              "type": "string",
+              "dbColumnName": "report_id"
+            },
+            {
+              "id": "bf-f-doc-no",
+              "key": "documentNo",
+              "label": "伝票番号",
+              "type": "string",
+              "dbColumnName": "doc_no"
+            },
+            {
+              "id": "bf-f-issue-date",
+              "key": "issueDate",
+              "label": "発行日",
+              "type": "date",
+              "dbColumnName": "doc_issue_date"
+            }
+          ]
+        },
+        {
+          "id": "bf-grp-cust",
+          "dataKey": "customer",
+          "label": "顧客情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "bandflow_header"
+          },
+          "linkedMasterGroupId": "bf-grp-doc",
+          "fields": [
+            {
+              "id": "bf-f-cust-name",
+              "key": "customerName",
+              "label": "宛名",
+              "type": "string",
+              "dbColumnName": "cust_customer_name"
+            }
+          ]
+        },
+        {
+          "id": "bf-grp-sum",
+          "dataKey": "summary",
+          "label": "集計情報",
+          "role": "master",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "bandflow_header"
+          },
+          "linkedMasterGroupId": "bf-grp-doc",
+          "fields": [
+            {
+              "id": "bf-f-total",
+              "key": "totalIncTax",
+              "label": "合計(税込)",
+              "type": "number",
+              "dbColumnName": "sum_total_inc_tax"
+            }
+          ]
+        },
+        {
+          "id": "bf-grp-items",
+          "dataKey": "items",
+          "label": "明細",
+          "role": "detail",
+          "tableMeta": {
+            "namespace": "demo",
+            "tableName": "bandflow_items"
+          },
+          "linkedMasterGroupId": "bf-grp-doc",
+          "fields": [
+            {
+              "id": "bf-f-code",
+              "key": "itemCode",
+              "label": "品番",
+              "type": "string",
+              "dbColumnName": "product_code"
+            },
+            {
+              "id": "bf-f-name",
+              "key": "itemName",
+              "label": "品名",
+              "type": "string",
+              "dbColumnName": "item_item_name"
+            },
+            {
+              "id": "bf-f-qty",
+              "key": "quantity",
+              "label": "数量",
+              "type": "number",
+              "dbColumnName": "item_quantity"
+            },
+            {
+              "id": "bf-f-unit",
+              "key": "unit",
+              "label": "単位",
+              "type": "string",
+              "dbColumnName": "item_unit"
+            },
+            {
+              "id": "bf-f-price",
+              "key": "unitPrice",
+              "label": "単価",
+              "type": "number",
+              "dbColumnName": "item_unit_price"
+            },
+            {
+              "id": "bf-f-amount",
+              "key": "amount",
+              "label": "金額",
+              "type": "number",
+              "dbColumnName": "item_amount"
+            }
+          ]
+        }
+      ]
+    },
+    "dataSources": [
+      {
+        "id": "cd2f98cd-87ab-c790-5f7c-886ae2be8624",
+        "name": "売上明細サンプルデータ（40行）",
+        "type": null,
+        "fields": {
+          "document": {
+            "reportId": "6053ac27-3467-6a5b-5e9c-01f3ed36b2c1",
+            "documentNo": "SLS-2026-0001",
+            "issueDate": "2026年4月30日"
+          },
+          "customer": {
+            "customerName": "株式会社サンプル商事"
+          },
+          "summary": {
+            "totalIncTax": 473000
+          },
+          "items": [
+            {
+              "itemCode": "P-001",
+              "itemName": "サンプル商品 01",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 1500,
+              "amount": 3000
+            },
+            {
+              "itemCode": "P-002",
+              "itemName": "サンプル商品 02",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 2000,
+              "amount": 6000
+            },
+            {
+              "itemCode": "P-003",
+              "itemName": "サンプル商品 03",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 2500,
+              "amount": 10000
+            },
+            {
+              "itemCode": "P-004",
+              "itemName": "サンプル商品 04",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 3000,
+              "amount": 15000
+            },
+            {
+              "itemCode": "P-005",
+              "itemName": "サンプル商品 05",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 3500,
+              "amount": 3500
+            },
+            {
+              "itemCode": "P-006",
+              "itemName": "サンプル商品 06",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 4000,
+              "amount": 8000
+            },
+            {
+              "itemCode": "P-007",
+              "itemName": "サンプル商品 07",
+              "quantity": 3,
+              "unit": "式",
+              "unitPrice": 4500,
+              "amount": 13500
+            },
+            {
+              "itemCode": "P-008",
+              "itemName": "サンプル商品 08",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 20000
+            },
+            {
+              "itemCode": "P-009",
+              "itemName": "サンプル商品 09",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 5500,
+              "amount": 27500
+            },
+            {
+              "itemCode": "P-010",
+              "itemName": "サンプル商品 10",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 1000,
+              "amount": 1000
+            },
+            {
+              "itemCode": "P-011",
+              "itemName": "サンプル商品 11",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 1500,
+              "amount": 3000
+            },
+            {
+              "itemCode": "P-012",
+              "itemName": "サンプル商品 12",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 2000,
+              "amount": 6000
+            },
+            {
+              "itemCode": "P-013",
+              "itemName": "サンプル商品 13",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 2500,
+              "amount": 10000
+            },
+            {
+              "itemCode": "P-014",
+              "itemName": "サンプル商品 14",
+              "quantity": 5,
+              "unit": "式",
+              "unitPrice": 3000,
+              "amount": 15000
+            },
+            {
+              "itemCode": "P-015",
+              "itemName": "サンプル商品 15",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 3500,
+              "amount": 3500
+            },
+            {
+              "itemCode": "P-016",
+              "itemName": "サンプル商品 16",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 4000,
+              "amount": 8000
+            },
+            {
+              "itemCode": "P-017",
+              "itemName": "サンプル商品 17",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 4500,
+              "amount": 13500
+            },
+            {
+              "itemCode": "P-018",
+              "itemName": "サンプル商品 18",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 20000
+            },
+            {
+              "itemCode": "P-019",
+              "itemName": "サンプル商品 19",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 5500,
+              "amount": 27500
+            },
+            {
+              "itemCode": "P-020",
+              "itemName": "サンプル商品 20",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 1000,
+              "amount": 1000
+            },
+            {
+              "itemCode": "P-021",
+              "itemName": "サンプル商品 21",
+              "quantity": 2,
+              "unit": "式",
+              "unitPrice": 1500,
+              "amount": 3000
+            },
+            {
+              "itemCode": "P-022",
+              "itemName": "サンプル商品 22",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 2000,
+              "amount": 6000
+            },
+            {
+              "itemCode": "P-023",
+              "itemName": "サンプル商品 23",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 2500,
+              "amount": 10000
+            },
+            {
+              "itemCode": "P-024",
+              "itemName": "サンプル商品 24",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 3000,
+              "amount": 15000
+            },
+            {
+              "itemCode": "P-025",
+              "itemName": "サンプル商品 25",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 3500,
+              "amount": 3500
+            },
+            {
+              "itemCode": "P-026",
+              "itemName": "サンプル商品 26",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 4000,
+              "amount": 8000
+            },
+            {
+              "itemCode": "P-027",
+              "itemName": "サンプル商品 27",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 4500,
+              "amount": 13500
+            },
+            {
+              "itemCode": "P-028",
+              "itemName": "サンプル商品 28",
+              "quantity": 4,
+              "unit": "式",
+              "unitPrice": 5000,
+              "amount": 20000
+            },
+            {
+              "itemCode": "P-029",
+              "itemName": "サンプル商品 29",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 5500,
+              "amount": 27500
+            },
+            {
+              "itemCode": "P-030",
+              "itemName": "サンプル商品 30",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 1000,
+              "amount": 1000
+            },
+            {
+              "itemCode": "P-031",
+              "itemName": "サンプル商品 31",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 1500,
+              "amount": 3000
+            },
+            {
+              "itemCode": "P-032",
+              "itemName": "サンプル商品 32",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 2000,
+              "amount": 6000
+            },
+            {
+              "itemCode": "P-033",
+              "itemName": "サンプル商品 33",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 2500,
+              "amount": 10000
+            },
+            {
+              "itemCode": "P-034",
+              "itemName": "サンプル商品 34",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 3000,
+              "amount": 15000
+            },
+            {
+              "itemCode": "P-035",
+              "itemName": "サンプル商品 35",
+              "quantity": 1,
+              "unit": "式",
+              "unitPrice": 3500,
+              "amount": 3500
+            },
+            {
+              "itemCode": "P-036",
+              "itemName": "サンプル商品 36",
+              "quantity": 2,
+              "unit": "個",
+              "unitPrice": 4000,
+              "amount": 8000
+            },
+            {
+              "itemCode": "P-037",
+              "itemName": "サンプル商品 37",
+              "quantity": 3,
+              "unit": "個",
+              "unitPrice": 4500,
+              "amount": 13500
+            },
+            {
+              "itemCode": "P-038",
+              "itemName": "サンプル商品 38",
+              "quantity": 4,
+              "unit": "個",
+              "unitPrice": 5000,
+              "amount": 20000
+            },
+            {
+              "itemCode": "P-039",
+              "itemName": "サンプル商品 39",
+              "quantity": 5,
+              "unit": "個",
+              "unitPrice": 5500,
+              "amount": 27500
+            },
+            {
+              "itemCode": "P-040",
+              "itemName": "サンプル商品 40",
+              "quantity": 1,
+              "unit": "個",
+              "unitPrice": 1000,
+              "amount": 1000
+            }
+          ]
+        }
+      }
+    ],
+    "calculationRules": [],
+    "validationRules": [],
+    "outputVariants": [],
+    "templateVariables": [],
+    "submissionModels": []
+  }
+}
