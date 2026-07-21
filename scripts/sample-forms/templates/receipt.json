@@ -56,7 +56,7 @@
                   "color": "#1a1a1a",
                   "fontWeight": "bold",
                   "textAlign": "center",
-                  "letterSpacing": 4
+                  "letterSpacing": 0.15
                 }
               },
               {

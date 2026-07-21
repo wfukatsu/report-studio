@@ -73,6 +73,13 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         float lineHeight =
                 firstNonZero(
                         style != null ? floatOf(style, "lineHeight", 0) : 0, DEFAULT_LINE_HEIGHT);
+        // letterSpacing is em-based like the frontend (`${v}em` in TextContent, #319):
+        // convert to points once so wrapping, alignment, and drawing all agree
+        float letterSpacingEm =
+                firstNonZero(
+                        props != null ? floatOf(props, "letterSpacing", 0) : 0,
+                        style != null ? floatOf(style, "letterSpacing", 0) : 0);
+        float charSpacing = letterSpacingEm * fontSize;
         boolean vertical =
                 "vertical-rl"
                         .equals(
@@ -88,10 +95,33 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         try {
             configureBold(cs, syntheticBold, fontSize, color);
             if (vertical) {
-                drawVertical(cs, font, fontSize, lineHeight, text, x, y, w, h, furigana, furiScale);
+                drawVertical(
+                        cs,
+                        font,
+                        fontSize,
+                        lineHeight,
+                        text,
+                        x,
+                        y,
+                        w,
+                        h,
+                        furigana,
+                        furiScale,
+                        charSpacing);
             } else {
                 drawHorizontal(
-                        cs, font, fontSize, lineHeight, text, x, y, w, align, furigana, furiScale);
+                        cs,
+                        font,
+                        fontSize,
+                        lineHeight,
+                        text,
+                        x,
+                        y,
+                        w,
+                        align,
+                        furigana,
+                        furiScale,
+                        charSpacing);
             }
         } finally {
             cs.restoreGraphicsState();
@@ -111,21 +141,26 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float w,
             String align,
             String furigana,
-            float furiScale)
+            float furiScale,
+            float charSpacing)
             throws IOException {
         float rubyH = furigana.isEmpty() ? 0 : fontSize * furiScale * 1.1f;
-        List<String> lines = wrapText(text, font, fontSize, w);
+        List<String> lines = wrapText(text, font, fontSize, w, charSpacing);
         float lineStep = fontSize * lineHeight;
         float cursorY = y - rubyH - fontSize;
         for (String line : lines) {
-            float lineW = strWidth(font, line, fontSize);
+            // CSS letter-spacing trails every glyph (incl. the last) and is part of
+            // the line box, so alignment math includes the trailing spacing too
+            float lineW =
+                    strWidth(font, line, fontSize)
+                            + line.codePointCount(0, line.length()) * charSpacing;
             float tx =
                     switch (align) {
                         case "center" -> x + (w - lineW) / 2;
                         case "right" -> x + w - lineW;
                         default -> x;
                     };
-            showLine(cs, font, fontSize, line, tx, cursorY);
+            showLine(cs, font, fontSize, line, tx, cursorY, charSpacing);
             cursorY -= lineStep;
         }
         // Ruby over the first line, centered on the text block
@@ -156,13 +191,16 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float w,
             float h,
             String furigana,
-            float furiScale)
+            float furiScale,
+            float charSpacing)
             throws IOException {
         // Columns fill top-to-bottom, advancing right-to-left from the frame's right edge.
+        // letter-spacing extends the per-glyph advance along the vertical flow (#319).
+        float glyphStep = fontSize + charSpacing;
         float colStep = fontSize * lineHeight;
         float colX = x + w - fontSize;
         float startY = y - fontSize;
-        int maxPerCol = Math.max(1, (int) ((h) / fontSize));
+        int maxPerCol = Math.max(1, (int) (h / glyphStep));
 
         int[] cps = text.codePoints().toArray();
         int row = 0;
@@ -180,7 +218,7 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             if (colX < x) break; // out of horizontal space
             String ch = new String(Character.toChars(cp));
             float chW = strWidth(font, ch, fontSize);
-            showLine(cs, font, fontSize, ch, colX + (fontSize - chW) / 2, startY - row * fontSize);
+            showLine(cs, font, fontSize, ch, colX + (fontSize - chW) / 2, startY - row * glyphStep);
             row++;
         }
         // Ruby to the right of the first column
@@ -211,13 +249,27 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
     private static void showLine(
             PDPageContentStream cs, PDFont font, float size, String text, float tx, float baselineY)
             throws IOException {
+        showLine(cs, font, size, text, tx, baselineY, 0f);
+    }
+
+    private static void showLine(
+            PDPageContentStream cs,
+            PDFont font,
+            float size,
+            String text,
+            float tx,
+            float baselineY,
+            float charSpacing)
+            throws IOException {
         if (text.isEmpty()) return;
         String safe = sanitizeForFont(font, text);
         cs.beginText();
         cs.setFont(font, size);
+        if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
         cs.newLineAtOffset(tx, baselineY);
         cs.showText(safe);
         cs.endText();
+        if (charSpacing != 0) cs.setCharacterSpacing(0);
     }
 
     /** Drop code points the font cannot encode, so showText never throws mid-render. */

@@ -144,7 +144,7 @@ const { el, txt, fld, yen, line, rect } = makeEls('receipt')
 function buildReceipt() {
   const elements = [
     // タイトル
-    txt('title', '領 収 書', { x: 55, y: 14 }, { width: 100, height: 12 }, { fontSize: 22, fontWeight: 'bold', textAlign: 'center', letterSpacing: 4 }, '領 収 書'),
+    txt('title', '領 収 書', { x: 55, y: 14 }, { width: 100, height: 12 }, { fontSize: 22, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.15 }, '領 収 書'),
     line('title-rule', { x: 60, y: 27 }, { width: 90, height: 0.4 }, '#333333', 0.4),
     // 右上: 領収番号・発行日
     txt('no-label', '領収番号:', { x: 130, y: 34 }, { width: 22, height: 5 }, { fontSize: 8, textAlign: 'left' }),
@@ -284,7 +284,7 @@ function buildBandFlow() {
   const { el, txt, fld, yen, line, rect } = makeEls('band-flow')
   const elements = [
     // タイトル（静的要素は全継続ページに繰返し描画される）
-    txt('title', '売 上 明 細 一 覧', { x: 55, y: 12 }, { width: 100, height: 10 }, { fontSize: 18, fontWeight: 'bold', textAlign: 'center', letterSpacing: 3 }, '売 上 明 細 一 覧'),
+    txt('title', '売 上 明 細 一 覧', { x: 55, y: 12 }, { width: 100, height: 10 }, { fontSize: 18, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.15 }, '売 上 明 細 一 覧'),
     line('title-rule', { x: 60, y: 23 }, { width: 90, height: 0.4 }, '#333333', 0.4),
     // 右上: 伝票番号・発行日
     txt('no-label', '伝票番号:', { x: 130, y: 30 }, { width: 22, height: 5 }, { fontSize: 8 }),
