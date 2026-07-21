@@ -71,3 +71,61 @@
     margin: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * 帳票キャンバス用 Web フォント（issue #317）
+ * サーバ PDF の埋め込みフォント（server/src/main/resources/fonts/）と同一
+ * ファイルから生成した woff2 サブセット。core（ラテン+かな+約物）を先行取得し、
+ * 漢字スライスは unicode-range により使用時のみロードされる。
+ * ------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-regular-core.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2100-214F, U+2190-21FF, U+2200-22FF,
+    U+2500-25FF, U+2600-26FF, U+3000-303F, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-regular-kanji.woff2') format('woff2');
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF;
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-bold-core.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2100-214F, U+2190-21FF, U+2200-22FF,
+    U+2500-25FF, U+2600-26FF, U+3000-303F, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-bold-kanji.woff2') format('woff2');
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-serif-jp-regular-core.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2100-214F, U+2190-21FF, U+2200-22FF,
+    U+2500-25FF, U+2600-26FF, U+3000-303F, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-serif-jp-regular-kanji.woff2') format('woff2');
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF;
+}
+
+/* 帳票ページ（エディタ・プレビュー・エクスポート共通のルート）は PDF と同じ
+ * Noto Sans JP を既定フォントにする。アプリ UI にはあえて適用しない。 */
+.report-page {
+  font-family: 'Noto Sans JP', sans-serif;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveStyle } from './styleUtils'
+import { resolveStyle, resolveFontFamily, REPORT_SANS_STACK, REPORT_SERIF_STACK } from './styleUtils'
 import type { TextStyle } from '@/types'
 
 describe('resolveStyle', () => {
@@ -82,5 +82,26 @@ describe('resolveStyle', () => {
     expect(result.writingMode).toBe('vertical-rl')
     expect(result.fontFamily).toBe('Noto Sans JP') // inherited
     expect(result.lineHeight).toBe(1.5) // inherited
+  })
+})
+
+describe('resolveFontFamily (#317)', () => {
+  it('resolves the generic sans-serif keyword to the Noto Sans JP stack', () => {
+    expect(resolveFontFamily('sans-serif')).toBe(REPORT_SANS_STACK)
+  })
+
+  it('resolves the generic serif keyword to the Noto Serif JP stack', () => {
+    expect(resolveFontFamily('serif')).toBe(REPORT_SERIF_STACK)
+  })
+
+  it('passes explicit families through unchanged', () => {
+    expect(resolveFontFamily('Noto Sans JP')).toBe('Noto Sans JP')
+    expect(resolveFontFamily('Yu Mincho')).toBe('Yu Mincho')
+    expect(resolveFontFamily('monospace')).toBe('monospace')
+  })
+
+  it('returns undefined for unset families so .report-page inheritance applies', () => {
+    expect(resolveFontFamily(undefined)).toBeUndefined()
+    expect(resolveFontFamily('')).toBeUndefined()
   })
 })

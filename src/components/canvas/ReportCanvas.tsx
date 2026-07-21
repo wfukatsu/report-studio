@@ -617,6 +617,7 @@ export function ReportCanvas({
     >
       <div
         ref={ref}
+        className="report-page"
         style={{
           position: 'relative',
           width: canvasWidthPx,

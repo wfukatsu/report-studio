@@ -3,6 +3,7 @@ import type { CurrentDateElement, CurrentDateFormat } from '@/types'
 import { toFlexAlign } from '@/elements/_base/styleUtils'
 import { formatCurrentDate } from './format'
 import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
+import { resolveFontFamily } from '@/lib/styleUtils'
 
 /** Human-readable placeholder labels shown in the editor instead of resolved values. */
 const FORMAT_PLACEHOLDERS: Record<CurrentDateFormat, string> = {
@@ -55,7 +56,7 @@ export const CurrentDateRenderer = memo(function CurrentDateRenderer({
           fontWeight: style.fontWeight ?? 'normal',
           fontStyle: style.fontStyle ?? 'normal',
           color: style.color ?? '#000000',
-          fontFamily: style.fontFamily,
+          fontFamily: resolveFontFamily(style.fontFamily),
           textAlign: style.textAlign ?? 'left',
           whiteSpace: 'nowrap',
         }}

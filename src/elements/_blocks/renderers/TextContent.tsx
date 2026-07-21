@@ -1,6 +1,7 @@
 import { memo, useRef, useState, useLayoutEffect } from 'react'
 import type { TextStyle } from '@/types'
 import { toFlexAlign } from '@/elements/_base/styleUtils'
+import { resolveFontFamily } from '@/lib/styleUtils'
 import {
   DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT, DEFAULT_FURIGANA_SCALE,
   FURIGANA_OFFSET_MULTIPLIER, MIN_SHRINK_FONT_SIZE_PT,
@@ -98,7 +99,7 @@ export const TextContent = memo(function TextContent({
           textDecoration: style.textDecoration ?? 'none',
           color: style.color ?? '#000000',
           backgroundColor: style.backgroundColor ?? 'transparent',
-          fontFamily: style.fontFamily,
+          fontFamily: resolveFontFamily(style.fontFamily),
           textAlign: style.textAlign ?? 'left',
           textAlignLast: style.textAlign === 'justify' ? 'justify' : undefined,
           letterSpacing: style.letterSpacing != null ? `${style.letterSpacing}em` : undefined,
