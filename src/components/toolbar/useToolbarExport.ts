@@ -1,5 +1,6 @@
 import { toast } from 'sonner'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { generateStatelessPdf, generateStatelessExcel, generateTemplatePdf, evaluateValidate } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
 import type { ReportDefinitionInput } from '@/lib/schemas/reportDefinition'
@@ -34,6 +35,7 @@ export function useToolbarExport({
   setShowValidationWarnConfirm,
   setValidationWarnings,
 }: ExportContext) {
+  const { t } = useTranslation('toolbar')
   const [isExporting, setIsExporting] = useState(false)
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
@@ -105,13 +107,9 @@ export function useToolbarExport({
       // Auto-field values come from the (masked) element models, not DOM reverse-mapping (issue #61)
       const maskedDef = { ...definition, pages: applyVariant(definition.pages, variant) }
       await exportReportToPdf(els, filename, collectAutoFieldModels(maskedDef))
-      toast.warning(
-        'サーバー生成に失敗したため、簡易PDF（画像ベース・画質低下）で出力しました。'
-        + '取引先に送る前に内容をご確認ください。バックエンドの起動状態もご確認ください。',
-        { duration: 10000 },
-      )
+      toast.warning(t('toast.pdfFallback'), { duration: 10000 })
     } catch (_err) {
-      toast.error('エクスポートに失敗しました。もう一度お試しください。', { duration: 8000 })
+      toast.error(t('toast.exportFailed'), { duration: 8000 })
     } finally {
       for (const node of hiddenNodes) { node.style.visibility = '' }
       for (const { node, original } of maskedNodes) { node.innerText = original }
@@ -144,7 +142,7 @@ export function useToolbarExport({
       const newTab = window.open(url, '_blank')
       if (!newTab) {
         URL.revokeObjectURL(url)
-        toast.error('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。', { duration: 8000 })
+        toast.error(t('toast.popupBlocked'), { duration: 8000 })
         return false
       }
       setTimeout(() => URL.revokeObjectURL(url), 1_000)
@@ -161,10 +159,10 @@ export function useToolbarExport({
         const els = canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null)
         const blob = await exportReportToPdfBlob(els, collectAutoFieldModels(definition))
         if (openBlobUrl(blob)) {
-          toast.warning('クライアントレンダリングでプレビューを生成しました（品質が低下している場合があります）')
+          toast.warning(t('toast.previewClientFallback'))
         }
       } catch (_err) {
-        toast.error('PDFプレビューの生成に失敗しました', { duration: 8000 })
+        toast.error(t('toast.previewFailed'), { duration: 8000 })
       }
     } finally {
       setIsPreviewingPdf(false)
@@ -181,7 +179,7 @@ export function useToolbarExport({
       const blob = await generateTemplatePdf(currentTemplateId, tdRecord)
       downloadBlob(blob, `${definition.metadata.documentName}.pdf`)
     } catch (_err) {
-      toast.error('バックエンドPDF生成に失敗しました', { duration: 8000 })
+      toast.error(t('toast.backendPdfFailed'), { duration: 8000 })
     } finally {
       setIsExporting(false)
     }
@@ -200,7 +198,7 @@ export function useToolbarExport({
         await exportPageToPng(el, `${reportName}.png`, pageIdx, pages.length, collectAutoFieldModels(definition))
       }
     } catch (_err) {
-      toast.error('エクスポートに失敗しました。もう一度お試しください。', { duration: 8000 })
+      toast.error(t('toast.exportFailed'), { duration: 8000 })
     } finally {
       setIsExporting(false)
     }
@@ -216,7 +214,7 @@ export function useToolbarExport({
       const blob = await generateStatelessExcel(defJson, dataJson)
       downloadBlob(blob, `${reportName}.xlsx`)
     } catch (_err) {
-      toast.error('Excel のエクスポートに失敗しました。バックエンドが起動しているか確認してください。', { duration: 8000 })
+      toast.error(t('toast.excelFailed'), { duration: 8000 })
     } finally {
       setIsExporting(false)
     }
@@ -227,14 +225,14 @@ export function useToolbarExport({
     const data = resolveCurrentData()
     const csv = buildReportCsv(definition, data)
     if (!csv) {
-      toast.warning('CSV に出力できるデータがありません。データバインドまたはサンプルデータを設定してください。', { duration: 6000 })
+      toast.warning(t('toast.csvNoData'), { duration: 6000 })
       return
     }
     try {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       downloadBlob(blob, `${reportName}.csv`)
     } catch (_err) {
-      toast.error('CSV のエクスポートに失敗しました。', { duration: 8000 })
+      toast.error(t('toast.csvFailed'), { duration: 8000 })
     }
   }
 
@@ -260,7 +258,7 @@ export function useToolbarExport({
       useReportStore.getState().setComputedViolations(result.violations)
     } catch (_err) {
       if (controller.signal.aborted) return
-      toast.error('バリデーションに失敗しました', { duration: 8000 })
+      toast.error(t('toast.validateFailed'), { duration: 8000 })
     } finally {
       if (!controller.signal.aborted) setIsValidating(false)
     }

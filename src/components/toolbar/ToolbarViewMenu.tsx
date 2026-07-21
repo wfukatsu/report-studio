@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   SlidersHorizontal, ChevronDown, Check,
   Grid3X3, Magnet, Crosshair, ScanLine, PanelTop, ArrowUpToLine, ArrowDownToLine,
@@ -31,6 +32,7 @@ export interface ToolbarViewMenuProps {
 }
 
 export function ToolbarViewMenu(props: ToolbarViewMenuProps) {
+  const { t } = useTranslation('toolbar')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -53,10 +55,10 @@ export function ToolbarViewMenu(props: ToolbarViewMenuProps) {
 
   return (
     <div className="relative" ref={ref}>
-      <Tooltip content="表示・レイアウトの詳細オプション" placement="bottom">
+      <Tooltip content={t('view.tooltip')} placement="bottom">
         <button
           onClick={() => setOpen((v) => !v)}
-          aria-label="表示オプション"
+          aria-label={t('view.options')}
           aria-expanded={open}
           aria-haspopup="menu"
           className={cn(
@@ -70,27 +72,27 @@ export function ToolbarViewMenu(props: ToolbarViewMenuProps) {
       </Tooltip>
       {open && (
         <div role="menu" className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[220px] py-1">
-          <ToggleItem icon={<Grid3X3 className="w-4 h-4" />} label="グリッドを表示" active={props.showGrid} onClick={props.toggleGrid} />
-          <ToggleItem icon={<Magnet className="w-4 h-4" />} label="グリッドにスナップ" active={props.snapToGrid} onClick={props.toggleSnapToGrid} />
-          <ToggleItem icon={<Crosshair className="w-4 h-4" />} label="トンボを表示" active={props.showTrimMarks} onClick={props.toggleTrimMarks} />
-          <ToggleItem icon={<ScanLine className="w-4 h-4" />} label="余白ガイドを表示" active={props.showMarginGuide} onClick={props.toggleMarginGuide} />
+          <ToggleItem icon={<Grid3X3 className="w-4 h-4" />} label={t('view.showGrid')} active={props.showGrid} onClick={props.toggleGrid} />
+          <ToggleItem icon={<Magnet className="w-4 h-4" />} label={t('view.snapToGrid')} active={props.snapToGrid} onClick={props.toggleSnapToGrid} />
+          <ToggleItem icon={<Crosshair className="w-4 h-4" />} label={t('view.showTrimMarks')} active={props.showTrimMarks} onClick={props.toggleTrimMarks} />
+          <ToggleItem icon={<ScanLine className="w-4 h-4" />} label={t('view.showMarginGuide')} active={props.showMarginGuide} onClick={props.toggleMarginGuide} />
           <div className="border-t my-1" />
           <ToggleItem
             icon={<PanelTop className="w-4 h-4" />}
-            label="ヘッダー/フッター編集モード"
+            label={t('view.headerFooterEditMode')}
             active={props.headerEditMode}
             disabled={!props.canEditHeaderFooter}
             onClick={props.toggleHeaderEditMode}
           />
           <ToggleItem
             icon={<ArrowUpToLine className="w-4 h-4" />}
-            label={props.hasMasterHeader ? 'マスターヘッダーを削除' : 'マスターヘッダーを作成'}
+            label={props.hasMasterHeader ? t('view.deleteMasterHeader') : t('view.createMasterHeader')}
             active={props.hasMasterHeader}
             onClick={props.onToggleMasterHeader}
           />
           <ToggleItem
             icon={<ArrowDownToLine className="w-4 h-4" />}
-            label={props.hasMasterFooter ? 'マスターフッターを削除' : 'マスターフッターを作成'}
+            label={props.hasMasterFooter ? t('view.deleteMasterFooter') : t('view.createMasterFooter')}
             active={props.hasMasterFooter}
             onClick={props.onToggleMasterFooter}
           />

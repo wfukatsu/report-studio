@@ -10,35 +10,43 @@ function keyPaths(obj: unknown, prefix = ''): string[] {
 }
 
 describe('i18n resources', () => {
+  const namespaces = Object.keys(resources[DEFAULT_LANGUAGE]) as Array<
+    keyof (typeof resources)[typeof DEFAULT_LANGUAGE]
+  >
+
   it('every language exposes the same namespaces', () => {
-    const nsByLang = SUPPORTED_LANGUAGES.map((lng) => Object.keys(resources[lng]).sort())
-    for (const ns of nsByLang) expect(ns).toEqual(Object.keys(resources.ja).sort())
+    for (const lng of SUPPORTED_LANGUAGES) {
+      expect(Object.keys(resources[lng]).sort()).toEqual(Object.keys(resources.ja).sort())
+    }
   })
 
   // The core CI guard: any key added to one language but not another — or a typo
   // on rename — fails here before it can render a raw key string in the UI.
-  it('non-default languages have exactly the same key set as the source (ja)', () => {
-    const source = keyPaths(resources[DEFAULT_LANGUAGE].common).sort()
-    for (const lng of SUPPORTED_LANGUAGES) {
-      if (lng === DEFAULT_LANGUAGE) continue
-      const target = keyPaths(resources[lng].common).sort()
-      const missing = source.filter((k) => !target.includes(k))
-      const extra = target.filter((k) => !source.includes(k))
-      expect(missing, `keys missing from "${lng}"`).toEqual([])
-      expect(extra, `keys in "${lng}" absent from source`).toEqual([])
+  // Runs per namespace so a drift in any namespace is pinpointed.
+  it('non-default languages have exactly the same key set as the source (ja) in every namespace', () => {
+    for (const ns of namespaces) {
+      const source = keyPaths(resources[DEFAULT_LANGUAGE][ns]).sort()
+      for (const lng of SUPPORTED_LANGUAGES) {
+        if (lng === DEFAULT_LANGUAGE) continue
+        const target = keyPaths(resources[lng][ns]).sort()
+        const missing = source.filter((k) => !target.includes(k))
+        const extra = target.filter((k) => !source.includes(k))
+        expect(missing, `keys missing from "${lng}:${ns}"`).toEqual([])
+        expect(extra, `keys in "${lng}:${ns}" absent from source`).toEqual([])
+      }
     }
   })
 
-  it('has no empty translation values in any language', () => {
+  it('has no empty translation values in any language/namespace', () => {
     for (const lng of SUPPORTED_LANGUAGES) {
-      const entries = keyPaths(resources[lng].common)
-      // keyPaths returns leaf paths; re-resolve each to assert non-empty string.
-      for (const path of entries) {
-        const value = path
-          .split('.')
-          .reduce<unknown>((acc, seg) => (acc as Record<string, unknown>)?.[seg], resources[lng].common)
-        expect(typeof value, `${lng}:${path}`).toBe('string')
-        expect((value as string).length, `${lng}:${path} is empty`).toBeGreaterThan(0)
+      for (const ns of namespaces) {
+        for (const path of keyPaths(resources[lng][ns])) {
+          const value = path
+            .split('.')
+            .reduce<unknown>((acc, seg) => (acc as Record<string, unknown>)?.[seg], resources[lng][ns])
+          expect(typeof value, `${lng}:${ns}:${path}`).toBe('string')
+          expect((value as string).length, `${lng}:${ns}:${path} is empty`).toBeGreaterThan(0)
+        }
       }
     }
   })
