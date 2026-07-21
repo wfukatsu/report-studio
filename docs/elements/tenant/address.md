@@ -31,7 +31,7 @@ export interface TenantAddressElement extends ElementBase {
 | UIラベル | プロパティ | 型 | 既定値 | 説明・効果 |
 |---|---|---|---|---|
 | 表示モード | `displayMode` | `'single' \| 'multiLine'` | `'single'` | `single`＝1行表示、`multiLine`＝3行表示。ラベルは「1行表示」「3行表示」。 |
-| 未設定時テキスト | `fallback` | `string?` | `undefined` | 住所が空のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、内蔵の `（住所未設定）` が使われる。 |
+| 未設定時テキスト | `fallback` | `string?` | `undefined` | 住所が空のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、その場合は要素ごと非描画になる（サーバ PDF と同一挙動、#315）。 |
 
 ### テキストスタイルセクション（`TextStyleSection` → `el.style`）
 
@@ -70,7 +70,7 @@ style: { fontSize: 10, color: '#000000', textAlign: 'left' }
 Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 
 - **編集時（`resolveValues=false`）**: 常にリテラルトークン `{{住所}}` を `FIELD_PLACEHOLDER_STYLE` で描画。
-- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo` の `postalCode` / `address1` / `address2` / `address` を `formatAddress(fields, mode)` で整形して表示。結果が空なら `el.fallback`、それも未設定なら内蔵フォールバック `（住所未設定）`。
+- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo` の `postalCode` / `address1` / `address2` / `address` を `formatAddress(fields, mode)` で整形して表示。結果が空なら `el.fallback`、それも未設定なら**何も描画しない**（サーバ PDF と一致、#315）。
 
 `formatAddress` の組み立てルール（`address1` が未定義のときは後方互換で `address` を `address1` として扱う）。
 

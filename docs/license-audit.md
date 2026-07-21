@@ -51,6 +51,7 @@
 | ファイル | ライセンス | 互換性 |
 |---|---|---|
 | NotoSansJP-Regular.ttf / NotoSansJP-Bold.ttf / NotoSerifJP-Regular.otf | SIL OFL-1.1 | ✅ 同梱・PDF 埋め込み・再配布可（`fonts/LICENSE.md` に帰属表示同梱済み） |
+| `public/fonts/*.woff2`（フロント用サブセット、#317） | SIL OFL-1.1 | ✅ 上記と同一ファイルから pyftsubset で生成した Web フォント。`public/fonts/LICENSE.md` に帰属表示同梱済み |
 
 ## 注意事項・フォローアップ
 - Gradle の推移的依存は網羅監査していない（直接依存が全て Apache 系エコシステムのため

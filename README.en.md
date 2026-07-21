@@ -1,4 +1,4 @@
-# Report Design Studio V2
+# Report Studio
 
 [![CI](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml)
 
@@ -28,7 +28,7 @@ Log in → pick a template → edit → preview → bind → export → response
   elements (hanko seals, revenue stamps, approval rows, era selectors)
 - **Data binding** — dynamic values via `{{fieldKey}}` tokens
 - **ScalarDB integration** — read table schemas and bind data
-- **PDF/PNG export** — both client-side and server-side
+- **PDF/PNG export** — both client-side and server-side; the canvas and the server PDF render with the same self-hosted Noto fonts, so preview and output match
 - **Tenant information** — embed org info (company name, logo, address) into reports
 - **Version control** — template version history and restore
 - **Form response collection** — collect responses from public forms, export to Excel/PDF

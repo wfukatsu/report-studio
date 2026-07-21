@@ -68,7 +68,7 @@ style: { fontSize: 10, color: '#000000', textAlign: 'left' }
 Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 
 - **編集時（`resolveValues=false`）**: `fieldKey` を含むリテラルトークン `{{<fieldKey>}}` を `FIELD_PLACEHOLDER_STYLE` で描画。`fieldKey` が空のときは `{{fieldKey}}`。
-- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.custom?.[fieldKey]` を表示。値がなければ `el.fallback`、それも未設定なら内蔵フォールバック（`fieldKey` があれば `（<fieldKey> 未設定）`、`fieldKey` が空なら `（キー未設定）`）。
+- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.custom?.[fieldKey]` を表示。値がなければ `el.fallback`、それも未設定なら**何も描画しない**（サーバ PDF と一致、#315）。
 
 ## テナント情報の設定場所
 
@@ -87,7 +87,7 @@ Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 4. 「未設定時テキスト」にフォールバック（例: `T0000000000000`）を入力。
 5. 「テキストスタイル」でフォントサイズと太字を変更。
 6. プレビューモードに切り替え、登録した値が表示されることを確認。
-7. キーを存在しない名前に変更し、フォールバック／`（… 未設定）` が表示されることを確認。
+7. キーを存在しない名前に変更し、フォールバック設定時はその文字列が、未設定時はプレビューで何も表示されないことを確認。
 
 ## スクリーンショット
 
