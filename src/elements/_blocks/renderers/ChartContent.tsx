@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -28,6 +29,7 @@ export const ChartContent = memo(function ChartContent({
   showLegend = true,
   showGrid = true,
 }: ChartContentProps) {
+  const { t } = useTranslation('elements')
   if (!data.length) {
     return (
       <div style={{
@@ -36,7 +38,7 @@ export const ChartContent = memo(function ChartContent({
         background: '#f9fafb', border: '1px dashed #d1d5db',
         fontSize: '2.5mm', color: '#9ca3af',
       }}>
-        データなし
+        {t('blocks.chart.noData')}
       </div>
     )
   }
@@ -117,7 +119,7 @@ export const ChartContent = memo(function ChartContent({
           background: '#fef2f2', border: '1px dashed #fca5a5',
           fontSize: '2.5mm', color: '#ef4444',
         }}>
-          不明なグラフタイプ
+          {t('blocks.chart.unknownType')}
         </div>
       )
   }

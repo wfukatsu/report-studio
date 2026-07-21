@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { FormTableElement } from '@/types'
 import { ContextMenu, type ContextMenuItemDef } from '@/components/canvas/ContextMenu'
@@ -27,6 +28,7 @@ export function TableContextMenu({
   onChange,
   onClose,
 }: Props) {
+  const { t } = useTranslation('elements')
   const items = useMemo((): ContextMenuItemDef[] => {
     if (!cellCoord) return []
 
@@ -43,33 +45,33 @@ export function TableContextMenu({
       {
         kind: 'action',
         icon: null,
-        label: '上に行を挿入',
+        label: t('formTable.ctxMenu.insertRowBefore'),
         onClick: () => onChange(insertRowAt(el, row, 'before')),
       },
       {
         kind: 'action',
         icon: null,
-        label: '下に行を挿入',
+        label: t('formTable.ctxMenu.insertRowAfter'),
         onClick: () => onChange(insertRowAt(el, row, 'after')),
       },
       {
         kind: 'action',
         icon: null,
-        label: '行を削除',
+        label: t('formTable.ctxMenu.deleteRow'),
         onClick: () => onChange(removeRow(el, row)),
         disabled: isLastRow,
       },
       {
         kind: 'action',
         icon: null,
-        label: '行を上に移動',
+        label: t('formTable.ctxMenu.moveRowUp'),
         onClick: () => onChange(moveRow(el, row, row - 1)),
         disabled: !canMoveRowUp,
       },
       {
         kind: 'action',
         icon: null,
-        label: '行を下に移動',
+        label: t('formTable.ctxMenu.moveRowDown'),
         onClick: () => onChange(moveRow(el, row, row + 1)),
         disabled: !canMoveRowDown,
       },
@@ -78,38 +80,38 @@ export function TableContextMenu({
       {
         kind: 'action',
         icon: null,
-        label: '左に列を挿入',
+        label: t('formTable.ctxMenu.insertColBefore'),
         onClick: () => onChange(insertColumnAt(el, col, 'before')),
       },
       {
         kind: 'action',
         icon: null,
-        label: '右に列を挿入',
+        label: t('formTable.ctxMenu.insertColAfter'),
         onClick: () => onChange(insertColumnAt(el, col, 'after')),
       },
       {
         kind: 'action',
         icon: null,
-        label: '列を削除',
+        label: t('formTable.ctxMenu.deleteCol'),
         onClick: () => onChange(removeColumn(el, col)),
         disabled: isLastCol,
       },
       {
         kind: 'action',
         icon: null,
-        label: '列を左に移動',
+        label: t('formTable.ctxMenu.moveColLeft'),
         onClick: () => onChange(moveColumn(el, col, col - 1)),
         disabled: !canMoveColLeft,
       },
       {
         kind: 'action',
         icon: null,
-        label: '列を右に移動',
+        label: t('formTable.ctxMenu.moveColRight'),
         onClick: () => onChange(moveColumn(el, col, col + 1)),
         disabled: !canMoveColRight,
       },
     ]
-  }, [el, cellCoord, onChange])
+  }, [el, cellCoord, onChange, t])
 
   if (!menu || !cellCoord) return null
 

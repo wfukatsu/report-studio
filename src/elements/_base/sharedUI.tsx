@@ -4,6 +4,7 @@
  */
 
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ColorPickerPopover } from './ColorPickerPopover'
@@ -36,6 +37,7 @@ export function NumInput({ value, onChange, min, max, step, unit, inherited, onR
   /** When provided, shows a reset (✕) button that clears the override. */
   onReset?: () => void
 }) {
+  const { t } = useTranslation('elements')
   return (
     <div className="flex items-center gap-1 group">
       <input
@@ -59,7 +61,7 @@ export function NumInput({ value, onChange, min, max, step, unit, inherited, onR
         className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
         onClick={onReset}
         tabIndex={inherited || !onReset ? -1 : 0}
-        aria-label="デフォルトにリセット"
+        aria-label={t('base.sharedUI.resetToDefault')}
         type="button"
       >
         <X className="w-3 h-3" />
@@ -76,6 +78,7 @@ export function ColorInput({ value, onChange, label, inherited, onReset }: {
   inherited?: boolean
   onReset?: () => void
 }) {
+  const { t } = useTranslation('elements')
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   // Stable id for broadcasting open state to other instances
@@ -119,7 +122,7 @@ export function ColorInput({ value, onChange, label, inherited, onReset }: {
           onClick={open ? handleClose : handleOpen}
           aria-haspopup="dialog"
           aria-expanded={open}
-          aria-label="カラーピッカーを開く"
+          aria-label={t('base.sharedUI.openColorPicker')}
         >
           <span
             className="w-4 h-4 rounded border border-border shrink-0"
@@ -142,7 +145,7 @@ export function ColorInput({ value, onChange, label, inherited, onReset }: {
         className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
         onClick={onReset}
         tabIndex={inherited || !onReset ? -1 : 0}
-        aria-label="デフォルトにリセット"
+        aria-label={t('base.sharedUI.resetToDefault')}
         type="button"
       >
         <X className="w-3 h-3" />
@@ -157,6 +160,7 @@ export function SelectInput({ value, onChange, options, inherited, onReset }: {
   inherited?: boolean
   onReset?: () => void
 }) {
+  const { t } = useTranslation('elements')
   return (
     <div className="flex items-center gap-1 group">
       <select
@@ -178,7 +182,7 @@ export function SelectInput({ value, onChange, options, inherited, onReset }: {
         className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
         onClick={onReset}
         tabIndex={inherited || !onReset ? -1 : 0}
-        aria-label="デフォルトにリセット"
+        aria-label={t('base.sharedUI.resetToDefault')}
         type="button"
       >
         <X className="w-3 h-3" />

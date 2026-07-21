@@ -1,21 +1,26 @@
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CurrentDateElement, CurrentDateFormat } from '@/types'
 import { toFlexAlign } from '@/elements/_base/styleUtils'
 import { formatCurrentDate } from './format'
 import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
 import { resolveFontFamily } from '@/lib/styleUtils'
 
-/** Human-readable placeholder labels shown in the editor instead of resolved values. */
-const FORMAT_PLACEHOLDERS: Record<CurrentDateFormat, string> = {
-  'yyyy/MM/dd':            'yyyy/MM/dd',
-  'yyyy年MM月dd日':         'yyyy年MM月dd日',
-  'yyyy-MM-dd':            'yyyy-MM-dd',
-  'MM/dd/yyyy':            'MM/dd/yyyy',
-  'wareki_full':           '{{元号}}X年MM月dd日',
-  'wareki_short':          '{{元号}}X.MM.dd',
-  'yyyy年MM月dd日 (ddd)':  'yyyy年MM月dd日 (曜日)',
-  'custom':                'カスタム日付',
-}
+/**
+ * i18n keys for the human-readable placeholder labels shown in the editor
+ * instead of resolved values. Keys map the raw CurrentDateFormat enum; the
+ * wareki entries carry a literal `{{元号}}` era token via interpolation.
+ */
+const FORMAT_PLACEHOLDER_KEYS = {
+  'yyyy/MM/dd':            'currentDate.placeholderYmdSlash',
+  'yyyy年MM月dd日':         'currentDate.placeholderYmdJa',
+  'yyyy-MM-dd':            'currentDate.placeholderYmdDash',
+  'MM/dd/yyyy':            'currentDate.placeholderMdy',
+  'wareki_full':           'currentDate.placeholderWarekiFull',
+  'wareki_short':          'currentDate.placeholderWarekiShort',
+  'yyyy年MM月dd日 (ddd)':  'currentDate.placeholderYmdJaWeekday',
+  'custom':                'currentDate.placeholderCustom',
+} as const satisfies Record<CurrentDateFormat, string>
 
 interface Props {
   element: CurrentDateElement
@@ -27,16 +32,20 @@ export const CurrentDateRenderer = memo(function CurrentDateRenderer({
   element: el,
   resolveValues = false,
 }: Props) {
+  const { t } = useTranslation('elements')
   const style = el.style
   const text = useMemo(() => {
     if (resolveValues) {
       return formatCurrentDate(el.format, el.customFormat)
     }
     if (el.format === 'custom') {
-      return el.customFormat ?? 'カスタム日付'
+      return el.customFormat ?? t('currentDate.placeholderCustom')
     }
-    return FORMAT_PLACEHOLDERS[el.format]
-  }, [el.format, el.customFormat, resolveValues])
+    if (el.format === 'wareki_full' || el.format === 'wareki_short') {
+      return t(FORMAT_PLACEHOLDER_KEYS[el.format], { eraToken: '{{元号}}' })
+    }
+    return t(FORMAT_PLACEHOLDER_KEYS[el.format])
+  }, [el.format, el.customFormat, resolveValues, t])
 
   return (
     <div

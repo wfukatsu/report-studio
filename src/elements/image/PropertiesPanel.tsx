@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { ImageElement } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function ImagePropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -24,7 +26,7 @@ export function ImagePropertiesPanel({ el, onChange }: Props) {
 
     if (file.size > maxSize) {
       const limitLabel = isSvg ? '512KB' : '2MB'
-      toast.error(`ファイルサイズが${limitLabel}を超えています。`)
+      toast.error(t('image.fileTooLarge', { limit: limitLabel }))
       return
     }
 
@@ -40,15 +42,15 @@ export function ImagePropertiesPanel({ el, onChange }: Props) {
   }
 
   return (
-    <PropSection title="画像">
-      <PropRow label="画像ファイル">
+    <PropSection title={t('image.title')}>
+      <PropRow label={t('image.imageFile')}>
         <div className="flex gap-1">
           <button
             type="button"
             className="flex-1 py-1 text-xs text-blue-600 hover:text-blue-800 border border-dashed rounded hover:bg-blue-50 transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
-            ファイルを選択...
+            {t('image.selectFile')}
           </button>
           <input
             ref={fileInputRef}
@@ -59,7 +61,7 @@ export function ImagePropertiesPanel({ el, onChange }: Props) {
           />
         </div>
       </PropRow>
-      <PropRow label="URL / パス">
+      <PropRow label={t('image.urlPath')}>
         <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.src} placeholder="https://..." onChange={(e) => onChange({ src: e.target.value })} />
       </PropRow>
       {el.src && (
@@ -67,13 +69,13 @@ export function ImagePropertiesPanel({ el, onChange }: Props) {
           <img src={el.src} alt={el.alt} className="w-full h-auto max-h-20 object-contain" />
         </div>
       )}
-      <PropRow label="alt テキスト">
+      <PropRow label={t('image.altText')}>
         <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.alt} onChange={(e) => onChange({ alt: e.target.value })} />
       </PropRow>
-      <PropRow label="フィット">
-        <SelectInput value={el.objectFit} onChange={(v) => onChange({ objectFit: v as ImageElement['objectFit'] })} options={[{ value: 'contain', label: 'Contain（全体を収める）' }, { value: 'cover', label: 'Cover（領域を埋める）' }, { value: 'fill', label: 'Fill（伸縮して埋める）' }, { value: 'none', label: 'None（原寸）' }]} />
+      <PropRow label={t('image.fit')}>
+        <SelectInput value={el.objectFit} onChange={(v) => onChange({ objectFit: v as ImageElement['objectFit'] })} options={[{ value: 'contain', label: t('image.fitContain') }, { value: 'cover', label: t('image.fitCover') }, { value: 'fill', label: t('image.fitFill') }, { value: 'none', label: t('image.fitNone') }]} />
       </PropRow>
-      <PropRow label="不透明度">
+      <PropRow label={t('image.opacity')}>
         <div className="flex items-center gap-2">
           <input type="range" min={0} max={1} step={0.05} className="flex-1" value={el.opacity ?? 1} onChange={(e) => onChange({ opacity: Number(e.target.value) })} />
           <span className="text-xs text-muted-foreground w-8 text-right">{Math.round((el.opacity ?? 1) * 100)}%</span>

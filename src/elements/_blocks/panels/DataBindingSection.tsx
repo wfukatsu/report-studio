@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { PropSection, PropRow } from '@/elements/_base/sharedUI'
 import { FieldKeyInput } from '@/components/common/FieldKeyInput'
 
@@ -13,12 +14,13 @@ interface DataBindingSectionProps {
 export function DataBindingSection({
   fieldKey,
   onChange,
-  title = 'データバインディング',
-  label = 'フィールドキー',
+  title,
+  label,
 }: DataBindingSectionProps) {
+  const { t } = useTranslation('elements')
   return (
-    <PropSection title={title}>
-      <PropRow label={label}>
+    <PropSection title={title ?? t('blocks.dataBinding.title')}>
+      <PropRow label={label ?? t('blocks.dataBinding.fieldKey')}>
         <FieldKeyInput value={fieldKey} onChange={onChange} />
       </PropRow>
     </PropSection>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Bold, Italic, Underline, Strikethrough,
@@ -12,11 +13,13 @@ import { FONT_FAMILIES, FONT_FAMILY_LABELS, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIG
 
 const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: FONT_FAMILY_LABELS[f] ?? f }))
 
+// `as const satisfies` keeps `labelKey` literal so `t(o.labelKey)` type-checks
+// against the typed i18next catalog (#329). `value` stays the textFit enum.
 const TEXT_FIT_OPTIONS = [
-  { value: 'clip', label: 'なし（はみ出し非表示）' },
-  { value: 'shrinkText', label: 'テキストを縮小' },
-  { value: 'expandFrame', label: '枠を拡大' },
-]
+  { value: 'clip', labelKey: 'blocks.textStyle.fitClip' },
+  { value: 'shrinkText', labelKey: 'blocks.textStyle.fitShrink' },
+  { value: 'expandFrame', labelKey: 'blocks.textStyle.fitExpand' },
+] as const satisfies readonly { value: string; labelKey: string }[]
 
 interface TextStyleSectionProps {
   style: TextStyle
@@ -41,6 +44,7 @@ export function TextStyleSection({
   furigana,
   onFuriganaChange,
 }: TextStyleSectionProps) {
+  const { t } = useTranslation('elements')
   // Helper: is the given property inherited from defaultStyle?
   const inh = <K extends keyof TextStyle>(key: K): boolean =>
     style[key] === undefined
@@ -50,8 +54,8 @@ export function TextStyleSection({
     defaultStyle ? () => onStyleChange({ [key]: undefined } as Partial<TextStyle>) : undefined
 
   return (
-    <PropSection title="テキストスタイル">
-      <PropRow label="フォント">
+    <PropSection title={t('blocks.textStyle.title')}>
+      <PropRow label={t('blocks.textStyle.font')}>
         <SelectInput
           value={style.fontFamily ?? defaultStyle?.fontFamily ?? 'sans-serif'}
           onChange={(v) => onStyleChange({ fontFamily: v })}
@@ -61,7 +65,7 @@ export function TextStyleSection({
         />
       </PropRow>
 
-      <PropRow label="フォントサイズ">
+      <PropRow label={t('blocks.textStyle.fontSize')}>
         <NumInput
           value={style.fontSize ?? defaultStyle?.fontSize ?? DEFAULT_FONT_SIZE}
           onChange={(v) => onStyleChange({ fontSize: v })}
@@ -74,40 +78,40 @@ export function TextStyleSection({
       </PropRow>
 
       <div>
-        <span className="text-[10px] text-muted-foreground">スタイル</span>
+        <span className="text-[10px] text-muted-foreground">{t('blocks.textStyle.style')}</span>
         <div className="flex gap-1 mt-1">
           <IconToggle
             active={style.fontWeight === 'bold'}
             onClick={() => onStyleChange({ fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' })}
-            title="太字"
+            title={t('blocks.textStyle.bold')}
           >
             <Bold className="w-3.5 h-3.5" />
           </IconToggle>
           <IconToggle
             active={style.fontStyle === 'italic'}
             onClick={() => onStyleChange({ fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' })}
-            title="斜体"
+            title={t('blocks.textStyle.italic')}
           >
             <Italic className="w-3.5 h-3.5" />
           </IconToggle>
           <IconToggle
             active={style.textDecoration === 'underline'}
             onClick={() => onStyleChange({ textDecoration: style.textDecoration === 'underline' ? 'none' : 'underline' })}
-            title="下線"
+            title={t('blocks.textStyle.underline')}
           >
             <Underline className="w-3.5 h-3.5" />
           </IconToggle>
           <IconToggle
             active={style.textDecoration === 'line-through'}
             onClick={() => onStyleChange({ textDecoration: style.textDecoration === 'line-through' ? 'none' : 'line-through' })}
-            title="打ち消し線"
+            title={t('blocks.textStyle.strikethrough')}
           >
             <Strikethrough className="w-3.5 h-3.5" />
           </IconToggle>
         </div>
       </div>
 
-      <PropRow label="文字色">
+      <PropRow label={t('blocks.textStyle.color')}>
         <ColorInput
           value={style.color ?? defaultStyle?.color ?? '#000000'}
           onChange={(v) => onStyleChange({ color: v })}
@@ -116,7 +120,7 @@ export function TextStyleSection({
         />
       </PropRow>
 
-      <PropRow label="背景色">
+      <PropRow label={t('blocks.textStyle.backgroundColor')}>
         <ColorInput
           value={style.backgroundColor ?? defaultStyle?.backgroundColor ?? '#ffffff'}
           onChange={(v) => onStyleChange({ backgroundColor: v })}
@@ -126,7 +130,7 @@ export function TextStyleSection({
       </PropRow>
 
       <div>
-        <span className="text-[10px] text-muted-foreground">横揃え</span>
+        <span className="text-[10px] text-muted-foreground">{t('blocks.textStyle.horizontalAlign')}</span>
         <div className="flex gap-1 mt-1">
           {(['left', 'center', 'right', 'justify'] as const).map((a) => (
             <IconToggle key={a} active={style.textAlign === a} onClick={() => onStyleChange({ textAlign: a })} title={a}>
@@ -140,7 +144,7 @@ export function TextStyleSection({
       </div>
 
       <div>
-        <span className="text-[10px] text-muted-foreground">縦揃え</span>
+        <span className="text-[10px] text-muted-foreground">{t('blocks.textStyle.verticalAlign')}</span>
         <div className="flex gap-1 mt-1">
           {(['top', 'middle', 'bottom'] as const).map((va) => (
             <IconToggle key={va} active={style.verticalAlign === va} onClick={() => onStyleChange({ verticalAlign: va })} title={va}>
@@ -152,7 +156,7 @@ export function TextStyleSection({
         </div>
       </div>
 
-      <PropRow label="行間">
+      <PropRow label={t('blocks.textStyle.lineHeight')}>
         <NumInput
           value={style.lineHeight ?? defaultStyle?.lineHeight ?? DEFAULT_LINE_HEIGHT}
           onChange={(v) => onStyleChange({ lineHeight: v })}
@@ -164,7 +168,7 @@ export function TextStyleSection({
         />
       </PropRow>
 
-      <PropRow label="文字間隔">
+      <PropRow label={t('blocks.textStyle.letterSpacing')}>
         <NumInput
           value={style.letterSpacing ?? defaultStyle?.letterSpacing ?? 0}
           onChange={(v) => onStyleChange({ letterSpacing: v })}
@@ -178,40 +182,40 @@ export function TextStyleSection({
       </PropRow>
 
       <div>
-        <span className="text-[10px] text-muted-foreground">文字方向</span>
+        <span className="text-[10px] text-muted-foreground">{t('blocks.textStyle.textDirection')}</span>
         <div className="flex gap-1 mt-1">
           <IconToggle
             active={style.writingMode !== 'vertical-rl'}
             onClick={() => onStyleChange({ writingMode: 'horizontal-tb' })}
-            title="横書き"
+            title={t('blocks.textStyle.horizontalWriting')}
           >
             <WritingHorizontalIcon className="w-3.5 h-3.5" />
           </IconToggle>
           <IconToggle
             active={style.writingMode === 'vertical-rl'}
             onClick={() => onStyleChange({ writingMode: 'vertical-rl' })}
-            title="縦書き"
+            title={t('blocks.textStyle.verticalWriting')}
           >
             <WritingVerticalIcon className="w-3.5 h-3.5" />
           </IconToggle>
         </div>
       </div>
 
-      <PropRow label="テキストフィット">
+      <PropRow label={t('blocks.textStyle.textFit')}>
         <SelectInput
           value={style.textFit ?? 'clip'}
           onChange={(v) => onStyleChange({ textFit: v === 'clip' ? undefined : v as 'shrinkText' | 'expandFrame' })}
-          options={TEXT_FIT_OPTIONS}
+          options={TEXT_FIT_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
         />
       </PropRow>
 
       {showFurigana && onFuriganaChange && (
-        <PropRow label="ふりがな">
+        <PropRow label={t('blocks.textStyle.furigana')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background"
             value={furigana ?? ''}
-            placeholder="ふりがな"
+            placeholder={t('blocks.textStyle.furiganaPlaceholder')}
             onChange={(e) => onFuriganaChange(e.target.value || undefined)}
           />
         </PropRow>

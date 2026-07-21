@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FormTableElement, FormTableRow, FormTableCell, EraSelectLayout } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
@@ -230,6 +231,7 @@ function resolveFontWeight(el: FormTableElement, row: FormTableRow): string | un
 // ---------------------------------------------------------------------------
 
 function FormTableDesignPreview({ element: el }: { element: FormTableElement }) {
+  const { t } = useTranslation('elements')
   const bw = `${el.borderWidth ?? 0.3}mm`
   const bs = `${bw} solid ${el.borderColor ?? '#000000'}`
 
@@ -269,7 +271,7 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
             letterSpacing: '0.05em',
           }}
         >
-          帳票テーブル · {el.dataSource}
+          {t('formTable.badge')} · {el.dataSource}
         </div>
       )}
 
@@ -305,7 +307,7 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
           }}
         >
           ↻{' '}
-          {(el.maxItems ?? 0) > 0 ? `最大 ${el.maxItems} 件` : 'レコード数分 繰り返し'}
+          {(el.maxItems ?? 0) > 0 ? t('formTable.repeatMax', { n: el.maxItems }) : t('formTable.repeatAll')}
         </div>
       )}
 
@@ -330,6 +332,7 @@ function FormTableLiveRenderer({
   element: FormTableElement
   records: Record<string, unknown>[]
 }) {
+  const { t } = useTranslation('elements')
   const bw = `${el.borderWidth ?? 0.3}mm`
   const bs = `${bw} solid ${el.borderColor ?? '#000000'}`
 
@@ -374,7 +377,7 @@ function FormTableLiveRenderer({
             borderBottom: footerRows.length > 0 ? bs : undefined,
           }}
         >
-          データなし
+          {t('formTable.noData')}
         </div>
       ) : (
         limited.map((record, recordIdx) => (

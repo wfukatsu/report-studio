@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { ChartElement } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
 import { DataBindingSection } from '@/elements/_blocks/panels/DataBindingSection'
@@ -8,24 +9,25 @@ interface Props {
 }
 
 export function ChartPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   const isPieType = el.chartType === 'pie' || el.chartType === 'donut'
 
   return (
     <>
-      <PropSection title="グラフ">
-        <PropRow label="グラフ種別">
+      <PropSection title={t('chart.section')}>
+        <PropRow label={t('chart.chartType')}>
           <SelectInput
             value={el.chartType}
             onChange={(v) => onChange({ chartType: v as ChartElement['chartType'] })}
             options={[
-              { value: 'bar', label: '棒グラフ' },
-              { value: 'line', label: '折れ線グラフ' },
-              { value: 'pie', label: '円グラフ' },
-              { value: 'donut', label: 'ドーナツグラフ' },
+              { value: 'bar', label: t('chart.typeBar') },
+              { value: 'line', label: t('chart.typeLine') },
+              { value: 'pie', label: t('chart.typePie') },
+              { value: 'donut', label: t('chart.typeDonut') },
             ]}
           />
         </PropRow>
-        <PropRow label="タイトル">
+        <PropRow label={t('chart.title')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background"
@@ -38,26 +40,26 @@ export function ChartPropertiesPanel({ el, onChange }: Props) {
       <DataBindingSection
         fieldKey={el.dataBinding ?? ''}
         onChange={(v) => onChange({ dataBinding: v || undefined })}
-        title="データソース"
-        label="配列フィールドキー"
+        title={t('chart.dataSource')}
+        label={t('chart.arrayFieldKey')}
       />
 
-      <PropSection title="軸設定">
-        <PropRow label={isPieType ? 'ラベルキー' : 'X軸キー'}>
+      <PropSection title={t('chart.axisSection')}>
+        <PropRow label={isPieType ? t('chart.labelKey') : t('chart.xAxisKey')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
             value={el.xAxisKey ?? ''}
-            placeholder="例: name"
+            placeholder={t('chart.xAxisPlaceholder')}
             onChange={(e) => onChange({ xAxisKey: e.target.value || undefined })}
           />
         </PropRow>
-        <PropRow label={isPieType ? '値キー' : 'Y軸キー（カンマ区切り）'}>
+        <PropRow label={isPieType ? t('chart.valueKey') : t('chart.yAxisKey')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
             value={(el.yAxisKeys ?? []).join(', ')}
-            placeholder={isPieType ? '例: value' : '例: revenue, cost'}
+            placeholder={isPieType ? t('chart.valueKeyPlaceholder') : t('chart.yAxisPlaceholder')}
             onChange={(e) => {
               const keys = e.target.value.split(',').map((s) => s.trim()).filter(Boolean)
               onChange({ yAxisKeys: keys.length > 0 ? keys : undefined })
@@ -66,14 +68,14 @@ export function ChartPropertiesPanel({ el, onChange }: Props) {
         </PropRow>
       </PropSection>
 
-      <PropSection title="表示設定">
+      <PropSection title={t('chart.displaySection')}>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={el.showLegend ?? true}
             onChange={(e) => onChange({ showLegend: e.target.checked })}
           />
-          <span className="text-xs">凡例を表示</span>
+          <span className="text-xs">{t('chart.showLegend')}</span>
         </label>
         {!isPieType && (
           <label className="flex items-center gap-2">
@@ -82,7 +84,7 @@ export function ChartPropertiesPanel({ el, onChange }: Props) {
               checked={el.showGrid ?? true}
               onChange={(e) => onChange({ showGrid: e.target.checked })}
             />
-            <span className="text-xs">グリッドを表示</span>
+            <span className="text-xs">{t('chart.showGrid')}</span>
           </label>
         )}
       </PropSection>

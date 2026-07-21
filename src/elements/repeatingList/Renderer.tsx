@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { RepeatingListElement, RepeatingListField } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { DEFAULT_CELL_FONT_SIZE_PT, FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
@@ -44,6 +45,7 @@ function ItemCard({
 // ---------------------------------------------------------------------------
 
 function RepeatingListDesignPreview({ element: el }: { element: RepeatingListElement }) {
+  const { t } = useTranslation('elements')
   const bw = `${el.borderWidth ?? 0.3}mm`
   const borderStyle = el.borderColor ? `${bw} solid ${el.borderColor}` : 'none'
   const previewCount = Math.min(
@@ -53,11 +55,19 @@ function RepeatingListDesignPreview({ element: el }: { element: RepeatingListEle
   const isGrid = el.layout === 'grid'
   const isHorizontal = el.layout === 'horizontal'
   const borderRadius = el.borderRadius ? `${el.borderRadius}mm` : undefined
+  const countText = el.maxItems > 0
+    ? t('repeatingList.maxItemsCount', { n: el.maxItems })
+    : t('repeatingList.allRecords')
+  const layoutText = el.layout === 'grid'
+    ? t('repeatingList.layoutGridN', { n: el.gridColumns })
+    : el.layout === 'horizontal'
+      ? t('repeatingList.layoutHorizontal')
+      : t('repeatingList.layoutVertical')
 
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
       <div style={{ position: 'absolute', top: 0, right: 0, background: '#8b5cf6', color: '#ffffff', fontSize: '2mm', padding: '0.5mm 1.5mm', borderBottomLeftRadius: '1mm', zIndex: 10, fontWeight: 'bold' }}>
-        繰り返しリスト · {el.dataSource}
+        {t('repeatingList.designBadge', { dataSource: el.dataSource })}
       </div>
       <div style={{ display: 'flex', flexDirection: isGrid || isHorizontal ? 'row' : 'column', flexWrap: isGrid ? 'wrap' : 'nowrap', gap: `${el.gap}mm`, padding: '2mm', alignItems: 'flex-start' }}>
         {Array.from({ length: previewCount }, (_, i) => (
@@ -74,7 +84,7 @@ function RepeatingListDesignPreview({ element: el }: { element: RepeatingListEle
         ))}
       </div>
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '5mm', background: 'linear-gradient(to bottom, transparent, rgba(237,233,254,0.8))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '0.5mm', color: '#7c3aed', fontSize: '2.2mm', fontWeight: 'bold' }}>
-        ↻ {el.maxItems > 0 ? `最大 ${el.maxItems} 件` : 'レコード数分 繰り返し'} ({el.layout === 'grid' ? `${el.gridColumns}列グリッド` : el.layout === 'horizontal' ? '横並び' : '縦並び'})
+        ↻ {countText} ({layoutText})
       </div>
     </div>
   )
@@ -91,6 +101,7 @@ function RepeatingListLiveRenderer({
   element: RepeatingListElement
   records: Record<string, unknown>[]
 }) {
+  const { t } = useTranslation('elements')
   const limited = el.maxItems > 0 ? records.slice(0, el.maxItems) : records
   const bw = `${el.borderWidth ?? 0.3}mm`
   const borderStyle = el.borderColor ? `${bw} solid ${el.borderColor}` : 'none'
@@ -102,7 +113,7 @@ function RepeatingListLiveRenderer({
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
       {limited.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: '2.8mm' }}>
-          データなし
+          {t('repeatingList.noData')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: isGrid || isHorizontal ? 'row' : 'column', flexWrap: isGrid ? 'wrap' : 'nowrap', gap: `${el.gap}mm`, padding: '2mm', alignItems: 'flex-start' }}>

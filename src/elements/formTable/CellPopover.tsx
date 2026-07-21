@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FormTableElement, FormTableCell, FormTableCellType } from '@/types'
-import { updateCellById, CELL_TYPE_OPTIONS, ALIGN_OPTIONS } from './tableOperations'
+import { updateCellById, cellTypeOptions, alignOptions } from './tableOperations'
 
 interface Props {
   element: FormTableElement
@@ -25,6 +26,7 @@ export const CellPopover = memo(function CellPopover({
   onChange,
   onClose,
 }: Props) {
+  const { t } = useTranslation('elements')
   const ref = useRef<HTMLDivElement>(null)
   const cell = findCell(el, cellId)
 
@@ -83,17 +85,17 @@ export const CellPopover = memo(function CellPopover({
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12 }}>セル編集</div>
+      <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 12 }}>{t('formTable.popover.title')}</div>
 
       {/* Cell type */}
       <label style={{ display: 'block', marginBottom: 6 }}>
-        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>タイプ</span>
+        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.type')}</span>
         <select
           value={cell.type}
           onChange={(e) => update({ type: e.target.value as FormTableCellType })}
           style={selectStyle}
         >
-          {CELL_TYPE_OPTIONS.map((opt) => (
+          {cellTypeOptions(t).map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -102,12 +104,12 @@ export const CellPopover = memo(function CellPopover({
       {/* Type-specific fields */}
       {cell.type === 'label' && (
         <label style={{ display: 'block', marginBottom: 6 }}>
-          <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>テキスト</span>
+          <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.text')}</span>
           <input
             type="text"
             value={cell.text ?? ''}
             onChange={(e) => update({ text: e.target.value })}
-            placeholder="ラベルテキスト"
+            placeholder={t('formTable.cell.labelPlaceholder')}
             style={inputStyle}
             autoFocus
           />
@@ -116,12 +118,12 @@ export const CellPopover = memo(function CellPopover({
 
       {cell.type === 'input' && (
         <label style={{ display: 'block', marginBottom: 6 }}>
-          <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>プレースホルダー</span>
+          <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.cell.inputPlaceholder')}</span>
           <input
             type="text"
             value={cell.placeholder ?? ''}
             onChange={(e) => update({ placeholder: e.target.value })}
-            placeholder="プレースホルダー"
+            placeholder={t('formTable.cell.inputPlaceholder')}
             style={inputStyle}
             autoFocus
           />
@@ -131,7 +133,7 @@ export const CellPopover = memo(function CellPopover({
       {cell.type === 'dataField' && (
         <>
           <label style={{ display: 'block', marginBottom: 6 }}>
-            <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>フィールドキー</span>
+            <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.fieldKey')}</span>
             <input
               type="text"
               value={cell.fieldKey ?? ''}
@@ -142,12 +144,12 @@ export const CellPopover = memo(function CellPopover({
             />
           </label>
           <label style={{ display: 'block', marginBottom: 6 }}>
-            <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>フォールバック</span>
+            <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.fallback')}</span>
             <input
               type="text"
               value={cell.fallbackText ?? ''}
               onChange={(e) => update({ fallbackText: e.target.value })}
-              placeholder="データなし時のテキスト"
+              placeholder={t('formTable.popover.fallbackPlaceholder')}
               style={inputStyle}
             />
           </label>
@@ -156,7 +158,7 @@ export const CellPopover = memo(function CellPopover({
 
       {/* Alignment */}
       <label style={{ display: 'block', marginBottom: 6 }}>
-        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>配置</span>
+        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.align')}</span>
         <select
           value={cell.style?.textAlign ?? 'left'}
           onChange={(e) =>
@@ -166,7 +168,7 @@ export const CellPopover = memo(function CellPopover({
           }
           style={selectStyle}
         >
-          {ALIGN_OPTIONS.map((opt) => (
+          {alignOptions(t).map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -174,7 +176,7 @@ export const CellPopover = memo(function CellPopover({
 
       {/* Background color */}
       <label style={{ display: 'block', marginBottom: 6 }}>
-        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>背景色</span>
+        <span style={{ color: '#6b7280', display: 'block', marginBottom: 2 }}>{t('formTable.popover.bgColor')}</span>
         <input
           type="color"
           value={cell.style?.backgroundColor ?? '#ffffff'}
@@ -198,7 +200,7 @@ export const CellPopover = memo(function CellPopover({
             })
           }
         />
-        <span style={{ color: '#6b7280' }}>太字</span>
+        <span style={{ color: '#6b7280' }}>{t('formTable.popover.bold')}</span>
       </label>
     </div>
   )

@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TenantAddressElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const TenantAddressRenderer = memo(function TenantAddressRenderer({ element: el, resolveValues = false, defaultStyle }: Props) {
+  const { t } = useTranslation('elements')
   const tenantInfo = useReportStore((s) => s.tenantInfo)
   const mode = el.displayMode ?? 'single'
 
@@ -25,7 +27,7 @@ export const TenantAddressRenderer = memo(function TenantAddressRenderer({ eleme
     address: tenantInfo?.address,
   }, mode) || el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : '{{住所}}'
+  const value = resolveValues ? resolved! : t('tenantAddress.placeholder', { token: '{{住所}}' })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

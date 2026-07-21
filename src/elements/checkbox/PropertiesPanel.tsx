@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { CheckboxElement, CheckmarkStyle, CheckboxLabelPosition } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
 
@@ -7,8 +8,9 @@ interface Props {
 }
 
 export function CheckboxPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   return (
-    <PropSection title="チェックボックス">
+    <PropSection title={t('checkbox.sectionTitle')}>
       <label className="flex items-center gap-1.5 text-xs cursor-pointer">
         <input
           type="checkbox"
@@ -16,46 +18,46 @@ export function CheckboxPropertiesPanel({ el, onChange }: Props) {
           onChange={(e) => onChange({ checked: e.target.checked })}
           className="rounded"
         />
-        チェック済み（プレビュー用）
+        {t('checkbox.checkedPreview')}
       </label>
-      <PropRow label="チェックマーク記号">
+      <PropRow label={t('checkbox.checkmarkSymbol')}>
         <SelectInput
           value={el.checkmark}
           onChange={(v) => onChange({ checkmark: v as CheckmarkStyle })}
           options={[
-            { value: '✓', label: '✓ チェック' },
-            { value: '×', label: '× バツ' },
-            { value: '●', label: '● 黒丸' },
+            { value: '✓', label: t('checkbox.checkmarkCheck') },
+            { value: '×', label: t('checkbox.checkmarkCross') },
+            { value: '●', label: t('checkbox.checkmarkCircle') },
           ]}
         />
       </PropRow>
-      <PropRow label="ラベル">
+      <PropRow label={t('checkbox.label')}>
         <input
           type="text"
           className="border rounded px-2 py-1 text-xs w-full bg-background"
           value={el.label}
-          placeholder="ラベルテキスト"
+          placeholder={t('checkbox.labelPlaceholder')}
           onChange={(e) => onChange({ label: e.target.value })}
         />
       </PropRow>
-      <PropRow label="ラベル位置">
+      <PropRow label={t('checkbox.labelPosition')}>
         <SelectInput
           value={el.labelPosition ?? 'right'}
           onChange={(v) => onChange({ labelPosition: v as CheckboxLabelPosition })}
           options={[
-            { value: 'right', label: '右' },
-            { value: 'left', label: '左' },
-            { value: 'top', label: '上' },
-            { value: 'bottom', label: '下' },
+            { value: 'right', label: t('checkbox.labelPosRight') },
+            { value: 'left', label: t('checkbox.labelPosLeft') },
+            { value: 'top', label: t('checkbox.labelPosTop') },
+            { value: 'bottom', label: t('checkbox.labelPosBottom') },
           ]}
         />
       </PropRow>
-      <PropRow label="データバインド">
+      <PropRow label={t('checkbox.dataBind')}>
         <input
           type="text"
           className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
           value={el.dataSource ?? ''}
-          placeholder="例: employee.checked"
+          placeholder={t('checkbox.dataBindPlaceholder')}
           onChange={(e) => onChange({ dataSource: e.target.value || undefined })}
         />
       </PropRow>

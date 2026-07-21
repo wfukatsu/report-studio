@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 import { DEFAULT_FURIGANA_SCALE } from '../constants'
 
@@ -18,21 +19,22 @@ export function FuriganaSection({
   dataSource,
   onDataSourceChange,
 }: FuriganaSectionProps) {
+  const { t } = useTranslation('elements')
   return (
-    <PropSection title="ふりがな">
+    <PropSection title={t('blocks.furigana.title')}>
       <label className="flex items-center gap-2">
         <input
           type="checkbox"
           checked={enabled}
           onChange={(e) => onEnabledChange(e.target.checked)}
         />
-        <span className="text-xs">ふりがな欄を表示</span>
+        <span className="text-xs">{t('blocks.furigana.show')}</span>
       </label>
 
       {enabled && (
         <>
           {onRatioChange && (
-            <PropRow label="高さ割合">
+            <PropRow label={t('blocks.furigana.heightRatio')}>
               <NumInput
                 value={ratio ?? DEFAULT_FURIGANA_SCALE}
                 onChange={onRatioChange}
@@ -44,12 +46,12 @@ export function FuriganaSection({
           )}
 
           {onDataSourceChange && (
-            <PropRow label="ふりがなデータソース">
+            <PropRow label={t('blocks.furigana.dataSource')}>
               <input
                 type="text"
                 className="border rounded px-2 py-1 text-xs w-full bg-background"
                 value={dataSource ?? ''}
-                placeholder="フィールドキー"
+                placeholder={t('blocks.furigana.fieldKeyPlaceholder')}
                 onChange={(e) => onDataSourceChange(e.target.value)}
               />
             </PropRow>

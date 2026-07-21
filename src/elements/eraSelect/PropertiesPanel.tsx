@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Rows3, Columns3, LayoutGrid } from 'lucide-react'
 import type { EraSelectElement, EraSelectLayout } from '@/types'
 import { PropSection, PropRow, IconToggle } from '@/elements/_base/sharedUI'
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function EraSelectPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   const currentEras = el.eras ?? DEFAULT_ERAS
   const layout = el.layout ?? 'column'
 
@@ -24,32 +26,32 @@ export function EraSelectPropertiesPanel({ el, onChange }: Props) {
   const setLayout = (l: EraSelectLayout) => onChange({ layout: l })
 
   return (
-    <PropSection title="元号選択">
-      <PropRow label="データバインド">
+    <PropSection title={t('eraSelect.sectionTitle')}>
+      <PropRow label={t('eraSelect.dataBind')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
             value={el.dataSource ?? ''}
-            placeholder="例: employee.era"
+            placeholder={t('eraSelect.dataBindPlaceholder')}
             onChange={(e) => onChange({ dataSource: e.target.value || undefined })}
           />
         </PropRow>
         <div>
-          <span className="text-[10px] text-muted-foreground">レイアウト</span>
+          <span className="text-[10px] text-muted-foreground">{t('eraSelect.layout')}</span>
           <div className="flex gap-1 mt-1">
-            <IconToggle active={layout === 'column'} onClick={() => setLayout('column')} title="縦1列">
+            <IconToggle active={layout === 'column'} onClick={() => setLayout('column')} title={t('eraSelect.layoutColumn')}>
               <Rows3 className="w-3.5 h-3.5" />
             </IconToggle>
-            <IconToggle active={layout === 'row'} onClick={() => setLayout('row')} title="横1行">
+            <IconToggle active={layout === 'row'} onClick={() => setLayout('row')} title={t('eraSelect.layoutRow')}>
               <Columns3 className="w-3.5 h-3.5" />
             </IconToggle>
-            <IconToggle active={layout === 'grid-2col'} onClick={() => setLayout('grid-2col')} title="2列グリッド">
+            <IconToggle active={layout === 'grid-2col'} onClick={() => setLayout('grid-2col')} title={t('eraSelect.layoutGrid')}>
               <LayoutGrid className="w-3.5 h-3.5" />
             </IconToggle>
           </div>
         </div>
         <div>
-          <span className="text-[10px] text-muted-foreground">表示元号</span>
+          <span className="text-[10px] text-muted-foreground">{t('eraSelect.displayEras')}</span>
           <div className="flex gap-1 mt-1 flex-wrap">
             {DEFAULT_ERAS.map((era) => (
               <button

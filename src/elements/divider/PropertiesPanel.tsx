@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { DividerElement, DividerDirection } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput } from '@/elements/_base/sharedUI'
 
@@ -7,9 +8,10 @@ interface Props {
 }
 
 export function DividerPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   return (
-    <PropSection title="区切り線">
-      <PropRow label="方向">
+    <PropSection title={t('divider.sectionTitle')}>
+      <PropRow label={t('divider.direction')}>
         <select
           className="border rounded px-2 py-1 text-xs w-full bg-background"
           value={el.direction}
@@ -24,25 +26,25 @@ export function DividerPropertiesPanel({ el, onChange }: Props) {
             }
           }}
         >
-          <option value="horizontal">水平</option>
-          <option value="vertical">垂直</option>
+          <option value="horizontal">{t('divider.directionHorizontal')}</option>
+          <option value="vertical">{t('divider.directionVertical')}</option>
         </select>
       </PropRow>
-      <PropRow label="色">
+      <PropRow label={t('divider.color')}>
         <ColorInput value={el.color} onChange={(v) => onChange({ color: v })} />
       </PropRow>
-      <PropRow label="太さ">
+      <PropRow label={t('divider.thickness')}>
         <NumInput value={el.thickness} onChange={(v) => onChange({ thickness: Math.max(0.1, Math.min(5, v)) })} min={0.1} max={5} step={0.1} unit="mm" />
       </PropRow>
-      <PropRow label="線種">
+      <PropRow label={t('divider.lineStyle')}>
         <select
           className="border rounded px-2 py-1 text-xs w-full bg-background"
           value={el.dashStyle}
           onChange={(e) => onChange({ dashStyle: e.target.value as 'solid' | 'dashed' | 'dotted' })}
         >
-          <option value="solid">実線</option>
-          <option value="dashed">破線</option>
-          <option value="dotted">点線</option>
+          <option value="solid">{t('divider.lineStyleSolid')}</option>
+          <option value="dashed">{t('divider.lineStyleDashed')}</option>
+          <option value="dotted">{t('divider.lineStyleDotted')}</option>
         </select>
       </PropRow>
     </PropSection>

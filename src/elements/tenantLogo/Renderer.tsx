@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TenantLogoElement } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { isSafeImageSrc } from '@/lib/exportUtils'
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export const TenantLogoRenderer = memo(function TenantLogoRenderer({ element: el }: Props) {
+  const { t } = useTranslation('elements')
   const logoBase64 = useReportStore((s) => s.tenantInfo?.logoBase64)
 
   const safeSrc = logoBase64 && isSafeImageSrc(logoBase64) ? logoBase64 : ''
@@ -28,7 +30,7 @@ export const TenantLogoRenderer = memo(function TenantLogoRenderer({ element: el
           userSelect: 'none',
         }}
       >
-        🏢 ロゴ未設定
+        {t('tenantLogo.notSet')}
       </div>
     )
   }
@@ -36,7 +38,7 @@ export const TenantLogoRenderer = memo(function TenantLogoRenderer({ element: el
   return (
     <img
       src={safeSrc}
-      alt="会社ロゴ"
+      alt={t('tenantLogo.alt')}
       style={{
         width: '100%',
         height: '100%',

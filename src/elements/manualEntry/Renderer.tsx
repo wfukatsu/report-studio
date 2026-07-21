@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ManualEntryField } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
 import { GridLines } from '@/elements/_blocks/renderers/GridLines'
@@ -51,6 +52,7 @@ function InputArea({ el }: { el: ManualEntryField }) {
 }
 
 export const ManualEntryRenderer = memo(function ManualEntryRenderer({ element: el, data }: Props) {
+  const { t } = useTranslation('elements')
   if (el.furiganaEnabled) {
     const ratio = el.furiganaRatio ?? 0.35
     const furiganaValue = el.furiganaDataSource
@@ -61,7 +63,7 @@ export const ManualEntryRenderer = memo(function ManualEntryRenderer({ element: 
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none' }}>
         {/* フリガナゾーン */}
         <div style={{ height: `${ratio * 100}%`, display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '2.2mm', whiteSpace: 'nowrap' }}>フリガナ</span>
+          <span style={{ fontSize: '2.2mm', whiteSpace: 'nowrap' }}>{t('manualEntry.furiganaZoneLabel')}</span>
           <div
             style={{
               flex: 1,

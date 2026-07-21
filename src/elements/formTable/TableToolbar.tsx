@@ -1,4 +1,5 @@
 import { memo, useMemo, useRef, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FormTableElement } from '@/types'
 import { canMerge, mergeCells, splitCell } from './tableMerge'
 import { addRow, addColumn } from './tableOperations'
@@ -16,6 +17,7 @@ export const TableToolbar = memo(function TableToolbar({
   activeCell,
   onChange,
 }: Props) {
+  const { t } = useTranslation('elements')
   const mergeCheck = useMemo(
     () => canMerge(el, selectedCells),
     [el, selectedCells],
@@ -65,27 +67,27 @@ export const TableToolbar = memo(function TableToolbar({
       }}
     >
       <ToolbarButton
-        label="結合"
+        label={t('formTable.toolbar.merge')}
         disabled={!mergeCheck.valid}
-        title={mergeCheck.reason ?? 'セルを結合'}
+        title={mergeCheck.reason ?? t('formTable.toolbar.mergeTitle')}
         onClick={() => onChange(mergeCells(el, selectedCells))}
       />
       <ToolbarButton
-        label="分割"
+        label={t('formTable.toolbar.split')}
         disabled={!isMergedCell || !activeCell}
-        title="結合を解除"
+        title={t('formTable.toolbar.splitTitle')}
         onClick={() => activeCell && onChange(splitCell(el, activeCell))}
       />
       <Separator />
       <ToolbarButton
-        label="+ 行"
+        label={t('formTable.toolbar.addRow')}
         onClick={() => onChange(addRow(el))}
-        title="行を追加"
+        title={t('formTable.toolbar.addRowTitle')}
       />
       <ToolbarButton
-        label="+ 列"
+        label={t('formTable.toolbar.addColumn')}
         onClick={() => onChange(addColumn(el))}
-        title="列を追加"
+        title={t('formTable.toolbar.addColumnTitle')}
       />
     </div>
   )

@@ -1,4 +1,5 @@
 import { memo, useReducer, useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { FormTableElement } from '@/types'
 import { FormTableRenderer } from './Renderer'
@@ -79,6 +80,7 @@ export const FormTableEditor = memo(function FormTableEditor({
   onChange,
   onExitEditMode,
 }: Props) {
+  const { t } = useTranslation('elements')
   const [state, dispatch] = useReducer(
     tableEditReducer,
     INITIAL_TABLE_EDIT_STATE,
@@ -323,7 +325,7 @@ export const FormTableEditor = memo(function FormTableEditor({
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="grid"
-      aria-label="テーブル編集"
+      aria-label={t('formTable.editGridAriaLabel')}
     >
       {/* Toolbar */}
       {isEditing && (

@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ChartElement } from '@/types'
 import { ChartContent } from '@/elements/_blocks/renderers/ChartContent'
 
@@ -18,6 +19,7 @@ const SAMPLE_DATA = [
 ]
 
 export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {}, sampleHint }: Props) {
+  const { t } = useTranslation('elements')
   const { records, isSample } = useMemo(() => {
     if (el.dataBinding) {
       const bound = data[el.dataBinding]
@@ -53,7 +55,7 @@ export const ChartRenderer = memo(function ChartRenderer({ element: el, data = {
             pointerEvents: 'none',
           }}
         >
-          サンプル
+          {t('chart.sampleBadge')}
         </div>
       )}
       {el.title && (

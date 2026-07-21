@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RepeatingBandElement } from '@/types'
 import {
   CELL_FONT_SIZE,
@@ -22,6 +23,7 @@ export function FlatBandRenderer({
   el: RepeatingBandElement
   records: Record<string, unknown>[]
 }) {
+  const { t } = useTranslation('elements')
   const obs = outerBorderStr(el)
   const hbs = headerBorderStr(el)
   const dbs = dataBorderStr(el)
@@ -50,7 +52,7 @@ export function FlatBandRenderer({
 
       {limited.length === 0 && !el.showEmptyRowLines ? (
         <div style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, alignItems: 'center', justifyContent: 'center', color: EMPTY_TEXT_COLOR, fontSize: CELL_FONT_SIZE }}>
-          データなし
+          {t('repeatingBand.noData')}
         </div>
       ) : (
         limited.map((record, rowIdx) => (
