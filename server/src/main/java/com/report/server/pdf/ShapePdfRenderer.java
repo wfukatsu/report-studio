@@ -11,14 +11,14 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
- * Renders shape elements to PDF: the V2 kinds ({@code rectangle} incl. {@code borderRadius},
- * {@code circle}, {@code line}) plus the V1 {@code props.shapeType} variants (ellipse,
- * rounded-rectangle, triangle, diamond, polygon).
+ * Renders shape elements to PDF: the V2 kinds ({@code rectangle} incl. {@code borderRadius}, {@code
+ * circle}, {@code line}) plus the V1 {@code props.shapeType} variants (ellipse, rounded-rectangle,
+ * triangle, diamond, polygon).
  *
- * <p>Style parity with the frontend SVG renderer (issue #314,
- * {@code src/elements/shape/Renderer.tsx}): {@code fill} (default transparent), {@code stroke}
- * (default black), {@code strokeWidth} (SVG user units = CSS px at canvas scale; converted at 1px =
- * 0.75pt), {@code strokeDash} (solid/dashed/dotted), and {@code borderRadius} (mm) on rectangles.
+ * <p>Style parity with the frontend SVG renderer (issue #314, {@code
+ * src/elements/shape/Renderer.tsx}): {@code fill} (default transparent), {@code stroke} (default
+ * black), {@code strokeWidth} (SVG user units = CSS px at canvas scale; converted at 1px = 0.75pt),
+ * {@code strokeDash} (solid/dashed/dotted), and {@code borderRadius} (mm) on rectangles.
  */
 public final class ShapePdfRenderer implements ElementPdfRenderer {
 
