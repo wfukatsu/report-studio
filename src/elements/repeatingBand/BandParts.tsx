@@ -41,6 +41,7 @@ export function HeaderRow({
             backgroundColor: headerStyle?.backgroundColor ?? DEFAULT_HEADER_BG,
             fontWeight: 'bold',
             color: headerStyle?.color ?? DEFAULT_HEADER_COLOR,
+            ...(headerStyle?.fontSize != null ? { fontSize: `${headerStyle.fontSize}pt` } : {}),
           }}
         >
           {f.label}

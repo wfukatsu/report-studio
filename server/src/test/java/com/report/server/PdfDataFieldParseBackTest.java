@@ -147,4 +147,27 @@ class PdfDataFieldParseBackTest {
         // #cc0000 fill color → "0.8 0 0 sc" (non-stroking) in the content stream
         assertTrue(probe.pageContent(0).contains("0.8 0 0 sc"), probe.pageContent(0));
     }
+
+    @Test
+    void verticalAlignMiddle_centersValueInFrame() throws IOException {
+        // 20mm frame, 12pt single line: line box = 16.8pt ≈ 5.93mm,
+        // middle shifts the baseline down by (20 − 5.93) / 2 ≈ 7.0mm (issue #325)
+        String el =
+                """
+            {"id":"d1","type":"dataField","name":"社名","fieldKey":"customer.name",
+             "position":{"x":20,"y":20},"size":{"width":100,"height":20},
+             "style":{"fontSize":12%s}}""";
+        PdfProbe top =
+                PdfProbe.parse(
+                        PdfRenderer.render(pageWith(el.formatted(""), "\"customer.name\":\"検証\"")));
+        PdfProbe mid =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                pageWith(
+                                        el.formatted(",\"verticalAlign\":\"middle\""),
+                                        "\"customer.name\":\"検証\"")));
+        float topY = top.findRun(0, "検証").orElseThrow().baselineYMm();
+        float midY = mid.findRun(0, "検証").orElseThrow().baselineYMm();
+        assertEquals(topY + 7.0f, midY, 0.6f, "middle should center the value in the 20mm frame");
+    }
 }

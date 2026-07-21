@@ -26,6 +26,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 public final class DataFieldPdfRenderer implements ElementPdfRenderer {
 
     private static final float DEFAULT_FONT_SIZE = 12f;
+    private static final float DEFAULT_LINE_HEIGHT = 1.4f;
 
     @Override
     public String kind() {
@@ -68,6 +69,11 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
         boolean bold = isBold(style);
         String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
         String textAlign = style != null ? textOf(style, "textAlign", "left") : "left";
+        String verticalAlign = style != null ? textOf(style, "verticalAlign", "top") : "top";
+        float lineHeight =
+                style != null && floatOf(style, "lineHeight", 0) != 0
+                        ? floatOf(style, "lineHeight", 0)
+                        : DEFAULT_LINE_HEIGHT;
         Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
 
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
@@ -84,11 +90,21 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
                     default -> x;
                 };
 
+        // verticalAlign shifts the (single-line) text block within the frame, mirroring
+        // the frontend's flex justifyContent; block height is the CSS line box (#325)
+        float blockH = fontSize * lineHeight;
+        float vOffset =
+                switch (verticalAlign) {
+                    case "middle", "center" -> Math.max(0, (h - blockH) / 2);
+                    case "bottom", "end" -> Math.max(0, h - blockH);
+                    default -> 0;
+                };
+
         cs.beginText();
         cs.setFont(font, fontSize);
         if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
         cs.setNonStrokingColor(color);
-        cs.newLineAtOffset(tx, y - fontSize);
+        cs.newLineAtOffset(tx, y - vOffset - fontSize);
         cs.showText(truncated);
         cs.endText();
         if (charSpacing != 0) cs.setCharacterSpacing(0);

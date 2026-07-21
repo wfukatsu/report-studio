@@ -64,7 +64,8 @@ export function GroupedBandRenderer({
   return (
     <BandContainer el={el} bs={obs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
+        // headerHeight falls back to itemHeight — same parity rule as FlatBandRenderer (#324)
+        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight ?? el.itemHeight} />
       )}
 
       {groups.map((group, gIdx) => (

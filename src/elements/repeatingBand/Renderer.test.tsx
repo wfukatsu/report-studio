@@ -344,3 +344,31 @@ describe('RepeatingBandRenderer — セルスタイル適用 (issue #313)', () =
     expect(screen.getByText('商品A')).toHaveStyle({ color: 'rgb(51, 102, 153)' })
   })
 })
+
+describe('RepeatingBandRenderer — ヘッダー行のプレビュー/PDF一致 (issues #323/#324)', () => {
+  const records = [{ no: '1', name: '商品A' }]
+  const fields = [
+    { key: 'no', label: 'No.', width: 12, align: 'center' as const },
+    { key: 'name', label: '品目', width: 55, align: 'left' as const },
+  ]
+
+  it('headerHeight 未指定時はヘッダー行高が itemHeight になる（PDF の headerH と一致）', () => {
+    const el = makeElement({ fields, itemHeight: 7, headerHeight: undefined })
+    render(<RepeatingBandRenderer element={el} records={records} />)
+    const headerRow = screen.getByText('No.').parentElement!
+    expect(headerRow).toHaveStyle({ height: '7mm' })
+  })
+
+  it('headerHeight 指定時はその値が優先される', () => {
+    const el = makeElement({ fields, itemHeight: 7, headerHeight: 10 })
+    render(<RepeatingBandRenderer element={el} records={records} />)
+    const headerRow = screen.getByText('No.').parentElement!
+    expect(headerRow).toHaveStyle({ height: '10mm' })
+  })
+
+  it('headerStyle.fontSize がヘッダーセルに適用される', () => {
+    const el = makeElement({ fields, headerStyle: { fontSize: 11 } })
+    render(<RepeatingBandRenderer element={el} records={records} />)
+    expect(screen.getByText('No.')).toHaveStyle({ fontSize: '11pt' })
+  })
+})

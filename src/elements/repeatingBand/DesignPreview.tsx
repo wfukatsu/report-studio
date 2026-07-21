@@ -135,7 +135,7 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
       {/* Interactive header row (design mode) */}
       {el.showHeader && (
         <div
-          style={{ display: 'flex', flexShrink: 0, borderBottom: hbs, ...(el.headerHeight != null ? { height: `${el.headerHeight}mm` } : {}) }}
+          style={{ display: 'flex', flexShrink: 0, borderBottom: hbs, height: `${el.headerHeight ?? el.itemHeight}mm` }}
           onPointerMove={handleResizeMove}
           onPointerUp={handleResizeEnd}
         >

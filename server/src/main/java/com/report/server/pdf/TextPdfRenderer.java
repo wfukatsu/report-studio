@@ -70,6 +70,10 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                 firstNonEmpty(
                         props != null ? textOf(props, "textAlign", "") : "",
                         style != null ? textOf(style, "textAlign", "") : "left");
+        String verticalAlign =
+                firstNonEmpty(
+                        props != null ? textOf(props, "verticalAlign", "") : "",
+                        style != null ? textOf(style, "verticalAlign", "") : "top");
         float lineHeight =
                 firstNonZero(
                         style != null ? floatOf(style, "lineHeight", 0) : 0, DEFAULT_LINE_HEIGHT);
@@ -118,7 +122,9 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                         x,
                         y,
                         w,
+                        h,
                         align,
+                        verticalAlign,
                         furigana,
                         furiScale,
                         charSpacing);
@@ -139,7 +145,9 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float x,
             float y,
             float w,
+            float h,
             String align,
+            String verticalAlign,
             String furigana,
             float furiScale,
             float charSpacing)
@@ -147,7 +155,17 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         float rubyH = furigana.isEmpty() ? 0 : fontSize * furiScale * 1.1f;
         List<String> lines = wrapText(text, font, fontSize, w, charSpacing);
         float lineStep = fontSize * lineHeight;
-        float cursorY = y - rubyH - fontSize;
+        // verticalAlign shifts the whole text block within the frame, mirroring the
+        // frontend's flex justifyContent (toFlexAlign) — the block height is the CSS
+        // line-box model: lines × (fontSize × lineHeight) plus the ruby band (#325)
+        float blockH = rubyH + lines.size() * lineStep;
+        float vOffset =
+                switch (verticalAlign) {
+                    case "middle", "center" -> Math.max(0, (h - blockH) / 2);
+                    case "bottom", "end" -> Math.max(0, h - blockH);
+                    default -> 0;
+                };
+        float cursorY = y - vOffset - rubyH - fontSize;
         for (String line : lines) {
             // CSS letter-spacing trails every glyph (incl. the last) and is part of
             // the line box, so alignment math includes the trailing spacing too
@@ -174,7 +192,13 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                         default -> x;
                     };
             float rubyW = strWidth(font, furigana, rubySize);
-            showLine(cs, font, rubySize, furigana, blockX + (firstW - rubyW) / 2, y - rubySize);
+            showLine(
+                    cs,
+                    font,
+                    rubySize,
+                    furigana,
+                    blockX + (firstW - rubyW) / 2,
+                    y - vOffset - rubySize);
         }
     }
 

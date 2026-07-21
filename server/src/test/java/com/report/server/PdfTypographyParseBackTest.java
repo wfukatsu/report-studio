@@ -175,6 +175,64 @@ class PdfTypographyParseBackTest {
                 "fontWeight:bold should use the real Bold face, got: " + run.fontName());
     }
 
+    // ── verticalAlign (issue #325) ──────────────────────────────────────
+
+    @Test
+    void verticalAlignMiddle_centersTextBlockInFrame() throws IOException {
+        // 60mm frame, single 12pt line: line box = 12×1.4 = 16.8pt ≈ 5.93mm,
+        // so middle shifts the baseline down by (60 − 5.93) / 2 ≈ 27.0mm
+        PdfProbe top =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl("\"content\":\"中央\",\"style\":{\"fontSize\":12}")));
+        PdfProbe mid =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
+            "content":"中央","style":{"fontSize":12,"verticalAlign":"middle"}""")));
+        float topY = top.findRun(0, "中央").orElseThrow().baselineYMm();
+        float midY = mid.findRun(0, "中央").orElseThrow().baselineYMm();
+        assertEquals(topY + 27.0f, midY, 0.6f, "middle should center the line in the 60mm frame");
+    }
+
+    @Test
+    void verticalAlignBottom_anchorsTextBlockToFrameBottom() throws IOException {
+        PdfProbe top =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl("\"content\":\"下寄せ\",\"style\":{\"fontSize\":12}")));
+        PdfProbe bottom =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
+            "content":"下寄せ","style":{"fontSize":12,"verticalAlign":"bottom"}""")));
+        float topY = top.findRun(0, "下寄せ").orElseThrow().baselineYMm();
+        float bottomY = bottom.findRun(0, "下寄せ").orElseThrow().baselineYMm();
+        assertEquals(
+                topY + 54.1f, bottomY, 0.6f, "bottom should anchor the line to the frame bottom");
+    }
+
+    @Test
+    void verticalAlignTop_isUnchangedDefault() throws IOException {
+        // Explicit top must equal the no-verticalAlign baseline (regression guard)
+        PdfProbe plain =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl("\"content\":\"上寄せ\",\"style\":{\"fontSize\":12}")));
+        PdfProbe explicitTop =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                textEl(
+                                        """
+            "content":"上寄せ","style":{"fontSize":12,"verticalAlign":"top"}""")));
+        assertEquals(
+                plain.findRun(0, "上寄せ").orElseThrow().baselineYMm(),
+                explicitTop.findRun(0, "上寄せ").orElseThrow().baselineYMm(),
+                0.05f);
+    }
+
     @Test
     void serifBold_fallsBackToSyntheticStroke() throws IOException {
         // No serif bold face is bundled → bold serif stroke-widens the Regular serif
