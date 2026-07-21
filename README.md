@@ -34,7 +34,7 @@
 
 | 層 | 技術 |
 |----|------|
-| フロントエンド | Vite 8 + React 19 + TypeScript 5.7（TS 7 は tsgo で型検査を併用） |
+| フロントエンド | Vite 8 + React 19 + TypeScript 7（native tsc。typescript-eslint 用に TS6 API を alias 併存） |
 | 状態管理 | Zustand 5 (Immer ミドルウェア) |
 | スタイル | Tailwind CSS 4 + Radix UI |
 | ドラッグ&ドロップ | @dnd-kit/core |
@@ -129,7 +129,7 @@ docker compose up --build
 ```bash
 npm run dev              # 開発サーバー起動 (http://localhost:5173)
 npm run build            # 型チェック (TS 5.7) + ビルド (dist/)
-npm run typecheck:native # TS 7 ネイティブコンパイラ (tsgo) での型検査
+npm run typecheck:native # TS7 native tsc での tsconfig 別型検査
 npm run lint             # ESLint
 npm test                 # テスト実行 (watch モード)
 npm test -- --run        # テスト一回実行

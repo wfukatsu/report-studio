@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Frontend
 ```bash
 npm run dev          # Start dev server (http://localhost:5173)
-npm run build        # Type-check (tsc, TS 5.7) + build to dist/
-npm run typecheck:native  # TS 7 native compiler (tsgo) type-check — readiness/fast check only (#252)
+npm run build        # Type-check (tsc = TypeScript 7 native) + build to dist/
+npm run typecheck:native  # TS7 native per-tsconfig type-check (#252). Note: `typescript` package is a TS6 API alias for typescript-eslint; the real compiler is `@typescript/native`
 npm run lint         # ESLint
 npm test             # Run tests (watch mode)
 npm test -- --run    # Run tests once

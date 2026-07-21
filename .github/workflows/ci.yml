@@ -31,9 +31,10 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      - name: Type-check (TS7 native / tsgo)
-        # Readiness gate for the TypeScript 7 migration (#252): catches type
-        # regressions under the native compiler continuously (#272).
+      - name: Type-check (tsc — TS7 native)
+        # TS7 native is now the primary compiler (#252); this checks both
+        # tsconfigs explicitly (build's `tsc -b` covers them via references,
+        # this keeps the per-project check visible and cheap) (#272).
         run: npm run typecheck:native
 
       - name: Audit production dependencies
