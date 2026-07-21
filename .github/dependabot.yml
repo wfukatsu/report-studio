@@ -43,8 +43,11 @@ updates:
           - minor
           - patch
     ignore:
-      # TypeScript 7 primary 移行は typescript-eslint の TS 7.1 対応待ち (#252)。
-      # それまで typescript の major 更新 PR は不要（TS7 検証は tsgo 併用で実施中）。
+      # #252 で TS7 native (`@typescript/native` = typescript@7) を主コンパイラ化済み。
+      # `typescript` は typescript-eslint 用の TS6 API alias (@typescript/typescript6)。
+      # typescript-eslint が TS 7.1 API に対応したら alias を解消する
+      # (https://github.com/typescript-eslint/typescript-eslint/issues/10940)。
+      # それまで typescript (= TS6 alias) の major 更新 PR は不要。
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
 
