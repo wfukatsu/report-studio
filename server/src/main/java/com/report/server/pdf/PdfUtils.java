@@ -114,6 +114,16 @@ public final class PdfUtils {
      */
     public static java.util.List<String> wrapText(
             String text, PDFont font, float fontSize, float maxWidth) {
+        return wrapText(text, font, fontSize, maxWidth, 0f);
+    }
+
+    /**
+     * {@link #wrapText(String, PDFont, float, float)} with CSS-style letter spacing: {@code
+     * charSpacing} points are added after every character (including the last, matching the
+     * browser's inline-box width), so wrap points stay aligned with the frontend (#319).
+     */
+    public static java.util.List<String> wrapText(
+            String text, PDFont font, float fontSize, float maxWidth, float charSpacing) {
         java.util.List<String> lines = new java.util.ArrayList<>();
         if (text == null) {
             lines.add("");
@@ -125,11 +135,12 @@ public final class PdfUtils {
                 continue;
             }
             StringBuilder line = new StringBuilder();
+            int lineCps = 0; // code points in `line`
             int lastBreak = -1; // index in `line` after the last space (Latin break point)
             for (int i = 0; i < paragraph.length(); ) {
                 int cp = paragraph.codePointAt(i);
                 String ch = new String(Character.toChars(cp));
-                float w = safeWidth(font, line + ch, fontSize);
+                float w = safeWidth(font, line + ch, fontSize) + (lineCps + 1) * charSpacing;
                 if (w > maxWidth && line.length() > 0) {
                     boolean latinBreak =
                             lastBreak > 0 && cp < 0x3000 && !Character.isWhitespace(cp);
@@ -140,9 +151,11 @@ public final class PdfUtils {
                         lines.add(line.toString());
                         line.setLength(0);
                     }
+                    lineCps = line.codePointCount(0, line.length());
                     lastBreak = -1;
                 }
                 line.append(ch);
+                lineCps++;
                 if (cp == ' ') lastBreak = line.length();
                 i += Character.charCount(cp);
             }
@@ -164,12 +177,18 @@ public final class PdfUtils {
      * binary search with repeated substring scans.
      */
     public static String truncateToWidth(String text, PDFont font, float fontSize, float maxWidth) {
+        return truncateToWidth(text, font, fontSize, maxWidth, 0f);
+    }
+
+    /** Truncation with CSS-style letter spacing added after every character (#319). */
+    public static String truncateToWidth(
+            String text, PDFont font, float fontSize, float maxWidth, float charSpacing) {
         float scale = fontSize / 1000f;
         float accumulated = 0;
         for (int i = 0; i < text.length(); ) {
             int cp = text.codePointAt(i);
             try {
-                accumulated += font.getWidth(cp) * scale;
+                accumulated += font.getWidth(cp) * scale + charSpacing;
             } catch (IOException e) {
                 return text.substring(0, i);
             }

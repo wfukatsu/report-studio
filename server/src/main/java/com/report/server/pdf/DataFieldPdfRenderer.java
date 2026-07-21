@@ -71,8 +71,12 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
         Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
 
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
-        String truncated = truncateToWidth(text, font, fontSize, w);
-        float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
+        // em-based letter spacing, same semantics as TextContent/TextPdfRenderer (#319)
+        float charSpacing = (style != null ? floatOf(style, "letterSpacing", 0) : 0) * fontSize;
+        String truncated = truncateToWidth(text, font, fontSize, w, charSpacing);
+        float textWidth =
+                font.getStringWidth(truncated) / 1000 * fontSize
+                        + truncated.codePointCount(0, truncated.length()) * charSpacing;
         float tx =
                 switch (textAlign) {
                     case "center" -> x + (w - textWidth) / 2;
@@ -82,9 +86,11 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
 
         cs.beginText();
         cs.setFont(font, fontSize);
+        if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
         cs.setNonStrokingColor(color);
         cs.newLineAtOffset(tx, y - fontSize);
         cs.showText(truncated);
         cs.endText();
+        if (charSpacing != 0) cs.setCharacterSpacing(0);
     }
 }
