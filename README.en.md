@@ -1,4 +1,4 @@
-# Report Design Studio V2
+# Report Studio
 
 [![CI](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/wfukatsu/report-studio/actions/workflows/ci.yml)
 
