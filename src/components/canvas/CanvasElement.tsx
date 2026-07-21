@@ -1,4 +1,5 @@
 import { memo, useRef, useState, useCallback, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDraggable } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
 import { ElementRenderer } from './ElementRenderer'
@@ -54,6 +55,7 @@ export const CanvasElement = memo(function CanvasElement({
   defaultTextStyle,
   calcOutputKeys,
 }: Props) {
+  const { t } = useTranslation('components')
   const removeElement = useReportStore((s) => s.removeElement)
   const updateElement = useReportStore((s) => s.updateElement)
   const pushHistory = useReportStore((s) => s.pushHistory)
@@ -423,9 +425,9 @@ export const CanvasElement = memo(function CanvasElement({
           className="absolute top-0.5 right-0.5 pointer-events-none px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500 text-white whitespace-nowrap"
           style={{ zIndex: 9997 }}
           role="status"
-          title={`データ ${overflowWarning.intended} 件のうち ${overflowWarning.visible} 件のみ表示されます。要素の高さを広げるか、最大表示件数を調整してください（サーバPDF出力ではページ分割されます）`}
+          title={t('canvas.canvasElement.overflowWarningTitle', { intended: overflowWarning.intended, visible: overflowWarning.visible })}
         >
-          ⚠ {overflowWarning.visible}/{overflowWarning.intended}件
+          {t('canvas.canvasElement.overflowBadge', { visible: overflowWarning.visible, intended: overflowWarning.intended })}
         </div>
       )}
 
@@ -436,7 +438,7 @@ export const CanvasElement = memo(function CanvasElement({
           style={{ zIndex: 9998 }}
         >
           <div className="absolute top-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[9px] font-medium bg-indigo-500 text-white whitespace-nowrap">
-            列を追加
+            {t('canvas.canvasElement.addColumn')}
           </div>
         </div>
       )}

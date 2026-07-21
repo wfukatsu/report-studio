@@ -10,6 +10,8 @@
  */
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { ParseKeys } from 'i18next'
 import {
   RefreshCw, Download, FileText, Trash2, Loader2, Send
 } from 'lucide-react'
@@ -26,8 +28,12 @@ import type { FormResponseSummary, ReportStatus } from '@/lib/schemas/formRespon
 import { REPORT_STATUSES } from '@/lib/schemas/formResponse'
 
 // Document status display (#163). Cycle order matches REPORT_STATUSES.
-const STATUS_LABEL: Record<ReportStatus, string> = {
-  draft: '下書き', issued: '発行済', sent: '送付済', void: '無効',
+// i18n key per status (namespace `components`); resolved via t() at each call site.
+const STATUS_LABEL_KEY: Record<ReportStatus, ParseKeys<'components'>> = {
+  draft: 'sidebar.responsesPanel.status.draft',
+  issued: 'sidebar.responsesPanel.status.issued',
+  sent: 'sidebar.responsesPanel.status.sent',
+  void: 'sidebar.responsesPanel.status.void',
 }
 const STATUS_BADGE: Record<ReportStatus, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -53,6 +59,7 @@ function formatDate(epochMs: number): string {
 }
 
 export function ResponsesPanel() {
+  const { t } = useTranslation('components')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
   const responses = useReportStore((s) => s.responses)
@@ -202,11 +209,11 @@ export function ResponsesPanel() {
       await fetchResponses(true)
     } catch (err) {
       const copy = getErrorCopy(classifyError(err).code)
-      toast.error('削除に失敗しました', { description: copy.hint, duration: 6000 })
+      toast.error(t('sidebar.responsesPanel.toast.deleteFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDeletingId(null)
     }
-  }, [currentTemplateId, invalidateResponsesCache, fetchResponses])
+  }, [currentTemplateId, invalidateResponsesCache, fetchResponses, t])
 
   const handleDelete = useCallback((response: FormResponseSummary) => {
     setDeleteTarget(response)
@@ -224,10 +231,10 @@ export function ResponsesPanel() {
     try {
       await updateResponseStatus(currentTemplateId, response.id, next)
     } catch {
-      toast.error('ステータスの更新に失敗しました', { duration: 6000 })
+      toast.error(t('sidebar.responsesPanel.toast.statusUpdateFailed'), { duration: 6000 })
       void fetchResponses(true)
     }
-  }, [currentTemplateId, responsesTotal, setResponses, fetchResponses])
+  }, [currentTemplateId, responsesTotal, setResponses, fetchResponses, t])
 
   // Bulk status change over the selected responses (#173). Loops the tested single
   // PATCH endpoint; refetches at the end to resync (and pick up any partial failure).
@@ -242,9 +249,9 @@ export function ResponsesPanel() {
     setSelectedIds(new Set())
     invalidateResponsesCache()
     await fetchResponses(true)
-    if (failed > 0) toast.error(`${failed}件のステータス更新に失敗しました`, { duration: 6000 })
-    else toast.success(`${selectedIds.size}件を「${STATUS_LABEL[next]}」に変更しました`)
-  }, [currentTemplateId, selectedIds, bulkStatusBusy, invalidateResponsesCache, fetchResponses])
+    if (failed > 0) toast.error(t('sidebar.responsesPanel.toast.bulkStatusFailed', { n: failed }), { duration: 6000 })
+    else toast.success(t('sidebar.responsesPanel.toast.bulkStatusChanged', { n: selectedIds.size, status: t(STATUS_LABEL_KEY[next]) }))
+  }, [currentTemplateId, selectedIds, bulkStatusBusy, invalidateResponsesCache, fetchResponses, t])
 
   const handleExport = useCallback(async (format: 'csv' | 'excel') => {
     if (!currentTemplateId || isExporting) return
@@ -253,11 +260,11 @@ export function ResponsesPanel() {
       await exportResponses(currentTemplateId, format)
     } catch (err) {
       const copy = getErrorCopy(classifyError(err).code)
-      toast.error('エクスポートに失敗しました', { description: copy.hint, duration: 6000 })
+      toast.error(t('sidebar.responsesPanel.toast.exportFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setIsExporting(false)
     }
-  }, [currentTemplateId, isExporting])
+  }, [currentTemplateId, isExporting, t])
 
   const handleDownloadPdf = useCallback(async (response: FormResponseSummary) => {
     if (!currentTemplateId) return
@@ -267,23 +274,23 @@ export function ResponsesPanel() {
       downloadBlob(blob, `response-${response.id}.pdf`)
     } catch (err) {
       const copy = getErrorCopy(classifyError(err).code)
-      toast.error('PDF生成に失敗しました', { description: copy.hint, duration: 6000 })
+      toast.error(t('sidebar.responsesPanel.toast.pdfFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDownloadingPdfId(null)
     }
-  }, [currentTemplateId])
+  }, [currentTemplateId, t])
 
   if (!backendConnected || !currentTemplateId) {
     return (
       <div className="p-4 space-y-3">
         {!backendConnected && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
-            <p className="font-medium">バックエンドに接続できません</p>
-            <p>しばらく待ってから再試行してください。</p>
+            <p className="font-medium">{t('sidebar.responsesPanel.notConnected.title')}</p>
+            <p>{t('sidebar.responsesPanel.notConnected.body')}</p>
             {import.meta.env.DEV && (
               <details className="mt-1 opacity-90">
-                <summary className="cursor-pointer text-[10px]">開発者向け (dev)</summary>
-                <p className="mt-1">以下のコマンドでバックエンドを起動してください:</p>
+                <summary className="cursor-pointer text-[10px]">{t('sidebar.responsesPanel.notConnected.devSummary')}</summary>
+                <p className="mt-1">{t('sidebar.responsesPanel.notConnected.devHint')}</p>
                 <code className="block bg-amber-100 rounded px-2 py-1 font-mono">npm run dev:full</code>
               </details>
             )}
@@ -291,8 +298,8 @@ export function ResponsesPanel() {
         )}
         {backendConnected && !currentTemplateId && (
           <div className="rounded-md border border-muted bg-muted/30 p-3 text-xs text-muted-foreground">
-            <p className="font-medium">テンプレートが未選択です</p>
-            <p className="mt-0.5">デザインタブでテンプレートを開くか作成してください。</p>
+            <p className="font-medium">{t('sidebar.responsesPanel.noTemplate.title')}</p>
+            <p className="mt-0.5">{t('sidebar.responsesPanel.noTemplate.body')}</p>
           </div>
         )}
       </div>
@@ -304,20 +311,20 @@ export function ResponsesPanel() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 shrink-0">
         <span className="text-sm font-medium text-gray-700">
-          回答一覧 ({responsesTotal})
+          {t('sidebar.responsesPanel.header.title', { n: responsesTotal })}
         </span>
         <div className="flex gap-1">
           <button
-            aria-label="回答を送信"
-            title="回答を送信"
+            aria-label={t('sidebar.responsesPanel.actions.submit')}
+            title={t('sidebar.responsesPanel.actions.submit')}
             onClick={openSubmitResponseModal}
             className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
           >
             <Send className="w-4 h-4" />
           </button>
           <button
-            aria-label="再読み込み"
-            title="再読み込み"
+            aria-label={t('sidebar.responsesPanel.actions.reload')}
+            title={t('sidebar.responsesPanel.actions.reload')}
             onClick={() => fetchResponses(true)}
             disabled={responsesLoading}
             className="p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-40"
@@ -334,7 +341,7 @@ export function ResponsesPanel() {
             onClick={() => setStatusFilter(null)}
             className={`text-[10px] px-1.5 py-0.5 rounded border ${statusFilter === null ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent border-border'}`}
           >
-            すべて {responses.length}
+            {t('sidebar.responsesPanel.filter.all', { n: responses.length })}
           </button>
           {REPORT_STATUSES.filter((s) => (statusCounts[s] ?? 0) > 0).map((s) => (
             <button
@@ -342,7 +349,7 @@ export function ResponsesPanel() {
               onClick={() => setStatusFilter(statusFilter === s ? null : s)}
               className={`text-[10px] px-1.5 py-0.5 rounded border ${statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent border-border'}`}
             >
-              {STATUS_LABEL[s]} {statusCounts[s]}
+              {t(STATUS_LABEL_KEY[s])} {statusCounts[s]}
             </button>
           ))}
         </div>
@@ -351,22 +358,22 @@ export function ResponsesPanel() {
       {/* Batch action bar */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-2 px-3 py-2 border-b bg-primary/5 shrink-0 flex-wrap">
-          <span className="text-xs text-muted-foreground">{selectedIds.size}件選択中</span>
+          <span className="text-xs text-muted-foreground">{t('sidebar.responsesPanel.batch.selectedCount', { n: selectedIds.size })}</span>
           {batchState === 'polling' && batchProgress && (
             <span className="text-xs text-muted-foreground">
-              {batchProgress.completed}/{batchProgress.total} 完了
+              {t('sidebar.responsesPanel.batch.progress', { completed: batchProgress.completed, total: batchProgress.total })}
             </span>
           )}
           {/* Bulk status change (#173) */}
           <select
-            aria-label="選択をまとめてステータス変更"
+            aria-label={t('sidebar.responsesPanel.batch.bulkStatusAria')}
             value=""
             disabled={bulkStatusBusy}
             onChange={(e) => { const v = e.target.value as ReportStatus; if (v) void handleBulkStatus(v) }}
             className="text-xs px-1.5 py-1 rounded border bg-background disabled:opacity-60"
           >
-            <option value="">ステータス変更…</option>
-            {REPORT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}にする</option>)}
+            <option value="">{t('sidebar.responsesPanel.batch.bulkStatusPlaceholder')}</option>
+            {REPORT_STATUSES.map((s) => <option key={s} value={s}>{t('sidebar.responsesPanel.batch.setStatusOption', { status: t(STATUS_LABEL_KEY[s]) })}</option>)}
           </select>
           <button
             onClick={handleBatchPdf}
@@ -374,7 +381,7 @@ export function ResponsesPanel() {
             className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-60 ml-auto"
           >
             {batchState !== 'idle' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-            一括PDF
+            {t('sidebar.responsesPanel.batch.batchPdf')}
           </button>
           <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
         </div>
@@ -389,7 +396,9 @@ export function ResponsesPanel() {
             ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && !visibleResponses.every((r) => selectedIds.has(r.id)) }}
             onChange={(e) => setSelectedIds(e.target.checked ? new Set(visibleResponses.map((r) => r.id)) : new Set())}
           />
-          表示中をすべて選択{statusFilter ? `（${STATUS_LABEL[statusFilter]}）` : ''}
+          {statusFilter
+            ? t('sidebar.responsesPanel.selectAll.labelFiltered', { status: t(STATUS_LABEL_KEY[statusFilter]) })
+            : t('sidebar.responsesPanel.selectAll.label')}
         </label>
       )}
 
@@ -438,18 +447,18 @@ export function ResponsesPanel() {
           (which only appears once responses exist) is discoverable (#167). */}
       {!responsesLoading && !loadError && responses.length === 0 && (
         <div className="p-6 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
-          <p>回答がまだありません。</p>
+          <p>{t('sidebar.responsesPanel.empty.title')}</p>
           <p className="text-xs text-gray-400 leading-relaxed">
-            「回答を送信」からデータを登録すると、ここに一覧表示され、
+            {t('sidebar.responsesPanel.empty.hintLine1')}
             <br />
-            複数選択して一括PDF出力できます。
+            {t('sidebar.responsesPanel.empty.hintLine2')}
           </p>
           <button
             onClick={openSubmitResponseModal}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Send className="w-3.5 h-3.5" />
-            回答を送信
+            {t('sidebar.responsesPanel.actions.submit')}
           </button>
         </div>
       )}
@@ -457,7 +466,7 @@ export function ResponsesPanel() {
       {/* Response list */}
       <ul
         role="list"
-        aria-label="フォーム回答一覧"
+        aria-label={t('sidebar.responsesPanel.list.ariaLabel')}
         className="flex-1 overflow-y-auto divide-y divide-gray-100"
       >
         {visibleResponses.map((resp) => (
@@ -465,7 +474,7 @@ export function ResponsesPanel() {
             <div className="flex items-start gap-2">
               <input
                 type="checkbox"
-                aria-label={`${resp.submittedBy} を選択`}
+                aria-label={t('sidebar.responsesPanel.row.selectAria', { name: resp.submittedBy })}
                 checked={selectedIds.has(resp.id)}
                 onChange={() => toggleSelect(resp.id)}
                 className="mt-1 shrink-0"
@@ -476,9 +485,9 @@ export function ResponsesPanel() {
                   <button
                     onClick={() => handleCycleStatus(resp)}
                     className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${STATUS_BADGE[(resp.status ?? 'issued') as ReportStatus]}`}
-                    title="クリックでステータスを変更（下書き→発行済→送付済→無効）"
+                    title={t('sidebar.responsesPanel.row.statusCycleTitle')}
                   >
-                    {STATUS_LABEL[(resp.status ?? 'issued') as ReportStatus]}
+                    {t(STATUS_LABEL_KEY[(resp.status ?? 'issued') as ReportStatus])}
                   </button>
                   <span className="text-xs text-gray-500 truncate">
                     {formatDate(resp.submittedAt)} — {resp.submittedBy}
@@ -494,8 +503,8 @@ export function ResponsesPanel() {
               </div>
               <div className="flex gap-1 shrink-0">
                 <button
-                  aria-label="PDF回答票をダウンロード"
-                  title="PDF回答票"
+                  aria-label={t('sidebar.responsesPanel.row.pdfAria')}
+                  title={t('sidebar.responsesPanel.row.pdfTitle')}
                   onClick={() => handleDownloadPdf(resp)}
                   disabled={downloadingPdfId === resp.id}
                   className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-40"
@@ -506,8 +515,8 @@ export function ResponsesPanel() {
                   }
                 </button>
                 <button
-                  aria-label="削除"
-                  title="削除"
+                  aria-label={t('sidebar.responsesPanel.row.delete')}
+                  title={t('sidebar.responsesPanel.row.delete')}
                   onClick={() => handleDelete(resp)}
                   disabled={deletingId === resp.id}
                   className="p-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600 disabled:opacity-40"
@@ -526,9 +535,9 @@ export function ResponsesPanel() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="回答を削除"
-        message={`回答 ${deleteTarget?.id.slice(0, 8)}... を削除しますか？この操作は元に戻せません。`}
-        confirmLabel="削除"
+        title={t('sidebar.responsesPanel.confirm.title')}
+        message={t('sidebar.responsesPanel.confirm.message', { id: deleteTarget?.id.slice(0, 8) })}
+        confirmLabel={t('sidebar.responsesPanel.confirm.confirmLabel')}
         confirmVariant="danger"
         onConfirm={() => { if (deleteTarget) { void execDelete(deleteTarget) } setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}

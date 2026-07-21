@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store'
 import { useBindingAnalysis } from '@/hooks/useBindingAnalysis'
 import { usePreviewData } from '@/hooks/usePreviewData'
@@ -144,6 +145,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: Collapsibl
 type PreviewState = { status: 'idle' } | { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready' }
 
 function LivePreviewSection() {
+  const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
   const setLivePreviewData = useReportStore((s) => s.setLivePreviewData)
@@ -191,10 +193,9 @@ function LivePreviewSection() {
   // of silently hiding the panel, so the behaviour is consistent with saved ones.
   if (!currentTemplateId) {
     return (
-      <Section title="ライブプレビュー" icon="⚡">
+      <Section title={t('sidebar.dataBindingOverviewPanel.livePreview.title')} icon="⚡">
         <div className="px-3 py-2 text-[10px] text-muted-foreground leading-relaxed">
-          このテンプレートはデータベースに接続されていますが、まだ保存されていません。
-          実データでプレビューするには、まずテンプレートを保存してください。
+          {t('sidebar.dataBindingOverviewPanel.livePreview.notSavedHint')}
         </div>
       </Section>
     )
@@ -256,7 +257,7 @@ function LivePreviewSection() {
       setPreviewState({ status: 'ready' })
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return
-      const msg = e instanceof Error ? e.message : 'エラーが発生しました'
+      const msg = e instanceof Error ? e.message : t('sidebar.dataBindingOverviewPanel.livePreview.genericError')
       setPreviewState({ status: 'error', message: msg })
     }
   }
@@ -268,10 +269,10 @@ function LivePreviewSection() {
   }
 
   return (
-    <Section title="ライブプレビュー" icon="⚡">
+    <Section title={t('sidebar.dataBindingOverviewPanel.livePreview.title')} icon="⚡">
       <div className="px-3 py-2 space-y-3">
         <p className="text-[10px] text-muted-foreground">
-          ScalarDB から実データを取得してプレビューします。各グループのパーティションキー値を入力してください。
+          {t('sidebar.dataBindingOverviewPanel.livePreview.description')}
         </p>
 
         {boundMasterGroups.map((group) => {
@@ -293,8 +294,8 @@ function LivePreviewSection() {
                   </span>
                 )}
                 {linkedMaster && (
-                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label="自動入力">
-                    (自動: {linkedMaster.label || linkedMaster.id})
+                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label={t('sidebar.dataBindingOverviewPanel.livePreview.autoFillAria')}>
+                    {t('sidebar.dataBindingOverviewPanel.livePreview.autoFill', { name: linkedMaster.label || linkedMaster.id })}
                   </span>
                 )}
               </div>
@@ -306,7 +307,7 @@ function LivePreviewSection() {
                   <input
                     type="text"
                     className="flex-1 text-[10px] border rounded px-1.5 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="値を入力..."
+                    placeholder={t('sidebar.dataBindingOverviewPanel.livePreview.valuePlaceholder')}
                     value={partitionKeys[group.id]?.[field.dbColumnName!] ?? ''}
                     onChange={(e) => handleKeyChange(group.id, field.dbColumnName!, e.target.value)}
                   />
@@ -333,8 +334,8 @@ function LivePreviewSection() {
                   </span>
                 )}
                 {linkedMaster && (
-                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label="自動入力">
-                    (自動: {linkedMaster.label || linkedMaster.id})
+                  <span className="ml-1 text-[9px] text-blue-600 font-normal" aria-label={t('sidebar.dataBindingOverviewPanel.livePreview.autoFillAria')}>
+                    {t('sidebar.dataBindingOverviewPanel.livePreview.autoFill', { name: linkedMaster.label || linkedMaster.id })}
                   </span>
                 )}
               </div>
@@ -346,7 +347,7 @@ function LivePreviewSection() {
                   <input
                     type="text"
                     className="flex-1 text-[10px] border rounded px-1.5 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="値を入力..."
+                    placeholder={t('sidebar.dataBindingOverviewPanel.livePreview.valuePlaceholder')}
                     value={partitionKeys[group.id]?.[field.dbColumnName!] ?? ''}
                     onChange={(e) => handleKeyChange(group.id, field.dbColumnName!, e.target.value)}
                   />
@@ -361,7 +362,7 @@ function LivePreviewSection() {
           <p className="text-[10px] text-destructive">{previewState.message}</p>
         )}
         {previewState.status === 'ready' && livePreviewData && (
-          <p className="text-[10px] text-green-600">実データを取得しました</p>
+          <p className="text-[10px] text-green-600">{t('sidebar.dataBindingOverviewPanel.livePreview.dataFetched')}</p>
         )}
 
         <div className="flex gap-2">
@@ -370,14 +371,14 @@ function LivePreviewSection() {
             disabled={previewState.status === 'loading'}
             onClick={() => void handleRefreshPreview()}
           >
-            {previewState.status === 'loading' ? '取得中...' : 'プレビュー更新'}
+            {previewState.status === 'loading' ? t('sidebar.dataBindingOverviewPanel.livePreview.loading') : t('sidebar.dataBindingOverviewPanel.livePreview.refresh')}
           </button>
           {livePreviewData && (
             <button
               className="text-[10px] text-muted-foreground border rounded px-2 py-1 hover:bg-accent"
               onClick={handleClearPreview}
             >
-              クリア
+              {t('sidebar.dataBindingOverviewPanel.livePreview.clear')}
             </button>
           )}
         </div>
@@ -391,6 +392,7 @@ function LivePreviewSection() {
 // ---------------------------------------------------------------------------
 
 export function DataBindingOverviewPanel() {
+  const { t } = useTranslation('components')
   const selectElement = useReportStore((s) => s.selectElement)
   const setActivePage = useReportStore((s) => s.setActivePage)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
@@ -406,34 +408,34 @@ export function DataBindingOverviewPanel() {
       {/* Role descriptor + deep-link — clarifies this panel vs the バインド tab (#129) */}
       <div className="px-3 py-2 bg-muted/10">
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          このパネルはデータの値の確認・編集用です。要素とデータ項目の結線は
+          {t('sidebar.dataBindingOverviewPanel.intro.descBefore')}
           <button
             type="button"
             className="text-blue-600 hover:underline mx-0.5 font-medium"
             onClick={() => setActiveTab('binding')}
           >
-            バインド画面
+            {t('sidebar.dataBindingOverviewPanel.intro.linkText')}
           </button>
-          で設定します。
+          {t('sidebar.dataBindingOverviewPanel.intro.descAfter')}
         </p>
       </div>
 
       {/* DataSource definition (always visible) */}
-      <CollapsibleSection title="データソース" defaultOpen={!hasDataSource}>
+      <CollapsibleSection title={t('sidebar.dataBindingOverviewPanel.section.dataSource')} defaultOpen={!hasDataSource}>
         <DataSourcePanel />
       </CollapsibleSection>
 
       {/* Empty state when no DataSource */}
       {!hasDataSource && (
         <div className="px-3 py-3 text-xs text-muted-foreground">
-          データソースが未設定です。上のセクションでデータを追加してください。
+          {t('sidebar.dataBindingOverviewPanel.emptyDataSource')}
         </div>
       )}
 
       {hasDataSource && (
         <>
           {/* Field value editor */}
-          <CollapsibleSection title="フィールド値">
+          <CollapsibleSection title={t('sidebar.dataBindingOverviewPanel.section.fieldValue')}>
             <BindingPanel />
           </CollapsibleSection>
 
@@ -442,7 +444,7 @@ export function DataBindingOverviewPanel() {
 
           {/* Unbound elements — hidden when 0 */}
           {unboundElements.length > 0 && (
-            <Section title="未バインド要素" count={unboundElements.length} icon="⚠">
+            <Section title={t('sidebar.dataBindingOverviewPanel.section.unbound')} count={unboundElements.length} icon="⚠">
               {unboundElements.map((b) => (
                 <ElementRow key={b.elementId} binding={b} onSelect={handleSelect} />
               ))}
@@ -451,7 +453,7 @@ export function DataBindingOverviewPanel() {
 
           {/* Field mappings — hidden when 0 */}
           {fieldMappings.length > 0 && (
-            <Section title="マッピング" count={fieldMappings.length} icon="✓">
+            <Section title={t('sidebar.dataBindingOverviewPanel.section.mapping')} count={fieldMappings.length} icon="✓">
               {fieldMappings.map((b, i) => (
                 <MappingRow key={`${b.elementId}_${b.fieldKey}_${i}`} binding={b} onSelect={handleSelect} />
               ))}
@@ -460,13 +462,13 @@ export function DataBindingOverviewPanel() {
 
           {/* Fields bound but not present in sample data — hidden when 0 */}
           {missingInSampleElements.length > 0 && (
-            <Section title="サンプル値なし" count={missingInSampleElements.length} icon="⚠">
+            <Section title={t('sidebar.dataBindingOverviewPanel.section.missingSample')} count={missingInSampleElements.length} icon="⚠">
               {missingInSampleElements.map((b) => (
                 <ElementRow
                   key={`${b.elementId}_${b.fieldKey}`}
                   binding={b}
                   onSelect={handleSelect}
-                  suffix="未設定"
+                  suffix={t('sidebar.dataBindingOverviewPanel.suffix.notSet')}
                 />
               ))}
             </Section>

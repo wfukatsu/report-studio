@@ -7,6 +7,7 @@
  */
 
 import { memo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Database, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BindableElement, ElementSubGroup, FieldItem } from '../types'
@@ -135,6 +136,7 @@ const SubGroupBlock = memo(function SubGroupBlock({
   onNavigate,
   elementRef,
 }: SubGroupBlockProps) {
+  const { t } = useTranslation('components')
   const isRepeat = subGroup.role === 'repeat'
   const isMaster = subGroup.role === 'master'
   const isSchemaGroup = isRepeat || isMaster
@@ -155,12 +157,12 @@ const SubGroupBlock = memo(function SubGroupBlock({
         <span>{subGroup.label}</span>
         {isMaster && (
           <span className="font-mono text-[9px] bg-blue-50 text-blue-600 border border-blue-200 px-1 rounded">
-            マスター
+            {t('bindingEditor.elementGroupBlock.masterBadge')}
           </span>
         )}
         {isRepeat && (
           <span className="font-mono text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1 rounded">
-            明細
+            {t('bindingEditor.elementGroupBlock.detailBadge')}
           </span>
         )}
         {isRepeat && subGroup.dataSource && (
@@ -237,6 +239,7 @@ const ElementSlot = memo(function ElementSlot({
   onNavigate,
   elementRef,
 }: ElementSlotProps) {
+  const { t } = useTranslation('components')
   const boundField = element.boundFieldId
     ? fieldMap.get(element.boundFieldId)
     : null
@@ -285,7 +288,7 @@ const ElementSlot = memo(function ElementSlot({
       onPointerMove={onDragMove}
       onPointerUp={() => { if (isDraggingField) onDropOnElement(element.pageId, element.elementId) }}
       onDoubleClick={() => onNavigate(element.pageId, element.elementId)}
-      title={boundField ? `バインド先: ${boundField.fieldKey}` : '未バインド — ドラッグでフィールドに接続'}
+      title={boundField ? t('bindingEditor.elementGroupBlock.boundTo', { field: boundField.fieldKey }) : t('bindingEditor.elementGroupBlock.unboundHint')}
     >
       {/* Binding dot */}
       <span
@@ -313,11 +316,11 @@ const ElementSlot = memo(function ElementSlot({
           ← {boundField.fieldKey}
         </span>
       ) : isDraggingField ? (
-        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">ドロップ</span>
+        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">{t('bindingEditor.elementGroupBlock.drop')}</span>
       ) : (selectedFieldId !== null) ? (
-        <span className="text-[10px] text-[#6366f1] shrink-0">接続</span>
+        <span className="text-[10px] text-[#6366f1] shrink-0">{t('bindingEditor.elementGroupBlock.connect')}</span>
       ) : (
-        <span className="text-[10px] text-muted-foreground/50 italic shrink-0">未バインド</span>
+        <span className="text-[10px] text-muted-foreground/50 italic shrink-0">{t('bindingEditor.elementGroupBlock.unbound')}</span>
       )}
     </button>
   )

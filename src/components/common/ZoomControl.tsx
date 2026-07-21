@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ZoomIn, ZoomOut, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ZOOM_MIN, ZOOM_MAX } from '@/config/constants'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
+  const { t } = useTranslation('components')
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -68,7 +70,7 @@ export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
       <button
         onClick={() => onSetZoom(clampZoom(zoom - 0.1))}
         disabled={zoom <= ZOOM_MIN}
-        title="ズームアウト"
+        title={t('common.zoomControl.zoomOut')}
         className="p-0.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <ZoomOut className="w-3 h-3" />
@@ -93,7 +95,7 @@ export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
               if (e.key === 'Escape') { setInputValue(null); inputRef.current?.blur() }
               e.stopPropagation()
             }}
-            aria-label="拡大率"
+            aria-label={t('common.zoomControl.zoomLevel')}
             className="flex-1 min-w-0 bg-transparent text-[10px] text-center outline-none px-1 py-0.5 cursor-text"
           />
           <button
@@ -125,14 +127,14 @@ export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
               <>
                 <div className="border-t my-1" />
                 <button
-                  title="横幅フィット"
+                  title={t('common.zoomControl.fitWidth')}
                   className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                   onClick={handleFitWidth}
                 >
                   <FitWidthIcon />
                 </button>
                 <button
-                  title="ページ全体フィット"
+                  title={t('common.zoomControl.fitPage')}
                   className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                   onClick={handleFitPage}
                 >
@@ -147,7 +149,7 @@ export function ZoomControl({ zoom, onSetZoom, containerRef, page }: Props) {
       <button
         onClick={() => onSetZoom(clampZoom(zoom + 0.1))}
         disabled={zoom >= ZOOM_MAX}
-        title="ズームイン"
+        title={t('common.zoomControl.zoomIn')}
         className="p-0.5 rounded hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <ZoomIn className="w-3 h-3" />

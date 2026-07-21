@@ -11,6 +11,8 @@
  */
 
 import { memo, useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { ParseKeys } from 'i18next'
 import {
   ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle, Link2, Pencil, Check,
 } from 'lucide-react'
@@ -85,6 +87,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   hoveredFieldId,
   onHoverField,
 }: SchemaGroupBlockProps) {
+  const { t } = useTranslation('components')
   const [editing, setEditing] = useState(false)
   const handleToggle = useCallback(() => onToggle(group.id), [onToggle, group.id])
   const boundCount = group.fields.filter((f) => boundFieldIds.has(f.id)).length
@@ -122,7 +125,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
               : 'bg-amber-50 text-amber-600 border border-amber-200',
           )}>
             {group.role === 'detail' && <RefreshCw className="w-2.5 h-2.5" />}
-            {group.role === 'master' ? 'マスター' : '↻ 明細'}
+            {group.role === 'master' ? t('bindingEditor.schemaGroupBlock.roleMaster') : t('bindingEditor.schemaGroupBlock.roleDetailBadge')}
           </span>
           {group.role === 'detail' && group.dataKey && (
             <span className="font-mono text-[9px] bg-amber-50 text-amber-500 px-1 rounded">
@@ -137,8 +140,8 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
           <button
             className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
             onClick={() => onBulkGenerate(group.id)}
-            title="このグループのフィールドから、まだ配置されていない要素をキャンバスに一括生成"
-            aria-label="フィールドから要素を一括生成"
+            title={t('bindingEditor.schemaGroupBlock.bulkGenerateTitle')}
+            aria-label={t('bindingEditor.schemaGroupBlock.bulkGenerateAria')}
           >
             <Wand2 className="w-3.5 h-3.5" />
           </button>
@@ -146,8 +149,8 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
         <button
           className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
           onClick={() => setEditing(true)}
-          title="グループの名称・データキー・種別を編集"
-          aria-label="グループを編集"
+          title={t('bindingEditor.schemaGroupBlock.editGroupTitle')}
+          aria-label={t('bindingEditor.schemaGroupBlock.editGroupAria')}
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
@@ -175,7 +178,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
           )}>
             {group.fields.length === 0 ? (
               <div className="px-3 py-3 text-xs text-muted-foreground italic text-center">
-                フィールドがありません
+                {t('bindingEditor.schemaGroupBlock.noFields')}
               </div>
             ) : (
               group.fields.map((field) => (
@@ -219,13 +222,13 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
                   className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-[#00C853] hover:border-[#00C853]/50 hover:bg-[#00C853]/5 w-full ml-4 py-1.5 border-2 border-dashed border-border/30 rounded-md transition-colors"
                   onClick={() => onSetAddingField(group.id)}
                 >
-                  <Plus className="w-3.5 h-3.5" /> フィールド追加
+                  <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaGroupBlock.addField')}
                 </button>
                 {onOpenComputedDialog && (
                   <button
                     className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 px-2 py-1.5 shrink-0 font-medium"
                     onClick={() => onOpenComputedDialog(group.id)}
-                    title="計算フィールドを追加"
+                    title={t('bindingEditor.schemaGroupBlock.addComputedTitle')}
                   >
                     <span className="text-[9px] font-bold italic bg-[#6366f1] text-white rounded px-1 py-px">fx</span>
                   </button>
@@ -254,6 +257,7 @@ const DetailRelationBand = memo(function DetailRelationBand({
   masterGroups,
   onSetLinkedMaster,
 }: DetailRelationBandProps) {
+  const { t } = useTranslation('components')
   // A detail group is never itself a master, but guard against self-links anyway.
   const candidates = masterGroups.filter((m) => m.id !== group.id)
   const linkedId = group.linkedMasterGroupId
@@ -266,7 +270,7 @@ const DetailRelationBand = memo(function DetailRelationBand({
     return (
       <div className="ml-2 mt-0.5 flex items-center gap-1 px-2 py-1 text-[10px] text-muted-foreground/80">
         <Link2 className="w-3 h-3 shrink-0 opacity-60" />
-        リンクできるマスターがありません
+        {t('bindingEditor.schemaGroupBlock.noLinkableMaster')}
       </div>
     )
   }
@@ -288,7 +292,7 @@ const DetailRelationBand = memo(function DetailRelationBand({
             isError ? 'text-red-600 font-medium' : 'text-muted-foreground',
           )}
         >
-          親マスター
+          {t('bindingEditor.schemaGroupBlock.parentMaster')}
         </span>
         <select
           className={cn(
@@ -297,9 +301,9 @@ const DetailRelationBand = memo(function DetailRelationBand({
           )}
           value={linkedExists ? linkedId : ''}
           onChange={(e) => onSetLinkedMaster(group.id, e.target.value || undefined)}
-          aria-label={`${group.label || group.id} の親マスター`}
+          aria-label={t('bindingEditor.schemaGroupBlock.parentMasterAria', { group: group.label || group.id })}
         >
-          <option value="">未設定…</option>
+          <option value="">{t('bindingEditor.schemaGroupBlock.unset')}</option>
           {candidates.map((m) => (
             <option key={m.id} value={m.id}>{m.label}</option>
           ))}
@@ -307,7 +311,7 @@ const DetailRelationBand = memo(function DetailRelationBand({
       </div>
       {isError && (
         <p className="px-2 pt-0.5 text-[9px] leading-tight text-red-500">
-          関係が未設定です。明細行が親マスターに紐付かないため、実データで正しく解決されません。
+          {t('bindingEditor.schemaGroupBlock.relationRequiredError')}
         </p>
       )}
     </div>
@@ -355,6 +359,7 @@ const FieldCard = memo(function FieldCard({
   onDropOnField,
   onHoverField,
 }: FieldCardProps) {
+  const { t } = useTranslation('components')
   const color = getGroupColor(groupIndex)
 
   return (
@@ -393,7 +398,7 @@ const FieldCard = memo(function FieldCard({
       onPointerUp={() => { if (isDraggingElement) onDropOnField(field.id) }}
       onMouseEnter={() => onHoverField(field.id)}
       onMouseLeave={() => onHoverField(null)}
-      title={`${field.key} — クリックで選択、ドラッグで要素に接続`}
+      title={t('bindingEditor.schemaGroupBlock.fieldCardTitle', { fieldKey: field.key })}
     >
       {/* Binding dot (legacy: 8px circle) */}
       <span
@@ -420,8 +425,8 @@ const FieldCard = memo(function FieldCard({
       {warnUnmapped && (
         <span
           className="shrink-0 text-amber-500"
-          title="このグループはデータベースに接続されていますが、この項目はまだ列に割り当てられていないため、実データでは表示されません。"
-          aria-label="DBカラム未割当"
+          title={t('bindingEditor.schemaGroupBlock.unmappedTitle')}
+          aria-label={t('bindingEditor.schemaGroupBlock.unmappedAria')}
         >
           <AlertTriangle className="w-3 h-3" />
         </span>
@@ -449,7 +454,7 @@ const FieldCard = memo(function FieldCard({
           e.stopPropagation()
           onRemove(groupId, field.id)
         }}
-        title="削除"
+        title={t('bindingEditor.schemaGroupBlock.deleteTitle')}
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
@@ -474,6 +479,7 @@ function sanitizeDataKey(raw: string): string {
 }
 
 function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
+  const { t } = useTranslation('components')
   const [label, setLabel] = useState(group.label)
   const [dataKey, setDataKey] = useState(group.dataKey)
   const [role, setRole] = useState(group.role)
@@ -499,7 +505,7 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
       <input
         autoFocus
         className="flex-1 min-w-0 text-xs border rounded-md px-2 py-1 bg-background"
-        placeholder="グループ名称"
+        placeholder={t('bindingEditor.schemaGroupBlock.groupName')}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onKeyDown={(e) => {
@@ -507,7 +513,7 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
           if (e.key === 'Enter') handleSave()
           if (e.key === 'Escape') onClose()
         }}
-        aria-label="グループ名称"
+        aria-label={t('bindingEditor.schemaGroupBlock.groupName')}
       />
       <input
         className="w-24 shrink-0 text-xs border rounded-md px-2 py-1 bg-background font-mono"
@@ -519,31 +525,31 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
           if (e.key === 'Enter') handleSave()
           if (e.key === 'Escape') onClose()
         }}
-        aria-label="データキー"
+        aria-label={t('bindingEditor.schemaGroupBlock.dataKeyAria')}
       />
       <select
         className="shrink-0 text-xs border rounded-md px-1.5 py-1 bg-background"
         value={role}
         onChange={(e) => setRole(e.target.value as SchemaGroup['role'])}
-        aria-label="グループの種別"
-        title="グループの種別"
+        aria-label={t('bindingEditor.schemaGroupBlock.roleSelectAria')}
+        title={t('bindingEditor.schemaGroupBlock.roleSelectAria')}
       >
-        <option value="master">マスター</option>
-        <option value="detail">明細</option>
+        <option value="master">{t('bindingEditor.schemaGroupBlock.roleMaster')}</option>
+        <option value="detail">{t('bindingEditor.schemaGroupBlock.roleDetailOption')}</option>
       </select>
       <button
         className="text-[#00C853] hover:text-[#00C853]/80 p-0.5 shrink-0"
         onClick={handleSave}
-        title="保存"
-        aria-label="グループを保存"
+        title={t('bindingEditor.schemaGroupBlock.saveTitle')}
+        aria-label={t('bindingEditor.schemaGroupBlock.saveAria')}
       >
         <Check className="w-3.5 h-3.5" />
       </button>
       <button
         className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"
         onClick={onClose}
-        title="キャンセル"
-        aria-label="編集をキャンセル"
+        title={t('bindingEditor.schemaGroupBlock.cancelTitle')}
+        aria-label={t('bindingEditor.schemaGroupBlock.cancelAria')}
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -577,14 +583,15 @@ function deriveFieldKey(label: string): string {
 }
 
 /** Field types offerable at inline-add time (計算フィールドは fx ダイアログ経由) */
-const ADD_FIELD_TYPES: readonly { value: SchemaFieldType; label: string }[] = [
-  { value: 'string', label: '文字' },
-  { value: 'number', label: '数値' },
-  { value: 'date', label: '日付' },
-  { value: 'boolean', label: '真偽' },
-]
+const ADD_FIELD_TYPES = [
+  { value: 'string', labelKey: 'bindingEditor.schemaGroupBlock.fieldTypeString' },
+  { value: 'number', labelKey: 'bindingEditor.schemaGroupBlock.fieldTypeNumber' },
+  { value: 'date', labelKey: 'bindingEditor.schemaGroupBlock.fieldTypeDate' },
+  { value: 'boolean', labelKey: 'bindingEditor.schemaGroupBlock.fieldTypeBoolean' },
+] as const satisfies readonly { value: SchemaFieldType; labelKey: ParseKeys<'components'> }[]
 
 function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
+  const { t } = useTranslation('components')
   const [name, setName] = useState('')
   const [type, setType] = useState<SchemaFieldType>('string')
 
@@ -600,7 +607,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
       <input
         autoFocus
         className="flex-1 min-w-0 text-xs border rounded-md px-2.5 py-1.5 bg-background font-mono"
-        placeholder="フィールド名"
+        placeholder={t('bindingEditor.schemaGroupBlock.fieldNamePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
@@ -612,15 +619,15 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
         className="shrink-0 text-xs border rounded-md px-1.5 py-1.5 bg-background"
         value={type}
         onChange={(e) => setType(e.target.value as SchemaFieldType)}
-        aria-label="フィールドの型"
-        title="フィールドの型"
+        aria-label={t('bindingEditor.schemaGroupBlock.fieldTypeAria')}
+        title={t('bindingEditor.schemaGroupBlock.fieldTypeAria')}
       >
-        {ADD_FIELD_TYPES.map((t) => (
-          <option key={t.value} value={t.value}>{t.label}</option>
+        {ADD_FIELD_TYPES.map((item) => (
+          <option key={item.value} value={item.value}>{t(item.labelKey)}</option>
         ))}
       </select>
       <button className="text-xs text-[#6366f1] font-medium px-1.5 shrink-0" onClick={handleSubmit}>
-        追加
+        {t('bindingEditor.schemaGroupBlock.add')}
       </button>
       <button className="text-muted-foreground hover:text-foreground p-0.5 shrink-0" onClick={onCancel}>
         <X className="w-3.5 h-3.5" />

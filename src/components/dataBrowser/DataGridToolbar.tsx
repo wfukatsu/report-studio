@@ -1,4 +1,5 @@
 import { Search, Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   searchQuery: string
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function DataGridToolbar({ searchQuery, onSearchChange, onExportCsv, totalRows, truncated }: Props) {
+  const { t } = useTranslation('components')
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
       <div className="relative flex-1 max-w-xs">
@@ -17,8 +19,8 @@ export function DataGridToolbar({ searchQuery, onSearchChange, onExportCsv, tota
           type="search"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="現在のページを検索..."
-          aria-label="データを検索"
+          placeholder={t('dataBrowser.dataGridToolbar.searchPlaceholder')}
+          aria-label={t('dataBrowser.dataGridToolbar.searchLabel')}
           className="border rounded pl-7 pr-2 py-1 text-xs bg-background w-full"
         />
       </div>
@@ -27,16 +29,16 @@ export function DataGridToolbar({ searchQuery, onSearchChange, onExportCsv, tota
         {truncated && (
           <span className="flex items-center gap-1 text-amber-600 mr-2">
             <span>⚠</span>
-            <span>上位 10,000 件のみ表示</span>
+            <span>{t('dataBrowser.dataGridToolbar.truncatedNotice')}</span>
           </span>
         )}
-        <span>{totalRows.toLocaleString('ja-JP')} 件</span>
+        <span>{totalRows.toLocaleString('ja-JP')} {t('dataBrowser.dataGridToolbar.rowsUnit')}</span>
       </div>
 
       <button
         onClick={onExportCsv}
-        title="現在のページをCSVでダウンロード"
-        aria-label="CSVエクスポート"
+        title={t('dataBrowser.dataGridToolbar.csvTitle')}
+        aria-label={t('dataBrowser.dataGridToolbar.csvLabel')}
         className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent transition-colors shrink-0"
       >
         <Download className="w-3.5 h-3.5" />

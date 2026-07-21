@@ -4,6 +4,7 @@ import {
   Hash, CalendarDays, SeparatorHorizontal, Building2, MapPin, Phone, User, Minus,
 } from 'lucide-react'
 import { createElement } from 'react'
+import type { TFunction } from 'i18next'
 import type { ReportElement, Section } from '@/types'
 
 function assertNever(x: never): never {
@@ -41,46 +42,46 @@ export function elementIcon(type: ReportElement['type']) {
   }
 }
 
-export function defaultName(el: ReportElement): string {
+export function defaultName(el: ReportElement, t: TFunction<'components'>): string {
   if (el.name) return el.name
   switch (el.type) {
-    case 'text':            return 'テキスト'
-    case 'dataField':       return 'データフィールド'
-    case 'image':           return '画像'
-    case 'chart':           return 'グラフ'
-    case 'barcode':         return 'バーコード'
-    case 'manualEntry':     return '記入欄'
-    case 'hanko':           return '印鑑'
-    case 'approvalStampRow': return '多段印鑑欄'
-    case 'revenueStamp':    return '収入印紙欄'
+    case 'text':            return t('sidebar.layerUtils.text')
+    case 'dataField':       return t('sidebar.layerUtils.dataField')
+    case 'image':           return t('sidebar.layerUtils.image')
+    case 'chart':           return t('sidebar.layerUtils.chart')
+    case 'barcode':         return t('sidebar.layerUtils.barcode')
+    case 'manualEntry':     return t('sidebar.layerUtils.manualEntry')
+    case 'hanko':           return t('sidebar.layerUtils.hanko')
+    case 'approvalStampRow': return t('sidebar.layerUtils.approvalStampRow')
+    case 'revenueStamp':    return t('sidebar.layerUtils.revenueStamp')
     case 'shape': {
-      if (el.shape === 'circle') return '円'
-      if (el.shape === 'line') return '線'
-      return '矩形'
+      if (el.shape === 'circle') return t('sidebar.layerUtils.shapeCircle')
+      if (el.shape === 'line') return t('sidebar.layerUtils.shapeLine')
+      return t('sidebar.layerUtils.shapeRect')
     }
-    case 'repeatingBand':   return '繰り返しバンド'
-    case 'repeatingList':   return '繰り返しリスト'
-    case 'formTable':       return '帳票テーブル'
-    case 'checkbox':        return 'チェックボックス'
-    case 'eraSelect':       return '元号選択'
-    case 'pageNumber':      return 'ページ番号'
-    case 'currentDate':     return '現在日付'
-    case 'divider':               return '区切り線'
-    case 'tenantCompanyName':     return '会社名'
-    case 'tenantAddress':         return '住所'
-    case 'tenantPhone':           return '電話番号'
-    case 'tenantRepresentative':  return '代表者名'
-    case 'tenantLogo':            return 'ロゴ'
-    case 'tenantCustom':          return `カスタム(${el.fieldKey || '未設定'})`
+    case 'repeatingBand':   return t('sidebar.layerUtils.repeatingBand')
+    case 'repeatingList':   return t('sidebar.layerUtils.repeatingList')
+    case 'formTable':       return t('sidebar.layerUtils.formTable')
+    case 'checkbox':        return t('sidebar.layerUtils.checkbox')
+    case 'eraSelect':       return t('sidebar.layerUtils.eraSelect')
+    case 'pageNumber':      return t('sidebar.layerUtils.pageNumber')
+    case 'currentDate':     return t('sidebar.layerUtils.currentDate')
+    case 'divider':               return t('sidebar.layerUtils.divider')
+    case 'tenantCompanyName':     return t('sidebar.layerUtils.tenantCompanyName')
+    case 'tenantAddress':         return t('sidebar.layerUtils.tenantAddress')
+    case 'tenantPhone':           return t('sidebar.layerUtils.tenantPhone')
+    case 'tenantRepresentative':  return t('sidebar.layerUtils.tenantRepresentative')
+    case 'tenantLogo':            return t('sidebar.layerUtils.tenantLogo')
+    case 'tenantCustom':          return t('sidebar.layerUtils.tenantCustom', { field: el.fieldKey || t('sidebar.layerUtils.unset') })
     default: return assertNever(el)
   }
 }
 
-export function sectionLabel(sectionType: Section['sectionType']): string {
+export function sectionLabel(sectionType: Section['sectionType'], t: TFunction<'components'>): string {
   switch (sectionType) {
-    case 'header': return 'ヘッダー'
-    case 'footer': return 'フッター'
-    case 'body':   return 'ボディ'
-    case 'custom': return 'カスタム'
+    case 'header': return t('sidebar.layerUtils.sectionHeader')
+    case 'footer': return t('sidebar.layerUtils.sectionFooter')
+    case 'body':   return t('sidebar.layerUtils.sectionBody')
+    case 'custom': return t('sidebar.layerUtils.sectionCustom')
   }
 }

@@ -4,6 +4,7 @@
  */
 
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/shallow'
 import { CopyPlus, Trash2, ShieldAlert } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
@@ -81,8 +82,9 @@ function PositionSizeSection({ el, onChange }: {
   el: { position: { x: number; y: number }; size: { width: number; height: number } }
   onChange: (patch: object) => void
 }) {
+  const { t } = useTranslation('components')
   return (
-    <PropSection title="位置・サイズ">
+    <PropSection title={t('sidebar.propertiesPanel.positionSize')}>
       <div className="grid grid-cols-2 gap-2">
         {(['x', 'y'] as const).map((axis) => (
           <PropRow key={axis} label={axis.toUpperCase() + ' (mm)'}>
@@ -90,7 +92,7 @@ function PositionSizeSection({ el, onChange }: {
           </PropRow>
         ))}
         {(['width', 'height'] as const).map((dim) => (
-          <PropRow key={dim} label={(dim === 'width' ? '幅' : '高さ') + ' (mm)'}>
+          <PropRow key={dim} label={(dim === 'width' ? t('sidebar.propertiesPanel.width') : t('sidebar.propertiesPanel.height')) + ' (mm)'}>
             <input type="number" min={1} step={0.5} className="border rounded px-2 py-1 text-xs w-full bg-background" value={Math.round(el.size[dim] * 10) / 10} onChange={(e) => onChange({ size: { ...el.size, [dim]: Number(e.target.value) } })} />
           </PropRow>
         ))}
@@ -103,25 +105,26 @@ function ElementCommonSection({ el, onChange }: {
   el: { id: string; name?: string; visible: boolean; locked: boolean; printable?: boolean; conditionalDisplay?: import('@/types').ConditionalDisplay }
   onChange: (patch: object) => void
 }) {
+  const { t } = useTranslation('components')
   const variants = useReportStore(
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )
   const toggleElementHidden = useReportStore((s) => s.toggleElementHidden)
 
   return (
-    <PropSection title="要素">
-      <PropRow label="名前">
-        <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.name ?? ''} placeholder="要素名（レイヤー表示用）" onChange={(e) => onChange({ name: e.target.value })} />
+    <PropSection title={t('sidebar.propertiesPanel.element')}>
+      <PropRow label={t('sidebar.propertiesPanel.name')}>
+        <input type="text" className="border rounded px-2 py-1 text-xs w-full bg-background" value={el.name ?? ''} placeholder={t('sidebar.propertiesPanel.namePlaceholder')} onChange={(e) => onChange({ name: e.target.value })} />
       </PropRow>
       <div className="flex gap-4">
         <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-          <input type="checkbox" checked={el.visible} onChange={(e) => onChange({ visible: e.target.checked })} className="rounded" />表示
+          <input type="checkbox" checked={el.visible} onChange={(e) => onChange({ visible: e.target.checked })} className="rounded" />{t('sidebar.propertiesPanel.visible')}
         </label>
         <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-          <input type="checkbox" checked={el.locked} onChange={(e) => onChange({ locked: e.target.checked })} className="rounded" />ロック
+          <input type="checkbox" checked={el.locked} onChange={(e) => onChange({ locked: e.target.checked })} className="rounded" />{t('sidebar.propertiesPanel.locked')}
         </label>
         <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-          <input type="checkbox" checked={el.printable ?? true} onChange={(e) => onChange({ printable: e.target.checked })} className="rounded" />印刷
+          <input type="checkbox" checked={el.printable ?? true} onChange={(e) => onChange({ printable: e.target.checked })} className="rounded" />{t('sidebar.propertiesPanel.printable')}
         </label>
       </div>
       <ConditionalDisplayEditor
@@ -130,7 +133,7 @@ function ElementCommonSection({ el, onChange }: {
       />
       {variants.length > 0 && (
         <div className="mt-2">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">バリアント非表示</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{t('sidebar.propertiesPanel.variantHidden')}</div>
           <div className="space-y-1">
             {variants.map((v) => (
               <label key={v.id} className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -158,6 +161,7 @@ void NumInput
 // ---------------------------------------------------------------------------
 
 const ViolationsSection = memo(function ViolationsSection({ elementId }: { elementId: string }) {
+  const { t } = useTranslation('components')
   const allViolations = useReportStore((s) => s.computedViolations)
   const violations = useMemo(
     () => allViolations.filter((v) => v.elementId === elementId),
@@ -167,8 +171,8 @@ const ViolationsSection = memo(function ViolationsSection({ elementId }: { eleme
   if (violations.length === 0) return null
 
   return (
-    <PropSection title="検証エラー">
-      <ul className="space-y-1" role="list" aria-label="バリデーション違反">
+    <PropSection title={t('sidebar.propertiesPanel.validationErrors')}>
+      <ul className="space-y-1" role="list" aria-label={t('sidebar.propertiesPanel.violationsAria')}>
         {violations.map((v, index) => (
           <li key={`${v.ruleKey}-${index}`} className="text-xs text-destructive flex items-start gap-1">
             <ShieldAlert className="w-3 h-3 shrink-0 mt-0.5" aria-hidden="true" />
@@ -188,6 +192,7 @@ const ViolationsSection = memo(function ViolationsSection({ elementId }: { eleme
 // ---------------------------------------------------------------------------
 
 export function PropertiesPanel() {
+  const { t } = useTranslation('components')
   const activePage = useReportStore(selectActivePage)
   const selectedElements = useReportStore(
     useShallow((s) => {
@@ -203,13 +208,13 @@ export function PropertiesPanel() {
 
   if (!activePage || selectedElements.length === 0) {
     if (!activePage) {
-      return <div className="p-4 text-xs text-muted-foreground">要素を選択するとプロパティが表示されます。</div>
+      return <div className="p-4 text-xs text-muted-foreground">{t('sidebar.propertiesPanel.selectPrompt')}</div>
     }
     // ページ設定は右サイドバーの「ページ設定」タブ (PageSettingsPanel) に移動しました
     return (
       <div className="p-4 text-xs text-muted-foreground">
-        要素を選択するとプロパティが表示されます。
-        <p className="mt-2">ページの用紙サイズ・余白などは右サイドバーの「ページ設定」タブで変更できます。</p>
+        {t('sidebar.propertiesPanel.selectPrompt')}
+        <p className="mt-2">{t('sidebar.propertiesPanel.pageSettingsHint')}</p>
       </div>
     )
   }
@@ -217,8 +222,8 @@ export function PropertiesPanel() {
   if (selectedElements.length > 1) {
     return (
       <div className="p-3 text-xs text-muted-foreground">
-        {selectedElements.length}個の要素を選択中。
-        <p className="mt-2">複数選択時はツールバーの整列ツールを使用してください。</p>
+        {t('sidebar.propertiesPanel.multiSelected', { n: selectedElements.length })}
+        <p className="mt-2">{t('sidebar.propertiesPanel.multiSelectHint')}</p>
       </div>
     )
   }
@@ -238,10 +243,10 @@ export function PropertiesPanel() {
 
       <div className="p-3 flex gap-2">
         <button onClick={() => duplicateElement(activePage.id, el.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded border text-xs hover:bg-accent transition-colors">
-          <CopyPlus className="w-3.5 h-3.5" />複製
+          <CopyPlus className="w-3.5 h-3.5" />{t('sidebar.propertiesPanel.duplicate')}
         </button>
         <button onClick={() => removeElement(activePage.id, el.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded border border-destructive text-destructive text-xs hover:bg-destructive hover:text-destructive-foreground transition-colors">
-          <Trash2 className="w-3.5 h-3.5" />削除
+          <Trash2 className="w-3.5 h-3.5" />{t('sidebar.propertiesPanel.delete')}
         </button>
       </div>
     </div>

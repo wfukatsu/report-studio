@@ -1,4 +1,5 @@
 import { LayoutTemplate, MousePointerSquareDashed, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   /** Open the template gallery (primary action) */
@@ -16,12 +17,13 @@ interface Props {
  * gates on document emptiness).
  */
 export function EmptyCanvasOnboarding({ onOpenTemplates, onDismiss }: Props) {
+  const { t } = useTranslation('components')
   return (
     <div
       className="absolute inset-0 z-20 flex items-center justify-center p-6"
       style={{ pointerEvents: 'none' }}
       role="region"
-      aria-label="はじめかた"
+      aria-label={t('canvas.emptyCanvasOnboarding.regionLabel')}
     >
       <div
         className="relative max-w-sm w-full rounded-xl border bg-card shadow-lg px-7 py-8 text-center"
@@ -30,8 +32,8 @@ export function EmptyCanvasOnboarding({ onOpenTemplates, onDismiss }: Props) {
         <button
           onClick={onDismiss}
           className="absolute top-2.5 right-2.5 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          title="閉じる"
-          aria-label="はじめかたを閉じる"
+          title={t('canvas.emptyCanvasOnboarding.close')}
+          aria-label={t('canvas.emptyCanvasOnboarding.closeOnboarding')}
         >
           <X className="w-4 h-4" />
         </button>
@@ -41,10 +43,10 @@ export function EmptyCanvasOnboarding({ onOpenTemplates, onDismiss }: Props) {
         </div>
 
         <h2 className="text-base font-semibold text-foreground">
-          帳票づくりを始めましょう
+          {t('canvas.emptyCanvasOnboarding.title')}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          テンプレートを選ぶと、項目や表がすぐに使える状態から編集できます。白紙から作ることもできます。
+          {t('canvas.emptyCanvasOnboarding.description')}
         </p>
 
         <button
@@ -52,7 +54,7 @@ export function EmptyCanvasOnboarding({ onOpenTemplates, onDismiss }: Props) {
           className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
         >
           <LayoutTemplate className="h-4 w-4" />
-          テンプレートから始める
+          {t('canvas.emptyCanvasOnboarding.startFromTemplate')}
         </button>
 
         <button
@@ -60,11 +62,11 @@ export function EmptyCanvasOnboarding({ onOpenTemplates, onDismiss }: Props) {
           className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
         >
           <MousePointerSquareDashed className="h-4 w-4" />
-          白紙のまま作る
+          {t('canvas.emptyCanvasOnboarding.startBlank')}
         </button>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          左のパレットから要素をドラッグして配置することもできます
+          {t('canvas.emptyCanvasOnboarding.paletteHint')}
         </p>
       </div>
     </div>

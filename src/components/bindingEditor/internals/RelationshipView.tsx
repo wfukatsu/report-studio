@@ -20,6 +20,7 @@
  */
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronDown, ChevronRight, Sparkles, Boxes, Link2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SchemaGroup, SchemaRelation } from '@/types'
@@ -67,6 +68,7 @@ export const RelationshipView = memo(function RelationshipView({
   onAddRelation,
   onRemoveRelation,
 }: RelationshipViewProps) {
+  const { t } = useTranslation('components')
   const [collapsed, setCollapsed] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [lines, setLines] = useState<readonly Line[]>([])
@@ -89,8 +91,8 @@ export const RelationshipView = memo(function RelationshipView({
     [relations],
   )
   const validationErrors = useMemo(
-    () => validateRelations(groups, relations),
-    [groups, relations],
+    () => validateRelations(groups, relations, t),
+    [groups, relations, t],
   )
   /** The product FK column on a detail group, if any (drives the "＋ルックアップ" affordance). */
   const productFkColumn = useCallback(
@@ -190,13 +192,13 @@ export const RelationshipView = memo(function RelationshipView({
       >
         {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         <Boxes className="w-3.5 h-3.5 text-[#6366f1]" />
-        関係ビュー
+        {t('bindingEditor.relationshipView.title')}
         <span className="text-[10px] text-muted-foreground font-normal">
-          ヘッダ・明細・商品マスターの 1—∗ 関係
+          {t('bindingEditor.relationshipView.subtitle')}
         </span>
         {suggestions.length > 0 && (
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
-            {suggestions.length} 件の関係を自動検出
+            {t('bindingEditor.relationshipView.autoDetected', { n: suggestions.length })}
           </span>
         )}
       </button>
@@ -209,7 +211,7 @@ export const RelationshipView = memo(function RelationshipView({
               <div className="flex items-center gap-1.5 mb-0.5">
                 <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
                 <span className="text-[10px] font-medium text-red-700">
-                  関係定義に問題があります（{validationErrors.length} 件）
+                  {t('bindingEditor.relationshipView.validationTitle', { n: validationErrors.length })}
                 </span>
               </div>
               <ul className="list-disc pl-4 space-y-0.5">
@@ -226,13 +228,13 @@ export const RelationshipView = memo(function RelationshipView({
               <div className="flex items-center gap-1.5 mb-1">
                 <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
                 <span className="text-[10px] font-medium text-amber-700">
-                  共有キーから関係を推定しました。承認するとリンクを設定します。
+                  {t('bindingEditor.relationshipView.inferredHint')}
                 </span>
                 <button
                   className="ml-auto text-[10px] font-medium text-white bg-amber-600 hover:bg-amber-700 rounded px-2 py-0.5"
                   onClick={handleApproveAll}
                 >
-                  すべて承認
+                  {t('bindingEditor.relationshipView.approveAll')}
                 </button>
               </div>
               <div className="flex flex-wrap gap-1">
@@ -241,7 +243,7 @@ export const RelationshipView = memo(function RelationshipView({
                     key={s.groupId}
                     className="flex items-center gap-1 text-[10px] rounded border border-amber-300 bg-white hover:bg-amber-100 px-1.5 py-0.5 text-amber-700"
                     onClick={() => handleApprove(s.groupId, s.suggestedMasterId)}
-                    title={`${s.via} が一致`}
+                    title={t('bindingEditor.relationshipView.matchTitle', { via: s.via })}
                   >
                     {s.groupLabel} → {s.suggestedMasterLabel}
                     <span className="font-mono text-amber-500">（{s.via}）</span>
@@ -297,13 +299,13 @@ export const RelationshipView = memo(function RelationshipView({
                     className="rounded-md border-2 border-blue-300 bg-blue-50 px-2 py-1.5"
                   >
                     <div className="text-[10px] font-semibold text-blue-700 flex items-center gap-1">
-                      ヘッダ
+                      {t('bindingEditor.relationshipView.headerNode')}
                       <span className="text-[9px] font-normal text-blue-500">master</span>
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       {masters.map((m) => (
                         <div key={m.id} className="text-[10px] text-blue-600 flex items-center gap-1 truncate">
-                          {primary?.id === m.id && <span title="主キー保持グループ">★</span>}
+                          {primary?.id === m.id && <span title={t('bindingEditor.relationshipView.primaryKeyTitle')}>★</span>}
                           <span className="truncate">{m.label || m.id}</span>
                         </div>
                       ))}
@@ -326,7 +328,7 @@ export const RelationshipView = memo(function RelationshipView({
                         linked ? 'border-amber-300 bg-amber-50' : 'border-red-300 bg-red-50',
                       )}
                       onDoubleClick={() => setEditingId(isEditing ? null : d.id)}
-                      title="ダブルクリックで親マスターを編集"
+                      title={t('bindingEditor.relationshipView.editParentTitle')}
                     >
                       <div className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
                         <span className="truncate">{d.label || d.id}</span>
@@ -343,9 +345,9 @@ export const RelationshipView = memo(function RelationshipView({
                             setEditingId(null)
                           }}
                           onBlur={() => setEditingId(null)}
-                          aria-label={`${d.label || d.id} の親マスター`}
+                          aria-label={t('bindingEditor.relationshipView.parentMasterAria', { group: d.label || d.id })}
                         >
-                          <option value="">未設定…</option>
+                          <option value="">{t('bindingEditor.relationshipView.unset')}</option>
                           {masters.map((m) => (
                             <option key={m.id} value={m.id}>{m.label || m.id}</option>
                           ))}
@@ -353,7 +355,7 @@ export const RelationshipView = memo(function RelationshipView({
                       ) : (
                         !linked && (
                           <div className="mt-0.5 text-[9px] text-red-500 leading-tight">
-                            親マスター未設定（Wクリックで設定）
+                            {t('bindingEditor.relationshipView.parentUnset')}
                           </div>
                         )
                       )}
@@ -373,8 +375,8 @@ export const RelationshipView = memo(function RelationshipView({
                                 <button
                                   className="text-amber-400 hover:text-red-500 shrink-0"
                                   onClick={(e) => { e.stopPropagation(); onRemoveRelation(rel.id) }}
-                                  title="ルックアップ関係を削除"
-                                  aria-label={`${d.label || d.id} のルックアップを削除`}
+                                  title={t('bindingEditor.relationshipView.removeLookupTitle')}
+                                  aria-label={t('bindingEditor.relationshipView.removeLookupAria', { group: d.label || d.id })}
                                 >
                                   <X className="w-2.5 h-2.5" />
                                 </button>
@@ -387,9 +389,9 @@ export const RelationshipView = memo(function RelationshipView({
                             <button
                               className="mt-1 flex items-center gap-1 text-[9px] text-amber-600 hover:text-amber-800 border border-dashed border-amber-300 rounded px-1 py-0.5"
                               onClick={(e) => { e.stopPropagation(); handleAddLookup(d.id, fkCol) }}
-                              aria-label={`${d.label || d.id} に商品ルックアップを追加`}
+                              aria-label={t('bindingEditor.relationshipView.addLookupAria', { group: d.label || d.id })}
                             >
-                              ＋ 商品ルックアップ
+                              {t('bindingEditor.relationshipView.addLookup')}
                             </button>
                           )
                         }
@@ -409,10 +411,10 @@ export const RelationshipView = memo(function RelationshipView({
                   >
                     <div className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
                       <Boxes className="w-3 h-3" />
-                      {product.label || '商品マスター'}
+                      {product.label || t('bindingEditor.relationshipView.productMasterDefault')}
                     </div>
                     <div className="text-[9px] text-muted-foreground mt-0.5">
-                      lookup 元（product_code で参照）
+                      {t('bindingEditor.relationshipView.lookupSource')}
                     </div>
                   </div>
                 )}

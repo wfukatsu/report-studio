@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { UserRoleSchema } from '@/api/reportApi'
 import type { UserRole } from '@/api/reportApi'
 
@@ -7,6 +8,7 @@ interface CreateUserFormProps {
 }
 
 export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
+  const { t } = useTranslation('components')
   const [userId, setUserId] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
@@ -16,11 +18,11 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {}
-    if (!userId.trim()) errors.userId = 'ユーザーIDは必須です'
-    else if (userId.length > 64) errors.userId = '64文字以内で入力してください'
-    if (!password) errors.password = 'パスワードは必須です'
-    else if (password.length < 8) errors.password = '8文字以上で入力してください'
-    else if (password.length > 128) errors.password = '128文字以内で入力してください'
+    if (!userId.trim()) errors.userId = t('admin.createUserForm.userIdRequired')
+    else if (userId.length > 64) errors.userId = t('admin.createUserForm.userIdTooLong')
+    if (!password) errors.password = t('admin.createUserForm.passwordRequired')
+    else if (password.length < 8) errors.password = t('admin.createUserForm.passwordTooShort')
+    else if (password.length > 128) errors.password = t('admin.createUserForm.passwordTooLong')
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -57,12 +59,12 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
   return (
     <div className="border rounded-md p-3 bg-muted/20">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        ユーザーを追加
+        {t('admin.createUserForm.title')}
       </p>
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-[10px] text-muted-foreground">ユーザーID *</label>
+            <label className="text-[10px] text-muted-foreground">{t('admin.createUserForm.userIdLabel')}</label>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
@@ -73,19 +75,19 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
             {fieldErrors.userId && <p className="text-[10px] text-destructive mt-0.5">{fieldErrors.userId}</p>}
           </div>
           <div className="flex-1">
-            <label className="text-[10px] text-muted-foreground">表示名</label>
+            <label className="text-[10px] text-muted-foreground">{t('admin.createUserForm.displayNameLabel')}</label>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="ユーザー2"
+              placeholder={t('admin.createUserForm.displayNamePlaceholder')}
             />
           </div>
         </div>
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-[10px] text-muted-foreground">パスワード * (8〜128文字)</label>
+            <label className="text-[10px] text-muted-foreground">{t('admin.createUserForm.passwordLabel')}</label>
             <input
               type="password"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
@@ -95,7 +97,7 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
             {fieldErrors.password && <p className="text-[10px] text-destructive mt-0.5">{fieldErrors.password}</p>}
           </div>
           <div>
-            <label className="text-[10px] text-muted-foreground">ロール</label>
+            <label className="text-[10px] text-muted-foreground">{t('admin.createUserForm.roleLabel')}</label>
             <select
               className="border rounded px-2 py-1 text-xs bg-background block"
               value={role}
@@ -112,7 +114,7 @@ export function CreateUserForm({ onSubmit }: CreateUserFormProps) {
           disabled={creating}
           className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 w-fit"
         >
-          {creating ? '作成中...' : '+ 追加'}
+          {creating ? t('admin.createUserForm.creating') : t('admin.createUserForm.add')}
         </button>
       </div>
     </div>

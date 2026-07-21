@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { testServerConfig, restartServer } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -11,6 +12,7 @@ type TestState = 'idle' | 'testing' | 'success' | 'failure'
 const STORAGE_OPTIONS = ['jdbc', 'cassandra', 'cosmos', 'dynamo'] as const
 
 export function ServerSettings() {
+  const { t } = useTranslation('components')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const config = useReportStore((s) => s.adminServerConfig)
   const originalConfig = useReportStore((s) => s.adminServerConfigOriginal)
@@ -65,10 +67,10 @@ export function ServerSettings() {
     setSaveMessage(null)
     try {
       await saveConfig()
-      setSaveMessage('設定を保存しました。有効化するには再起動が必要です。')
+      setSaveMessage(t('admin.serverSettings.saveSuccess'))
       scheduleTimer(() => setSaveMessage(null), 5000)
     } catch {
-      setLocalError('設定の保存に失敗しました')
+      setLocalError(t('admin.serverSettings.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -98,17 +100,17 @@ export function ServerSettings() {
   if (loading) return (
     <div className="p-8 flex items-center justify-center text-xs text-muted-foreground gap-2">
       <Loader2 className="w-4 h-4 animate-spin" />
-      設定を読み込み中...
+      {t('admin.serverSettings.loading')}
     </div>
   )
 
   return (
     <div className="p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-foreground">サーバー設定</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('admin.serverSettings.title')}</h2>
         {isDirty && (
           <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-            未保存の変更あり
+            {t('admin.serverSettings.unsavedChanges')}
           </span>
         )}
       </div>
@@ -118,10 +120,10 @@ export function ServerSettings() {
 
       <fieldset className="border rounded-md p-3 flex flex-col gap-3">
         <legend className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          接続設定
+          {t('admin.serverSettings.connectionSettings')}
         </legend>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">ストレージタイプ</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.serverSettings.storageType')}</label>
           <select
             className="border rounded px-3 py-1.5 text-sm bg-background w-full"
             value={config['scalar.db.storage'] ?? 'jdbc'}
@@ -133,7 +135,7 @@ export function ServerSettings() {
           </select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Contact Points / JDBC URL</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.serverSettings.contactPoints')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background font-mono"
@@ -144,7 +146,7 @@ export function ServerSettings() {
         </div>
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-xs text-muted-foreground block mb-1">ユーザー名</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t('admin.serverSettings.username')}</label>
             <input
               type="text"
               className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -153,13 +155,13 @@ export function ServerSettings() {
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs text-muted-foreground block mb-1">パスワード</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t('admin.serverSettings.password')}</label>
             <input
               type="password"
               className="border rounded px-3 py-1.5 text-sm w-full bg-background"
               value={config['scalar.db.password'] ?? ''}
               onChange={(e) => setField('scalar.db.password', e.target.value)}
-              placeholder={config['scalar.db.password'] === '***' ? '（設定済み）' : ''}
+              placeholder={config['scalar.db.password'] === '***' ? t('admin.serverSettings.passwordSetPlaceholder') : ''}
             />
           </div>
         </div>
@@ -167,7 +169,7 @@ export function ServerSettings() {
 
       <fieldset className="border rounded-md p-3 flex flex-col gap-3">
         <legend className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          接続プール
+          {t('admin.serverSettings.connectionPool')}
         </legend>
         <div className="flex gap-3">
           {(['min_idle', 'max_idle', 'max_total'] as const).map((k) => {
@@ -202,10 +204,10 @@ export function ServerSettings() {
           {testState === 'testing' && <Loader2 className="w-3 h-3 animate-spin" />}
           {testState === 'success' && <CheckCircle2 className="w-3 h-3" />}
           {testState === 'failure' && <XCircle className="w-3 h-3" />}
-          {testState === 'testing' ? 'テスト中...'
-            : testState === 'success' ? '接続成功'
-            : testState === 'failure' ? '接続失敗'
-            : '接続テスト'}
+          {testState === 'testing' ? t('admin.serverSettings.testing')
+            : testState === 'success' ? t('admin.serverSettings.testSuccess')
+            : testState === 'failure' ? t('admin.serverSettings.testFailure')
+            : t('admin.serverSettings.test')}
         </button>
 
         <button
@@ -213,7 +215,7 @@ export function ServerSettings() {
           disabled={saving || !isDirty}
           className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
         >
-          {saving ? '保存中...' : '設定を保存'}
+          {saving ? t('admin.serverSettings.saving') : t('admin.serverSettings.save')}
         </button>
 
         <button
@@ -221,21 +223,21 @@ export function ServerSettings() {
           disabled={restarting}
           className="px-3 py-1.5 text-xs border border-amber-300 text-amber-700 bg-amber-50 rounded hover:bg-amber-100 disabled:opacity-50"
         >
-          {restarting ? '再起動中...' : 'サーバーを再起動'}
+          {restarting ? t('admin.serverSettings.restarting') : t('admin.serverSettings.restart')}
         </button>
       </div>
 
       {restarting && (
         <p className="text-xs text-muted-foreground">
-          サーバーが再起動中です。しばらくお待ちください...
+          {t('admin.serverSettings.restartingMessage')}
         </p>
       )}
 
       <ConfirmDialog
         open={showRestartConfirm}
-        title="サーバーを再起動"
-        message="サーバーを再起動します。再起動中は一時的に接続が切断されます。この操作を実行しますか？"
-        confirmLabel="再起動する"
+        title={t('admin.serverSettings.restartTitle')}
+        message={t('admin.serverSettings.restartMessage')}
+        confirmLabel={t('admin.serverSettings.restartConfirm')}
         confirmVariant="danger"
         onConfirm={() => { setShowRestartConfirm(false); void execRestart() }}
         onCancel={() => setShowRestartConfirm(false)}

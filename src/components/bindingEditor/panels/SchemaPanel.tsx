@@ -6,6 +6,7 @@
  */
 
 import { memo, useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Link, Search, X, MousePointerClick, Hand } from 'lucide-react'
 import { SchemaGroupBlock } from '../internals/SchemaGroupBlock'
 import { NoSchemaPanel } from '../internals/NoSchemaPanel'
@@ -27,6 +28,7 @@ export const SchemaPanel = memo(function SchemaPanel({
   fieldRef,
   onOpenComputedDialog,
 }: SchemaPanelProps) {
+  const { t } = useTranslation('components')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Destructure the members used inside memoized callbacks so the dependency
@@ -88,7 +90,7 @@ export const SchemaPanel = memo(function SchemaPanel({
       <div className="flex flex-col h-full">
         <div className="px-3 py-2.5 border-b bg-muted/30 shrink-0">
           <p className="text-xs font-semibold text-foreground">
-            スキーマフィールド
+            {t('bindingEditor.schemaPanel.title')}
           </p>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -103,16 +105,16 @@ export const SchemaPanel = memo(function SchemaPanel({
       {/* Header + operation guide — two connection methods, made discoverable (#131) */}
       <div className="px-3 py-2.5 border-b bg-muted/30 shrink-0">
         <p className="text-xs font-semibold text-foreground">
-          スキーマフィールド
+          {t('bindingEditor.schemaPanel.title')}
         </p>
         <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <MousePointerClick className="w-3 h-3 shrink-0 text-blue-500" />
-            フィールドをクリック → 左の要素をクリックで接続
+            {t('bindingEditor.schemaPanel.guideClick')}
           </span>
           <span className="flex items-center gap-1">
             <Hand className="w-3 h-3 shrink-0 text-blue-500" />
-            フィールドを要素へドラッグしても接続できます
+            {t('bindingEditor.schemaPanel.guideDrag')}
           </span>
         </div>
       </div>
@@ -123,7 +125,7 @@ export const SchemaPanel = memo(function SchemaPanel({
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
           <input
             className="w-full pl-6 pr-6 py-1 text-xs border rounded bg-background"
-            placeholder="フィールドを検索..."
+            placeholder={t('bindingEditor.schemaPanel.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -187,7 +189,7 @@ export const SchemaPanel = memo(function SchemaPanel({
         {bs.schemaGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center h-32 text-xs text-muted-foreground gap-2">
             <Link className="w-6 h-6 opacity-40" />
-            <span>スキーマフィールドを追加してください</span>
+            <span>{t('bindingEditor.schemaPanel.emptyHint')}</span>
           </div>
         )}
       </div>
@@ -198,13 +200,13 @@ export const SchemaPanel = memo(function SchemaPanel({
           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
           onClick={() => bs.addSchemaGroup('master')}
         >
-          <Plus className="w-3.5 h-3.5" /> マスター
+          <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaPanel.addMaster')}
         </button>
         <button
           className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium"
           onClick={() => bs.addSchemaGroup('detail')}
         >
-          <Plus className="w-3.5 h-3.5" /> 明細
+          <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaPanel.addDetail')}
         </button>
       </div>
     </div>

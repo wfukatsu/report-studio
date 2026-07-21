@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { UserSummary } from '@/api/reportApi'
 import { RoleBadge } from '@/components/common/RoleBadge'
 
@@ -8,13 +9,14 @@ interface UserTableProps {
 }
 
 export function UserTable({ users, currentUserId, onDeleteRequest }: UserTableProps) {
+  const { t } = useTranslation('components')
   return (
     <table className="w-full text-xs border-collapse">
       <thead>
         <tr className="border-b text-muted-foreground">
-          <th className="text-left py-1.5 pr-3 font-medium">ユーザーID</th>
-          <th className="text-left py-1.5 pr-3 font-medium">表示名</th>
-          <th className="text-left py-1.5 pr-3 font-medium">ロール</th>
+          <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colUserId')}</th>
+          <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colDisplayName')}</th>
+          <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colRole')}</th>
           <th />
         </tr>
       </thead>
@@ -33,9 +35,9 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
                 onClick={() => onDeleteRequest(u.userId)}
                 disabled={u.userId === currentUserId}
                 className="opacity-0 group-hover:opacity-100 text-destructive/70 hover:text-destructive disabled:opacity-20 disabled:cursor-not-allowed text-[10px] px-1 transition-opacity"
-                title={u.userId === currentUserId ? '自分自身は削除できません' : `${u.userId} を削除`}
+                title={u.userId === currentUserId ? t('admin.userTable.cannotDeleteSelf') : t('admin.userTable.deleteTitle', { name: u.userId })}
               >
-                削除
+                {t('admin.userTable.delete')}
               </button>
             </td>
           </tr>
@@ -43,7 +45,7 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
         {users.length === 0 && (
           <tr>
             <td colSpan={4} className="py-4 text-center text-muted-foreground">
-              ユーザーがいません
+              {t('admin.userTable.empty')}
             </td>
           </tr>
         )}

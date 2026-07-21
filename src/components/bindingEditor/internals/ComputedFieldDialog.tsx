@@ -9,6 +9,7 @@
  */
 
 import { memo, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FunctionSquare, AlertCircle } from 'lucide-react'
 import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -52,6 +53,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
   onClose,
   onSave,
 }: ComputedFieldDialogProps) {
+  const { t } = useTranslation('components')
   const [name, setName] = useState(initialName ?? '')
   const [expression, setExpression] = useState(initialExpression ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -114,11 +116,11 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
   const validate = useCallback(() => {
     const trimmedName = name.trim()
     if (!trimmedName) {
-      setError('フィールド名を入力してください')
+      setError(t('bindingEditor.computedFieldDialog.errNameRequired'))
       return false
     }
     if (!/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(trimmedName)) {
-      setError('フィールド名は英数字とアンダースコアのみ使用可能です')
+      setError(t('bindingEditor.computedFieldDialog.errNameInvalid'))
       return false
     }
     if (group) {
@@ -126,22 +128,22 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         (f) => f.key === trimmedName && f.id !== editingFieldId,
       )
       if (duplicate) {
-        setError(`フィールド名 "${trimmedName}" は既に使用されています`)
+        setError(t('bindingEditor.computedFieldDialog.errNameDuplicate', { name: trimmedName }))
         return false
       }
     }
     if (!expression.trim()) {
-      setError('計算式を入力してください')
+      setError(t('bindingEditor.computedFieldDialog.errFormulaRequired'))
       return false
     }
     // SEC-04: Block save when formula has parse errors
     if (validationState?.hasErrors) {
-      setError('計算式にエラーがあります。修正してから保存してください')
+      setError(t('bindingEditor.computedFieldDialog.errFormulaHasErrors'))
       return false
     }
     setError(null)
     return true
-  }, [name, expression, group, editingFieldId, validationState])
+  }, [name, expression, group, editingFieldId, validationState, t])
 
   const handleSave = useCallback(() => {
     if (!validate()) return
@@ -163,7 +165,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
         <div className="flex items-center gap-2 px-3 py-2 border-b">
           <FunctionSquare className="w-4 h-4 text-orange-500" />
           <h3 className="text-sm font-medium">
-            {isEditing ? '計算フィールドを編集' : '計算フィールドを追加'}
+            {isEditing ? t('bindingEditor.computedFieldDialog.editTitle') : t('bindingEditor.computedFieldDialog.addTitle')}
           </h3>
           <button
             className="ml-auto text-muted-foreground hover:text-foreground text-lg leading-none"
@@ -182,7 +184,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
           <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
             {/* フィールド名 */}
             <div>
-              <label className="block text-xs font-medium mb-1">フィールド名</label>
+              <label className="block text-xs font-medium mb-1">{t('bindingEditor.computedFieldDialog.fieldNameLabel')}</label>
               <input
                 className="w-full border rounded px-2 py-1.5 text-sm bg-background"
                 placeholder="net_amount_calc"
@@ -194,11 +196,11 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
 
             {/* 計算式 */}
             <div>
-              <label className="block text-xs font-medium mb-1">計算式</label>
+              <label className="block text-xs font-medium mb-1">{t('bindingEditor.computedFieldDialog.formulaLabel')}</label>
               <Suspense
                 fallback={
                   <div className="border rounded-lg p-3 text-xs text-muted-foreground font-mono min-h-[48px]">
-                    エディタを読み込み中...
+                    {t('bindingEditor.computedFieldDialog.editorLoading')}
                   </div>
                 }
               >
@@ -233,7 +235,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
 
             {/* ヘルプ */}
             <div className="flex-1 min-h-0">
-              <label className="block text-xs font-medium mb-1">ヘルプ</label>
+              <label className="block text-xs font-medium mb-1">{t('bindingEditor.computedFieldDialog.helpLabel')}</label>
               <div className="border border-border rounded text-[11px] text-muted-foreground p-2 h-full overflow-y-auto space-y-1.5">
                 {selectedFn ? (
                   <>
@@ -244,21 +246,21 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
                     <p>{selectedFn.descriptionJa}</p>
                     {selectedFn.args.length > 0 && (
                       <div className="space-y-0.5">
-                        <p className="font-medium text-foreground">引数:</p>
+                        <p className="font-medium text-foreground">{t('bindingEditor.computedFieldDialog.argsLabel')}</p>
                         {selectedFn.args.map((arg) => (
                           <p key={arg.name} className="pl-2">
                             <code className="font-mono text-[#6E5DCF]">{arg.name}</code>
                             <span className="text-muted-foreground"> ({arg.type})</span>
                             {' — '}{arg.descriptionJa}
-                            {arg.optional && <span className="text-muted-foreground">（任意）</span>}
+                            {arg.optional && <span className="text-muted-foreground">{t('bindingEditor.computedFieldDialog.optional')}</span>}
                           </p>
                         ))}
                       </div>
                     )}
-                    <p><span className="font-medium text-foreground">戻り値:</span> {selectedFn.returnType}</p>
+                    <p><span className="font-medium text-foreground">{t('bindingEditor.computedFieldDialog.returnValueLabel')}</span> {selectedFn.returnType}</p>
                     {selectedFn.examples.length > 0 && (
                       <div className="space-y-0.5">
-                        <p className="font-medium text-foreground">例:</p>
+                        <p className="font-medium text-foreground">{t('bindingEditor.computedFieldDialog.examplesLabel')}</p>
                         {selectedFn.examples.map((ex, i) => (
                           <p key={i} className="pl-2 font-mono">
                             {ex.formula}{ex.result && <span className="text-muted-foreground"> → {ex.result}</span>}
@@ -269,7 +271,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
                   </>
                 ) : (
                   <>
-                    <p>左パネルの関数をクリックすると詳細が表示されます。</p>
+                    <p>{t('bindingEditor.computedFieldDialog.helpEmpty')}</p>
                     <div className="space-y-0.5 mt-1">
                       {FORMULA_FUNCTIONS.map((fn) => (
                         <p key={fn.name}>
@@ -291,13 +293,13 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
             className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
-            キャンセル
+            {t('bindingEditor.computedFieldDialog.cancel')}
           </button>
           <button
             className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
             onClick={handleSave}
           >
-            {isEditing ? '更新' : '追加'}
+            {isEditing ? t('bindingEditor.computedFieldDialog.update') : t('bindingEditor.computedFieldDialog.add')}
           </button>
         </div>
       </div>

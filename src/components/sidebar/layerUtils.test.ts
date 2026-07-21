@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { elementIcon, defaultName, sectionLabel } from './layerUtils'
+import { elementIcon, defaultName as rawDefaultName, sectionLabel as rawSectionLabel } from './layerUtils'
+import i18n from '@/i18n/config'
 import type { ReportElement, Section } from '@/types'
+
+// layerUtils now takes an i18n `t` (#329). Bind ja/components so the existing
+// Japanese-string assertions below still hold without touching every call site.
+const tf = i18n.getFixedT('ja', 'components')
+const defaultName = (el: ReportElement) => rawDefaultName(el, tf)
+const sectionLabel = (sectionType: Section['sectionType']) => rawSectionLabel(sectionType, tf)
 
 // Minimal element stub
 function el(type: ReportElement['type'], extra: Record<string, unknown> = {}): ReportElement {

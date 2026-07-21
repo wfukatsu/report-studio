@@ -10,6 +10,7 @@
  * used across the sidebar so the look does not regress.
  */
 import { AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { classifyError, type UserFacingError } from '@/lib/userFacingError'
 import { getErrorCopy } from '@/lib/userFacingErrorMessages'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,7 @@ function isClassified(value: unknown): value is UserFacingError {
 }
 
 export function InlineErrorBanner({ error, onRetry, tone = 'amber', className }: Props) {
+  const { t } = useTranslation('components')
   const classified = isClassified(error) ? error : classifyError(error)
   const copy = getErrorCopy(classified.code)
   const showRetry = classified.retryable && typeof onRetry === 'function'
@@ -65,12 +67,12 @@ export function InlineErrorBanner({ error, onRetry, tone = 'amber', className }:
             onClick={onRetry}
             className="mt-1 text-primary hover:underline font-medium"
           >
-            再試行
+            {t('common.inlineErrorBanner.retry')}
           </button>
         )}
         {import.meta.env.DEV && classified.correlationId && (
           <details className="mt-1 opacity-70">
-            <summary className="cursor-pointer text-[10px]">技術情報 (dev)</summary>
+            <summary className="cursor-pointer text-[10px]">{t('common.inlineErrorBanner.techInfo')}</summary>
             <p className="font-mono text-[10px] break-all">
               code: {classified.code}
               <br />

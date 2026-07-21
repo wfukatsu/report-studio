@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { History, Plus, RotateCcw, AlertCircle, Loader2 } from 'lucide-react'
 import { useReportStore } from '@/store'
 import { listVersions, createVersion, restoreVersion } from '@/api/reportApi'
@@ -29,6 +30,7 @@ function formatDate(iso: string): string {
 }
 
 export function VersionHistoryPanel() {
+  const { t } = useTranslation('components')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
 
@@ -54,9 +56,9 @@ export function VersionHistoryPanel() {
       setLoadState('idle')
     } catch (_err) {
       setLoadState('error')
-      setLoadError('バージョン一覧の取得に失敗しました')
+      setLoadError(t('sidebar.versionHistoryPanel.error.loadFailed'))
     }
-  }, [currentTemplateId])
+  }, [currentTemplateId, t])
 
   const handleCreateVersion = async () => {
     if (!currentTemplateId || creating) return
@@ -66,7 +68,7 @@ export function VersionHistoryPanel() {
       const newVersion = await createVersion(currentTemplateId)
       setVersions((prev) => [newVersion, ...prev])
     } catch (_err) {
-      setCreateError('バージョンの作成に失敗しました')
+      setCreateError(t('sidebar.versionHistoryPanel.error.createFailed'))
       setTimeout(() => setCreateError(null), 5000)
     } finally {
       setCreating(false)
@@ -81,7 +83,7 @@ export function VersionHistoryPanel() {
       await restoreVersion(currentTemplateId, versionId)
       // restoreVersion calls loadFromBackend, which resets the store
     } catch (_err) {
-      setRestoreError('復元に失敗しました')
+      setRestoreError(t('sidebar.versionHistoryPanel.error.restoreFailed'))
       setTimeout(() => setRestoreError(null), 5000)
     } finally {
       setRestoringId(null)
@@ -93,10 +95,10 @@ export function VersionHistoryPanel() {
     return (
       <div className="p-3 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          バージョン履歴
+          {t('sidebar.versionHistoryPanel.title')}
         </p>
         <p className="text-xs text-muted-foreground">
-          バックエンドに接続されていません。バックエンドを起動するとバージョン管理が使用できます。
+          {t('sidebar.versionHistoryPanel.notConnected')}
         </p>
       </div>
     )
@@ -107,10 +109,10 @@ export function VersionHistoryPanel() {
     return (
       <div className="p-3 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          バージョン履歴
+          {t('sidebar.versionHistoryPanel.title')}
         </p>
         <p className="text-xs text-muted-foreground">
-          バックエンドからテンプレートを読み込むとバージョン管理が使用できます。
+          {t('sidebar.versionHistoryPanel.noTemplate')}
         </p>
       </div>
     )
@@ -120,15 +122,15 @@ export function VersionHistoryPanel() {
     <div className="p-3 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          バージョン履歴
+          {t('sidebar.versionHistoryPanel.title')}
         </p>
         <button
           onClick={handleLoadVersions}
           disabled={loadState === 'loading'}
           className="text-xs text-primary hover:underline disabled:opacity-50"
-          aria-label="バージョン一覧を更新"
+          aria-label={t('sidebar.versionHistoryPanel.refreshAria')}
         >
-          {loadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin inline" /> : '更新'}
+          {loadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('sidebar.versionHistoryPanel.refresh')}
         </button>
       </div>
 
@@ -137,12 +139,12 @@ export function VersionHistoryPanel() {
         onClick={handleCreateVersion}
         disabled={creating}
         className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border text-xs hover:bg-accent transition-colors disabled:opacity-50"
-        aria-label="現在の状態をバージョンとして保存"
+        aria-label={t('sidebar.versionHistoryPanel.createAria')}
       >
         {creating
           ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
           : <Plus className="w-3.5 h-3.5" />}
-        {creating ? '作成中...' : 'バージョンを作成'}
+        {creating ? t('sidebar.versionHistoryPanel.creating') : t('sidebar.versionHistoryPanel.create')}
       </button>
 
       {/* Create error */}
@@ -174,13 +176,13 @@ export function VersionHistoryPanel() {
         <div className="flex flex-col items-center gap-1.5 py-4 text-center">
           <History className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
           <p className="text-xs text-muted-foreground">
-            バージョンがありません。「バージョンを作成」で<br />スナップショットを保存できます。
+            {t('sidebar.versionHistoryPanel.empty.line1')}<br />{t('sidebar.versionHistoryPanel.empty.line2')}
           </p>
         </div>
       )}
 
       {versions.length > 0 && (
-        <ul className="space-y-1.5" role="list" aria-label="バージョン一覧">
+        <ul className="space-y-1.5" role="list" aria-label={t('sidebar.versionHistoryPanel.listAria')}>
           {versions.map((v) => (
             <li
               key={v.id}
@@ -196,8 +198,8 @@ export function VersionHistoryPanel() {
               <button
                 onClick={() => setRestoreTarget(v.id)}
                 disabled={restoringId !== null}
-                aria-label={`v${v.versionNumber} に復元`}
-                title={`v${v.versionNumber} に復元`}
+                aria-label={t('sidebar.versionHistoryPanel.restoreItemAria', { n: v.versionNumber })}
+                title={t('sidebar.versionHistoryPanel.restoreItemAria', { n: v.versionNumber })}
                 className="shrink-0 flex items-center gap-1 px-2 py-1 rounded text-xs border hover:bg-accent transition-colors disabled:opacity-40"
               >
                 {restoringId === v.id
@@ -211,9 +213,9 @@ export function VersionHistoryPanel() {
 
       <ConfirmDialog
         open={restoreTarget !== null}
-        title="バージョンを復元"
-        message="このバージョンに復元しますか？現在の未保存の変更は失われます。"
-        confirmLabel="復元"
+        title={t('sidebar.versionHistoryPanel.confirm.title')}
+        message={t('sidebar.versionHistoryPanel.confirm.message')}
+        confirmLabel={t('sidebar.versionHistoryPanel.confirm.confirmLabel')}
         confirmVariant="danger"
         onConfirm={() => { if (restoreTarget) void execRestore(restoreTarget); setRestoreTarget(null) }}
         onCancel={() => setRestoreTarget(null)}

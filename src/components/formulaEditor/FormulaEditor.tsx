@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Extension } from '@codemirror/state'
 import { useFormulaEditor, type UseFormulaEditorReturn } from './useFormulaEditor'
 
@@ -34,6 +35,7 @@ function FormulaEditorInner({
   onReady,
   editorRef,
 }: FormulaEditorProps) {
+  const { t } = useTranslation('components')
   // useMemo the dynamicExtensions array to prevent unnecessary Compartment reconfigurations
   const stableExtensions = useMemo(
     () => (dynamicExtensions ? [...dynamicExtensions] : undefined),
@@ -70,7 +72,7 @@ function FormulaEditorInner({
       <div
         ref={containerRef}
         className="flex-1 min-h-[40px] py-1"
-        aria-label="計算式エディタ"
+        aria-label={t('formulaEditor.formulaEditor.editorLabel')}
       />
     </div>
   )

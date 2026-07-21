@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 export function PagePanel() {
+  const { t } = useTranslation('components')
   const pages = useReportStore((s) => s.definition.pages)
   const activePageId = useReportStore((s) => s.selection.activePageId)
   const addPage = useReportStore((s) => s.addPage)
@@ -18,12 +20,12 @@ export function PagePanel() {
     <div className="p-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          ページ一覧
+          {t('sidebar.pagePanel.pageList')}
         </p>
         <button
           onClick={() => addPage()}
           className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          title="ページを追加"
+          title={t('sidebar.pagePanel.addPage')}
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
@@ -63,7 +65,7 @@ export function PagePanel() {
                     ? 'text-primary-foreground hover:text-primary-foreground/70'
                     : 'text-muted-foreground hover:text-destructive',
                 )}
-                title="ページを削除"
+                title={t('sidebar.pagePanel.deletePage')}
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -74,9 +76,9 @@ export function PagePanel() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="ページを削除"
-        message={`「${deleteTarget?.name}」を削除しますか？この操作は元に戻せません。`}
-        confirmLabel="削除"
+        title={t('sidebar.pagePanel.deletePage')}
+        message={t('sidebar.pagePanel.deleteMessage', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('sidebar.pagePanel.confirmDelete')}
         confirmVariant="danger"
         onConfirm={() => { if (deleteTarget) removePage(deleteTarget.id); setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}

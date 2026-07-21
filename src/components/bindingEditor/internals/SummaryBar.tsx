@@ -3,6 +3,7 @@
  */
 
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { getGroupColor } from '../types'
 import type { SchemaGroup } from '@/types'
@@ -22,6 +23,7 @@ export const SummaryBar = memo(function SummaryBar({
   groups,
   groupIndexMap,
 }: SummaryBarProps) {
+  const { t } = useTranslation('components')
   return (
     <div className="flex items-center gap-4 px-4 py-2 border-t bg-muted/20 shrink-0 text-xs">
       {/* Binding stats */}
@@ -32,11 +34,11 @@ export const SummaryBar = memo(function SummaryBar({
             ? 'bg-green-100 text-green-700'
             : 'bg-amber-100 text-amber-700',
         )}>
-          {bound}/{total} 解決済み
+          {t('bindingEditor.summaryBar.resolved', { bound, total })}
         </span>
         {unbound > 0 && (
           <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
-            {unbound} 未バインド
+            {t('bindingEditor.summaryBar.unbound', { n: unbound })}
           </span>
         )}
       </div>

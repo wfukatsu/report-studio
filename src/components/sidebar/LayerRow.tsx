@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, Lock, Unlock, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ReportElement } from '@/types'
@@ -36,6 +37,7 @@ export function LayerRow({
   onDelete,
   onContextMenu,
 }: LayerRowProps) {
+  const { t } = useTranslation('components')
   return (
     <div
       onContextMenu={onContextMenu}
@@ -70,9 +72,9 @@ export function LayerRow({
           <span
             className="block truncate"
             onDoubleClick={(e) => { e.stopPropagation(); onStartRename(el) }}
-            title="ダブルクリックでリネーム"
+            title={t('sidebar.layerRow.doubleClickToRename')}
           >
-            {defaultName(el)}
+            {defaultName(el, t)}
           </span>
         )}
       </div>
@@ -83,7 +85,7 @@ export function LayerRow({
         isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
       )}>
         <button
-          title={el.visible ? '非表示にする' : '表示する'}
+          title={el.visible ? t('sidebar.layerRow.hide') : t('sidebar.layerRow.show')}
           className="p-0.5 rounded hover:bg-accent"
           onClick={(e) => { e.stopPropagation(); onToggleVisible() }}
         >
@@ -93,7 +95,7 @@ export function LayerRow({
           }
         </button>
         <button
-          title={el.locked ? 'ロック解除' : 'ロック'}
+          title={el.locked ? t('sidebar.layerRow.unlock') : t('sidebar.layerRow.lock')}
           className="p-0.5 rounded hover:bg-accent"
           onClick={(e) => { e.stopPropagation(); onToggleLock() }}
         >
@@ -103,7 +105,7 @@ export function LayerRow({
           }
         </button>
         <button
-          title="削除"
+          title={t('sidebar.layerRow.delete')}
           className="p-0.5 rounded hover:bg-accent text-destructive"
           onClick={(e) => { e.stopPropagation(); onDelete() }}
         >

@@ -5,6 +5,7 @@
  */
 
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Wand2, X } from 'lucide-react'
 import type { BulkItem } from '../types'
 
@@ -22,6 +23,7 @@ export const BulkGenerateBar = memo(function BulkGenerateBar({
   onGenerate,
   onCancel,
 }: BulkGenerateBarProps) {
+  const { t } = useTranslation('components')
   const empty = items.length === 0
 
   return (
@@ -42,7 +44,7 @@ export const BulkGenerateBar = memo(function BulkGenerateBar({
       {/* Item list / empty state */}
       {empty ? (
         <div className="px-3 py-2 text-[10px] text-muted-foreground">
-          生成できる項目はありません（すべて配置済みです）。
+          {t('bindingEditor.bulkGenerateBar.emptyState')}
         </div>
       ) : (
         <div className="max-h-32 overflow-y-auto">
@@ -65,14 +67,14 @@ export const BulkGenerateBar = memo(function BulkGenerateBar({
             className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
             onClick={onGenerate}
           >
-            <Wand2 className="w-3 h-3" /> 生成する
+            <Wand2 className="w-3 h-3" /> {t('bindingEditor.bulkGenerateBar.generate')}
           </button>
         )}
         <button
           className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground ml-auto"
           onClick={onCancel}
         >
-          <X className="w-3 h-3" /> {empty ? '閉じる' : 'キャンセル'}
+          <X className="w-3 h-3" /> {empty ? t('bindingEditor.bulkGenerateBar.close') : t('bindingEditor.bulkGenerateBar.cancel')}
         </button>
       </div>
     </div>

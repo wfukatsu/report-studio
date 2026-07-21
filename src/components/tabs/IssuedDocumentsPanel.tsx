@@ -7,6 +7,7 @@
  * the status-transition audit history (#188).
  */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { RefreshCw, FileText, Loader2, History, Ban } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReportStore } from '@/store'
@@ -18,9 +19,6 @@ import { downloadBlob } from '@/api/client'
 import type { ReportStatus } from '@/lib/schemas/formResponse'
 import { REPORT_STATUSES } from '@/lib/schemas/formResponse'
 
-const STATUS_LABEL: Record<ReportStatus, string> = {
-  draft: '下書き', issued: '発行済', sent: '送付済', void: '無効',
-}
 const STATUS_BADGE: Record<ReportStatus, string> = {
   draft: 'bg-gray-100 text-gray-600',
   issued: 'bg-blue-50 text-blue-600',
@@ -40,6 +38,13 @@ function formatDate(epochMs: number): string {
 }
 
 export function IssuedDocumentsPanel() {
+  const { t } = useTranslation('components')
+  const STATUS_LABEL: Record<ReportStatus, string> = {
+    draft: t('tabs.issuedDocumentsPanel.statusDraft'),
+    issued: t('tabs.issuedDocumentsPanel.statusIssued'),
+    sent: t('tabs.issuedDocumentsPanel.statusSent'),
+    void: t('tabs.issuedDocumentsPanel.statusVoid'),
+  }
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [docs, setDocs] = useState<IssuedDocument[]>([])
   const [loading, setLoading] = useState(false)
@@ -58,11 +63,11 @@ export function IssuedDocumentsPanel() {
       const result = await listDocuments({ status: statusFilter ?? undefined })
       setDocs(result.items)
     } catch {
-      setError('発行済み帳票の取得に失敗しました')
+      setError(t('tabs.issuedDocumentsPanel.fetchError'))
     } finally {
       setLoading(false)
     }
-  }, [backendConnected, statusFilter])
+  }, [backendConnected, statusFilter, t])
 
   // Fetch on mount / filter change, deferred to a task: fetchDocs flips the
   // loading flag synchronously (wanted for user-triggered refreshes), so the
@@ -97,11 +102,11 @@ export function IssuedDocumentsPanel() {
       setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, status: next } : d)))
       setAuditCache((prev) => { const c = { ...prev }; delete c[doc.id]; return c })
     } catch {
-      toast.error('ステータスの更新に失敗しました', { duration: 6000 })
+      toast.error(t('tabs.issuedDocumentsPanel.updateStatusError'), { duration: 6000 })
     } finally {
       setBusyId(null)
     }
-  }, [])
+  }, [t])
 
   const handleDownloadPdf = useCallback(async (doc: IssuedDocument) => {
     setBusyId(doc.id)
@@ -109,11 +114,11 @@ export function IssuedDocumentsPanel() {
       const blob = await getResponsePdf(doc.templateId, doc.id)
       downloadBlob(blob, `${doc.documentNumber || doc.id}.pdf`)
     } catch {
-      toast.error('PDF生成に失敗しました', { duration: 6000 })
+      toast.error(t('tabs.issuedDocumentsPanel.pdfError'), { duration: 6000 })
     } finally {
       setBusyId(null)
     }
-  }, [])
+  }, [t])
 
   const toggleAudit = useCallback(async (doc: IssuedDocument) => {
     if (auditOpen === doc.id) { setAuditOpen(null); return }
@@ -132,7 +137,7 @@ export function IssuedDocumentsPanel() {
     return (
       <div className="p-4">
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          バックエンドに接続できません。しばらく待ってから再試行してください。
+          {t('tabs.issuedDocumentsPanel.notConnected')}
         </div>
       </div>
     )
@@ -142,10 +147,10 @@ export function IssuedDocumentsPanel() {
     <div className="flex flex-col h-full w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b shrink-0">
-        <span className="text-sm font-medium text-gray-700">発行済み帳票 ({docs.length})</span>
+        <span className="text-sm font-medium text-gray-700">{t('tabs.issuedDocumentsPanel.headerTitle', { n: docs.length })}</span>
         <button
-          aria-label="再読み込み"
-          title="再読み込み"
+          aria-label={t('tabs.issuedDocumentsPanel.reload')}
+          title={t('tabs.issuedDocumentsPanel.reload')}
           onClick={() => void fetchDocs()}
           disabled={loading}
           className="p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-40"
@@ -160,7 +165,7 @@ export function IssuedDocumentsPanel() {
           onClick={() => setStatusFilter(null)}
           className={`text-[11px] px-2 py-0.5 rounded border ${statusFilter === null ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent border-border'}`}
         >
-          すべて
+          {t('tabs.issuedDocumentsPanel.filterAll')}
         </button>
         {REPORT_STATUSES.map((s) => (
           <button
@@ -173,12 +178,12 @@ export function IssuedDocumentsPanel() {
         ))}
         {templateNames.length > 1 && (
           <select
-            aria-label="テンプレートで絞り込み"
+            aria-label={t('tabs.issuedDocumentsPanel.filterTemplateLabel')}
             value={templateFilter}
             onChange={(e) => setTemplateFilter(e.target.value)}
             className="ml-auto text-[11px] px-1.5 py-1 rounded border bg-background"
           >
-            <option value="">全テンプレート</option>
+            <option value="">{t('tabs.issuedDocumentsPanel.allTemplates')}</option>
             {templateNames.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
         )}
@@ -188,7 +193,7 @@ export function IssuedDocumentsPanel() {
         <div className="p-3">
           <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={() => void fetchDocs()} className="underline">再試行</button>
+            <button onClick={() => void fetchDocs()} className="underline">{t('tabs.issuedDocumentsPanel.retry')}</button>
           </div>
         </div>
       )}
@@ -199,7 +204,7 @@ export function IssuedDocumentsPanel() {
 
       {!loading && !error && docs.length === 0 && (
         <div className="p-8 text-center text-sm text-gray-500">
-          発行済みの帳票がまだありません。回答を送信すると発行済み帳票として集約されます。
+          {t('tabs.issuedDocumentsPanel.emptyMessage')}
         </div>
       )}
 
@@ -209,13 +214,13 @@ export function IssuedDocumentsPanel() {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-muted/40 text-gray-600">
               <tr className="text-left">
-                <th className="px-3 py-2 font-medium">状態</th>
-                <th className="px-3 py-2 font-medium">発行番号</th>
-                <th className="px-3 py-2 font-medium">テンプレート</th>
-                <th className="px-3 py-2 font-medium">内容</th>
-                <th className="px-3 py-2 font-medium">発行日時</th>
-                <th className="px-3 py-2 font-medium">発行者</th>
-                <th className="px-3 py-2 font-medium text-right">操作</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colStatus')}</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colDocNumber')}</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colTemplate')}</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colContent')}</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colIssuedAt')}</th>
+                <th className="px-3 py-2 font-medium">{t('tabs.issuedDocumentsPanel.colIssuedBy')}</th>
+                <th className="px-3 py-2 font-medium text-right">{t('tabs.issuedDocumentsPanel.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -224,7 +229,7 @@ export function IssuedDocumentsPanel() {
                   <tr className="hover:bg-gray-50">
                     <td className="px-3 py-2">
                       <select
-                        aria-label="ステータスを変更"
+                        aria-label={t('tabs.issuedDocumentsPanel.changeStatusLabel')}
                         value={doc.status}
                         disabled={busyId === doc.id}
                         onChange={(e) => void handleSetStatus(doc, e.target.value as ReportStatus)}
@@ -241,16 +246,16 @@ export function IssuedDocumentsPanel() {
                     <td className="px-3 py-2">
                       <div className="flex gap-1 justify-end">
                         <button
-                          aria-label="履歴"
-                          title="ステータス履歴"
+                          aria-label={t('tabs.issuedDocumentsPanel.auditLabel')}
+                          title={t('tabs.issuedDocumentsPanel.auditTitle')}
                           onClick={() => void toggleAudit(doc)}
                           className="p-1 rounded hover:bg-gray-100 text-gray-500"
                         >
                           <History className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          aria-label="PDFダウンロード"
-                          title="PDF再ダウンロード"
+                          aria-label={t('tabs.issuedDocumentsPanel.downloadPdfLabel')}
+                          title={t('tabs.issuedDocumentsPanel.downloadPdfTitle')}
                           onClick={() => void handleDownloadPdf(doc)}
                           disabled={busyId === doc.id}
                           className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-40"
@@ -259,8 +264,8 @@ export function IssuedDocumentsPanel() {
                         </button>
                         {doc.status !== 'void' && (
                           <button
-                            aria-label="無効化"
-                            title="無効化 (void)"
+                            aria-label={t('tabs.issuedDocumentsPanel.voidLabel')}
+                            title={t('tabs.issuedDocumentsPanel.voidTitle')}
                             onClick={() => void handleSetStatus(doc, 'void')}
                             disabled={busyId === doc.id}
                             className="p-1 rounded hover:bg-red-50 text-gray-500 hover:text-red-600 disabled:opacity-40"
@@ -275,15 +280,15 @@ export function IssuedDocumentsPanel() {
                     <tr className="bg-muted/20">
                       <td colSpan={7} className="px-6 py-2">
                         {!auditCache[doc.id] ? (
-                          <span className="text-[11px] text-gray-400">履歴を読み込み中…</span>
+                          <span className="text-[11px] text-gray-400">{t('tabs.issuedDocumentsPanel.auditLoading')}</span>
                         ) : auditCache[doc.id].length === 0 ? (
-                          <span className="text-[11px] text-gray-400">履歴がありません。</span>
+                          <span className="text-[11px] text-gray-400">{t('tabs.issuedDocumentsPanel.auditEmpty')}</span>
                         ) : (
                           <ul className="text-[11px] text-gray-600 space-y-0.5">
                             {auditCache[doc.id].map((e) => (
                               <li key={e.id}>
                                 {formatDate(e.at)} — {e.by}：
-                                {e.from ? `${STATUS_LABEL[e.from as ReportStatus] ?? e.from} → ` : '作成 → '}
+                                {e.from ? `${STATUS_LABEL[e.from as ReportStatus] ?? e.from} → ` : t('tabs.issuedDocumentsPanel.auditCreated')}
                                 {STATUS_LABEL[e.to as ReportStatus] ?? e.to}
                               </li>
                             ))}

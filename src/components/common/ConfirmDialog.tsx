@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 
 interface ConfirmDialogProps {
@@ -22,13 +23,14 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = '確認',
+  confirmLabel,
   confirmVariant = 'default',
   onConfirm,
   onCancel,
   secondaryLabel,
   onSecondary,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation('components')
   const dialogRef = useRef<HTMLDivElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -101,7 +103,7 @@ export function ConfirmDialog({
       <div ref={dialogRef} className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">
           <h2 id="confirm-dialog-title" className="text-sm font-semibold">{title}</h2>
-          <button onClick={handleClose} className="rounded hover:bg-accent p-1" aria-label="閉じる">
+          <button onClick={handleClose} className="rounded hover:bg-accent p-1" aria-label={t('common.confirmDialog.close')}>
             <X className="w-4 h-4" />
           </button>
         </header>
@@ -113,7 +115,7 @@ export function ConfirmDialog({
             onClick={handleClose}
             className="px-3 py-1.5 text-xs rounded-md hover:bg-accent border"
           >
-            キャンセル
+            {t('common.confirmDialog.cancel')}
           </button>
           <button
             ref={secondaryLabel ? undefined : confirmButtonRef}
@@ -126,7 +128,7 @@ export function ConfirmDialog({
                 : confirmClass
             }`}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirmDialog.confirm')}
           </button>
           {secondaryLabel && (
             <button

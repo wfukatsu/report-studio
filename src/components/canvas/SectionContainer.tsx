@@ -8,6 +8,8 @@
  */
 
 import { useRef, useCallback, useMemo, memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { ParseKeys } from 'i18next'
 import type { Section, ReportElement, LayerGroup, TextStyle } from '@/types'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import { CanvasElement } from './CanvasElement'
@@ -35,11 +37,14 @@ const SECTION_COLORS: Record<string, string> = {
 
 const SECTION_BORDER = '1px dashed rgba(96, 165, 250, 0.45)' // light blue dotted
 
-const SECTION_LABELS: Record<string, string> = {
-  header: 'ヘッダー',
-  footer: 'フッター',
-  body: '',
-  custom: 'カスタム',
+// Maps a section type to its i18n label key, or null for sections without a label
+// (body). The null-vs-key distinction preserves the original empty-string gate that
+// hides the label + drop-guide for body sections.
+const SECTION_LABEL_KEYS: Record<string, ParseKeys<'components'> | null> = {
+  header: 'canvas.sectionContainer.header',
+  footer: 'canvas.sectionContainer.footer',
+  body: null,
+  custom: 'canvas.sectionContainer.custom',
 }
 
 interface Props {
@@ -78,7 +83,10 @@ export const SectionContainer = memo(function SectionContainer({
   pageIndex,
   totalPages,
 }: Props) {
+  const { t } = useTranslation('components')
   const minHeightMm = MIN_HEIGHT_MM[section.sectionType] ?? 10
+  const sectionLabelKey = SECTION_LABEL_KEYS[section.sectionType]
+  const sectionLabel = sectionLabelKey ? t(sectionLabelKey) : ''
 
   // Group-based visibility/lock overrides
   const pageGroups = useReportStore((s) => {
@@ -154,7 +162,7 @@ export const SectionContainer = memo(function SectionContainer({
       }}
     >
       {/* Section type label */}
-      {SECTION_LABELS[section.sectionType] && !readonly && (
+      {sectionLabel && !readonly && (
         <div
           style={{
             position: 'absolute',
@@ -167,11 +175,11 @@ export const SectionContainer = memo(function SectionContainer({
             zIndex: 1000,
           }}
         >
-          {SECTION_LABELS[section.sectionType]}
+          {sectionLabel}
         </div>
       )}
       {/* Empty section guide text */}
-      {section.elements.length === 0 && !readonly && SECTION_LABELS[section.sectionType] && (
+      {section.elements.length === 0 && !readonly && sectionLabel && (
         <div
           style={{
             position: 'absolute',
@@ -186,7 +194,7 @@ export const SectionContainer = memo(function SectionContainer({
             zIndex: 999,
           }}
         >
-          {SECTION_LABELS[section.sectionType]}に要素をドロップ
+          {t('canvas.sectionContainer.dropHere', { label: sectionLabel })}
         </div>
       )}
 
@@ -236,7 +244,7 @@ export const SectionContainer = memo(function SectionContainer({
           onPointerMove={handleResizePointerMove}
           onPointerUp={handleResizePointerUp}
           onPointerCancel={handleResizePointerUp}
-          title={`${section.sectionType}セクションの高さを変更`}
+          title={t('canvas.sectionContainer.resizeSection', { type: section.sectionType })}
         />
       )}
     </div>

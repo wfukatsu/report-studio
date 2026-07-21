@@ -9,6 +9,7 @@ import type common from './locales/ja/common.json'
 import type toolbar from './locales/ja/toolbar.json'
 import type modals from './locales/ja/modals.json'
 import type elements from './locales/ja/elements.json'
+import type components from './locales/ja/components.json'
 
 declare module 'i18next' {
   interface CustomTypeOptions {
@@ -18,6 +19,7 @@ declare module 'i18next' {
       toolbar: typeof toolbar
       modals: typeof modals
       elements: typeof elements
+      components: typeof components
     }
   }
 }

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Copy, Scissors, Clipboard, Trash2, Lock, Unlock,
   Eye, EyeOff, BringToFront, SendToBack, ArrowUpToLine, ArrowDownToLine,
@@ -113,6 +115,7 @@ export function ContextMenu({
   hasPaste,
   items,
 }: Props) {
+  const { t } = useTranslation('components')
   const ref = useRef<HTMLDivElement>(null)
 
   const getMenuItems = useCallback((): HTMLButtonElement[] => {
@@ -215,7 +218,7 @@ export function ContextMenu({
       {items ? renderItems(items, onClose) : renderCanvasItems(menu, onClose, {
         onCopy, onCut, onPaste, onDuplicate, onDelete,
         onToggleLock, onToggleVisible, onZOrder, onGroup, hasPaste,
-      })}
+      }, t)}
     </div>
   )
 }
@@ -262,39 +265,40 @@ function renderCanvasItems(
     onGroup?: () => void
     hasPaste?: boolean
   },
+  t: TFunction<'components'>,
 ) {
   const { onCopy, onCut, onPaste, onDuplicate, onDelete, onToggleLock, onToggleVisible, onZOrder, onGroup, hasPaste } = handlers
   return (
     <>
-      <MenuItem icon={<Copy className="w-3.5 h-3.5" />} label="コピー" shortcut="⌘C" onClick={() => { onCopy?.(); onClose() }} />
-      <MenuItem icon={<Scissors className="w-3.5 h-3.5" />} label="カット" shortcut="⌘X" onClick={() => { onCut?.(); onClose() }} />
-      <MenuItem icon={<Clipboard className="w-3.5 h-3.5" />} label="ペースト" shortcut="⌘V" onClick={() => { onPaste?.(); onClose() }} disabled={!hasPaste} />
-      <MenuItem icon={<CopyPlus className="w-3.5 h-3.5" />} label="複製" shortcut="⌘D" onClick={() => { onDuplicate?.(); onClose() }} />
+      <MenuItem icon={<Copy className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.copy')} shortcut="⌘C" onClick={() => { onCopy?.(); onClose() }} />
+      <MenuItem icon={<Scissors className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.cut')} shortcut="⌘X" onClick={() => { onCut?.(); onClose() }} />
+      <MenuItem icon={<Clipboard className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.paste')} shortcut="⌘V" onClick={() => { onPaste?.(); onClose() }} disabled={!hasPaste} />
+      <MenuItem icon={<CopyPlus className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.duplicate')} shortcut="⌘D" onClick={() => { onDuplicate?.(); onClose() }} />
 
       {onGroup && (
         <>
           <div className="border-t my-1" />
-          <MenuItem icon={<Folder className="w-3.5 h-3.5" />} label="グループ化" shortcut="⌘G" onClick={() => { onGroup(); onClose() }} />
+          <MenuItem icon={<Folder className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.group')} shortcut="⌘G" onClick={() => { onGroup(); onClose() }} />
         </>
       )}
 
       <div className="border-t my-1" />
 
-      <MenuItem icon={<BringToFront className="w-3.5 h-3.5" />} label="最前面へ" onClick={() => { onZOrder?.('front'); onClose() }} />
-      <MenuItem icon={<ArrowUpToLine className="w-3.5 h-3.5" />} label="前面へ" onClick={() => { onZOrder?.('forward'); onClose() }} />
-      <MenuItem icon={<ArrowDownToLine className="w-3.5 h-3.5" />} label="背面へ" onClick={() => { onZOrder?.('backward'); onClose() }} />
-      <MenuItem icon={<SendToBack className="w-3.5 h-3.5" />} label="最背面へ" onClick={() => { onZOrder?.('back'); onClose() }} />
+      <MenuItem icon={<BringToFront className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.bringToFront')} onClick={() => { onZOrder?.('front'); onClose() }} />
+      <MenuItem icon={<ArrowUpToLine className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.bringForward')} onClick={() => { onZOrder?.('forward'); onClose() }} />
+      <MenuItem icon={<ArrowDownToLine className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.sendBackward')} onClick={() => { onZOrder?.('backward'); onClose() }} />
+      <MenuItem icon={<SendToBack className="w-3.5 h-3.5" />} label={t('canvas.contextMenu.sendToBack')} onClick={() => { onZOrder?.('back'); onClose() }} />
 
       <div className="border-t my-1" />
 
       <MenuItem
         icon={menu.isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-        label={menu.isVisible ? '非表示' : '表示'}
+        label={menu.isVisible ? t('canvas.contextMenu.hide') : t('canvas.contextMenu.show')}
         onClick={() => { onToggleVisible?.(); onClose() }}
       />
       <MenuItem
         icon={menu.isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-        label={menu.isLocked ? 'ロック解除' : 'ロック'}
+        label={menu.isLocked ? t('canvas.contextMenu.unlock') : t('canvas.contextMenu.lock')}
         onClick={() => { onToggleLock?.(); onClose() }}
       />
 
@@ -302,7 +306,7 @@ function renderCanvasItems(
 
       <MenuItem
         icon={<Trash2 className="w-3.5 h-3.5 text-destructive" />}
-        label="削除"
+        label={t('canvas.contextMenu.delete')}
         shortcut="⌫"
         onClick={() => { onDelete?.(); onClose() }}
         className="text-destructive"

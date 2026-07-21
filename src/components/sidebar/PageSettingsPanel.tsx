@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
@@ -17,6 +18,7 @@ interface PageSettingsPanelProps {
 }
 
 export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) {
+  const { t } = useTranslation('components')
   const [metaOpen, setMetaOpen] = useState(false)
   const [seqOpen, setSeqOpen] = useState(false)
   const [seqConfig, setSeqConfig] = useState<SequenceConfig | null>(null)
@@ -56,7 +58,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       setSeqConfig(updated)
     } catch (err) {
       const copy = getErrorCopy(classifyError(err).code)
-      toast.error('採番設定の保存に失敗しました', { description: copy.hint, duration: 6000 })
+      toast.error(t('sidebar.pageSettingsPanel.seqSaveFailed'), { description: copy.hint, duration: 6000 })
     }
     finally { setSeqSaving(false) }
   }
@@ -72,17 +74,17 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
 
   if (!activePage) {
-    return <div className="p-4 text-xs text-muted-foreground">ページがありません。</div>
+    return <div className="p-4 text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.noPage')}</div>
   }
 
   return (
     <div className="p-3 space-y-3">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        ページ設定
+        {t('sidebar.pageSettingsPanel.heading')}
       </p>
 
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">ページ名</label>
+        <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.pageName')}</label>
         <input
           className="w-full border rounded px-2 py-1 text-xs bg-background"
           value={activePage.name}
@@ -91,7 +93,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">用紙サイズ</label>
+        <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.paperSize')}</label>
         <div className="flex items-center gap-2">
           <select
             className="flex-1 border rounded px-1.5 py-1 text-xs bg-background"
@@ -108,7 +110,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
         </div>
         {pageSettings.paperSize === 'custom' && (
           <div className="flex items-center gap-1 mt-1">
-            <span className="text-xs text-muted-foreground w-4">幅</span>
+            <span className="text-xs text-muted-foreground w-4">{t('sidebar.pageSettingsPanel.customWidth')}</span>
             <input
               type="number"
               min={10}
@@ -121,7 +123,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 if (w > 0) updateSettings({ customWidth: w })
               }}
             />
-            <span className="text-xs text-muted-foreground w-4">高</span>
+            <span className="text-xs text-muted-foreground w-4">{t('sidebar.pageSettingsPanel.customHeight')}</span>
             <input
               type="number"
               min={10}
@@ -140,7 +142,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">用紙方向</label>
+        <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.orientation')}</label>
         <div className="flex gap-1">
           {(['portrait', 'landscape'] as const).map((ori) => (
             <button
@@ -152,26 +154,26 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               }`}
               onClick={() => updateSettings({ orientation: ori })}
             >
-              {ori === 'portrait' ? '縦 (Portrait)' : '横 (Landscape)'}
+              {ori === 'portrait' ? t('sidebar.pageSettingsPanel.orientationPortrait') : t('sidebar.pageSettingsPanel.orientationLandscape')}
             </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">余白 (mm)</label>
+        <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.margins')}</label>
         <div className="flex gap-1 mb-1">
           {(() => {
             const presets = getMarginPresets(pageSettings.paperSize)
             return [
-              ['標準', presets.standard],
-              ['狭い', presets.narrow],
-              ['最小', presets.minimum],
-              ['なし', 0],
+              ['sidebar.pageSettingsPanel.marginStandard', presets.standard],
+              ['sidebar.pageSettingsPanel.marginNarrow', presets.narrow],
+              ['sidebar.pageSettingsPanel.marginMinimum', presets.minimum],
+              ['sidebar.pageSettingsPanel.marginNone', 0],
             ] as const
-          })().map(([label, v]) => (
+          })().map(([labelKey, v]) => (
             <button
-              key={label}
+              key={labelKey}
               className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                 pageSettings.margins.top === v && pageSettings.margins.right === v &&
                 pageSettings.margins.bottom === v && pageSettings.margins.left === v
@@ -180,19 +182,19 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               }`}
               onClick={() => updateSettings({ margins: { top: v, right: v, bottom: v, left: v } })}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-1">
           {([
-            ['top', '上'],
-            ['right', '右'],
-            ['bottom', '下'],
-            ['left', '左'],
-          ] as const).map(([key, label]) => (
+            ['top', 'sidebar.pageSettingsPanel.marginTop'],
+            ['right', 'sidebar.pageSettingsPanel.marginRight'],
+            ['bottom', 'sidebar.pageSettingsPanel.marginBottom'],
+            ['left', 'sidebar.pageSettingsPanel.marginLeft'],
+          ] as const).map(([key, labelKey]) => (
             <div key={key} className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground w-4">{label}</span>
+              <span className="text-xs text-muted-foreground w-4">{t(labelKey)}</span>
               <input
                 type="number"
                 min={0}
@@ -213,12 +215,12 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       {(masterHeader || masterFooter) && (
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">
-            {masterHeader && masterFooter ? 'ヘッダー/フッター' : masterHeader ? 'ヘッダー' : 'フッター'}高さ (mm)
+            {masterHeader && masterFooter ? t('sidebar.pageSettingsPanel.hfHeaderFooter') : masterHeader ? t('sidebar.pageSettingsPanel.hfHeader') : t('sidebar.pageSettingsPanel.hfFooter')}{t('sidebar.pageSettingsPanel.heightSuffix')}
           </label>
           <div className="grid grid-cols-2 gap-1">
             {masterHeader && (
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground w-10">ヘッダー</span>
+                <span className="text-xs text-muted-foreground w-10">{t('sidebar.pageSettingsPanel.hfHeader')}</span>
                 <input
                   type="number"
                   min={10}
@@ -235,7 +237,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             )}
             {masterFooter && (
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground w-10">フッター</span>
+                <span className="text-xs text-muted-foreground w-10">{t('sidebar.pageSettingsPanel.hfFooter')}</span>
                 <input
                   type="number"
                   min={10}
@@ -255,7 +257,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       )}
 
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">背景色</label>
+        <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.background')}</label>
         <div className="flex items-center gap-2">
           <input
             type="color"
@@ -278,31 +280,31 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           {metaOpen
             ? <ChevronDown className="w-3 h-3 shrink-0" />
             : <ChevronRight className="w-3 h-3 shrink-0" />}
-          メタデータ
+          {t('sidebar.pageSettingsPanel.metadata')}
         </button>
 
         {metaOpen && (
           <div className="px-2 pb-2 space-y-2 border-t pt-2">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">バージョン</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.version')}</label>
               <input
                 className="w-full border rounded px-2 py-1 text-xs bg-background"
                 value={metadata.version ?? ''}
-                placeholder="例: 1.0.0"
+                placeholder={t('sidebar.pageSettingsPanel.versionPlaceholder')}
                 onChange={(e) => updateMetadata({ version: e.target.value })}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">帳票種別</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.reportType')}</label>
               <input
                 className="w-full border rounded px-2 py-1 text-xs bg-background"
                 value={metadata.reportType ?? ''}
-                placeholder="例: 請求書"
+                placeholder={t('sidebar.pageSettingsPanel.reportTypePlaceholder')}
                 onChange={(e) => updateMetadata({ reportType: e.target.value })}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">説明</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.description')}</label>
               <textarea
                 className="w-full border rounded px-2 py-1 text-xs bg-background resize-none"
                 rows={2}
@@ -311,7 +313,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">適用規制・基準</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.applicableRegulation')}</label>
               <input
                 className="w-full border rounded px-2 py-1 text-xs bg-background"
                 value={metadata.applicableRegulation ?? ''}
@@ -320,7 +322,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             </div>
             <div className="grid grid-cols-2 gap-1">
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">有効開始日</label>
+                <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.effectiveFrom')}</label>
                 <input
                   type="date"
                   className="w-full border rounded px-1.5 py-1 text-xs bg-background"
@@ -329,7 +331,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">有効終了日</label>
+                <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.effectiveTo')}</label>
                 <input
                   type="date"
                   className="w-full border rounded px-1.5 py-1 text-xs bg-background"
@@ -339,7 +341,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">カテゴリ</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.category')}</label>
               <CategoryCombobox
                 value={metadata.category}
                 options={[]}
@@ -347,7 +349,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">タグ</label>
+              <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.tags')}</label>
               <TagInput
                 value={metadata.tags ?? []}
                 onChange={(tags) => updateMetadata({ tags })}
@@ -363,12 +365,12 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
           <button type="button" onClick={() => setSeqOpen(v => !v)} aria-expanded={seqOpen}
             className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors">
             {seqOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
-            採番設定
+            {t('sidebar.pageSettingsPanel.sequence')}
           </button>
           {seqOpen && (
             <div className="px-2 pb-2 space-y-2 border-t pt-2">
               <p className="text-[10px] text-muted-foreground">
-                フォーム送信時に自動採番。帳票テキスト内で <code className="bg-muted px-0.5 rounded">{`{{documentNumber}}`}</code> を使用。
+                {t('sidebar.pageSettingsPanel.seqHintBefore')}<code className="bg-muted px-0.5 rounded">{`{{documentNumber}}`}</code>{t('sidebar.pageSettingsPanel.seqHintAfter')}
               </p>
               {seqLoadError && (
                 <InlineErrorBanner error={seqLoadError} onRetry={loadSeqConfig} />
@@ -377,34 +379,34 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
                 <>
                   <div className="grid grid-cols-3 gap-1">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground">プレフィックス</label>
+                      <label className="text-[10px] text-muted-foreground">{t('sidebar.pageSettingsPanel.seqPrefix')}</label>
                       <input value={seqConfig.prefix ?? ''} onChange={e => setSeqConfig(s => s ? {...s, prefix: e.target.value} : s)}
                         placeholder="QUO-" className="border rounded px-1.5 py-1 text-xs bg-background" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground">桁数</label>
+                      <label className="text-[10px] text-muted-foreground">{t('sidebar.pageSettingsPanel.seqDigits')}</label>
                       <input type="number" min={1} max={10} value={seqConfig.digits ?? 4}
                         onChange={e => setSeqConfig(s => s ? {...s, digits: parseInt(e.target.value)||4} : s)}
                         className="border rounded px-1.5 py-1 text-xs bg-background" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground">サフィックス</label>
+                      <label className="text-[10px] text-muted-foreground">{t('sidebar.pageSettingsPanel.seqSuffix')}</label>
                       <input value={seqConfig.suffix ?? ''} onChange={e => setSeqConfig(s => s ? {...s, suffix: e.target.value} : s)}
                         className="border rounded px-1.5 py-1 text-xs bg-background" />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-muted-foreground">年次リセット</label>
+                    <label className="text-xs text-muted-foreground">{t('sidebar.pageSettingsPanel.seqYearlyReset')}</label>
                     <input type="checkbox" checked={seqConfig.resetOn === 'year'}
                       onChange={e => setSeqConfig(s => s ? {...s, resetOn: e.target.checked ? 'year' : null} : s)} />
-                    <span className="text-[10px] text-muted-foreground">毎年1月1日に1に戻す</span>
+                    <span className="text-[10px] text-muted-foreground">{t('sidebar.pageSettingsPanel.seqYearlyResetHint')}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    次の番号: <code className="bg-muted px-1 rounded">{(seqConfig.prefix ?? '') + String(((seqConfig.counter ?? 0) + 1)).padStart(seqConfig.digits ?? 4, '0') + (seqConfig.suffix ?? '')}</code>
+                    {t('sidebar.pageSettingsPanel.seqNextNumber')}<code className="bg-muted px-1 rounded">{(seqConfig.prefix ?? '') + String(((seqConfig.counter ?? 0) + 1)).padStart(seqConfig.digits ?? 4, '0') + (seqConfig.suffix ?? '')}</code>
                   </p>
                   <button onClick={handleSeqSave} disabled={seqSaving}
                     className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60">
-                    {seqSaving ? '保存中...' : '採番設定を保存'}
+                    {seqSaving ? t('sidebar.pageSettingsPanel.seqSaving') : t('sidebar.pageSettingsPanel.seqSave')}
                   </button>
                 </>
               )}
@@ -419,7 +421,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             onClick={onTemplateChange}
             className="w-full px-3 py-1.5 text-xs border rounded hover:bg-accent transition-colors"
           >
-            テンプレートを変更...
+            {t('sidebar.pageSettingsPanel.changeTemplate')}
           </button>
         </div>
       )}

@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FORMULA_FUNCTIONS, CATEGORY_LABELS_JA, type FunctionCategory, type FunctionDef } from '@/lib/formula/functionCatalog'
 
 interface FunctionListProps {
@@ -22,19 +23,20 @@ function buildInsertTemplate(def: FunctionDef): string {
   return `${def.name}(${placeholders})`
 }
 
-const CATEGORIES: readonly { key: CategoryKey; label: string; count: number }[] = [
-  { key: 'all', label: '全て', count: FORMULA_FUNCTIONS.length },
-  ...(['aggregate', 'arithmetic', 'condition', 'text', 'date'] as const).map((cat) => ({
-    key: cat as CategoryKey,
-    label: CATEGORY_LABELS_JA[cat],
-    count: FORMULA_FUNCTIONS.filter((f) => f.category === cat).length,
-  })).filter((c) => c.count > 0),
-]
-
 export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
+  const { t } = useTranslation('components')
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all')
   const [search, setSearch] = useState('')
   const [selectedName, setSelectedName] = useState<string | null>(null)
+
+  const categories: readonly { key: CategoryKey; label: string; count: number }[] = useMemo(() => [
+    { key: 'all', label: t('formulaEditor.functionList.categoryAll'), count: FORMULA_FUNCTIONS.length },
+    ...(['aggregate', 'arithmetic', 'condition', 'text', 'date'] as const).map((cat) => ({
+      key: cat as CategoryKey,
+      label: CATEGORY_LABELS_JA[cat],
+      count: FORMULA_FUNCTIONS.filter((f) => f.category === cat).length,
+    })).filter((c) => c.count > 0),
+  ], [t])
 
   const filtered = useMemo(() => {
     let result: readonly FunctionDef[] = FORMULA_FUNCTIONS
@@ -70,15 +72,15 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
       <input
         type="search"
         className="mx-2 mt-2 mb-1 px-2 py-1 text-xs border border-border rounded bg-background placeholder:text-muted-foreground"
-        placeholder="関数検索..."
+        placeholder={t('formulaEditor.functionList.searchPlaceholder')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        aria-label="関数検索"
+        aria-label={t('formulaEditor.functionList.searchLabel')}
       />
 
       {/* Category filter */}
       <div className="flex gap-1 px-2 py-1 flex-wrap">
-        {CATEGORIES.map(({ key, label, count }) => (
+        {categories.map(({ key, label, count }) => (
           <button
             key={key}
             type="button"
@@ -95,7 +97,7 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
       </div>
 
       {/* Function list — simple rows, no inline expansion */}
-      <ul className="flex-1 overflow-y-auto px-2 pb-2" role="listbox" aria-label="関数一覧">
+      <ul className="flex-1 overflow-y-auto px-2 pb-2" role="listbox" aria-label={t('formulaEditor.functionList.listLabel')}>
         {filtered.map((def) => {
           const isSelected = selectedName === def.name
 
@@ -115,16 +117,16 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
                   type="button"
                   className="shrink-0 px-1.5 py-0.5 text-[9px] font-medium text-primary bg-primary/10 rounded hover:bg-primary/20"
                   onClick={(e) => { e.stopPropagation(); handleClick(def) }}
-                  title={`${def.name} を挿入`}
+                  title={t('formulaEditor.functionList.insertTitle', { name: def.name })}
                 >
-                  挿入
+                  {t('formulaEditor.functionList.insert')}
                 </button>
               </div>
             </li>
           )
         })}
         {filtered.length === 0 && (
-          <li className="py-4 text-center text-xs text-muted-foreground">該当する関数がありません</li>
+          <li className="py-4 text-center text-xs text-muted-foreground">{t('formulaEditor.functionList.noResults')}</li>
         )}
       </ul>
     </div>

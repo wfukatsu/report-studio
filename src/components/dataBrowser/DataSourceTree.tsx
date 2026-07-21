@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronDown, Database, Package, FileText } from 'lucide-react'
 import { fetchScalarDbCatalogCached, listReports } from '@/api/reportApi'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
@@ -36,6 +37,7 @@ function isSameNode(a: DataSourceNode | null, b: DataSourceNode): boolean {
 }
 
 export function DataSourceTree({ onSelect, selected }: Props) {
+  const { t } = useTranslation('components')
   const [catalog, setCatalog] = useState<CatalogState>({ status: 'loading' })
   const [templates, setTemplates] = useState<TemplatesState>({ status: 'loading' })
   const [scalarDbOpen, setScalarDbOpen] = useState(true)
@@ -77,16 +79,16 @@ export function DataSourceTree({ onSelect, selected }: Props) {
   const productMasterNode: DataSourceNode = { kind: 'product-master' }
 
   return (
-    <nav aria-label="データソースツリー" className="flex flex-col gap-0.5 py-2 text-xs">
+    <nav aria-label={t('dataBrowser.dataSourceTree.treeLabel')} className="flex flex-col gap-0.5 py-2 text-xs">
       {/* ScalarDB section */}
       <TreeSection
-        label="ScalarDB テーブル"
+        label={t('dataBrowser.dataSourceTree.scalarDbTables')}
         icon={<Database className="w-3.5 h-3.5" />}
         open={scalarDbOpen}
         onToggle={() => setScalarDbOpen((v) => !v)}
       >
         {catalog.status === 'loading' && (
-          <TreeLeaf label="読み込み中..." disabled />
+          <TreeLeaf label={t('dataBrowser.dataSourceTree.loading')} disabled />
         )}
         {catalog.status === 'error' && (
           <div className="mx-2 my-1">
@@ -95,9 +97,9 @@ export function DataSourceTree({ onSelect, selected }: Props) {
         )}
         {catalog.status === 'ok' && catalog.namespaces.length === 0 && (
           <TreeLeaf
-            label="テーブルが設定されていません"
+            label={t('dataBrowser.dataSourceTree.noTables')}
             disabled
-            hint="データ連携タブで設定"
+            hint={t('dataBrowser.dataSourceTree.noTablesHint')}
           />
         )}
         {catalog.status === 'ok' && [...catalog.namespaces]
@@ -132,8 +134,8 @@ export function DataSourceTree({ onSelect, selected }: Props) {
                   {collapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
                   <span className="truncate flex-1">{ns.name}</span>
                   {isSystem && (
-                    <span className="text-[9px] px-1 py-px rounded bg-muted text-muted-foreground shrink-0" title="内部管理テーブル（通常は編集不要）">
-                      システム
+                    <span className="text-[9px] px-1 py-px rounded bg-muted text-muted-foreground shrink-0" title={t('dataBrowser.dataSourceTree.systemNsTitle')}>
+                      {t('dataBrowser.dataSourceTree.systemBadge')}
                     </span>
                   )}
                   <span className="text-[9px] text-muted-foreground/60 shrink-0">{ns.tables.length}</span>
@@ -171,24 +173,24 @@ export function DataSourceTree({ onSelect, selected }: Props) {
         aria-current={isSameNode(selected, productMasterNode) ? 'location' : undefined}
       >
         <Package className="w-3.5 h-3.5 shrink-0" />
-        <span>商品マスター</span>
+        <span>{t('dataBrowser.dataSourceTree.productMaster')}</span>
       </button>
 
       {/* Form Responses section */}
       <TreeSection
-        label="フォーム回答"
+        label={t('dataBrowser.dataSourceTree.formResponses')}
         icon={<FileText className="w-3.5 h-3.5" />}
         open={responsesOpen}
         onToggle={() => setResponsesOpen((v) => !v)}
       >
-        {templates.status === 'loading' && <TreeLeaf label="読み込み中..." disabled />}
+        {templates.status === 'loading' && <TreeLeaf label={t('dataBrowser.dataSourceTree.loading')} disabled />}
         {templates.status === 'error' && (
           <div className="mx-2 my-1">
             <InlineErrorBanner error={templates.error} onRetry={retryTemplates} />
           </div>
         )}
         {templates.status === 'ok' && templates.items.length === 0 && (
-          <TreeLeaf label="テンプレートがありません" disabled />
+          <TreeLeaf label={t('dataBrowser.dataSourceTree.noTemplates')} disabled />
         )}
         {templates.status === 'ok' && templates.items.map((tpl) => {
           const node: DataSourceNode = { kind: 'form-responses', templateId: tpl.id, templateName: tpl.name }

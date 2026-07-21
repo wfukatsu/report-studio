@@ -5,6 +5,7 @@
  */
 
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import type { ConditionalDisplay } from '@/types'
@@ -40,6 +41,7 @@ export const ConditionalDisplayEditor = memo(function ConditionalDisplayEditor({
   onChange,
   fieldOptions: fieldOptionsProp,
 }: ConditionalDisplayEditorProps) {
+  const { t } = useTranslation('components')
   const schemaOptions = useSchemaFieldOptions()
   const fieldOptions = fieldOptionsProp ?? schemaOptions
   const cd = value ?? emptyDisplay()
@@ -73,11 +75,11 @@ export const ConditionalDisplayEditor = memo(function ConditionalDisplayEditor({
 
   return (
     <fieldset className="border-0 p-0 m-0 space-y-1.5">
-      <legend className="text-[10px] text-muted-foreground mb-1">表示条件</legend>
+      <legend className="text-[10px] text-muted-foreground mb-1">{t('sidebar.conditionalDisplayEditor.displayCondition')}</legend>
 
       {/* Logic toggle + add button */}
       <div className="flex items-center gap-2">
-        <div role="radiogroup" aria-label="条件結合ロジック" className="flex gap-1">
+        <div role="radiogroup" aria-label={t('sidebar.conditionalDisplayEditor.combineLogic')} className="flex gap-1">
           {(['and', 'or'] as const).map((l) => (
             <label
               key={l}
@@ -104,10 +106,10 @@ export const ConditionalDisplayEditor = memo(function ConditionalDisplayEditor({
           type="button"
           onClick={addCondition}
           className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
-          aria-label="条件を追加"
+          aria-label={t('sidebar.conditionalDisplayEditor.addCondition')}
         >
           <Plus className="w-3 h-3" />
-          条件追加
+          {t('sidebar.conditionalDisplayEditor.addConditionShort')}
         </button>
       </div>
 
@@ -123,7 +125,7 @@ export const ConditionalDisplayEditor = memo(function ConditionalDisplayEditor({
           />
         ))}
         {cd.conditions.length === 0 && (
-          <p className="text-[10px] text-muted-foreground italic">条件なし（常に表示）</p>
+          <p className="text-[10px] text-muted-foreground italic">{t('sidebar.conditionalDisplayEditor.noConditions')}</p>
         )}
       </div>
     </fieldset>
