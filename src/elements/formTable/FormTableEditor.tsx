@@ -112,10 +112,12 @@ export const FormTableEditor = memo(function FormTableEditor({
   // ------- Click outside to exit -------
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      const target = e.target as Node
+      // The table context menu is portaled to <body>, so it fails the
+      // containerRef.contains check — but exiting edit mode on menu mousedown
+      // unmounts the menu before its click action can fire (#302).
+      if (target instanceof Element && target.closest('[role="menu"]')) return
+      if (containerRef.current && !containerRef.current.contains(target)) {
         // Push undo snapshot before exiting if there are changes
         undoStack.push()
         onExitEditMode()
