@@ -84,8 +84,7 @@ public final class VersionController {
 
         var stored = definitionsRepo.get(templateId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -93,8 +92,8 @@ public final class VersionController {
         JsonNode envelope = MAPPER.readTree(stored.get());
         JsonNode definition = envelope.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template definition not found"));
+            ApiError.respond(
+                    ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template definition not found");
             return;
         }
 
@@ -124,8 +123,7 @@ public final class VersionController {
 
         var versionData = versionRepo.getVersion(versionId, templateId);
         if (versionData.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Version not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Version not found");
             return;
         }
 

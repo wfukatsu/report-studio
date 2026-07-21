@@ -61,29 +61,29 @@ public final class ResponseExportController {
 
         // Rate limit by userId
         if (!exportLimiter.isAllowed(principal.userId())) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many export requests. Please wait."));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many export requests. Please wait.");
             return;
         }
 
         // Verify template ownership
         Optional<String> defBlob = definitionsRepo.get(templateId);
         if (defBlob.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
         try {
             JsonNode envelope = MAPPER.readTree(defBlob.get());
             String createdBy = envelope.path("created_by").asText("");
             if (!createdBy.isEmpty() && !principal.userId().equals(createdBy)) {
-                ctx.status(HttpStatus.FORBIDDEN);
-                ctx.json(Map.of("error", "Access denied"));
+                ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
                 return;
             }
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to load template"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to load template");
             return;
         }
 
@@ -93,14 +93,16 @@ public final class ResponseExportController {
             jsonList = responseRepo.listByGroupKey(templateId);
         } catch (Exception e) {
             log.error("Failed to load responses for V2 export, template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to load responses"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to load responses");
             return;
         }
 
         if (jsonList.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "No responses found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "No responses found");
             return;
         }
 
@@ -136,8 +138,8 @@ public final class ResponseExportController {
             }
         } catch (Exception e) {
             log.error("V2 export failed for template {}", templateId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Export failed"));
+            ApiError.respond(
+                    ctx, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Export failed");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.report.server.job;
 
+import com.report.server.ApiError;
 import com.report.server.CsvDataSource;
 import com.report.server.RequestValidator;
 import com.report.server.auth.Principal;
@@ -51,9 +52,9 @@ public final class JobController {
     public void submit(Context ctx) {
         // Unified admission control (issue #60) — slot released on reject or in the worker
         if (!limiter.tryAcquire()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             ctx.header("Retry-After", "30");
-            ctx.json(Map.of("error", "Server busy, retry later"));
+            ApiError.respond(
+                    ctx, HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMITED", "Server busy, retry later");
             return;
         }
 
@@ -72,15 +73,15 @@ public final class JobController {
         String templateId = (String) body.get("templateId");
         if (templateId == null || templateId.isBlank()) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "templateId is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "templateId is required");
             return;
         }
 
         if (!templateId.matches("^[a-zA-Z0-9_-]{1,128}$")) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid templateId format"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid templateId format");
             return;
         }
 
@@ -129,23 +130,26 @@ public final class JobController {
         String templateId = ctx.formParam("templateId");
         if (templateId == null || templateId.isBlank()) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "templateId is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "templateId is required");
             return;
         }
 
         if (!templateId.matches("^[a-zA-Z0-9_-]{1,128}$")) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid templateId format"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid templateId format");
             return;
         }
 
         UploadedFile csvFile = ctx.uploadedFile("csv");
         if (csvFile == null) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "CSV file is required (field name: csv)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "CSV file is required (field name: csv)");
             return;
         }
 
@@ -155,20 +159,19 @@ public final class JobController {
             rows = CsvDataSource.parse(csvText);
         } catch (IllegalArgumentException e) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", e.getMessage()));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", e.getMessage());
             return;
         } catch (IOException e) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Failed to read CSV file"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Failed to read CSV file");
             return;
         }
 
         if (rows.isEmpty()) {
             limiter.release();
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "CSV contains no data rows"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "CSV contains no data rows");
             return;
         }
 
@@ -270,8 +273,7 @@ public final class JobController {
         String jobId = ctx.pathParam("jobId");
         var jobOpt = jobRepo.findById(jobId);
         if (jobOpt.isEmpty() || !canAccess(ctx, jobOpt.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
         JobRecord job = jobOpt.get();
@@ -323,8 +325,7 @@ public final class JobController {
 
         var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
 
@@ -344,8 +345,7 @@ public final class JobController {
 
         var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
 
@@ -367,14 +367,17 @@ public final class JobController {
 
         var job = jobRepo.findById(jobId).filter(JobRecord::isV1);
         if (job.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Job not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Job not found");
             return;
         }
 
         if (!JobRecord.COMPLETED.equals(job.get().status())) {
-            ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "Job not completed", "status", job.get().status()));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.CONFLICT,
+                    "CONFLICT",
+                    "Job not completed",
+                    Map.of("status", job.get().status()));
             return;
         }
 
@@ -385,14 +388,12 @@ public final class JobController {
             Path zipPath = jobRepo.getOutputZipPath(jobId).normalize().toAbsolutePath();
             Path jobsBase = JobRepository.jobsRoot();
             if (!zipPath.startsWith(jobsBase)) {
-                ctx.status(HttpStatus.FORBIDDEN);
-                ctx.json(Map.of("error", "Access denied"));
+                ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
                 return;
             }
 
             if (!Files.exists(zipPath)) {
-                ctx.status(HttpStatus.NOT_FOUND);
-                ctx.json(Map.of("error", "Output file not found"));
+                ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Output file not found");
                 return;
             }
 
@@ -403,8 +404,11 @@ public final class JobController {
 
         } catch (IOException e) {
             log.error("Failed to serve output for job {}", jobId, e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to serve output"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to serve output");
         }
     }
 }

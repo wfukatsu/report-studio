@@ -45,18 +45,30 @@ public final class ApiRoutes {
     // ── Middleware ─────────────────────────────────────────────────────────────
 
     private static void registerMiddleware(JavalinConfig config, AppWiring w, int serverPort) {
-        // Global exception handler — returns JSON error body without stack traces
+        // Global exception handler — returns the unified error body (#267) without stack
+        // traces. The correlationId is logged with the stack trace so operators can join
+        // server logs to the error response a client received.
         config.routes.exception(
                 Exception.class,
                 (e, ctx) -> {
+                    String correlationId = CorrelationId.generate();
                     if (e instanceof io.javalin.http.HttpResponseException hre) {
-                        ctx.status(hre.getStatus());
-                        ctx.json(Map.of("error", hre.getMessage()));
+                        ApiError.respond(
+                                ctx,
+                                hre.getStatus(),
+                                ApiError.codeFor(hre.getStatus()),
+                                hre.getMessage(),
+                                correlationId);
                         return;
                     }
-                    log.error("Unhandled exception [{} {}]", ctx.method(), ctx.path(), e);
-                    ctx.status(500);
-                    ctx.json(Map.of("error", "Internal server error"));
+                    log.error(
+                            "Unhandled exception [{} {}] correlationId={}",
+                            ctx.method(),
+                            ctx.path(),
+                            correlationId,
+                            e);
+                    ApiError.respond(
+                            ctx, 500, "INTERNAL_ERROR", "Internal server error", correlationId);
                 });
 
         // Security response headers

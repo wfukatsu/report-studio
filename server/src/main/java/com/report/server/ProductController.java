@@ -87,8 +87,7 @@ public final class ProductController {
 
         Optional<String> stored = repo.get(id);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Product not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Product not found");
             return;
         }
         ctx.contentType("application/json");
@@ -106,8 +105,7 @@ public final class ProductController {
         try {
             req = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -115,32 +113,30 @@ public final class ProductController {
         String code = req.path("code").asText(null);
         String name = req.path("name").asText(null);
         if (code == null || code.isBlank() || name == null || name.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "code and name are required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "code and name are required");
             return;
         }
         if (!SAFE_KEY.matcher(code).matches()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "code must be alphanumeric, hyphen, or underscore (max 64 chars)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "code must be alphanumeric, hyphen, or underscore (max 64 chars)");
             return;
         }
 
         // Validate custom fields
         String customFieldError = validateCustomFields(req.path("customFields"));
         if (customFieldError != null) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", customFieldError));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", customFieldError);
             return;
         }
 
         // Check code uniqueness via sentinel
         String sentinelId = SENTINEL_PREFIX + code;
         if (repo.get(sentinelId).isPresent()) {
-            ctx.status(HttpStatus.CONFLICT);
-            ctx.json(Map.of("error", "DUPLICATE_CODE", "message", "この商品コードは既に使用されています"));
+            ApiError.respond(ctx, HttpStatus.CONFLICT, "DUPLICATE_CODE", "この商品コードは既に使用されています");
             return;
         }
 
@@ -201,15 +197,13 @@ public final class ProductController {
 
         Optional<String> storedOpt = repo.get(id);
         if (storedOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Product not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Product not found");
             return;
         }
 
         JsonNode existing = MAPPER.readTree(storedOpt.get());
         if (!existing.path("deletedAt").isNull()) {
-            ctx.status(HttpStatus.GONE);
-            ctx.json(Map.of("error", "Product has been deleted"));
+            ApiError.respond(ctx, HttpStatus.GONE, "GONE", "Product has been deleted");
             return;
         }
 
@@ -220,20 +214,20 @@ public final class ProductController {
             try {
                 int expectedVersion = Integer.parseInt(ifMatch);
                 if (expectedVersion != currentVersion) {
-                    ctx.status(HttpStatus.CONFLICT);
-                    ctx.json(
-                            Map.of(
-                                    "error",
-                                    "VERSION_CONFLICT",
-                                    "message",
-                                    "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。",
-                                    "currentVersion",
-                                    currentVersion));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.CONFLICT,
+                            "VERSION_CONFLICT",
+                            "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。",
+                            Map.of("currentVersion", currentVersion));
                     return;
                 }
             } catch (NumberFormatException e) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid If-Match header value"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Invalid If-Match header value");
                 return;
             }
         }
@@ -245,8 +239,7 @@ public final class ProductController {
         try {
             req = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -254,8 +247,7 @@ public final class ProductController {
         if (req.has("customFields")) {
             String customFieldError = validateCustomFields(req.path("customFields"));
             if (customFieldError != null) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", customFieldError));
+                ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", customFieldError);
                 return;
             }
         }
@@ -265,14 +257,16 @@ public final class ProductController {
         String existingCode = existing.path("code").asText();
         if (newCode != null && !newCode.equals(existingCode)) {
             if (!SAFE_KEY.matcher(newCode).matches()) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "code must be alphanumeric, hyphen, or underscore"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "code must be alphanumeric, hyphen, or underscore");
                 return;
             }
             String newSentinelId = SENTINEL_PREFIX + newCode;
             if (repo.get(newSentinelId).isPresent()) {
-                ctx.status(HttpStatus.CONFLICT);
-                ctx.json(Map.of("error", "DUPLICATE_CODE", "message", "この商品コードは既に使用されています"));
+                ApiError.respond(ctx, HttpStatus.CONFLICT, "DUPLICATE_CODE", "この商品コードは既に使用されています");
                 return;
             }
         }
@@ -349,15 +343,13 @@ public final class ProductController {
 
         Optional<String> storedOpt = repo.get(id);
         if (storedOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Product not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Product not found");
             return;
         }
 
         JsonNode existing = MAPPER.readTree(storedOpt.get());
         if (!existing.path("deletedAt").isNull()) {
-            ctx.status(HttpStatus.GONE);
-            ctx.json(Map.of("error", "Product already deleted"));
+            ApiError.respond(ctx, HttpStatus.GONE, "GONE", "Product already deleted");
             return;
         }
 
@@ -393,14 +385,16 @@ public final class ProductController {
         try {
             parsed = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         if (!parsed.isArray()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body must be a JSON array"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Request body must be a JSON array");
             return;
         }
 
@@ -408,25 +402,28 @@ public final class ProductController {
         for (JsonNode def : parsed) {
             String key = def.path("key").asText(null);
             if (key == null || !SAFE_KEY.matcher(key).matches()) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(
-                        Map.of(
-                                "error",
-                                "Invalid field key: must be alphanumeric, hyphen, or underscore"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Invalid field key: must be alphanumeric, hyphen, or underscore");
                 return;
             }
             if (RESERVED_KEYS.contains(key)) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Reserved field key: " + key));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Reserved field key: " + key);
                 return;
             }
             String type = def.path("type").asText(null);
             if (!java.util.Set.of("text", "number", "date", "boolean").contains(type)) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(
-                        Map.of(
-                                "error",
-                                "Invalid field type: must be text, number, date, or boolean"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Invalid field type: must be text, number, date, or boolean");
                 return;
             }
         }
@@ -476,15 +473,14 @@ public final class ProductController {
         try {
             req = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         String csvText = req.path("csv").asText(null);
         if (csvText == null || csvText.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "csv field is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "csv field is required");
             return;
         }
 
@@ -493,14 +489,20 @@ public final class ProductController {
         try {
             rows = CsvDataSource.parse(csvText);
         } catch (IllegalArgumentException e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "CSV exceeds maximum row count of " + IMPORT_MAX_ROWS));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "CSV exceeds maximum row count of " + IMPORT_MAX_ROWS);
             return;
         }
 
         if (rows.size() > IMPORT_MAX_ROWS) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "CSV exceeds maximum of " + IMPORT_MAX_ROWS + " rows"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "CSV exceeds maximum of " + IMPORT_MAX_ROWS + " rows");
             return;
         }
 
@@ -684,8 +686,8 @@ public final class ProductController {
     private boolean requireAuth(Context ctx) {
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return false;
         }
         return true;

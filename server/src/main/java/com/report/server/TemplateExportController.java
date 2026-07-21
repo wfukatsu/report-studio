@@ -65,16 +65,14 @@ public final class TemplateExportController {
 
         var stored = definitionsRepo.get(templateId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
         // Ownership check — consistent with get() / put() / delete() / duplicate().
         // Returns 404 (not 403) to prevent template ID enumeration.
         if (!TemplateController.isOwner(ctx, stored.get())) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -82,15 +80,21 @@ public final class TemplateExportController {
         try {
             envelope = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read template"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read template");
             return;
         }
 
         JsonNode definition = envelope.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Template has no definition"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Template has no definition");
             return;
         }
 
@@ -124,20 +128,22 @@ public final class TemplateExportController {
         Principal principal = ctx.attribute("principal");
         String userId = (principal != null) ? principal.userId() : "anonymous";
         if (!importLimiter.isAllowed(userId)) {
-            ctx.status(429);
-            ctx.json(Map.of("error", "Too many import requests"));
+            ApiError.respond(ctx, 429, "RATE_LIMITED", "Too many import requests");
             return;
         }
 
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         if (body.length() > MAX_IMPORT_BYTES) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Import file too large (max 5 MB)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Import file too large (max 5 MB)");
             return;
         }
 
@@ -145,8 +151,7 @@ public final class TemplateExportController {
         try {
             root = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -154,8 +159,7 @@ public final class TemplateExportController {
         // migrates v1 ($schema marker) bodies and rejects newer versions.
         var unwrapped = TemplateEnvelope.unwrapStrict(root);
         if (unwrapped.isError()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", unwrapped.error()));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", unwrapped.error());
             return;
         }
         JsonNode definition = unwrapped.definition();
@@ -163,8 +167,8 @@ public final class TemplateExportController {
         // Structural validation — same save boundary as PUT (issue #52)
         var validationError = ReportDefinitionValidator.validate(definition);
         if (validationError.isPresent()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", validationError.get()));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", validationError.get());
             return;
         }
 
@@ -173,8 +177,11 @@ public final class TemplateExportController {
         try {
             newDef = remapAllIds(definition.deepCopy());
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Failed to process definition: " + e.getMessage()));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Failed to process definition: " + e.getMessage());
             return;
         }
 

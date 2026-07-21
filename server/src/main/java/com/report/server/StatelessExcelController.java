@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.WorkbookUtil;
@@ -51,13 +50,11 @@ public final class StatelessExcelController {
     public void generate(Context ctx) {
         String body = ctx.body();
         if (body == null || body.isBlank()) {
-            ctx.status(400);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Request body is required");
             return;
         }
         if (body.length() > MAX_BODY_BYTES) {
-            ctx.status(413);
-            ctx.json(Map.of("error", "Request body too large (max 512KB)"));
+            ApiError.respond(ctx, 413, "PAYLOAD_TOO_LARGE", "Request body too large (max 512KB)");
             return;
         }
 
@@ -65,16 +62,14 @@ public final class StatelessExcelController {
         try {
             root = MAPPER.readTree(body);
         } catch (Exception e) {
-            ctx.status(400);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
         // Reuse the same structural validation as stateless PDF (size/depth/pages).
         String validationError = RequestValidator.validatePdfGenerateRequest(root);
         if (validationError != null) {
-            ctx.status(400);
-            ctx.json(Map.of("error", validationError));
+            ApiError.respond(ctx, 400, "VALIDATION_ERROR", validationError);
             return;
         }
 
@@ -91,8 +86,7 @@ public final class StatelessExcelController {
             ctx.result(xlsx);
         } catch (Exception e) {
             log.error("Failed to generate XLSX", e);
-            ctx.status(500);
-            ctx.json(Map.of("error", "Failed to generate Excel workbook"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "Failed to generate Excel workbook");
         }
     }
 

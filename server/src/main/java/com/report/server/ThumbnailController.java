@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -41,8 +40,7 @@ public final class ThumbnailController {
 
         var stored = definitionsRepo.get(templateId);
         if (stored.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
 
@@ -50,15 +48,17 @@ public final class ThumbnailController {
         try {
             envelope = MAPPER.readTree(stored.get());
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to read template"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to read template");
             return;
         }
 
         JsonNode definition = envelope.path("definition");
         if (definition.isMissingNode()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "Template has no definition"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template has no definition");
             return;
         }
 
@@ -68,8 +68,11 @@ public final class ThumbnailController {
         try {
             definitionJson = V2RenderSupport.prepare(definition, MAPPER.createObjectNode(), null);
         } catch (Exception e) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Failed to prepare definition"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Failed to prepare definition");
             return;
         }
 
@@ -99,19 +102,24 @@ public final class ThumbnailController {
             thumbnail = future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            ctx.status(504);
-            ctx.json(Map.of("error", "Thumbnail generation timed out"));
+            ApiError.respond(ctx, 504, "TIMEOUT", "Thumbnail generation timed out");
             return;
         } catch (Exception e) {
             log.warn("Thumbnail generation failed for {}: {}", templateId, e.getMessage());
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Thumbnail generation failed"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Thumbnail generation failed");
             return;
         }
 
         if (thumbnail.length == 0) {
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "Thumbnail generation produced empty output"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Thumbnail generation produced empty output");
             return;
         }
 

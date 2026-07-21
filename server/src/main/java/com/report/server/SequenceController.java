@@ -50,8 +50,7 @@ public final class SequenceController {
      */
     private boolean denyIfNotOwner(Context ctx, String templateId) {
         if (TemplateController.ownsTemplate(ctx, definitionsRepo, templateId)) return false;
-        ctx.status(HttpStatus.NOT_FOUND);
-        ctx.json(Map.of("error", "Template not found"));
+        ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
         return true;
     }
 
@@ -84,8 +83,7 @@ public final class SequenceController {
         try {
             req = MAPPER.readTree(ctx.body());
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return;
         }
 
@@ -281,8 +279,8 @@ public final class SequenceController {
     private boolean requireAuth(Context ctx) {
         Principal principal = ctx.attribute("principal");
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return false;
         }
         return true;

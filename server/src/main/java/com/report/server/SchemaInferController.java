@@ -32,8 +32,7 @@ public final class SchemaInferController {
     public void infer(Context ctx) {
         String body = ctx.body();
         if (body.length() > MAX_BODY_BYTES) {
-            ctx.status(413);
-            ctx.json(Map.of("error", "Request body too large (max 1 MB)"));
+            ApiError.respond(ctx, 413, "PAYLOAD_TOO_LARGE", "Request body too large (max 1 MB)");
             return;
         }
         if (!RequestValidator.validateJson(ctx, body)) return;
@@ -42,8 +41,8 @@ public final class SchemaInferController {
             JsonNode root = MAPPER.readTree(body);
             JsonNode sample = root.get("sample");
             if (sample == null || !sample.isObject()) {
-                ctx.status(400);
-                ctx.json(Map.of("error", "\"sample\" field (object) is required"));
+                ApiError.respond(
+                        ctx, 400, "VALIDATION_ERROR", "\"sample\" field (object) is required");
                 return;
             }
 
@@ -96,8 +95,7 @@ public final class SchemaInferController {
 
         } catch (Exception e) {
             log.error("Schema inference failed", e);
-            ctx.status(500);
-            ctx.json(Map.of("error", "Schema inference failed"));
+            ApiError.respond(ctx, 500, "INTERNAL_ERROR", "Schema inference failed");
         }
     }
 

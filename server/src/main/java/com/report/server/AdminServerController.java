@@ -69,8 +69,8 @@ public final class AdminServerController {
             ctx.json(config);
         } catch (IOException e) {
             log.error("Failed to read server config", e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "サーバー設定の読み込みに失敗しました"));
+            ApiError.respond(
+                    ctx, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "サーバー設定の読み込みに失敗しました");
         }
     }
 
@@ -86,8 +86,8 @@ public final class AdminServerController {
             ctx.json(Map.of("message", "Config saved. Restart the server to apply."));
         } catch (IOException e) {
             log.error("Failed to write server config", e);
-            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            ctx.json(Map.of("error", "サーバー設定の保存に失敗しました"));
+            ApiError.respond(
+                    ctx, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "サーバー設定の保存に失敗しました");
         }
     }
 
@@ -126,8 +126,11 @@ public final class AdminServerController {
         long now = System.currentTimeMillis();
         long last = lastRestartRequestMs.get();
         if (now - last < RESTART_COOLDOWN_MS) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error", "再起動は1分に1回までです。しばらくお待ちください。"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "再起動は1分に1回までです。しばらくお待ちください。");
             return;
         }
         lastRestartRequestMs.set(now);

@@ -1,6 +1,7 @@
 package com.report.server.auth;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import com.report.server.ApiError;
 import com.report.server.AppConfig;
 import io.javalin.http.Context;
 import io.javalin.http.Cookie;
@@ -142,8 +143,11 @@ public final class AuthController {
         // Rate limit by IP
         String clientIp = ctx.ip();
         if (!loginRateLimiter.isAllowed(clientIp)) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            ctx.json(Map.of("error", "Too many login attempts. Please try again later."));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "RATE_LIMITED",
+                    "Too many login attempts. Please try again later.");
             return;
         }
 
@@ -152,23 +156,24 @@ public final class AuthController {
         String password = (String) body.get("password");
 
         if (userId == null || password == null) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "userId and password required"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "userId and password required");
             return;
         }
 
         Optional<UserRecord> userOpt = userRepo.findById(userId);
         if (userOpt.isEmpty()) {
             BCrypt.verifyer().verify(password.toCharArray(), DUMMY_HASH);
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Invalid credentials"));
+            ApiError.respond(ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid credentials");
             return;
         }
 
         UserRecord user = userOpt.get();
         if (!BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash()).verified) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Invalid credentials"));
+            ApiError.respond(ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid credentials");
             return;
         }
 
@@ -230,15 +235,14 @@ public final class AuthController {
         // Resolve session directly (auth middleware sets principal=ANONYMOUS for /api/v1/auth/*)
         Principal principal = resolveFromRequest(ctx);
         if (principal == null || principal.isAnonymous()) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.json(Map.of("error", "Authentication required"));
+            ApiError.respond(
+                    ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
             return;
         }
 
         Optional<UserRecord> userOpt = userRepo.findById(principal.userId());
         if (userOpt.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            ctx.json(Map.of("error", "User not found"));
+            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "User not found");
             return;
         }
         UserRecord user = userOpt.get();
@@ -257,15 +261,21 @@ public final class AuthController {
         boolean passwordChanged = false;
         if (newPassword != null && !newPassword.isBlank()) {
             if (currentPassword == null || currentPassword.isBlank()) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "currentPassword required to change password"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "currentPassword required to change password");
                 return;
             }
             if (!BCrypt.verifyer()
                     .verify(currentPassword.toCharArray(), user.passwordHash())
                     .verified) {
-                ctx.status(HttpStatus.UNAUTHORIZED);
-                ctx.json(Map.of("error", "Current password is incorrect"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.UNAUTHORIZED,
+                        "UNAUTHORIZED",
+                        "Current password is incorrect");
                 return;
             }
             updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());

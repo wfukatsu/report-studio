@@ -43,8 +43,11 @@ public final class RequestValidator {
     public static String validateId(Context ctx, String paramName) {
         String id = ctx.pathParam(paramName);
         if (!SAFE_ID.matcher(id).matches()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid " + paramName + " format"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Invalid " + paramName + " format");
             return null;
         }
         return id;
@@ -60,16 +63,19 @@ public final class RequestValidator {
         Object rawName = body.get("name");
 
         if (rawName != null && !(rawName instanceof String)) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "name must be a string"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "name must be a string");
             return null;
         }
 
         String name = rawName != null ? ((String) rawName).strip() : defaultName;
 
         if (name.length() > MAX_TEMPLATE_NAME_LENGTH) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "name too long (max " + MAX_TEMPLATE_NAME_LENGTH + " chars)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "name too long (max " + MAX_TEMPLATE_NAME_LENGTH + " chars)");
             return null;
         }
 
@@ -87,22 +93,24 @@ public final class RequestValidator {
      */
     public static boolean validateJsonStructure(Context ctx, String body, String requiredKey) {
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return false;
         }
 
         try {
             JsonNode node = MAPPER.readTree(body);
             if (!node.has(requiredKey)) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid format: missing '" + requiredKey + "' key"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Invalid format: missing '" + requiredKey + "' key");
                 return false;
             }
             return true;
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return false;
         }
     }
@@ -114,16 +122,19 @@ public final class RequestValidator {
      */
     public static boolean validateProjectionStructure(Context ctx, String body) {
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return false;
         }
 
         try {
             JsonNode node = MAPPER.readTree(body);
             if (!node.has("templates")) {
-                ctx.status(HttpStatus.BAD_REQUEST);
-                ctx.json(Map.of("error", "Invalid format: missing 'templates' key"));
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "Invalid format: missing 'templates' key");
                 return false;
             }
             Iterator<String> fieldNames = node.fieldNames();
@@ -132,15 +143,17 @@ public final class RequestValidator {
                 if (!PROJECTION_ALLOWED_KEYS.contains(key)) {
                     String safeKey = key.length() > 50 ? key.substring(0, 50) : key;
                     safeKey = safeKey.replaceAll("[^a-zA-Z0-9_-]", "?");
-                    ctx.status(HttpStatus.BAD_REQUEST);
-                    ctx.json(Map.of("error", "Unknown projection key: " + safeKey));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.BAD_REQUEST,
+                            "VALIDATION_ERROR",
+                            "Unknown projection key: " + safeKey);
                     return false;
                 }
             }
             return true;
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return false;
         }
     }
@@ -154,8 +167,11 @@ public final class RequestValidator {
         if (!validateJson(ctx, body)) return null;
 
         if (body.length() > MAX_RESPONSE_BODY_BYTES) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Response body too large (max 100KB)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Response body too large (max 100KB)");
             return null;
         }
 
@@ -167,8 +183,11 @@ public final class RequestValidator {
             while (fields.hasNext()) {
                 fields.next();
                 if (++fieldCount > MAX_RESPONSE_FIELDS) {
-                    ctx.status(HttpStatus.BAD_REQUEST);
-                    ctx.json(Map.of("error", "Too many fields (max " + MAX_RESPONSE_FIELDS + ")"));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.BAD_REQUEST,
+                            "VALIDATION_ERROR",
+                            "Too many fields (max " + MAX_RESPONSE_FIELDS + ")");
                     return null;
                 }
             }
@@ -177,16 +196,18 @@ public final class RequestValidator {
             while (fields.hasNext()) {
                 var field = fields.next();
                 if (field.getValue().isArray() && field.getValue().size() > MAX_DETAIL_ROWS) {
-                    ctx.status(HttpStatus.BAD_REQUEST);
-                    ctx.json(Map.of("error", "Too many detail rows (max " + MAX_DETAIL_ROWS + ")"));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.BAD_REQUEST,
+                            "VALIDATION_ERROR",
+                            "Too many detail rows (max " + MAX_DETAIL_ROWS + ")");
                     return null;
                 }
             }
 
             return dataNode;
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return null;
         }
     }
@@ -345,8 +366,11 @@ public final class RequestValidator {
             com.google.re2j.Pattern.compile(pattern);
             return true;
         } catch (PatternSyntaxException e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid inputPattern: " + e.getMessage()));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Invalid inputPattern: " + e.getMessage());
             return false;
         }
     }
@@ -386,23 +410,29 @@ public final class RequestValidator {
     public static boolean validateSchemaDefinition(Context ctx, String body, JsonNode definition) {
         // 1. Size limit
         if (body != null && body.length() > MAX_SCHEMA_BODY_BYTES) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Schema too large (max 1MB)"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Schema too large (max 1MB)");
             return false;
         }
 
         // 2. Definition must be an object
         if (definition == null || !definition.isObject()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "definition must be a JSON object"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "definition must be a JSON object");
             return false;
         }
 
         // 3. Group count limit
         JsonNode groups = definition.path("groups");
         if (groups.isArray() && groups.size() > MAX_SCHEMA_GROUPS) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Too many groups (max " + MAX_SCHEMA_GROUPS + ")"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Too many groups (max " + MAX_SCHEMA_GROUPS + ")");
             return false;
         }
 
@@ -412,15 +442,15 @@ public final class RequestValidator {
                 JsonNode fields = group.path("fields");
                 if (fields.isArray() && fields.size() > MAX_SCHEMA_FIELDS_PER_GROUP) {
                     String label = group.path("label").asText("unknown");
-                    ctx.status(HttpStatus.BAD_REQUEST);
-                    ctx.json(
-                            Map.of(
-                                    "error",
-                                    "Too many fields in group '"
-                                            + label
-                                            + "' (max "
-                                            + MAX_SCHEMA_FIELDS_PER_GROUP
-                                            + ")"));
+                    ApiError.respond(
+                            ctx,
+                            HttpStatus.BAD_REQUEST,
+                            "VALIDATION_ERROR",
+                            "Too many fields in group '"
+                                    + label
+                                    + "' (max "
+                                    + MAX_SCHEMA_FIELDS_PER_GROUP
+                                    + ")");
                     return false;
                 }
             }
@@ -430,13 +460,11 @@ public final class RequestValidator {
         int[] counts = {0};
         int depth = measureDepthAndCount(definition, 0, counts);
         if (depth > MAX_SCHEMA_DEPTH) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(
-                    Map.of(
-                            "error",
-                            "Schema definition too deeply nested (max "
-                                    + MAX_SCHEMA_DEPTH
-                                    + " levels)"));
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "Schema definition too deeply nested (max " + MAX_SCHEMA_DEPTH + " levels)");
             return false;
         }
 
@@ -450,8 +478,8 @@ public final class RequestValidator {
      */
     public static boolean validateJson(Context ctx, String body) {
         if (body == null || body.isBlank()) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Request body is required"));
+            ApiError.respond(
+                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
             return false;
         }
 
@@ -459,8 +487,7 @@ public final class RequestValidator {
             MAPPER.readTree(body);
             return true;
         } catch (Exception e) {
-            ctx.status(HttpStatus.BAD_REQUEST);
-            ctx.json(Map.of("error", "Invalid JSON"));
+            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
             return false;
         }
     }
