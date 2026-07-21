@@ -57,7 +57,7 @@ dependencies {
     // Logging (#274): logback with pattern console output by default; LOG_FORMAT=json
     // switches to logstash JSON encoding. The <if> conditional in logback.xml needs
     // janino at runtime — smallest working combination for an optional JSON mode.
-    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("ch.qos.logback:logback-classic:1.5.38")
     implementation("net.logstash.logback:logstash-logback-encoder:8.1")
     runtimeOnly("org.codehaus.janino:janino:3.1.12")
 
