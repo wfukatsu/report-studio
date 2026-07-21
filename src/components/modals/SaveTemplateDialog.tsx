@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
 import { TagInput } from '@/components/common/TagInput'
@@ -27,6 +28,7 @@ export function SaveTemplateDialog({ open, ...rest }: Props) {
 function SaveTemplateDialogContent({
   onSave, onCancel, defaultName = '', defaultCategory, defaultTags = [], saving = false,
 }: Omit<Props, 'open'>) {
+  const { t } = useTranslation('modals')
   const [name, setName] = useState(defaultName)
   const [category, setCategory] = useState<string | undefined>(defaultCategory)
   const [tags, setTags] = useState<string[]>(defaultTags)
@@ -50,16 +52,16 @@ function SaveTemplateDialogContent({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       role="dialog"
       aria-modal="true"
-      aria-label="テンプレートを保存"
+      aria-label={t('saveTemplateDialog.title')}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">
-          <h2 className="text-sm font-semibold">テンプレートを保存</h2>
+          <h2 className="text-sm font-semibold">{t('saveTemplateDialog.title')}</h2>
           <button
             onClick={onCancel}
             className="rounded hover:bg-accent p-1"
-            aria-label="閉じる"
+            aria-label={t('saveTemplateDialog.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -67,12 +69,12 @@ function SaveTemplateDialogContent({
 
         <div className="p-4 space-y-3">
           <label className="block text-xs font-medium text-muted-foreground" htmlFor="template-name">
-            テンプレート名
+            {t('saveTemplateDialog.nameLabel')}
           </label>
           <input
             ref={inputRef}
             id="template-name"
-            aria-label="テンプレート名"
+            aria-label={t('saveTemplateDialog.nameLabel')}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -81,12 +83,12 @@ function SaveTemplateDialogContent({
               if (e.key === 'Escape') onCancel()
             }}
             className="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="テンプレート名を入力"
+            placeholder={t('saveTemplateDialog.namePlaceholder')}
             autoFocus
           />
 
           <label className="block text-xs font-medium text-muted-foreground mt-3" htmlFor="template-category">
-            カテゴリ
+            {t('saveTemplateDialog.category')}
           </label>
           <CategoryCombobox
             value={category}
@@ -95,7 +97,7 @@ function SaveTemplateDialogContent({
           />
 
           <label className="block text-xs font-medium text-muted-foreground mt-3">
-            タグ
+            {t('saveTemplateDialog.tags')}
           </label>
           <TagInput value={tags} onChange={setTags} />
         </div>
@@ -104,17 +106,17 @@ function SaveTemplateDialogContent({
           <button
             onClick={onCancel}
             className="px-3 py-1.5 text-sm rounded-md hover:bg-accent"
-            aria-label="キャンセル"
+            aria-label={t('saveTemplateDialog.cancel')}
           >
-            キャンセル
+            {t('saveTemplateDialog.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
             className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={saving ? '保存中...' : '保存'}
+            aria-label={saving ? t('saveTemplateDialog.saving') : t('saveTemplateDialog.save')}
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('saveTemplateDialog.saving') : t('saveTemplateDialog.save')}
           </button>
         </footer>
       </div>

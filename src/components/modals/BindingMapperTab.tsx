@@ -10,6 +10,7 @@
  * - Rubber-band line while dragging
  */
 import { useCallback, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store'
 import { flattenPageElements } from '@/store/selectors'
 import { cn } from '@/lib/utils'
@@ -144,6 +145,7 @@ function FieldChip({
   onPointerMove,
   chipRef,
 }: FieldChipProps) {
+  const { t } = useTranslation('modals')
   return (
     <button
       ref={chipRef}
@@ -156,7 +158,7 @@ function FieldChip({
       onClick={() => onSelect(field.fieldId)}
       onPointerDown={(e) => onPointerDown(e, field.fieldId)}
       onPointerMove={(e) => onPointerMove(e, field.fieldId)}
-      title={field.dbColumnName ? `DB: ${field.dbColumnName}` : undefined}
+      title={field.dbColumnName ? t('bindingMapperTab.dbColumnTitle', { column: field.dbColumnName }) : undefined}
     >
       <span className="flex-1 truncate font-medium">{field.fieldLabel}</span>
       <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[35%]">
@@ -192,6 +194,7 @@ function ElementRow({
   onPointerUp,
   rowRef,
 }: ElementRowProps) {
+  const { t } = useTranslation('modals')
   const boundField = element.boundFieldId
     ? allFields.find((f) => f.fieldId === element.boundFieldId)
     : null
@@ -237,7 +240,7 @@ function ElementRow({
           ← {boundField.fieldKey}
         </span>
       ) : (selectedFieldId !== null || isDragging) ? (
-        <span className="text-[10px] text-muted-foreground shrink-0">ドロップで接続</span>
+        <span className="text-[10px] text-muted-foreground shrink-0">{t('bindingMapperTab.dropToConnect')}</span>
       ) : null}
     </button>
   )
@@ -248,6 +251,7 @@ function ElementRow({
 // ---------------------------------------------------------------------------
 
 export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
+  const { t } = useTranslation('modals')
   const schema = useReportStore((s) => s.definition.schema)
   const pages = useReportStore((s) => s.definition.pages)
   const setElementSchemaBinding = useReportStore((s) => s.setElementSchemaBinding)
@@ -357,14 +361,14 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
   if (!schema || schema.groups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-xs text-muted-foreground p-8 text-center">
-        <p>スキーマが未定義です。</p>
-        <p>スキーマタブでグループとフィールドを追加すると、要素とのバインドが設定できます。</p>
+        <p>{t('bindingMapperTab.schemaUndefined')}</p>
+        <p>{t('bindingMapperTab.schemaUndefinedHelp')}</p>
         {onClose && (
           <button
             className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
             onClick={onClose}
           >
-            閉じてスキーマを設定する →
+            {t('bindingMapperTab.closeToConfigureSchema')}
           </button>
         )}
       </div>
@@ -393,10 +397,10 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
       <div className="w-1/2 border-r overflow-y-auto flex flex-col">
         <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-            スキーマフィールド
+            {t('bindingMapperTab.schemaFields')}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            フィールドをクリックまたはドラッグして接続
+            {t('bindingMapperTab.clickOrDragToConnect')}
           </p>
         </div>
 
@@ -410,7 +414,7 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
             </div>
             {group.fields.length === 0 ? (
               <div className="px-3 py-1.5 text-[10px] text-muted-foreground italic border-b">
-                フィールドなし
+                {t('bindingMapperTab.noFieldsInGroup')}
               </div>
             ) : (
               group.fields.map((field) => (
@@ -447,20 +451,20 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
       <div className="w-1/2 overflow-y-auto flex flex-col">
         <div className="px-3 py-2 border-b bg-muted/30 shrink-0">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-            レポート要素
+            {t('bindingMapperTab.reportElements')}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {isDragging
-              ? '要素にドロップして接続'
+              ? t('bindingMapperTab.dropOnElement')
               : selectedFieldId
-              ? '要素をクリックして接続'
-              : `${boundElementCount}/${allElements.length} 要素がバインド済み`}
+              ? t('bindingMapperTab.clickElement')
+              : t('bindingMapperTab.boundCount', { bound: boundElementCount, total: allElements.length })}
           </p>
         </div>
 
         {allElements.length === 0 ? (
           <div className="px-3 py-3 text-[10px] text-muted-foreground italic">
-            バインド可能な要素がありません
+            {t('bindingMapperTab.noBindableElements')}
           </div>
         ) : (
           pages.map((page) => {
@@ -470,13 +474,13 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
               <div key={page.id}>
                 <div className="px-3 py-1 bg-muted/20 border-b flex items-center gap-2">
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    {page.name || 'ページ'}
+                    {page.name || t('bindingMapperTab.pageFallback')}
                   </span>
                   <button
                     className="text-[10px] text-primary hover:underline ml-auto"
                     onClick={() => setActivePage(page.id)}
                   >
-                    移動
+                    {t('bindingMapperTab.goToPage')}
                   </button>
                 </div>
                 {pageElements.map((el) => (
@@ -508,14 +512,14 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
       {selectedFieldId && !isDragging && (
         <div className="absolute bottom-0 left-0 right-0 bg-primary/10 border-t px-4 py-2 text-[10px] text-primary flex items-center gap-2">
           <span className="font-medium">
-            選択中: {allFields.find((f) => f.fieldId === selectedFieldId)?.fieldKey ?? selectedFieldId}
+            {t('bindingMapperTab.selecting', { key: allFields.find((f) => f.fieldId === selectedFieldId)?.fieldKey ?? selectedFieldId })}
           </span>
-          <span>— 右パネルの要素をクリックして接続</span>
+          <span>{t('bindingMapperTab.selectingHint')}</span>
           <button
             className="ml-auto text-muted-foreground hover:text-foreground"
             onClick={() => setSelectedFieldId(null)}
           >
-            ✕ 選択解除
+            {t('bindingMapperTab.deselect')}
           </button>
         </div>
       )}
@@ -524,9 +528,9 @@ export function BindingMapperTab({ onClose }: { onClose?: () => void } = {}) {
       {isDragging && (
         <div className="absolute bottom-0 left-0 right-0 bg-primary/10 border-t px-4 py-2 text-[10px] text-primary flex items-center gap-2">
           <span className="font-medium">
-            ドラッグ中: {allFields.find((f) => f.fieldId === dragState.fieldId)?.fieldKey ?? dragState.fieldId}
+            {t('bindingMapperTab.dragging', { key: allFields.find((f) => f.fieldId === dragState.fieldId)?.fieldKey ?? dragState.fieldId })}
           </span>
-          <span>— 右パネルの要素にドロップして接続</span>
+          <span>{t('bindingMapperTab.draggingHint')}</span>
         </div>
       )}
     </div>

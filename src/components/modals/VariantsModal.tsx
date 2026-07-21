@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Pencil, Trash2, X, Eye, EyeOff, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { useShallow } from 'zustand/shallow'
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function VariantsModal({ open, onClose }: Props) {
+  const { t } = useTranslation('modals')
   if (!open) return null
 
   return (
@@ -23,16 +25,16 @@ export function VariantsModal({ open, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       role="dialog"
       aria-modal="true"
-      aria-label="出力バリアント設定"
+      aria-label={t('variantsModal.ariaLabel')}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-[640px] max-h-[80vh] flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="text-sm font-semibold">出力バリアント設定</h2>
+          <h2 className="text-sm font-semibold">{t('variantsModal.title')}</h2>
           <button
             onClick={onClose}
             className="rounded hover:bg-accent p-1"
-            aria-label="閉じる"
+            aria-label={t('variantsModal.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -50,6 +52,7 @@ export function VariantsModal({ open, onClose }: Props) {
 // ---------------------------------------------------------------------------
 
 export function VariantList() {
+  const { t } = useTranslation('modals')
   const variants = useReportStore(
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )
@@ -70,12 +73,12 @@ export function VariantList() {
           className="flex items-center gap-2 px-3 py-2.5 w-full border-2 border-dashed rounded-md text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors justify-center"
         >
           <Wand2 className="w-3.5 h-3.5" />
-          ウィザードで新規バリアントを作成
+          {t('variantsModal.createWithWizard')}
         </button>
 
         {variants.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4">
-            バリアントがありません。PDF出力時に特定の要素を非表示・マスクするバリアントを追加できます。
+            {t('variantsModal.noVariants')}
           </p>
         )}
 
@@ -119,6 +122,7 @@ function VariantCard({
   onRemove: () => void
   onEdit: () => void
 }) {
+  const { t } = useTranslation('modals')
   const updateVariant = useReportStore((s) => s.updateVariant)
   const removeMaskingRule = useReportStore((s) => s.removeMaskingRule)
   const [editingName, setEditingName] = useState(false)
@@ -153,26 +157,26 @@ function VariantCard({
           <button
             onClick={(e) => { e.stopPropagation(); setEditingName(true); setNameInput(variant.name) }}
             className="p-0.5 rounded hover:bg-accent shrink-0"
-            aria-label="名前を編集"
+            aria-label={t('variantsModal.editName')}
           >
             <Pencil className="w-3 h-3 text-muted-foreground" />
           </button>
         </div>
         <span className="text-[10px] text-muted-foreground shrink-0">
-          非表示 {variant.hiddenElementIds.length} / マスク {variant.maskingRules.length}
+          {t('variantsModal.summary', { hidden: variant.hiddenElementIds.length, masked: variant.maskingRules.length })}
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit() }}
           className="p-0.5 rounded hover:bg-accent shrink-0"
-          aria-label="ウィザードで編集"
-          title="ウィザードで編集"
+          aria-label={t('variantsModal.editWithWizard')}
+          title={t('variantsModal.editWithWizard')}
         >
           <Wand2 className="w-3.5 h-3.5 text-muted-foreground" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onRemove() }}
           className="p-0.5 rounded hover:bg-destructive/20 text-destructive shrink-0"
-          aria-label="バリアントを削除"
+          aria-label={t('variantsModal.deleteVariant')}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -182,12 +186,12 @@ function VariantCard({
         <div className="border-t px-3 py-3 space-y-4">
           {/* Target audience */}
           <div>
-            <label className="text-[10px] text-muted-foreground uppercase tracking-wide">対象者</label>
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('variantsModal.targetAudience')}</label>
             <input
               type="text"
               defaultValue={variant.targetAudience ?? ''}
               onBlur={(e) => updateVariant(variant.id, { targetAudience: e.target.value || undefined })}
-              placeholder="例: 外部提出用、経営層向け"
+              placeholder={t('variantsModal.targetAudiencePlaceholder')}
               className="mt-1 w-full border rounded px-2 py-1 text-xs bg-background"
             />
           </div>
@@ -195,7 +199,7 @@ function VariantCard({
           {/* Hidden elements */}
           <div>
             <h4 className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">
-              非表示要素 ({variant.hiddenElementIds.length})
+              {t('variantsModal.hiddenElements', { n: variant.hiddenElementIds.length })}
             </h4>
             <HiddenElementsList variant={variant} />
           </div>
@@ -203,10 +207,10 @@ function VariantCard({
           {/* Masking rules */}
           <div>
             <h4 className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">
-              マスキングルール ({variant.maskingRules.length})
+              {t('variantsModal.maskingRules', { n: variant.maskingRules.length })}
             </h4>
             {variant.maskingRules.length === 0 ? (
-              <p className="text-xs text-muted-foreground">マスキングルールがありません。</p>
+              <p className="text-xs text-muted-foreground">{t('variantsModal.noMaskingRules')}</p>
             ) : (
               <div className="space-y-2">
                 {variant.maskingRules.map((rule) => (
@@ -231,6 +235,7 @@ function VariantCard({
 // ---------------------------------------------------------------------------
 
 function HiddenElementsList({ variant }: { variant: OutputVariant }) {
+  const { t } = useTranslation('modals')
   const pages = useReportStore(useShallow((s) => s.definition.pages))
   const toggleElementHidden = useReportStore((s) => s.toggleElementHidden)
 
@@ -247,7 +252,7 @@ function HiddenElementsList({ variant }: { variant: OutputVariant }) {
   if (variant.hiddenElementIds.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        非表示要素がありません。プロパティパネルから要素を非表示に設定できます。
+        {t('variantsModal.noHiddenElements')}
       </p>
     )
   }
@@ -261,7 +266,7 @@ function HiddenElementsList({ variant }: { variant: OutputVariant }) {
           <button
             onClick={() => toggleElementHidden(variant.id, id)}
             className="p-0.5 rounded hover:bg-accent"
-            aria-label="非表示を解除"
+            aria-label={t('variantsModal.unhide')}
           >
             <Eye className="w-3 h-3" />
           </button>
@@ -284,6 +289,7 @@ function MaskingRuleRow({
   rule: MaskingRule
   onRemove: () => void
 }) {
+  const { t } = useTranslation('modals')
   const replaceMaskingRule = useReportStore((s) => s.replaceMaskingRule)
   const pages = useReportStore(useShallow((s) => s.definition.pages))
 
@@ -299,7 +305,7 @@ function MaskingRuleRow({
   return (
     <div className="border rounded p-2 space-y-1.5">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">対象:</span>
+        <span className="text-xs text-muted-foreground">{t('variantsModal.target')}</span>
         <span className="text-xs font-medium flex-1 truncate">
           {elementNames.get(rule.targetElementId) ?? rule.targetElementId}
         </span>
@@ -310,7 +316,7 @@ function MaskingRuleRow({
 
       {rule.type === 'fullReplace' && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">置換値:</span>
+          <span className="text-[10px] text-muted-foreground">{t('variantsModal.replaceValue')}</span>
           <input
             type="text"
             defaultValue={rule.replaceValue}
@@ -324,7 +330,7 @@ function MaskingRuleRow({
 
       {rule.type === 'partial' && (
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-muted-foreground">先頭保持:</span>
+          <span className="text-[10px] text-muted-foreground">{t('variantsModal.keepFirst')}</span>
           <input
             type="number"
             min={0}
@@ -335,7 +341,7 @@ function MaskingRuleRow({
             }}
             className="w-14 border rounded px-1.5 py-0.5 text-xs bg-background"
           />
-          <span className="text-[10px] text-muted-foreground">末尾保持:</span>
+          <span className="text-[10px] text-muted-foreground">{t('variantsModal.keepLast')}</span>
           <input
             type="number"
             min={0}

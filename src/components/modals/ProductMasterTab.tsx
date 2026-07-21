@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type { Product, ProductCustomFieldDef } from '@/types'
@@ -10,20 +11,19 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 type SortCol = 'code' | 'name' | 'category' | 'unitPrice'
 type SortDir = 'asc' | 'desc'
 
-const COLUMN_LABELS: Record<SortCol, string> = {
-  code: '商品コード',
-  name: '商品名',
-  category: 'カテゴリ',
-  unitPrice: '単価',
-}
-
-const TAX_LABELS: Record<string, string> = {
-  none: '非課税',
-  standard: '標準税率',
-  reduced: '軽減税率',
-}
-
 export function ProductMasterTab() {
+  const { t } = useTranslation('modals')
+  const COLUMN_LABELS: Record<SortCol, string> = {
+    code: t('productMasterTab.columns.code'),
+    name: t('productMasterTab.columns.name'),
+    category: t('productMasterTab.columns.category'),
+    unitPrice: t('productMasterTab.columns.unitPrice'),
+  }
+  const TAX_LABELS: Record<string, string> = {
+    none: t('productMasterTab.tax.none'),
+    standard: t('productMasterTab.tax.standard'),
+    reduced: t('productMasterTab.tax.reduced'),
+  }
   const products = useReportStore((s) => s.products)
   const customFieldDefs = useReportStore((s) => s.customFieldDefs)
   const productsLoading = useReportStore((s) => s.productsLoading)
@@ -76,7 +76,7 @@ export function ProductMasterTab() {
     try {
       await deleteProduct(product.id)
     } catch {
-      toast.error('削除に失敗しました。再試行してください。', { duration: 8000 })
+      toast.error(t('productMasterTab.deleteFailed'), { duration: 8000 })
     } finally {
       setProductOp(product.id, 'idle')
     }
@@ -88,26 +88,26 @@ export function ProductMasterTab() {
   }
 
   if (productsLoading && products.length === 0) {
-    return <div className="p-6 text-xs text-muted-foreground">商品マスターを読み込んでいます...</div>
+    return <div className="p-6 text-xs text-muted-foreground">{t('productMasterTab.loading')}</div>
   }
 
   return (
-    <div className="p-4 flex flex-col gap-4" role="tabpanel" aria-label="商品マスター">
+    <div className="p-4 flex flex-col gap-4" role="tabpanel" aria-label={t('productMasterTab.tabLabel')}>
       {/* Custom field defs section */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            カスタムフィールド定義
+            {t('productMasterTab.customFieldsHeading')}
           </p>
           <button
             onClick={() => setIsFieldDefsOpen(true)}
             className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
           >
-            管理
+            {t('productMasterTab.manage')}
           </button>
         </div>
         {customFieldDefs.length === 0 ? (
-          <p className="text-[10px] text-muted-foreground">カスタムフィールドはありません</p>
+          <p className="text-[10px] text-muted-foreground">{t('productMasterTab.noCustomFields')}</p>
         ) : (
           <div className="flex flex-wrap gap-1">
             {customFieldDefs.map((def) => (
@@ -127,13 +127,13 @@ export function ProductMasterTab() {
       <div>
         <div className="flex items-center justify-between mb-2 gap-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            商品一覧 ({sorted.length}件)
+            {t('productMasterTab.productListCount', { n: sorted.length })}
           </p>
           <div className="flex items-center gap-2 flex-1 justify-end">
             <input
               type="search"
-              placeholder="商品コード・商品名で検索"
-              aria-label="商品を検索"
+              placeholder={t('productMasterTab.searchPlaceholder')}
+              aria-label={t('productMasterTab.searchLabel')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border rounded px-2 py-1 text-xs bg-background w-48"
@@ -148,7 +148,7 @@ export function ProductMasterTab() {
               onClick={() => setIsAddOpen(true)}
               className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
             >
-              追加
+              {t('productMasterTab.add')}
             </button>
           </div>
         </div>
@@ -159,11 +159,11 @@ export function ProductMasterTab() {
 
         {sorted.length === 0 ? (
           <div className="text-center py-8 text-xs text-muted-foreground border rounded">
-            {search ? '検索結果がありません' : '商品がありません。「追加」から登録してください。'}
+            {search ? t('productMasterTab.noSearchResults') : t('productMasterTab.noProducts')}
           </div>
         ) : (
           <div className="border rounded overflow-auto max-h-80">
-            <table className="w-full text-xs" aria-label="商品一覧">
+            <table className="w-full text-xs" aria-label={t('productMasterTab.productListLabel')}>
               <thead className="bg-muted/50 sticky top-0">
                 <tr>
                   {(['code', 'name', 'category', 'unitPrice'] as SortCol[]).map((col) => (
@@ -187,8 +187,8 @@ export function ProductMasterTab() {
                       )}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">税区分</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">操作</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">{t('productMasterTab.taxColumn')}</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t('productMasterTab.actionsColumn')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -201,7 +201,7 @@ export function ProductMasterTab() {
                       <td className="px-3 py-1.5">{product.name}</td>
                       <td className="px-3 py-1.5 text-muted-foreground">{product.category || '—'}</td>
                       <td className="px-3 py-1.5 text-right">
-                        {product.unitPrice.toLocaleString('ja-JP')}円
+                        {t('productMasterTab.priceYen', { price: product.unitPrice.toLocaleString('ja-JP') })}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
                         {TAX_LABELS[product.taxType] ?? product.taxType}
@@ -211,19 +211,19 @@ export function ProductMasterTab() {
                           <button
                             onClick={() => setEditingProduct(product)}
                             disabled={isBusy}
-                            aria-label={`${product.name}を編集`}
+                            aria-label={t('productMasterTab.editAria', { name: product.name })}
                             className="text-blue-600 hover:text-blue-800 disabled:opacity-40 transition-colors"
                           >
-                            編集
+                            {t('productMasterTab.edit')}
                           </button>
                           <span className="text-muted-foreground">|</span>
                           <button
                             onClick={() => handleDelete(product)}
                             disabled={isBusy}
-                            aria-label={`${product.name}を削除`}
+                            aria-label={t('productMasterTab.deleteAria', { name: product.name })}
                             className="text-red-500 hover:text-red-700 disabled:opacity-40 transition-colors"
                           >
-                            {op === 'deleting' ? '削除中...' : '削除'}
+                            {op === 'deleting' ? t('productMasterTab.deleting') : t('productMasterTab.delete')}
                           </button>
                         </div>
                       </td>
@@ -260,9 +260,9 @@ export function ProductMasterTab() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="商品を削除"
-        message={`商品「${deleteTarget?.name}」を削除しますか？削除後 90 日間は同じ商品コードは使用できません。`}
-        confirmLabel="削除"
+        title={t('productMasterTab.deleteConfirmTitle')}
+        message={t('productMasterTab.deleteConfirmMessage', { name: deleteTarget?.name })}
+        confirmLabel={t('productMasterTab.delete')}
         confirmVariant="danger"
         onConfirm={() => { if (deleteTarget) void execDelete(deleteTarget); setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}
@@ -276,6 +276,7 @@ export function ProductMasterTab() {
 // ---------------------------------------------------------------------------
 
 function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation('modals')
   const customFieldDefs = useReportStore((s) => s.customFieldDefs)
   const updateCustomFieldDefs = useReportStore((s) => s.updateCustomFieldDefs)
   const [defs, setDefs] = useState<ProductCustomFieldDef[]>(() => [...customFieldDefs])
@@ -290,7 +291,7 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
       await updateCustomFieldDefs(defs)
       onClose()
     } catch {
-      setError('保存に失敗しました。再試行してください。')
+      setError(t('productMasterTab.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -318,51 +319,51 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
       role="dialog"
       aria-modal="true"
-      aria-label="カスタムフィールド定義の管理"
+      aria-label={t('productMasterTab.customFieldsDialogLabel')}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
     >
       <div className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col mx-4">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h3 className="text-sm font-semibold">カスタムフィールド定義</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent" aria-label="閉じる">✕</button>
+          <h3 className="text-sm font-semibold">{t('productMasterTab.customFieldsHeading')}</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent" aria-label={t('productMasterTab.close')}>✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
           {defs.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-4">カスタムフィールドはありません</p>
+            <p className="text-xs text-muted-foreground text-center py-4">{t('productMasterTab.noCustomFields')}</p>
           )}
           {defs.map((def, i) => (
             <div key={i} className="flex items-center gap-2 border rounded p-2">
               <input
                 value={def.key}
                 onChange={(e) => updateDef(i, 'key', e.target.value)}
-                placeholder="キー (英数字)"
-                aria-label={`フィールド${i + 1}のキー`}
+                placeholder={t('productMasterTab.keyPlaceholder')}
+                aria-label={t('productMasterTab.fieldKeyAria', { index: i + 1 })}
                 className="border rounded px-2 py-1 text-xs bg-background w-28 font-mono"
               />
               <input
                 value={def.label}
                 onChange={(e) => updateDef(i, 'label', e.target.value)}
-                placeholder="表示名"
-                aria-label={`フィールド${i + 1}の表示名`}
+                placeholder={t('productMasterTab.labelPlaceholder')}
+                aria-label={t('productMasterTab.fieldLabelAria', { index: i + 1 })}
                 className="border rounded px-2 py-1 text-xs bg-background flex-1"
               />
               <select
                 value={def.type}
                 onChange={(e) => updateDef(i, 'type', e.target.value as ProductCustomFieldDef['type'])}
-                aria-label={`フィールド${i + 1}の型`}
+                aria-label={t('productMasterTab.fieldTypeAria', { index: i + 1 })}
                 className="border rounded px-2 py-1 text-xs bg-background"
               >
-                <option value="text">テキスト</option>
-                <option value="number">数値</option>
-                <option value="date">日付</option>
-                <option value="boolean">真偽値</option>
+                <option value="text">{t('productMasterTab.typeText')}</option>
+                <option value="number">{t('productMasterTab.typeNumber')}</option>
+                <option value="date">{t('productMasterTab.typeDate')}</option>
+                <option value="boolean">{t('productMasterTab.typeBoolean')}</option>
               </select>
               <button
                 onClick={() => removeDef(i)}
-                aria-label={`${def.label}を削除`}
+                aria-label={t('productMasterTab.fieldDeleteAria', { label: def.label })}
                 className="text-red-500 hover:text-red-700 text-xs"
               >
-                削除
+                {t('productMasterTab.delete')}
               </button>
             </div>
           ))}
@@ -370,27 +371,27 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
             onClick={addDef}
             className="text-xs text-blue-600 hover:text-blue-800 border border-dashed rounded py-1.5 hover:bg-blue-50 transition-colors"
           >
-            + フィールドを追加
+            {t('productMasterTab.addField')}
           </button>
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t shrink-0">
-          <button onClick={onClose} disabled={saving} className="px-3 py-1.5 text-xs border rounded hover:bg-accent transition-colors">キャンセル</button>
+          <button onClick={onClose} disabled={saving} className="px-3 py-1.5 text-xs border rounded hover:bg-accent transition-colors">{t('productMasterTab.cancel')}</button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60 transition-opacity"
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('productMasterTab.saving') : t('productMasterTab.save')}
           </button>
         </div>
       </div>
 
       <ConfirmDialog
         open={removeDefTarget !== null}
-        title="フィールドを削除"
-        message={`フィールド「${removeDefTarget?.label}」を削除しますか？既存商品のデータは保持されますが表示されなくなります。`}
-        confirmLabel="削除"
+        title={t('productMasterTab.fieldDeleteConfirmTitle')}
+        message={t('productMasterTab.fieldDeleteConfirmMessage', { label: removeDefTarget?.label })}
+        confirmLabel={t('productMasterTab.delete')}
         confirmVariant="danger"
         onConfirm={() => {
           if (removeDefTarget) setDefs(defs.filter((_, i) => i !== removeDefTarget.index))

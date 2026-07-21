@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import type { TenantInfo } from '@/types'
 import { TenantLogoField } from '@/components/common/TenantLogoField'
@@ -7,6 +8,7 @@ import { PropRow } from '@/elements/_base/sharedUI'
 const MAX_CUSTOM_FIELDS = 20
 
 export function TenantInfoTab() {
+  const { t } = useTranslation('modals')
   const tenantInfo = useReportStore((s) => s.tenantInfo)
   const updateTenantInfo = useReportStore((s) => s.updateTenantInfo)
   const tenantLoading = useReportStore((s) => s.tenantLoading)
@@ -56,14 +58,14 @@ export function TenantInfoTab() {
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : '保存に失敗しました')
+      setSaveError(err instanceof Error ? err.message : t('tenantInfoTab.saveFailed'))
     } finally {
       setSaving(false)
     }
   }
 
   if (tenantLoading) {
-    return <div className="p-6 text-xs text-muted-foreground">テナント情報を読み込んでいます...</div>
+    return <div className="p-6 text-xs text-muted-foreground">{t('tenantInfoTab.loading')}</div>
   }
 
   return (
@@ -71,27 +73,27 @@ export function TenantInfoTab() {
 
       {/* Basic info */}
       <section>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">基本情報</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t('tenantInfoTab.basicInfo')}</p>
         <div className="flex flex-col gap-2">
-          <PropRow label="会社名">
+          <PropRow label={t('tenantInfoTab.companyName')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
-              placeholder="株式会社サンプル"
+              placeholder={t('tenantInfoTab.companyNamePlaceholder')}
               value={form.companyName ?? ''}
               onChange={(e) => setField('companyName', e.target.value)}
             />
           </PropRow>
-          <PropRow label="代表者名">
+          <PropRow label={t('tenantInfoTab.representativeName')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
-              placeholder="山田太郎"
+              placeholder={t('tenantInfoTab.representativeNamePlaceholder')}
               value={form.representativeName ?? ''}
               onChange={(e) => setField('representativeName', e.target.value)}
             />
           </PropRow>
-          <PropRow label="郵便番号">
+          <PropRow label={t('tenantInfoTab.postalCode')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
@@ -100,11 +102,11 @@ export function TenantInfoTab() {
               onChange={(e) => setField('postalCode', e.target.value)}
             />
           </PropRow>
-          <PropRow label="住所1（都道府県・市区町村）">
+          <PropRow label={t('tenantInfoTab.address1')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
-              placeholder="東京都千代田区千代田"
+              placeholder={t('tenantInfoTab.address1Placeholder')}
               value={form.address1 ?? ''}
               onChange={(e) => {
                 const v = e.target.value
@@ -112,11 +114,11 @@ export function TenantInfoTab() {
               }}
             />
           </PropRow>
-          <PropRow label="住所2（番地・建物名）">
+          <PropRow label={t('tenantInfoTab.address2')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
-              placeholder="1-1-1 〇〇ビル3F"
+              placeholder={t('tenantInfoTab.address2Placeholder')}
               value={form.address2 ?? ''}
               onChange={(e) => {
                 const v = e.target.value
@@ -124,7 +126,7 @@ export function TenantInfoTab() {
               }}
             />
           </PropRow>
-          <PropRow label="電話番号">
+          <PropRow label={t('tenantInfoTab.phone')}>
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
@@ -133,7 +135,7 @@ export function TenantInfoTab() {
               onChange={(e) => setField('phone', e.target.value)}
             />
           </PropRow>
-          <PropRow label="メール">
+          <PropRow label={t('tenantInfoTab.email')}>
             <input
               type="email"
               className="border rounded px-2 py-1 text-xs w-full bg-background"
@@ -147,7 +149,7 @@ export function TenantInfoTab() {
 
       {/* Logo */}
       <section>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">ロゴ画像</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t('tenantInfoTab.logo')}</p>
         <TenantLogoField
           value={form.logoBase64}
           onChange={(dataUrl) => setField('logoBase64', dataUrl)}
@@ -157,25 +159,25 @@ export function TenantInfoTab() {
       {/* Custom fields */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">カスタムフィールド</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('tenantInfoTab.customFields')}</p>
           <button
             type="button"
             disabled={customEntries.length >= MAX_CUSTOM_FIELDS}
             onClick={addCustomField}
             className="text-xs px-2 py-0.5 bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            + 追加
+            {t('tenantInfoTab.add')}
           </button>
         </div>
         {customEntries.length === 0 && (
-          <p className="text-[10px] text-muted-foreground">カスタムフィールドはありません。「+ 追加」ボタンで追加できます。</p>
+          <p className="text-[10px] text-muted-foreground">{t('tenantInfoTab.noCustomFields')}</p>
         )}
         {customEntries.map(([key, value]) => (
           <div key={key} className="flex gap-1 mb-1 items-center">
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs w-1/3 bg-background font-mono"
-              placeholder="フィールド名"
+              placeholder={t('tenantInfoTab.fieldNamePlaceholder')}
               value={key}
               onChange={(e) => updateCustomKey(key, e.target.value)}
             />
@@ -183,7 +185,7 @@ export function TenantInfoTab() {
             <input
               type="text"
               className="border rounded px-2 py-1 text-xs flex-1 bg-background"
-              placeholder="値"
+              placeholder={t('tenantInfoTab.valuePlaceholder')}
               value={value}
               onChange={(e) => updateCustomValue(key, e.target.value)}
             />
@@ -191,14 +193,14 @@ export function TenantInfoTab() {
               type="button"
               onClick={() => removeCustomField(key)}
               className="text-xs text-red-400 hover:text-red-600 px-1"
-              aria-label="このフィールドを削除"
+              aria-label={t('tenantInfoTab.removeFieldLabel')}
             >
               ✕
             </button>
           </div>
         ))}
         {customEntries.length >= MAX_CUSTOM_FIELDS && (
-          <p className="text-[10px] text-muted-foreground mt-1">最大 {MAX_CUSTOM_FIELDS} フィールドまで追加できます。</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{t('tenantInfoTab.maxFields', { max: MAX_CUSTOM_FIELDS })}</p>
         )}
       </section>
 
@@ -210,9 +212,9 @@ export function TenantInfoTab() {
           disabled={saving}
           className="px-4 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60"
         >
-          {saving ? '保存中...' : '保存'}
+          {saving ? t('tenantInfoTab.saving') : t('tenantInfoTab.save')}
         </button>
-        {saveSuccess && <span className="text-xs text-green-600">保存しました</span>}
+        {saveSuccess && <span className="text-xs text-green-600">{t('tenantInfoTab.saved')}</span>}
         {saveError && <span className="text-xs text-red-500">{saveError}</span>}
       </div>
     </div>

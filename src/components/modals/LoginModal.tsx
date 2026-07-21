@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { isApiError } from '@/api/client'
 
@@ -7,6 +8,7 @@ import { isApiError } from '@/api/client'
  * Blocks the entire UI until the user authenticates.
  */
 export function LoginModal() {
+  const { t } = useTranslation('modals')
   const loginUser = useReportStore((s) => s.loginUser)
 
   const [userId, setUserId] = useState('')
@@ -24,14 +26,14 @@ export function LoginModal() {
     } catch (err) {
       if (isApiError(err)) {
         if (err.status === 401) {
-          setError('ユーザー名またはパスワードが正しくありません')
+          setError(t('loginModal.invalidCredentials'))
         } else if (err.status === 429) {
-          setError('ログイン試行回数が多すぎます。しばらく待ってから再試行してください')
+          setError(t('loginModal.tooManyAttempts'))
         } else {
-          setError(`ログインに失敗しました (${err.status})`)
+          setError(t('loginModal.loginFailed', { status: err.status }))
         }
       } else {
-        setError('ネットワークエラーが発生しました')
+        setError(t('loginModal.networkError'))
       }
     } finally {
       setLoading(false)
@@ -47,13 +49,13 @@ export function LoginModal() {
     >
       <div className="bg-background border border-border rounded-lg shadow-2xl w-80 p-6">
         <h2 id="login-modal-title" className="text-sm font-semibold mb-4 text-center">
-          レポートデザインスタジオ
+          {t('loginModal.title')}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
             <label htmlFor="login-userid" className="text-xs text-muted-foreground block mb-1">
-              ユーザーID
+              {t('loginModal.userId')}
             </label>
             <input
               id="login-userid"
@@ -69,7 +71,7 @@ export function LoginModal() {
 
           <div>
             <label htmlFor="login-password" className="text-xs text-muted-foreground block mb-1">
-              パスワード
+              {t('loginModal.password')}
             </label>
             <input
               id="login-password"
@@ -93,7 +95,7 @@ export function LoginModal() {
             disabled={loading || !userId.trim() || !password}
             className="mt-1 w-full py-2 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? t('loginModal.loggingIn') : t('loginModal.login')}
           </button>
         </form>
       </div>

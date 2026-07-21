@@ -2,6 +2,7 @@
  * FieldColumnMap / FieldColumnRow — per-field column selection inside
  * GroupBindingSection. Extracted from DbConnectionTab.tsx in Phase 1.5.
  */
+import { useTranslation } from 'react-i18next'
 import type { ScalarDbCatalogTable } from '@/api/reportApi'
 import type { SchemaField } from '@/types'
 import { keyTypeLabel } from '@/lib/scalardbLabels'
@@ -14,10 +15,11 @@ export interface FieldColumnMapProps {
 }
 
 export function FieldColumnMap({ groupId, fields, table, onColumnChange }: FieldColumnMapProps) {
+  const { t } = useTranslation('modals')
   if (fields.length === 0) {
     return (
       <p className="text-[10px] text-muted-foreground pl-1">
-        このグループにはフィールドがありません。
+        {t('fieldColumnMap.noFields')}
       </p>
     )
   }
@@ -25,7 +27,7 @@ export function FieldColumnMap({ groupId, fields, table, onColumnChange }: Field
   return (
     <div className="border-t border-border pt-2">
       <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide">
-        フィールド ↔ DB カラム
+        {t('fieldColumnMap.fieldToColumn')}
       </div>
       <ul className="flex flex-col gap-1.5">
         {fields.map((field) => (
@@ -50,6 +52,7 @@ interface FieldColumnRowProps {
 }
 
 function FieldColumnRow({ groupId, field, table, onColumnChange }: FieldColumnRowProps) {
+  const { t } = useTranslation('modals')
   const current = field.dbColumnName ?? ''
   const columnExists = current === '' || table.columns.some((c) => c.name === current)
   const selectId = `dbconn-col-${groupId}-${field.id}`
@@ -59,7 +62,7 @@ function FieldColumnRow({ groupId, field, table, onColumnChange }: FieldColumnRo
     <li className="grid grid-cols-[1fr_1fr] gap-2 items-center">
       <label htmlFor={selectId} className="text-[11px] truncate">
         {displayLabel}
-        <span className="ml-1 text-[9px] text-muted-foreground">DB カラム</span>
+        <span className="ml-1 text-[9px] text-muted-foreground">{t('fieldColumnMap.dbColumn')}</span>
       </label>
       <select
         id={selectId}
@@ -67,7 +70,7 @@ function FieldColumnRow({ groupId, field, table, onColumnChange }: FieldColumnRo
         onChange={(e) => onColumnChange(field.id, e.target.value)}
         className="text-xs border border-border rounded px-2 py-1 bg-background"
       >
-        <option value="">(未選択)</option>
+        <option value="">{t('fieldColumnMap.notSelected')}</option>
         {table.columns.map((c) => {
           const kt = keyTypeLabel(c.keyType)
           return (
@@ -80,7 +83,7 @@ function FieldColumnRow({ groupId, field, table, onColumnChange }: FieldColumnRo
         {/* Synthetic disabled option preserves a stale dbColumnName */}
         {!columnExists && (
           <option value={current} disabled>
-            {current} (列が存在しません)
+            {t('fieldColumnMap.columnMissing', { column: current })}
           </option>
         )}
       </select>

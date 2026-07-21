@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { changeProfile } from '@/api/reportApi'
 import { isApiError } from '@/api/client'
 
 export function AccountTab() {
+  const { t } = useTranslation('modals')
   const currentUser = useReportStore((s) => s.currentUser)
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName ?? '')
@@ -19,11 +21,11 @@ export function AccountTab() {
     setSuccess(false)
 
     if (newPassword && newPassword !== confirmPassword) {
-      setError('新しいパスワードが一致しません')
+      setError(t('accountTab.passwordMismatch'))
       return
     }
     if (newPassword && !currentPassword) {
-      setError('パスワードを変更するには現在のパスワードが必要です')
+      setError(t('accountTab.currentPasswordRequired'))
       return
     }
 
@@ -38,7 +40,7 @@ export function AccountTab() {
         patch.newPassword = newPassword
       }
       if (Object.keys(patch).length === 0) {
-        setError('変更がありません')
+        setError(t('accountTab.noChanges'))
         setSaving(false)
         return
       }
@@ -50,9 +52,9 @@ export function AccountTab() {
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
       if (isApiError(err) && err.status === 401) {
-        setError('現在のパスワードが正しくありません')
+        setError(t('accountTab.currentPasswordWrong'))
       } else {
-        setError('保存に失敗しました')
+        setError(t('accountTab.saveFailed'))
       }
     } finally {
       setSaving(false)
@@ -62,12 +64,12 @@ export function AccountTab() {
   return (
     <div className="p-5 flex flex-col gap-4 max-w-md">
       <div>
-        <p className="text-xs text-muted-foreground mb-1">ユーザーID</p>
+        <p className="text-xs text-muted-foreground mb-1">{t('accountTab.userId')}</p>
         <p className="text-sm font-mono text-foreground/70">{currentUser?.userId}</p>
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">表示名</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.displayName')}</label>
         <input
           type="text"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -78,21 +80,21 @@ export function AccountTab() {
 
       <hr className="border-border" />
 
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">パスワード変更</p>
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.changePassword')}</p>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">現在のパスワード</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.currentPassword')}</label>
         <input
           type="password"
           autoComplete="current-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
-          placeholder="変更する場合のみ入力"
+          placeholder={t('accountTab.currentPasswordPlaceholder')}
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">新しいパスワード</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.newPassword')}</label>
         <input
           type="password"
           autoComplete="new-password"
@@ -102,7 +104,7 @@ export function AccountTab() {
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">新しいパスワード（確認）</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.confirmPassword')}</label>
         <input
           type="password"
           autoComplete="new-password"
@@ -113,14 +115,14 @@ export function AccountTab() {
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {success && <p className="text-xs text-green-600">保存しました</p>}
+      {success && <p className="text-xs text-green-600">{t('accountTab.saved')}</p>}
 
       <button
         onClick={handleSave}
         disabled={saving}
         className="px-4 py-1.5 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 w-fit"
       >
-        {saving ? '保存中...' : '保存'}
+        {saving ? t('accountTab.saving') : t('accountTab.save')}
       </button>
     </div>
   )

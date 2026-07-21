@@ -7,6 +7,7 @@
 import 'i18next'
 import type common from './locales/ja/common.json'
 import type toolbar from './locales/ja/toolbar.json'
+import type modals from './locales/ja/modals.json'
 
 declare module 'i18next' {
   interface CustomTypeOptions {
@@ -14,6 +15,7 @@ declare module 'i18next' {
     resources: {
       common: typeof common
       toolbar: typeof toolbar
+      modals: typeof modals
     }
   }
 }
