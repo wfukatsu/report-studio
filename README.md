@@ -95,8 +95,8 @@ npm run dev:backend  # バックエンド   (http://localhost:8080)
 
 ### 最初の帳票を作る
 
-1. ログイン後、ツールバーの **新規作成** をクリック
-2. テンプレート一覧から **御見積書（モダン）** を選び **変更** — 帳票がキャンバスに展開されます
+1. （任意）`npm run seed:samples` でサンプル帳票 5 種（見積書・請求書など）を公開テンプレートとして投入（要バックエンド起動）
+2. ログイン後、ツールバーの **新規作成** をクリックし、**空白** またはサンプル帳票（投入済みの場合は「公開テンプレート」に表示）を選んで **作成** — 帳票がキャンバスに展開されます
 3. ツールバー右側の **プレビューを表示** で、`{{fieldKey}}` トークンがサンプルデータに解決される様子を確認
 4. **エクスポート** から PDF を出力 — サーバーサイド PDF はページ分割・和文フォント埋め込みに対応しています
 
@@ -128,7 +128,7 @@ docker compose up --build
 
 ```bash
 npm run dev              # 開発サーバー起動 (http://localhost:5173)
-npm run build            # 型チェック (TS 5.7) + ビルド (dist/)
+npm run build            # 型チェック (TypeScript 7 native tsc) + ビルド (dist/)
 npm run typecheck:native # TS7 native tsc での tsconfig 別型検査
 npm run lint             # ESLint
 npm test                 # テスト実行 (watch モード)
@@ -187,9 +187,8 @@ report-design-studio-v2/
 │   ├── components/         # UI コンポーネント
 │   ├── elements/           # 要素タイプ別 Renderer/PropertiesPanel
 │   ├── store/              # Zustand ストアスライス
-│   ├── api/                # バックエンド API クライアント
-│   ├── lib/                # ユーティリティ (エクスポート・データバインディング等)
-│   └── templates/          # ビルトインテンプレート
+│   ├── api/                # バックエンド API クライアント（reportApi.ts はドメイン別モジュールのバレル）
+│   └── lib/                # ユーティリティ (エクスポート・データバインディング等)
 ├── server/                 # バックエンド (Java/Javalin)
 │   └── src/main/java/com/report/server/
 │       ├── auth/           # 認証・セッション管理

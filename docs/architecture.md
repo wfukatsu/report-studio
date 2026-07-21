@@ -9,7 +9,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
 | 特性 | 内容 |
 |------|------|
 | アプリ形態 | シングルページアプリケーション（SPA）+ REST API バックエンド |
-| フロントエンド | Vite 8 + React 19 + TypeScript 5.7（Zustand で状態管理） |
+| フロントエンド | Vite 8 + React 19 + TypeScript 7（native tsc・Zustand で状態管理） |
 | バックエンド | Java 21 + Javalin 7（仮想スレッド活用） |
 | データストア | ScalarDB 3.17.3 → SQLite（開発）/ 任意の JDBC（本番） |
 | 帳票エンジン | Apache PDFBox 3.0.8（和文フォント埋め込み・ページ分割） |
@@ -190,7 +190,7 @@ scalar.db.transaction_manager=jdbc
   - **互換ポリシー** — 移行・削除時は新旧 URL を dual-register し `Deprecation` ヘッダ + openapi.yaml の `deprecated: true` を付与、2 マイナーリリース後に旧 URL を削除
 - **認証**: Cookie セッション。公開フォームとヘルスチェックのみ免除。
 - **CSRF 防御**: 状態変更メソッドに Origin チェック。
-- **エラー形式**: JSON。検証失敗は 422、レート制限超過は 429（`Retry-After` 付き）、権限不足は 403、未認証は 401。バインド解決の部分成功は 207。
+- **エラー形式**: 全エラーレスポンスは `{"error": <人間可読>, "code": <機械可読 UPPER_SNAKE>, "correlationId": <id>}` の統一 JSON（`ApiError`、#267）。correlationId はサーバログのスタックトレースにも併記され、ログとレスポンスを突合できる。検証失敗は 422、レート制限超過は 429（`Retry-After` 付き）、権限不足は 403、未認証は 401。バインド解決の部分成功は 207。
 - **主なエンドポイント群**（全一覧は [設計 › API リファレンス](./design.md#6-api-リファレンス概要)）:
   - テンプレート CRUD・複製・可視性・エクスポート/インポート
   - 評価/検証（`/evaluate`・`/validate`）
@@ -212,8 +212,8 @@ scalar.db.transaction_manager=jdbc
 
 ## 10. 開発・リリース基盤
 
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）。frontend（lint + build + vitest）と backend（`./gradlew test`、ゴールデン PDF 回帰）の 2 ジョブ。
-- **テスト**: フロントは Vitest、バックエンドは JUnit 5。カバレッジはラチェット閾値（`test:coverage`）。
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）。3 ジョブ構成 — frontend（lint / build / TS7 型検査 / npm audit / vitest カバレッジラチェット / Storybook build）、backend（spotless / JUnit + ゴールデン PDF 回帰 / jacoco カバレッジラチェット）、E2E（Playwright、バックエンド + Vite を自動起動）。Actions は SHA ピン + `permissions: contents: read`。
+- **テスト**: フロントは Vitest（カバレッジラチェット `test:coverage`）+ Playwright E2E（主要フロー）。バックエンドは JUnit 5 + jacoco ラチェット（instruction 0.64 / branch 0.58、`check` に接続）。
 - **スキーマ整合**: 構造上限は `schemas/report-definition-limits.json` を単一ソースとし、フロント/バック双方が参照。生成 JSON Schema とのドリフトはテストで検出。
 - **コンテナ**: フロント/バックエンドの 2 イメージ + nginx リバースプロキシで単一オリジン配信。
 
