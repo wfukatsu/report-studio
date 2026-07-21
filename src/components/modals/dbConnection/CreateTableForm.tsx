@@ -13,6 +13,8 @@
  * See Technical Considerations in the Phase 1.5 plan.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useReportStore } from '@/store'
 import { createScalarDbTable } from '@/api/reportApi'
 import type { SchemaGroup, SchemaFieldType } from '@/types'
@@ -78,6 +80,7 @@ function buildColumns(group: SchemaGroup): ColumnRow[] {
 // ---------------------------------------------------------------------------
 
 export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: CreateTableFormProps) {
+  const { t } = useTranslation('modals')
   const bindGroupToTableWithColumns = useReportStore((s) => s.bindGroupToTableWithColumns)
 
   const hasArrayFields = group.fields.some((f) => f.type === 'array')
@@ -109,11 +112,11 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     const setValidationError = (message: string) => setErrorInfo({ message, showRecovery: false, showRetry: false })
 
     if (!effectiveNamespace) {
-      setValidationError('ネームスペースを選択または入力してください')
+      setValidationError(t('createTableForm.selectOrEnterNamespace'))
       return
     }
     if (!tableName) {
-      setValidationError('テーブル名を入力してください')
+      setValidationError(t('createTableForm.enterTableName'))
       return
     }
     const nsValidation = validateScalarDbIdentifier(effectiveNamespace)
@@ -129,7 +132,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 
     // Validate column count
     if (columns.length > MAX_COLUMNS_PER_TABLE) {
-      setValidationError(`列が多すぎます (最大 ${MAX_COLUMNS_PER_TABLE})`)
+      setValidationError(t('createTableForm.tooManyColumns', { max: MAX_COLUMNS_PER_TABLE }))
       return
     }
 
@@ -139,19 +142,19 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     const secondaryIndexes = columns.filter((c) => c.keyRole === 'index').map((c) => c.name)
 
     if (partitionKeys.length === 0) {
-      setValidationError('パーティションキーを 1 つ以上選択してください')
+      setValidationError(t('createTableForm.selectAtLeastOnePartitionKey'))
       return
     }
     if (partitionKeys.length > MAX_PARTITION_KEYS) {
-      setValidationError(`パーティションキーが多すぎます (最大 ${MAX_PARTITION_KEYS})`)
+      setValidationError(t('createTableForm.tooManyPartitionKeys', { max: MAX_PARTITION_KEYS }))
       return
     }
     if (clusteringKeys.length > MAX_CLUSTERING_KEYS) {
-      setValidationError(`クラスタリングキーが多すぎます (最大 ${MAX_CLUSTERING_KEYS})`)
+      setValidationError(t('createTableForm.tooManyClusteringKeys', { max: MAX_CLUSTERING_KEYS }))
       return
     }
     if (secondaryIndexes.length > MAX_SECONDARY_INDEXES) {
-      setValidationError(`セカンダリインデックスが多すぎます (最大 ${MAX_SECONDARY_INDEXES})`)
+      setValidationError(t('createTableForm.tooManySecondaryIndexes', { max: MAX_SECONDARY_INDEXES }))
       return
     }
 
@@ -168,7 +171,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     // for a more specific message)
     const colNames = columns.map((c) => c.name)
     if (new Set(colNames).size !== colNames.length) {
-      setValidationError('カラム名が重複しています。各カラム名を一意にしてください。')
+      setValidationError(t('createTableForm.duplicateColumnNames'))
       return
     }
 
@@ -210,7 +213,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       if (controller.signal.aborted) return
       const info = classifyCreateTableError(err)
       setErrorInfo({
-        message: errorCodeToMessage(info.code),
+        message: errorCodeToMessage(info.code, t),
         correlationId: info.correlationId,
         showRecovery: info.showRecovery,
         showRetry: info.showRetry,
@@ -225,6 +228,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
     group.id,
     bindGroupToTableWithColumns,
     onSuccess,
+    t,
   ])
 
   return (
@@ -233,12 +237,12 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}
       className="flex flex-col gap-3 p-2 bg-muted/30 rounded border border-border"
     >
-      <h5 className="text-[11px] font-semibold">テーブルを新規作成</h5>
+      <h5 className="text-[11px] font-semibold">{t('createTableForm.title')}</h5>
 
       {/* Namespace */}
       <div className="flex flex-col gap-1">
         <label className="text-[10px] text-muted-foreground" id="ctf-ns-label">
-          ネームスペース
+          {t('createTableForm.namespace')}
         </label>
         <select
           aria-labelledby="ctf-ns-label"
@@ -254,19 +258,19 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           }}
           className="text-xs border border-border rounded px-2 py-1.5 bg-background"
         >
-          <option value="">(未選択)</option>
+          <option value="">{t('createTableForm.notSelected')}</option>
           {namespaces.map((ns) => (
             <option key={ns} value={ns}>{ns}</option>
           ))}
-          <option value="__new__">(新規作成...)</option>
+          <option value="__new__">{t('createTableForm.createNew')}</option>
         </select>
         {isNewNamespace && (
           <input
             type="text"
-            aria-label="新しいネームスペース名"
+            aria-label={t('createTableForm.newNamespaceName')}
             value={newNamespaceName}
             onChange={(e) => setNewNamespaceName(e.target.value)}
-            placeholder="新しいネームスペース名"
+            placeholder={t('createTableForm.newNamespaceName')}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background mt-1"
           />
         )}
@@ -275,14 +279,14 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       {/* Table name */}
       <div className="flex flex-col gap-1">
         <label className="text-[10px] text-muted-foreground" htmlFor="ctf-table-name">
-          テーブル名
+          {t('createTableForm.tableName')}
         </label>
         <input
           id="ctf-table-name"
           type="text"
           value={tableName}
           onChange={(e) => setTableName(e.target.value)}
-          placeholder="例: orders, user_accounts"
+          placeholder={t('createTableForm.tableNamePlaceholder')}
           className="text-xs border border-border rounded px-2 py-1.5 bg-background"
         />
       </div>
@@ -290,31 +294,31 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
       {/* Array field notice */}
       {hasArrayFields && (
         <p className="text-[10px] text-muted-foreground border border-border rounded p-2">
-          ※ array 型フィールドは ScalarDB の単一カラムにマッピングできないため除外されています。
+          {t('createTableForm.arrayFieldNotice')}
         </p>
       )}
 
       {/* Column rows */}
       <div className="flex flex-col gap-2">
         <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-          カラム定義
+          {t('createTableForm.columnDefinition')}
         </div>
         <div className="grid grid-cols-[1fr_auto_auto] gap-1 text-[10px] text-muted-foreground px-1">
-          <span>カラム名</span>
-          <span>型</span>
-          <span aria-label="キーロール">キーロール</span>
+          <span>{t('createTableForm.columnName')}</span>
+          <span>{t('createTableForm.columnType')}</span>
+          <span aria-label={t('createTableForm.keyRole')}>{t('createTableForm.keyRole')}</span>
         </div>
         {columns.map((col, idx) => (
           <div key={col.fieldId} className="grid grid-cols-[1fr_auto_auto] gap-1 items-center">
             <input
               type="text"
-              aria-label={`${idx + 1}番目のカラム名`}
+              aria-label={t('createTableForm.columnNameAria', { n: idx + 1 })}
               value={col.name}
               onChange={(e) => updateColumn(idx, { name: e.target.value })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
             />
             <select
-              aria-label={`${idx + 1}番目のカラムのデータ型`}
+              aria-label={t('createTableForm.columnTypeAria', { n: idx + 1 })}
               value={col.type}
               onChange={(e) => updateColumn(idx, { type: e.target.value as ScalarDbColumnType })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
@@ -324,15 +328,15 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
               ))}
             </select>
             <select
-              aria-label={`${idx + 1}番目のカラムのキーロール`}
+              aria-label={t('createTableForm.columnKeyRoleAria', { n: idx + 1 })}
               value={col.keyRole}
               onChange={(e) => updateColumn(idx, { keyRole: e.target.value as KeyRole })}
               className="text-xs border border-border rounded px-2 py-1 bg-background"
             >
-              <option value="none">-（通常列）</option>
-              <option value="partition">パーティションキー</option>
-              <option value="clustering">クラスタリングキー</option>
-              <option value="index">セカンダリインデックス</option>
+              <option value="none">{t('createTableForm.keyRoleNone')}</option>
+              <option value="partition">{t('createTableForm.keyRolePartition')}</option>
+              <option value="clustering">{t('createTableForm.keyRoleClustering')}</option>
+              <option value="index">{t('createTableForm.keyRoleIndex')}</option>
             </select>
           </div>
         ))}
@@ -343,7 +347,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
         <div className="border border-destructive/40 bg-destructive/5 rounded p-2 text-xs flex flex-col gap-1" role="alert" aria-live="assertive" aria-atomic="true">
           <p className="text-destructive">{errorInfo.message}</p>
           {errorInfo.correlationId && (
-            <p className="text-muted-foreground text-[10px]">相関 ID: {errorInfo.correlationId}</p>
+            <p className="text-muted-foreground text-[10px]">{t('createTableForm.correlationId', { id: errorInfo.correlationId })}</p>
           )}
           {errorInfo.showRecovery && (
             <button
@@ -354,7 +358,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
               }}
               className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors self-start"
             >
-              代わりに既存テーブルにバインドする
+              {t('createTableForm.bindExistingInstead')}
             </button>
           )}
         </div>
@@ -367,7 +371,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           onClick={onCancel}
           className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
         >
-          キャンセル
+          {t('createTableForm.cancel')}
         </button>
         {errorInfo?.showRetry && (
           <button
@@ -376,7 +380,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
             disabled={isSubmitting}
             className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors disabled:opacity-50"
           >
-            再試行
+            {t('createTableForm.retry')}
           </button>
         )}
         <button
@@ -384,7 +388,7 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
           disabled={isSubmitting}
           className="text-[11px] px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          {isSubmitting ? '作成中...' : 'テーブルを作成'}
+          {isSubmitting ? t('createTableForm.submitting') : t('createTableForm.submit')}
         </button>
       </div>
     </form>
@@ -395,21 +399,21 @@ export function CreateTableForm({ group, namespaces, onSuccess, onCancel }: Crea
 // Error code → Japanese message mapping
 // ---------------------------------------------------------------------------
 
-function errorCodeToMessage(code: string): string {
+function errorCodeToMessage(code: string, t: TFunction<'modals'>): string {
   switch (code) {
     case 'invalid_request':
-      return 'リクエストが不正です。入力内容を確認してください。'
+      return t('createTableForm.errorInvalidRequest')
     case 'conflict':
-      return 'テーブルは既に存在します。'
+      return t('createTableForm.errorConflict')
     case 'unauth':
-      return 'ScalarDB 認証に失敗しました。'
+      return t('createTableForm.errorUnauth')
     case 'forbidden':
-      return 'ScalarDB 権限が足りません。'
+      return t('createTableForm.errorForbidden')
     case 'unreachable':
-      return 'ScalarDB に接続できません。しばらく待ってから再試行してください。'
+      return t('createTableForm.errorUnreachable')
     case 'network':
-      return 'ネットワークエラーが発生しました。接続を確認してから再試行してください。'
+      return t('createTableForm.errorNetwork')
     default:
-      return 'テーブル作成に失敗しました。'
+      return t('createTableForm.errorDefault')
   }
 }

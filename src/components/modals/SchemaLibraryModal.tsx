@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Database, Globe, Lock, Loader2, Trash2 } from 'lucide-react'
 import { getSchema } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function SchemaLibraryModal({ open, onClose }: Props) {
+  const { t } = useTranslation('modals')
   const [applying, setApplying] = useState<string | null>(null)
 
   const items = useReportStore((s) => s.schemaList)
@@ -43,19 +45,19 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
       }
       onClose()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'スキーマの適用に失敗しました', { duration: 8000 })
+      toast.error(e instanceof Error ? e.message : t('schemaLibraryModal.errorApply'), { duration: 8000 })
     } finally {
       setApplying(null)
     }
-  }, [setSchema, onClose])
+  }, [setSchema, onClose, t])
 
   const handleDelete = useCallback(async (id: string) => {
     try {
       await storeDeleteSchema(id)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '削除に失敗しました', { duration: 8000 })
+      toast.error(e instanceof Error ? e.message : t('schemaLibraryModal.errorDelete'), { duration: 8000 })
     }
-  }, [storeDeleteSchema])
+  }, [storeDeleteSchema, t])
 
   if (!open) return null
 
@@ -71,7 +73,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
           <Database className="w-4 h-4 text-[#6366f1]" />
-          <h3 className="text-sm font-medium flex-1">スキーマライブラリ</h3>
+          <h3 className="text-sm font-medium flex-1">{t('schemaLibraryModal.title')}</h3>
           <button
             className="text-muted-foreground hover:text-foreground text-lg leading-none"
             onClick={onClose}
@@ -92,7 +94,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
             <div className="px-4 py-3 text-xs text-destructive">
               {error}
               <button className="ml-2 text-primary hover:underline" onClick={fetchSchemaList}>
-                再試行
+                {t('schemaLibraryModal.retry')}
               </button>
             </div>
           )}
@@ -101,9 +103,9 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
             <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
               <Database className="w-8 h-8 text-muted-foreground/30" />
               <p className="text-xs text-muted-foreground">
-                保存済みスキーマがありません。
+                {t('schemaLibraryModal.noSchemas')}
                 <br />
-                バインドタブで「ライブラリに保存」してください。
+                {t('schemaLibraryModal.noSchemasHint')}
               </p>
             </div>
           )}
@@ -126,7 +128,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{item.name}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {item.visibility === 'shared' ? '共有' : 'プライベート'}
+                    {item.visibility === 'shared' ? t('schemaLibraryModal.shared') : t('schemaLibraryModal.private')}
                     {!isOwner && item.createdBy && ` · ${item.createdBy}`}
                   </p>
                 </div>
@@ -140,7 +142,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
                   {applying === item.id ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
-                    '適用'
+                    t('schemaLibraryModal.apply')
                   )}
                 </button>
 
@@ -148,7 +150,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
                   <button
                     className="p-1 text-muted-foreground hover:text-destructive shrink-0"
                     onClick={() => handleDelete(item.id)}
-                    title="削除"
+                    title={t('schemaLibraryModal.delete')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

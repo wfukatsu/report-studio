@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel'
 import { BindingPanel } from '@/components/sidebar/BindingPanel'
 import { CalculationTab } from '@/components/modals/CalculationTab'
@@ -11,14 +12,16 @@ import { cn } from '@/lib/utils'
 // BindingMapperTab and DbConnectionTab removed — their functionality is now in BindingEditor.
 type TabId = 'datasource' | 'calculation' | 'validation' | 'tenantinfo' | 'productmaster' | 'webhook'
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'datasource', label: 'テンプレートデータ' },
-  { id: 'calculation', label: '計算フィールド' },
-  { id: 'validation', label: '入力検証' },
-  { id: 'tenantinfo', label: 'テナント情報' },
-  { id: 'productmaster', label: '商品マスター' },
-  { id: 'webhook', label: 'Webhook' },
-]
+// `as const satisfies` keeps `labelKey` as literal key types so `t(tab.labelKey)`
+// type-checks against the typed i18next catalog (#329).
+const TABS = [
+  { id: 'datasource', labelKey: 'dataBindingModal.tabDatasource' },
+  { id: 'calculation', labelKey: 'dataBindingModal.tabCalculation' },
+  { id: 'validation', labelKey: 'dataBindingModal.tabValidation' },
+  { id: 'tenantinfo', labelKey: 'dataBindingModal.tabTenantinfo' },
+  { id: 'productmaster', labelKey: 'dataBindingModal.tabProductmaster' },
+  { id: 'webhook', labelKey: 'dataBindingModal.tabWebhook' },
+] as const satisfies readonly { id: TabId; labelKey: string }[]
 
 interface DataBindingModalProps {
   open: boolean
@@ -26,6 +29,7 @@ interface DataBindingModalProps {
 }
 
 export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
+  const { t } = useTranslation('modals')
   const [activeTab, setActiveTab] = useState<TabId>('datasource')
   const modalRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -100,11 +104,11 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
       <div ref={modalRef} className="bg-background border border-border rounded-lg shadow-xl w-[75vw] max-w-5xl h-[80vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
-          <h2 id="data-binding-modal-title" className="text-sm font-semibold">データ設定</h2>
+          <h2 id="data-binding-modal-title" className="text-sm font-semibold">{t('dataBindingModal.title')}</h2>
           <button
             onClick={handleClose}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
-            aria-label="閉じる"
+            aria-label={t('dataBindingModal.close')}
           >
             ✕
           </button>
@@ -113,7 +117,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
         {/* Tab bar */}
         <div
           role="tablist"
-          aria-label="データ設定タブ"
+          aria-label={t('dataBindingModal.tablistLabel')}
           className="flex border-b shrink-0 px-2"
           onKeyDown={handleTabKeyDown}
         >
@@ -133,7 +137,7 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </div>
@@ -149,19 +153,19 @@ export function DataBindingModal({ open, onClose }: DataBindingModalProps) {
             <div className="flex flex-col gap-0 divide-y">
               <div className="p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  サンプルデータ
+                  {t('dataBindingModal.sampleData')}
                 </p>
                 <p className="text-[10px] text-muted-foreground mb-3">
-                  テンプレート設計用のサンプルデータ。{'{{fieldKey}}'}の参照に使用します。
+                  {t('dataBindingModal.sampleDataHint', { token: '{{fieldKey}}' })}
                 </p>
                 <DataSourcePanel />
               </div>
               <div className="p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  プレビューデータ
+                  {t('dataBindingModal.previewData')}
                 </p>
                 <p className="text-[10px] text-muted-foreground mb-3">
-                  プレビューモードで表示するデータ（省略時はサンプルデータを使用）
+                  {t('dataBindingModal.previewDataHint')}
                 </p>
                 <BindingPanel />
               </div>

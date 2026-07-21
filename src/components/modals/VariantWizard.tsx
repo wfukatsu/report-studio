@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   ArrowRight,
@@ -32,8 +33,6 @@ import { v4 as uuidv4 } from 'uuid'
 // ---------------------------------------------------------------------------
 
 type Step = 0 | 1 | 2 | 3
-
-const STEP_LABELS = ['基本情報', '非表示要素', 'マスキング', '確認'] as const
 
 interface WizardDraft {
   name: string
@@ -60,6 +59,7 @@ interface Props {
 // ---------------------------------------------------------------------------
 
 export function VariantWizard({ editVariant, onClose }: Props) {
+  const { t } = useTranslation('modals')
   const pages = useReportStore(useShallow((s) => s.definition.pages))
   const addVariant = useReportStore((s) => s.addVariant)
   const updateVariant = useReportStore((s) => s.updateVariant)
@@ -150,16 +150,16 @@ export function VariantWizard({ editVariant, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       role="dialog"
       aria-modal="true"
-      aria-label="バリアント設定ウィザード"
+      aria-label={t('variantWizard.ariaLabel')}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-5 py-3 border-b shrink-0">
           <h2 className="text-sm font-semibold">
-            {editVariant ? 'バリアントを編集' : '新しいバリアントを作成'}
+            {editVariant ? t('variantWizard.editTitle') : t('variantWizard.newTitle')}
           </h2>
-          <button onClick={onClose} className="rounded hover:bg-accent p-1" aria-label="閉じる">
+          <button onClick={onClose} className="rounded hover:bg-accent p-1" aria-label={t('variantWizard.close')}>
             <X className="w-4 h-4" />
           </button>
         </header>
@@ -182,9 +182,9 @@ export function VariantWizard({ editVariant, onClose }: Props) {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border hover:bg-accent transition-colors"
           >
             {step === 0 ? (
-              <>キャンセル</>
+              <>{t('variantWizard.cancel')}</>
             ) : (
-              <><ArrowLeft className="w-3.5 h-3.5" />戻る</>
+              <><ArrowLeft className="w-3.5 h-3.5" />{t('variantWizard.back')}</>
             )}
           </button>
 
@@ -199,7 +199,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
                   : 'bg-muted text-muted-foreground cursor-not-allowed',
               )}
             >
-              次へ<ArrowRight className="w-3.5 h-3.5" />
+              {t('variantWizard.next')}<ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
             <button
@@ -207,7 +207,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
               className="flex items-center gap-1.5 px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
-              {editVariant ? '保存' : '作成'}
+              {editVariant ? t('variantWizard.save') : t('variantWizard.create')}
             </button>
           )}
         </footer>
@@ -221,9 +221,16 @@ export function VariantWizard({ editVariant, onClose }: Props) {
 // ---------------------------------------------------------------------------
 
 function StepIndicator({ current }: { current: Step }) {
+  const { t } = useTranslation('modals')
+  const stepLabels = [
+    t('variantWizard.steps.basicInfo'),
+    t('variantWizard.steps.hiddenElements'),
+    t('variantWizard.steps.masking'),
+    t('variantWizard.steps.review'),
+  ]
   return (
     <div className="flex items-center gap-1 px-5 py-2.5 border-b bg-muted/10 shrink-0">
-      {STEP_LABELS.map((label, i) => {
+      {stepLabels.map((label, i) => {
         const isActive = i === current
         const isDone = i < current
         return (
@@ -269,37 +276,38 @@ function StepBasicInfo({
   draft: WizardDraft
   onChange: (d: WizardDraft) => void
 }) {
+  const { t } = useTranslation('modals')
   return (
     <div className="space-y-5 max-w-md">
       <p className="text-xs text-muted-foreground">
-        バリアントの基本情報を設定します。バリアントを使うと、同じテンプレートから宛先ごとに異なるPDFを出力できます。
+        {t('variantWizard.basicInfo.description')}
       </p>
 
       <div>
         <label className="text-xs font-medium text-foreground">
-          バリアント名 <span className="text-destructive">*</span>
+          {t('variantWizard.basicInfo.nameLabel')} <span className="text-destructive">*</span>
         </label>
         <input
           autoFocus
           type="text"
           value={draft.name}
           onChange={(e) => onChange({ ...draft, name: e.target.value })}
-          placeholder="例: 顧客提出用、社内用"
+          placeholder={t('variantWizard.basicInfo.namePlaceholder')}
           className="mt-1 w-full border rounded px-3 py-2 text-sm bg-background"
         />
       </div>
 
       <div>
-        <label className="text-xs font-medium text-foreground">対象者（任意）</label>
+        <label className="text-xs font-medium text-foreground">{t('variantWizard.basicInfo.audienceLabel')}</label>
         <input
           type="text"
           value={draft.targetAudience}
           onChange={(e) => onChange({ ...draft, targetAudience: e.target.value })}
-          placeholder="例: 取引先、経営層、監査法人"
+          placeholder={t('variantWizard.basicInfo.audiencePlaceholder')}
           className="mt-1 w-full border rounded px-3 py-2 text-sm bg-background"
         />
         <p className="mt-1 text-[10px] text-muted-foreground">
-          PDF出力時にバリアントを選ぶ際の参考情報として表示されます。
+          {t('variantWizard.basicInfo.audienceHint')}
         </p>
       </div>
     </div>
@@ -319,6 +327,7 @@ function StepHiddenElements({
   onChange: (d: WizardDraft) => void
   elements: readonly ElementInfo[]
 }) {
+  const { t } = useTranslation('modals')
   const [search, setSearch] = useState('')
 
   const toggleHidden = useCallback((id: string) => {
@@ -349,7 +358,7 @@ function StepHiddenElements({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        このバリアントで非表示にする要素を選択してください。チェックした要素はPDF出力時に表示されません。
+        {t('variantWizard.hidden.description')}
       </p>
 
       {/* Search */}
@@ -357,14 +366,14 @@ function StepHiddenElements({
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="要素を検索..."
+        placeholder={t('variantWizard.hidden.searchPlaceholder')}
         className="w-full border rounded px-3 py-1.5 text-xs bg-background"
       />
 
       {/* Selected count */}
       <div className="text-[11px] text-muted-foreground">
         <EyeOff className="w-3 h-3 inline mr-1" />
-        {draft.hiddenElementIds.size} 件の要素を非表示に設定
+        {t('variantWizard.hidden.selectedCount', { n: draft.hiddenElementIds.size })}
       </div>
 
       {/* Element list grouped by page */}
@@ -407,7 +416,7 @@ function StepHiddenElements({
 
         {grouped.size === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4">
-            {search ? '該当する要素がありません' : 'テンプレートに要素がありません'}
+            {search ? t('variantWizard.hidden.noMatch') : t('variantWizard.hidden.noElements')}
           </p>
         )}
       </div>
@@ -428,6 +437,7 @@ function StepMasking({
   onChange: (d: WizardDraft) => void
   elements: readonly ElementInfo[]
 }) {
+  const { t } = useTranslation('modals')
   const [addingFor, setAddingFor] = useState<string | null>(null)
 
   // Only text-like elements are maskable
@@ -470,7 +480,7 @@ function StepMasking({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        特定の要素の値をマスク（伏せ字）にできます。完全置換または部分マスクから選択してください。
+        {t('variantWizard.masking.description')}
       </p>
 
       {/* Existing rules */}
@@ -486,7 +496,7 @@ function StepMasking({
                 <button
                   onClick={() => removeRule(rule.id)}
                   className="p-0.5 rounded hover:bg-destructive/20 text-destructive"
-                  aria-label="ルールを削除"
+                  aria-label={t('variantWizard.masking.deleteRule')}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -494,7 +504,7 @@ function StepMasking({
 
               {rule.type === 'fullReplace' && (
                 <div className="flex items-center gap-2 ml-5">
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">完全置換:</span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t('variantWizard.masking.fullReplaceLabel')}</span>
                   <input
                     type="text"
                     value={rule.replaceValue}
@@ -503,16 +513,16 @@ function StepMasking({
                     className="flex-1 border rounded px-2 py-1 text-xs bg-background"
                   />
                   <span className="text-[10px] text-muted-foreground">
-                    例: 山田太郎 → {rule.replaceValue || '***'}
+                    {t('variantWizard.masking.fullReplaceExample', { value: rule.replaceValue || '***' })}
                   </span>
                 </div>
               )}
 
               {rule.type === 'partial' && (
                 <div className="flex items-center gap-3 ml-5 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">部分マスク:</span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t('variantWizard.masking.partialLabel')}</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground">先頭</span>
+                    <span className="text-[10px] text-muted-foreground">{t('variantWizard.masking.first')}</span>
                     <input
                       type="number"
                       min={0}
@@ -521,10 +531,10 @@ function StepMasking({
                       onChange={(e) => updateRule(rule.id, { keepFirst: Number(e.target.value) })}
                       className="w-12 border rounded px-1.5 py-0.5 text-xs bg-background text-center"
                     />
-                    <span className="text-[10px] text-muted-foreground">文字表示</span>
+                    <span className="text-[10px] text-muted-foreground">{t('variantWizard.masking.charsShown')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground">末尾</span>
+                    <span className="text-[10px] text-muted-foreground">{t('variantWizard.masking.last')}</span>
                     <input
                       type="number"
                       min={0}
@@ -533,10 +543,10 @@ function StepMasking({
                       onChange={(e) => updateRule(rule.id, { keepLast: Number(e.target.value) })}
                       className="w-12 border rounded px-1.5 py-0.5 text-xs bg-background text-center"
                     />
-                    <span className="text-[10px] text-muted-foreground">文字表示</span>
+                    <span className="text-[10px] text-muted-foreground">{t('variantWizard.masking.charsShown')}</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground">
-                    例: 山田太郎 → {previewPartialMask('山田太郎', rule.keepFirst ?? 0, rule.keepLast ?? 0)}
+                    {t('variantWizard.masking.partialExample', { value: previewPartialMask('山田太郎', rule.keepFirst ?? 0, rule.keepLast ?? 0) })}
                   </span>
                 </div>
               )}
@@ -552,12 +562,12 @@ function StepMasking({
           className="flex items-center gap-1.5 px-3 py-2 border-2 border-dashed rounded-md text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors w-full justify-center"
         >
           <Plus className="w-3.5 h-3.5" />
-          マスキングルールを追加
+          {t('variantWizard.masking.addRule')}
         </button>
       ) : addingFor === 'picking' ? (
         <div className="border rounded-md p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium">マスクする要素を選択</span>
+            <span className="text-xs font-medium">{t('variantWizard.masking.pickElement')}</span>
             <button onClick={() => setAddingFor(null)} className="p-0.5 rounded hover:bg-accent">
               <X className="w-3.5 h-3.5" />
             </button>
@@ -576,7 +586,7 @@ function StepMasking({
             ))}
             {maskableElements.filter((el) => !ruledElementIds.has(el.id)).length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-2">
-                マスク可能な要素がありません
+                {t('variantWizard.masking.noMaskable')}
               </p>
             )}
           </div>
@@ -585,7 +595,7 @@ function StepMasking({
         <div className="border rounded-md p-3 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">
-              マスクの種類を選択: {elementNameMap.get(addingFor) ?? addingFor}
+              {t('variantWizard.masking.chooseType', { name: elementNameMap.get(addingFor) ?? addingFor })}
             </span>
             <button onClick={() => setAddingFor(null)} className="p-0.5 rounded hover:bg-accent">
               <X className="w-3.5 h-3.5" />
@@ -596,24 +606,24 @@ function StepMasking({
               onClick={() => addRule(addingFor, 'fullReplace')}
               className="border rounded-md p-3 text-left hover:bg-primary/5 hover:border-primary/40 transition-colors"
             >
-              <div className="text-xs font-medium mb-1">完全置換</div>
+              <div className="text-xs font-medium mb-1">{t('variantWizard.masking.fullReplace')}</div>
               <div className="text-[10px] text-muted-foreground">
-                値全体を別の文字に置換します
+                {t('variantWizard.masking.fullReplaceDesc')}
               </div>
               <div className="text-[10px] text-muted-foreground mt-1">
-                例: 山田太郎 → ***
+                {t('variantWizard.masking.fullReplaceEg')}
               </div>
             </button>
             <button
               onClick={() => addRule(addingFor, 'partial')}
               className="border rounded-md p-3 text-left hover:bg-primary/5 hover:border-primary/40 transition-colors"
             >
-              <div className="text-xs font-medium mb-1">部分マスク</div>
+              <div className="text-xs font-medium mb-1">{t('variantWizard.masking.partial')}</div>
               <div className="text-[10px] text-muted-foreground">
-                一部の文字だけ伏せ字にします
+                {t('variantWizard.masking.partialDesc')}
               </div>
               <div className="text-[10px] text-muted-foreground mt-1">
-                例: 山田太郎 → 山***
+                {t('variantWizard.masking.partialEg')}
               </div>
             </button>
           </div>
@@ -622,7 +632,7 @@ function StepMasking({
 
       {draft.maskingRules.length === 0 && addingFor === null && (
         <p className="text-xs text-muted-foreground text-center py-2">
-          マスキングルールはありません。必要なければ「次へ」で進んでください。
+          {t('variantWizard.masking.noRulesHint')}
         </p>
       )}
     </div>
@@ -640,6 +650,7 @@ function StepReview({
   draft: WizardDraft
   elements: readonly ElementInfo[]
 }) {
+  const { t } = useTranslation('modals')
   const elementNameMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const el of elements) map.set(el.id, el.name)
@@ -649,27 +660,27 @@ function StepReview({
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
-        設定内容を確認してください。問題なければ「作成」をクリックして完了します。
+        {t('variantWizard.review.description')}
       </p>
 
       {/* Basic info */}
       <div className="border rounded-md p-3 space-y-2">
-        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">基本情報</h4>
+        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{t('variantWizard.review.basicInfo')}</h4>
         <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-          <span className="text-muted-foreground">名前:</span>
+          <span className="text-muted-foreground">{t('variantWizard.review.name')}</span>
           <span className="font-medium">{draft.name}</span>
-          <span className="text-muted-foreground">対象者:</span>
-          <span>{draft.targetAudience || '（未設定）'}</span>
+          <span className="text-muted-foreground">{t('variantWizard.review.audience')}</span>
+          <span>{draft.targetAudience || t('variantWizard.review.notSet')}</span>
         </div>
       </div>
 
       {/* Hidden elements */}
       <div className="border rounded-md p-3 space-y-2">
         <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          非表示要素 ({draft.hiddenElementIds.size})
+          {t('variantWizard.review.hiddenElements', { n: draft.hiddenElementIds.size })}
         </h4>
         {draft.hiddenElementIds.size === 0 ? (
-          <p className="text-xs text-muted-foreground">なし</p>
+          <p className="text-xs text-muted-foreground">{t('variantWizard.review.none')}</p>
         ) : (
           <div className="space-y-0.5">
             {[...draft.hiddenElementIds].map((id) => (
@@ -685,10 +696,10 @@ function StepReview({
       {/* Masking rules */}
       <div className="border rounded-md p-3 space-y-2">
         <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          マスキングルール ({draft.maskingRules.length})
+          {t('variantWizard.review.maskingRules', { n: draft.maskingRules.length })}
         </h4>
         {draft.maskingRules.length === 0 ? (
-          <p className="text-xs text-muted-foreground">なし</p>
+          <p className="text-xs text-muted-foreground">{t('variantWizard.review.none')}</p>
         ) : (
           <div className="space-y-1">
             {draft.maskingRules.map((rule) => (
@@ -700,8 +711,8 @@ function StepReview({
                 <span className="text-muted-foreground">—</span>
                 <span className="text-muted-foreground">
                   {rule.type === 'fullReplace'
-                    ? `完全置換 → "${rule.replaceValue}"`
-                    : `部分マスク (先頭${rule.keepFirst ?? 0}文字 / 末尾${rule.keepLast ?? 0}文字)`}
+                    ? t('variantWizard.review.fullReplaceSummary', { value: rule.replaceValue })
+                    : t('variantWizard.review.partialSummary', { first: rule.keepFirst ?? 0, last: rule.keepLast ?? 0 })}
                 </span>
               </div>
             ))}

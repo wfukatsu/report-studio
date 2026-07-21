@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type { Product, ProductCustomFieldDef, CreateProductRequest, UpdateProductPayload, CustomFieldValue } from '@/types'
@@ -63,6 +64,7 @@ function toFormState(product: Product | null, defs: ProductCustomFieldDef[]): Fo
 }
 
 export function ProductEditDialog({ product, onClose }: Props) {
+  const { t } = useTranslation('modals')
   // Snapshot customFieldDefs at open time so background updates don't mutate form
   const [frozenDefs] = useState<ProductCustomFieldDef[]>(() =>
     useReportStore.getState().customFieldDefs,
@@ -90,13 +92,13 @@ export function ProductEditDialog({ product, onClose }: Props) {
 
   function validate(): boolean {
     const errors: Partial<Record<keyof FormState, string>> = {}
-    if (!form.code.trim()) errors.code = '商品コードは必須です'
-    if (!form.name.trim()) errors.name = '商品名は必須です'
+    if (!form.code.trim()) errors.code = t('productEditDialog.codeRequired')
+    if (!form.name.trim()) errors.name = t('productEditDialog.nameRequired')
     if (isNaN(Number(form.unitPrice)) || Number(form.unitPrice) < 0) {
-      errors.unitPrice = '単価は 0 以上の数値で入力してください'
+      errors.unitPrice = t('productEditDialog.unitPriceInvalid')
     }
     if (isNaN(Number(form.stockCount)) || Number(form.stockCount) < 0) {
-      errors.stockCount = '在庫数は 0 以上の整数で入力してください'
+      errors.stockCount = t('productEditDialog.stockCountInvalid')
     }
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -162,12 +164,12 @@ export function ProductEditDialog({ product, onClose }: Props) {
       onClose()
     } catch (e) {
       if (e instanceof DuplicateCodeError) {
-        setFieldErrors((prev) => ({ ...prev, code: 'この商品コードは既に使用されています' }))
+        setFieldErrors((prev) => ({ ...prev, code: t('productEditDialog.codeDuplicate') }))
       } else if (e instanceof VersionConflictError) {
-        toast.error('他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。', { duration: 8000 })
+        toast.error(t('productEditDialog.versionConflict'), { duration: 8000 })
         onClose()
       } else {
-        setError('保存に失敗しました。再試行してください。')
+        setError(t('productEditDialog.saveFailed'))
       }
     } finally {
       setIsSubmitting(false)
@@ -180,17 +182,17 @@ export function ProductEditDialog({ product, onClose }: Props) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
       role="dialog"
       aria-modal="true"
-      aria-label={product ? '商品を編集' : '商品を追加'}
+      aria-label={product ? t('productEditDialog.editTitle') : t('productEditDialog.addTitle')}
       onKeyDown={(e) => { if (e.key === 'Escape' && !isSubmitting) onClose() }}
     >
       <div className="bg-background border border-border rounded-lg shadow-xl w-[560px] max-h-[90vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h3 className="text-sm font-semibold">{product ? '商品を編集' : '商品を追加'}</h3>
+          <h3 className="text-sm font-semibold">{product ? t('productEditDialog.editTitle') : t('productEditDialog.addTitle')}</h3>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            aria-label="閉じる"
+            aria-label={t('productEditDialog.close')}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent"
           >
             ✕
@@ -204,24 +206,24 @@ export function ProductEditDialog({ product, onClose }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium">
-                  商品コード <span className="text-red-500">*</span>
+                  {t('productEditDialog.code')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={form.code}
                   onChange={(e) => setField('code', e.target.value)}
-                  placeholder="例: PROD-001"
+                  placeholder={t('productEditDialog.codePlaceholder')}
                   className={`border rounded px-2 py-1 text-xs bg-background font-mono ${fieldErrors.code ? 'border-red-500' : ''}`}
                 />
                 {fieldErrors.code && <p className="text-[10px] text-red-500">{fieldErrors.code}</p>}
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium">
-                  商品名 <span className="text-red-500">*</span>
+                  {t('productEditDialog.name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={form.name}
                   onChange={(e) => setField('name', e.target.value)}
-                  placeholder="例: サンプル商品"
+                  placeholder={t('productEditDialog.namePlaceholder')}
                   className={`border rounded px-2 py-1 text-xs bg-background ${fieldErrors.name ? 'border-red-500' : ''}`}
                 />
                 {fieldErrors.name && <p className="text-[10px] text-red-500">{fieldErrors.name}</p>}
@@ -231,7 +233,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {/* Price + Tax */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">単価（円）</label>
+                <label className="text-xs font-medium">{t('productEditDialog.unitPrice')}</label>
                 <input
                   type="number"
                   min="0"
@@ -243,15 +245,15 @@ export function ProductEditDialog({ product, onClose }: Props) {
                 {fieldErrors.unitPrice && <p className="text-[10px] text-red-500">{fieldErrors.unitPrice}</p>}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">税区分</label>
+                <label className="text-xs font-medium">{t('productEditDialog.taxType')}</label>
                 <select
                   value={form.taxType}
                   onChange={(e) => setField('taxType', e.target.value as FormState['taxType'])}
                   className="border rounded px-2 py-1 text-xs bg-background"
                 >
-                  <option value="none">非課税</option>
-                  <option value="standard">標準税率</option>
-                  <option value="reduced">軽減税率</option>
+                  <option value="none">{t('productEditDialog.taxNone')}</option>
+                  <option value="standard">{t('productEditDialog.taxStandard')}</option>
+                  <option value="reduced">{t('productEditDialog.taxReduced')}</option>
                 </select>
               </div>
             </div>
@@ -259,7 +261,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {/* Category + Unit */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">カテゴリ</label>
+                <label className="text-xs font-medium">{t('productEditDialog.category')}</label>
                 <input
                   value={form.category}
                   onChange={(e) => setField('category', e.target.value)}
@@ -267,11 +269,11 @@ export function ProductEditDialog({ product, onClose }: Props) {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">単位</label>
+                <label className="text-xs font-medium">{t('productEditDialog.unit')}</label>
                 <input
                   value={form.unit}
                   onChange={(e) => setField('unit', e.target.value)}
-                  placeholder="例: 個, 本, kg"
+                  placeholder={t('productEditDialog.unitPlaceholder')}
                   className="border rounded px-2 py-1 text-xs bg-background"
                 />
               </div>
@@ -280,7 +282,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {/* Stock + Manufacturer */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">在庫数</label>
+                <label className="text-xs font-medium">{t('productEditDialog.stockCount')}</label>
                 <input
                   type="number"
                   min="0"
@@ -291,7 +293,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">メーカー</label>
+                <label className="text-xs font-medium">{t('productEditDialog.manufacturer')}</label>
                 <input
                   value={form.manufacturer}
                   onChange={(e) => setField('manufacturer', e.target.value)}
@@ -302,7 +304,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
 
             {/* Description */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium">説明</label>
+              <label className="text-xs font-medium">{t('productEditDialog.description')}</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setField('description', e.target.value)}
@@ -314,20 +316,20 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {/* Subscription */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">サブスクリプション期間</label>
+                <label className="text-xs font-medium">{t('productEditDialog.subscriptionPeriod')}</label>
                 <input
                   value={form.subscriptionPeriod}
                   onChange={(e) => setField('subscriptionPeriod', e.target.value)}
-                  placeholder="例: 月, 年（空白で無効）"
+                  placeholder={t('productEditDialog.subscriptionPeriodPlaceholder')}
                   className="border rounded px-2 py-1 text-xs bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium">価格単位表記</label>
+                <label className="text-xs font-medium">{t('productEditDialog.subscriptionPriceUnit')}</label>
                 <input
                   value={form.subscriptionPriceUnit}
                   onChange={(e) => setField('subscriptionPriceUnit', e.target.value)}
-                  placeholder="例: /月"
+                  placeholder={t('productEditDialog.subscriptionPriceUnitPlaceholder')}
                   className="border rounded px-2 py-1 text-xs bg-background"
                 />
               </div>
@@ -337,7 +339,7 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {frozenDefs.length > 0 && (
               <div className="flex flex-col gap-2 border-t pt-3 mt-1">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  カスタムフィールド
+                  {t('productEditDialog.customFields')}
                 </p>
                 {frozenDefs.map((def) => (
                   <div key={def.key} className="flex flex-col gap-1">
@@ -348,9 +350,9 @@ export function ProductEditDialog({ product, onClose }: Props) {
                         onChange={(e) => setCustomField(def.key, e.target.value)}
                         className="border rounded px-2 py-1 text-xs bg-background"
                       >
-                        <option value="">未設定</option>
-                        <option value="true">はい</option>
-                        <option value="false">いいえ</option>
+                        <option value="">{t('productEditDialog.unset')}</option>
+                        <option value="true">{t('productEditDialog.yes')}</option>
+                        <option value="false">{t('productEditDialog.no')}</option>
                       </select>
                     ) : (
                       <input
@@ -369,20 +371,20 @@ export function ProductEditDialog({ product, onClose }: Props) {
             {product && product.priceHistory.length > 0 && (
               <details className="border-t pt-3 mt-1">
                 <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground">
-                  単価変更履歴（{product.priceHistory.length}件）
+                  {t('productEditDialog.priceHistory', { n: product.priceHistory.length })}
                 </summary>
-                <table className="w-full text-[10px] mt-2" aria-label="単価変更履歴">
+                <table className="w-full text-[10px] mt-2" aria-label={t('productEditDialog.priceHistoryLabel')}>
                   <thead>
                     <tr>
-                      <th className="text-left font-medium text-muted-foreground py-1">適用日</th>
-                      <th className="text-right font-medium text-muted-foreground py-1">単価</th>
+                      <th className="text-left font-medium text-muted-foreground py-1">{t('productEditDialog.effectiveFrom')}</th>
+                      <th className="text-right font-medium text-muted-foreground py-1">{t('productEditDialog.price')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {product.priceHistory.map((h, i) => (
                       <tr key={i}>
                         <td className="py-0.5 text-muted-foreground">{h.effectiveFrom}</td>
-                        <td className="py-0.5 text-right">{h.price.toLocaleString('ja-JP')}円</td>
+                        <td className="py-0.5 text-right">{t('productEditDialog.priceYen', { price: h.price.toLocaleString('ja-JP') })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -401,14 +403,14 @@ export function ProductEditDialog({ product, onClose }: Props) {
             disabled={isSubmitting}
             className="px-3 py-1.5 text-xs border rounded hover:bg-accent transition-colors disabled:opacity-60"
           >
-            キャンセル
+            {t('productEditDialog.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={isSubmitting}
             className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60 transition-opacity"
           >
-            {isSubmitting ? '保存中...' : '保存'}
+            {isSubmitting ? t('productEditDialog.saving') : t('productEditDialog.save')}
           </button>
         </div>
       </div>

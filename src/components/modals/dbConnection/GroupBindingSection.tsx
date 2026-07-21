@@ -6,6 +6,7 @@
  * for unbound groups (wired via the onShowCreate / showCreateForm props).
  */
 import { memo, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useReportStore } from '@/store'
 import type {
@@ -38,6 +39,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
   showCreateForm = false,
   createFormSlot,
 }: GroupBindingSectionProps) {
+  const { t } = useTranslation('modals')
   const bindGroupToTable = useReportStore((s) => s.bindGroupToTable)
   const bindGroupToTableWithColumns = useReportStore((s) => s.bindGroupToTableWithColumns)
   const updateSchemaField = useReportStore((s) => s.updateSchemaField)
@@ -116,13 +118,13 @@ export const GroupBindingSection = memo(function GroupBindingSection({
     bindGroupToTable(group.id, undefined)
     setPendingNamespace('')
 
-    toast.success(`「${group.label}」のテーブル連携を解除しました`, {
+    toast.success(t('groupBindingSection.unbindSuccess', { label: group.label }), {
       action: {
-        label: '元に戻す',
+        label: t('groupBindingSection.undo'),
         onClick: () => bindGroupToTableWithColumns(group.id, prevTableMeta, prevColumns),
       },
     })
-  }, [bindGroupToTable, bindGroupToTableWithColumns, group.id, group.label, group.tableMeta, group.fields])
+  }, [bindGroupToTable, bindGroupToTableWithColumns, group.id, group.label, group.tableMeta, group.fields, t])
 
   const handleColumnChange = useCallback(
     (fieldId: string, nextColumnName: string) => {
@@ -157,9 +159,9 @@ export const GroupBindingSection = memo(function GroupBindingSection({
             type="button"
             onClick={handleUnbind}
             className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
-            title="テーブル連携を解除（解除後に「元に戻す」で復元できます）"
+            title={t('groupBindingSection.unbindTitle')}
           >
-            解除
+            {t('groupBindingSection.unbind')}
           </button>
         )}
       </header>
@@ -168,7 +170,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor={nsSelectId} className="text-[10px] text-muted-foreground">
-            ネームスペース
+            {t('groupBindingSection.namespace')}
           </label>
           <select
             id={nsSelectId}
@@ -177,7 +179,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
             onChange={handleNamespaceChange}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background"
           >
-            <option value="">(未選択)</option>
+            <option value="">{t('groupBindingSection.notSelected')}</option>
             {catalog.namespaces.map((ns) => (
               <option key={ns.name} value={ns.name}>
                 {ns.name}
@@ -185,7 +187,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
             ))}
             {staleNamespace && (
               <option value={boundNamespace} disabled>
-                {boundNamespace} (ネームスペースが存在しません)
+                {t('groupBindingSection.namespaceMissing', { namespace: boundNamespace })}
               </option>
             )}
           </select>
@@ -193,7 +195,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
 
         <div className="flex flex-col gap-1">
           <label htmlFor={tableSelectId} className="text-[10px] text-muted-foreground">
-            テーブル
+            {t('groupBindingSection.table')}
           </label>
           <select
             id={tableSelectId}
@@ -202,15 +204,15 @@ export const GroupBindingSection = memo(function GroupBindingSection({
             disabled={!pendingNamespace}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <option value="">(未選択)</option>
-            {pendingNamespaceEntry?.tables.map((t) => (
-              <option key={t.name} value={t.name}>
-                {t.name}
+            <option value="">{t('groupBindingSection.notSelected')}</option>
+            {pendingNamespaceEntry?.tables.map((tbl) => (
+              <option key={tbl.name} value={tbl.name}>
+                {tbl.name}
               </option>
             ))}
             {staleTableName && (
               <option value={boundTableName} disabled>
-                {boundTableName} (テーブルが存在しません)
+                {t('groupBindingSection.tableMissing', { table: boundTableName })}
               </option>
             )}
           </select>
@@ -236,7 +238,7 @@ export const GroupBindingSection = memo(function GroupBindingSection({
               onClick={onShowCreate}
               className="text-[11px] px-2 py-1 rounded border border-border hover:bg-accent transition-colors"
             >
-              このスキーマからテーブルを作成
+              {t('groupBindingSection.createTableFromSchema')}
             </button>
           ) : (
             createFormSlot

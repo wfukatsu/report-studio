@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AccountTab } from './AccountTab'
 
 interface ServerSettingsModalProps {
@@ -11,6 +12,7 @@ interface ServerSettingsModalProps {
  * 管理者向け機能（ユーザー管理・サーバー設定）は管理タブに移行済み。
  */
 export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps) {
+  const { t } = useTranslation('modals')
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -45,11 +47,11 @@ export function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps)
     >
       <div ref={modalRef} className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col mx-4">
         <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
-          <h2 id="server-settings-title" className="text-sm font-semibold">アカウント設定</h2>
+          <h2 id="server-settings-title" className="text-sm font-semibold">{t('serverSettingsModal.title')}</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent transition-colors"
-            aria-label="閉じる"
+            aria-label={t('serverSettingsModal.close')}
           >
             ✕
           </button>

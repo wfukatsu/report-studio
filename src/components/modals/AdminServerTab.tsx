@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getServerConfig, putServerConfig, testServerConfig, restartServer } from '@/api/reportApi'
 import type { ServerConfig } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
@@ -7,6 +8,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 const STORAGE_OPTIONS = ['jdbc', 'cassandra', 'cosmos', 'dynamo'] as const
 
 export function AdminServerTab() {
+  const { t } = useTranslation('modals')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [config, setConfig] = useState<ServerConfig>({})
   const [loading, setLoading] = useState(true)
@@ -23,9 +25,9 @@ export function AdminServerTab() {
   useEffect(() => {
     getServerConfig()
       .then((cfg) => setConfig(cfg))
-      .catch(() => setError('設定の読み込みに失敗しました'))
+      .catch(() => setError(t('adminServerTab.loadFailed')))
       .finally(() => setLoading(false))
-  }, [])
+  }, [t])
 
   // Watch backendConnected to detect server restart completion. The clear is
   // deferred to a task so the effect body performs no synchronous setState;
@@ -51,7 +53,7 @@ export function AdminServerTab() {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
-      setError('設定の保存に失敗しました')
+      setError(t('adminServerTab.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -64,7 +66,7 @@ export function AdminServerTab() {
       const result = await testServerConfig(config)
       setTestResult(result)
     } catch {
-      setTestResult({ success: false, message: '接続テストに失敗しました' })
+      setTestResult({ success: false, message: t('adminServerTab.testFailed') })
     } finally {
       setTesting(false)
     }
@@ -79,14 +81,14 @@ export function AdminServerTab() {
     }
   }
 
-  if (loading) return <div className="p-5 text-xs text-muted-foreground">設定を読み込み中...</div>
+  if (loading) return <div className="p-5 text-xs text-muted-foreground">{t('adminServerTab.loading')}</div>
 
   return (
     <div className="p-4 flex flex-col gap-4 max-w-lg">
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">ストレージタイプ</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('adminServerTab.storageType')}</label>
         <select
           className="border rounded px-3 py-1.5 text-sm bg-background w-full"
           value={config['scalar.db.storage'] ?? 'jdbc'}
@@ -99,7 +101,7 @@ export function AdminServerTab() {
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">Contact Points / JDBC URL</label>
+        <label className="text-xs text-muted-foreground block mb-1">{t('adminServerTab.contactPoints')}</label>
         <input
           type="text"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background font-mono"
@@ -111,7 +113,7 @@ export function AdminServerTab() {
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="text-xs text-muted-foreground block mb-1">ユーザー名</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('adminServerTab.username')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -120,19 +122,19 @@ export function AdminServerTab() {
           />
         </div>
         <div className="flex-1">
-          <label className="text-xs text-muted-foreground block mb-1">パスワード</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('adminServerTab.password')}</label>
           <input
             type="password"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
             value={config['scalar.db.password'] ?? ''}
             onChange={(e) => setField('scalar.db.password', e.target.value)}
-            placeholder={config['scalar.db.password'] === '***' ? '（設定済み）' : ''}
+            placeholder={config['scalar.db.password'] === '***' ? t('adminServerTab.passwordSetPlaceholder') : ''}
           />
         </div>
       </div>
 
       <div>
-        <p className="text-xs text-muted-foreground mb-2">接続プール</p>
+        <p className="text-xs text-muted-foreground mb-2">{t('adminServerTab.connectionPool')}</p>
         <div className="flex gap-2">
           {(['min_idle', 'max_idle', 'max_total'] as const).map((k) => {
             const key = `scalar.db.jdbc.connection_pool.${k}`
@@ -157,7 +159,7 @@ export function AdminServerTab() {
           {testResult.message}
         </p>
       )}
-      {saved && <p className="text-xs text-green-600">設定を保存しました。有効化するには再起動が必要です。</p>}
+      {saved && <p className="text-xs text-green-600">{t('adminServerTab.savedNote')}</p>}
 
       <div className="flex gap-2 flex-wrap pt-1">
         <button
@@ -165,35 +167,35 @@ export function AdminServerTab() {
           disabled={testing}
           className="px-3 py-1.5 text-xs border rounded hover:bg-accent disabled:opacity-50"
         >
-          {testing ? 'テスト中...' : '接続テスト'}
+          {testing ? t('adminServerTab.testing') : t('adminServerTab.testConnection')}
         </button>
         <button
           onClick={handleSave}
           disabled={saving}
           className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
         >
-          {saving ? '保存中...' : '設定を保存'}
+          {saving ? t('adminServerTab.saving') : t('adminServerTab.saveConfig')}
         </button>
         <button
           onClick={() => setShowRestartConfirm(true)}
           disabled={restarting}
           className="px-3 py-1.5 text-xs border border-amber-300 text-amber-700 bg-amber-50 rounded hover:bg-amber-100 disabled:opacity-50"
         >
-          {restarting ? '再起動中...' : 'サーバーを再起動'}
+          {restarting ? t('adminServerTab.restarting') : t('adminServerTab.restartServer')}
         </button>
       </div>
 
       {restarting && (
         <p className="text-xs text-muted-foreground">
-          サーバーが再起動中です。しばらくお待ちください...
+          {t('adminServerTab.restartingNote')}
         </p>
       )}
 
       <ConfirmDialog
         open={showRestartConfirm}
-        title="サーバーを再起動"
-        message="サーバーを再起動しますか？再起動中は一時的に接続が切断されます。"
-        confirmLabel="再起動"
+        title={t('adminServerTab.restartServer')}
+        message={t('adminServerTab.restartConfirmMessage')}
+        confirmLabel={t('adminServerTab.restartConfirmLabel')}
         confirmVariant="danger"
         onConfirm={() => { setShowRestartConfirm(false); void execRestart() }}
         onCancel={() => setShowRestartConfirm(false)}

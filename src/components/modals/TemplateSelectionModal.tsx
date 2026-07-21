@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Loader2, AlertCircle, FolderOpen, FileText, Copy, Download, Upload, Search, X, Trash2, Pencil, Settings } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
@@ -42,9 +43,12 @@ export function TemplateSelectionModal({ open, ...rest }: TemplateSelectionModal
 function TemplateSelectionModalContent({
   onClose,
   onSelect,
-  title = '新規レポート作成',
-  confirmLabel = '作成',
+  title,
+  confirmLabel,
 }: Omit<TemplateSelectionModalProps, 'open'>) {
+  const { t } = useTranslation('modals')
+  const displayTitle = title ?? t('templateSelectionModal.defaultTitle')
+  const displayConfirmLabel = confirmLabel ?? t('templateSelectionModal.defaultConfirmLabel')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [selectedDefinition, setSelectedDefinition] = useState<ReportDefinition | null>(null)
 
@@ -106,9 +110,9 @@ function TemplateSelectionModalContent({
       setBackendLoadState('idle')
     } catch {
       setBackendLoadState('error')
-      setBackendLoadError('テンプレート一覧の取得に失敗しました')
+      setBackendLoadError(t('templateSelectionModal.errorFetchList'))
     }
-  }, [])
+  }, [t])
 
   const handleFetchPublic = useCallback(async () => {
     setPublicLoadState('loading')
@@ -148,8 +152,8 @@ function TemplateSelectionModalContent({
     } catch {
       // Toast too, not just the in-modal banner: on the deferred path the modal
       // may already be closing, which would hide a banner-only error (#154).
-      setBackendLoadError('テンプレートのコピーに失敗しました')
-      toast.error('テンプレートのコピーに失敗しました', { duration: 8000 })
+      setBackendLoadError(t('templateSelectionModal.errorCopy'))
+      toast.error(t('templateSelectionModal.errorCopy'), { duration: 8000 })
     } finally {
       setCopyingId(null)
     }
@@ -167,8 +171,8 @@ function TemplateSelectionModalContent({
       onSelect(definition, id)
       handleClose()
     } catch {
-      setBackendLoadError('テンプレートの読み込みに失敗しました')
-      toast.error('テンプレートの読み込みに失敗しました', { duration: 8000 })
+      setBackendLoadError(t('templateSelectionModal.errorLoad'))
+      toast.error(t('templateSelectionModal.errorLoad'), { duration: 8000 })
     } finally {
       setLoadingId(null)
     }
@@ -183,7 +187,7 @@ function TemplateSelectionModalContent({
       await duplicateReport(id)
       await handleFetchBackend()
     } catch {
-      setBackendLoadError('テンプレートの複製に失敗しました')
+      setBackendLoadError(t('templateSelectionModal.errorDuplicate'))
     } finally {
       setDuplicatingId(null)
     }
@@ -198,7 +202,7 @@ function TemplateSelectionModalContent({
       const { blob, filename } = await exportTemplate(id)
       downloadBlob(blob, filename)
     } catch {
-      setBackendLoadError('テンプレートのエクスポートに失敗しました')
+      setBackendLoadError(t('templateSelectionModal.errorExport'))
     } finally {
       setExportingId(null)
     }
@@ -221,7 +225,7 @@ function TemplateSelectionModalContent({
       await importTemplate(text)
       await handleFetchBackend()
     } catch (err) {
-      setBackendLoadError(err instanceof Error ? err.message : 'インポートに失敗しました')
+      setBackendLoadError(err instanceof Error ? err.message : t('templateSelectionModal.errorImport'))
     } finally {
       setImporting(false)
     }
@@ -234,7 +238,7 @@ function TemplateSelectionModalContent({
       await deleteReport(id)
       await handleFetchBackend()
     } catch {
-      setBackendLoadError('テンプレートの削除に失敗しました')
+      setBackendLoadError(t('templateSelectionModal.errorDelete'))
     } finally {
       setDeletingId(null)
       setDeleteConfirmId(null)
@@ -257,7 +261,7 @@ function TemplateSelectionModalContent({
       await saveReport(id, { ...def, metadata: { ...def.metadata, documentName: trimmed } })
       await handleFetchBackend()
     } catch {
-      setBackendLoadError('テンプレート名の変更に失敗しました')
+      setBackendLoadError(t('templateSelectionModal.errorRename'))
     } finally {
       setRenameSaving(false)
       setRenamingId(null)
@@ -294,11 +298,11 @@ function TemplateSelectionModalContent({
       <div className="bg-background border border-border rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
-          <h2 className="text-sm font-semibold">{title}</h2>
+          <h2 className="text-sm font-semibold">{displayTitle}</h2>
           <button
             onClick={handleClose}
             className="text-muted-foreground hover:text-foreground text-xs"
-            aria-label="閉じる"
+            aria-label={t('templateSelectionModal.close')}
           >
             ✕
           </button>
@@ -312,7 +316,7 @@ function TemplateSelectionModalContent({
             <input
               type="text"
               className="w-full pl-7 pr-7 py-1.5 text-xs border rounded bg-background"
-              placeholder="テンプレートを検索..."
+              placeholder={t('templateSelectionModal.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -320,7 +324,7 @@ function TemplateSelectionModalContent({
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
-                aria-label="検索をクリア"
+                aria-label={t('templateSelectionModal.clearSearch')}
               >
                 <X className="w-3 h-3 text-muted-foreground" />
               </button>
@@ -337,7 +341,7 @@ function TemplateSelectionModalContent({
                     : 'bg-background hover:bg-accent border-border'
                 }`}
               >
-                すべて
+                {t('templateSelectionModal.all')}
               </button>
               {allCategories.map((cat) => (
                 <button
@@ -357,7 +361,7 @@ function TemplateSelectionModalContent({
           {/* Tag chips */}
           {allTags.length > 0 && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className="text-[10px] text-muted-foreground mr-0.5">タグ:</span>
+              <span className="text-[10px] text-muted-foreground mr-0.5">{t('templateSelectionModal.tagsLabel')}</span>
               {allTags.map((tag) => (
                 <button
                   key={tag}
@@ -379,7 +383,7 @@ function TemplateSelectionModalContent({
                 <button
                   onClick={() => setSelectedFilterTags([])}
                   className="text-[10px] text-muted-foreground hover:text-foreground ml-1"
-                  aria-label="タグフィルタをクリア"
+                  aria-label={t('templateSelectionModal.clearTagFilter')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -393,7 +397,7 @@ function TemplateSelectionModalContent({
           {/* Blank template */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              テンプレート
+              {t('templateSelectionModal.sectionTemplate')}
             </p>
             <div className="grid grid-cols-3 gap-3">
               {/* Blank option */}
@@ -410,9 +414,9 @@ function TemplateSelectionModalContent({
                   style={{ aspectRatio: '210 / 297' }}
                 >
                   <FileText className="w-7 h-7 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">白紙から作成</span>
+                  <span className="text-[10px] text-muted-foreground">{t('templateSelectionModal.blankFromScratch')}</span>
                 </div>
-                <p className="px-2 py-1.5 font-medium text-xs">空白</p>
+                <p className="px-2 py-1.5 font-medium text-xs">{t('templateSelectionModal.blank')}</p>
               </button>
             </div>
           </div>
@@ -423,21 +427,21 @@ function TemplateSelectionModalContent({
               <div className="border-t my-1" />
               <div className="flex items-center justify-between mb-3 mt-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  自分のテンプレート
+                  {t('templateSelectionModal.myTemplates')}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleImportClick}
                     disabled={importing}
-                    title="テンプレートをインポート (.rds2.json)"
-                    aria-label="テンプレートをインポート"
+                    title={t('templateSelectionModal.importTitle')}
+                    aria-label={t('templateSelectionModal.importAria')}
                     className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
                   >
                     {importing
                       ? <Loader2 className="w-3 h-3 animate-spin" />
                       : <Upload className="w-3 h-3" />
                     }
-                    インポート
+                    {t('templateSelectionModal.importLabel')}
                   </button>
                   <button
                     onClick={handleFetchBackend}
@@ -446,7 +450,7 @@ function TemplateSelectionModalContent({
                   >
                     {backendLoadState === 'loading'
                       ? <Loader2 className="w-3 h-3 animate-spin inline" />
-                      : '一覧を取得'}
+                      : t('templateSelectionModal.fetchList')}
                   </button>
                 </div>
               </div>
@@ -458,7 +462,7 @@ function TemplateSelectionModalContent({
                 accept=".json,.rds2.json"
                 className="hidden"
                 onChange={handleImportFile}
-                aria-label="インポートファイルを選択"
+                aria-label={t('templateSelectionModal.importFileSelect')}
               />
 
               {backendLoadError && (
@@ -471,25 +475,25 @@ function TemplateSelectionModalContent({
               {backendLoadState === 'idle' && backendTemplates.length === 0 && (
                 <div className="flex flex-col items-center gap-1.5 py-4 text-center">
                   <FolderOpen className="w-5 h-5 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">保存済みのテンプレートはまだありません。</p>
+                  <p className="text-xs text-muted-foreground">{t('templateSelectionModal.noSavedTemplates')}</p>
                 </div>
               )}
 
               {filteredBackend.length > 0 && (
                 <div className="grid grid-cols-3 gap-3">
-                  {filteredBackend.map((t) => (
-                    <div key={t.id} className="relative group">
+                  {filteredBackend.map((tpl) => (
+                    <div key={tpl.id} className="relative group">
                       <button
-                        onClick={() => handleLoadBackend(t.id)}
+                        onClick={() => handleLoadBackend(tpl.id)}
                         disabled={loadingId !== null || duplicatingId !== null}
                         className="w-full flex flex-col rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 overflow-hidden text-left"
-                        aria-label={`テンプレート ${t.name} を開く`}
+                        aria-label={t('templateSelectionModal.openTemplate', { name: tpl.name })}
                       >
                         {/* Thumbnail */}
                         <div className="w-full bg-muted flex items-center justify-center" style={{ aspectRatio: '210/297' }}>
                           <img
-                            src={getTemplateThumbnailUrl(t.id)}
-                            alt={`${t.name} のサムネイル`}
+                            src={getTemplateThumbnailUrl(tpl.id)}
+                            alt={t('templateSelectionModal.thumbnailAlt', { name: tpl.name })}
                             className="w-full h-full object-contain"
                             onError={(e) => {
                               const target = e.currentTarget
@@ -498,74 +502,74 @@ function TemplateSelectionModalContent({
                             }}
                           />
                           <FileText className="hidden w-8 h-8 text-muted-foreground" />
-                          {loadingId === t.id && (
+                          {loadingId === tpl.id && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
                               <Loader2 className="w-5 h-5 animate-spin text-white" />
                             </div>
                           )}
                         </div>
                         {/* Name */}
-                        {renamingId === t.id ? (
+                        {renamingId === tpl.id ? (
                           <input
                             className="px-2 py-1.5 font-medium text-xs w-full bg-background border-t focus:outline-none focus:ring-1 focus:ring-primary"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleCommitRename(t.id)
+                              if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleCommitRename(tpl.id)
                               if (e.key === 'Escape') setRenamingId(null)
                             }}
-                            onBlur={() => handleCommitRename(t.id)}
+                            onBlur={() => handleCommitRename(tpl.id)}
                             onClick={(e) => e.stopPropagation()}
                             autoFocus
                             disabled={renameSaving}
                           />
                         ) : (
-                          <p className="px-2 py-1.5 font-medium text-xs truncate">{t.name}</p>
+                          <p className="px-2 py-1.5 font-medium text-xs truncate">{tpl.name}</p>
                         )}
                       </button>
                       {/* Action buttons — appear on hover */}
                       <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => handleStartRename(t.id, t.name, e)}
+                          onClick={(e) => handleStartRename(tpl.id, tpl.name, e)}
                           disabled={renameSaving}
-                          title="名前変更"
-                          aria-label={`${t.name} の名前を変更`}
+                          title={t('templateSelectionModal.rename')}
+                          aria-label={t('templateSelectionModal.renameAria', { name: tpl.name })}
                           className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={(e) => handleExport(t.id, e)}
+                          onClick={(e) => handleExport(tpl.id, e)}
                           disabled={exportingId !== null || loadingId !== null}
-                          title="エクスポート"
-                          aria-label={`${t.name} をエクスポート`}
+                          title={t('templateSelectionModal.export')}
+                          aria-label={t('templateSelectionModal.exportAria', { name: tpl.name })}
                           className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
                         >
-                          {exportingId === t.id
+                          {exportingId === tpl.id
                             ? <Loader2 className="w-3 h-3 animate-spin" />
                             : <Download className="w-3 h-3" />
                           }
                         </button>
                         <button
-                          onClick={(e) => handleDuplicate(t.id, e)}
+                          onClick={(e) => handleDuplicate(tpl.id, e)}
                           disabled={duplicatingId !== null || loadingId !== null}
-                          title="複製"
-                          aria-label={`${t.name} を複製`}
+                          title={t('templateSelectionModal.duplicate')}
+                          aria-label={t('templateSelectionModal.duplicateAria', { name: tpl.name })}
                           className="p-1 rounded bg-background/90 border border-border hover:bg-accent transition-colors disabled:opacity-50 shadow-sm"
                         >
-                          {duplicatingId === t.id
+                          {duplicatingId === tpl.id
                             ? <Loader2 className="w-3 h-3 animate-spin" />
                             : <Copy className="w-3 h-3" />
                           }
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id) }}
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(tpl.id) }}
                           disabled={deletingId !== null}
-                          title="削除"
-                          aria-label={`${t.name} を削除`}
+                          title={t('templateSelectionModal.delete')}
+                          aria-label={t('templateSelectionModal.deleteAria', { name: tpl.name })}
                           className="p-1 rounded bg-background/90 border border-destructive/30 hover:bg-destructive/10 transition-colors disabled:opacity-50 shadow-sm text-destructive"
                         >
-                          {deletingId === t.id
+                          {deletingId === tpl.id
                             ? <Loader2 className="w-3 h-3 animate-spin" />
                             : <Trash2 className="w-3 h-3" />
                           }
@@ -582,29 +586,29 @@ function TemplateSelectionModalContent({
           {backendConnected && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-medium">公開テンプレート</h3>
+                <h3 className="text-sm font-medium">{t('templateSelectionModal.publicTemplates')}</h3>
                 <button
                   onClick={handleFetchPublic}
                   disabled={publicLoadState === 'loading'}
                   className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                 >
                   {publicLoadState === 'loading' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FolderOpen className="w-3 h-3" />}
-                  読み込む
+                  {t('templateSelectionModal.load')}
                 </button>
               </div>
               {publicTemplates.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
-                  {publicTemplates.map((t) => (
+                  {publicTemplates.map((tpl) => (
                     <button
-                      key={t.id}
-                      onClick={() => handleCopyTemplate(t.id)}
+                      key={tpl.id}
+                      onClick={() => handleCopyTemplate(tpl.id)}
                       disabled={copyingId !== null}
                       className="w-full flex flex-col rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 overflow-hidden text-left p-2"
-                      aria-label={`公開テンプレート ${t.name} をコピーして使用`}
+                      aria-label={t('templateSelectionModal.copyPublicAria', { name: tpl.name })}
                     >
-                      <p className="font-medium text-xs truncate">{t.name}</p>
+                      <p className="font-medium text-xs truncate">{tpl.name}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        {copyingId === t.id ? 'コピー中...' : 'クリックでコピー'}
+                        {copyingId === tpl.id ? t('templateSelectionModal.copying') : t('templateSelectionModal.clickToCopy')}
                       </p>
                     </button>
                   ))}
@@ -621,21 +625,21 @@ function TemplateSelectionModalContent({
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Settings className="w-3 h-3" />
-            テンプレートを管理
+            {t('templateSelectionModal.manageTemplates')}
           </button>
           <div className="flex items-center gap-2">
             <button
               onClick={handleClose}
               className="px-4 py-1.5 text-xs rounded border border-border bg-background hover:bg-accent transition-colors"
             >
-              キャンセル
+              {t('templateSelectionModal.cancel')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={selectedDefinition === null}
               className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {confirmLabel}
+              {displayConfirmLabel}
             </button>
           </div>
         </div>
@@ -647,9 +651,9 @@ function TemplateSelectionModalContent({
       {/* Delete confirmation dialog */}
       <ConfirmDialog
         open={deleteConfirmId !== null}
-        title="テンプレートを削除"
-        message={`「${backendTemplates.find((t) => t.id === deleteConfirmId)?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
-        confirmLabel="削除"
+        title={t('templateSelectionModal.deleteConfirmTitle')}
+        message={t('templateSelectionModal.deleteConfirmMessage', { name: backendTemplates.find((tpl) => tpl.id === deleteConfirmId)?.name ?? '' })}
+        confirmLabel={t('templateSelectionModal.delete')}
         confirmVariant="danger"
         onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
         onCancel={() => setDeleteConfirmId(null)}

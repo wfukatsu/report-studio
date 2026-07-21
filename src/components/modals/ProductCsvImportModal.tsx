@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store'
 import { importProductsCsv } from '@/api/reportApi'
 
@@ -13,6 +14,7 @@ interface ImportResult {
 }
 
 export function ProductCsvImportModal({ onClose }: Props) {
+  const { t } = useTranslation('modals')
   const fetchProducts = useReportStore((s) => s.fetchProducts)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [csvText, setCsvText] = useState('')
@@ -43,7 +45,7 @@ export function ProductCsvImportModal({ onClose }: Props) {
       setResult(res)
       if (res.imported > 0) fetchProducts()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'インポートに失敗しました')
+      setError(e instanceof Error ? e.message : t('productCsvImportModal.importFailed'))
     } finally {
       setIsImporting(false)
     }
@@ -54,29 +56,29 @@ export function ProductCsvImportModal({ onClose }: Props) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
       role="dialog"
       aria-modal="true"
-      aria-label="CSVインポート"
+      aria-label={t('productCsvImportModal.dialogLabel')}
       onKeyDown={(e) => { if (e.key === 'Escape' && !isImporting) onClose() }}
     >
       <div className="bg-background border border-border rounded-lg shadow-xl w-[560px] max-h-[85vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h3 className="text-sm font-semibold">商品マスター CSVインポート</h3>
-          <button onClick={onClose} disabled={isImporting} aria-label="閉じる"
+          <h3 className="text-sm font-semibold">{t('productCsvImportModal.title')}</h3>
+          <button onClick={onClose} disabled={isImporting} aria-label={t('productCsvImportModal.close')}
             className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent">✕</button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
           <p className="text-xs text-muted-foreground">
-            CSVの先頭行を列名として自動認識します。<br />
-            対応列: <code className="bg-muted px-1 rounded">code</code>（必須）・
+            {t('productCsvImportModal.autoDetectHeader')}<br />
+            {t('productCsvImportModal.supportedColumns')}<code className="bg-muted px-1 rounded">code</code>{t('productCsvImportModal.codeRequired')}・
             <code className="bg-muted px-1 rounded">name</code>・
             <code className="bg-muted px-1 rounded">unitPrice</code>・
             <code className="bg-muted px-1 rounded">category</code>・
             <code className="bg-muted px-1 rounded">taxType</code>・
             <code className="bg-muted px-1 rounded">unit</code>・
             <code className="bg-muted px-1 rounded">manufacturer</code>・
-            その他列はカスタムフィールドに自動追加。
+            {t('productCsvImportModal.otherColumns')}
           </p>
 
           {/* File upload */}
@@ -85,9 +87,9 @@ export function ProductCsvImportModal({ onClose }: Props) {
               onClick={() => fileInputRef.current?.click()}
               className="px-3 py-1.5 text-xs border rounded hover:bg-accent transition-colors"
             >
-              ファイルを選択
+              {t('productCsvImportModal.selectFile')}
             </button>
-            <span className="text-xs text-muted-foreground">またはCSVを貼り付け</span>
+            <span className="text-xs text-muted-foreground">{t('productCsvImportModal.orPaste')}</span>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
           </div>
 
@@ -95,7 +97,7 @@ export function ProductCsvImportModal({ onClose }: Props) {
           <textarea
             value={csvText}
             onChange={(e) => { setCsvText(e.target.value); setResult(null); setError(null) }}
-            placeholder={'code,name,unitPrice\nP001,商品A,1000\nP002,商品B,2000'}
+            placeholder={t('productCsvImportModal.csvPlaceholder')}
             rows={8}
             className="w-full border rounded px-2 py-1.5 text-xs bg-background font-mono resize-none"
           />
@@ -104,15 +106,15 @@ export function ProductCsvImportModal({ onClose }: Props) {
           {result && (
             <div className="border rounded p-3 space-y-2">
               <div className="flex items-center gap-4 text-xs">
-                <span className="text-green-600 font-medium">✓ 登録: {result.imported}件</span>
-                {result.skipped > 0 && <span className="text-amber-600">スキップ: {result.skipped}件</span>}
+                <span className="text-green-600 font-medium">{t('productCsvImportModal.imported', { n: result.imported })}</span>
+                {result.skipped > 0 && <span className="text-amber-600">{t('productCsvImportModal.skipped', { n: result.skipped })}</span>}
               </div>
               {result.errors.length > 0 && (
                 <div className="max-h-32 overflow-y-auto">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">エラー詳細:</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{t('productCsvImportModal.errorDetails')}</p>
                   {result.errors.map((e, i) => (
                     <div key={i} className="text-[10px] text-red-500">
-                      行{e.row} / {e.column}: {e.reason}{e.value ? ` (${e.value})` : ''}
+                      {t('productCsvImportModal.errorRow', { row: e.row, column: e.column, reason: e.reason })}{e.value ? ` (${e.value})` : ''}
                     </div>
                   ))}
                 </div>
@@ -127,7 +129,7 @@ export function ProductCsvImportModal({ onClose }: Props) {
         <div className="flex justify-end gap-2 px-4 py-3 border-t shrink-0">
           <button onClick={onClose} disabled={isImporting}
             className="px-3 py-1.5 text-xs border rounded hover:bg-accent disabled:opacity-60 transition-colors">
-            {result ? '閉じる' : 'キャンセル'}
+            {result ? t('productCsvImportModal.close') : t('productCsvImportModal.cancel')}
           </button>
           {!result && (
             <button
@@ -135,7 +137,7 @@ export function ProductCsvImportModal({ onClose }: Props) {
               disabled={!csvText.trim() || isImporting}
               className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-60 transition-opacity"
             >
-              {isImporting ? 'インポート中...' : 'インポート実行'}
+              {isImporting ? t('productCsvImportModal.importing') : t('productCsvImportModal.runImport')}
             </button>
           )}
         </div>

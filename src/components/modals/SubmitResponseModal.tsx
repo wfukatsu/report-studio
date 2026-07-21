@@ -9,12 +9,14 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore } from '@/store'
 import { submitResponse } from '@/api/reportApi'
 
 export function SubmitResponseModal() {
+  const { t } = useTranslation('modals')
   const open = useReportStore((s) => s.submitResponseModalOpen)
   const close = useReportStore((s) => s.closeSubmitResponseModal)
   const invalidateResponsesCache = useReportStore((s) => s.invalidateResponsesCache)
@@ -38,7 +40,7 @@ export function SubmitResponseModal() {
       invalidateResponsesCache()
       setSubmitted(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '送信に失敗しました')
+      setError(err instanceof Error ? err.message : t('submitResponseModal.errorSubmit'))
     } finally {
       setSubmitting(false)
     }
@@ -55,17 +57,17 @@ export function SubmitResponseModal() {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       role="dialog"
       aria-modal="true"
-      aria-label="フォーム回答送信"
+      aria-label={t('submitResponseModal.title')}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-96 max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="text-sm font-semibold">回答を送信</h2>
+          <h2 className="text-sm font-semibold">{t('submitResponseModal.heading')}</h2>
           <button
             onClick={handleClose}
             className="rounded hover:bg-accent p-1"
-            aria-label="閉じる"
+            aria-label={t('submitResponseModal.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -76,17 +78,17 @@ export function SubmitResponseModal() {
           {submitted ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <CheckCircle2 className="w-10 h-10 text-green-500" />
-              <p className="text-sm font-medium">回答を送信しました</p>
-              <p className="text-xs text-muted-foreground">回答一覧に反映されます。</p>
+              <p className="text-sm font-medium">{t('submitResponseModal.submittedTitle')}</p>
+              <p className="text-xs text-muted-foreground">{t('submitResponseModal.submittedHint')}</p>
             </div>
           ) : (
             <>
               <p className="text-xs text-muted-foreground mb-3">
-                以下のデータを回答として送信します。
+                {t('submitResponseModal.confirmText')}
               </p>
               {dataEntries.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  データがありません。データバインディングパネルでデータを入力してください。
+                  {t('submitResponseModal.noData')}
                 </p>
               ) : (
                 <div className="space-y-1.5 max-h-72 overflow-y-auto">
@@ -115,7 +117,7 @@ export function SubmitResponseModal() {
               onClick={handleClose}
               className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              閉じる
+              {t('submitResponseModal.close')}
             </button>
           ) : (
             <>
@@ -124,7 +126,7 @@ export function SubmitResponseModal() {
                 className="px-3 py-1.5 text-sm rounded border hover:bg-accent"
                 disabled={submitting}
               >
-                キャンセル
+                {t('submitResponseModal.cancel')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -138,7 +140,7 @@ export function SubmitResponseModal() {
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                送信
+                {t('submitResponseModal.submit')}
               </button>
             </>
           )}

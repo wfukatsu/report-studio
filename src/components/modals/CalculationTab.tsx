@@ -1,4 +1,5 @@
 import { lazy, memo, Suspense, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import type {
   CalculationRule,
@@ -25,37 +26,37 @@ const FormulaEditor = lazy(() => import('@/components/formulaEditor/FormulaEdito
 // Constants
 // ---------------------------------------------------------------------------
 
-const RESULT_TYPES: { value: CalculationRule['resultType']; label: string }[] = [
-  { value: 'number', label: '数値' },
-  { value: 'string', label: '文字列' },
-  { value: 'boolean', label: '真偽値' },
-]
+const RESULT_TYPES = [
+  { value: 'number', label: 'calculationTab.resultType.number' },
+  { value: 'string', label: 'calculationTab.resultType.string' },
+  { value: 'boolean', label: 'calculationTab.resultType.boolean' },
+] as const satisfies readonly { value: CalculationRule['resultType']; label: string }[]
 
-const ON_ERROR_OPTIONS: { value: CalculationRule['onError']; label: string }[] = [
-  { value: 'zero', label: '0 を返す' },
-  { value: 'empty', label: '空文字を返す' },
-  { value: 'error_text', label: 'エラーテキストを表示' },
-]
+const ON_ERROR_OPTIONS = [
+  { value: 'zero', label: 'calculationTab.onError.zero' },
+  { value: 'empty', label: 'calculationTab.onError.empty' },
+  { value: 'error_text', label: 'calculationTab.onError.errorText' },
+] as const satisfies readonly { value: CalculationRule['onError']; label: string }[]
 
-const NUMBER_FORMAT_OPTIONS: { value: NumberFormatType; label: string }[] = [
-  { value: 'integer', label: '整数' },
-  { value: 'decimal', label: '小数' },
-  { value: 'currency_jpy', label: '円 (¥1,234)' },
-  { value: 'currency_usd', label: 'ドル ($1,234.00)' },
-  { value: 'percent', label: 'パーセント (12.3%)' },
-  { value: 'comma', label: 'カンマ区切り (1,234)' },
-  { value: 'kanji_numeral', label: '大字 (金壱百万円也)' },
-  { value: 'custom', label: 'カスタム' },
-]
+const NUMBER_FORMAT_OPTIONS = [
+  { value: 'integer', label: 'calculationTab.numberFormat.integer' },
+  { value: 'decimal', label: 'calculationTab.numberFormat.decimal' },
+  { value: 'currency_jpy', label: 'calculationTab.numberFormat.currencyJpy' },
+  { value: 'currency_usd', label: 'calculationTab.numberFormat.currencyUsd' },
+  { value: 'percent', label: 'calculationTab.numberFormat.percent' },
+  { value: 'comma', label: 'calculationTab.numberFormat.comma' },
+  { value: 'kanji_numeral', label: 'calculationTab.numberFormat.kanjiNumeral' },
+  { value: 'custom', label: 'calculationTab.numberFormat.custom' },
+] as const satisfies readonly { value: NumberFormatType; label: string }[]
 
-const DATE_FORMAT_OPTIONS: { value: DateFormatType; label: string }[] = [
-  { value: 'yyyy/MM/dd', label: 'yyyy/MM/dd' },
-  { value: 'yyyy年MM月dd日', label: 'yyyy年MM月dd日' },
-  { value: 'MM/dd/yyyy', label: 'MM/dd/yyyy' },
-  { value: 'wareki_full', label: '和暦 (令和8年4月1日)' },
-  { value: 'wareki_short', label: '和暦短縮 (R8.04.01)' },
-  { value: 'custom', label: 'カスタム' },
-]
+const DATE_FORMAT_OPTIONS = [
+  { value: 'yyyy/MM/dd', label: 'calculationTab.dateFormat.slash' },
+  { value: 'yyyy年MM月dd日', label: 'calculationTab.dateFormat.japanese' },
+  { value: 'MM/dd/yyyy', label: 'calculationTab.dateFormat.usSlash' },
+  { value: 'wareki_full', label: 'calculationTab.dateFormat.warekiFull' },
+  { value: 'wareki_short', label: 'calculationTab.dateFormat.warekiShort' },
+  { value: 'custom', label: 'calculationTab.dateFormat.custom' },
+] as const satisfies readonly { value: DateFormatType; label: string }[]
 
 // JEXL_BUILTINS is the single source of truth — imported from jexlEngine
 
@@ -72,6 +73,7 @@ function FormatEditor({
   format: CalculationFormat | undefined
   onUpdate: (format: CalculationFormat | undefined) => void
 }) {
+  const { t } = useTranslation('modals')
   if (resultType === 'boolean') return null
 
   const isNumber = resultType === 'number'
@@ -92,7 +94,7 @@ function FormatEditor({
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <label className="text-[10px] text-muted-foreground">
-          {isNumber ? '数値書式' : '日付書式'}
+          {isNumber ? t('calculationTab.numberFormatLabel') : t('calculationTab.dateFormatLabel')}
         </label>
         <button
           onClick={() => enabled ? onUpdate(undefined) : onUpdate({ type: defaultType })}
@@ -104,7 +106,7 @@ function FormatEditor({
           )}
           data-testid="format-toggle"
         >
-          {enabled ? '有効' : '設定する'}
+          {enabled ? t('calculationTab.formatEnabled') : t('calculationTab.formatSet')}
         </button>
       </div>
 
@@ -117,13 +119,13 @@ function FormatEditor({
             data-testid="format-type-select"
           >
             {formatOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{t(o.label)}</option>
             ))}
           </select>
 
           {showDecimalPlaces && (
             <div className="flex items-center gap-1">
-              <label className="text-[10px] text-muted-foreground">小数点以下</label>
+              <label className="text-[10px] text-muted-foreground">{t('calculationTab.decimalPlaces')}</label>
               <input
                 type="number"
                 min={0}
@@ -133,7 +135,7 @@ function FormatEditor({
                 onChange={(e) => { const n = parseInt(e.target.value, 10); patch({ decimalPlaces: isNaN(n) ? undefined : n }) }}
                 data-testid="format-decimal-places"
               />
-              <span className="text-[10px] text-muted-foreground">桁</span>
+              <span className="text-[10px] text-muted-foreground">{t('calculationTab.digitsUnit')}</span>
             </div>
           )}
 
@@ -166,6 +168,7 @@ function VariablePanel({
   otherRuleKeys: string[]
   onInsert: (token: string) => void
 }) {
+  const { t } = useTranslation('modals')
   const [open, setOpen] = useState(false)
 
   return (
@@ -176,14 +179,14 @@ function VariablePanel({
         data-testid="variable-panel-toggle"
       >
         <span>{open ? '▾' : '▸'}</span>
-        <span>利用可能な変数</span>
+        <span>{t('calculationTab.availableVariables')}</span>
       </button>
 
       {open && (
         <div className="mt-1 space-y-1.5" data-testid="variable-panel">
           {schemaFields.length > 0 && (
             <div>
-              <p className="text-[9px] text-muted-foreground mb-0.5">スキーマフィールド</p>
+              <p className="text-[9px] text-muted-foreground mb-0.5">{t('calculationTab.schemaFields')}</p>
               <div className="flex flex-wrap gap-1">
                 {schemaFields.map(({ groupLabel, field }) => (
                   <button
@@ -201,7 +204,7 @@ function VariablePanel({
 
           {otherRuleKeys.length > 0 && (
             <div>
-              <p className="text-[9px] text-muted-foreground mb-0.5">他の計算ルール</p>
+              <p className="text-[9px] text-muted-foreground mb-0.5">{t('calculationTab.otherRules')}</p>
               <div className="flex flex-wrap gap-1">
                 {otherRuleKeys.map((k) => (
                   <button
@@ -217,7 +220,7 @@ function VariablePanel({
           )}
 
           <div>
-            <p className="text-[9px] text-muted-foreground mb-0.5">組み込み関数</p>
+            <p className="text-[9px] text-muted-foreground mb-0.5">{t('calculationTab.builtinFunctions')}</p>
             <div className="flex flex-wrap gap-1">
               {FORMULA_FUNCTIONS.map((fn) => (
                 <button
@@ -260,6 +263,7 @@ const RuleRow = memo(function RuleRow({
   onUpdate: (patch: Partial<CalculationRule>) => void
   onRemove: () => void
 }) {
+  const { t } = useTranslation('modals')
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -319,7 +323,7 @@ const RuleRow = memo(function RuleRow({
       {/* Key + Label */}
       <div className="flex gap-2">
         <div className="flex-1 space-y-1">
-          <label className="text-[10px] text-muted-foreground">キー</label>
+          <label className="text-[10px] text-muted-foreground">{t('calculationTab.key')}</label>
           <input
             className={cn(
               'w-full h-6 px-2 text-xs border rounded bg-background font-mono',
@@ -331,40 +335,40 @@ const RuleRow = memo(function RuleRow({
             placeholder="calc_total"
           />
           {isDuplicateKey && (
-            <p className="text-[9px] text-destructive">キーが重複しています</p>
+            <p className="text-[9px] text-destructive">{t('calculationTab.duplicateKey')}</p>
           )}
         </div>
         <div className="flex-1 space-y-1">
-          <label className="text-[10px] text-muted-foreground">ラベル</label>
+          <label className="text-[10px] text-muted-foreground">{t('calculationTab.label')}</label>
           <input
             className="w-full h-6 px-2 text-xs border border-border rounded bg-background"
             value={rule.label}
             onChange={(e) => onUpdate({ label: e.target.value })}
-            placeholder="合計金額"
+            placeholder={t('calculationTab.labelPlaceholder')}
           />
         </div>
       </div>
 
       {/* Description */}
       <div className="space-y-1">
-        <label className="text-[10px] text-muted-foreground">説明 (任意)</label>
+        <label className="text-[10px] text-muted-foreground">{t('calculationTab.description')}</label>
         <input
           className="w-full h-6 px-2 text-xs border border-border rounded bg-background"
           value={rule.description ?? ''}
           onChange={(e) => onUpdate({ description: e.target.value || undefined })}
-          placeholder="この計算式の用途を記述します"
+          placeholder={t('calculationTab.descriptionPlaceholder')}
           data-testid="description-input"
         />
       </div>
 
       {/* Expression — focus-only CM6 virtualization (Performance #2) */}
       <div className="space-y-1">
-        <label className="text-[10px] text-muted-foreground">計算式</label>
+        <label className="text-[10px] text-muted-foreground">{t('calculationTab.expression')}</label>
         {isFocused ? (
           <Suspense
             fallback={
               <div className="border rounded-lg p-2 text-xs text-muted-foreground font-mono min-h-[40px]">
-                {rule.expression || '式を入力...'}
+                {rule.expression || t('calculationTab.expressionPlaceholder')}
               </div>
             }
           >
@@ -384,7 +388,7 @@ const RuleRow = memo(function RuleRow({
             className="w-full text-left px-2 py-1.5 text-xs border border-border rounded bg-background font-mono min-h-[40px] hover:border-primary/50 transition-colors cursor-text"
             onClick={() => setIsFocused(true)}
           >
-            {rule.expression || <span className="text-muted-foreground italic">式を入力...</span>}
+            {rule.expression || <span className="text-muted-foreground italic">{t('calculationTab.expressionPlaceholder')}</span>}
           </button>
         )}
       </div>
@@ -392,7 +396,7 @@ const RuleRow = memo(function RuleRow({
       {/* Result type + onError */}
       <div className="flex gap-2 items-start flex-wrap">
         <div className="space-y-1">
-          <label className="text-[10px] text-muted-foreground">型</label>
+          <label className="text-[10px] text-muted-foreground">{t('calculationTab.resultTypeLabel')}</label>
           <select
             className="h-6 px-1 text-xs border border-border rounded bg-background"
             value={rule.resultType}
@@ -403,19 +407,19 @@ const RuleRow = memo(function RuleRow({
             }}
           >
             {RESULT_TYPES.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{t(o.label)}</option>
             ))}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] text-muted-foreground">エラー時</label>
+          <label className="text-[10px] text-muted-foreground">{t('calculationTab.onErrorLabel')}</label>
           <select
             className="h-6 px-1 text-xs border border-border rounded bg-background"
             value={rule.onError}
             onChange={(e) => onUpdate({ onError: e.target.value as CalculationRule['onError'] })}
           >
             {ON_ERROR_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>{t(o.label)}</option>
             ))}
           </select>
         </div>
@@ -425,13 +429,13 @@ const RuleRow = memo(function RuleRow({
             disabled={testing}
             className="h-6 px-2 text-[10px] border border-border rounded hover:bg-accent transition-colors"
           >
-            {testing ? '…' : 'テスト'}
+            {testing ? '…' : t('calculationTab.test')}
           </button>
           <button
             onClick={onRemove}
             className="h-6 px-2 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors"
           >
-            削除
+            {t('calculationTab.remove')}
           </button>
         </div>
       </div>
@@ -458,7 +462,7 @@ const RuleRow = memo(function RuleRow({
             ? 'bg-destructive/10 text-destructive'
             : 'bg-muted text-foreground',
         )}>
-          結果: {testResult}
+          {t('calculationTab.result')}{testResult}
         </div>
       )}
     </div>
@@ -470,6 +474,7 @@ const RuleRow = memo(function RuleRow({
 // ---------------------------------------------------------------------------
 
 export function CalculationTab() {
+  const { t } = useTranslation('modals')
   const calculationRules = useReportStore((s) => s.definition.calculationRules)
   const schema = useReportStore((s) => s.definition.schema)
   const testData = useReportStore((s) => s.testData)
@@ -514,7 +519,7 @@ export function CalculationTab() {
     addCalculationRule({
       id,
       key,
-      label: '新しいルール',
+      label: t('calculationTab.newRuleLabel'),
       expression: '',
       resultType: 'number',
       onError: 'zero',
@@ -525,22 +530,22 @@ export function CalculationTab() {
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold">計算ルール</p>
+          <p className="text-xs font-semibold">{t('calculationTab.heading')}</p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            JEXL式で計算値を定義します。{'{{calc_key}}'}でテキスト内に埋め込めます。
+            {t('calculationTab.headingDescription', { calcKey: '{{calc_key}}' })}
           </p>
         </div>
         <button
           onClick={handleAdd}
           className="h-6 px-2 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
         >
-          + 追加
+          {t('calculationTab.add')}
         </button>
       </div>
 
       {calculationRules.length === 0 ? (
         <p className="text-[10px] text-muted-foreground py-4 text-center">
-          計算ルールがありません
+          {t('calculationTab.empty')}
         </p>
       ) : (
         <div className="space-y-2">
