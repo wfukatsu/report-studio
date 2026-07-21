@@ -125,10 +125,7 @@ public final class FontProvider {
      */
     public static boolean isSyntheticBold(String fontFamily, boolean bold) {
         if (!bold) return false;
-        boolean serif =
-                fontFamily != null
-                        && (fontFamily.contains("Serif") || fontFamily.contains("Mincho"));
-        if (serif) return true; // no serif bold face bundled
+        if (isSerifFamily(fontFamily)) return true; // no serif bold face bundled
         return !CJK_BOLD_AVAILABLE; // sans: real bold only when the Bold TTF is present
     }
 
@@ -150,10 +147,22 @@ public final class FontProvider {
      */
     public static PDFont getFontForFamily(
             PDDocument doc, Map<String, PDFont> fontCache, String fontFamily, boolean bold) {
-        if (fontFamily != null && (fontFamily.contains("Serif") || fontFamily.contains("Mincho"))) {
+        if (isSerifFamily(fontFamily)) {
             return fontCache.computeIfAbsent("serif", k -> loadSerifFont(doc));
         }
         return bold ? getBoldFont(doc, fontCache) : getFont(doc, fontCache);
+    }
+
+    /**
+     * Whether the family should render with the serif (Mincho) face. Case-insensitive so the
+     * generic CSS keyword {@code serif} — the font picker's 明朝体（標準） — maps to Noto Serif JP like
+     * the frontend canvas does (#317); {@code sans-serif} is explicitly excluded.
+     */
+    static boolean isSerifFamily(String fontFamily) {
+        if (fontFamily == null) return false;
+        String f = fontFamily.toLowerCase(java.util.Locale.ROOT);
+        if (f.contains("sans")) return false;
+        return f.contains("serif") || f.contains("mincho") || f.contains("明朝");
     }
 
     private static PDFont loadCjkFont(PDDocument doc) {

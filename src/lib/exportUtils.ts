@@ -178,6 +178,18 @@ function restoreAutoFields(snapshots: AutoFieldSnapshot[]): void {
   }
 }
 
+
+/** Web フォント（Noto Sans/Serif JP、#317）のロード完了を待ってからキャプチャする */
+async function waitForFonts(): Promise<void> {
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    try {
+      await document.fonts.ready
+    } catch {
+      // フォントロード失敗時もエクスポート自体は続行（fallback フォントで描画）
+    }
+  }
+}
+
 export async function exportPageToPng(
   canvasEl: HTMLElement,
   fileName = 'report.png',
@@ -185,6 +197,7 @@ export async function exportPageToPng(
   totalPages = 1,
   models?: AutoFieldModels,
 ): Promise<void> {
+  await waitForFonts()
   const snapshots = resolveAutoFields(canvasEl, models, pageIndex, totalPages)
   try {
     const canvas = await html2canvas(canvasEl, { useCORS: true, scale: EXPORT_SCALE })
@@ -229,6 +242,7 @@ export async function exportReportToPdfBlob(
 ): Promise<Blob> {
   if (pageEls.length === 0) throw new Error('No pages to export')
 
+  await waitForFonts()
   const totalPages = pageEls.length
   const allSnapshots = pageEls.map((el, i) => resolveAutoFields(el, models, i + 1, totalPages))
   try {

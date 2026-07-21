@@ -3,6 +3,7 @@ import type { PageNumberElement } from '@/types'
 import { toFlexAlign } from '@/elements/_base/styleUtils'
 import { formatPageNumber } from './format'
 import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
+import { resolveFontFamily } from '@/lib/styleUtils'
 
 interface Props {
   element: PageNumberElement
@@ -44,7 +45,7 @@ export const PageNumberRenderer = memo(function PageNumberRenderer({
           fontWeight: style.fontWeight ?? 'normal',
           fontStyle: style.fontStyle ?? 'normal',
           color: style.color ?? '#666666',
-          fontFamily: style.fontFamily,
+          fontFamily: resolveFontFamily(style.fontFamily),
           textAlign: style.textAlign ?? 'center',
           whiteSpace: 'nowrap',
         }}

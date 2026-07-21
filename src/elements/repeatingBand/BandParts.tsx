@@ -1,5 +1,6 @@
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
 import { aggregateField } from '@/lib/aggregation'
+import { REPORT_SANS_STACK } from '@/lib/styleUtils'
 import {
   DEFAULT_HEADER_BG,
   DEFAULT_HEADER_COLOR,
@@ -162,7 +163,7 @@ export function BandContainer({
       flexDirection: 'column',
       border: bs,
       boxSizing: 'border-box',
-      fontFamily: 'sans-serif',
+      fontFamily: REPORT_SANS_STACK,
       overflow: 'hidden',
       position: 'relative',
       breakBefore: el.pageBreak === 'before' ? 'page' : undefined,

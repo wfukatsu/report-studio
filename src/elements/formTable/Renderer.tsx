@@ -3,6 +3,7 @@ import type { FormTableElement, FormTableRow, FormTableCell, EraSelectLayout } f
 import { resolveField } from '@/lib/dataBinding'
 import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
 import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
+import { REPORT_SANS_STACK } from '@/lib/styleUtils'
 
 // ---------------------------------------------------------------------------
 // Style helpers
@@ -247,7 +248,7 @@ function FormTableDesignPreview({ element: el }: { element: FormTableElement }) 
         flexDirection: 'column',
         border: bs,
         boxSizing: 'border-box',
-        fontFamily: 'sans-serif',
+        fontFamily: REPORT_SANS_STACK,
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -347,7 +348,7 @@ function FormTableLiveRenderer({
         flexDirection: 'column',
         border: bs,
         boxSizing: 'border-box',
-        fontFamily: 'sans-serif',
+        fontFamily: REPORT_SANS_STACK,
         overflow: 'hidden',
       }}
     >

@@ -1,6 +1,7 @@
 import { memo, useRef, useEffect, useCallback } from 'react'
 import type { TextElement } from '@/types'
 import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
+import { resolveFontFamily } from '@/lib/styleUtils'
 
 interface Props {
   element: TextElement
@@ -139,7 +140,7 @@ export const TextInlineEditor = memo(function TextInlineEditor({ element: el, on
         position: 'absolute',
         inset: 0,
         fontSize: `${el.style.fontSize ?? DEFAULT_FONT_SIZE}pt`,
-        fontFamily: el.style.fontFamily,
+        fontFamily: resolveFontFamily(el.style.fontFamily),
         fontWeight: el.style.fontWeight ?? 'normal',
         color: el.style.color ?? '#000000',
         textAlign: el.style.textAlign ?? 'left',
