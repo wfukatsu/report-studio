@@ -1,52 +1,27 @@
 package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.ConditionEvaluator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Shared element-rendering utilities for SectionPdfRenderer implementations.
+ * Shared element-rendering facade for SectionPdfRenderer implementations.
  *
- * <p>Holds the ElementPdfRendererRegistry instance and coordinate conversion constants. Section
- * renderers call these methods rather than duplicating the mm→pt conversion and registry lookup
- * logic.
+ * <p>Keeps the section-level element loops and delegates the per-concern logic to package-local
+ * collaborators (#276):
+ *
+ * <ul>
+ *   <li>{@link ElementRenderDispatcher} — single-element mm→pt dispatch to the renderer registry
+ *   <li>{@link RenderTimeSystemValues} — pageNumber / currentDate / tenant* resolution
+ *   <li>{@link FormDataResolver} — scalar, array, and row-indexed binding resolution
+ *   <li>{@link BandFlowPlanner} — repeatingBand / repeatingList page flow (issue #64)
+ *   <li>{@link SectionGeometry} — pushdown layout, row-region and capacity math
+ *   <li>{@link PagePlanBuilder} — group page plan, group headers, carry-over totals (issue #55)
+ *   <li>{@link ElementNodeSupport} — kind/binding resolution, prop copying, variant masking
+ * </ul>
  */
 public final class SectionRenderHelper {
 
-    private static final Logger log = LoggerFactory.getLogger(SectionRenderHelper.class);
-
     public static final float MM_TO_PT = PdfUnits.MM_TO_PT;
-    private static final float MAX_DIMENSION_PT = 2000f;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private static final ElementPdfRendererRegistry ELEMENT_REGISTRY =
-            ElementPdfRendererRegistry.createDefault();
-
-    private static final ElementPdfRenderer ELEMENT_FALLBACK =
-            new ElementPdfRenderer() {
-                @Override
-                public String kind() {
-                    return "__fallback__";
-                }
-
-                @Override
-                public void render(
-                        org.apache.pdfbox.pdmodel.PDPageContentStream cs,
-                        JsonNode el,
-                        float x,
-                        float y,
-                        float w,
-                        float h,
-                        float pageHeight,
-                        org.apache.pdfbox.pdmodel.PDDocument doc,
-                        java.util.Map<String, org.apache.pdfbox.pdmodel.font.PDFont> fontCache)
-                        throws java.io.IOException {
-                    PdfUtils.renderBorder(cs, x, y, w, h);
-                }
-            };
 
     private SectionRenderHelper() {}
 
@@ -106,9 +81,9 @@ public final class SectionRenderHelper {
             JsonNode resolved =
                     formData != null ? resolveFormData(withLayout, formData) : withLayout;
             // Band elements draw a per-page record window (issue #64)
-            resolved = applyBandWindow(resolved, pageIdx);
+            resolved = BandFlowPlanner.applyBandWindow(resolved, pageIdx);
             if (resolved == null) continue;
-            JsonNode masked = applyMaskingToElement(resolved, variantCtx);
+            JsonNode masked = ElementNodeSupport.applyMaskingToElement(resolved, variantCtx);
             renderElement(ctx, masked);
         }
     }
@@ -118,12 +93,7 @@ public final class SectionRenderHelper {
      * sections without a usable height are single-page.
      */
     public static RelativeLayoutResolver.PagedLayout pushdownLayout(JsonNode section) {
-        if (!"relative".equals(PdfUtils.textOf(section, "layoutMode", "absolute"))) {
-            return RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
-        }
-        float top = PdfUtils.floatOf(section, "y", 0);
-        float height = PdfUtils.floatOf(section, "height", 0);
-        return RelativeLayoutResolver.paginate(section.get("elements"), top, height);
+        return SectionGeometry.pushdownLayout(section);
     }
 
     /** Number of section-local physical pages the pushdown overflow needs (≥1). */
@@ -148,7 +118,7 @@ public final class SectionRenderHelper {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            String kind = resolveKind(el);
+            String kind = ElementNodeSupport.resolveKind(el);
             if ("row_block".equals(kind)) continue;
             if ("carryover_header".equals(kind) || "carryover_footer".equals(kind)) continue;
             if ("group_header".equals(kind)) continue; // drawn per-group by the section renderer
@@ -156,7 +126,7 @@ public final class SectionRenderHelper {
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
             JsonNode resolved = formData != null ? resolveFormData(el, formData) : el;
-            JsonNode masked = applyMaskingToElement(resolved, variantCtx);
+            JsonNode masked = ElementNodeSupport.applyMaskingToElement(resolved, variantCtx);
             renderElement(ctx, masked);
         }
     }
@@ -204,13 +174,13 @@ public final class SectionRenderHelper {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            if (!"row_block".equals(resolveKind(el))) continue;
+            if (!"row_block".equals(ElementNodeSupport.resolveKind(el))) continue;
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
             JsonNode rowEl = resolveDetailRow(el, formData, rowIdx, rowsPerPage, strideMm);
-            JsonNode masked = applyMaskingToElement(rowEl, variantCtx);
+            JsonNode masked = ElementNodeSupport.applyMaskingToElement(rowEl, variantCtx);
             renderElement(ctx, masked);
         }
     }
@@ -230,67 +200,21 @@ public final class SectionRenderHelper {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
         for (JsonNode el : elements) {
-            if (!"row_block".equals(resolveKind(el))) continue;
+            if (!"row_block".equals(ElementNodeSupport.resolveKind(el))) continue;
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, rowIdx)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
-            JsonNode rowEl = resolveDetailRowAt(el, formData, rowIdx, rowOnPage, strideMm);
-            JsonNode masked = applyMaskingToElement(rowEl, variantCtx);
+            JsonNode rowEl =
+                    FormDataResolver.resolveDetailRowAt(el, formData, rowIdx, rowOnPage, strideMm);
+            JsonNode masked = ElementNodeSupport.applyMaskingToElement(rowEl, variantCtx);
             renderElement(ctx, masked);
         }
     }
 
     /** Render a single element via the ElementPdfRendererRegistry. */
     public static void renderElement(PageContext ctx, JsonNode el) {
-        try {
-            // Page numbers / print dates are only known now (issue #54)
-            el = resolveSystemValues(el, ctx);
-
-            // V1 uses "kind"; V2 uses "type" — resolveKind falls back to "type"
-            String kind = resolveKind(el);
-
-            // V1 uses "frame" { x, y, width, height }; V2 uses "position" + "size"
-            float xMm, yMm, wMm, hMm;
-            JsonNode frame = el.get("frame");
-            if (frame != null) {
-                xMm = PdfUtils.floatOf(frame, "x");
-                yMm = PdfUtils.floatOf(frame, "y");
-                wMm = PdfUtils.floatOf(frame, "width");
-                hMm = PdfUtils.floatOf(frame, "height");
-            } else {
-                JsonNode position = el.get("position");
-                JsonNode size = el.get("size");
-                if (position == null || size == null) return;
-                xMm = PdfUtils.floatOf(position, "x");
-                yMm = PdfUtils.floatOf(position, "y");
-                wMm = PdfUtils.floatOf(size, "width");
-                hMm = PdfUtils.floatOf(size, "height");
-            }
-
-            float x = xMm * MM_TO_PT;
-            float y = ctx.pageHeight() - (yMm * MM_TO_PT);
-            float w = Math.min(wMm * MM_TO_PT, MAX_DIMENSION_PT);
-            float h = Math.min(hMm * MM_TO_PT, MAX_DIMENSION_PT);
-            ELEMENT_REGISTRY
-                    .get(kind)
-                    .orElse(ELEMENT_FALLBACK)
-                    .render(
-                            ctx.contentStream(),
-                            el,
-                            x,
-                            y,
-                            w,
-                            h,
-                            ctx.pageHeight(),
-                            ctx.document(),
-                            ctx.fontCache());
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to render element {}: {}",
-                    PdfUtils.textOf(el, "id", "?"),
-                    e.getMessage());
-        }
+        ElementRenderDispatcher.renderElement(ctx, el);
     }
 
     // ── Form data resolution ────────────────────────────────────────────
@@ -301,66 +225,7 @@ public final class SectionRenderHelper {
      * _formData.group[0].field
      */
     public static JsonNode resolveFormData(JsonNode el, JsonNode formData) {
-        // Array-bound elements copy a whole _formData array into props.data:
-        // chart (dataBinding), repeatingBand / repeatingList (dataSource)
-        String kind = resolveKind(el);
-        if ("chart".equals(kind)) {
-            return resolveArrayData(el, formData, "dataBinding");
-        }
-        if ("repeatingBand".equals(kind) || "repeatingList".equals(kind)) {
-            return resolveArrayData(el, formData, "dataSource");
-        }
-        // formTable resolves dataField cells from an element-level _formData;
-        // production only sets it on the projection root, so inject it here so
-        // dataField cells are no longer blank in server PDFs (issue #52/#53)
-        if ("formTable".equals(kind) && el.get("_formData") == null && formData != null) {
-            try {
-                ObjectNode copy = (ObjectNode) el.deepCopy();
-                copy.set("_formData", formData.deepCopy());
-                return copy;
-            } catch (Exception e) {
-                return el;
-            }
-        }
-        String ref = resolveBindingRef(el);
-        if (ref == null) return el;
-        if (ref.startsWith("{")) return el; // system variable — resolved at render time
-
-        JsonNode value = null;
-        if (ref.contains("[]")) {
-            String[] parts = ref.split("\\[\\]\\.");
-            if (parts.length == 2) {
-                JsonNode group = formData.get(parts[0]);
-                if (group != null && group.isArray() && !group.isEmpty()) {
-                    value = group.get(0).get(parts[1]);
-                }
-            }
-        } else {
-            value = resolveDataPath(formData, ref);
-        }
-
-        if (value == null) return el;
-        return withResolvedProp(el, value);
-    }
-
-    /** Copy the bound data array ({@code field} → {@code _formData[key]}) into props.data. */
-    private static JsonNode resolveArrayData(JsonNode el, JsonNode formData, String field) {
-        String key = PdfUtils.elementTextOf(el, field, "");
-        if (key.isEmpty() || formData == null) return el;
-        JsonNode arr = formData.get(key);
-        if (arr == null || !arr.isArray()) return el;
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode props =
-                    copy.has("props") && copy.get("props").isObject()
-                            ? (ObjectNode) copy.get("props")
-                            : MAPPER.createObjectNode();
-            props.set("data", arr.deepCopy());
-            copy.set("props", props);
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
+        return FormDataResolver.resolveFormData(el, formData);
     }
 
     /**
@@ -390,66 +255,14 @@ public final class SectionRenderHelper {
      */
     public static JsonNode resolveDetailRowAt(
             JsonNode el, JsonNode formData, int rowIdx, int rowOnPage, float strideMm) {
-        JsonNode bindingRefNode = el.get("bindingRef");
-        if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
-        String ref = bindingRefNode.asText();
-        if (!ref.contains("[]")) return el;
-
-        String[] parts = ref.split("\\[\\]\\.");
-        if (parts.length != 2) return el;
-
-        JsonNode group = formData.get(parts[0]);
-        if (group == null || !group.isArray() || rowIdx >= group.size()) return el;
-
-        JsonNode value = group.get(rowIdx).get(parts[1]);
-        if (value == null) return el;
-
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            // Offset Y by the row's slot on the current page
-            JsonNode frame = copy.get("frame");
-            if (frame != null && frame.isObject()) {
-                ObjectNode frameCopy = (ObjectNode) frame;
-                float stride =
-                        Float.isNaN(strideMm) || strideMm <= 0
-                                ? PdfUtils.floatOf(frame, "height")
-                                : strideMm;
-                float baseY = PdfUtils.floatOf(frame, "y");
-                frameCopy.put("y", baseY + stride * rowOnPage);
-            }
-            // Set the resolved value into props
-            ObjectNode props =
-                    copy.has("props") && copy.get("props").isObject()
-                            ? (ObjectNode) copy.get("props")
-                            : MAPPER.createObjectNode();
-            String kind = resolveKind(el);
-            String propKey = propKeyFor(kind);
-            applyValue(props, propKey, value);
-            copy.set("props", props);
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
+        return FormDataResolver.resolveDetailRowAt(el, formData, rowIdx, rowOnPage, strideMm);
     }
 
     // ── Split-policy support for multi_row_table (issue #55) ────────────
 
     /** row_block elements of a section, sorted top-to-bottom by frame.y. */
     public static java.util.List<JsonNode> sortedRowBlocks(JsonNode section) {
-        java.util.List<JsonNode> blocks = new java.util.ArrayList<>();
-        JsonNode elements = section.get("elements");
-        if (elements != null && elements.isArray()) {
-            for (JsonNode el : elements) {
-                if ("row_block".equals(resolveKind(el))) blocks.add(el);
-            }
-        }
-        blocks.sort(
-                java.util.Comparator.comparingDouble(
-                        el -> {
-                            JsonNode f = el.get("frame");
-                            return f != null ? PdfUtils.floatOf(f, "y") : 0f;
-                        }));
-        return blocks;
+        return SectionGeometry.sortedRowBlocks(section);
     }
 
     /**
@@ -467,43 +280,11 @@ public final class SectionRenderHelper {
         if (!ConditionEvaluator.shouldRender(block, formData, recordIdx)) return;
         String elId = PdfUtils.textOf(block, "id", "");
         if (!variantCtx.isVisible(elId, PdfUtils.boolOf(block, "visible", true))) return;
-        JsonNode resolved = resolveRowValueAtY(block, formData, recordIdx, yMm);
-        renderElement(ctx, applyMaskingToElement(resolved, variantCtx));
-    }
-
-    /** Copy a row_block with record {@code recordIdx}'s value and an absolute frame.y. */
-    private static JsonNode resolveRowValueAtY(
-            JsonNode el, JsonNode formData, int recordIdx, float yMm) {
-        JsonNode bindingRefNode = el.get("bindingRef");
-        if (bindingRefNode == null || !bindingRefNode.isTextual() || formData == null) return el;
-        String ref = bindingRefNode.asText();
-        if (!ref.contains("[]")) return el;
-        String[] parts = ref.split("\\[\\]\\.");
-        if (parts.length != 2) return el;
-        JsonNode group = formData.get(parts[0]);
-        if (group == null || !group.isArray() || recordIdx >= group.size()) return el;
-        JsonNode value = group.get(recordIdx).get(parts[1]);
-        if (value == null) return el;
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            JsonNode frame = copy.get("frame");
-            if (frame != null && frame.isObject()) ((ObjectNode) frame).put("y", yMm);
-            ObjectNode props =
-                    copy.has("props") && copy.get("props").isObject()
-                            ? (ObjectNode) copy.get("props")
-                            : MAPPER.createObjectNode();
-            applyValue(props, propKeyFor(resolveKind(el)), value);
-            copy.set("props", props);
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
+        JsonNode resolved = FormDataResolver.resolveRowValueAtY(block, formData, recordIdx, yMm);
+        renderElement(ctx, ElementNodeSupport.applyMaskingToElement(resolved, variantCtx));
     }
 
     // ── V2 band flow (issue #64) ─────────────────────────────────────────
-
-    /** Safety cap on band continuation pages per section. */
-    static final int MAX_BAND_PAGES = 200;
 
     /**
      * Records per page a repeatingBand / repeatingList element can hold, or 0 when the element
@@ -511,25 +292,7 @@ public final class SectionRenderHelper {
      * behavior).
      */
     public static int bandCapacity(JsonNode el) {
-        String kind = resolveKind(el);
-        float heightMm = elementHeightMm(el);
-        if (heightMm <= 0) return 0;
-        if ("repeatingBand".equals(kind)) {
-            float rowH = PdfUtils.elementFloatOf(el, "itemHeight", 6f);
-            if (rowH <= 0) return 0;
-            boolean showHeader = PdfUtils.elementBoolOf(el, "showHeader", true);
-            float headerH = showHeader ? PdfUtils.elementFloatOf(el, "headerHeight", rowH) : 0;
-            return Math.max((int) Math.floor((heightMm - headerH) / rowH), 0);
-        }
-        if ("repeatingList".equals(kind)) {
-            String layout = PdfUtils.elementTextOf(el, "layout", "vertical");
-            if (!"vertical".equals(layout)) return 0;
-            float itemH = PdfUtils.elementFloatOf(el, "itemHeight", 20f);
-            if (itemH <= 0) return 0;
-            float gap = Math.max(PdfUtils.elementFloatOf(el, "gap", 2f), 0);
-            return Math.max((int) Math.floor((heightMm + gap) / (itemH + gap)), 0);
-        }
-        return 0;
+        return BandFlowPlanner.bandCapacity(el);
     }
 
     /**
@@ -537,24 +300,7 @@ public final class SectionRenderHelper {
      * dropped by {@code maxItems} are an explicit designer choice and do not flow.
      */
     public static int bandFlowPages(JsonNode section, JsonNode formData) {
-        if (formData == null) return 1;
-        JsonNode elements = section.get("elements");
-        if (elements == null || !elements.isArray()) return 1;
-        int pages = 1;
-        for (JsonNode el : elements) {
-            String kind = resolveKind(el);
-            if (!"repeatingBand".equals(kind) && !"repeatingList".equals(kind)) continue;
-            int capacity = bandCapacity(el);
-            if (capacity <= 0) continue;
-            String key = PdfUtils.elementTextOf(el, "dataSource", "");
-            JsonNode records = key.isEmpty() ? null : formData.get(key);
-            if (records == null || !records.isArray()) continue;
-            int maxItems = PdfUtils.elementIntOf(el, "maxItems", 0);
-            int intended = maxItems > 0 ? Math.min(records.size(), maxItems) : records.size();
-            int needed = Math.min((intended + capacity - 1) / capacity, MAX_BAND_PAGES);
-            pages = Math.max(pages, needed);
-        }
-        return pages;
+        return BandFlowPlanner.bandFlowPages(section, formData);
     }
 
     /**
@@ -566,78 +312,18 @@ public final class SectionRenderHelper {
     }
 
     /**
-     * Window a band element's resolved records to the given section-local page (issue #64): page k
-     * draws records {@code [k*capacity, (k+1)*capacity)} of the maxItems-capped set. Returns the
-     * element unchanged when it cannot flow, or null when the element has no records on this page.
-     */
-    private static JsonNode applyBandWindow(JsonNode el, int pageIdx) {
-        String kind = resolveKind(el);
-        if (!"repeatingBand".equals(kind) && !"repeatingList".equals(kind)) return el;
-        int capacity = bandCapacity(el);
-        if (capacity <= 0) return el; // non-flowing: historical clip behavior on every page
-        JsonNode props = el.get("props");
-        JsonNode data = props != null ? props.get("data") : null;
-        if (data == null || !data.isArray()) return el;
-
-        int maxItems = PdfUtils.elementIntOf(el, "maxItems", 0);
-        int intended = maxItems > 0 ? Math.min(data.size(), maxItems) : data.size();
-        int start = pageIdx * capacity;
-        if (pageIdx > 0 && start >= intended) return null; // no records left for this page
-        int end = Math.min(start + capacity, intended);
-        if (start == 0 && end == data.size() && maxItems == 0) return el; // whole set fits page 0
-
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode propsCopy = (ObjectNode) copy.get("props");
-            var slice = MAPPER.createArrayNode();
-            for (int i = start; i < end; i++) slice.add(data.get(i).deepCopy());
-            propsCopy.set("data", slice);
-            // The window already applied maxItems — stop the renderer re-truncating
-            copy.put("maxItems", 0);
-            if (copy.has("props") && copy.get("props").has("maxItems")) {
-                ((ObjectNode) copy.get("props")).put("maxItems", 0);
-            }
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
-    }
-
-    /** Element height in mm — V1 {@code frame.height} or V2 {@code size.height}. */
-    private static float elementHeightMm(JsonNode el) {
-        JsonNode frame = el.get("frame");
-        if (frame != null && frame.isObject()) return PdfUtils.floatOf(frame, "height");
-        JsonNode size = el.get("size");
-        return size != null && size.isObject() ? PdfUtils.floatOf(size, "height") : 0f;
-    }
-
-    /**
      * Resolve a scalar data reference: exact key first (legacy flat projection data), then
      * dot-notation traversal into nested objects — mirroring the frontend {@code resolveField}
      * (e.g. {@code "document.documentNo"} into {@code {document: {documentNo: ...}}}). Returns null
      * when unresolved.
      */
     public static JsonNode resolveDataPath(JsonNode data, String ref) {
-        if (data == null || ref == null || ref.isEmpty()) return null;
-        JsonNode direct = data.get(ref);
-        if (direct != null && !direct.isNull()) return direct;
-        if (!ref.contains(".")) return null;
-        JsonNode cur = data;
-        for (String part : ref.split("\\.")) {
-            if (cur == null || !cur.isObject()) return null;
-            cur = cur.get(part);
-        }
-        return (cur == null || cur.isNull()) ? null : cur;
+        return FormDataResolver.resolveDataPath(data, ref);
     }
 
     /** Available vertical space (mm) from the topmost row_block to the section bottom, or -1. */
     public static float computeAvailableHeight(JsonNode section) {
-        float[] region = computeRowRegion(section);
-        if (region == null) return -1;
-        float sectionY = PdfUtils.floatOf(section, "y", 0);
-        float sectionH = PdfUtils.floatOf(section, "height", 0);
-        if (sectionH <= 0) return -1;
-        return sectionY + sectionH - region[0];
+        return SectionGeometry.computeAvailableHeight(section);
     }
 
     // ── Group page-break plan (issue #55) ───────────────────────────────
@@ -655,47 +341,7 @@ public final class SectionRenderHelper {
      */
     public static java.util.List<PageSlice> buildPagePlan(
             JsonNode section, JsonNode formData, int rowsPerPage) {
-        int total = 0;
-        String groupName = findRowGroupName(section);
-        JsonNode rows = (formData != null && groupName != null) ? formData.get(groupName) : null;
-        if (rows != null && rows.isArray()) total = rows.size();
-
-        java.util.List<PageSlice> plan = new java.util.ArrayList<>();
-        int rpp = Math.max(rowsPerPage, 1);
-        String groupBy = PdfUtils.elementTextOf(section, "groupBy", "");
-
-        if (groupBy.isEmpty() || rows == null) {
-            // Flat pagination
-            if (total == 0) {
-                plan.add(new PageSlice(0, 0, true, null));
-                return plan;
-            }
-            for (int start = 0; start < total; start += rpp) {
-                plan.add(new PageSlice(start, Math.min(start + rpp, total), start == 0, null));
-            }
-            return plan;
-        }
-
-        // Grouped pagination — page breaks at each group boundary
-        int groupStart = 0;
-        while (groupStart < total) {
-            String gv = valueAt(rows, groupStart, groupBy);
-            int groupEnd = groupStart;
-            while (groupEnd < total
-                    && java.util.Objects.equals(valueAt(rows, groupEnd, groupBy), gv)) {
-                groupEnd++;
-            }
-            for (int s = groupStart; s < groupEnd; s += rpp) {
-                plan.add(new PageSlice(s, Math.min(s + rpp, groupEnd), s == groupStart, gv));
-            }
-            groupStart = groupEnd;
-        }
-        return plan.isEmpty() ? java.util.List.of(new PageSlice(0, 0, true, null)) : plan;
-    }
-
-    private static String valueAt(JsonNode rows, int idx, String field) {
-        JsonNode v = rows.get(idx).get(field);
-        return v == null || v.isNull() ? "" : v.asText("");
+        return PagePlanBuilder.buildPagePlan(section, formData, rowsPerPage);
     }
 
     /**
@@ -704,20 +350,7 @@ public final class SectionRenderHelper {
      * {@code style}.
      */
     public static void renderGroupHeader(PageContext ctx, JsonNode section, PageSlice slice) {
-        if (!slice.groupFirstPage() || slice.groupValue() == null) return;
-        JsonNode elements = section.get("elements");
-        if (elements == null || !elements.isArray()) return;
-        for (JsonNode el : elements) {
-            if (!"group_header".equals(resolveKind(el))) continue;
-            String text =
-                    PdfUtils.elementTextOf(el, "prefix", "")
-                            + slice.groupValue()
-                            + PdfUtils.elementTextOf(el, "suffix", "");
-            renderElement(
-                    ctx,
-                    withResolvedProp(
-                            el, com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
-        }
+        PagePlanBuilder.renderGroupHeader(ctx, section, slice);
     }
 
     // ── Carry-over totals (issue #55) ────────────────────────────────────
@@ -745,174 +378,8 @@ public final class SectionRenderHelper {
             int startRow,
             int endRow,
             int totalRows) {
-        JsonNode elements = section.get("elements");
-        if (elements == null || !elements.isArray() || formData == null) return;
-        String group = findRowGroupName(section);
-        if (group == null) return;
-        JsonNode rows = formData.get(group);
-        if (rows == null || !rows.isArray()) return;
-
-        for (JsonNode el : elements) {
-            String kind = resolveKind(el);
-            boolean footer = "carryover_footer".equals(kind);
-            boolean header = "carryover_header".equals(kind);
-            if (!footer && !header) continue;
-            if (footer && endRow >= totalRows) continue; // final page — nothing continues
-            if (header && startRow == 0) continue; // first page — nothing carried
-
-            String field = PdfUtils.elementTextOf(el, "carryField", "");
-            if (field.isEmpty()) continue;
-
-            double sum = 0;
-            int limit = Math.min(footer ? endRow : startRow, rows.size());
-            for (int i = 0; i < limit; i++) {
-                JsonNode v = rows.get(i).get(field);
-                if (v == null) continue;
-                if (v.isNumber()) {
-                    sum += v.asDouble();
-                } else if (v.isTextual()) {
-                    try {
-                        sum += Double.parseDouble(v.asText().trim());
-                    } catch (NumberFormatException ignored) {
-                        // non-numeric row value — skip
-                    }
-                }
-            }
-
-            JsonNode numNode =
-                    (sum == Math.rint(sum) && Math.abs(sum) < 1e15)
-                            ? com.fasterxml.jackson.databind.node.LongNode.valueOf((long) sum)
-                            : com.fasterxml.jackson.databind.node.DoubleNode.valueOf(sum);
-            String text =
-                    PdfUtils.elementTextOf(el, "prefix", "")
-                            + com.report.server.ValueFormatter.applyFormat(
-                                    numNode, el.get("format"))
-                            + PdfUtils.elementTextOf(el, "suffix", "");
-            renderElement(
-                    ctx,
-                    withResolvedProp(
-                            el, com.fasterxml.jackson.databind.node.TextNode.valueOf(text)));
-        }
-    }
-
-    /** Group name from the first row_block bindingRef ({@code group[].field}). */
-    private static String findRowGroupName(JsonNode section) {
-        JsonNode elements = section.get("elements");
-        if (elements == null || !elements.isArray()) return null;
-        for (JsonNode el : elements) {
-            if (!"row_block".equals(resolveKind(el))) continue;
-            JsonNode ref = el.get("bindingRef");
-            if (ref != null && ref.isTextual() && ref.asText().contains("[]")) {
-                return ref.asText().split("\\[\\]")[0];
-            }
-        }
-        return null;
-    }
-
-    // ── System values (issue #54) ───────────────────────────────────────
-
-    /**
-     * Resolve render-time system values into the element's value prop: pageNumber / currentDate
-     * elements format themselves from the page context, and legacy {@code {pageNumber}} / {@code
-     * {totalPages}} / {@code {currentDate}} bindingRefs substitute their current value.
-     */
-    private static JsonNode resolveSystemValues(JsonNode el, PageContext ctx) {
-        String kind = resolveKind(el);
-        if (kind.startsWith("tenant")) {
-            return resolveTenantElement(el, kind, ctx.tenant());
-        }
-        String value = null;
-        if ("pageNumber".equals(kind)) {
-            value =
-                    SystemValueResolver.formatPageNumber(
-                            PdfUtils.elementTextOf(el, "format", "{{page}}"),
-                            PdfUtils.elementTextOf(el, "customFormat", ""),
-                            ctx.pageIndex() + 1,
-                            ctx.totalPages());
-        } else if ("currentDate".equals(kind)) {
-            value =
-                    SystemValueResolver.formatCurrentDate(
-                            PdfUtils.elementTextOf(el, "format", ""),
-                            PdfUtils.elementTextOf(el, "customFormat", ""),
-                            ctx.printDate());
-        } else {
-            JsonNode ref = el.get("bindingRef");
-            if (ref != null && ref.isTextual()) {
-                switch (ref.asText()) {
-                    case "{pageNumber}" -> value = String.valueOf(ctx.pageIndex() + 1);
-                    case "{totalPages}" -> value = String.valueOf(ctx.totalPages());
-                    case "{currentDate}" ->
-                            value =
-                                    SystemValueResolver.formatCurrentDate(
-                                            "yyyy/MM/dd", null, ctx.printDate());
-                    default -> {
-                        /* not a system variable */
-                    }
-                }
-            }
-        }
-        if (value == null) return el;
-        return withResolvedProp(el, com.fasterxml.jackson.databind.node.TextNode.valueOf(value));
-    }
-
-    /**
-     * Resolve V2 tenant* elements from the TenantInfo document (issue #54). Text elements fall back
-     * to the element's {@code fallback} when the tenant field is unset; tenantLogo is rewritten to
-     * an {@code image} element so ImagePdfRenderer handles the data-URI.
-     */
-    private static JsonNode resolveTenantElement(JsonNode el, String kind, JsonNode tenant) {
-        if ("tenantLogo".equals(kind)) {
-            String src = tenant != null ? PdfUtils.textOf(tenant, "logoBase64", "") : "";
-            if (src.isEmpty())
-                return el; // no logo — image renderer draws nothing useful; keep fallback box
-            try {
-                ObjectNode copy = (ObjectNode) el.deepCopy();
-                copy.put("kind", "image");
-                ObjectNode props =
-                        copy.has("props") && copy.get("props").isObject()
-                                ? (ObjectNode) copy.get("props")
-                                : MAPPER.createObjectNode();
-                props.put("src", src);
-                if (el.hasNonNull("objectFit"))
-                    props.put("objectFit", el.get("objectFit").asText());
-                if (el.hasNonNull("opacity")) props.put("opacity", el.get("opacity").asDouble());
-                copy.set("props", props);
-                return copy;
-            } catch (Exception e) {
-                return el;
-            }
-        }
-
-        String value =
-                tenant == null
-                        ? ""
-                        : switch (kind) {
-                            case "tenantCompanyName" -> PdfUtils.textOf(tenant, "companyName", "");
-                            case "tenantAddress" -> {
-                                boolean multiline =
-                                        "multiLine"
-                                                .equals(
-                                                        PdfUtils.elementTextOf(
-                                                                el, "displayMode", "single"));
-                                yield com.report.server.ValueFormatter.formatAddress(
-                                        tenant, multiline);
-                            }
-                            case "tenantPhone" -> PdfUtils.textOf(tenant, "phone", "");
-                            case "tenantRepresentative" ->
-                                    PdfUtils.textOf(tenant, "representativeName", "");
-                            case "tenantCustom" -> {
-                                String fieldKey = PdfUtils.elementTextOf(el, "fieldKey", "");
-                                JsonNode custom = tenant.get("custom");
-                                yield custom != null && !fieldKey.isEmpty()
-                                        ? PdfUtils.textOf(custom, fieldKey, "")
-                                        : "";
-                            }
-                            default -> "";
-                        };
-        if (value.isEmpty()) {
-            value = PdfUtils.elementTextOf(el, "fallback", "");
-        }
-        return withResolvedProp(el, com.fasterxml.jackson.databind.node.TextNode.valueOf(value));
+        PagePlanBuilder.renderCarryOverElements(
+                ctx, section, formData, startRow, endRow, totalRows);
     }
 
     // ── Row-region geometry (issue #55) ─────────────────────────────────
@@ -924,21 +391,7 @@ public final class SectionRenderHelper {
      * with usable geometry.
      */
     public static float[] computeRowRegion(JsonNode section) {
-        JsonNode elements = section.get("elements");
-        if (elements == null || !elements.isArray()) return null;
-        float minY = Float.MAX_VALUE;
-        float maxBottom = -Float.MAX_VALUE;
-        for (JsonNode el : elements) {
-            if (!"row_block".equals(resolveKind(el))) continue;
-            JsonNode frame = el.get("frame");
-            if (frame == null) continue;
-            float y = PdfUtils.floatOf(frame, "y");
-            float h = PdfUtils.floatOf(frame, "height");
-            minY = Math.min(minY, y);
-            maxBottom = Math.max(maxBottom, y + h);
-        }
-        if (minY == Float.MAX_VALUE || maxBottom <= minY) return null;
-        return new float[] {minY, maxBottom - minY};
+        return SectionGeometry.computeRowRegion(section);
     }
 
     /**
@@ -947,120 +400,6 @@ public final class SectionRenderHelper {
      * is not computable, so callers can fall back to their legacy default.
      */
     public static int computeRowCapacity(JsonNode section) {
-        float[] region = computeRowRegion(section);
-        if (region == null) return -1;
-        float sectionY = PdfUtils.floatOf(section, "y", 0);
-        float sectionH = PdfUtils.floatOf(section, "height", 0);
-        if (sectionH <= 0) return -1;
-        float available = sectionY + sectionH - region[0];
-        if (available < region[1]) return 1;
-        return (int) Math.floor(available / region[1]);
-    }
-
-    // ── Private helpers ─────────────────────────────────────────────────
-
-    private static JsonNode withResolvedProp(JsonNode el, JsonNode value) {
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode props =
-                    copy.has("props") && copy.get("props").isObject()
-                            ? (ObjectNode) copy.get("props")
-                            : MAPPER.createObjectNode();
-            String kind = resolveKind(el);
-            String propKey = propKeyFor(kind);
-            applyValue(props, propKey, value);
-            copy.set("props", props);
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
-    }
-
-    private static String resolveKind(JsonNode el) {
-        String type = PdfUtils.textOf(el, "type", "");
-        // The V2 `barcode` element carries a `kind` field that is a barcode
-        // FORMAT (qr / code128 / code39 / jan13), not an element kind. Left to
-        // the generic rule below it would shadow the type and route to a
-        // non-existent "code128" renderer (blank box) — issue #182. Map it to
-        // the actual renderer kind here instead.
-        if ("barcode".equals(type)) {
-            return "qr".equalsIgnoreCase(PdfUtils.textOf(el, "kind", "")) ? "qrcode" : "barcode";
-        }
-        String kind = PdfUtils.textOf(el, "kind", "");
-        return kind.isEmpty() ? type : kind;
-    }
-
-    /**
-     * Resolve the element's data-binding key. V1/V2 shared elements use {@code bindingRef}; some V2
-     * types carry their own field: eraSelect ({@code dataSource}) and hanko ({@code binding}).
-     * Returns null when the element has no binding.
-     */
-    private static String resolveBindingRef(JsonNode el) {
-        JsonNode bindingRefNode = el.get("bindingRef");
-        if (bindingRefNode != null && bindingRefNode.isTextual()) return bindingRefNode.asText();
-        String kind = resolveKind(el);
-        String v2Field =
-                switch (kind) {
-                    case "eraSelect" -> "dataSource";
-                    case "hanko" -> "binding";
-                    case "dataField" -> "fieldKey";
-                    case "manualEntry" -> "furiganaDataSource";
-                    default -> null;
-                };
-        if (v2Field == null) return null;
-        JsonNode node = el.get(v2Field);
-        return node != null && node.isTextual() && !node.asText().isBlank() ? node.asText() : null;
-    }
-
-    private static String propKeyFor(String kind) {
-        return switch (kind) {
-            case "checkbox" -> "checked";
-            case "radio_mark" -> "selected";
-            case "barcode", "qrcode" -> "value";
-            default -> "text";
-        };
-    }
-
-    private static void applyValue(ObjectNode props, String propKey, JsonNode value) {
-        if (value.isTextual()) {
-            props.put(propKey, value.asText());
-        } else if (value.isNumber()) {
-            // Integral values print without ".0" — BigDecimal calc results
-            // (issue #57) and JSON doubles like 450.0 both become "450"
-            double d = value.asDouble();
-            props.put(
-                    propKey,
-                    (d == Math.rint(d) && Math.abs(d) < 1e15)
-                            ? String.valueOf((long) d)
-                            : String.valueOf(d));
-        } else if (value.isBoolean()) {
-            props.put(propKey, value.asBoolean());
-        }
-    }
-
-    /**
-     * Apply masking rules from a VariantContext to an element's text/value prop. Returns the
-     * original node if no masking rule applies.
-     */
-    private static JsonNode applyMaskingToElement(JsonNode el, VariantContext variantCtx) {
-        String elId = PdfUtils.textOf(el, "id", "");
-        if (elId.isBlank()) return el;
-        String kind = resolveKind(el);
-        String propKey = propKeyFor(kind);
-        JsonNode props = el.get("props");
-        if (props == null || !props.isObject()) return el;
-        JsonNode valueProp = props.get(propKey);
-        String originalValue = valueProp != null ? valueProp.asText(null) : null;
-        if (originalValue == null) return el;
-        String maskedValue = variantCtx.applyMasking(elId, originalValue);
-        if (maskedValue.equals(originalValue)) return el;
-        try {
-            ObjectNode copy = (ObjectNode) el.deepCopy();
-            ObjectNode propsCopy = (ObjectNode) copy.get("props");
-            propsCopy.put(propKey, maskedValue);
-            return copy;
-        } catch (Exception e) {
-            return el;
-        }
+        return SectionGeometry.computeRowCapacity(section);
     }
 }

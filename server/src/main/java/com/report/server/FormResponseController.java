@@ -5,9 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
-import com.scalar.db.api.DistributedTransaction;
-import com.scalar.db.exception.transaction.CommitConflictException;
-import com.scalar.db.exception.transaction.CrudConflictException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import java.util.*;
@@ -32,52 +29,32 @@ import org.slf4j.LoggerFactory;
  *   <li>Template ownership is verified before submit/list/get/delete
  *   <li>Delete requires ownership of the template OR the response itself
  * </ul>
+ *
+ * <p>The controller keeps the 7 HTTP handlers thin and delegates the logic clusters to
+ * package-local collaborators (#276): {@link ResponseSubmissionValidator} (submit body validation),
+ * {@link ResponseStatusPolicy} (status machine), {@link ResponseStatusUpdater} (transactional
+ * status transition + audit wiring), {@link TemplateAccessPolicy} (envelope loading / ownership),
+ * {@link IssuedDocumentQuery} (cross-template document listing), and {@link ResponsePayloadSupport}
+ * (limits, summaries, param parsing).
  */
 public final class FormResponseController {
 
     private static final Logger log = LoggerFactory.getLogger(FormResponseController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final int DEFAULT_LIMIT = 50;
-    private static final int MAX_LIMIT = 500;
-
-    /** Inline listing is capped; above this threshold, use the export endpoint. */
-    private static final int MAX_INLINE_RESPONSES = 2_000;
-
-    /** Aggregation is capped to prevent memory issues. */
-    private static final int MAX_AGG_RESPONSES = 5_000;
-
-    private static final int SUMMARY_FIELD_COUNT = 3;
-    private static final int MAX_NEST_DEPTH = 8;
-
     /** Document lifecycle statuses (#163). draft → issued → sent, or void at any point. */
-    static final String DEFAULT_STATUS = "issued";
+    static final String DEFAULT_STATUS = ResponseStatusPolicy.DEFAULT_STATUS;
 
-    static final java.util.Set<String> VALID_STATUSES =
-            java.util.Set.of("draft", "issued", "sent", "void");
-
-    /**
-     * Allowed document-lifecycle transitions (#205). A status may advance draft → issued → sent,
-     * and any non-terminal status may be voided; {@code void} is terminal. Any other transition
-     * (e.g. void → issued, sent → draft) is rejected with 409 so a status machine cannot be driven
-     * backwards or resurrected. A same-status "transition" is treated as an idempotent no-op, not
-     * an error.
-     */
-    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS =
-            Map.of(
-                    "draft", Set.of("issued", "void"),
-                    "issued", Set.of("sent", "void"),
-                    "sent", Set.of("void"),
-                    "void", Set.of());
+    static final java.util.Set<String> VALID_STATUSES = ResponseStatusPolicy.VALID_STATUSES;
 
     static boolean isValidTransition(String from, String to) {
-        if (from == null || from.equals(to)) return true; // no-op / first assignment
-        return ALLOWED_TRANSITIONS.getOrDefault(from, Set.of()).contains(to);
+        return ResponseStatusPolicy.isValidTransition(from, to);
     }
 
     private final JsonBlobRepository responseRepo;
-    private final JsonBlobRepository definitionsRepo;
     private final RateLimiter submitLimiter;
+    private final TemplateAccessPolicy accessPolicy;
+    private final IssuedDocumentQuery documentQuery;
     private SequenceController sequenceCtrl; // injected lazily
     private WebhookController webhookCtrl; // injected lazily
     private java.util.concurrent.ExecutorService webhookExecutor;
@@ -88,8 +65,9 @@ public final class FormResponseController {
             JsonBlobRepository definitionsRepo,
             RateLimiter submitLimiter) {
         this.responseRepo = responseRepo;
-        this.definitionsRepo = definitionsRepo;
         this.submitLimiter = submitLimiter;
+        this.accessPolicy = new TemplateAccessPolicy(definitionsRepo);
+        this.documentQuery = new IssuedDocumentQuery(responseRepo, accessPolicy);
     }
 
     /** Inject sequence controller after construction (avoids circular dependency). */
@@ -125,52 +103,19 @@ public final class FormResponseController {
         }
 
         // Verify template exists and requester owns it
-        Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
+        Optional<JsonNode> defOpt = accessPolicy.loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
             ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
-        if (!canAccess(principal, defOpt.get())) {
+        if (!accessPolicy.canAccess(principal, defOpt.get())) {
             ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
         // Parse and validate request body: { data: Object }
-        String body = ctx.body();
-        if (body == null || body.isBlank()) {
-            ApiError.respond(
-                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request body is required");
-            return;
-        }
-        JsonNode reqNode;
-        try {
-            reqNode = MAPPER.readTree(body);
-        } catch (Exception e) {
-            ApiError.respond(ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid JSON");
-            return;
-        }
-        JsonNode data = reqNode.path("data");
-        if (data.isMissingNode() || !data.isObject()) {
-            ApiError.respond(
-                    ctx,
-                    HttpStatus.BAD_REQUEST,
-                    "VALIDATION_ERROR",
-                    "'data' field is required and must be an object");
-            return;
-        }
-        if (data.size() > 1000) {
-            ApiError.respond(
-                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Too many fields (max 1000)");
-            return;
-        }
-        if (hasExcessiveDepth(data, MAX_NEST_DEPTH)) {
-            ApiError.respond(
-                    ctx,
-                    HttpStatus.BAD_REQUEST,
-                    "VALIDATION_ERROR",
-                    "Data nesting too deep (max " + MAX_NEST_DEPTH + " levels)");
-            return;
-        }
+        JsonNode data = ResponseSubmissionValidator.parseAndValidateData(ctx);
+        if (data == null) return;
 
         // Build response document; submittedBy is always set server-side
         String responseId = UUID.randomUUID().toString();
@@ -241,18 +186,22 @@ public final class FormResponseController {
 
         Principal principal = ctx.attribute("principal");
 
-        Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
+        Optional<JsonNode> defOpt = accessPolicy.loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
             ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
-        if (!canAccess(principal, defOpt.get())) {
+        if (!accessPolicy.canAccess(principal, defOpt.get())) {
             ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
 
-        int offset = parseIntParam(ctx.queryParam("offset"), 0);
-        int limit = Math.min(parseIntParam(ctx.queryParam("limit"), DEFAULT_LIMIT), MAX_LIMIT);
+        int offset = ResponsePayloadSupport.parseIntParam(ctx.queryParam("offset"), 0);
+        int limit =
+                Math.min(
+                        ResponsePayloadSupport.parseIntParam(
+                                ctx.queryParam("limit"), ResponsePayloadSupport.DEFAULT_LIMIT),
+                        ResponsePayloadSupport.MAX_LIMIT);
         if (offset < 0) offset = 0;
         boolean includeAggregation = "true".equals(ctx.queryParam("aggregate"));
         // Optional status filter (#172): ?status=draft|issued|sent|void
@@ -273,7 +222,7 @@ public final class FormResponseController {
         }
 
         // Guard: above threshold, direct to export endpoint
-        if (allJson.size() > MAX_INLINE_RESPONSES) {
+        if (allJson.size() > ResponsePayloadSupport.MAX_INLINE_RESPONSES) {
             ApiError.respond(
                     ctx,
                     422,
@@ -327,7 +276,7 @@ public final class FormResponseController {
             item.put("submittedAt", entry.submittedAt());
             item.put("submittedBy", entry.submittedBy());
             item.put("status", statusById.getOrDefault(entry.id(), DEFAULT_STATUS));
-            item.put("summary", buildSummary(entry.data()));
+            item.put("summary", ResponsePayloadSupport.buildSummary(entry.data()));
             items.add(item);
         }
 
@@ -339,9 +288,9 @@ public final class FormResponseController {
         result.put("hasMore", offset + limit < total);
 
         if (includeAggregation) {
-            int aggLimit = Math.min(total, MAX_AGG_RESPONSES);
+            int aggLimit = Math.min(total, ResponsePayloadSupport.MAX_AGG_RESPONSES);
             result.put("fieldSummary", V2ResponseAggregator.build(entries.subList(0, aggLimit)));
-            result.put("aggregationTruncated", total > MAX_AGG_RESPONSES);
+            result.put("aggregationTruncated", total > ResponsePayloadSupport.MAX_AGG_RESPONSES);
         }
 
         ctx.json(result);
@@ -357,12 +306,12 @@ public final class FormResponseController {
 
         Principal principal = ctx.attribute("principal");
 
-        Optional<JsonNode> defOpt = loadDefinitionEnvelope(templateId);
+        Optional<JsonNode> defOpt = accessPolicy.loadDefinitionEnvelope(templateId);
         if (defOpt.isEmpty()) {
             ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Template not found");
             return;
         }
-        if (!canAccess(principal, defOpt.get())) {
+        if (!accessPolicy.canAccess(principal, defOpt.get())) {
             ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
             return;
         }
@@ -428,7 +377,7 @@ public final class FormResponseController {
 
         // Allow: template owner OR original submitter
         String submittedBy = node.path("submittedBy").asText("");
-        String templateOwner = getTemplateOwner(templateId);
+        String templateOwner = accessPolicy.getTemplateOwner(templateId);
         boolean isSubmitter = principal.userId().equals(submittedBy);
         boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
 
@@ -486,126 +435,18 @@ public final class FormResponseController {
         }
 
         // Template ownership is invariant across the operation — resolve it once.
-        String templateOwner = getTemplateOwner(templateId);
+        String templateOwner = accessPolicy.getTemplateOwner(templateId);
 
-        // Read-validate-write in a single transaction with OCC retry (#205): the transition
-        // is validated against the status re-read inside the transaction, so two concurrent
-        // PATCHes (or a PATCH racing a data edit) can no longer lose an update or drive the
-        // status machine backwards. Document numbering (draft→issued) happens in the same TX.
-        for (int attempt = 0; attempt < STATUS_MAX_OCC_RETRIES; attempt++) {
-            if (attempt > 0) sleepBackoff(attempt);
-            DistributedTransaction tx = null;
-            try {
-                tx = responseRepo.getTransactionManager().start();
-
-                Optional<String> storedOpt = responseRepo.getWithinTx(tx, responseId);
-                if (storedOpt.isEmpty()) {
-                    tx.abort();
-                    ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
-                    return;
-                }
-                ObjectNode node = (ObjectNode) MAPPER.readTree(storedOpt.get());
-                if (!templateId.equals(node.path("templateId").asText(""))) {
-                    tx.abort();
-                    ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "Response not found");
-                    return;
-                }
-
-                // Same access rule as delete: template owner or original submitter.
-                String submittedBy = node.path("submittedBy").asText("");
-                boolean isSubmitter = principal.userId().equals(submittedBy);
-                boolean isOwner =
-                        !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
-                if (!isSubmitter && !isOwner) {
-                    tx.abort();
-                    ApiError.respond(ctx, HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
-                    return;
-                }
-
-                String oldStatus = node.path("status").asText(DEFAULT_STATUS);
-                if (oldStatus.equals(newStatus)) {
-                    // Idempotent no-op — nothing to persist or audit.
-                    tx.abort();
-                    Map<String, Object> noop = new LinkedHashMap<>();
-                    noop.put("id", responseId);
-                    noop.put("status", newStatus);
-                    ctx.json(noop);
-                    return;
-                }
-                if (!isValidTransition(oldStatus, newStatus)) {
-                    tx.abort();
-                    ApiError.respond(
-                            ctx,
-                            HttpStatus.CONFLICT,
-                            "CONFLICT",
-                            "Invalid status transition: " + oldStatus + " → " + newStatus);
-                    return;
-                }
-
-                node.put("status", newStatus);
-
-                // Assign a document number on the first draft→issued transition when the
-                // template has a sequence configured and no number yet (#189) — atomically,
-                // in this same transaction (#205).
-                String assignedNumber = null;
-                boolean needsNumber =
-                        "issued".equals(newStatus)
-                                && node.path("documentNumber").asText("").isEmpty();
-                if (needsNumber && sequenceCtrl != null) {
-                    assignedNumber = sequenceCtrl.nextNumberWithinTx(tx, templateId);
-                    if (assignedNumber != null) node.put("documentNumber", assignedNumber);
-                }
-
-                responseRepo.putWithinTx(
-                        tx, responseId, MAPPER.writeValueAsString(node), templateId);
-                tx.commit();
-
-                // Append to the status-transition audit trail (#188)
-                recordAudit(responseId, templateId, oldStatus, newStatus, principal.userId());
-
-                Map<String, Object> result = new LinkedHashMap<>();
-                result.put("id", responseId);
-                result.put("status", newStatus);
-                if (assignedNumber != null) result.put("documentNumber", assignedNumber);
-                ctx.json(result);
-                return;
-
-            } catch (CommitConflictException | CrudConflictException e) {
-                abortQuietly(tx); // transient OCC conflict — retry with a fresh transaction
-            } catch (Exception e) {
-                abortQuietly(tx);
-                log.error("Failed to update status for response {}", responseId, e);
-                ApiError.respond(
-                        ctx,
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "INTERNAL_ERROR",
-                        "Failed to update status");
-                return;
-            }
-        }
-        // Retries exhausted under sustained contention.
-        ApiError.respond(
-                ctx, HttpStatus.CONFLICT, "CONFLICT", "Status update conflict; please retry");
-    }
-
-    private static final int STATUS_MAX_OCC_RETRIES = 3;
-    private static final long STATUS_INITIAL_BACKOFF_MS = 20;
-
-    private static void sleepBackoff(int attempt) {
-        try {
-            Thread.sleep((long) Math.pow(2, attempt - 1) * STATUS_INITIAL_BACKOFF_MS);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private static void abortQuietly(DistributedTransaction tx) {
-        if (tx != null) {
-            try {
-                tx.abort();
-            } catch (Exception ignored) {
-            }
-        }
+        ResponseStatusUpdater.update(
+                ctx,
+                responseRepo,
+                sequenceCtrl,
+                this::recordAudit,
+                templateId,
+                responseId,
+                principal,
+                newStatus,
+                templateOwner);
     }
 
     // ── audit trail (#188) ──────────────────────────────────────────────────────
@@ -643,7 +484,7 @@ public final class FormResponseController {
             return;
         }
         String submittedBy = node.path("submittedBy").asText("");
-        String templateOwner = getTemplateOwner(templateId);
+        String templateOwner = accessPolicy.getTemplateOwner(templateId);
         boolean isSubmitter = principal.userId().equals(submittedBy);
         boolean isOwner = !templateOwner.isEmpty() && principal.userId().equals(templateOwner);
         if (!isSubmitter && !isOwner) {
@@ -679,153 +520,10 @@ public final class FormResponseController {
      */
     public void listDocuments(Context ctx) {
         Principal principal = ctx.attribute("principal");
-
-        String statusFilter = ctx.queryParam("status");
-        if (statusFilter != null && !VALID_STATUSES.contains(statusFilter)) statusFilter = null;
-        String templateFilter = ctx.queryParam("templateId");
-        int offset = Math.max(0, parseIntParam(ctx.queryParam("offset"), 0));
-        int limit = Math.min(parseIntParam(ctx.queryParam("limit"), DEFAULT_LIMIT), MAX_LIMIT);
-
-        List<String> allJson;
-        try {
-            allJson = responseRepo.list();
-        } catch (Exception e) {
-            log.error("Failed to list documents", e);
-            ApiError.respond(
-                    ctx,
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "INTERNAL_ERROR",
-                    "Failed to list documents");
-            return;
-        }
-
-        // Guard: this is a full-table scan that materialises every response across all
-        // templates before filtering/sorting/paging, so heap and latency grow linearly with
-        // the stored total. Cap it like the per-template listing (#208) — above the threshold,
-        // the caller must narrow the query (templateId/status) or use the export endpoint.
-        if (allJson.size() > MAX_INLINE_RESPONSES) {
-            ApiError.respond(
-                    ctx,
-                    422,
-                    "VALIDATION_ERROR",
-                    "Too many documents for inline listing. Narrow by templateId/status or use export.",
-                    Map.of("total", allJson.size()));
-            return;
-        }
-
-        // Cache template envelope lookups (owner + display name) by templateId.
-        Map<String, JsonNode> envCache = new HashMap<>();
-        Set<String> unknownTemplates = new HashSet<>();
-
-        List<Map<String, Object>> items = new ArrayList<>();
-        for (String json : allJson) {
-            JsonNode node;
-            try {
-                node = MAPPER.readTree(json);
-            } catch (Exception ignored) {
-                continue;
-            }
-
-            String tid = node.path("templateId").asText("");
-            if (tid.isEmpty()) continue;
-            if (templateFilter != null && !templateFilter.equals(tid)) continue;
-            if (unknownTemplates.contains(tid)) continue;
-
-            String status = node.path("status").asText(DEFAULT_STATUS);
-            if (statusFilter != null && !statusFilter.equals(status)) continue;
-
-            JsonNode env = envCache.get(tid);
-            if (env == null && !envCache.containsKey(tid)) {
-                env = loadDefinitionEnvelope(tid).orElse(null);
-                envCache.put(tid, env);
-                if (env == null) {
-                    unknownTemplates.add(tid);
-                    continue;
-                }
-            }
-            if (env == null) continue;
-
-            // Access: template owner or original submitter (legacy owner-less templates are open).
-            String createdBy = env.path("created_by").asText("");
-            boolean isOwner = !createdBy.isEmpty() && principal.userId().equals(createdBy);
-            boolean isSubmitter = principal.userId().equals(node.path("submittedBy").asText(""));
-            if (!createdBy.isEmpty() && !isOwner && !isSubmitter) continue;
-
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", node.path("id").asText());
-            item.put("templateId", tid);
-            item.put("templateName", templateDisplayName(env, tid));
-            item.put("status", status);
-            item.put("documentNumber", node.path("documentNumber").asText(""));
-            item.put("submittedAt", node.path("submittedAt").asLong());
-            item.put("submittedBy", node.path("submittedBy").asText(""));
-            item.put("summary", buildSummary(node.path("data")));
-            items.add(item);
-        }
-
-        items.sort(
-                (a, b) ->
-                        Long.compare(
-                                ((Number) b.getOrDefault("submittedAt", 0L)).longValue(),
-                                ((Number) a.getOrDefault("submittedAt", 0L)).longValue()));
-
-        int total = items.size();
-        int fromIndex = Math.min(offset, total);
-        int toIndex = Math.min(fromIndex + limit, total);
-        List<Map<String, Object>> page = items.subList(fromIndex, toIndex);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("items", page);
-        result.put("total", total);
-        result.put("offset", offset);
-        result.put("limit", limit);
-        result.put("hasMore", offset + limit < total);
-        ctx.json(result);
-    }
-
-    /** Best-effort human-readable template name from the stored envelope. */
-    private static String templateDisplayName(JsonNode env, String fallbackId) {
-        String name = env.path("name").asText("");
-        if (name.isEmpty()) name = env.path("definition").path("name").asText("");
-        if (name.isEmpty()) name = env.path("report").path("name").asText("");
-        return name.isEmpty() ? fallbackId : name;
+        documentQuery.list(ctx, principal);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /** Load the template definition envelope JSON. Returns empty if not found or malformed. */
-    private Optional<JsonNode> loadDefinitionEnvelope(String templateId) {
-        Optional<String> blob = definitionsRepo.get(templateId);
-        if (blob.isEmpty()) return Optional.empty();
-        try {
-            return Optional.of(MAPPER.readTree(blob.get()));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Check if the principal can access the template. If {@code created_by} is present, only the
-     * owner can access. If absent (legacy templates without owner), access is allowed with a
-     * warning log.
-     */
-    private boolean canAccess(Principal principal, JsonNode envelope) {
-        String createdBy = envelope.path("created_by").asText("");
-        if (createdBy.isEmpty()) {
-            log.warn(
-                    "Template {} has no createdBy — allowing access without ownership check",
-                    envelope.path("id").asText("?"));
-            return true;
-        }
-        return principal.userId().equals(createdBy);
-    }
-
-    /** Get the template owner userId, or empty string if not set. */
-    private String getTemplateOwner(String templateId) {
-        return loadDefinitionEnvelope(templateId)
-                .map(env -> env.path("created_by").asText(""))
-                .orElse("");
-    }
 
     private V2ResponseAggregator.ResponseEntry parseToEntry(String json) {
         try {
@@ -838,56 +536,6 @@ public final class FormResponseController {
                     node.path("data"));
         } catch (Exception e) {
             return null;
-        }
-    }
-
-    private static List<String> buildSummary(JsonNode data) {
-        List<String> summary = new ArrayList<>();
-        if (data == null || !data.isObject()) return summary;
-        // Flatten nested objects to dot-notation leaves so the summary shows the
-        // actual value (customer.customerName: 評価商事) instead of a raw JSON blob
-        // (customer: {"customerName":"評価商事"}) — #170.
-        collectLeafSummaries(data, "", summary);
-        return summary;
-    }
-
-    /** Depth-first flatten of leaf (scalar) values into "a.b.c: value" lines, capped. */
-    private static void collectLeafSummaries(JsonNode node, String prefix, List<String> out) {
-        var fields = node.fields();
-        while (fields.hasNext() && out.size() < SUMMARY_FIELD_COUNT) {
-            var field = fields.next();
-            String key = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
-            JsonNode value = field.getValue();
-            if (value.isObject()) {
-                collectLeafSummaries(value, key, out);
-            } else {
-                String text =
-                        value.isTextual()
-                                ? value.asText()
-                                : value.isArray() ? value.size() + "件" : value.asText();
-                if (text.length() > 50) text = text.substring(0, 50) + "...";
-                out.add(key + ": " + text);
-            }
-        }
-    }
-
-    /** Recursively check nesting depth to prevent deeply nested payloads. */
-    private static boolean hasExcessiveDepth(JsonNode node, int maxDepth) {
-        if (maxDepth <= 0) return true;
-        var it = node.fields();
-        while (it.hasNext()) {
-            JsonNode child = it.next().getValue();
-            if (child.isContainerNode() && hasExcessiveDepth(child, maxDepth - 1)) return true;
-        }
-        return false;
-    }
-
-    private static int parseIntParam(String value, int defaultValue) {
-        if (value == null || value.isBlank()) return defaultValue;
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return defaultValue;
         }
     }
 }
