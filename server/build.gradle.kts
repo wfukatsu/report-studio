@@ -58,7 +58,7 @@ dependencies {
     // switches to logstash JSON encoding. The <if> conditional in logback.xml needs
     // janino at runtime — smallest working combination for an optional JSON mode.
     implementation("ch.qos.logback:logback-classic:1.5.38")
-    implementation("net.logstash.logback:logstash-logback-encoder:8.1")
+    implementation("net.logstash.logback:logstash-logback-encoder:9.0")
     runtimeOnly("org.codehaus.janino:janino:3.1.12")
 
     // Test
