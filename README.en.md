@@ -38,7 +38,7 @@ Log in → pick a template → edit → preview → bind → export → response
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Vite 8 + React 19 + TypeScript 5.7 (TS 7 type-checking via tsgo) |
+| Frontend | Vite 8 + React 19 + TypeScript 7 (native tsc; a TS6 API alias coexists for typescript-eslint) |
 | State | Zustand 5 (Immer middleware) |
 | Styling | Tailwind CSS 4 + Radix UI |
 | Drag & drop | @dnd-kit/core |
