@@ -66,6 +66,10 @@ export function useToolbarExport({
       const dataJson = resolveCurrentData()
       const blob = await generateStatelessPdf(defJson, dataJson)
       downloadBlob(blob, filename)
+      // The client-side fallback's finally below never runs on this path, so the
+      // flag must be reset here — otherwise every export button stays disabled
+      // after a successful server export (#326)
+      setIsExporting(false)
       return
     } catch (err) {
       // Server-side (vector) generation failed — we fall back to client-side
