@@ -71,13 +71,11 @@ test('context menu inserts a row below the selected cell', async ({ page }) => {
   await expect(el.locator('[data-cell-id]')).toHaveCount(6)
 
   // Right-click the first body cell (DOM order: 3 header cells, then body)
-  // and insert a row. The menu is portaled to <body>, and the editor exits
-  // table-edit mode on any mousedown outside its container — a real mouse
-  // click on a menu item unmounts the menu before the click completes, so the
-  // item is activated with a synthetic click (no mousedown).
+  // and insert a row with a real click — the editor's outside-mousedown exit
+  // ignores clicks inside the portaled menu (#302).
   await grid.locator('[data-cell-id]').nth(3).click({ button: 'right' })
   await expect(page.getByRole('menu')).toBeVisible()
-  await page.getByRole('menuitem', { name: '下に行を挿入' }).dispatchEvent('click')
+  await page.getByRole('menuitem', { name: '下に行を挿入' }).click()
 
   // 3 columns × 3 rows now.
   await expect(el.locator('[data-cell-id]')).toHaveCount(9)
@@ -85,6 +83,6 @@ test('context menu inserts a row below the selected cell', async ({ page }) => {
   // And a column insert on the same table: 4 columns × 3 rows.
   await grid.locator('[data-cell-id]').nth(3).click({ button: 'right' })
   await expect(page.getByRole('menu')).toBeVisible()
-  await page.getByRole('menuitem', { name: '右に列を挿入' }).dispatchEvent('click')
+  await page.getByRole('menuitem', { name: '右に列を挿入' }).click()
   await expect(el.locator('[data-cell-id]')).toHaveCount(12)
 })

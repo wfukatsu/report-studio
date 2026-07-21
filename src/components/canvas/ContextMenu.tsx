@@ -201,6 +201,16 @@ export function ContextMenu({
       className="bg-popover border rounded-md shadow-lg py-1 min-w-[160px] text-sm"
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={handleKeyDown}
+      // The menu can be portaled to <body>, but React portal events still
+      // bubble through the REACT tree — up into the canvas, where pointerdown
+      // starts a marquee drag-select whose pointerup clears the selection and
+      // (for formTable) exits table-edit mode, unmounting the menu before the
+      // browser can deliver `click` to the item (#302). The menu is an
+      // overlay; none of its pointer interactions concern ancestors.
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       {items ? renderItems(items, onClose) : renderCanvasItems(menu, onClose, {
         onCopy, onCut, onPaste, onDuplicate, onDelete,
