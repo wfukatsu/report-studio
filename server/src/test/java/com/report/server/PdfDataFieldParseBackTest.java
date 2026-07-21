@@ -159,8 +159,7 @@ class PdfDataFieldParseBackTest {
              "style":{"fontSize":12%s}}""";
         PdfProbe top =
                 PdfProbe.parse(
-                        PdfRenderer.render(
-                                pageWith(el.formatted(""), "\"customer.name\":\"検証\"")));
+                        PdfRenderer.render(pageWith(el.formatted(""), "\"customer.name\":\"検証\"")));
         PdfProbe mid =
                 PdfProbe.parse(
                         PdfRenderer.render(

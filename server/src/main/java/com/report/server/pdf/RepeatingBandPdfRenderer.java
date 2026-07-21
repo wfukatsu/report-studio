@@ -92,8 +92,7 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         JsonNode cellStyle = styleNode(el, "style");
         Color headerBg = parseColor(styleText(headerStyle, "backgroundColor"), HEADER_BG);
         Color headerText = parseColor(styleText(headerStyle, "color"), HEADER_TEXT);
-        float headerFontSize =
-                headerStyle != null ? floatOf(headerStyle, "fontSize", FONT) : FONT;
+        float headerFontSize = headerStyle != null ? floatOf(headerStyle, "fontSize", FONT) : FONT;
         Color cellText = parseColor(styleText(cellStyle, "color"), Color.BLACK);
         float cellFontSize = cellStyle != null ? floatOf(cellStyle, "fontSize", FONT) : FONT;
         Color oddBg = parseColor(elementTextOf(el, "oddRowColor", ""), null);

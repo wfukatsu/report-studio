@@ -220,8 +220,7 @@ class PdfDataElementsParseBackTest {
              "fields":[{"key":"name","label":"品目","width":60,"align":"left"}],
              "position":{"x":15,"y":20},"size":{"width":60,"height":70}}""";
         String data = "{\"items\":[{\"name\":\"一\"},{\"name\":\"二\"}]}";
-        PdfProbe without =
-                PdfProbe.parse(PdfRenderer.render(pageWith(band.formatted(""), data)));
+        PdfProbe without = PdfProbe.parse(PdfRenderer.render(pageWith(band.formatted(""), data)));
         PdfProbe with =
                 PdfProbe.parse(
                         PdfRenderer.render(
