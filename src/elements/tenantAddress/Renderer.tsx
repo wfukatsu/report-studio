@@ -16,14 +16,16 @@ export const TenantAddressRenderer = memo(function TenantAddressRenderer({ eleme
   const tenantInfo = useReportStore((s) => s.tenantInfo)
   const mode = el.displayMode ?? 'single'
 
-  const value = resolveValues
-    ? (formatAddress({
-        postalCode: tenantInfo?.postalCode,
-        address1: tenantInfo?.address1,
-        address2: tenantInfo?.address2,
-        address: tenantInfo?.address,
-      }, mode) || el.fallback || '（住所未設定）')
-    : '{{住所}}'
+  // Preview/export: unset tenant info renders nothing — matching the server PDF,
+  // which omits the element entirely (#315). The designer keeps its token.
+  const resolved = formatAddress({
+    postalCode: tenantInfo?.postalCode,
+    address1: tenantInfo?.address1,
+    address2: tenantInfo?.address2,
+    address: tenantInfo?.address,
+  }, mode) || el.fallback
+  if (resolveValues && !resolved) return null
+  const value = resolveValues ? resolved! : '{{住所}}'
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

@@ -11,10 +11,21 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
- * Renders shape elements (rectangle, ellipse) to PDF. Phase 2 will add rounded-rectangle, triangle,
- * diamond.
+ * Renders shape elements to PDF: the V2 kinds ({@code rectangle} incl. {@code borderRadius}, {@code
+ * circle}, {@code line}) plus the V1 {@code props.shapeType} variants (ellipse, rounded-rectangle,
+ * triangle, diamond, polygon).
+ *
+ * <p>Style parity with the frontend SVG renderer (issue #314, {@code
+ * src/elements/shape/Renderer.tsx}): {@code fill} (default transparent), {@code stroke} (default
+ * black), {@code strokeWidth} (SVG user units = CSS px at canvas scale; converted at 1px = 0.75pt),
+ * {@code strokeDash} (solid/dashed/dotted), and {@code borderRadius} (mm) on rectangles.
  */
 public final class ShapePdfRenderer implements ElementPdfRenderer {
+
+    /** 1 CSS px = 0.75 pt — the frontend canvas maps mm to px at 96dpi. */
+    private static final float PX_TO_PT = 0.75f;
+
+    private static final float DEFAULT_STROKE_PX = 0.3f;
 
     @Override
     public String kind() {
@@ -33,33 +44,83 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
             PDDocument doc,
             Map<String, PDFont> fontCache)
             throws IOException {
-        JsonNode props = el.get("props");
-        String shapeType = props != null ? textOf(props, "shapeType", "rectangle") : "rectangle";
+        // V2 stores the kind in `shape`; V1 in `props.shapeType`
+        String shapeType = elementTextOf(el, "shape", "");
+        if (shapeType.isEmpty()) shapeType = elementTextOf(el, "shapeType", "rectangle");
 
-        cs.setStrokingColor(Color.BLACK);
-        cs.setLineWidth(1);
+        Color fill = parseColor(elementTextOf(el, "fill", ""), null);
+        Color stroke = parseColor(elementTextOf(el, "stroke", ""), Color.BLACK);
+        float strokePt = elementFloatOf(el, "strokeWidth", DEFAULT_STROKE_PX) * PX_TO_PT;
+        String dash = elementTextOf(el, "strokeDash", "solid");
+        boolean doStroke = strokePt > 0;
 
         cs.saveGraphicsState();
-        cs.setStrokingColor(Color.BLACK);
-        cs.setLineWidth(1);
+        cs.setStrokingColor(stroke);
+        cs.setLineWidth(Math.max(0.1f, strokePt));
+        if (fill != null) cs.setNonStrokingColor(fill);
+        switch (dash) {
+            case "dashed" -> cs.setLineDashPattern(new float[] {4.5f, 2.25f}, 0);
+            case "dotted" -> cs.setLineDashPattern(new float[] {1.5f, 1.5f}, 0);
+            default -> {}
+        }
 
         switch (shapeType) {
-            case "ellipse" -> renderEllipse(cs, x, y, w, h);
-            case "rounded-rectangle", "roundedRectangle" ->
-                    renderRoundedRect(cs, x, y, w, h, Math.min(w, h) * 0.15f);
-            case "triangle" -> renderTriangle(cs, x, y, w, h);
-            case "diamond" -> renderDiamond(cs, x, y, w, h);
-            case "polygon" -> renderPolygon(cs, x, y, w, h, 6);
-            default -> {
-                cs.addRect(x, y - h, w, h);
+            case "line" -> {
+                // The frontend centers the line in the frame; orientation follows the
+                // longer frame axis (vertical when height > width)
+                if (h > w) {
+                    cs.moveTo(x + w / 2, y);
+                    cs.lineTo(x + w / 2, y - h);
+                } else {
+                    cs.moveTo(x, y - h / 2);
+                    cs.lineTo(x + w, y - h / 2);
+                }
                 cs.stroke();
+            }
+            case "circle", "ellipse" -> {
+                buildEllipse(cs, x, y, w, h);
+                paint(cs, fill, doStroke);
+            }
+            case "rounded-rectangle", "roundedRectangle" -> {
+                buildRoundedRect(cs, x, y, w, h, Math.min(w, h) * 0.15f);
+                paint(cs, fill, doStroke);
+            }
+            case "triangle" -> {
+                buildTriangle(cs, x, y, w, h);
+                paint(cs, fill, doStroke);
+            }
+            case "diamond" -> {
+                buildDiamond(cs, x, y, w, h);
+                paint(cs, fill, doStroke);
+            }
+            case "polygon" -> {
+                buildPolygon(cs, x, y, w, h, 6);
+                paint(cs, fill, doStroke);
+            }
+            default -> {
+                float radiusMm = elementFloatOf(el, "borderRadius", 0f);
+                if (radiusMm > 0) {
+                    float r = Math.min(radiusMm * PdfUnits.MM_TO_PT, Math.min(w, h) / 2);
+                    buildRoundedRect(cs, x, y, w, h, r);
+                } else {
+                    cs.addRect(x, y - h, w, h);
+                }
+                paint(cs, fill, doStroke);
             }
         }
 
         cs.restoreGraphicsState();
     }
 
-    private static void renderEllipse(PDPageContentStream cs, float x, float y, float w, float h)
+    /** Paint the current path: fill, stroke, or both. */
+    private static void paint(PDPageContentStream cs, Color fill, boolean doStroke)
+            throws IOException {
+        if (fill != null && doStroke) cs.fillAndStroke();
+        else if (fill != null) cs.fill();
+        else cs.stroke();
+    }
+
+    private static void buildEllipse(PDPageContentStream cs, float x, float y, float w, float h)
             throws IOException {
         float cx = x + w / 2;
         float cy = y - h / 2;
@@ -71,10 +132,10 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.curveTo(cx + rx * k, cy + ry, cx + rx, cy + ry * k, cx + rx, cy);
         cs.curveTo(cx + rx, cy - ry * k, cx + rx * k, cy - ry, cx, cy - ry);
         cs.curveTo(cx - rx * k, cy - ry, cx - rx, cy - ry * k, cx - rx, cy);
-        cs.stroke();
+        cs.closePath();
     }
 
-    private static void renderRoundedRect(
+    private static void buildRoundedRect(
             PDPageContentStream cs, float x, float y, float w, float h, float r)
             throws IOException {
         float bottom = y - h;
@@ -89,10 +150,9 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.lineTo(x, y - r);
         cs.curveTo(x, y - r + k, x + r - k, y, x + r, y);
         cs.closePath();
-        cs.stroke();
     }
 
-    private static void renderTriangle(PDPageContentStream cs, float x, float y, float w, float h)
+    private static void buildTriangle(PDPageContentStream cs, float x, float y, float w, float h)
             throws IOException {
         float midX = x + w / 2f;
         float bottom = y - h;
@@ -100,10 +160,9 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.lineTo(x + w, bottom);
         cs.lineTo(x, bottom);
         cs.closePath();
-        cs.stroke();
     }
 
-    private static void renderDiamond(PDPageContentStream cs, float x, float y, float w, float h)
+    private static void buildDiamond(PDPageContentStream cs, float x, float y, float w, float h)
             throws IOException {
         float midX = x + w / 2f;
         float midY = y - h / 2f;
@@ -112,10 +171,9 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
         cs.lineTo(midX, y - h);
         cs.lineTo(x, midY);
         cs.closePath();
-        cs.stroke();
     }
 
-    private static void renderPolygon(
+    private static void buildPolygon(
             PDPageContentStream cs, float x, float y, float w, float h, int sides)
             throws IOException {
         if (sides < 3) return;
@@ -136,6 +194,5 @@ public final class ShapePdfRenderer implements ElementPdfRenderer {
             }
         }
         cs.closePath();
-        cs.stroke();
     }
 }

@@ -51,7 +51,7 @@ export function HeaderRow({
 
 /** Data row */
 export function DataRow({
-  record, rowIdx, fields, colPcts, dbs, cbs, oddBg, evenBg, hiddenFieldIndices, wrapText, itemHeight, ...rest
+  record, rowIdx, fields, colPcts, dbs, cbs, oddBg, evenBg, hiddenFieldIndices, wrapText, itemHeight, cellStyle, ...rest
 }: {
   record: Record<string, unknown>
   rowIdx: number
@@ -66,6 +66,8 @@ export function DataRow({
   hiddenFieldIndices?: readonly number[]
   wrapText?: boolean
   itemHeight?: number
+  /** Element-level cell text style (#313 — color / fontSize; PDF applies the same) */
+  cellStyle?: TextStyle
   'data-testid'?: string
 }) {
   return (
@@ -76,6 +78,8 @@ export function DataRow({
           style={{
             ...baseCellLayout(colPcts[i], i < fields.length - 1 ? cbs : undefined, wrapText),
             justifyContent: alignToJustify(effectiveAlign(f, record)),
+            ...(cellStyle?.color != null && { color: cellStyle.color }),
+            ...(cellStyle?.fontSize != null && { fontSize: `${cellStyle.fontSize}pt` }),
           }}
         >
           {hiddenFieldIndices?.includes(i) ? '' : resolveAndFormat(record, f)}

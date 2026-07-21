@@ -35,9 +35,9 @@ describe('TenantPhoneRenderer', () => {
     expect(screen.getByText('TEL 未登録')).toBeInTheDocument()
   })
 
-  it('shows the resolved fallback (not the token) without tenant info', () => {
-    render(<TenantPhoneRenderer element={el} resolveValues={true} />)
-    expect(screen.getByText('（電話番号未設定）')).toBeInTheDocument()
+  it('renders nothing without tenant info and fallback (#315)', () => {
+    const { container } = render(<TenantPhoneRenderer element={el} resolveValues={true} />)
+    expect(container.firstChild).toBeNull()
     expect(screen.queryByText('{{電話番号}}')).not.toBeInTheDocument()
   })
 })

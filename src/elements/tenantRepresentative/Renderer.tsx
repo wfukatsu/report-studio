@@ -9,7 +9,10 @@ interface Props { element: TenantRepresentativeElement; resolveValues?: boolean;
 
 export const TenantRepresentativeRenderer = memo(function TenantRepresentativeRenderer({ element: el, resolveValues = false, defaultStyle }: Props) {
   const representative = useReportStore((s) => s.tenantInfo?.representativeName)
-  const value = resolveValues ? (representative ?? el.fallback ?? '（代表者名未設定）') : '{{代表者名}}'
+  // Preview/export: unset renders nothing, matching the server PDF (#315)
+  const resolved = representative ?? el.fallback
+  if (resolveValues && !resolved) return null
+  const value = resolveValues ? resolved! : '{{代表者名}}'
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />
