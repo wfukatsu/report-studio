@@ -98,6 +98,14 @@ final class BandFlowPlanner {
             if (copy.has("props") && copy.get("props").has("maxItems")) {
                 ((ObjectNode) copy.get("props")).put("maxItems", 0);
             }
+            // Zeroing maxItems also hides the empty-row budget from the renderer, so
+            // carry it explicitly: the page that draws the band's final record shows
+            // the frontend's `maxItems - rows` ruled empty rows (issue #322)
+            if (end == intended
+                    && maxItems > 0
+                    && PdfUtils.elementBoolOf(el, "showEmptyRowLines", false)) {
+                copy.put("_emptyRowBudget", maxItems - intended);
+            }
             return copy;
         } catch (Exception e) {
             return el;

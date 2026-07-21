@@ -92,6 +92,8 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         JsonNode cellStyle = styleNode(el, "style");
         Color headerBg = parseColor(styleText(headerStyle, "backgroundColor"), HEADER_BG);
         Color headerText = parseColor(styleText(headerStyle, "color"), HEADER_TEXT);
+        float headerFontSize =
+                headerStyle != null ? floatOf(headerStyle, "fontSize", FONT) : FONT;
         Color cellText = parseColor(styleText(cellStyle, "color"), Color.BLACK);
         float cellFontSize = cellStyle != null ? floatOf(cellStyle, "fontSize", FONT) : FONT;
         Color oddBg = parseColor(elementTextOf(el, "oddRowColor", ""), null);
@@ -109,16 +111,18 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                 cs.addRect(x, cursorTop - headerH, w, headerH);
                 cs.fill();
                 for (int i = 0; i < cols.size(); i++) {
+                    // Header cells are always centered, matching the frontend HeaderRow
+                    // (justifyContent: 'center' in BandParts.tsx) — issue #323
                     drawCell(
                             cs,
                             boldFont,
-                            FONT,
+                            headerFontSize,
                             cols.get(i).label,
                             colX[i],
                             colX[i + 1],
                             cursorTop,
                             headerH,
-                            "left",
+                            "center",
                             headerText);
                 }
                 cursorTop -= headerH;
@@ -160,6 +164,38 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                 cursorTop -= rowH;
             }
 
+            // Column dividers stop at the last data row — the frontend's EmptyRows are
+            // full-width (no column borders), so the dividers must not cross them
+            float dataBottom = cursorTop;
+
+            // Empty-row ruled lines (issue #322) — the frontend fills the band with
+            // `maxItems - rows` bordered empty rows when showEmptyRowLines is on
+            // (FlatBandRenderer emptyCount / BandParts EmptyRows). BandFlowPlanner
+            // zeroes maxItems on page slices, so the budget arrives via
+            // _emptyRowBudget (stamped only on the band's final flowed page).
+            boolean showEmptyRowLines = elementBoolOf(el, "showEmptyRowLines", false);
+            int emptyBudget = elementIntOf(el, "_emptyRowBudget", -1);
+            int emptyCount =
+                    !showEmptyRowLines
+                            ? 0
+                            : (emptyBudget >= 0
+                                    ? emptyBudget
+                                    : (maxItems > 0 ? Math.max(0, maxItems - rowCount) : 0));
+            if (emptyCount > 0) {
+                cs.setStrokingColor(border);
+                cs.setLineWidth(borderPt);
+                for (int r = 0; r < emptyCount; r++) {
+                    if (cursorTop - rowH < y - h - 0.5f) break; // clip to the box
+                    cursorTop -= rowH;
+                    // The outer frame already draws the band's bottom edge
+                    if (cursorTop > y - h + 0.5f) {
+                        cs.moveTo(x, cursorTop);
+                        cs.lineTo(x + w, cursorTop);
+                        cs.stroke();
+                    }
+                }
+            }
+
             // Grid
             cs.setStrokingColor(border);
             cs.setLineWidth(borderPt);
@@ -174,7 +210,7 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
             }
             for (int i = 1; i < cols.size(); i++) {
                 cs.moveTo(colX[i], y);
-                cs.lineTo(colX[i], gridBottom);
+                cs.lineTo(colX[i], Math.max(dataBottom, y - h));
                 cs.stroke();
             }
         } finally {

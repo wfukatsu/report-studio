@@ -170,6 +170,69 @@ class PdfDataElementsParseBackTest {
         assertFalse(probe.pageContains(0, "三"), probe.pageText(0));
     }
 
+    @Test
+    void repeatingBand_headerCellsAreCentered() throws IOException {
+        // Frontend HeaderRow centers every header label (BandParts.tsx); the PDF must
+        // match — with a single 120mm column, "品" (~2.8mm at 8pt) centers near x≈73,
+        // while the left-aligned data value stays at the column's left edge (issue #323)
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                pageWith(
+                                        """
+            {"id":"b1","type":"repeatingBand","name":"明細","dataSource":"items","showHeader":true,
+             "fields":[{"key":"name","label":"品","width":120,"align":"left"}],
+             "position":{"x":15,"y":20},"size":{"width":120,"height":40}}""",
+                                        "{\"items\":[{\"name\":\"りんご\"}]}")));
+        float headerX = probe.findRun(0, "品").orElseThrow().xMm();
+        float dataX = probe.findRun(0, "りんご").orElseThrow().xMm();
+        assertTrue(dataX < 20f, "left-aligned data should hug the column edge, got " + dataX);
+        assertTrue(
+                headerX > 60f && headerX < 90f,
+                "header label should be centered in the column, got x=" + headerX);
+    }
+
+    @Test
+    void repeatingBand_headerStyleFontSizeApplies() throws IOException {
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                pageWith(
+                                        """
+            {"id":"b1","type":"repeatingBand","name":"明細","dataSource":"items","showHeader":true,
+             "headerStyle":{"fontSize":14},
+             "fields":[{"key":"name","label":"品目","width":120,"align":"left"}],
+             "position":{"x":15,"y":20},"size":{"width":120,"height":40}}""",
+                                        "{\"items\":[{\"name\":\"りんご\"}]}")));
+        PdfProbe.TextRun header = probe.findRun(0, "品目").orElseThrow();
+        assertEquals(14f, header.fontSizePt(), 0.01f, "headerStyle.fontSize should apply");
+    }
+
+    @Test
+    void repeatingBand_showEmptyRowLines_rulesRemainingRows() throws IOException {
+        // 2 records, maxItems 5 → the frontend draws 3 extra bordered empty rows
+        // (issue #322). Single column + no header → every " l" op is a row separator:
+        // 2 from the data rows, 3 from the empty rows.
+        String band =
+                """
+            {"id":"b1","type":"repeatingBand","name":"明細","dataSource":"items","showHeader":false,
+             "maxItems":5,"itemHeight":10,%s
+             "fields":[{"key":"name","label":"品目","width":60,"align":"left"}],
+             "position":{"x":15,"y":20},"size":{"width":60,"height":70}}""";
+        String data = "{\"items\":[{\"name\":\"一\"},{\"name\":\"二\"}]}";
+        PdfProbe without =
+                PdfProbe.parse(PdfRenderer.render(pageWith(band.formatted(""), data)));
+        PdfProbe with =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                pageWith(band.formatted("\"showEmptyRowLines\":true,"), data)));
+        long sepWithout =
+                without.pageContent(0).lines().filter(l -> l.trim().endsWith(" l")).count();
+        long sepWith = with.pageContent(0).lines().filter(l -> l.trim().endsWith(" l")).count();
+        assertEquals(2, sepWithout, "2 data-row separators expected");
+        assertEquals(5, sepWith, "3 empty-row separators should be added up to maxItems");
+    }
+
     // ── repeatingList ───────────────────────────────────────────────────
 
     @Test

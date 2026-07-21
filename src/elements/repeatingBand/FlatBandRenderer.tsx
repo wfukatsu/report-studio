@@ -43,7 +43,9 @@ export function FlatBandRenderer({
   return (
     <BandContainer el={el} bs={obs}>
       {el.showHeader && (
-        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight} />
+        // headerHeight falls back to itemHeight so the header row height matches the
+        // server PDF (RepeatingBandPdfRenderer headerH) instead of content-sizing (#324)
+        <HeaderRow fields={el.fields} colPcts={colPcts} hbs={hbs} cbs={cbs} headerStyle={el.headerStyle} headerHeight={el.headerHeight ?? el.itemHeight} />
       )}
 
       {limited.length === 0 && !el.showEmptyRowLines ? (
