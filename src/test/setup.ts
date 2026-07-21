@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom'
+// Initialize i18next once for the whole test run. config.ts pins the language to
+// `ja` under test (MODE === 'test'), so existing Japanese-text assertions stay
+// deterministic, and turns unknown keys into thrown errors (#329).
+import '@/i18n/config'
 
 // jsdom does not implement PointerEvent — provide a minimal polyfill for tests
 // that dispatch pointermove/pointerup on window (e.g. CanvasElement resize tests).

@@ -1,0 +1,19 @@
+{
+  "language": {
+    "en": "English",
+    "ja": "日本語",
+    "label": "Language",
+    "switchAriaLabel": "Switch display language"
+  },
+  "nav": {
+    "admin": "Admin",
+    "ariaLabel": "Main navigation",
+    "binding": "Binding",
+    "databrowser": "Data browser",
+    "design": "Design",
+    "documents": "Issued documents",
+    "jobs": "Jobs",
+    "responses": "Responses",
+    "templates": "Templates"
+  }
+}

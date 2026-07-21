@@ -1,6 +1,8 @@
-import { Activity } from 'react'
+import { Activity, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { TopNavigation } from './TopNavigation'
+import { LanguageSwitcher } from '@/i18n/LanguageSwitcher'
 import App from '@/App'
 import { BindingEditor } from '@/components/bindingEditor/BindingEditor'
 import { TemplateManagementTab } from '@/components/tabs/TemplateManagementTab'
@@ -16,36 +18,49 @@ import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import { TableProperties } from 'lucide-react'
 import type { TopNavItem } from './TopNavigation'
 
-// Visual grouping: editing surfaces (デザイン/バインド) — resource management
-// (テンプレート管理/回答/データブラウザ) — system administration (管理).
-// Separators are non-focusable and skipped by arrow-key navigation.
-const TABS: readonly TopNavItem[] = [
-  { id: 'design',    label: 'デザイン' },
-  { id: 'binding',   label: 'バインド' },
-  { kind: 'separator' },
-  { id: 'templates', label: 'テンプレート管理' },
-  { id: 'responses', label: '回答' },
-  { id: 'documents', label: '発行済み帳票' },
-  { id: 'databrowser', label: 'データブラウザ' },
-  { id: 'jobs',      label: 'ジョブ' },
-  { kind: 'separator' },
-  { id: 'admin',     label: '管理' },
-]
-
 export function AppShell() {
   // Start backend health-check polling (sets backendConnected in store)
   // Placed here (outside <Activity>) so the 30-second interval fires regardless
   // of which tab is active, without being suppressed or re-triggered by Activity.
   useConnectionState()
 
+  const { t, i18n } = useTranslation()
   const activeTab = useReportStore((s) => s.activeTab)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
   const selectedSource = useDataBrowserStore((s) => s.selectedSource)
   const setSource = useDataBrowserStore((s) => s.setSource)
 
+  // Visual grouping: editing surfaces (design/binding) — resource management
+  // (templates/responses/documents/data browser/jobs) — administration (admin).
+  // Separators are non-focusable and skipped by arrow-key navigation.
+  // Rebuilt on language change so labels re-translate (dep: i18n.language).
+  const tabs = useMemo<readonly TopNavItem[]>(
+    () => [
+      { id: 'design', label: t('nav.design') },
+      { id: 'binding', label: t('nav.binding') },
+      { kind: 'separator' },
+      { id: 'templates', label: t('nav.templates') },
+      { id: 'responses', label: t('nav.responses') },
+      { id: 'documents', label: t('nav.documents') },
+      { id: 'databrowser', label: t('nav.databrowser') },
+      { id: 'jobs', label: t('nav.jobs') },
+      { kind: 'separator' },
+      { id: 'admin', label: t('nav.admin') },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable; re-translate on language change
+    [t, i18n.language],
+  )
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} tabs={TABS} />
+      <div className="flex items-stretch shrink-0">
+        <div className="flex-1 min-w-0">
+          <TopNavigation activeTab={activeTab} onTabChange={setActiveTab} tabs={tabs} />
+        </div>
+        <div className="flex items-center border-b bg-card px-3">
+          <LanguageSwitcher />
+        </div>
+      </div>
 
       {/* Design tab: Activity でエフェクトを自動 pause/resume し、状態を保持 */}
       <Activity mode={activeTab === 'design' ? 'visible' : 'hidden'}>

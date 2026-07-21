@@ -1,0 +1,19 @@
+{
+  "language": {
+    "en": "English",
+    "ja": "日本語",
+    "label": "言語",
+    "switchAriaLabel": "表示言語を切り替え"
+  },
+  "nav": {
+    "admin": "管理",
+    "ariaLabel": "メインナビゲーション",
+    "binding": "バインド",
+    "databrowser": "データブラウザ",
+    "design": "デザイン",
+    "documents": "発行済み帳票",
+    "jobs": "ジョブ",
+    "responses": "回答",
+    "templates": "テンプレート管理"
+  }
+}
