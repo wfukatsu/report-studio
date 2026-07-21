@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Database, GripVertical } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { isSystemGroup } from '@/store/schemaSlice'
@@ -14,6 +15,7 @@ import type { SchemaFieldDragPayload, SchemaGroupDragPayload } from '@/component
 import { cn } from '@/lib/utils'
 
 export function SchemaFieldsTab() {
+  const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const setActiveTab = useReportStore((s) => s.setActiveTab)
 
@@ -27,9 +29,9 @@ export function SchemaFieldsTab() {
       <div className="flex flex-col items-center justify-center h-48 gap-3 px-4 text-center">
         <Database className="w-8 h-8 text-muted-foreground/30" />
         <p className="text-xs text-muted-foreground">
-          スキーマが未定義です。
+          {t('sidebar.schemaFieldsTab.undefinedTitle')}
           <br />
-          グループとフィールドを定義するとここに表示されます。
+          {t('sidebar.schemaFieldsTab.undefinedHint')}
         </p>
         {/* Give the empty state an actionable next step instead of just naming
             the tab the user has to go find (#167). */}
@@ -37,7 +39,7 @@ export function SchemaFieldsTab() {
           onClick={() => setActiveTab('binding')}
           className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          バインドタブを開く
+          {t('sidebar.schemaFieldsTab.openBindingTab')}
         </button>
       </div>
     )
@@ -46,7 +48,7 @@ export function SchemaFieldsTab() {
   return (
     <div className="p-3 overflow-y-auto">
       <p className="text-[10px] text-muted-foreground mb-2 px-1">
-        フィールドをキャンバスにドラッグして配置
+        {t('sidebar.schemaFieldsTab.dragHint')}
       </p>
       {userGroups.map((group) => (
         <SchemaGroupSection key={group.id} group={group} />
@@ -56,6 +58,7 @@ export function SchemaFieldsTab() {
 }
 
 function SchemaGroupSection({ group }: { group: { id: string; label: string; role: 'master' | 'detail'; dataKey: string; fields: readonly { id: string; key: string; label: string; type: string; computed?: true }[] } }) {
+  const { t } = useTranslation('components')
   const [expanded, setExpanded] = useState(true)
 
   const groupPayload: SchemaGroupDragPayload = {
@@ -82,24 +85,24 @@ function SchemaGroupSection({ group }: { group: { id: string; label: string; rol
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-1.5 px-1 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 rounded transition-colors cursor-grab active:cursor-grabbing"
         style={{ borderLeft: `3px solid ${group.role === 'master' ? '#3b82f6' : '#f59e0b'}` }}
-        title={`${group.label} — グループごとドラッグして繰り返しバンドにドロップ`}
+        title={t('sidebar.schemaFieldsTab.groupDragTitle', { label: group.label })}
       >
         <GripVertical className="w-3 h-3 text-muted-foreground/40 shrink-0" />
         {expanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
         <span className="truncate">{group.label}</span>
-        <span className="text-[9px] text-muted-foreground ml-auto mr-1">{group.fields.length}件</span>
+        <span className="text-[9px] text-muted-foreground ml-auto mr-1">{t('sidebar.schemaFieldsTab.fieldCount', { n: group.fields.length })}</span>
         <span className={cn(
           'text-[9px] px-1 py-px rounded font-medium shrink-0',
           group.role === 'master' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600',
         )}>
-          {group.role === 'master' ? 'マスター' : '↻ 明細'}
+          {group.role === 'master' ? t('sidebar.schemaFieldsTab.roleMaster') : t('sidebar.schemaFieldsTab.roleDetail')}
         </span>
       </button>
 
       {expanded && (
         <div className="flex flex-col gap-1 mt-1">
           {group.fields.length === 0 ? (
-            <p className="text-[10px] text-muted-foreground italic px-3 py-1">フィールドなし</p>
+            <p className="text-[10px] text-muted-foreground italic px-3 py-1">{t('sidebar.schemaFieldsTab.noFields')}</p>
           ) : (
             group.fields.map((field) => {
               const payload: SchemaFieldDragPayload = {

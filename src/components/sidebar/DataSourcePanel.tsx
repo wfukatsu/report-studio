@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
 import { v4 as uuidv4 } from 'uuid'
@@ -21,6 +22,7 @@ function rowsFromDataSource(ds: { fields: unknown } | null): FieldRow[] {
 }
 
 export function DataSourcePanel() {
+  const { t } = useTranslation('components')
   const dataSource = useReportStore((s) => s.definition.dataSources[0] ?? null)
   const setDataSource = useReportStore((s) => s.setDataSource)
   const [jsonText, setJsonText] = useState('')
@@ -103,20 +105,20 @@ export function DataSourcePanel() {
   return (
     <div className="p-3 space-y-3">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        データソース
+        {t('sidebar.dataSourcePanel.title')}
       </p>
 
       {dataSource && (
         <div className="rounded-lg border border-border bg-card p-2 text-xs">
           <p className="font-medium">{dataSource.name}</p>
           <p className="text-muted-foreground mt-0.5">
-            {Object.keys(dataSource.fields as object).length} 件のトップレベルフィールド
+            {t('sidebar.dataSourcePanel.topLevelFields', { n: Object.keys(dataSource.fields as object).length })}
           </p>
           <button
             onClick={handleClear}
             className="mt-2 text-destructive hover:underline"
           >
-            クリア
+            {t('sidebar.dataSourcePanel.clear')}
           </button>
         </div>
       )}
@@ -126,7 +128,7 @@ export function DataSourcePanel() {
           <button
             onClick={switchToForm}
             className={cn('px-2 py-1 rounded', inputMode === 'form' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent')}
-          >フォーム</button>
+          >{t('sidebar.dataSourcePanel.tab.form')}</button>
           <button
             onClick={switchToJson}
             className={cn('px-2 py-1 rounded', inputMode === 'json' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent')}
@@ -136,15 +138,15 @@ export function DataSourcePanel() {
         {inputMode === 'form' && (
           <div className="space-y-1">
             <div className="grid grid-cols-[1fr_1fr_20px] gap-1 text-xs text-muted-foreground mb-1">
-              <span>フィールド名</span>
-              <span>サンプル値</span>
+              <span>{t('sidebar.dataSourcePanel.form.fieldName')}</span>
+              <span>{t('sidebar.dataSourcePanel.form.sampleValue')}</span>
               <span />
             </div>
             {formRows.map((row, i) => (
               <div key={row.id} className="grid grid-cols-[1fr_1fr_20px] gap-1 items-center">
                 <input
                   className="border rounded px-1.5 py-1 text-xs bg-background"
-                  placeholder="例: customer.name"
+                  placeholder={t('sidebar.dataSourcePanel.form.keyPlaceholder')}
                   value={row.key}
                   onChange={(e) => {
                     const newValue = e.target.value
@@ -153,7 +155,7 @@ export function DataSourcePanel() {
                 />
                 <input
                   className="border rounded px-1.5 py-1 text-xs bg-background"
-                  placeholder="例: 山田太郎"
+                  placeholder={t('sidebar.dataSourcePanel.form.valuePlaceholder')}
                   value={row.value}
                   onChange={(e) => {
                     const newValue = e.target.value
@@ -163,8 +165,8 @@ export function DataSourcePanel() {
                 <button
                   onClick={() => setFormRows(rows => rows.filter((_, j) => j !== i))}
                   className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                  aria-label="この行を削除"
-                  title="行を削除"
+                  aria-label={t('sidebar.dataSourcePanel.form.removeRowAria')}
+                  title={t('sidebar.dataSourcePanel.form.removeRowTitle')}
                   disabled={formRows.length === 1}
                 >
                   <X className="w-3 h-3" />
@@ -174,18 +176,18 @@ export function DataSourcePanel() {
             <button
               onClick={() => setFormRows(rows => [...rows, { id: uuidv4(), key: '', value: '' }])}
               className="text-xs text-primary hover:underline"
-            >+ フィールドを追加</button>
+            >{t('sidebar.dataSourcePanel.form.addField')}</button>
             <button
               onClick={handleFormApply}
               className="w-full py-1.5 rounded bg-primary text-primary-foreground text-xs hover:bg-primary/90 disabled:opacity-40"
               disabled={!formRows.some(r => r.key.trim())}
-            >データを適用</button>
+            >{t('sidebar.dataSourcePanel.form.apply')}</button>
           </div>
         )}
 
         {inputMode === 'json' && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">JSONデータを貼り付け:</p>
+            <p className="text-xs text-muted-foreground">{t('sidebar.dataSourcePanel.json.pasteLabel')}</p>
             <textarea
               className="w-full border rounded px-2 py-1.5 text-xs bg-background font-mono resize-y min-h-[180px]"
               rows={10}
@@ -199,21 +201,21 @@ export function DataSourcePanel() {
               disabled={!jsonText.trim()}
               className="w-full py-1.5 rounded bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-40"
             >
-              データを適用
+              {t('sidebar.dataSourcePanel.form.apply')}
             </button>
           </div>
         )}
       </div>
 
       <div className="rounded-lg border border-border bg-muted/50 p-2 text-xs space-y-1">
-        <p className="font-medium text-muted-foreground">システム変数</p>
+        <p className="font-medium text-muted-foreground">{t('sidebar.dataSourcePanel.sysVars.title')}</p>
         <p className="text-muted-foreground">
-          テキスト要素で以下の変数が使用できます:
+          {t('sidebar.dataSourcePanel.sysVars.desc')}
         </p>
         <ul className="space-y-0.5 text-muted-foreground font-mono">
-          <li><code className="bg-muted px-1 rounded">{'{{$page}}'}</code> — 現在のページ番号</li>
-          <li><code className="bg-muted px-1 rounded">{'{{$totalPages}}'}</code> — 総ページ数</li>
-          <li><code className="bg-muted px-1 rounded">{'{{$printDate}}'}</code> — 印刷日</li>
+          <li><code className="bg-muted px-1 rounded">{'{{$page}}'}</code> — {t('sidebar.dataSourcePanel.sysVars.currentPage')}</li>
+          <li><code className="bg-muted px-1 rounded">{'{{$totalPages}}'}</code> — {t('sidebar.dataSourcePanel.sysVars.totalPages')}</li>
+          <li><code className="bg-muted px-1 rounded">{'{{$printDate}}'}</code> — {t('sidebar.dataSourcePanel.sysVars.printDate')}</li>
         </ul>
       </div>
     </div>

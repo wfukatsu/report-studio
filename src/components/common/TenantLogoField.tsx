@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { isSafeImageSrc } from '@/lib/exportUtils'
 
@@ -18,6 +19,7 @@ interface TenantLogoFieldProps {
  * (`isSafeImageSrc`) before emitting the data URI.
  */
 export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
+  const { t } = useTranslation('components')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -25,7 +27,7 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
     if (!file) return
 
     if (file.size > MAX_RASTER_SIZE) {
-      toast.error('ファイルサイズが 2MB を超えています。')
+      toast.error(t('common.tenantLogoField.tooLarge'))
       return
     }
 
@@ -33,7 +35,7 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
     reader.onload = () => {
       const dataUrl = reader.result as string
       if (!isSafeImageSrc(dataUrl)) {
-        toast.error('安全でない画像形式です。PNG/JPG/GIF/WebP を使用してください。')
+        toast.error(t('common.tenantLogoField.unsafeFormat'))
         return
       }
       onChange(dataUrl)
@@ -49,7 +51,7 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
         className="py-1.5 px-3 text-xs text-blue-600 hover:text-blue-800 border border-dashed rounded hover:bg-blue-50 transition-colors w-fit"
         onClick={() => fileInputRef.current?.click()}
       >
-        ファイルを選択... (PNG/JPG/GIF/WebP, 最大 2MB)
+        {t('common.tenantLogoField.selectFile')}
       </button>
       <input
         ref={fileInputRef}
@@ -61,14 +63,14 @@ export function TenantLogoField({ value, onChange }: TenantLogoFieldProps) {
       {value && isSafeImageSrc(value) && (
         <div className="flex items-center gap-3">
           <div className="border rounded p-1 bg-muted/30 w-20 h-12 flex items-center justify-center">
-            <img src={value} alt="ロゴプレビュー" className="max-w-full max-h-full object-contain" />
+            <img src={value} alt={t('common.tenantLogoField.logoPreview')} className="max-w-full max-h-full object-contain" />
           </div>
           <button
             type="button"
             className="text-xs text-red-500 hover:text-red-700"
             onClick={() => onChange(undefined)}
           >
-            削除
+            {t('common.tenantLogoField.remove')}
           </button>
         </div>
       )}

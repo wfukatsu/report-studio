@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2, FileDown } from 'lucide-react'
 import { BulkExportModal } from './BulkExportModal'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
@@ -43,6 +44,7 @@ function toSourceKey(source: DataSourceNode): string {
 }
 
 export function DataGrid({ source }: Props) {
+  const { t } = useTranslation('components')
   const searchQuery = useDataBrowserStore((s) => s.searchQuery)
   const setSearch = useDataBrowserStore((s) => s.setSearch)
   const sortCol = useDataBrowserStore((s) => s.sortCol)
@@ -124,7 +126,7 @@ export function DataGrid({ source }: Props) {
           setLoadResult({
             key: loadKey,
             state: 'error',
-            error: e instanceof Error ? e.message : 'データの読み込みに失敗しました',
+            error: e instanceof Error ? e.message : t('dataBrowser.dataGrid.loadFailed'),
           })
         })
 
@@ -154,7 +156,7 @@ export function DataGrid({ source }: Props) {
           setLoadResult({
             key: loadKey,
             state: 'error',
-            error: e instanceof Error ? e.message : '商品データの読み込みに失敗しました',
+            error: e instanceof Error ? e.message : t('dataBrowser.dataGrid.productLoadFailed'),
           })
         })
 
@@ -177,7 +179,7 @@ export function DataGrid({ source }: Props) {
           setLoadResult({
             key: loadKey,
             state: 'error',
-            error: e instanceof Error ? e.message : '回答データの読み込みに失敗しました',
+            error: e instanceof Error ? e.message : t('dataBrowser.dataGrid.responseLoadFailed'),
           })
         })
     }
@@ -258,7 +260,7 @@ export function DataGrid({ source }: Props) {
       await updateScalarDbRow(source.namespace, source.table, values)
       reload()
     } catch (e) {
-      toast.error('セルの更新に失敗しました', { description: e instanceof Error ? e.message : undefined })
+      toast.error(t('dataBrowser.dataGrid.cellUpdateFailed'), { description: e instanceof Error ? e.message : undefined })
     }
     setEditingCell(null)
   }
@@ -272,7 +274,7 @@ export function DataGrid({ source }: Props) {
       await deleteScalarDbRow(source.namespace, source.table, keys)
       reload()
     } catch (e) {
-      toast.error('行の削除に失敗しました', { description: e instanceof Error ? e.message : undefined })
+      toast.error(t('dataBrowser.dataGrid.rowDeleteFailed'), { description: e instanceof Error ? e.message : undefined })
     }
     setDeleteTarget(null)
   }
@@ -295,7 +297,7 @@ export function DataGrid({ source }: Props) {
     return (
       <div className="flex flex-col h-full">
         <DataGridToolbar searchQuery="" onSearchChange={() => {}} onExportCsv={() => {}} totalRows={0} />
-        <EmptyState title="読み込み中..." />
+        <EmptyState title={t('dataBrowser.dataGrid.loading')} />
       </div>
     )
   }
@@ -305,14 +307,14 @@ export function DataGrid({ source }: Props) {
       <div className="flex flex-col h-full">
         <DataGridToolbar searchQuery={searchQuery} onSearchChange={setSearch} onExportCsv={() => {}} totalRows={0} />
         <EmptyState
-          title="データの読み込みに失敗しました"
+          title={t('dataBrowser.dataGrid.loadFailed')}
           description={errorMsg}
           action={
             <button
               onClick={reload}
               className="px-3 py-1.5 text-xs border rounded hover:bg-accent"
             >
-              再試行
+              {t('dataBrowser.dataGrid.retry')}
             </button>
           }
         />
@@ -336,10 +338,10 @@ export function DataGrid({ source }: Props) {
           <button
             onClick={() => setShowBulkExport(true)}
             className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent mr-2 shrink-0"
-            title="選択した行（未選択なら表示中の全行）を一括PDF出力"
+            title={t('dataBrowser.dataGrid.bulkPdfTitle')}
           >
             <FileDown className="w-3.5 h-3.5" />
-            一括PDF{selectedRows.size > 0 ? `（${selectedRows.size}）` : ''}
+            {t('dataBrowser.dataGrid.bulkPdf')}{selectedRows.size > 0 ? t('dataBrowser.dataGrid.bulkPdfCount', { n: selectedRows.size }) : ''}
           </button>
         )}
         {isWritable && (
@@ -348,7 +350,7 @@ export function DataGrid({ source }: Props) {
             className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent mr-2 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
-            行を追加
+            {t('dataBrowser.dataGrid.addRow')}
           </button>
         )}
       </div>
@@ -356,17 +358,17 @@ export function DataGrid({ source }: Props) {
       <div className="flex-1 overflow-auto">
         {displayRows.length === 0 ? (
           <EmptyState
-            title={searchQuery ? `「${searchQuery}」に一致するデータがありません` : 'データがありません'}
+            title={searchQuery ? t('dataBrowser.dataGrid.noSearchMatch', { query: searchQuery }) : t('dataBrowser.dataGrid.noData')}
           />
         ) : (
-          <table className="w-full text-xs min-w-max" aria-label="データグリッド">
+          <table className="w-full text-xs min-w-max" aria-label={t('dataBrowser.dataGrid.gridLabel')}>
             <thead className="bg-muted/40 sticky top-0">
               <tr>
                 {supportsBulkPdf && (
                   <th className="w-8 px-2 py-2">
                     <input
                       type="checkbox"
-                      aria-label="表示中をすべて選択"
+                      aria-label={t('dataBrowser.dataGrid.selectAllVisible')}
                       checked={displayRows.length > 0 && selectedRows.size === displayRows.length}
                       ref={(el) => { if (el) el.indeterminate = selectedRows.size > 0 && selectedRows.size < displayRows.length }}
                       onChange={(e) => setSelectedRows(e.target.checked ? new Set(displayRows.map((_, i) => i)) : new Set())}
@@ -412,7 +414,7 @@ export function DataGrid({ source }: Props) {
                     <td className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
-                        aria-label={`行 ${i + 1} を選択`}
+                        aria-label={t('dataBrowser.dataGrid.selectRow', { n: i + 1 })}
                         checked={selectedRows.has(i)}
                         onChange={() => setSelectedRows((prev) => {
                           const next = new Set(prev)
@@ -462,7 +464,7 @@ export function DataGrid({ source }: Props) {
                       <button
                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(row) }}
                         className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="行を削除"
+                        title={t('dataBrowser.dataGrid.deleteRow')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -478,13 +480,13 @@ export function DataGrid({ source }: Props) {
       {/* Pagination */}
       <div className="flex items-center justify-between px-3 py-2 border-t shrink-0 text-xs">
         <span className="text-muted-foreground">
-          {currentPage + 1} / {totalPages} ページ
+          {t('dataBrowser.dataGrid.pageInfo', { current: currentPage + 1, total: totalPages })}
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setPage(currentPage - 1)}
             disabled={currentPage === 0}
-            aria-label="前のページ"
+            aria-label={t('dataBrowser.dataGrid.prevPage')}
             className="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -492,7 +494,7 @@ export function DataGrid({ source }: Props) {
           <button
             onClick={() => setPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
-            aria-label="次のページ"
+            aria-label={t('dataBrowser.dataGrid.nextPage')}
             className="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-4 h-4" />
@@ -551,9 +553,9 @@ export function DataGrid({ source }: Props) {
       {/* Delete confirmation */}
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="行を削除"
-        message="この行を削除してもよろしいですか？この操作は元に戻せません。"
-        confirmLabel="削除"
+        title={t('dataBrowser.dataGrid.deleteRow')}
+        message={t('dataBrowser.dataGrid.deleteConfirm')}
+        confirmLabel={t('dataBrowser.dataGrid.delete')}
         confirmVariant="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}

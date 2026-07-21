@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
 import {
   Eye, EyeOff, Lock, Unlock, Search, FolderPlus, Plus,
@@ -46,6 +47,7 @@ const EMPTY_GROUPS: LayerGroup[] = []
 // ---------------------------------------------------------------------------
 
 export function LayersPanel() {
+  const { t } = useTranslation('components')
   const activePage = useReportStore(selectActivePage)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
   const selectElement = useReportStore((s) => s.selectElement)
@@ -111,11 +113,11 @@ export function LayersPanel() {
         .sort((a, b) => b.zIndex - a.zIndex)
         .filter((el) =>
           !q ||
-          defaultName(el).toLowerCase().includes(q) ||
+          defaultName(el, t).toLowerCase().includes(q) ||
           el.type.toLowerCase().includes(q)
         ),
     })).filter((s) => !q || s.elements.length > 0)
-  }, [sections, layerSearchQuery])
+  }, [sections, layerSearchQuery, t])
 
   const totalElements = useMemo(
     () => sections.reduce((sum, s) => sum + s.elements.length, 0),
@@ -128,8 +130,8 @@ export function LayersPanel() {
 
   const startRename = useCallback((el: ReportElement) => {
     setRenamingId(el.id)
-    setRenameValue(defaultName(el))
-  }, [])
+    setRenameValue(defaultName(el, t))
+  }, [t])
 
   const commitRename = useCallback((el: ReportElement, pageId: string) => {
     if (renameValue.trim()) {
@@ -155,60 +157,60 @@ export function LayersPanel() {
 
   // Build context menu items for an element row
   const buildElementMenuItems = useCallback((el: ReportElement): ContextMenuItemDef[] => [
-    { kind: 'action', icon: <Copy className="w-3.5 h-3.5" />, label: 'コピー', shortcut: '⌘C',
+    { kind: 'action', icon: <Copy className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.copy'), shortcut: '⌘C',
       onClick: () => { copyElements(pageId, [el.id]) } },
-    { kind: 'action', icon: <Scissors className="w-3.5 h-3.5" />, label: 'カット', shortcut: '⌘X',
+    { kind: 'action', icon: <Scissors className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.cut'), shortcut: '⌘X',
       onClick: () => { cutElements(pageId, [el.id]) } },
-    { kind: 'action', icon: <Clipboard className="w-3.5 h-3.5" />, label: 'ペースト', shortcut: '⌘V',
+    { kind: 'action', icon: <Clipboard className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.paste'), shortcut: '⌘V',
       onClick: () => pasteElements(pageId), disabled: !clipboard?.length },
-    { kind: 'action', icon: <CopyPlus className="w-3.5 h-3.5" />, label: '複製', shortcut: '⌘D',
+    { kind: 'action', icon: <CopyPlus className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.duplicate'), shortcut: '⌘D',
       onClick: () => duplicateElement(pageId, el.id) },
-    { kind: 'action', icon: <Pencil className="w-3.5 h-3.5" />, label: '名前変更', shortcut: 'F2',
-      onClick: () => { setRenamingId(el.id); setRenameValue(defaultName(el)) } },
+    { kind: 'action', icon: <Pencil className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.rename'), shortcut: 'F2',
+      onClick: () => { setRenamingId(el.id); setRenameValue(defaultName(el, t)) } },
     { kind: 'separator' },
-    { kind: 'action', icon: <Folder className="w-3.5 h-3.5" />, label: 'グループ化', shortcut: '⌘G',
+    { kind: 'action', icon: <Folder className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.group'), shortcut: '⌘G',
       onClick: () => groupSelectedElements(pageId), disabled: selectedIds.length < 2 },
     ...(groupMap.has(el.id) ? [{
-      kind: 'action' as const, icon: <FolderMinus className="w-3.5 h-3.5" />, label: 'グループから外す',
+      kind: 'action' as const, icon: <FolderMinus className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.leaveGroup'),
       onClick: () => leaveGroup(pageId, el.id),
     }] : []),
     { kind: 'separator' },
-    { kind: 'action', icon: <BringToFront className="w-3.5 h-3.5" />, label: '最前面へ',
+    { kind: 'action', icon: <BringToFront className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.bringToFront'),
       onClick: () => setZOrder(pageId, el.id, 'front') },
-    { kind: 'action', icon: <ArrowUpToLine className="w-3.5 h-3.5" />, label: '前面へ',
+    { kind: 'action', icon: <ArrowUpToLine className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.bringForward'),
       onClick: () => setZOrder(pageId, el.id, 'forward') },
-    { kind: 'action', icon: <ArrowDownToLine className="w-3.5 h-3.5" />, label: '背面へ',
+    { kind: 'action', icon: <ArrowDownToLine className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.sendBackward'),
       onClick: () => setZOrder(pageId, el.id, 'backward') },
-    { kind: 'action', icon: <SendToBack className="w-3.5 h-3.5" />, label: '最背面へ',
+    { kind: 'action', icon: <SendToBack className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.sendToBack'),
       onClick: () => setZOrder(pageId, el.id, 'back') },
     { kind: 'separator' },
     { kind: 'action', icon: el.visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />,
-      label: el.visible ? '非表示' : '表示',
+      label: el.visible ? t('sidebar.layersPanel.hide') : t('sidebar.layersPanel.show'),
       onClick: () => updateElement(pageId, el.id, { visible: !el.visible } as Partial<ReportElement>) },
     { kind: 'action', icon: el.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />,
-      label: el.locked ? 'ロック解除' : 'ロック',
+      label: el.locked ? t('sidebar.layersPanel.unlock') : t('sidebar.layersPanel.lock'),
       onClick: () => updateElement(pageId, el.id, { locked: !el.locked } as Partial<ReportElement>) },
     { kind: 'separator' },
-    { kind: 'action', icon: <Trash2 className="w-3.5 h-3.5" />, label: '削除', shortcut: '⌫',
+    { kind: 'action', icon: <Trash2 className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.delete'), shortcut: '⌫',
       onClick: () => removeElement(pageId, el.id), className: 'text-destructive' },
-  ], [pageId, selectedIds, clipboard, groupMap, copyElements, cutElements, pasteElements,
+  ], [t, pageId, selectedIds, clipboard, groupMap, copyElements, cutElements, pasteElements,
       duplicateElement, groupSelectedElements, leaveGroup, setZOrder, updateElement, removeElement])
 
   // Build context menu items for a group row
   const buildGroupMenuItems = useCallback((group: LayerGroup): ContextMenuItemDef[] => [
-    { kind: 'action', icon: <FolderMinus className="w-3.5 h-3.5" />, label: 'グループ解散',
+    { kind: 'action', icon: <FolderMinus className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.ungroup'),
       onClick: () => removeLayerGroup(pageId, group.id) },
     { kind: 'separator' },
     { kind: 'action', icon: group.visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />,
-      label: group.visible ? 'グループを非表示' : 'グループを表示',
+      label: group.visible ? t('sidebar.layersPanel.hideGroup') : t('sidebar.layersPanel.showGroup'),
       onClick: () => updateLayerGroup(pageId, group.id, { visible: !group.visible }) },
     { kind: 'action', icon: group.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />,
-      label: group.locked ? 'グループのロックを解除' : 'グループをロック',
+      label: group.locked ? t('sidebar.layersPanel.unlockGroup') : t('sidebar.layersPanel.lockGroup'),
       onClick: () => updateLayerGroup(pageId, group.id, { locked: !group.locked }) },
     { kind: 'separator' },
-    { kind: 'action', icon: <Trash2 className="w-3.5 h-3.5" />, label: 'グループを削除',
+    { kind: 'action', icon: <Trash2 className="w-3.5 h-3.5" />, label: t('sidebar.layersPanel.deleteGroup'),
       onClick: () => removeLayerGroup(pageId, group.id), className: 'text-destructive' },
-  ], [pageId, removeLayerGroup, updateLayerGroup])
+  ], [t, pageId, removeLayerGroup, updateLayerGroup])
 
   // Build ContextMenuState-compatible object for the shared ContextMenu component
   const contextMenuState = layerMenu ? { x: layerMenu.x, y: layerMenu.y, elementId: '', isLocked: false, isVisible: true } : null
@@ -223,7 +225,7 @@ export function LayersPanel() {
   }, [layerMenu, activePage, pageGroups, buildElementMenuItems, buildGroupMenuItems])
 
   if (!activePage) {
-    return <div className="p-4 text-xs text-muted-foreground">ページがありません</div>
+    return <div className="p-4 text-xs text-muted-foreground">{t('sidebar.layersPanel.noPage')}</div>
   }
 
   return (
@@ -234,10 +236,10 @@ export function LayersPanel() {
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
             className="w-full pl-7 pr-2 py-1 text-xs bg-muted/50 border rounded outline-none focus:ring-1 focus:ring-primary"
-            placeholder="レイヤーを検索..."
+            placeholder={t('sidebar.layersPanel.searchPlaceholder')}
             value={layerSearchQuery}
             onChange={(e) => setLayerSearchQuery(e.target.value)}
-            aria-label="レイヤーを検索"
+            aria-label={t('sidebar.layersPanel.searchLabel')}
             maxLength={100}
           />
         </div>
@@ -246,8 +248,8 @@ export function LayersPanel() {
         <div className="shrink-0" ref={addMenuRef}>
           <button
             ref={addButtonRef}
-            title="新規レイヤーを追加"
-            aria-label="新規レイヤーを追加"
+            title={t('sidebar.layersPanel.addLayer')}
+            aria-label={t('sidebar.layersPanel.addLayer')}
             aria-expanded={addMenuOpen}
             className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
             onClick={() => {
@@ -276,17 +278,17 @@ export function LayersPanel() {
                 {PALETTE_CATEGORIES.map((cat) => (
                   <div key={cat.category}>
                     <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                      {cat.label}
+                      {t(cat.label)}
                     </div>
                     {cat.items.map((item) => (
                       <button
                         key={item.label}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground text-left"
                         onClick={() => handleAddElement(item.createElement)}
-                        title={item.description}
+                        title={item.descriptionKey ? t(item.descriptionKey) : undefined}
                       >
                         <span className="shrink-0 text-muted-foreground">{item.icon}</span>
-                        {item.label}
+                        {t(item.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -298,8 +300,8 @@ export function LayersPanel() {
 
         {/* Add empty group */}
         <button
-          title="空のグループを追加"
-          aria-label="空のグループを追加"
+          title={t('sidebar.layersPanel.addEmptyGroup')}
+          aria-label={t('sidebar.layersPanel.addEmptyGroup')}
           className="shrink-0 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
           onClick={() => {
             if (!activePage) return
@@ -320,17 +322,17 @@ export function LayersPanel() {
       {/* Bulk toolbar */}
       {selectedIds.length > 1 && (
         <div className="flex items-center gap-1 px-2 py-1 border-b bg-primary/5 text-xs text-primary">
-          <span className="flex-1">{selectedIds.length}個選択中</span>
-          <button title="選択中を表示" className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetVisible(true)}>
+          <span className="flex-1">{t('sidebar.layersPanel.selectedCount', { n: selectedIds.length })}</span>
+          <button title={t('sidebar.layersPanel.bulkShow')} className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetVisible(true)}>
             <Eye className="w-3.5 h-3.5" />
           </button>
-          <button title="選択中を非表示" className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetVisible(false)}>
+          <button title={t('sidebar.layersPanel.bulkHide')} className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetVisible(false)}>
             <EyeOff className="w-3.5 h-3.5" />
           </button>
-          <button title="選択中をロック" className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetLocked(true)}>
+          <button title={t('sidebar.layersPanel.bulkLock')} className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetLocked(true)}>
             <Lock className="w-3.5 h-3.5" />
           </button>
-          <button title="選択中のロック解除" className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetLocked(false)}>
+          <button title={t('sidebar.layersPanel.bulkUnlock')} className="p-0.5 rounded hover:bg-accent" onClick={() => bulkSetLocked(false)}>
             <Unlock className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -340,7 +342,7 @@ export function LayersPanel() {
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
         {totalElements === 0 && (
           <p className="text-xs text-muted-foreground text-center pt-4">
-            要素がありません。<br />＋ボタンから追加してください。
+            {t('sidebar.layersPanel.emptyLine1')}<br />{t('sidebar.layersPanel.emptyLine2')}
           </p>
         )}
         {displaySections.map((section) => (
@@ -391,14 +393,14 @@ export function LayersPanel() {
 
         {layerSearchQuery && displaySections.length === 0 && (
           <div className="p-4 text-xs text-muted-foreground text-center">
-            「{layerSearchQuery}」に一致する要素が見つかりません
+            {t('sidebar.layersPanel.noMatch', { query: layerSearchQuery })}
           </div>
         )}
       </div>
 
       {/* Footer */}
       <div className="px-2 py-1 border-t text-[10px] text-muted-foreground text-right">
-        {totalElements}個の要素
+        {t('sidebar.layersPanel.elementCount', { n: totalElements })}
       </div>
 
       {/* Context menu (shared ContextMenu component in items mode) */}
@@ -463,6 +465,7 @@ function SectionDndContainer({
   onElementContextMenu,
   onGroupContextMenu,
 }: SectionDndContainerProps) {
+  const { t } = useTranslation('components')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
 
@@ -474,23 +477,23 @@ function SectionDndContainer({
   const announcements: Announcements = {
     onDragStart({ active }) {
       const el = section.elements.find((e) => e.id === active.id)
-      return `レイヤー「${el ? defaultName(el) : active.id}」を選択しました。`
+      return t('sidebar.layersPanel.announceDragStart', { name: el ? defaultName(el, t) : active.id })
     },
     onDragOver({ active, over }) {
       const activeEl = section.elements.find((e) => e.id === active.id)
       const overEl = section.elements.find((e) => e.id === over?.id)
-      if (over && overEl) return `「${defaultName(activeEl!)}」が「${defaultName(overEl)}」の上にあります。`
-      return `「${defaultName(activeEl!)}」はドロップ可能エリアの外にあります。`
+      if (over && overEl) return t('sidebar.layersPanel.announceDragOver', { active: defaultName(activeEl!, t), over: defaultName(overEl, t) })
+      return t('sidebar.layersPanel.announceDragOverOutside', { name: defaultName(activeEl!, t) })
     },
     onDragEnd({ active, over }) {
       const activeEl = section.elements.find((e) => e.id === active.id)
       const overEl = section.elements.find((e) => e.id === over?.id)
-      if (over && overEl) return `「${defaultName(activeEl!)}」を「${defaultName(overEl)}」の位置にドロップしました。`
-      return `「${defaultName(activeEl!)}」を元の位置に戻しました。`
+      if (over && overEl) return t('sidebar.layersPanel.announceDragEnd', { active: defaultName(activeEl!, t), over: defaultName(overEl, t) })
+      return t('sidebar.layersPanel.announceDragEndReverted', { name: defaultName(activeEl!, t) })
     },
     onDragCancel({ active }) {
       const el = section.elements.find((e) => e.id === active.id)
-      return `並び替えをキャンセルしました。「${el ? defaultName(el) : active.id}」を元の位置に戻しました。`
+      return t('sidebar.layersPanel.announceDragCancel', { name: el ? defaultName(el, t) : active.id })
     },
   }
 
@@ -513,7 +516,7 @@ function SectionDndContainer({
       <div className="flex items-center gap-1 px-1 mb-1">
         <div className="flex-1 h-px bg-border" />
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide px-1">
-          {sectionLabel(section.sectionType)}
+          {sectionLabel(section.sectionType, t)}
         </span>
         <div className="flex-1 h-px bg-border" />
       </div>
@@ -577,7 +580,7 @@ function SectionDndContainer({
               onGroupContextMenu,
             )}
             {orderedElements.length === 0 && (
-              <div className="px-1 py-1 text-xs text-muted-foreground italic">要素なし</div>
+              <div className="px-1 py-1 text-xs text-muted-foreground italic">{t('sidebar.layersPanel.noElements')}</div>
             )}
           </div>
         </SortableContext>

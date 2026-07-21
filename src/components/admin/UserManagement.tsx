@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { AlertBanner } from '@/components/common/AlertBanner'
@@ -8,6 +9,7 @@ import { Loader2 } from 'lucide-react'
 import type { UserRole } from '@/api/reportApi'
 
 export function UserManagement() {
+  const { t } = useTranslation('components')
   const currentUser = useReportStore((s) => s.currentUser)
   const users = useReportStore((s) => s.adminUsers)
   const loading = useReportStore((s) => s.adminUsersLoading)
@@ -32,7 +34,7 @@ export function UserManagement() {
     try {
       await createAdminUser(user)
     } catch {
-      setLocalError('ユーザーの作成に失敗しました（IDが重複している可能性があります）')
+      setLocalError(t('admin.userManagement.createFailed'))
     }
   }
 
@@ -41,20 +43,20 @@ export function UserManagement() {
     try {
       await deleteAdminUser(userId)
     } catch {
-      setLocalError('削除に失敗しました')
+      setLocalError(t('admin.userManagement.deleteFailed'))
     }
   }
 
   if (loading) return (
     <div className="p-8 flex items-center justify-center text-xs text-muted-foreground gap-2">
       <Loader2 className="w-4 h-4 animate-spin" />
-      読み込み中...
+      {t('admin.userManagement.loading')}
     </div>
   )
 
   return (
     <div className="p-4 flex flex-col gap-4">
-      <h2 className="text-sm font-semibold text-foreground">ユーザー管理</h2>
+      <h2 className="text-sm font-semibold text-foreground">{t('admin.userManagement.title')}</h2>
       {error && <AlertBanner variant="error" message={error} />}
 
       <UserTable
@@ -67,9 +69,9 @@ export function UserManagement() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="ユーザーを削除"
-        message={`ユーザー「${deleteTarget}」を完全に削除します。この操作は元に戻せません。`}
-        confirmLabel="削除する"
+        title={t('admin.userManagement.deleteTitle')}
+        message={t('admin.userManagement.deleteMessage', { name: deleteTarget })}
+        confirmLabel={t('admin.userManagement.deleteConfirm')}
         confirmVariant="danger"
         onConfirm={() => { if (deleteTarget) void execDelete(deleteTarget); setDeleteTarget(null) }}
         onCancel={() => setDeleteTarget(null)}

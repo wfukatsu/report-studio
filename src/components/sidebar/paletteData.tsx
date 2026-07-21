@@ -63,109 +63,118 @@ import {
   createTenantCustomElement,
 } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
+import type { ParseKeys } from 'i18next'
 
 export interface PaletteItem {
+  /** Stable identifier used as the PALETTE_ITEM_MAP key and drag payload (NOT displayed). */
   label: string
+  /** i18n key (namespace `components`) for the displayed label. */
+  labelKey: ParseKeys<'components'>
   icon: React.ReactNode
   createElement: () => ReportElement
-  description?: string
+  /** i18n key (namespace `components`) for the tooltip description. */
+  descriptionKey?: ParseKeys<'components'>
 }
 
 export interface PaletteCategory {
   category: string
-  label: string
+  /** i18n key (namespace `components`) for the displayed category label. */
+  label: ParseKeys<'components'>
   items: PaletteItem[]
 }
 
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
   {
     category: 'common',
-    label: '帳票共通',
+    label: 'sidebar.paletteData.cat.common',
     items: [
-      { label: 'ページ番号', icon: <Hash className="w-4 h-4" />,              createElement: createPageNumberElement, description: 'ページ番号を自動表示（書式選択可能）' },
-      { label: '現在日付',   icon: <CalendarDays className="w-4 h-4" />,      createElement: createCurrentDateElement, description: '帳票出力日を自動表示（和暦対応）' },
-      { label: '区切り線',   icon: <SeparatorHorizontal className="w-4 h-4" />, createElement: createDividerElement, description: 'セクション区切り用の罫線' },
+      { label: 'ページ番号', labelKey: 'sidebar.paletteData.item.pageNumber', icon: <Hash className="w-4 h-4" />,              createElement: createPageNumberElement, descriptionKey: 'sidebar.paletteData.desc.pageNumber' },
+      { label: '現在日付',   labelKey: 'sidebar.paletteData.item.currentDate', icon: <CalendarDays className="w-4 h-4" />,      createElement: createCurrentDateElement, descriptionKey: 'sidebar.paletteData.desc.currentDate' },
+      { label: '区切り線',   labelKey: 'sidebar.paletteData.item.divider', icon: <SeparatorHorizontal className="w-4 h-4" />, createElement: createDividerElement, descriptionKey: 'sidebar.paletteData.desc.divider' },
     ],
   },
   {
     category: 'text',
-    label: 'テキスト系',
+    label: 'sidebar.paletteData.cat.text',
     items: [
-      { label: 'テキスト',         icon: <Type className="w-4 h-4" />,     createElement: createTextElement, description: '固定テキスト。{{fieldKey}}でデータ埋め込み可能。ラベル用途にも' },
-      { label: 'データフィールド', icon: <Database className="w-4 h-4" />, createElement: createDataFieldElement, description: 'データソースのフィールドを表示（例：顧客名、金額）' },
+      { label: 'テキスト',         labelKey: 'sidebar.paletteData.item.text', icon: <Type className="w-4 h-4" />,     createElement: createTextElement, descriptionKey: 'sidebar.paletteData.desc.text' },
+      { label: 'データフィールド', labelKey: 'sidebar.paletteData.item.dataField', icon: <Database className="w-4 h-4" />, createElement: createDataFieldElement, descriptionKey: 'sidebar.paletteData.desc.dataField' },
     ],
   },
   {
     category: 'shape',
-    label: '図形・画像',
+    label: 'sidebar.paletteData.cat.shape',
     items: [
-      { label: '矩形',  icon: <Square className="w-4 h-4" />,  createElement: () => createShapeElement({ shape: 'rectangle' } as Partial<ReportElement>) },
-      { label: '円',    icon: <Circle className="w-4 h-4" />,  createElement: () => createShapeElement({ shape: 'circle' } as Partial<ReportElement>) },
-      { label: '線',    icon: <Minus className="w-4 h-4" />,   createElement: () => createShapeElement({ shape: 'line', size: { width: 53, height: 0.5 } } as Partial<ReportElement>) },
-      { label: '画像',  icon: <Image className="w-4 h-4" />,   createElement: createImageElement },
+      { label: '矩形',  labelKey: 'sidebar.paletteData.item.rectangle', icon: <Square className="w-4 h-4" />,  createElement: () => createShapeElement({ shape: 'rectangle' } as Partial<ReportElement>) },
+      { label: '円',    labelKey: 'sidebar.paletteData.item.circle', icon: <Circle className="w-4 h-4" />,  createElement: () => createShapeElement({ shape: 'circle' } as Partial<ReportElement>) },
+      { label: '線',    labelKey: 'sidebar.paletteData.item.line', icon: <Minus className="w-4 h-4" />,   createElement: () => createShapeElement({ shape: 'line', size: { width: 53, height: 0.5 } } as Partial<ReportElement>) },
+      { label: '画像',  labelKey: 'sidebar.paletteData.item.image', icon: <Image className="w-4 h-4" />,   createElement: createImageElement },
     ],
   },
   {
     category: 'repeating',
-    label: '繰り返し要素',
+    label: 'sidebar.paletteData.cat.repeating',
     items: [
       {
         label: '繰り返しバンド',
+        labelKey: 'sidebar.paletteData.item.repeatingBand',
         icon: <AlignJustify className="w-4 h-4 text-blue-500" />,
         createElement: createRepeatingBandElement,
-        description: 'データ行を表形式で繰り返し表示（例：請求書の明細行）',
+        descriptionKey: 'sidebar.paletteData.desc.repeatingBand',
       },
       {
         label: '繰り返しリスト',
+        labelKey: 'sidebar.paletteData.item.repeatingList',
         icon: <LayoutGrid className="w-4 h-4 text-purple-500" />,
         createElement: createRepeatingListElement,
-        description: 'データをカード・グリッド形式で表示（例：商品カタログ）',
+        descriptionKey: 'sidebar.paletteData.desc.repeatingList',
       },
       {
         label: '帳票テーブル',
+        labelKey: 'sidebar.paletteData.item.formTable',
         icon: <TableProperties className="w-4 h-4 text-green-600" />,
         createElement: createFormTableElement,
-        description: '行・列定義を持つ帳票専用テーブル。固定レイアウトとデータバインドに両対応',
+        descriptionKey: 'sidebar.paletteData.desc.formTable',
       },
     ],
   },
   {
     category: 'data',
-    label: 'データ表示',
+    label: 'sidebar.paletteData.cat.data',
     items: [
-      { label: 'グラフ',     icon: <BarChart2 className="w-4 h-4" />, createElement: createChartElement },
-      { label: 'QRコード',   icon: <QrCode className="w-4 h-4" />,   createElement: createBarcodeElement },
-      { label: 'バーコード', icon: <Barcode className="w-4 h-4" />,  createElement: createBarcodeCode128Element },
+      { label: 'グラフ',     labelKey: 'sidebar.paletteData.item.chart', icon: <BarChart2 className="w-4 h-4" />, createElement: createChartElement },
+      { label: 'QRコード',   labelKey: 'sidebar.paletteData.item.qrCode', icon: <QrCode className="w-4 h-4" />,   createElement: createBarcodeElement },
+      { label: 'バーコード', labelKey: 'sidebar.paletteData.item.barcode', icon: <Barcode className="w-4 h-4" />,  createElement: createBarcodeCode128Element },
     ],
   },
   {
     category: 'input',
-    label: '記入欄',
+    label: 'sidebar.paletteData.cat.input',
     items: [
-      { label: '記入欄', icon: <PenLine className="w-4 h-4" />, createElement: createManualEntryField },
+      { label: '記入欄', labelKey: 'sidebar.paletteData.item.manualEntry', icon: <PenLine className="w-4 h-4" />, createElement: createManualEntryField },
     ],
   },
   {
     category: 'japanese',
-    label: '日本語帳票専用',
+    label: 'sidebar.paletteData.cat.japanese',
     items: [
-      { label: '印鑑',       icon: <Stamp className="w-4 h-4" />,  createElement: createHankoElement, description: '押印欄（社印・個人印）' },
-      { label: '多段印鑑欄', icon: <Rows3 className="w-4 h-4" />,  createElement: createApprovalStampRowElement, description: '承認フロー用の複数印鑑欄' },
-      { label: '収入印紙欄', icon: <Ticket className="w-4 h-4" />, createElement: createRevenueStampElement, description: '収入印紙の貼付欄' },
-      { label: 'チェックボックス', icon: <SquareCheck className="w-4 h-4" />, createElement: createCheckboxElement, description: 'チェックボックス（固定／データバインド両対応）' },
-      { label: '元号選択', icon: <Calendar className="w-4 h-4" />, createElement: createEraSelectElement, description: '和暦元号選択（明・大・昭・平・令）' },
+      { label: '印鑑',       labelKey: 'sidebar.paletteData.item.hanko', icon: <Stamp className="w-4 h-4" />,  createElement: createHankoElement, descriptionKey: 'sidebar.paletteData.desc.hanko' },
+      { label: '多段印鑑欄', labelKey: 'sidebar.paletteData.item.approvalStampRow', icon: <Rows3 className="w-4 h-4" />,  createElement: createApprovalStampRowElement, descriptionKey: 'sidebar.paletteData.desc.approvalStampRow' },
+      { label: '収入印紙欄', labelKey: 'sidebar.paletteData.item.revenueStamp', icon: <Ticket className="w-4 h-4" />, createElement: createRevenueStampElement, descriptionKey: 'sidebar.paletteData.desc.revenueStamp' },
+      { label: 'チェックボックス', labelKey: 'sidebar.paletteData.item.checkbox', icon: <SquareCheck className="w-4 h-4" />, createElement: createCheckboxElement, descriptionKey: 'sidebar.paletteData.desc.checkbox' },
+      { label: '元号選択', labelKey: 'sidebar.paletteData.item.eraSelect', icon: <Calendar className="w-4 h-4" />, createElement: createEraSelectElement, descriptionKey: 'sidebar.paletteData.desc.eraSelect' },
     ],
   },
   {
     category: 'tenant',
-    label: 'テナント情報',
+    label: 'sidebar.paletteData.cat.tenant',
     items: [
-      { label: '会社名',           icon: <Building2 className="w-4 h-4" />, createElement: createTenantCompanyNameElement, description: 'テナント設定の会社名を自動表示' },
-      { label: '住所',             icon: <MapPin className="w-4 h-4" />,    createElement: createTenantAddressElement,     description: 'テナント設定の住所を自動表示（郵便番号含む）' },
-      { label: '電話番号',         icon: <Phone className="w-4 h-4" />,     createElement: createTenantPhoneElement,       description: 'テナント設定の電話番号を自動表示' },
-      { label: '代表者名',         icon: <User className="w-4 h-4" />,      createElement: createTenantRepresentativeElement, description: 'テナント設定の代表者名を自動表示' },
-      { label: 'ロゴ',             icon: <Image className="w-4 h-4" />,     createElement: createTenantLogoElement,        description: 'テナント設定のロゴ画像を自動表示' },
-      { label: 'カスタムフィールド', icon: <Tag className="w-4 h-4" />,    createElement: createTenantCustomElement,      description: 'テナント設定のカスタムフィールド値を表示' },
+      { label: '会社名',           labelKey: 'sidebar.paletteData.item.companyName', icon: <Building2 className="w-4 h-4" />, createElement: createTenantCompanyNameElement, descriptionKey: 'sidebar.paletteData.desc.companyName' },
+      { label: '住所',             labelKey: 'sidebar.paletteData.item.address', icon: <MapPin className="w-4 h-4" />,    createElement: createTenantAddressElement,     descriptionKey: 'sidebar.paletteData.desc.address' },
+      { label: '電話番号',         labelKey: 'sidebar.paletteData.item.phone', icon: <Phone className="w-4 h-4" />,     createElement: createTenantPhoneElement,       descriptionKey: 'sidebar.paletteData.desc.phone' },
+      { label: '代表者名',         labelKey: 'sidebar.paletteData.item.representative', icon: <User className="w-4 h-4" />,      createElement: createTenantRepresentativeElement, descriptionKey: 'sidebar.paletteData.desc.representative' },
+      { label: 'ロゴ',             labelKey: 'sidebar.paletteData.item.logo', icon: <Image className="w-4 h-4" />,     createElement: createTenantLogoElement,        descriptionKey: 'sidebar.paletteData.desc.logo' },
+      { label: 'カスタムフィールド', labelKey: 'sidebar.paletteData.item.custom', icon: <Tag className="w-4 h-4" />,    createElement: createTenantCustomElement,      descriptionKey: 'sidebar.paletteData.desc.custom' },
     ],
   },
 ]

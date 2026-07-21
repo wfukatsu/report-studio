@@ -9,6 +9,7 @@
  * Pure and dependency-free so it is unit-testable and can run on every edit.
  */
 
+import type { TFunction } from 'i18next'
 import type { SchemaGroup, SchemaRelation } from '@/types'
 
 export type RelationErrorCode =
@@ -43,6 +44,7 @@ function hasToColumn(group: SchemaGroup, column: string): boolean {
 export function validateRelations(
   groups: readonly SchemaGroup[],
   relations: readonly SchemaRelation[] | undefined,
+  t: TFunction<'components'>,
 ): RelationValidationError[] {
   const errors: RelationValidationError[] = []
   if (!relations || relations.length === 0) return errors
@@ -54,26 +56,26 @@ export function validateRelations(
     const toGroup = byId.get(rel.to)
 
     if (rel.from === rel.to) {
-      errors.push({ relationId: rel.id, code: 'self-reference', message: `関係「${rel.name}」が同一グループを指しています。` })
+      errors.push({ relationId: rel.id, code: 'self-reference', message: t('bindingEditor.relationshipValidation.selfReference', { name: rel.name }) })
     }
     if (!fromGroup) {
-      errors.push({ relationId: rel.id, code: 'dangling-from', message: `関係「${rel.name}」の参照元グループが存在しません。` })
+      errors.push({ relationId: rel.id, code: 'dangling-from', message: t('bindingEditor.relationshipValidation.danglingFrom', { name: rel.name }) })
     }
     if (!toGroup) {
-      errors.push({ relationId: rel.id, code: 'dangling-to', message: `関係「${rel.name}」の参照先グループが存在しません。` })
+      errors.push({ relationId: rel.id, code: 'dangling-to', message: t('bindingEditor.relationshipValidation.danglingTo', { name: rel.name }) })
     }
     if (fromGroup && !hasFromColumn(fromGroup, rel.on.fromColumn)) {
       errors.push({
         relationId: rel.id,
         code: 'from-column-missing',
-        message: `結合キー不整合: 「${fromGroup.label || fromGroup.id}」に列 ${rel.on.fromColumn} がありません。`,
+        message: t('bindingEditor.relationshipValidation.fromColumnMissing', { group: fromGroup.label || fromGroup.id, column: rel.on.fromColumn }),
       })
     }
     if (toGroup && !hasToColumn(toGroup, rel.on.toColumn)) {
       errors.push({
         relationId: rel.id,
         code: 'to-column-missing',
-        message: `結合キー不整合: 「${toGroup.label || toGroup.id}」に列 ${rel.on.toColumn} がありません。`,
+        message: t('bindingEditor.relationshipValidation.toColumnMissing', { group: toGroup.label || toGroup.id, column: rel.on.toColumn }),
       })
     }
   }
@@ -83,7 +85,7 @@ export function validateRelations(
   if (cycle.length > 0) {
     errors.push({
       code: 'cycle',
-      message: `循環参照を検出しました: ${cycle.join(' → ')}`,
+      message: t('bindingEditor.relationshipValidation.cycle', { path: cycle.join(' → ') }),
     })
   }
 

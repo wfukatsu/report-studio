@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ScalarDbColumnMeta, ScalarDbRowValues } from '@/api/reportApi'
 import { insertScalarDbRow, updateScalarDbRow } from '@/api/reportApi'
 
@@ -21,6 +22,7 @@ export function RowEditModal({ open, ...rest }: Props) {
 }
 
 function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onClose }: Omit<Props, 'open'>) {
+  const { t } = useTranslation('components')
   const [form, setForm] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {}
     for (const col of columns) {
@@ -58,7 +60,7 @@ function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onC
       // Validate keys are present
       for (const k of keyColumns) {
         if (values[k] == null || values[k] === '') {
-          setError(`キーカラム「${k}」は必須です`)
+          setError(t('dataBrowser.rowEditModal.keyRequired', { col: k }))
           setSaving(false)
           return
         }
@@ -72,7 +74,7 @@ function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onC
       onSave()
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存に失敗しました')
+      setError(e instanceof Error ? e.message : t('dataBrowser.rowEditModal.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -87,7 +89,7 @@ function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onC
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h2 className="text-sm font-semibold">
-            {mode === 'create' ? '行を追加' : '行を編集'} — {namespace}.{table}
+            {mode === 'create' ? t('dataBrowser.rowEditModal.addRow') : t('dataBrowser.rowEditModal.editRow')} — {namespace}.{table}
           </h2>
           <button onClick={onClose} disabled={saving} className="text-muted-foreground hover:text-foreground">
             ✕
@@ -140,14 +142,14 @@ function RowEditModalContent({ mode, namespace, table, columns, row, onSave, onC
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-4 py-3 border-t">
           <button onClick={onClose} disabled={saving} className="px-3 py-1.5 text-xs border rounded hover:bg-accent">
-            キャンセル
+            {t('dataBrowser.rowEditModal.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? '保存中...' : mode === 'create' ? '追加' : '保存'}
+            {saving ? t('dataBrowser.rowEditModal.saving') : mode === 'create' ? t('dataBrowser.rowEditModal.add') : t('dataBrowser.rowEditModal.save')}
           </button>
         </div>
       </div>

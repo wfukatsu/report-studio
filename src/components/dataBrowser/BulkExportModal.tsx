@@ -7,6 +7,7 @@
  * the job also appears in the ジョブ (job history) tab.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -23,6 +24,7 @@ interface Props {
 const MAX_BATCH = 50
 
 export function BulkExportModal({ open, rows, onClose }: Props) {
+  const { t } = useTranslation('components')
   const [templates, setTemplates] = useState<TemplateListItem[]>([])
   const [templateId, setTemplateId] = useState('')
   const [filenameTemplate, setFilenameTemplate] = useState('')
@@ -63,16 +65,16 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
         if (status.status === 'completed') {
           const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
           try { await downloadBatchPdfResult(batchJobId, `bulk_${date}.zip`) } catch { /* retry from ジョブ tab */ }
-          toast.success(`一括PDFを出力しました（${status.completed}件）`)
+          toast.success(t('dataBrowser.bulkExportModal.bulkPdfDone', { n: status.completed }))
           break
         }
         if (status.status === 'failed') {
-          toast.error('一括PDF出力に失敗しました', { description: status.error })
+          toast.error(t('dataBrowser.bulkExportModal.bulkPdfFailed'), { description: status.error })
           break
         }
       }
     } catch {
-      toast.error('一括PDFジョブの送信に失敗しました')
+      toast.error(t('dataBrowser.bulkExportModal.submitFailed'))
     } finally {
       setState('idle')
       setProgress(null)
@@ -86,35 +88,35 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
         className="bg-background rounded-lg shadow-xl w-full max-w-md p-4 space-y-3"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label="一括PDF出力"
+        aria-label={t('dataBrowser.bulkExportModal.title')}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium">一括PDF出力</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="閉じる">
+          <h2 className="text-sm font-medium">{t('dataBrowser.bulkExportModal.title')}</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label={t('dataBrowser.bulkExportModal.close')}>
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          対象行: <span className="font-medium text-foreground">{rows.length}</span> 件
-          {tooMany && <span className="text-red-500"> （一度に出力できるのは最大{MAX_BATCH}件です）</span>}
+          {t('dataBrowser.bulkExportModal.targetRows')} <span className="font-medium text-foreground">{rows.length}</span> {t('dataBrowser.bulkExportModal.rowsUnit')}
+          {tooMany && <span className="text-red-500"> {t('dataBrowser.bulkExportModal.tooMany', { max: MAX_BATCH })}</span>}
         </p>
 
         <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">テンプレート</span>
+          <span className="text-xs text-muted-foreground">{t('dataBrowser.bulkExportModal.template')}</span>
           <select
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
             className="w-full text-sm px-2 py-1.5 rounded border bg-background"
           >
-            <option value="">選択してください</option>
-            {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            <option value="">{t('dataBrowser.bulkExportModal.selectPlaceholder')}</option>
+            {templates.map((tpl) => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
           </select>
         </label>
 
         <label className="block space-y-1">
           <span className="text-xs text-muted-foreground">
-            ファイル名テンプレート（任意）
+            {t('dataBrowser.bulkExportModal.filenameLabel')}
           </span>
           <input
             type="text"
@@ -124,14 +126,14 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
             className="w-full text-sm px-2 py-1.5 rounded border bg-background font-mono"
           />
           <span className="text-[10px] text-muted-foreground">
-            使用可能: {'{seq}'} {'{date}'} {'{documentNo}'} {'{status}'} と各データ列（例 {'{name}'}）
+            {t('dataBrowser.bulkExportModal.filenameHint', { seq: '{seq}', date: '{date}', documentNo: '{documentNo}', status: '{status}', name: '{name}' })}
           </span>
         </label>
 
         {state === 'polling' && progress && (
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            {progress.completed}/{progress.total} 完了
+            {t('dataBrowser.bulkExportModal.progress', { completed: progress.completed, total: progress.total })}
           </p>
         )}
 
@@ -141,7 +143,7 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
             disabled={state !== 'idle'}
             className="text-xs px-3 py-1.5 rounded border hover:bg-muted disabled:opacity-40"
           >
-            閉じる
+            {t('dataBrowser.bulkExportModal.close')}
           </button>
           <button
             onClick={handleRun}
@@ -149,7 +151,7 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
             className="text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5"
           >
             {state !== 'idle' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            出力する
+            {t('dataBrowser.bulkExportModal.run')}
           </button>
         </div>
       </div>

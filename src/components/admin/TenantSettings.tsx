@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { AlertBanner } from '@/components/common/AlertBanner'
 import { TenantLogoField } from '@/components/common/TenantLogoField'
 import type { TenantInfo } from '@/types'
 
 export function TenantSettings() {
+  const { t } = useTranslation('components')
   const tenantInfo = useReportStore((s) => s.tenantInfo)
   const fetchTenantInfo = useReportStore((s) => s.fetchTenantInfo)
   const updateTenantInfo = useReportStore((s) => s.updateTenantInfo)
@@ -43,11 +45,11 @@ export function TenantSettings() {
       // The store now holds the server-normalized tenantInfo — drop the local
       // working copy so the form mirrors it again (and isDirty clears).
       setEdited(null)
-      setSaveMessage('テナント情報を保存しました。')
+      setSaveMessage(t('admin.tenantSettings.saveSuccess'))
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => setSaveMessage(null), 3000)
     } catch {
-      setError('テナント情報の保存に失敗しました')
+      setError(t('admin.tenantSettings.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -56,10 +58,10 @@ export function TenantSettings() {
   return (
     <div className="p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-foreground">テナント情報</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('admin.tenantSettings.title')}</h2>
         {isDirty && (
           <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-            未保存の変更あり
+            {t('admin.tenantSettings.unsavedChanges')}
           </span>
         )}
       </div>
@@ -69,17 +71,17 @@ export function TenantSettings() {
 
       <div className="flex flex-col gap-3">
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">会社名</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.companyName')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
             value={form.companyName ?? ''}
             onChange={(e) => setField('companyName', e.target.value)}
-            placeholder="株式会社〇〇"
+            placeholder={t('admin.tenantSettings.companyNamePlaceholder')}
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">郵便番号</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.postalCode')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -89,7 +91,7 @@ export function TenantSettings() {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">住所1（都道府県・市区町村）</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.address1')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -98,11 +100,11 @@ export function TenantSettings() {
               const v = e.target.value
               setEdited({ ...form, address1: v, address: v + (form.address2 ?? '') })
             }}
-            placeholder="東京都千代田区千代田"
+            placeholder={t('admin.tenantSettings.address1Placeholder')}
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">住所2（番地・建物名）</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.address2')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -111,12 +113,12 @@ export function TenantSettings() {
               const v = e.target.value
               setEdited({ ...form, address2: v, address: (form.address1 ?? '') + v })
             }}
-            placeholder="1-1-1 〇〇ビル3F"
+            placeholder={t('admin.tenantSettings.address2Placeholder')}
           />
         </div>
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-xs text-muted-foreground block mb-1">電話番号</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.phone')}</label>
             <input
               type="text"
               className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -126,7 +128,7 @@ export function TenantSettings() {
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs text-muted-foreground block mb-1">メールアドレス</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.email')}</label>
             <input
               type="email"
               className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -137,17 +139,17 @@ export function TenantSettings() {
           </div>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">代表者名</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.representativeName')}</label>
           <input
             type="text"
             className="border rounded px-3 py-1.5 text-sm w-full bg-background"
             value={form.representativeName ?? ''}
             onChange={(e) => setField('representativeName', e.target.value)}
-            placeholder="山田 太郎"
+            placeholder={t('admin.tenantSettings.representativeNamePlaceholder')}
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">ロゴ画像</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t('admin.tenantSettings.logo')}</label>
           <TenantLogoField
             value={form.logoBase64}
             onChange={(dataUrl) => setField('logoBase64', dataUrl)}
@@ -160,7 +162,7 @@ export function TenantSettings() {
         disabled={saving || !isDirty}
         className="px-4 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 w-fit"
       >
-        {saving ? '保存中...' : '保存'}
+        {saving ? t('admin.tenantSettings.saving') : t('admin.tenantSettings.save')}
       </button>
     </div>
   )

@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { SchemaGroup, SchemaField } from '@/types'
 import { FunctionList } from './FunctionList'
 
@@ -20,11 +21,6 @@ const TYPE_ICONS: Readonly<Record<string, string>> = {
   image: '🖼',
 }
 
-const ROLE_LABELS: Readonly<Record<string, string>> = {
-  master: 'マスター',
-  detail: '明細',
-}
-
 interface FieldTreePanelProps {
   readonly groups: readonly SchemaGroup[]
   readonly onInsert: (path: string) => void
@@ -33,6 +29,7 @@ interface FieldTreePanelProps {
 }
 
 export function FieldTreePanel({ groups, onInsert, onSelectFunction }: FieldTreePanelProps) {
+  const { t } = useTranslation('components')
   const searchId = useId()
   const [filter, setFilter] = useState('')
   const [activeTab, setActiveTab] = useState<PanelTab>('fields')
@@ -59,7 +56,7 @@ export function FieldTreePanel({ groups, onInsert, onSelectFunction }: FieldTree
           }`}
           onClick={() => setActiveTab('fields')}
         >
-          フィールド
+          {t('formulaEditor.fieldTreePanel.tabFields')}
         </button>
         <button
           type="button"
@@ -70,24 +67,24 @@ export function FieldTreePanel({ groups, onInsert, onSelectFunction }: FieldTree
           }`}
           onClick={() => setActiveTab('functions')}
         >
-          関数
+          {t('formulaEditor.fieldTreePanel.tabFunctions')}
         </button>
       </div>
 
       {activeTab === 'functions' ? (
         <FunctionList onInsert={onInsert} onSelect={onSelectFunction} />
       ) : (
-        <div className="flex-1 overflow-y-auto" role="tree" aria-label="フィールドツリー">
+        <div className="flex-1 overflow-y-auto" role="tree" aria-label={t('formulaEditor.fieldTreePanel.treeLabel')}>
           {/* Search */}
           <div className="px-2 pt-2 pb-1">
             <input
               id={searchId}
               type="search"
               className="w-full px-2 py-1 text-xs border border-border rounded bg-background placeholder:text-muted-foreground"
-              placeholder="フィールド検索..."
+              placeholder={t('formulaEditor.fieldTreePanel.searchPlaceholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              aria-label="フィールド検索"
+              aria-label={t('formulaEditor.fieldTreePanel.searchLabel')}
             />
           </div>
 
@@ -115,7 +112,13 @@ interface FieldGroupNodeProps {
 }
 
 function FieldGroupNode({ group, filter, onFieldClick }: FieldGroupNodeProps) {
+  const { t } = useTranslation('components')
   const [expanded, setExpanded] = useState(true)
+
+  const roleLabels: Readonly<Record<string, string>> = {
+    master: t('formulaEditor.fieldTreePanel.roleMaster'),
+    detail: t('formulaEditor.fieldTreePanel.roleDetail'),
+  }
 
   const filteredFields = filter
     ? group.fields.filter(
@@ -133,12 +136,12 @@ function FieldGroupNode({ group, filter, onFieldClick }: FieldGroupNodeProps) {
         type="button"
         className="w-full flex items-center gap-1 px-2 py-1 text-[11px] hover:bg-muted/60 transition-colors"
         onClick={() => setExpanded((prev) => !prev)}
-        aria-label={`${group.label} (${filteredFields.length}件)`}
+        aria-label={t('formulaEditor.fieldTreePanel.groupAriaLabel', { label: group.label, n: filteredFields.length })}
       >
         <span className="text-muted-foreground text-[10px]">{expanded ? '▾' : '▸'}</span>
         <span className="font-medium text-foreground truncate">{group.label}</span>
         <span className="text-[10px] text-muted-foreground">
-          {ROLE_LABELS[group.role] ?? group.role}
+          {roleLabels[group.role] ?? group.role}
         </span>
         <span className="ml-auto text-[10px] text-muted-foreground">{filteredFields.length}</span>
       </button>
@@ -168,6 +171,7 @@ interface FieldItemProps {
 }
 
 function FieldItem({ field, group, onClick }: FieldItemProps) {
+  const { t } = useTranslation('components')
   const isComputed = !!field.computed
 
   return (
@@ -183,7 +187,7 @@ function FieldItem({ field, group, onClick }: FieldItemProps) {
         </span>
         <span className="truncate">{field.label || field.key}</span>
         {isComputed && (
-          <span className="ml-auto text-[9px] px-1 py-px bg-violet-100 text-violet-700 rounded">計算</span>
+          <span className="ml-auto text-[9px] px-1 py-px bg-violet-100 text-violet-700 rounded">{t('formulaEditor.fieldTreePanel.computedBadge')}</span>
         )}
       </button>
     </li>

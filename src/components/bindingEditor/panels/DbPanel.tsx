@@ -6,6 +6,7 @@
  */
 
 import { lazy, memo, Suspense, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Database, RefreshCw, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useReportStore } from '@/store'
@@ -30,6 +31,7 @@ export const DbPanel = memo(function DbPanel({
   collapsed,
   onToggle,
 }: DbPanelProps) {
+  const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const groups = schema?.groups ?? []
 
@@ -85,12 +87,12 @@ export const DbPanel = memo(function DbPanel({
         onClick={onToggle}
         role="button"
         tabIndex={0}
-        aria-label="DBパネルを展開"
+        aria-label={t('bindingEditor.dbPanel.expandLabel')}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggle() }}
       >
         <Database className="w-4 h-4 text-muted-foreground mb-1" />
         <span className="text-[9px] text-muted-foreground writing-mode-vertical">
-          DB ({groups.filter((g) => g.tableMeta != null).length})
+          {t('bindingEditor.dbPanel.dbCount', { n: groups.filter((g) => g.tableMeta != null).length })}
         </span>
         <ChevronLeft className="w-3 h-3 text-muted-foreground mt-1" />
       </div>
@@ -103,12 +105,12 @@ export const DbPanel = memo(function DbPanel({
       <div className="flex items-center gap-1 px-3 py-2 border-b bg-muted/30 shrink-0">
         <Database className="w-3.5 h-3.5 text-muted-foreground" />
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex-1">
-          DB接続
+          {t('bindingEditor.dbPanel.title')}
         </p>
         <button
           className="text-muted-foreground hover:text-foreground p-0.5"
           onClick={handleRefetch}
-          title="カタログを再取得"
+          title={t('bindingEditor.dbPanel.refetchTitle')}
           disabled={isLoading}
         >
           <RefreshCw className={cn('w-3 h-3', isLoading && 'animate-spin')} />
@@ -116,7 +118,7 @@ export const DbPanel = memo(function DbPanel({
         <button
           className="text-muted-foreground hover:text-foreground p-0.5"
           onClick={onToggle}
-          aria-label="DBパネルを折りたたむ"
+          aria-label={t('bindingEditor.dbPanel.collapseLabel')}
         >
           <ChevronRight className="w-3 h-3" />
         </button>
@@ -127,8 +129,8 @@ export const DbPanel = memo(function DbPanel({
         {/* Plain-language purpose line — DB binding is an advanced, optional step (#128) */}
         {!isLoading && !fetchError && groups.length > 0 && (
           <p className="px-3 py-2 text-[10px] text-muted-foreground border-b bg-muted/10">
-            各項目をデータベースの列に対応づけると、実データでプレビューできます。
-            <span className="text-muted-foreground/70">（任意・上級者向け）</span>
+            {t('bindingEditor.dbPanel.bindHint')}
+            <span className="text-muted-foreground/70">{t('bindingEditor.dbPanel.bindHintOptional')}</span>
           </p>
         )}
         {isLoading && (
@@ -145,8 +147,8 @@ export const DbPanel = memo(function DbPanel({
 
         {!isLoading && !fetchError && groups.length === 0 && (
           <div className="px-3 py-4 text-[10px] text-muted-foreground text-center">
-            スキーマグループがありません。<br />
-            中央パネルでグループを追加してください。
+            {t('bindingEditor.dbPanel.noGroupsLine1')}<br />
+            {t('bindingEditor.dbPanel.noGroupsLine2')}
           </div>
         )}
 

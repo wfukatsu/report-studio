@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { validateRelations } from './relationshipValidation'
+import { validateRelations as rawValidateRelations } from './relationshipValidation'
+import i18n from '@/i18n/config'
 import { SYSTEM_GROUP_PRODUCT_MASTER } from '@/store/systemGroups'
 import type { SchemaGroup, SchemaField, SchemaRelation } from '@/types'
+
+// validateRelations now takes an i18n `t` (#329). The assertions below check
+// `.code`, not `.message`, so binding ja/components keeps them valid.
+const tf = i18n.getFixedT('ja', 'components')
+const validateRelations = (groups: SchemaGroup[], relations: SchemaRelation[] | undefined) =>
+  rawValidateRelations(groups, relations, tf)
 
 function field(key: string, dbColumnName?: string): SchemaField {
   return { id: `f-${key}`, key, label: key, type: 'string', ...(dbColumnName ? { dbColumnName } : {}) }

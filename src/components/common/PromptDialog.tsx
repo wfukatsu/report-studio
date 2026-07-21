@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 
 interface PromptDialogProps {
@@ -32,10 +33,11 @@ function PromptDialogContent({
   message,
   placeholder,
   defaultValue = '',
-  confirmLabel = 'OK',
+  confirmLabel,
   onSubmit,
   onCancel,
 }: PromptDialogProps) {
+  const { t } = useTranslation('components')
   const [value, setValue] = useState(defaultValue)
   const openerRef = useRef<HTMLElement | null>(null)
 
@@ -69,7 +71,7 @@ function PromptDialogContent({
       <div className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">
           <h2 id="prompt-dialog-title" className="text-sm font-semibold">{title}</h2>
-          <button onClick={handleClose} className="rounded hover:bg-accent p-1" aria-label="閉じる">
+          <button onClick={handleClose} className="rounded hover:bg-accent p-1" aria-label={t('common.promptDialog.close')}>
             <X className="w-4 h-4" />
           </button>
         </header>
@@ -93,14 +95,14 @@ function PromptDialogContent({
             onClick={handleClose}
             className="px-3 py-1.5 text-xs rounded-md hover:bg-accent border"
           >
-            キャンセル
+            {t('common.promptDialog.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
             className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {confirmLabel}
+            {confirmLabel ?? t('common.promptDialog.confirm')}
           </button>
         </footer>
       </div>

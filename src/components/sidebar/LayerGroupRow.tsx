@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronDown, Folder, Eye, EyeOff, Lock, Unlock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LayerGroup } from '@/types'
@@ -22,6 +23,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
   onRename,
   onContextMenu,
 }: LayerGroupRowProps) {
+  const { t } = useTranslation('components')
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
 
@@ -45,7 +47,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
     >
       {/* Collapse toggle */}
       <button
-        aria-label={group.collapsed ? 'グループを展開' : 'グループを折りたたむ'}
+        aria-label={group.collapsed ? t('sidebar.layerGroupRow.expand') : t('sidebar.layerGroupRow.collapse')}
         className="p-0.5 rounded hover:bg-accent shrink-0 text-muted-foreground"
         onClick={onToggleCollapse}
       >
@@ -78,7 +80,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
           <span
             className="block truncate font-medium cursor-default"
             onDoubleClick={(e) => { e.stopPropagation(); startRename() }}
-            title="ダブルクリックでリネーム"
+            title={t('sidebar.layerGroupRow.doubleClickToRename')}
           >
             {group.name}
           </span>
@@ -91,7 +93,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
         'opacity-0 group-hover:opacity-100',
       )}>
         <button
-          title={group.visible ? 'グループを非表示' : 'グループを表示'}
+          title={group.visible ? t('sidebar.layerGroupRow.hideGroup') : t('sidebar.layerGroupRow.showGroup')}
           aria-pressed={!group.visible}
           className="p-0.5 rounded hover:bg-accent"
           onClick={(e) => { e.stopPropagation(); onToggleVisible() }}
@@ -102,7 +104,7 @@ export const LayerGroupRow = React.memo(function LayerGroupRow({
           }
         </button>
         <button
-          title={group.locked ? 'グループのロックを解除' : 'グループをロック'}
+          title={group.locked ? t('sidebar.layerGroupRow.unlockGroup') : t('sidebar.layerGroupRow.lockGroup')}
           aria-pressed={group.locked}
           className="p-0.5 rounded hover:bg-accent"
           onClick={(e) => { e.stopPropagation(); onToggleLock() }}

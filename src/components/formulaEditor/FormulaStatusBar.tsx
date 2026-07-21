@@ -5,17 +5,9 @@
  * instead of setInterval polling to read validation state from CodeMirror.
  */
 
+import { useTranslation } from 'react-i18next'
 import type { FormulaValidationState } from '@/lib/formula/editor/formulaLinter'
 import type { SchemaFieldType } from '@/types'
-
-const TYPE_LABELS: Readonly<Record<SchemaFieldType, string>> = {
-  string: '文字列',
-  number: '数値',
-  date: '日付',
-  boolean: '真偽値',
-  array: '配列',
-  image: '画像',
-}
 
 const TYPE_COLORS: Readonly<Record<SchemaFieldType, string>> = {
   string: 'bg-blue-100 text-blue-700',
@@ -39,7 +31,17 @@ interface FormulaStatusBarProps {
 }
 
 export function FormulaStatusBar({ validationState }: FormulaStatusBarProps) {
+  const { t } = useTranslation('components')
   const state = validationState ?? EMPTY_STATE
+
+  const TYPE_LABELS: Readonly<Record<SchemaFieldType, string>> = {
+    string: t('formulaEditor.formulaStatusBar.typeString'),
+    number: t('formulaEditor.formulaStatusBar.typeNumber'),
+    date: t('formulaEditor.formulaStatusBar.typeDate'),
+    boolean: t('formulaEditor.formulaStatusBar.typeBoolean'),
+    array: t('formulaEditor.formulaStatusBar.typeArray'),
+    image: t('formulaEditor.formulaStatusBar.typeImage'),
+  }
 
   const errorCount = state.diagnostics.filter((d) => d.severity === 'error').length
   const warningCount = state.diagnostics.filter((d) => d.severity === 'warning').length
@@ -55,10 +57,10 @@ export function FormulaStatusBar({ validationState }: FormulaStatusBarProps) {
         {state.charCount === 0
           ? ''
           : state.hasErrors
-            ? `✗ エラー(${errorCount}件)`
+            ? t('formulaEditor.formulaStatusBar.errorCount', { n: errorCount })
             : warningCount > 0
-              ? `⚠ 警告(${warningCount}件)`
-              : '✓ 有効'}
+              ? t('formulaEditor.formulaStatusBar.warningCount', { n: warningCount })
+              : t('formulaEditor.formulaStatusBar.valid')}
       </span>
 
       {/* Result type badge */}
@@ -71,7 +73,7 @@ export function FormulaStatusBar({ validationState }: FormulaStatusBarProps) {
       {/* Preview value */}
       {state.previewValue != null && (
         <span className="text-slate-700">
-          プレビュー: <strong className="font-mono">{String(state.previewValue).slice(0, 200)}</strong>
+          {t('formulaEditor.formulaStatusBar.previewLabel')}<strong className="font-mono">{String(state.previewValue).slice(0, 200)}</strong>
         </span>
       )}
 
@@ -81,7 +83,7 @@ export function FormulaStatusBar({ validationState }: FormulaStatusBarProps) {
       {/* Character count — show when approaching limit */}
       {state.charCount > 400 && (
         <span className={`font-mono ${state.charCount > 450 ? 'text-yellow-600 font-medium' : 'text-slate-500'}`}>
-          {state.charCount}/500
+          {t('formulaEditor.formulaStatusBar.charCount', { n: state.charCount })}
         </span>
       )}
     </div>

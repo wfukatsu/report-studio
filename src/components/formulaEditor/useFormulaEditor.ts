@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { EditorState, Compartment, Prec, type Extension } from '@codemirror/state'
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
@@ -101,6 +102,7 @@ export interface UseFormulaEditorReturn {
 }
 
 export function useFormulaEditor(options: UseFormulaEditorOptions): UseFormulaEditorReturn {
+  const { t } = useTranslation('components')
   const viewRef = useRef<EditorView | null>(null)
   const insertRafRef = useRef<number | null>(null)
 
@@ -144,7 +146,7 @@ export function useFormulaEditor(options: UseFormulaEditorOptions): UseFormulaEd
       singleLineFilter,
       maxLengthFilter,
       pasteSanitizer,
-      cmPlaceholder(opts.placeholderText ?? '式を入力...'),
+      cmPlaceholder(opts.placeholderText ?? t('formulaEditor.useFormulaEditor.defaultPlaceholder')),
 
       // Enter key → fire submit event instead of newline
       Prec.highest(keymap.of([{
@@ -207,7 +209,7 @@ export function useFormulaEditor(options: UseFormulaEditorOptions): UseFormulaEd
       viewRef.current = null
       view.destroy()
     }
-  }, [container, initialValue])
+  }, [container, initialValue, t])
 
   // ── Reconfigure tooltipParent when it changes (Race #7) ─────────────
 

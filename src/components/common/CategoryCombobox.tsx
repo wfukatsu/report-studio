@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, X } from 'lucide-react'
 
 interface Props {
@@ -8,7 +9,9 @@ interface Props {
   placeholder?: string
 }
 
-export function CategoryCombobox({ value, options, onChange, placeholder = 'カテゴリを選択...' }: Props) {
+export function CategoryCombobox({ value, options, onChange, placeholder }: Props) {
+  const { t } = useTranslation('components')
+  const resolvedPlaceholder = placeholder ?? t('common.categoryCombobox.placeholder')
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -64,12 +67,12 @@ export function CategoryCombobox({ value, options, onChange, placeholder = 'カ�
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInputKeyDown}
-              placeholder={value ?? placeholder}
+              placeholder={value ?? resolvedPlaceholder}
               autoFocus
             />
           ) : (
             <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
-              {value ?? placeholder}
+              {value ?? resolvedPlaceholder}
             </span>
           )}
           <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
@@ -78,7 +81,7 @@ export function CategoryCombobox({ value, options, onChange, placeholder = 'カ�
           <button
             onClick={handleClear}
             className="p-0.5 rounded hover:bg-accent"
-            title="カテゴリをクリア"
+            title={t('common.categoryCombobox.clear')}
           >
             <X className="w-3 h-3 text-muted-foreground" />
           </button>
@@ -100,11 +103,11 @@ export function CategoryCombobox({ value, options, onChange, placeholder = 'カ�
               className="w-full text-left px-2 py-1 text-xs hover:bg-accent text-primary"
               onClick={() => handleSelect(input.trim())}
             >
-              「{input.trim()}」を新規作成
+              {t('common.categoryCombobox.createNew', { name: input.trim() })}
             </button>
           )}
           {filtered.length === 0 && !input.trim() && (
-            <p className="px-2 py-1 text-xs text-muted-foreground">カテゴリがありません</p>
+            <p className="px-2 py-1 text-xs text-muted-foreground">{t('common.categoryCombobox.empty')}</p>
           )}
         </div>
       )}

@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { flattenPageElements } from '@/store/selectors'
 import type {
@@ -24,6 +25,7 @@ import { createDataFieldFromSchema } from '@/lib/elementFactories'
 import type { ReportElement } from '@/types'
 
 export function useBindingState() {
+  const { t } = useTranslation('components')
   // -----------------------------------------------------------------------
   // Store subscriptions
   // -----------------------------------------------------------------------
@@ -208,7 +210,7 @@ export function useBindingState() {
         if (unboundElements.length > 0) {
           subGroups.push({
             id: `${page.id}-unbound`,
-            label: '未バインド',
+            label: t('bindingEditor.useBindingState.unbound'),
             role: 'single',
             elements: unboundElements,
           })
@@ -216,13 +218,13 @@ export function useBindingState() {
 
         return {
           pageId: page.id,
-          pageLabel: page.name || 'ページ',
+          pageLabel: page.name || t('bindingEditor.useBindingState.pageFallback'),
           subGroups,
           elements: pageElements,
         }
       })
       .filter((g) => g.elements.length > 0),
-    [pages, allElements, userSchemaGroups, fieldMap],
+    [pages, allElements, userSchemaGroups, fieldMap, t],
   )
 
   // -----------------------------------------------------------------------

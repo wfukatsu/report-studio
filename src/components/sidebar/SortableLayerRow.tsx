@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
@@ -31,6 +32,7 @@ export const SortableLayerRow = React.memo(function SortableLayerRow({
   indent = 0,
   ...rowProps
 }: SortableLayerRowProps) {
+  const { t } = useTranslation('components')
   const {
     attributes,
     listeners,
@@ -60,7 +62,7 @@ export const SortableLayerRow = React.memo(function SortableLayerRow({
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        aria-label={`ドラッグして並び替え: ${el.name ?? el.type}`}
+        aria-label={t('sidebar.sortableLayerRow.dragToReorder', { name: el.name ?? el.type })}
         className="p-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
         tabIndex={0}
         onClick={(e) => e.stopPropagation()}

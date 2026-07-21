@@ -10,6 +10,7 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BookmarkPlus, FolderOpen } from 'lucide-react'
 import { useBindingState } from './hooks/useBindingState'
 import { useConnectionLines } from './hooks/useConnectionLines'
@@ -33,6 +34,7 @@ const ComputedFieldDialog = lazy(() =>
 )
 
 export function BindingEditor() {
+  const { t } = useTranslation('components')
   const bs = useBindingState()
   // Destructure the connection-line hook result: the memoized callbacks below
   // list the individual (stable) members as dependencies, and the DOM ref
@@ -161,41 +163,41 @@ export function BindingEditor() {
         schema: schema ?? { groups: [] },
         dataSources: dataSources ?? [],
       })
-      toast.success('スキーマをライブラリに保存しました')
+      toast.success(t('bindingEditor.saveSuccess'))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '保存に失敗しました', { duration: 8000 })
+      toast.error(e instanceof Error ? e.message : t('bindingEditor.saveFailed'), { duration: 8000 })
     } finally {
       setSavingToLibrary(false)
     }
-  }, [schema, dataSources])
+  }, [schema, dataSources, t])
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Role descriptor — states what this surface is for (#129) */}
       <div className="px-3 py-1 border-b bg-muted/5 shrink-0">
         <span className="text-[10px] text-muted-foreground">
-          テンプレート要素とデータ項目（スキーマ）を結線し、必要ならDBに接続します。実データの確認はデザイン画面の「データ」パネルで行えます。
+          {t('bindingEditor.roleDescriptor')}
         </span>
       </div>
 
       {/* Schema library action bar */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/10 shrink-0">
-        <span className="text-xs text-muted-foreground">スキーマライブラリ:</span>
+        <span className="text-xs text-muted-foreground">{t('bindingEditor.libraryLabel')}</span>
         <button
           className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 font-medium px-2 py-1 rounded hover:bg-[#6366f1]/5"
           onClick={() => setLibraryModalOpen(true)}
         >
           <FolderOpen className="w-3.5 h-3.5" />
-          ライブラリから適用
+          {t('bindingEditor.applyFromLibrary')}
         </button>
         <button
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/50"
           onClick={() => setLibraryNameDialogOpen(true)}
           disabled={savingToLibrary || !bs.hasSchema}
-          title={bs.hasSchema ? 'テンプレートのスキーマをライブラリに保存' : 'スキーマが未定義です'}
+          title={bs.hasSchema ? t('bindingEditor.saveToLibraryTitle') : t('bindingEditor.schemaUndefined')}
         >
           <BookmarkPlus className="w-3.5 h-3.5" />
-          {savingToLibrary ? '保存中...' : 'ライブラリに保存'}
+          {savingToLibrary ? t('bindingEditor.saving') : t('bindingEditor.saveToLibrary')}
         </button>
       </div>
 
@@ -205,10 +207,10 @@ export function BindingEditor() {
       {/* Schema name input for ライブラリに保存 (#269 — replaces window.prompt) */}
       <PromptDialog
         open={libraryNameDialogOpen}
-        title="スキーマをライブラリに保存"
-        message="スキーマの名前を入力してください。"
-        placeholder="スキーマ名"
-        confirmLabel="保存"
+        title={t('bindingEditor.promptTitle')}
+        message={t('bindingEditor.promptMessage')}
+        placeholder={t('bindingEditor.promptPlaceholder')}
+        confirmLabel={t('bindingEditor.promptConfirm')}
         onSubmit={(name) => { void handleSaveToLibrary(name) }}
         onCancel={() => setLibraryNameDialogOpen(false)}
       />
@@ -232,7 +234,7 @@ export function BindingEditor() {
           with zero items so the trigger gives feedback instead of a silent no-op. */}
       {bs.bulk && (
         <BulkGenerateBar
-          title={bs.bulk.side === 'schema' ? '未配置フィールドから要素を生成' : '要素からスキーマ項目を生成'}
+          title={bs.bulk.side === 'schema' ? t('bindingEditor.bulkSchemaTitle') : t('bindingEditor.bulkElementTitle')}
           items={bs.bulkItems}
           onGenerate={bs.runBulk}
           onCancel={() => bs.setBulk(null)}

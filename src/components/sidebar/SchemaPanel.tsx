@@ -6,6 +6,7 @@
  */
 
 import { memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/shallow'
 import { ChevronDown, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store'
@@ -17,14 +18,14 @@ import { isSystemGroup } from '@/store/schemaSlice'
 // Constants
 // ---------------------------------------------------------------------------
 
-const FIELD_TYPE_OPTIONS: { value: SchemaFieldType; label: string }[] = [
-  { value: 'string',  label: 'テキスト' },
-  { value: 'number',  label: '数値' },
-  { value: 'date',    label: '日付' },
-  { value: 'boolean', label: '真偽値' },
-  { value: 'array',   label: '配列' },
-  { value: 'image',   label: '画像' },
-]
+const FIELD_TYPE_OPTIONS = [
+  { value: 'string',  labelKey: 'sidebar.schemaPanel.fieldTypeString' },
+  { value: 'number',  labelKey: 'sidebar.schemaPanel.fieldTypeNumber' },
+  { value: 'date',    labelKey: 'sidebar.schemaPanel.fieldTypeDate' },
+  { value: 'boolean', labelKey: 'sidebar.schemaPanel.fieldTypeBoolean' },
+  { value: 'array',   labelKey: 'sidebar.schemaPanel.fieldTypeArray' },
+  { value: 'image',   labelKey: 'sidebar.schemaPanel.fieldTypeImage' },
+] as const satisfies readonly { value: SchemaFieldType; labelKey: string }[]
 
 // ---------------------------------------------------------------------------
 // Field row — inline editable
@@ -39,6 +40,7 @@ const FieldRow = memo(function FieldRow({
   onUpdate: (patch: Partial<Omit<SchemaField, 'id'>>) => void
   onRemove: () => void
 }) {
+  const { t } = useTranslation('components')
   // Local state for in-progress edits — committed to store on blur
   const [localKey, setLocalKey] = useState(field.key)
   const [localLabel, setLocalLabel] = useState(field.label)
@@ -56,8 +58,8 @@ const FieldRow = memo(function FieldRow({
             if (trimmed && trimmed !== field.key) onUpdate({ key: trimmed })
             else setLocalKey(field.key) // reset if empty or unchanged
           }}
-          placeholder="key"
-          aria-label="フィールドキー"
+          placeholder={t('sidebar.schemaPanel.fieldKeyPlaceholder')}
+          aria-label={t('sidebar.schemaPanel.fieldKeyAria')}
         />
         <input
           className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0"
@@ -66,24 +68,24 @@ const FieldRow = memo(function FieldRow({
           onBlur={() => {
             if (localLabel !== field.label) onUpdate({ label: localLabel })
           }}
-          placeholder="ラベル"
-          aria-label="フィールドラベル"
+          placeholder={t('sidebar.schemaPanel.fieldLabelPlaceholder')}
+          aria-label={t('sidebar.schemaPanel.fieldLabelAria')}
         />
         <select
           className="border rounded px-1 py-0.5 text-xs bg-background shrink-0"
           value={field.type}
           onChange={(e) => onUpdate({ type: e.target.value as SchemaFieldType })}
-          aria-label="フィールド型"
+          aria-label={t('sidebar.schemaPanel.fieldTypeAria')}
           disabled={!!field.computed}
         >
           {FIELD_TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
           ))}
         </select>
         {/* Phase 3: computed field toggle */}
         <button
           type="button"
-          title={field.computed ? 'DB カラムに戻す' : '計算フィールドに変更'}
+          title={field.computed ? t('sidebar.schemaPanel.revertToDbColumn') : t('sidebar.schemaPanel.makeComputed')}
           onClick={() => {
             if (field.computed) {
               onUpdate({ computed: undefined, expression: undefined })
@@ -96,7 +98,7 @@ const FieldRow = memo(function FieldRow({
               ? 'bg-amber-100 border-amber-400 text-amber-700 hover:bg-amber-200'
               : 'text-muted-foreground border-transparent hover:border-muted hover:bg-muted/50'
           }`}
-          aria-label={field.computed ? 'DB フィールドに変更' : '計算フィールドに変更'}
+          aria-label={field.computed ? t('sidebar.schemaPanel.revertToDbField') : t('sidebar.schemaPanel.makeComputed')}
         >
           {field.computed ? 'fx' : '≡'}
         </button>
@@ -104,7 +106,7 @@ const FieldRow = memo(function FieldRow({
           type="button"
           onClick={onRemove}
           className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-          aria-label="フィールドを削除"
+          aria-label={t('sidebar.schemaPanel.removeFieldAria')}
         >
           <Trash2 className="w-3 h-3" />
         </button>
@@ -122,8 +124,8 @@ const FieldRow = memo(function FieldRow({
                 onUpdate({ expression: localExpression || undefined })
               }
             }}
-            placeholder="例: price * qty * 1.1"
-            aria-label="計算式（JEXL）"
+            placeholder={t('sidebar.schemaPanel.expressionPlaceholder')}
+            aria-label={t('sidebar.schemaPanel.expressionAria')}
           />
         </div>
       )}
@@ -152,6 +154,7 @@ const GroupSection = memo(function GroupSection({
   onUpdateField: (fieldId: string, patch: Partial<Omit<SchemaField, 'id'>>) => void
   onRemoveField: (fieldId: string) => void
 }) {
+  const { t } = useTranslation('components')
   const [collapsed, setCollapsed] = useState(false)
   const [localLabel, setLocalLabel] = useState(group.label)
   const [localDataKey, setLocalDataKey] = useState(group.dataKey)
@@ -164,7 +167,7 @@ const GroupSection = memo(function GroupSection({
           type="button"
           onClick={() => setCollapsed((v) => !v)}
           className="text-muted-foreground hover:text-foreground shrink-0"
-          aria-label={collapsed ? 'グループを展開' : 'グループを折り畳む'}
+          aria-label={collapsed ? t('sidebar.schemaPanel.expandGroup') : t('sidebar.schemaPanel.collapseGroup')}
         >
           {collapsed
             ? <ChevronRight className="w-3 h-3" />
@@ -179,8 +182,8 @@ const GroupSection = memo(function GroupSection({
           onBlur={() => {
             if (localLabel !== group.label) onUpdateGroup({ label: localLabel })
           }}
-          placeholder="グループ名"
-          aria-label="グループ名"
+          placeholder={t('sidebar.schemaPanel.groupNamePlaceholder')}
+          aria-label={t('sidebar.schemaPanel.groupNameAria')}
           disabled={isSystemGroup(group.id)}
         />
 
@@ -198,13 +201,13 @@ const GroupSection = memo(function GroupSection({
             type="button"
             onClick={onRemoveGroup}
             className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-            aria-label="グループを削除"
+            aria-label={t('sidebar.schemaPanel.removeGroupAria')}
           >
             <Trash2 className="w-3 h-3" />
           </button>
         )}
         {isSystemGroup(group.id) && (
-          <span className="text-[9px] text-muted-foreground px-1">システム</span>
+          <span className="text-[9px] text-muted-foreground px-1">{t('sidebar.schemaPanel.systemBadge')}</span>
         )}
       </div>
 
@@ -214,7 +217,7 @@ const GroupSection = memo(function GroupSection({
           {/* dataKey input (for detail groups — used in binding paths) */}
           {group.role === 'detail' && (
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground shrink-0">データキー:</span>
+              <span className="text-[10px] text-muted-foreground shrink-0">{t('sidebar.schemaPanel.dataKeyLabel')}</span>
               <input
                 className="border rounded px-1 py-0.5 text-xs bg-background flex-1 min-w-0 font-mono"
                 value={localDataKey}
@@ -222,8 +225,8 @@ const GroupSection = memo(function GroupSection({
                 onBlur={() => {
                   if (localDataKey !== group.dataKey) onUpdateGroup({ dataKey: localDataKey })
                 }}
-                placeholder="例: items"
-                aria-label="データキー（バインディングパスで使用）"
+                placeholder={t('sidebar.schemaPanel.dataKeyPlaceholder')}
+                aria-label={t('sidebar.schemaPanel.dataKeyAria')}
               />
             </div>
           )}
@@ -231,14 +234,14 @@ const GroupSection = memo(function GroupSection({
           {/* Phase 3.5: parent master group linker (for detail groups) */}
           {group.role === 'detail' && masterGroups.length > 0 && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-[10px] text-muted-foreground shrink-0">親グループ:</span>
+              <span className="text-[10px] text-muted-foreground shrink-0">{t('sidebar.schemaPanel.parentGroupLabel')}</span>
               <select
                 className="border rounded px-1 py-0.5 text-[10px] bg-background flex-1"
                 value={group.linkedMasterGroupId ?? ''}
                 onChange={(e) => onUpdateGroup({ linkedMasterGroupId: e.target.value || undefined })}
-                aria-label="親グループ"
+                aria-label={t('sidebar.schemaPanel.parentGroupAria')}
               >
-                <option value="">（手動入力）</option>
+                <option value="">{t('sidebar.schemaPanel.manualInputOption')}</option>
                 {masterGroups.map((mg) => (
                   <option key={mg.id} value={mg.id}>{mg.label || mg.id}</option>
                 ))}
@@ -263,7 +266,7 @@ const GroupSection = memo(function GroupSection({
             className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-1"
           >
             <Plus className="w-3 h-3" />
-            フィールド追加
+            {t('sidebar.schemaPanel.addField')}
           </button>
         </div>
       )}
@@ -321,6 +324,7 @@ const InferPanel = memo(function InferPanel({
 }: {
   onInferred: (schema: SchemaDefinition) => void
 }) {
+  const { t } = useTranslation('components')
   const [open, setOpen] = useState(false)
   const [jsonText, setJsonText] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -330,14 +334,14 @@ const InferPanel = memo(function InferPanel({
     try {
       const parsed = JSON.parse(jsonText)
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        setError('JSONオブジェクトを入力してください')
+        setError(t('sidebar.schemaPanel.jsonInvalidObject'))
         return
       }
       onInferred(inferSchemaFromSample(parsed as Record<string, unknown>))
       setOpen(false)
       setJsonText('')
     } catch {
-      setError('JSONの解析に失敗しました')
+      setError(t('sidebar.schemaPanel.jsonParseFailed'))
     }
   }
 
@@ -350,18 +354,18 @@ const InferPanel = memo(function InferPanel({
         aria-expanded={open}
       >
         <Wand2 className="w-3 h-3 shrink-0" />
-        <span>JSON から推測</span>
+        <span>{t('sidebar.schemaPanel.inferFromJson')}</span>
         {open ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
       </button>
       {open && (
         <div className="px-2 pb-2 space-y-1">
-          <p className="text-[10px] text-muted-foreground">サンプルJSONを貼り付けてください。配列フィールドは detail グループになります。</p>
+          <p className="text-[10px] text-muted-foreground">{t('sidebar.schemaPanel.inferHint')}</p>
           <textarea
             className="w-full border rounded px-1.5 py-1 text-xs font-mono bg-background resize-none h-24"
             placeholder='{"name": "Alice", "items": [{"qty": 1}]}'
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
-            aria-label="スキーマ推測用JSONサンプル"
+            aria-label={t('sidebar.schemaPanel.inferJsonAria')}
           />
           {error && (
             <p role="alert" className="text-[10px] text-destructive">{error}</p>
@@ -372,7 +376,7 @@ const InferPanel = memo(function InferPanel({
             disabled={!jsonText.trim()}
             className="px-2 py-1 rounded bg-primary text-primary-foreground text-[10px] hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            推測して適用
+            {t('sidebar.schemaPanel.inferApply')}
           </button>
         </div>
       )}
@@ -385,6 +389,7 @@ const InferPanel = memo(function InferPanel({
 // ---------------------------------------------------------------------------
 
 export const SchemaPanel = memo(function SchemaPanel() {
+  const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const groups = useReportStore(useShallow((s) => s.definition.schema?.groups ?? []))
   const masterGroups = groups.filter((g) => g.role === 'master')
@@ -406,28 +411,28 @@ export const SchemaPanel = memo(function SchemaPanel() {
         <button
           type="button"
           onClick={() => addSchemaGroup('master')}
-          title="master グループ — ヘッダー情報など1件のデータを持つグループ（例: 顧客情報・注文ヘッダー）"
+          title={t('sidebar.schemaPanel.masterGroupTitle')}
           className="flex items-center gap-1 text-xs border rounded px-2 py-1 bg-background hover:bg-accent transition-colors"
         >
           <Plus className="w-3 h-3" />
-          master グループ
+          {t('sidebar.schemaPanel.masterGroup')}
         </button>
         <button
           type="button"
           onClick={() => addSchemaGroup('detail')}
-          title="detail グループ — 明細行など複数件のデータを持つグループ（例: 注文明細・商品リスト）"
+          title={t('sidebar.schemaPanel.detailGroupTitle')}
           className="flex items-center gap-1 text-xs border rounded px-2 py-1 bg-background hover:bg-accent transition-colors"
         >
           <Plus className="w-3 h-3" />
-          detail グループ
+          {t('sidebar.schemaPanel.detailGroup')}
         </button>
       </div>
 
       {groups.length === 0 && (
         <div className="text-[10px] text-muted-foreground space-y-1">
-          <p className="font-medium">スキーマ未設定</p>
-          <p>グループとフィールドを追加すると、ScalarDB から実データを取得してプレビューできます。</p>
-          <p>設定しなくても <span className="font-mono bg-muted px-0.5 rounded">{'{{fieldName}}'}</span> 形式でサンプルデータを参照できます。</p>
+          <p className="font-medium">{t('sidebar.schemaPanel.schemaUnset')}</p>
+          <p>{t('sidebar.schemaPanel.schemaUnsetDesc')}</p>
+          <p>{t('sidebar.schemaPanel.schemaUnsetSampleBefore')}<span className="font-mono bg-muted px-0.5 rounded">{'{{fieldName}}'}</span>{t('sidebar.schemaPanel.schemaUnsetSampleAfter')}</p>
         </div>
       )}
 
@@ -446,7 +451,7 @@ export const SchemaPanel = memo(function SchemaPanel() {
 
       {schema && groups.length > 0 && (
         <p className="text-[10px] text-muted-foreground">
-          {groups.reduce((n, g) => n + g.fields.length, 0)} フィールド定義
+          {t('sidebar.schemaPanel.fieldDefCount', { n: groups.reduce((acc, g) => acc + g.fields.length, 0) })}
         </p>
       )}
     </div>

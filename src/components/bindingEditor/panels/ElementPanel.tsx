@@ -6,6 +6,7 @@
  */
 
 import { memo, useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Layers, Search, X, Info } from 'lucide-react'
 import { ElementGroupBlock } from '../internals/ElementGroupBlock'
 import type { BindingState } from '../hooks/useBindingState'
@@ -24,6 +25,7 @@ export const ElementPanel = memo(function ElementPanel({
   onToggleGroup,
   elementRef,
 }: ElementPanelProps) {
+  const { t } = useTranslation('components')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Repeating containers (formTable / repeatingBand / repeatingList) bind to a
@@ -80,14 +82,14 @@ export const ElementPanel = memo(function ElementPanel({
       {/* Header */}
       <div className="px-3 py-2.5 border-b bg-muted/30 shrink-0">
         <p className="text-xs font-semibold text-foreground">
-          テンプレート要素
+          {t('bindingEditor.elementPanel.title')}
         </p>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           {bs.isDragging
-            ? '要素の上でドロップして接続'
+            ? t('bindingEditor.elementPanel.dropToConnect')
             : bs.selectedFieldId
-              ? '接続する要素をクリック'
-              : `${bs.boundElements}/${bs.totalElements} バインド済み`}
+              ? t('bindingEditor.elementPanel.clickToConnect')
+              : t('bindingEditor.elementPanel.boundStatus', { bound: bs.boundElements, total: bs.totalElements })}
         </p>
       </div>
 
@@ -97,7 +99,7 @@ export const ElementPanel = memo(function ElementPanel({
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
           <input
             className="w-full pl-6 pr-6 py-1 text-xs border rounded bg-background"
-            placeholder="要素を検索..."
+            placeholder={t('bindingEditor.elementPanel.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -117,7 +119,7 @@ export const ElementPanel = memo(function ElementPanel({
         {filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-xs text-muted-foreground gap-2">
             <Layers className="w-6 h-6 opacity-40" />
-            <span>{searchQuery ? '該当する要素がありません' : 'バインド可能な要素がありません'}</span>
+            <span>{searchQuery ? t('bindingEditor.elementPanel.noMatch') : t('bindingEditor.elementPanel.noBindable')}</span>
           </div>
         ) : (
           filteredGroups.map((group) => (
@@ -152,7 +154,7 @@ export const ElementPanel = memo(function ElementPanel({
         <div className="border-t px-3 py-2 text-[11px] text-muted-foreground flex items-start gap-1.5 shrink-0">
           <Info className="w-3.5 h-3.5 mt-px shrink-0" />
           <span>
-            テーブル・繰り返し要素（{repeatingCount}個）は、明細グループを行にドラッグするか、デザイン画面のプロパティで「データソース」を設定してバインドします。
+            {t('bindingEditor.elementPanel.repeatingNote', { n: repeatingCount })}
           </span>
         </div>
       )}
@@ -161,7 +163,7 @@ export const ElementPanel = memo(function ElementPanel({
       {bs.selectedFieldId && !bs.isDragging && (
         <div className="bg-primary/10 border-t px-3 py-2 text-xs text-primary flex items-center gap-2 shrink-0">
           <span className="font-medium truncate">
-            選択中: {bs.fieldMap.get(bs.selectedFieldId)?.fieldKey ?? bs.selectedFieldId}
+            {t('bindingEditor.elementPanel.selectedField', { field: bs.fieldMap.get(bs.selectedFieldId)?.fieldKey ?? bs.selectedFieldId })}
           </span>
           <button
             className="ml-auto text-muted-foreground hover:text-foreground shrink-0"
@@ -175,7 +177,7 @@ export const ElementPanel = memo(function ElementPanel({
       {bs.isDraggingField && bs.dragState?.source === 'field' && (
         <div className="bg-primary/10 border-t px-3 py-2 text-xs text-primary flex items-center gap-2 shrink-0 animate-pulse">
           <span className="font-medium truncate">
-            フィールドをドラッグ中: {bs.fieldMap.get(bs.dragState.fieldId)?.fieldKey} → 要素にドロップ
+            {t('bindingEditor.elementPanel.draggingField', { field: bs.fieldMap.get(bs.dragState.fieldId)?.fieldKey })}
           </span>
         </div>
       )}
@@ -183,7 +185,7 @@ export const ElementPanel = memo(function ElementPanel({
       {bs.isDraggingElement && bs.dragState?.source === 'element' && (
         <div className="bg-[#00C853]/10 border-t px-3 py-2 text-xs text-[#00C853] flex items-center gap-2 shrink-0 animate-pulse">
           <span className="font-medium truncate">
-            要素をドラッグ中: {bs.dragState.elementLabel} → フィールドにドロップ
+            {t('bindingEditor.elementPanel.draggingElement', { element: bs.dragState.elementLabel })}
           </span>
         </div>
       )}

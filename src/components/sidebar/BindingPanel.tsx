@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 
 function ArrayFieldRow({
@@ -16,6 +17,7 @@ function ArrayFieldRow({
   value: unknown
   onCommit: (fieldKey: string, value: unknown) => void
 }) {
+  const { t } = useTranslation('components')
   const [expanded, setExpanded] = useState(false)
   const [text, setText] = useState(JSON.stringify(value, null, 2))
   const [hasError, setHasError] = useState(false)
@@ -33,7 +35,7 @@ function ArrayFieldRow({
   }, [fieldKey, onCommit])
 
   const preview = Array.isArray(value)
-    ? `[${(value as unknown[]).length} 件]`
+    ? t('sidebar.bindingPanel.arrayPreview', { n: (value as unknown[]).length })
     : JSON.stringify(value).slice(0, 20)
 
   return (
@@ -54,7 +56,7 @@ function ArrayFieldRow({
             className={`w-full border rounded px-2 py-1 text-xs font-mono resize-y bg-background ${hasError ? 'border-destructive' : ''}`}
           />
           {hasError && (
-            <p className="text-xs text-destructive mt-1">JSON 構文エラー</p>
+            <p className="text-xs text-destructive mt-1">{t('sidebar.bindingPanel.jsonSyntaxError')}</p>
           )}
         </div>
       )}
@@ -87,13 +89,14 @@ function ScalarFieldRow({
 }
 
 export function BindingPanel() {
+  const { t } = useTranslation('components')
   const dataSources = useReportStore((s) => s.definition.dataSources)
   const updateTestData = useReportStore((s) => s.updateTestData)
 
   if (dataSources.length === 0) {
     return (
       <div className="p-4 text-xs text-muted-foreground">
-        データソースが設定されていません。「データ」タブ上部の「データソース」セクションでデータを追加してください。
+        {t('sidebar.bindingPanel.noDataSource')}
       </div>
     )
   }
@@ -112,7 +115,7 @@ export function BindingPanel() {
               </p>
             </div>
             {fieldEntries.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-muted-foreground">フィールドなし</p>
+              <p className="px-3 py-2 text-xs text-muted-foreground">{t('sidebar.bindingPanel.noFields')}</p>
             ) : (
               fieldEntries.map(([key, val]) =>
                 Array.isArray(val) || (typeof val === 'object' && val !== null) ? (

@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Product } from '@/types'
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function DataDetailPanel({ row, columns, product, onClose }: Props) {
+  const { t } = useTranslation('components')
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -26,15 +28,15 @@ export function DataDetailPanel({ row, columns, product, onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="行の詳細"
+      aria-label={t('dataBrowser.dataDetailPanel.title')}
       className="fixed right-0 top-0 h-full w-[360px] bg-background border-l shadow-xl flex flex-col z-40 animate-in slide-in-from-right-8 duration-200"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-        <h2 className="text-sm font-semibold">行の詳細</h2>
+        <h2 className="text-sm font-semibold">{t('dataBrowser.dataDetailPanel.title')}</h2>
         <button
           onClick={onClose}
-          aria-label="閉じる"
+          aria-label={t('dataBrowser.dataDetailPanel.close')}
           className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent"
         >
           <X className="w-4 h-4" />
@@ -62,20 +64,20 @@ export function DataDetailPanel({ row, columns, product, onClose }: Props) {
         {product && priceHistory.length > 0 && (
           <details className="border-t">
             <summary className="px-3 py-2 text-xs font-medium cursor-pointer hover:bg-muted/30 text-muted-foreground">
-              単価変更履歴（{priceHistory.length}件）
+              {t('dataBrowser.dataDetailPanel.priceHistory', { n: priceHistory.length })}
             </summary>
-            <table className="w-full text-xs" aria-label="単価変更履歴">
+            <table className="w-full text-xs" aria-label={t('dataBrowser.dataDetailPanel.priceHistoryLabel')}>
               <thead className="bg-muted/30">
                 <tr>
-                  <th className="px-3 py-1.5 text-left font-medium">適用日</th>
-                  <th className="px-3 py-1.5 text-right font-medium">単価</th>
+                  <th className="px-3 py-1.5 text-left font-medium">{t('dataBrowser.dataDetailPanel.effectiveDate')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium">{t('dataBrowser.dataDetailPanel.unitPrice')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {priceHistory.map((h, i) => (
                   <tr key={i}>
                     <td className="px-3 py-1">{h.effectiveFrom}</td>
-                    <td className="px-3 py-1 text-right">{h.price.toLocaleString('ja-JP')}円</td>
+                    <td className="px-3 py-1 text-right">{h.price.toLocaleString('ja-JP')}{t('dataBrowser.dataDetailPanel.yen')}</td>
                   </tr>
                 ))}
               </tbody>

@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Database } from 'lucide-react'
 import { useReportStore, selectActivePageId, selectActivePage } from '@/store/reportStore'
 import { PALETTE_CATEGORIES } from './paletteData'
@@ -49,6 +50,7 @@ interface CategoryPanelProps {
 }
 
 function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
+  const { t } = useTranslation('components')
   const [expanded, setExpanded] = useState(true)
   const dragPreviewRef = useRef<HTMLElement | null>(null)
 
@@ -58,7 +60,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
 
     // Create a custom drag image showing approximate element size
     const sample = item.createElement()
-    const preview = createDragPreview(item.label, sample.size.width, sample.size.height)
+    const preview = createDragPreview(t(item.labelKey), sample.size.width, sample.size.height)
     dragPreviewRef.current = preview
     e.dataTransfer.setDragImage(preview, 0, 0)
 
@@ -67,7 +69,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
       preview.remove()
       dragPreviewRef.current = null
     })
-  }, [])
+  }, [t])
 
   return (
     <div>
@@ -79,12 +81,12 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
           ? <ChevronDown className="w-3 h-3" />
           : <ChevronRight className="w-3 h-3" />
         }
-        {category.label}
+        {t(category.label)}
       </button>
       {expanded && (
         <div className="grid grid-cols-2 gap-1 mb-2">
           {category.items.map((item) => (
-            <Tooltip key={item.label} content={item.description} placement="bottom">
+            <Tooltip key={item.label} content={item.descriptionKey ? t(item.descriptionKey, { token: '{{fieldKey}}' }) : undefined} placement="bottom">
               <button
                 draggable
                 onDragStart={(e) => handleDragStart(e, item)}
@@ -92,7 +94,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
                 className="w-full flex flex-col items-center gap-1 p-1.5 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-sm cursor-grab active:cursor-grabbing"
               >
                 {item.icon}
-                <span className="text-xs leading-tight text-center">{item.label}</span>
+                <span className="text-xs leading-tight text-center">{t(item.labelKey)}</span>
               </button>
             </Tooltip>
           ))}
@@ -215,6 +217,7 @@ export function ElementPalette() {
 // ---------------------------------------------------------------------------
 
 function SchemaFieldsSection() {
+  const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const [expanded, setExpanded] = useState(true)
 
@@ -235,7 +238,7 @@ function SchemaFieldsSection() {
       >
         {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         <Database className="w-3 h-3" />
-        スキーマフィールド
+        {t('sidebar.elementPalette.schemaFields')}
       </button>
       {expanded && (
         <div className="space-y-1.5 mb-2">
@@ -261,7 +264,7 @@ function SchemaFieldsSection() {
                   e.dataTransfer.effectAllowed = 'copy'
                 }}
                 className="flex items-center gap-1 px-1 py-0.5 cursor-grab active:cursor-grabbing rounded hover:bg-muted/30"
-                title={`${group.label} — グループごとドラッグして繰り返しバンドにドロップ`}
+                title={t('sidebar.elementPalette.groupDragTitle', { label: group.label })}
               >
                 <span className={cn(
                   'text-[9px] px-1 py-px rounded font-medium',
@@ -274,7 +277,7 @@ function SchemaFieldsSection() {
                 <span className="text-[10px] text-muted-foreground font-medium truncate">
                   {group.label}
                 </span>
-                <span className="text-[9px] text-muted-foreground/50 ml-auto">{group.fields.length}件</span>
+                <span className="text-[9px] text-muted-foreground/50 ml-auto">{t('sidebar.elementPalette.fieldCount', { n: group.fields.length })}</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 {group.fields.map((field) => {

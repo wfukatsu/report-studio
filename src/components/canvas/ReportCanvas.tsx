@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PanelTop } from 'lucide-react'
 import { useDragSelect } from '@/hooks/useDragSelect'
@@ -47,6 +48,7 @@ export function ReportCanvas({
   dataOverride,
   canvasRef,
 }: Props) {
+  const { t } = useTranslation('components')
   const activePage = useReportStore(selectActivePage)
   const selectedIds = useReportStore(useShallow((s) => s.selection.selectedElementIds))
   const selectElement = useReportStore((s) => s.selectElement)
@@ -410,7 +412,7 @@ export function ReportCanvas({
           patch.dataSource = payload.groupDataKey
         }
         updateElement(page.id, hitElement.id, patch)
-        toast.success(`列「${payload.fieldLabel}」を追加しました`)
+        toast.success(t('canvas.reportCanvas.columnAdded', { label: payload.fieldLabel }))
         return
       }
 
@@ -446,7 +448,7 @@ export function ReportCanvas({
 
       addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
     },
-    [page, zoom, snapToGrid, gridSize, margins, addElement, updateElement, setElementSchemaBinding, ref],
+    [page, zoom, snapToGrid, gridSize, margins, addElement, updateElement, setElementSchemaBinding, ref, t],
   )
 
   // -----------------------------------------------------------------------
@@ -543,11 +545,11 @@ export function ReportCanvas({
           patch.dataSource = payload.groupDataKey
         }
         updateElement(page.id, hitElement.id, patch)
-        toast.success(`${addedFields.length}列を追加しました`)
+        toast.success(t('canvas.reportCanvas.columnsAdded', { n: addedFields.length }))
       }
       // If not dropped on a repeating element, do nothing (group-level drop only makes sense for repeating)
     },
-    [page, zoom, updateElement, ref],
+    [page, zoom, updateElement, ref, t],
   )
 
   const handleContextMenuClose = useCallback(() => setContextMenu(null), [])
@@ -802,7 +804,7 @@ export function ReportCanvas({
           aria-live="polite"
         >
           <PanelTop style={{ width: 14, height: 14, flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>ヘッダー/フッター 編集モード — セクション下端をドラッグして高さを変更できます</span>
+          <span style={{ flex: 1 }}>{t('canvas.reportCanvas.headerFooterEditMode')}</span>
           <button
             onClick={() => setHeaderEditMode(false)}
             style={{
@@ -814,9 +816,9 @@ export function ReportCanvas({
               color: '#92400e',
               cursor: 'pointer',
             }}
-            aria-label="ヘッダー/フッター編集モードを終了"
+            aria-label={t('canvas.reportCanvas.exitHeaderFooterEditMode')}
           >
-            編集を終了
+            {t('canvas.reportCanvas.exitEdit')}
           </button>
         </div>
       )}

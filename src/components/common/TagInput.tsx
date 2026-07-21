@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 
 interface Props {
@@ -7,7 +8,9 @@ interface Props {
   placeholder?: string
 }
 
-export function TagInput({ value, onChange, placeholder = 'タグを追加...' }: Props) {
+export function TagInput({ value, onChange, placeholder }: Props) {
+  const { t } = useTranslation('components')
+  const resolvedPlaceholder = placeholder ?? t('common.tagInput.placeholder')
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -43,7 +46,7 @@ export function TagInput({ value, onChange, placeholder = 'タグを追加...' }
           <button
             onClick={(e) => { e.stopPropagation(); handleRemove(tag) }}
             className="hover:text-destructive"
-            aria-label={`タグ「${tag}」を削除`}
+            aria-label={t('common.tagInput.remove', { name: tag })}
           >
             <X className="w-2.5 h-2.5" />
           </button>
@@ -56,7 +59,7 @@ export function TagInput({ value, onChange, placeholder = 'タグを追加...' }
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={value.length === 0 ? placeholder : ''}
+        placeholder={value.length === 0 ? resolvedPlaceholder : ''}
       />
     </div>
   )
