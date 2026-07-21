@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/shallow'
 import type { DataFieldElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function DataFieldPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
 
   return (
@@ -20,22 +22,22 @@ export function DataFieldPropertiesPanel({ el, onChange }: Props) {
         fieldKey={el.fieldKey}
         onChange={(v) => onChange({ fieldKey: v })}
       />
-      <PropSection title="表示設定">
-        <PropRow label="プレースホルダー">
+      <PropSection title={t('dataField.displaySettings')}>
+        <PropRow label={t('dataField.placeholder')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background"
             value={el.label ?? ''}
-            placeholder="未入力時のラベル"
+            placeholder={t('dataField.placeholderHint')}
             onChange={(e) => onChange({ label: e.target.value })}
           />
         </PropRow>
-        <PropRow label="フォールバックテキスト">
+        <PropRow label={t('dataField.fallbackText')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background"
             value={el.fallbackText ?? ''}
-            placeholder="データなし時に表示するテキスト"
+            placeholder={t('dataField.fallbackTextHint')}
             onChange={(e) => onChange({ fallbackText: e.target.value })}
           />
         </PropRow>

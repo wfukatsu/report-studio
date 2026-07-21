@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TenantCompanyNameElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
@@ -16,12 +17,13 @@ export const TenantCompanyNameRenderer = memo(function TenantCompanyNameRenderer
   resolveValues = false,
   defaultStyle,
 }: Props) {
+  const { t } = useTranslation('elements')
   const companyName = useReportStore((s) => s.tenantInfo?.companyName)
   // Preview/export: unset tenant info renders nothing — matching the server PDF,
   // which omits the element entirely (#315). The designer keeps its token.
   const resolved = companyName ?? el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : '{{会社名}}'
+  const value = resolveValues ? resolved! : t('tenantCompanyName.placeholder', { token: '{{会社名}}' })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

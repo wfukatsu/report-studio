@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { TenantLogoElement } from '@/types'
 import { PropSection, PropRow, SelectInput } from '@/elements/_base/sharedUI'
 
@@ -7,24 +8,25 @@ interface Props {
 }
 
 export function TenantLogoPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   return (
-    <PropSection title="ロゴ">
+    <PropSection title={t('tenantLogo.title')}>
       <div className="text-[10px] text-muted-foreground mb-2">
-        ロゴ画像はデータ設定の「テナント情報」タブで変更できます。
+        {t('tenantLogo.hint')}
       </div>
-      <PropRow label="フィット">
+      <PropRow label={t('tenantLogo.fit')}>
         <SelectInput
           value={el.objectFit}
           onChange={(v) => onChange({ objectFit: v as TenantLogoElement['objectFit'] })}
           options={[
-            { value: 'contain', label: 'Contain（全体を収める）' },
-            { value: 'cover',   label: 'Cover（領域を埋める）' },
-            { value: 'fill',    label: 'Fill（伸縮して埋める）' },
-            { value: 'none',    label: 'None（原寸）' },
+            { value: 'contain', label: t('tenantLogo.fitContain') },
+            { value: 'cover',   label: t('tenantLogo.fitCover') },
+            { value: 'fill',    label: t('tenantLogo.fitFill') },
+            { value: 'none',    label: t('tenantLogo.fitNone') },
           ]}
         />
       </PropRow>
-      <PropRow label="不透明度">
+      <PropRow label={t('tenantLogo.opacity')}>
         <div className="flex items-center gap-2">
           <input
             type="range" min={0} max={1} step={0.05}

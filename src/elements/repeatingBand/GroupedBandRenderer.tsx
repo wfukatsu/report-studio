@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RepeatingBandElement } from '@/types'
 import { aggregateField } from '@/lib/aggregation'
 import { groupRecords, applyGroupedMaxItems, countGroupedRows } from '@/lib/grouping'
@@ -30,6 +31,7 @@ export function GroupedBandRenderer({
   el: RepeatingBandElement & { groupBy: string }
   records: Record<string, unknown>[]
 }) {
+  const { t } = useTranslation('elements')
   const obs = outerBorderStr(el)
   const hbs = headerBorderStr(el)
   const dbs = dataBorderStr(el)
@@ -119,7 +121,7 @@ export function GroupedBandRenderer({
               }}
             >
               {el.fields.map((f, i) => {
-                const total = el.totals.find((t) => t.fieldKey === f.key)
+                const total = el.totals.find((tot) => tot.fieldKey === f.key)
                 const value = total ? aggregateField(group.records, f.key, total.formula) : null
                 const align = f.align ?? (total ? 'right' : 'left')
                 return (
@@ -132,7 +134,7 @@ export function GroupedBandRenderer({
                       color: groupStyle.color,
                     }}
                   >
-                    {value !== null ? formatAggregate(value, f) : (i === 0 ? '小計' : '')}
+                    {value !== null ? formatAggregate(value, f) : (i === 0 ? t('repeatingBand.subtotal') : '')}
                   </div>
                 )
               })}

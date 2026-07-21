@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TenantRepresentativeElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { TextContent } from '@/elements/_blocks/renderers/TextContent'
@@ -8,11 +9,12 @@ import { FIELD_PLACEHOLDER_STYLE } from '@/elements/_blocks/constants'
 interface Props { element: TenantRepresentativeElement; resolveValues?: boolean; defaultStyle?: TextStyle }
 
 export const TenantRepresentativeRenderer = memo(function TenantRepresentativeRenderer({ element: el, resolveValues = false, defaultStyle }: Props) {
+  const { t } = useTranslation('elements')
   const representative = useReportStore((s) => s.tenantInfo?.representativeName)
   // Preview/export: unset renders nothing, matching the server PDF (#315)
   const resolved = representative ?? el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : '{{代表者名}}'
+  const value = resolveValues ? resolved! : t('tenantRepresentative.placeholder', { token: '{{代表者名}}' })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

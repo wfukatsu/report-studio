@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type {
   FormTableElement,
   FormTableCellType,
@@ -14,29 +15,15 @@ import {
   removeRow,
   updateCell,
   updateRow,
-  CELL_TYPE_OPTIONS,
-  ROW_ROLE_OPTIONS,
-  ALIGN_OPTIONS,
+  cellTypeOptions,
+  rowRoleOptions,
+  alignOptions,
 } from './tableOperations'
 
 interface Props {
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }
-
-// HEAD-side inline helpers removed — now imported from ./tableOperations
-
-const CHECKMARK_OPTIONS = [
-  { value: '✓', label: '✓ チェック' },
-  { value: '×', label: '× バツ' },
-  { value: '●', label: '● 丸' },
-]
-
-const ERA_LAYOUT_OPTIONS = [
-  { value: 'column', label: '縦1列' },
-  { value: 'row', label: '横1行' },
-  { value: 'grid-2col', label: '2列グリッド' },
-]
 
 // ---------------------------------------------------------------------------
 // Column editor
@@ -53,21 +40,22 @@ function ColumnEditor({
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }) {
+  const { t } = useTranslation('elements')
   return (
     <div className="border rounded p-2 space-y-1.5 bg-muted/30">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold text-muted-foreground">列 {colIdx + 1}</span>
+        <span className="text-[10px] font-semibold text-muted-foreground">{t('formTable.panel.columnN', { n: colIdx + 1 })}</span>
         <button
-          title={`列 ${colIdx + 1} 削除`}
+          title={t('formTable.panel.deleteColumnTitle', { n: colIdx + 1 })}
           className="text-[10px] text-destructive hover:underline"
           onClick={() => onChange(removeColumn(el, colIdx))}
         >
-          削除
+          {t('formTable.panel.delete')}
         </button>
       </div>
       <div className="grid grid-cols-2 gap-1">
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-muted-foreground">幅 (mm)</span>
+          <span className="text-[10px] text-muted-foreground">{t('formTable.panel.widthMm')}</span>
           <input
             type="number"
             min={3}
@@ -78,11 +66,11 @@ function ColumnEditor({
           />
         </label>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-muted-foreground">横揃え</span>
+          <span className="text-[10px] text-muted-foreground">{t('formTable.panel.hAlign')}</span>
           <SelectInput
             value={col.align ?? 'left'}
             onChange={(v) => onChange(updateColumn(el, colIdx, { align: v as FormTableColumn['align'] }))}
-            options={ALIGN_OPTIONS}
+            options={alignOptions(t)}
           />
         </label>
       </div>
@@ -107,23 +95,34 @@ function CellEditor({
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }) {
+  const { t } = useTranslation('elements')
+  const checkmarkOptions = [
+    { value: '✓', label: t('formTable.checkmark.check') },
+    { value: '×', label: t('formTable.checkmark.cross') },
+    { value: '●', label: t('formTable.checkmark.circle') },
+  ]
+  const eraLayoutOptions = [
+    { value: 'column', label: t('formTable.eraLayout.column') },
+    { value: 'row', label: t('formTable.eraLayout.row') },
+    { value: 'grid-2col', label: t('formTable.eraLayout.grid2col') },
+  ]
   return (
     <div className="border rounded p-1.5 space-y-1 bg-background">
       <div className="flex items-center gap-1">
-        <span className="text-[10px] text-muted-foreground shrink-0">列{colIdx + 1}</span>
+        <span className="text-[10px] text-muted-foreground shrink-0">{t('formTable.panel.cellColN', { n: colIdx + 1 })}</span>
         <SelectInput
           value={cell.type}
           onChange={(v) =>
             onChange(updateCell(el, rowIdx, colIdx, { type: v as FormTableCellType }))
           }
-          options={CELL_TYPE_OPTIONS}
+          options={cellTypeOptions(t)}
         />
       </div>
       {cell.type === 'label' && (
         <input
           type="text"
           className="border rounded px-1.5 py-0.5 text-xs bg-background w-full"
-          placeholder="ラベルテキスト"
+          placeholder={t('formTable.cell.labelPlaceholder')}
           value={cell.text ?? ''}
           onChange={(e) => onChange(updateCell(el, rowIdx, colIdx, { text: e.target.value }))}
         />
@@ -132,7 +131,7 @@ function CellEditor({
         <input
           type="text"
           className="border rounded px-1.5 py-0.5 text-xs bg-background w-full"
-          placeholder="プレースホルダー"
+          placeholder={t('formTable.cell.inputPlaceholder')}
           value={cell.placeholder ?? ''}
           onChange={(e) =>
             onChange(updateCell(el, rowIdx, colIdx, { placeholder: e.target.value }))
@@ -155,12 +154,12 @@ function CellEditor({
           <SelectInput
             value={cell.checkmark ?? '✓'}
             onChange={(v) => onChange(updateCell(el, rowIdx, colIdx, { checkmark: v as '✓' | '×' | '●' }))}
-            options={CHECKMARK_OPTIONS}
+            options={checkmarkOptions}
           />
           <input
             type="text"
             className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono w-full"
-            placeholder="dataSource（バインド先フィールドキー）"
+            placeholder={t('formTable.cell.checkboxDataSourcePlaceholder')}
             value={cell.checkboxDataSource ?? ''}
             onChange={(e) =>
               onChange(updateCell(el, rowIdx, colIdx, { checkboxDataSource: e.target.value || undefined }))
@@ -173,12 +172,12 @@ function CellEditor({
           <SelectInput
             value={cell.eraLayout ?? 'row'}
             onChange={(v) => onChange(updateCell(el, rowIdx, colIdx, { eraLayout: v as 'column' | 'row' | 'grid-2col' }))}
-            options={ERA_LAYOUT_OPTIONS}
+            options={eraLayoutOptions}
           />
           <input
             type="text"
             className="border rounded px-1.5 py-0.5 text-xs bg-background font-mono w-full"
-            placeholder="dataSource（元号バインド先フィールドキー）"
+            placeholder={t('formTable.cell.eraDataSourcePlaceholder')}
             value={cell.eraDataSource ?? ''}
             onChange={(e) =>
               onChange(updateCell(el, rowIdx, colIdx, { eraDataSource: e.target.value || undefined }))
@@ -205,33 +204,35 @@ function RowEditor({
   el: FormTableElement
   onChange: (patch: Partial<FormTableElement>) => void
 }) {
-  const roleLabel = ROW_ROLE_OPTIONS.find((o) => o.value === row.role)?.label ?? row.role
+  const { t } = useTranslation('elements')
+  const roleOptions = rowRoleOptions(t)
+  const roleLabel = roleOptions.find((o) => o.value === row.role)?.label ?? row.role
 
   return (
     <div className="border rounded p-2 space-y-1.5 bg-muted/30">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-semibold text-muted-foreground">
-          行 {rowIdx + 1} — {roleLabel}
+          {t('formTable.panel.rowN', { n: rowIdx + 1, role: roleLabel })}
         </span>
         <button
-          title={`行 ${rowIdx + 1} 削除`}
+          title={t('formTable.panel.deleteRowTitle', { n: rowIdx + 1 })}
           className="text-[10px] text-destructive hover:underline"
           onClick={() => onChange(removeRow(el, rowIdx))}
         >
-          削除
+          {t('formTable.panel.delete')}
         </button>
       </div>
       <div className="grid grid-cols-2 gap-1">
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-muted-foreground">行の役割</span>
+          <span className="text-[10px] text-muted-foreground">{t('formTable.panel.rowRoleLabel')}</span>
           <SelectInput
             value={row.role}
             onChange={(v) => onChange(updateRow(el, rowIdx, { role: v as FormTableRow['role'] }))}
-            options={ROW_ROLE_OPTIONS}
+            options={roleOptions}
           />
         </label>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-muted-foreground">高さ (mm)</span>
+          <span className="text-[10px] text-muted-foreground">{t('formTable.panel.heightMm')}</span>
           <input
             type="number"
             min={3}
@@ -265,22 +266,23 @@ function RowEditor({
 // ---------------------------------------------------------------------------
 
 export function FormTablePropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   return (
     <>
-      <PropSection title="帳票テーブル — データバインド">
+      <PropSection title={t('formTable.panel.dataBindTitle')}>
         <div className="rounded bg-blue-50 border border-blue-200 px-2 py-1.5 text-[10px] text-blue-700 leading-snug">
-          データソースを設定すると body 行をデータ件数分展開します。未設定の場合は固定レイアウトとして機能します。
+          {t('formTable.panel.dataBindHint')}
         </div>
-        <PropRow label="データソース (配列フィールドキー)">
+        <PropRow label={t('formTable.panel.dataSourceLabel')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
             value={el.dataSource ?? ''}
-            placeholder="例: items, records"
+            placeholder={t('formTable.panel.dataSourcePlaceholder')}
             onChange={(e) => onChange({ dataSource: e.target.value || undefined })}
           />
         </PropRow>
-        <PropRow label="最大件数 (0=無制限)">
+        <PropRow label={t('formTable.panel.maxItemsLabel')}>
           <NumInput
             value={el.maxItems ?? 0}
             onChange={(v) => onChange({ maxItems: Math.max(0, v) })}
@@ -289,7 +291,7 @@ export function FormTablePropertiesPanel({ el, onChange }: Props) {
         </PropRow>
       </PropSection>
 
-      <PropSection title="帳票テーブル — 列定義">
+      <PropSection title={t('formTable.panel.columnsTitle')}>
         <div className="space-y-2">
           {el.columns.map((col, colIdx) => (
             <ColumnEditor key={col.id} col={col} colIdx={colIdx} el={el} onChange={onChange} />
@@ -298,12 +300,12 @@ export function FormTablePropertiesPanel({ el, onChange }: Props) {
             className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded"
             onClick={() => onChange(addColumn(el))}
           >
-            ＋ 列を追加
+            {t('formTable.panel.addColumn')}
           </button>
         </div>
       </PropSection>
 
-      <PropSection title="帳票テーブル — 行定義">
+      <PropSection title={t('formTable.panel.rowsTitle')}>
         <div className="space-y-2">
           {el.rows.map((row, rowIdx) => (
             <RowEditor key={row.id} row={row} rowIdx={rowIdx} el={el} onChange={onChange} />
@@ -312,16 +314,16 @@ export function FormTablePropertiesPanel({ el, onChange }: Props) {
             className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded"
             onClick={() => onChange(addRow(el))}
           >
-            ＋ 行を追加
+            {t('formTable.panel.addRow')}
           </button>
         </div>
       </PropSection>
 
-      <PropSection title="帳票テーブル — 外観">
-        <PropRow label="枠線色">
+      <PropSection title={t('formTable.panel.appearanceTitle')}>
+        <PropRow label={t('formTable.panel.borderColor')}>
           <ColorInput value={el.borderColor} onChange={(v) => onChange({ borderColor: v })} />
         </PropRow>
-        <PropRow label="枠線幅">
+        <PropRow label={t('formTable.panel.borderWidth')}>
           <NumInput
             value={el.borderWidth}
             onChange={(v) => onChange({ borderWidth: v })}
@@ -330,13 +332,13 @@ export function FormTablePropertiesPanel({ el, onChange }: Props) {
             unit="mm"
           />
         </PropRow>
-        <PropRow label="奇数行の背景色">
+        <PropRow label={t('formTable.panel.oddRowColor')}>
           <ColorInput
             value={el.oddRowColor ?? '#ffffff'}
             onChange={(v) => onChange({ oddRowColor: v })}
           />
         </PropRow>
-        <PropRow label="偶数行の背景色（縞模様）">
+        <PropRow label={t('formTable.panel.evenRowColor')}>
           <ColorInput
             value={el.evenRowColor ?? '#f9fafb'}
             onChange={(v) => onChange({ evenRowColor: v })}

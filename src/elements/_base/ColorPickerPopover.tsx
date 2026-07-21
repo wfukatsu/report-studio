@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { useDropdownDismiss } from '@/hooks/useDropdownDismiss'
 import { useBrandColors, useRecentColors } from '@/hooks/useColorPrefs'
@@ -19,6 +20,7 @@ interface ColorSwatchProps {
 }
 
 function ColorSwatch({ hex, name, isActive, onClick }: ColorSwatchProps) {
+  const { t } = useTranslation('elements')
   const btn = (
     <button
       type="button"
@@ -28,13 +30,13 @@ function ColorSwatch({ hex, name, isActive, onClick }: ColorSwatchProps) {
         isActive && 'ring-2 ring-primary ring-offset-1',
       )}
       onClick={onClick}
-      aria-label={name ? `${name} (${hex})` : hex}
+      aria-label={name ? t('base.colorPicker.swatchLabel', { name, hex }) : hex}
     />
   )
 
   if (name) {
     return (
-      <Tooltip content={`${name}  ${hex}`} placement="top" delay={300}>
+      <Tooltip content={t('base.colorPicker.swatchTooltip', { name, hex })} placement="top" delay={300}>
         {btn}
       </Tooltip>
     )
@@ -52,12 +54,13 @@ interface PresetColorGridProps {
 }
 
 function PresetColorGrid({ activeHex, onSelect }: PresetColorGridProps) {
+  const { t } = useTranslation('elements')
   const numRows = PRESET_COLOR_COLUMNS[0].length
 
   return (
     <div>
       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">
-        標準カラー
+        {t('base.colorPicker.standardColors')}
       </span>
       {/* Render row by row so the grid reads light → dark top to bottom */}
       <div className="flex flex-col gap-0.5">
@@ -98,6 +101,7 @@ export interface ColorPickerPopoverProps {
 }
 
 export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopoverProps) {
+  const { t } = useTranslation('elements')
   const containerRef = useRef<HTMLDivElement>(null)
   const { colors: brandColors } = useBrandColors()
   const { colors: recentColors, push: pushRecent } = useRecentColors()
@@ -136,7 +140,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
     <div
       ref={containerRef}
       role="dialog"
-      aria-label="カラーピッカー"
+      aria-label={t('base.colorPicker.dialogLabel')}
       className="absolute z-50 bg-popover border border-border rounded-md shadow-lg p-2 min-w-[192px]"
       style={{ top: '100%', left: 0, marginTop: 4 }}
     >
@@ -144,7 +148,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
       <div className="mb-2">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-            ブランドカラー
+            {t('base.colorPicker.brandColors')}
           </span>
           <BrandManagerTrigger />
         </div>
@@ -174,7 +178,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
           <div className="border-t border-border my-1.5" />
           <div className="mb-2">
             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide block mb-1.5">
-              最近使った色
+              {t('base.colorPicker.recentColors')}
             </span>
             <div className="flex flex-wrap gap-1">
               {recentColors.map((hex) => (
@@ -202,7 +206,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
           onKeyDown={handleCustomKeyDown}
           placeholder="#RRGGBB"
           maxLength={7}
-          aria-label="カスタムカラー入力"
+          aria-label={t('base.colorPicker.customInputLabel')}
         />
         <button
           type="button"
@@ -214,7 +218,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
           )}
           onClick={handleCustomConfirm}
           disabled={!isCustomValid}
-          aria-label="カスタムカラーを適用"
+          aria-label={t('base.colorPicker.applyCustom')}
         >
           <Check className="w-3 h-3" />
         </button>
@@ -228,6 +232,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
 // ---------------------------------------------------------------------------
 
 function BrandManagerTrigger() {
+  const { t } = useTranslation('elements')
   const [open, setOpen] = useState(false)
 
   return (
@@ -237,7 +242,7 @@ function BrandManagerTrigger() {
         className="text-[10px] text-primary hover:underline"
         onClick={(e) => { e.stopPropagation(); setOpen(true) }}
       >
-        管理
+        {t('base.colorPicker.manage')}
       </button>
       {open && <BrandColorManagerModal onClose={() => setOpen(false)} />}
     </>

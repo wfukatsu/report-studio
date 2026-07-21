@@ -1,4 +1,5 @@
 import { useShallow } from 'zustand/shallow'
+import { useTranslation } from 'react-i18next'
 import type { TenantCustomElement, TextStyle } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { PropSection, PropRow } from '@/elements/_base/sharedUI'
@@ -10,29 +11,30 @@ interface Props {
 }
 
 export function TenantCustomPropertiesPanel({ el, onChange }: Props) {
+  const { t } = useTranslation('elements')
   const defaultTextStyle = useReportStore(useShallow((s): TextStyle => s.definition.defaultTextStyle))
 
   return (
     <>
-      <PropSection title="カスタムフィールド">
-        <PropRow label="フィールドキー">
+      <PropSection title={t('tenantCustom.title')}>
+        <PropRow label={t('tenantCustom.fieldKey')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background font-mono"
             value={el.fieldKey}
-            placeholder="例: taxRegistrationNumber"
+            placeholder={t('tenantCustom.fieldKeyPlaceholder')}
             onChange={(e) => onChange({ fieldKey: e.target.value })}
           />
         </PropRow>
         <div className="text-[10px] text-muted-foreground">
-          テナント情報のカスタムフィールドキーを入力してください。
+          {t('tenantCustom.hint')}
         </div>
-        <PropRow label="未設定時テキスト">
+        <PropRow label={t('tenantCustom.fallbackLabel')}>
           <input
             type="text"
             className="border rounded px-2 py-1 text-xs w-full bg-background"
             value={el.fallback ?? ''}
-            placeholder="（未設定）"
+            placeholder={t('tenantCustom.fallbackPlaceholder')}
             onChange={(e) => onChange({ fallback: e.target.value || undefined })}
           />
         </PropRow>

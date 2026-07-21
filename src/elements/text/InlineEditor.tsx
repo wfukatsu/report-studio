@@ -1,4 +1,5 @@
 import { memo, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TextElement } from '@/types'
 import { DEFAULT_FONT_SIZE } from '@/elements/_blocks/constants'
 import { resolveFontFamily } from '@/lib/styleUtils'
@@ -39,6 +40,7 @@ function getCommitContent(el: HTMLDivElement): string {
  *   because compositionend can fire before the final keydown on some browsers.
  */
 export const TextInlineEditor = memo(function TextInlineEditor({ element: el, onCommit, onCancel }: Props) {
+  const { t } = useTranslation('elements')
   const editorRef = useRef<HTMLDivElement>(null)
   const isComposingRef = useRef(false)
   const justFinishedCompositionRef = useRef(false)
@@ -131,7 +133,7 @@ export const TextInlineEditor = memo(function TextInlineEditor({ element: el, on
       spellCheck={false}
       role="textbox"
       aria-multiline="false"
-      aria-label="テキスト編集"
+      aria-label={t('text.editAriaLabel')}
       onCompositionStart={handleCompositionStart}
       onCompositionEnd={handleCompositionEnd}
       onKeyDown={handleKeyDown}

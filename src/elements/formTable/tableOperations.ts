@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid'
+import type { TFunction } from 'i18next'
 import type {
   FormTableElement,
   FormTableColumn,
@@ -190,20 +191,32 @@ export function selectColumn(el: FormTableElement, colIdx: number): string[] {
 // Cell type options (shared constants)
 // ---------------------------------------------------------------------------
 
-export const CELL_TYPE_OPTIONS: { value: FormTableCellType; label: string }[] = [
-  { value: 'label', label: 'ラベル（固定テキスト）' },
-  { value: 'input', label: '記入欄（手入力）' },
-  { value: 'dataField', label: 'データフィールド' },
-]
+export function cellTypeOptions(
+  t: TFunction<'elements'>,
+): { value: FormTableCellType; label: string }[] {
+  return [
+    { value: 'label', label: t('formTable.cellType.label') },
+    { value: 'input', label: t('formTable.cellType.input') },
+    { value: 'dataField', label: t('formTable.cellType.dataField') },
+  ]
+}
 
-export const ROW_ROLE_OPTIONS = [
-  { value: 'header', label: 'ヘッダー' },
-  { value: 'body', label: 'ボディ（繰り返し）' },
-  { value: 'footer', label: 'フッター' },
-]
+export function rowRoleOptions(
+  t: TFunction<'elements'>,
+): { value: string; label: string }[] {
+  return [
+    { value: 'header', label: t('formTable.rowRole.header') },
+    { value: 'body', label: t('formTable.rowRole.body') },
+    { value: 'footer', label: t('formTable.rowRole.footer') },
+  ]
+}
 
-export const ALIGN_OPTIONS = [
-  { value: 'left', label: '左' },
-  { value: 'center', label: '中央' },
-  { value: 'right', label: '右' },
-]
+export function alignOptions(
+  t: TFunction<'elements'>,
+): { value: string; label: string }[] {
+  return [
+    { value: 'left', label: t('formTable.align.left') },
+    { value: 'center', label: t('formTable.align.center') },
+    { value: 'right', label: t('formTable.align.right') },
+  ]
+}

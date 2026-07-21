@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RepeatingBandElement, RepeatingBandField, TextStyle } from '@/types'
 import { aggregateField } from '@/lib/aggregation'
 import { REPORT_SANS_STACK } from '@/lib/styleUtils'
@@ -105,10 +106,11 @@ export function FooterRow({
   totals: readonly { fieldKey: string; formula: string; label?: string }[]
   label?: string
 }) {
+  const { t } = useTranslation('elements')
   return (
     <div style={{ display: 'flex', flexShrink: 0, borderTop: fbs }}>
       {fields.map((f, i) => {
-        const total = totals.find((t) => t.fieldKey === f.key)
+        const total = totals.find((tot) => tot.fieldKey === f.key)
         const value = total ? aggregateField(records as Record<string, unknown>[], f.key, total.formula as never) : null
         // Totals cells are numeric — default to right-align
         const align = f.align ?? (total ? 'right' : 'left')
@@ -124,7 +126,7 @@ export function FooterRow({
           >
             {value !== null
               ? formatAggregate(value, f)
-              : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{label ?? '合計'}</span> : null)}
+              : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{label ?? t('repeatingBand.total')}</span> : null)}
           </div>
         )
       })}

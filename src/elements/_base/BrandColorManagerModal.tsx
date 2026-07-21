@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { useBrandColors } from '@/hooks/useColorPrefs'
 import { isValidHex, expandHex } from '@/lib/colorUtils'
@@ -11,6 +12,7 @@ export interface BrandColorManagerModalProps {
 }
 
 export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps) {
+  const { t } = useTranslation('elements')
   const { colors, add, remove, update, isFull } = useBrandColors()
   const dialogRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -91,13 +93,13 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 id="brand-color-manager-title" className="text-sm font-semibold">
-            ブランドカラー管理
+            {t('base.brandColorManager.title')}
           </h2>
           <button
             type="button"
             onClick={handleClose}
             className="rounded hover:bg-accent p-1"
-            aria-label="閉じる"
+            aria-label={t('base.brandColorManager.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -124,14 +126,14 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
                   onBlur={() => handleSaveEdit(c.hex)}
                   autoFocus
                   maxLength={MAX_NAME_LENGTH}
-                  aria-label={`${c.hex} の名前を編集`}
+                  aria-label={t('base.brandColorManager.editNameLabel', { hex: c.hex })}
                 />
               ) : (
                 <button
                   type="button"
                   className="flex-1 text-left text-xs truncate hover:text-primary"
                   onClick={() => handleStartEdit(c.hex, c.name)}
-                  title="クリックして名前を編集"
+                  title={t('base.brandColorManager.editNameTooltip')}
                 >
                   {c.name || c.hex}
                 </button>
@@ -143,7 +145,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
                 type="button"
                 className="shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => remove(c.hex)}
-                aria-label={`${c.name || c.hex} を削除`}
+                aria-label={t('base.brandColorManager.deleteColorLabel', { name: c.name || c.hex })}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -151,7 +153,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
           ))}
           {colors.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-3">
-              ブランドカラーがありません
+              {t('base.brandColorManager.empty')}
             </p>
           )}
         </div>
@@ -159,8 +161,8 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
         {/* Add new color */}
         <div className="border-t px-3 py-2 space-y-1.5 shrink-0">
           <p className="text-[10px] text-muted-foreground font-medium">
-            色を追加
-            {isFull && <span className="ml-1 text-destructive">（上限 12 件）</span>}
+            {t('base.brandColorManager.addColor')}
+            {isFull && <span className="ml-1 text-destructive">{t('base.brandColorManager.limit')}</span>}
           </p>
           <div className="flex gap-1">
             <input
@@ -174,17 +176,17 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
               placeholder="#RRGGBB"
               maxLength={7}
               onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd() }}
-              aria-label="新しいカラーの HEX 値"
+              aria-label={t('base.brandColorManager.newHexLabel')}
             />
             <input
               type="text"
               className="flex-1 border rounded px-1 py-0.5 text-xs bg-background focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               value={newName}
               onChange={(e) => setNewName(e.target.value.slice(0, MAX_NAME_LENGTH))}
-              placeholder="名前（任意）"
+              placeholder={t('base.brandColorManager.namePlaceholder')}
               maxLength={MAX_NAME_LENGTH}
               onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd() }}
-              aria-label="新しいカラーの名前"
+              aria-label={t('base.brandColorManager.newNameLabel')}
             />
             <button
               type="button"
@@ -196,7 +198,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
               )}
               onClick={handleAdd}
               disabled={!isNewValid || isFull}
-              aria-label="色を追加"
+              aria-label={t('base.brandColorManager.addColor')}
             >
               <Plus className="w-3 h-3" />
             </button>

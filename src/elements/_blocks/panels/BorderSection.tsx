@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { PropSection, PropRow, NumInput, ColorInput, SelectInput } from '@/elements/_base/sharedUI'
 import { DEFAULT_BORDER_WIDTH } from '../constants'
 
@@ -19,12 +20,6 @@ export interface PaddingConfig {
   left?: number
 }
 
-const STROKE_STYLE_OPTIONS = [
-  { value: 'solid', label: '実線' },
-  { value: 'dashed', label: '破線' },
-  { value: 'dotted', label: '点線' },
-]
-
 interface BorderSectionProps {
   border: BorderConfig
   onChange: (patch: Partial<BorderConfig>) => void
@@ -33,12 +28,18 @@ interface BorderSectionProps {
 }
 
 export function BorderSection({ border, onChange, showRadius = false }: BorderSectionProps) {
+  const { t } = useTranslation('elements')
+  const strokeStyleOptions = [
+    { value: 'solid', label: t('blocks.border.styleSolid') },
+    { value: 'dashed', label: t('blocks.border.styleDashed') },
+    { value: 'dotted', label: t('blocks.border.styleDotted') },
+  ]
   return (
-    <PropSection title="ボーダー">
-      <PropRow label="色">
+    <PropSection title={t('blocks.border.title')}>
+      <PropRow label={t('blocks.border.color')}>
         <ColorInput value={border.color} onChange={(v) => onChange({ color: v })} />
       </PropRow>
-      <PropRow label="幅">
+      <PropRow label={t('blocks.border.width')}>
         <NumInput
           value={border.width ?? DEFAULT_BORDER_WIDTH}
           onChange={(v) => onChange({ width: v })}
@@ -48,15 +49,15 @@ export function BorderSection({ border, onChange, showRadius = false }: BorderSe
           unit="mm"
         />
       </PropRow>
-      <PropRow label="スタイル">
+      <PropRow label={t('blocks.border.style')}>
         <SelectInput
           value={border.style ?? 'solid'}
           onChange={(v) => onChange({ style: v as BorderConfig['style'] })}
-          options={STROKE_STYLE_OPTIONS}
+          options={strokeStyleOptions}
         />
       </PropRow>
       {showRadius && (
-        <PropRow label="角丸">
+        <PropRow label={t('blocks.border.radius')}>
           <NumInput
             value={border.radius ?? 0}
             onChange={(v) => onChange({ radius: v })}

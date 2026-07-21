@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { RepeatingBandElement, RepeatingBandField } from '@/types'
 import {
@@ -29,6 +30,7 @@ import { ColumnEditor, type ColumnMenuState } from './ColumnEditor'
 // ---------------------------------------------------------------------------
 
 export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { element: RepeatingBandElement; onFieldsChange?: (fields: RepeatingBandField[]) => void }) {
+  const { t } = useTranslation('elements')
   const obs = outerBorderStr(el)
 
   // All hooks must run before the empty-state early return below —
@@ -113,9 +115,9 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
           }}>
             +
           </div>
-          <div>スキーマフィールドをドロップして列を追加</div>
+          <div>{t('repeatingBand.dropFieldToAddColumn')}</div>
           <div style={{ fontSize: '2.5mm', color: '#cbd5e1' }}>
-            または右クリックで手動追加
+            {t('repeatingBand.orRightClickToAdd')}
           </div>
         </div>
       </BandContainer>
@@ -155,7 +157,7 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
               }}
               onClick={(e) => { e.stopPropagation(); handleColumnContextMenu(e, i) }}
               onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleColumnContextMenu(e, i) }}
-              title={`${f.label} (${f.key}) — クリックで編集`}
+              title={t('repeatingBand.columnTitleClickToEdit', { label: f.label, key: f.key })}
             >
               {f.label}
               {/* Column resize handle (between columns) */}
@@ -207,7 +209,7 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
         fontWeight: 'bold',
         letterSpacing: '0.05em',
       }}>
-        繰り返しバンド · {el.dataSource}{isGrouped ? ` (${el.groupBy}でグループ化)` : ''}
+        {t('repeatingBand.badgeLabel', { dataSource: el.dataSource })}{isGrouped ? t('repeatingBand.badgeGroupSuffix', { groupBy: el.groupBy }) : ''}
       </div>
 
       {/* Grouped preview */}
@@ -225,7 +227,7 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
             fontSize: CELL_FONT_SIZE,
             color: el.headerStyle?.color ?? DEFAULT_HEADER_COLOR,
           }}>
-            ■ グループ 1
+            {t('repeatingBand.groupSample')}
           </div>
           {Array.from({ length: 2 }, (_, rowIdx) => (
             <div key={rowIdx} style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, borderBottom: dbs, backgroundColor: rowIdx % 2 === 0 ? el.oddRowColor : el.evenRowColor, opacity: rowIdx === 0 ? 1 : 0.7 }}>
@@ -242,7 +244,7 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
             <div data-testid="group-subtotal-preview" style={{ display: 'flex', height: `${el.itemHeight}mm`, flexShrink: 0, backgroundColor: (el.groupStyle ?? DEFAULT_GROUP_STYLE).backgroundColor ?? DEFAULT_GROUP_BG, borderBottom: dbs }}>
               {el.fields.map((f, i) => (
                 <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), fontWeight: 'bold', justifyContent: alignToJustify(f.align ?? 'left') }}>
-                  {i === 0 ? '小計' : el.totals.find((t) => t.fieldKey === f.key) ? 'Σ' : ''}
+                  {i === 0 ? t('repeatingBand.subtotal') : el.totals.find((tot) => tot.fieldKey === f.key) ? 'Σ' : ''}
                 </div>
               ))}
             </div>
@@ -273,19 +275,19 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
         fontSize: '2.5mm',
         background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(219,234,254,0.3) 4px, rgba(219,234,254,0.3) 8px)',
       }}>
-        ↻ {el.maxItems > 0 ? `最大 ${el.maxItems} 件` : 'レコード数分 繰り返し'}
-        {el.footerLayout === 'compact' && ' (詰め)'}
+        ↻ {el.maxItems > 0 ? t('repeatingBand.maxItemsCount', { n: el.maxItems }) : t('repeatingBand.repeatPerRecord')}
+        {el.footerLayout === 'compact' && t('repeatingBand.compactSuffix')}
       </div>
 
       {el.showFooter && el.totals.length > 0 && (
         <div style={{ display: 'flex', flexShrink: 0, borderTop: fbs }}>
           {el.fields.map((f, i) => {
-            const total = el.totals.find((t) => t.fieldKey === f.key)
+            const total = el.totals.find((tot) => tot.fieldKey === f.key)
             return (
               <div key={i} style={{ ...baseCellLayout(colPcts[i], i < el.fields.length - 1 ? cbs : undefined), backgroundColor: DEFAULT_FOOTER_BG, fontWeight: 'bold', justifyContent: alignToJustify(f.align ?? 'left') }}>
                 {total
                   ? <span>{total.label ?? total.fieldKey} ({total.formula})</span>
-                  : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{el.totals[0]?.label ?? '合計'}</span> : null)}
+                  : (i === 0 ? <span style={{ color: PLACEHOLDER_COLOR }}>{el.totals[0]?.label ?? t('repeatingBand.total')}</span> : null)}
               </div>
             )
           })}
