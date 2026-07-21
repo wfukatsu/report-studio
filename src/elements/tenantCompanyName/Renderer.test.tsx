@@ -30,9 +30,9 @@ describe('TenantCompanyNameRenderer — 差込プレースホルダ表示 (#120)
     expect(node).toHaveStyle({ fontStyle: 'normal' })
   })
 
-  it('shows the resolved fallback (not the token) in resolve mode without tenant info', () => {
-    render(<TenantCompanyNameRenderer element={el} resolveValues={true} />)
-    expect(screen.getByText('（会社名未設定）')).toBeInTheDocument()
+  it('renders nothing in resolve mode when tenant info and fallback are both unset (#315)', () => {
+    const { container } = render(<TenantCompanyNameRenderer element={el} resolveValues={true} />)
+    expect(container.firstChild).toBeNull()
     expect(screen.queryByText('{{会社名}}')).not.toBeInTheDocument()
   })
 })

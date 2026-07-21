@@ -9,7 +9,10 @@ interface Props { element: TenantPhoneElement; resolveValues?: boolean; defaultS
 
 export const TenantPhoneRenderer = memo(function TenantPhoneRenderer({ element: el, resolveValues = false, defaultStyle }: Props) {
   const phone = useReportStore((s) => s.tenantInfo?.phone)
-  const value = resolveValues ? (phone ?? el.fallback ?? '（電話番号未設定）') : '{{電話番号}}'
+  // Preview/export: unset renders nothing, matching the server PDF (#315)
+  const resolved = phone ?? el.fallback
+  if (resolveValues && !resolved) return null
+  const value = resolveValues ? resolved! : '{{電話番号}}'
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

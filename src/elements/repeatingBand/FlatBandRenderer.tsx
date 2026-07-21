@@ -52,7 +52,7 @@ export function FlatBandRenderer({
         </div>
       ) : (
         limited.map((record, rowIdx) => (
-          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} dbs={dbs} cbs={cbs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} wrapText={el.wrapText} itemHeight={el.itemHeight} />
+          <DataRow key={rowIdx} record={record} rowIdx={rowIdx} fields={el.fields} colPcts={colPcts} dbs={dbs} cbs={cbs} oddBg={el.oddRowColor} evenBg={el.evenRowColor} wrapText={el.wrapText} itemHeight={el.itemHeight} cellStyle={el.style} />
         ))
       )}
 

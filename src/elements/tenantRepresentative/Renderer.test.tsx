@@ -35,9 +35,9 @@ describe('TenantRepresentativeRenderer', () => {
     expect(screen.getByText('代表 未登録')).toBeInTheDocument()
   })
 
-  it('shows the resolved fallback (not the token) without tenant info', () => {
-    render(<TenantRepresentativeRenderer element={el} resolveValues={true} />)
-    expect(screen.getByText('（代表者名未設定）')).toBeInTheDocument()
+  it('renders nothing without tenant info and fallback (#315)', () => {
+    const { container } = render(<TenantRepresentativeRenderer element={el} resolveValues={true} />)
+    expect(container.firstChild).toBeNull()
     expect(screen.queryByText('{{代表者名}}')).not.toBeInTheDocument()
   })
 })

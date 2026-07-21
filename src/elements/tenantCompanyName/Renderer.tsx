@@ -17,9 +17,11 @@ export const TenantCompanyNameRenderer = memo(function TenantCompanyNameRenderer
   defaultStyle,
 }: Props) {
   const companyName = useReportStore((s) => s.tenantInfo?.companyName)
-  const value = resolveValues
-    ? (companyName ?? el.fallback ?? '（会社名未設定）')
-    : '{{会社名}}'
+  // Preview/export: unset tenant info renders nothing — matching the server PDF,
+  // which omits the element entirely (#315). The designer keeps its token.
+  const resolved = companyName ?? el.fallback
+  if (resolveValues && !resolved) return null
+  const value = resolveValues ? resolved! : '{{会社名}}'
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

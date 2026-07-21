@@ -42,13 +42,13 @@ describe('TenantCustomRenderer', () => {
     expect(screen.getByText('FAX なし')).toBeInTheDocument()
   })
 
-  it('shows the keyed 未設定 fallback when the custom field is missing', () => {
-    render(<TenantCustomRenderer element={makeEl()} resolveValues={true} />)
-    expect(screen.getByText('（fax 未設定）')).toBeInTheDocument()
+  it('renders nothing when the custom field is missing and no fallback is set (#315)', () => {
+    const { container } = render(<TenantCustomRenderer element={makeEl()} resolveValues={true} />)
+    expect(container.firstChild).toBeNull()
   })
 
-  it('shows キー未設定 in resolve mode when fieldKey is empty', () => {
-    render(<TenantCustomRenderer element={makeEl({ fieldKey: '' })} resolveValues={true} />)
-    expect(screen.getByText('（キー未設定）')).toBeInTheDocument()
+  it('renders nothing in resolve mode when fieldKey is empty and no fallback is set (#315)', () => {
+    const { container } = render(<TenantCustomRenderer element={makeEl({ fieldKey: '' })} resolveValues={true} />)
+    expect(container.firstChild).toBeNull()
   })
 })

@@ -316,3 +316,31 @@ describe('RepeatingBandRenderer — Rules of Hooks (issue #62)', () => {
     expect(screen.getByText(/スキーマフィールドをドロップ/)).toBeInTheDocument()
   })
 })
+
+describe('RepeatingBandRenderer — セルスタイル適用 (issue #313)', () => {
+  const records = [
+    { no: '1', name: '商品A' },
+    { no: '2', name: '商品B' },
+  ]
+  const fields = [
+    { key: 'no', label: 'No.', width: 12, align: 'center' as const },
+    { key: 'name', label: '品目', width: 55, align: 'left' as const },
+  ]
+
+  it('applies style.color and style.fontSize to data cells', () => {
+    const el = makeElement({ fields, style: { color: '#1a1a1a', fontSize: 9 } })
+    render(<RepeatingBandRenderer element={el} records={records} />)
+    const cell = screen.getByText('商品A')
+    expect(cell).toHaveStyle({ color: 'rgb(26, 26, 26)', fontSize: '9pt' })
+  })
+
+  it('applies style.color to grouped data cells too', () => {
+    const el = makeElement({
+      fields,
+      groupBy: 'no',
+      style: { color: '#336699' },
+    })
+    render(<RepeatingBandRenderer element={el} records={records} />)
+    expect(screen.getByText('商品A')).toHaveStyle({ color: 'rgb(51, 102, 153)' })
+  })
+})

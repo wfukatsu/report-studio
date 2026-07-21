@@ -109,9 +109,10 @@ describe.each(TEXT_CASES)('$label', ({ Renderer, makeElement, token, resolvedVal
     expect(screen.getByText('未登録')).toBeInTheDocument()
   })
 
-  it('shows the not-configured placeholder without tenant info or fallback', () => {
-    render(<Renderer element={makeElement()} resolveValues />)
-    expect(screen.getByText(placeholder)).toBeInTheDocument()
+  it('renders nothing without tenant info or fallback (#315 — matches server PDF)', () => {
+    const { container } = render(<Renderer element={makeElement()} resolveValues />)
+    expect(container.firstChild).toBeNull()
+    expect(screen.queryByText(placeholder)).not.toBeInTheDocument()
   })
 
   it('applies the element text style over the default style', () => {
@@ -165,15 +166,15 @@ describe('TenantAddressRenderer', () => {
     expect(screen.getByText('大阪府大阪市北区1-2-3')).toBeInTheDocument()
   })
 
-  it('uses fallback, then the placeholder, when no address is configured', () => {
+  it('uses fallback when set, and renders nothing when no address is configured (#315)', () => {
     const { unmount } = render(
       <TenantAddressRenderer element={makeEl({ fallback: '住所なし' })} resolveValues />,
     )
     expect(screen.getByText('住所なし')).toBeInTheDocument()
     unmount()
 
-    render(<TenantAddressRenderer element={makeEl()} resolveValues />)
-    expect(screen.getByText('（住所未設定）')).toBeInTheDocument()
+    const { container } = render(<TenantAddressRenderer element={makeEl()} resolveValues />)
+    expect(container.firstChild).toBeNull()
   })
 })
 
@@ -201,10 +202,12 @@ describe('TenantCustomRenderer', () => {
     expect(screen.getByText('T1234567890123')).toBeInTheDocument()
   })
 
-  it('shows the key-specific placeholder when the key has no value', () => {
+  it('renders nothing when the key has no value and no fallback (#315)', () => {
     setTenantInfo(TENANT_INFO)
-    render(<TenantCustomRenderer element={makeEl({ fieldKey: 'branchCode' })} resolveValues />)
-    expect(screen.getByText('（branchCode 未設定）')).toBeInTheDocument()
+    const { container } = render(
+      <TenantCustomRenderer element={makeEl({ fieldKey: 'branchCode' })} resolveValues />,
+    )
+    expect(container.firstChild).toBeNull()
   })
 
   it('prefers the fallback over the placeholder', () => {
@@ -217,9 +220,9 @@ describe('TenantCustomRenderer', () => {
     expect(screen.getByText('本店')).toBeInTheDocument()
   })
 
-  it('shows the no-key placeholder when the field key is empty', () => {
-    render(<TenantCustomRenderer element={makeEl()} resolveValues />)
-    expect(screen.getByText('（キー未設定）')).toBeInTheDocument()
+  it('renders nothing when the field key is empty and no fallback (#315)', () => {
+    const { container } = render(<TenantCustomRenderer element={makeEl()} resolveValues />)
+    expect(container.firstChild).toBeNull()
   })
 })
 

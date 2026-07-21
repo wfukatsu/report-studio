@@ -17,9 +17,10 @@ export const TenantCustomRenderer = memo(function TenantCustomRenderer({
   defaultStyle,
 }: Props) {
   const fieldValue = useReportStore((s) => s.tenantInfo?.custom?.[el.fieldKey])
-  const value = resolveValues
-    ? (fieldValue ?? el.fallback ?? (el.fieldKey ? `（${el.fieldKey} 未設定）` : '（キー未設定）'))
-    : `{{${el.fieldKey || 'fieldKey'}}}`
+  // Preview/export: unset renders nothing, matching the server PDF (#315)
+  const resolved = fieldValue ?? el.fallback
+  if (resolveValues && !resolved) return null
+  const value = resolveValues ? resolved! : `{{${el.fieldKey || 'fieldKey'}}}`
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

@@ -102,6 +102,7 @@ export function GroupedBandRenderer({
               hiddenFieldIndices={hiddenFieldIndices}
               wrapText={el.wrapText}
               itemHeight={el.itemHeight}
+              cellStyle={el.style}
             />
           ))}
 
