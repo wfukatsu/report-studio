@@ -2,6 +2,7 @@
  * All modal and confirm dialogs rendered by the Toolbar.
  * Extracted to keep Toolbar.tsx under the 800-line project limit.
  */
+import { useTranslation } from 'react-i18next'
 import type { OutputVariant } from '@/types'
 import { DataBindingModal } from '@/components/modals/DataBindingModal'
 import { ServerSettingsModal } from '@/components/modals/ServerSettingsModal'
@@ -80,6 +81,7 @@ export function ToolbarDialogs({
   onConfirmDeleteFooter,
   onCancelDeleteFooter,
 }: Props) {
+  const { t } = useTranslation('toolbar')
   return (
     <>
       {showDataModal && <DataBindingModal open={showDataModal} onClose={onCloseDataModal} />}
@@ -106,18 +108,20 @@ export function ToolbarDialogs({
 
       <ConfirmDialog
         open={showValidationWarnConfirm}
-        title="バリデーション警告"
-        message={`以下の警告があります。エクスポートを続けますか？\n\n${validationWarnings.map((m) => `⚠️ ${m}`).join('\n')}`}
-        confirmLabel="続けてエクスポート"
+        title={t('dialogs.validationWarnTitle')}
+        message={t('dialogs.validationWarnMessage', {
+          warnings: validationWarnings.map((m) => `⚠️ ${m}`).join('\n'),
+        })}
+        confirmLabel={t('dialogs.continueExport')}
         onConfirm={onConfirmExportWithWarnings}
         onCancel={onCancelValidationWarn}
       />
 
       <ConfirmDialog
         open={showOpenLocalConfirm}
-        title="未保存の変更があります"
-        message="変更を破棄してファイルを開きますか？"
-        confirmLabel="破棄して開く"
+        title={t('dialogs.unsavedTitle')}
+        message={t('dialogs.discardOpenFile')}
+        confirmLabel={t('dialogs.discardAndOpen')}
         confirmVariant="danger"
         onConfirm={onConfirmOpenLocal}
         onCancel={onCancelOpenLocal}
@@ -125,9 +129,9 @@ export function ToolbarDialogs({
 
       <ConfirmDialog
         open={showOpenServerConfirm}
-        title="未保存の変更があります"
-        message="変更を破棄してテンプレートを開きますか？"
-        confirmLabel="破棄して開く"
+        title={t('dialogs.unsavedTitle')}
+        message={t('dialogs.discardOpenTemplate')}
+        confirmLabel={t('dialogs.discardAndOpen')}
         confirmVariant="danger"
         onConfirm={onConfirmOpenServer}
         onCancel={onCancelOpenServer}
@@ -135,9 +139,9 @@ export function ToolbarDialogs({
 
       <ConfirmDialog
         open={showDeleteHeaderConfirm}
-        title="ヘッダーを削除"
-        message="ヘッダーとその内容を削除しますか？"
-        confirmLabel="削除"
+        title={t('dialogs.deleteHeaderTitle')}
+        message={t('dialogs.deleteHeaderMessage')}
+        confirmLabel={t('dialogs.delete')}
         confirmVariant="danger"
         onConfirm={onConfirmDeleteHeader}
         onCancel={onCancelDeleteHeader}
@@ -145,9 +149,9 @@ export function ToolbarDialogs({
 
       <ConfirmDialog
         open={showDeleteFooterConfirm}
-        title="フッターを削除"
-        message="フッターとその内容を削除しますか？"
-        confirmLabel="削除"
+        title={t('dialogs.deleteFooterTitle')}
+        message={t('dialogs.deleteFooterMessage')}
+        confirmLabel={t('dialogs.delete')}
         confirmVariant="danger"
         onConfirm={onConfirmDeleteFooter}
         onCancel={onCancelDeleteFooter}

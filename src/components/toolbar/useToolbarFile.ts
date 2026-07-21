@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import type { Section } from '@/types'
 import { useReportStore } from '@/store/reportStore'
 import { createReport, saveReport } from '@/api/reportApi'
@@ -46,6 +47,7 @@ export function useToolbarFile({
   setShowDeleteFooterConfirm,
   setShowSaveMenu,
 }: FileContext) {
+  const { t } = useTranslation('toolbar')
   const importReportJSON = useReportStore((s) => s.importReportJSON)
   const setMasterHeader = useReportStore((s) => s.setMasterHeader)
   const setMasterFooter = useReportStore((s) => s.setMasterFooter)
@@ -71,7 +73,7 @@ export function useToolbarFile({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('ファイルサイズが大きすぎます（10MB以下にしてください）', { duration: 8000 })
+      toast.error(t('toast.fileTooLarge'), { duration: 8000 })
       e.target.value = ''
       return
     }
@@ -79,10 +81,10 @@ export function useToolbarFile({
       const text = await file.text()
       const result = importReportJSON(text)
       if (!result.ok) {
-        toast.error(result.error ?? '読み込みに失敗しました', { duration: 8000 })
+        toast.error(result.error ?? t('toast.loadFailed'), { duration: 8000 })
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '読み込みに失敗しました', { duration: 8000 })
+      toast.error(err instanceof Error ? err.message : t('toast.loadFailed'), { duration: 8000 })
     }
     e.target.value = ''
   }
@@ -130,7 +132,7 @@ export function useToolbarFile({
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'ダウンロードに失敗しました', { duration: 8000 })
+      toast.error(err instanceof Error ? err.message : t('toast.downloadFailed'), { duration: 8000 })
     }
     setShowSaveMenu(false)
   }
@@ -139,7 +141,7 @@ export function useToolbarFile({
     const { currentTemplateId, definition, setSaveState } = useReportStore.getState()
 
     if (!backendConnected) {
-      toast.error('バックエンドに接続されていません。「npm run dev:backend」でバックエンドを起動してから再試行してください。', { duration: 8000 })
+      toast.error(t('toast.backendNotConnected'), { duration: 8000 })
       return
     }
 
@@ -148,10 +150,10 @@ export function useToolbarFile({
         setSaveState('saving')
         await saveReport(currentTemplateId, definition)
         setSaveState('saved')
-        toast.success('保存しました')
+        toast.success(t('toast.saved'))
       } catch (err) {
         setSaveState('error')
-        toast.error(err instanceof Error ? err.message : '保存に失敗しました', { duration: 8000 })
+        toast.error(err instanceof Error ? err.message : t('toast.saveFailed'), { duration: 8000 })
       }
     } else {
       setShowSaveDialog(true)
@@ -171,10 +173,10 @@ export function useToolbarFile({
       // New templates are private by default — say so and name it, so the user
       // knows where it went and that it isn't shared yet (#158). Visibility can be
       // changed later from テンプレート管理.
-      toast.success(`「${name}」を個人テンプレートとして保存しました`)
+      toast.success(t('toast.savedAsPersonal', { name }))
     } catch (err) {
       setSaveState('error')
-      toast.error(err instanceof Error ? err.message : '保存に失敗しました', { duration: 8000 })
+      toast.error(err instanceof Error ? err.message : t('toast.saveFailed'), { duration: 8000 })
     } finally {
       setIsSavingNew(false)
     }

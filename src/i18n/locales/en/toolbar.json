@@ -1,0 +1,127 @@
+{
+  "align": {
+    "bottom": "Align bottom",
+    "centerH": "Align horizontal center",
+    "centerV": "Align vertical center",
+    "distributeH": "Distribute horizontally",
+    "distributeV": "Distribute vertically",
+    "left": "Align left",
+    "right": "Align right",
+    "title": "Align & distribute",
+    "titleDisabled": "Align & distribute (select 2 or more elements)",
+    "top": "Align top"
+  },
+  "data": "Data settings",
+  "dialogs": {
+    "continueExport": "Export anyway",
+    "delete": "Delete",
+    "deleteFooterMessage": "Delete the footer and its contents?",
+    "deleteFooterTitle": "Delete footer",
+    "deleteHeaderMessage": "Delete the header and its contents?",
+    "deleteHeaderTitle": "Delete header",
+    "discardAndOpen": "Discard and open",
+    "discardOpenFile": "Discard changes and open a file?",
+    "discardOpenTemplate": "Discard changes and open a template?",
+    "unsavedTitle": "You have unsaved changes",
+    "validationWarnMessage": "There are the following warnings. Continue exporting?\n\n{{warnings}}",
+    "validationWarnTitle": "Validation warnings"
+  },
+  "edit": {
+    "copy": "Copy (⌘C)",
+    "copyStyle": "Copy style",
+    "cut": "Cut (⌘X)",
+    "paste": "Paste (⌘V)",
+    "pasteStyle": "Paste style",
+    "redo": "Redo (⌘⇧Z)",
+    "undo": "Undo (⌘Z)"
+  },
+  "export": {
+    "csv": "CSV (report data)",
+    "excel": "Excel (report data, server-generated)",
+    "pdfBackend": "PDF (regenerate from saved server version)",
+    "pdfBackendTitle": "Regenerate a PDF from the template definition saved on the server (unsaved edits are not reflected)",
+    "pdfCurrent": "PDF (current edits, high quality)",
+    "pdfCurrentTitle": "Render your current edits to a vector PDF on the server (recommended)",
+    "png": "PNG (current page, image)",
+    "title": "Export"
+  },
+  "file": {
+    "downloadJson": "Download as JSON file",
+    "new": "New",
+    "open": "Open",
+    "openFromServer": "Open from server",
+    "openLocal": "Open a local file",
+    "openMenu": "Open menu",
+    "openServerTemplate": "Open a server template",
+    "save": "Save",
+    "saveMenu": "Save menu",
+    "saveToServer": "Save to server"
+  },
+  "preview": {
+    "close": "Close preview",
+    "fullPreviewPdf": "Full preview (PDF)",
+    "generatingPdf": "Generating PDF...",
+    "label": "Preview",
+    "menu": "Preview menu",
+    "show": "Show preview"
+  },
+  "reportName": "Report name",
+  "toast": {
+    "backendNotConnected": "Not connected to the backend. Start it with \"npm run dev:backend\" and try again.",
+    "backendPdfFailed": "Backend PDF generation failed",
+    "csvFailed": "CSV export failed.",
+    "csvNoData": "There is no data to output to CSV. Please set up a data binding or sample data.",
+    "downloadFailed": "Download failed",
+    "excelFailed": "Excel export failed. Please check that the backend is running.",
+    "exportFailed": "Export failed. Please try again.",
+    "fileTooLarge": "The file is too large (please keep it under 10MB)",
+    "loadFailed": "Failed to load",
+    "pdfFallback": "Server generation failed, so a simplified PDF (image-based, lower quality) was produced. Please review the contents before sending it to a client, and check that the backend is running.",
+    "popupBlocked": "The popup was blocked. Please allow popups in your browser settings.",
+    "previewClientFallback": "Generated the preview with client-side rendering (quality may be reduced).",
+    "previewFailed": "Failed to generate the PDF preview",
+    "saved": "Saved",
+    "savedAsPersonal": "Saved \"{{name}}\" as a personal template",
+    "saveFailed": "Save failed",
+    "validateFailed": "Validation failed"
+  },
+  "unsavedChanges": "You have unsaved changes",
+  "user": {
+    "logout": "Log out",
+    "menu": "User menu",
+    "settings": "Settings"
+  },
+  "validate": {
+    "run": "Run validation"
+  },
+  "view": {
+    "createMasterFooter": "Create master footer",
+    "createMasterHeader": "Create master header",
+    "deleteMasterFooter": "Delete master footer",
+    "deleteMasterHeader": "Delete master header",
+    "headerFooterEditMode": "Header/footer edit mode",
+    "options": "View options",
+    "showGrid": "Show grid",
+    "showMarginGuide": "Show margin guide",
+    "showTrimMarks": "Show trim marks",
+    "snapToGrid": "Snap to grid",
+    "tooltip": "View & layout options"
+  },
+  "zoom": {
+    "fitPage": "Fit page",
+    "fitWidth": "Fit width",
+    "in": "Zoom in (⌘=)",
+    "level": "Zoom level",
+    "menuLabel": "Zoom levels",
+    "mismatchTitle": "Editor {{editor}}% / Preview {{preview}}%",
+    "out": "Zoom out (⌘-)",
+    "syncPreview": "Sync preview to editor ({{pct}}%)"
+  },
+  "zorder": {
+    "back": "Send to back",
+    "backward": "Send backward",
+    "forward": "Bring forward",
+    "front": "Bring to front",
+    "title": "Order"
+  }
+}

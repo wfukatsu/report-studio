@@ -20,6 +20,8 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import jaCommon from './locales/ja/common.json'
 import enCommon from './locales/en/common.json'
+import jaToolbar from './locales/ja/toolbar.json'
+import enToolbar from './locales/en/toolbar.json'
 
 export const SUPPORTED_LANGUAGES = ['ja', 'en'] as const
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number]
@@ -32,8 +34,8 @@ export const DEFAULT_NS = 'common'
 export const LANGUAGE_STORAGE_KEY = 'reportStudioLang'
 
 export const resources = {
-  ja: { common: jaCommon },
-  en: { common: enCommon },
+  ja: { common: jaCommon, toolbar: jaToolbar },
+  en: { common: enCommon, toolbar: enToolbar },
 } as const
 
 // Vitest sets MODE === 'test'. Guard the access so non-Vite consumers (e.g. the
@@ -59,7 +61,7 @@ i18n
     // Map region variants (en-US → en) onto our language-only resource keys.
     load: 'languageOnly',
     nonExplicitSupportedLngs: true,
-    ns: [DEFAULT_NS],
+    ns: [DEFAULT_NS, 'toolbar'],
     defaultNS: DEFAULT_NS,
     interpolation: {
       // React already escapes; double-escaping would mangle output.

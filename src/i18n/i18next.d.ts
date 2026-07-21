@@ -6,12 +6,14 @@
  */
 import 'i18next'
 import type common from './locales/ja/common.json'
+import type toolbar from './locales/ja/toolbar.json'
 
 declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'common'
     resources: {
       common: typeof common
+      toolbar: typeof toolbar
     }
   }
 }

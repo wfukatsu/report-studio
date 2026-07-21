@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useToolbarModals } from './useToolbarModals'
 import { useToolbarExport } from './useToolbarExport'
 import { useToolbarFile } from './useToolbarFile'
@@ -33,6 +34,7 @@ interface Props {
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
 export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Props) {
+  const { t } = useTranslation('toolbar')
   const reportName = useReportStore((s) => s.definition.metadata.documentName)
   const setReportName = useReportStore((s) => s.setReportName)
   const undo = useReportStore((s) => s.undo)
@@ -212,15 +214,15 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           type="text"
           value={reportName}
           onChange={(e) => setReportName(e.target.value)}
-          aria-label="レポート名"
+          aria-label={t('reportName')}
           className="text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-44"
         />
         {hasUnsavedChanges && (
           <span
             className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
-            title="未保存の変更があります"
+            title={t('unsavedChanges')}
             role="status"
-            aria-label="未保存の変更があります"
+            aria-label={t('unsavedChanges')}
           />
         )}
         <input
@@ -234,7 +236,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         {/* ─── G1: ファイル操作 ─────────────────────────────────────── */}
         <GroupDivider />
 
-        <ToolbarButton onClick={handleNew} title="新規作成">
+        <ToolbarButton onClick={handleNew} title={t('file.new')}>
           <FilePlus className="w-4 h-4" />
         </ToolbarButton>
         <div className="relative flex items-center" ref={openMenuRef}>
@@ -244,7 +246,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               unsaved-changes guard fires at the load step (handleTemplateChange). */}
           <ToolbarButton
             onClick={backendConnected ? (onRequestTemplateModal ?? handleOpenLocal) : handleOpenLocal}
-            title={backendConnected ? 'サーバーのテンプレートを開く' : '開く'}
+            title={backendConnected ? t('file.openServerTemplate') : t('file.open')}
           >
             <FolderOpen className="w-4 h-4" />
           </ToolbarButton>
@@ -253,27 +255,27 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
             aria-expanded={showOpenMenu}
             aria-haspopup="menu"
-            aria-label="開くメニュー"
+            aria-label={t('file.openMenu')}
           >
             <ChevronDown className="w-3 h-3" />
           </button>
           {showOpenMenu && (
             <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
               <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={() => { handleOpenLocal(); setShowOpenMenu(false) }}>
-                ローカルファイルを開く
+                {t('file.openLocal')}
               </button>
               <button
                 className={cn('w-full text-left px-3 py-1.5 text-sm', backendConnected ? 'hover:bg-accent' : 'opacity-40 cursor-not-allowed')}
                 disabled={!backendConnected}
                 onClick={() => { onRequestTemplateModal?.(); setShowOpenMenu(false) }}
               >
-                サーバーから開く
+                {t('file.openFromServer')}
               </button>
             </div>
           )}
         </div>
         <div className="relative flex items-center" ref={saveMenuRef}>
-          <ToolbarButton onClick={handleSave} title="保存" active={hasUnsavedChanges}>
+          <ToolbarButton onClick={handleSave} title={t('file.save')} active={hasUnsavedChanges}>
             <Save className="w-4 h-4" />
           </ToolbarButton>
           <button
@@ -281,17 +283,17 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             className="h-7 px-0.5 rounded hover:bg-accent -ml-1"
             aria-expanded={showSaveMenu}
             aria-haspopup="menu"
-            aria-label="保存メニュー"
+            aria-label={t('file.saveMenu')}
           >
             <ChevronDown className="w-3 h-3" />
           </button>
           {showSaveMenu && (
             <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[210px] py-1">
               <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={() => { void handleSave(); setShowSaveMenu(false) }}>
-                サーバーに保存
+                {t('file.saveToServer')}
               </button>
               <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent" onClick={handleDownloadJson}>
-                JSON ファイルとしてダウンロード
+                {t('file.downloadJson')}
               </button>
             </div>
           )}
@@ -300,10 +302,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         {/* ─── G2: 編集 ─────────────────────────────────────────────── */}
         <GroupDivider />
 
-        <ToolbarButton onClick={undo} disabled={historyIndex < 1} title="元に戻す (⌘Z)">
+        <ToolbarButton onClick={undo} disabled={historyIndex < 1} title={t('edit.undo')}>
           <Undo2 className="w-4 h-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={redo} disabled={historyIndex >= historyLength - 1} title="やり直す (⌘⇧Z)">
+        <ToolbarButton onClick={redo} disabled={historyIndex >= historyLength - 1} title={t('edit.redo')}>
           <Redo2 className="w-4 h-4" />
         </ToolbarButton>
 
@@ -312,14 +314,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton
           onClick={() => activePageId && copyElements(activePageId, selectedIds)}
           disabled={!hasSelection}
-          title="コピー (⌘C)"
+          title={t('edit.copy')}
         >
           <Copy className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => activePageId && cutElements(activePageId, selectedIds)}
           disabled={!hasSelection}
-          title="切り取り (⌘X)"
+          title={t('edit.cut')}
         >
           <Scissors className="w-4 h-4" />
         </ToolbarButton>
@@ -337,7 +339,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             }
           }}
           disabled={!clipboard || clipboard.length === 0}
-          title="貼り付け (⌘V)"
+          title={t('edit.paste')}
         >
           <Clipboard className="w-4 h-4" />
         </ToolbarButton>
@@ -348,7 +350,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton
           onClick={() => activePageId && singleId && copyStyle(activePageId, singleId)}
           disabled={!hasSingleSelection}
-          title="スタイルをコピー"
+          title={t('edit.copyStyle')}
           active={!!styleClipboard}
         >
           <Paintbrush className="w-4 h-4" />
@@ -356,7 +358,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton
           onClick={() => activePageId && pasteStyle(activePageId, selectedIds)}
           disabled={!hasSelection || !styleClipboard}
-          title="スタイルを貼り付け"
+          title={t('edit.pasteStyle')}
         >
           <PaintBucket className="w-4 h-4" />
         </ToolbarButton>
@@ -368,7 +370,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <ToolbarButton
             onClick={() => setShowAlignMenu((v) => !v)}
             disabled={selectedIds.length < 2}
-            title={selectedIds.length < 2 ? '整列・配置（2つ以上の要素を選択）' : '整列・配置'}
+            title={selectedIds.length < 2 ? t('align.titleDisabled') : t('align.title')}
             active={showAlignMenu}
             ariaExpanded={showAlignMenu}
             ariaHasPopup="menu"
@@ -378,16 +380,16 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           </ToolbarButton>
           {showAlignMenu && (
             <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[160px]" onKeyDown={handleMenuKeyDown}>
-              <MenuButton onClick={() => handleAlign('left')} disabled={!hasMultiSelection} icon={<AlignLeft className="w-4 h-4" />} label="左揃え" />
-              <MenuButton onClick={() => handleAlign('centerH')} disabled={!hasMultiSelection} icon={<AlignCenter className="w-4 h-4" />} label="水平中央揃え" />
-              <MenuButton onClick={() => handleAlign('right')} disabled={!hasMultiSelection} icon={<AlignRight className="w-4 h-4" />} label="右揃え" />
+              <MenuButton onClick={() => handleAlign('left')} disabled={!hasMultiSelection} icon={<AlignLeft className="w-4 h-4" />} label={t('align.left')} />
+              <MenuButton onClick={() => handleAlign('centerH')} disabled={!hasMultiSelection} icon={<AlignCenter className="w-4 h-4" />} label={t('align.centerH')} />
+              <MenuButton onClick={() => handleAlign('right')} disabled={!hasMultiSelection} icon={<AlignRight className="w-4 h-4" />} label={t('align.right')} />
               <div className="border-t my-1" />
-              <MenuButton onClick={() => handleAlign('top')} disabled={!hasMultiSelection} icon={<AlignStartVertical className="w-4 h-4" />} label="上揃え" />
-              <MenuButton onClick={() => handleAlign('centerV')} disabled={!hasMultiSelection} icon={<AlignCenterVertical className="w-4 h-4" />} label="垂直中央揃え" />
-              <MenuButton onClick={() => handleAlign('bottom')} disabled={!hasMultiSelection} icon={<AlignEndVertical className="w-4 h-4" />} label="下揃え" />
+              <MenuButton onClick={() => handleAlign('top')} disabled={!hasMultiSelection} icon={<AlignStartVertical className="w-4 h-4" />} label={t('align.top')} />
+              <MenuButton onClick={() => handleAlign('centerV')} disabled={!hasMultiSelection} icon={<AlignCenterVertical className="w-4 h-4" />} label={t('align.centerV')} />
+              <MenuButton onClick={() => handleAlign('bottom')} disabled={!hasMultiSelection} icon={<AlignEndVertical className="w-4 h-4" />} label={t('align.bottom')} />
               <div className="border-t my-1" />
-              <MenuButton onClick={() => handleAlign('distributeH')} disabled={!hasMultiSelection} icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />} label="水平均等配置" />
-              <MenuButton onClick={() => handleAlign('distributeV')} disabled={!hasMultiSelection} icon={<AlignVerticalJustifyCenter className="w-4 h-4" />} label="垂直均等配置" />
+              <MenuButton onClick={() => handleAlign('distributeH')} disabled={!hasMultiSelection} icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />} label={t('align.distributeH')} />
+              <MenuButton onClick={() => handleAlign('distributeV')} disabled={!hasMultiSelection} icon={<AlignVerticalJustifyCenter className="w-4 h-4" />} label={t('align.distributeV')} />
             </div>
           )}
         </div>
@@ -396,7 +398,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <div className="relative" ref={zOrderMenuRef}>
           <ToolbarButton
             onClick={() => setShowZOrderMenu((v) => !v)}
-            title="順序"
+            title={t('zorder.title')}
             active={showZOrderMenu}
             ariaExpanded={showZOrderMenu}
             ariaHasPopup="menu"
@@ -406,10 +408,10 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           </ToolbarButton>
           {showZOrderMenu && (
             <div role="menu" className="absolute top-9 left-0 bg-popover border rounded shadow-lg z-50 py-1 min-w-[140px]" onKeyDown={handleMenuKeyDown}>
-              <MenuButton onClick={() => handleZOrder('front')} disabled={!hasSelection} icon={<BringToFront className="w-4 h-4" />} label="最前面へ" />
-              <MenuButton onClick={() => handleZOrder('forward')} disabled={!hasSelection} icon={<ArrowUpToLine className="w-4 h-4" />} label="前面へ" />
-              <MenuButton onClick={() => handleZOrder('backward')} disabled={!hasSelection} icon={<ArrowDownToLine className="w-4 h-4" />} label="背面へ" />
-              <MenuButton onClick={() => handleZOrder('back')} disabled={!hasSelection} icon={<SendToBack className="w-4 h-4" />} label="最背面へ" />
+              <MenuButton onClick={() => handleZOrder('front')} disabled={!hasSelection} icon={<BringToFront className="w-4 h-4" />} label={t('zorder.front')} />
+              <MenuButton onClick={() => handleZOrder('forward')} disabled={!hasSelection} icon={<ArrowUpToLine className="w-4 h-4" />} label={t('zorder.forward')} />
+              <MenuButton onClick={() => handleZOrder('backward')} disabled={!hasSelection} icon={<ArrowDownToLine className="w-4 h-4" />} label={t('zorder.backward')} />
+              <MenuButton onClick={() => handleZOrder('back')} disabled={!hasSelection} icon={<SendToBack className="w-4 h-4" />} label={t('zorder.back')} />
             </div>
           )}
         </div>
@@ -417,7 +419,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         {/* ─── G3: 表示・構造 ──────────────────────────────────────── */}
         <GroupDivider />
 
-        <ToolbarButton onClick={() => setShowDataModal(true)} title="データ設定">
+        <ToolbarButton onClick={() => setShowDataModal(true)} title={t('data')}>
           <Database className="w-4 h-4" />
         </ToolbarButton>
 
@@ -445,14 +447,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <div className="flex-1" />
 
         {/* ─── ズーム ──────────────────────────────────────────────── */}
-        <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom - 0.1))} disabled={editorZoom <= 0.1} title="ズームアウト (⌘-)">
+        <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom - 0.1))} disabled={editorZoom <= 0.1} title={t('zoom.out')}>
           <ZoomOut className="w-4 h-4" />
         </ToolbarButton>
         <div className="relative flex flex-col items-center" ref={zoomMenuRef}>
           <div
             className="flex items-center border rounded hover:bg-accent/50 transition-colors"
             style={!zoomsMatch ? { borderColor: 'rgb(217 119 6)' } : undefined}
-            title={zoomsMatch ? undefined : `エディタ ${Math.round(editorZoom * 100)}% / プレビュー ${Math.round(previewZoom * 100)}%`}
+            title={zoomsMatch ? undefined : t('zoom.mismatchTitle', { editor: Math.round(editorZoom * 100), preview: Math.round(previewZoom * 100) })}
           >
             <input
               type="text"
@@ -473,7 +475,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 if (e.key === 'Escape') { setInputZoom(null); (e.target as HTMLInputElement).blur() }
                 e.stopPropagation()
               }}
-              aria-label="拡大率"
+              aria-label={t('zoom.level')}
               className={cn(
                 'w-12 bg-transparent text-xs text-center outline-none px-1 py-1 cursor-text',
                 !zoomsMatch && inputZoom === null && 'text-amber-600 font-medium',
@@ -495,7 +497,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             </span>
           )}
           {showZoomMenu && (
-            <div role="menu" aria-label="ズームレベル" className="absolute right-0 top-9 bg-popover border rounded shadow-lg z-50 py-1 min-w-[120px]" onKeyDown={handleMenuKeyDown}>
+            <div role="menu" aria-label={t('zoom.menuLabel')} className="absolute right-0 top-9 bg-popover border rounded shadow-lg z-50 py-1 min-w-[120px]" onKeyDown={handleMenuKeyDown}>
               {ZOOM_PRESETS.map((z) => (
                 <button
                   key={z}
@@ -510,11 +512,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
               {containerRef && activePage && (
                 <>
                   <div className="border-t my-1" />
-                  <button role="menuitem" aria-label="横幅フィット" title="横幅フィット" className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
+                  <button role="menuitem" aria-label={t('zoom.fitWidth')} title={t('zoom.fitWidth')} className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                     onClick={() => { setEditorZoom(computeFitZoom(containerRef, activePage).fitWidth); setShowZoomMenu(false) }}>
                     <FitWidthIcon />
                   </button>
-                  <button role="menuitem" aria-label="ページ全体フィット" title="ページ全体フィット" className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
+                  <button role="menuitem" aria-label={t('zoom.fitPage')} title={t('zoom.fitPage')} className="w-full flex justify-center px-3 py-1.5 hover:bg-accent"
                     onClick={() => { setEditorZoom(computeFitZoom(containerRef, activePage).fitPage); setShowZoomMenu(false) }}>
                     <FitPageIcon />
                   </button>
@@ -525,14 +527,14 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                   <div className="border-t my-1" />
                   <button className="w-full text-left px-3 py-1 text-xs hover:bg-accent text-amber-600"
                     onClick={() => { setZoom(editorZoom); setShowZoomMenu(false) }}>
-                    プレビューをエディタに同期 ({Math.round(editorZoom * 100)}%)
+                    {t('zoom.syncPreview', { pct: Math.round(editorZoom * 100) })}
                   </button>
                 </>
               )}
             </div>
           )}
         </div>
-        <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom + 0.1))} disabled={editorZoom >= 3} title="ズームイン (⌘=)">
+        <ToolbarButton onClick={() => setEditorZoom(clampZoom(editorZoom + 0.1))} disabled={editorZoom >= 3} title={t('zoom.in')}>
           <ZoomIn className="w-4 h-4" />
         </ToolbarButton>
 
@@ -543,7 +545,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <div className="relative flex items-center" ref={previewMenuRef}>
           <ToolbarButton
             onClick={toggleLivePreview}
-            title={livePreviewEnabled ? 'プレビューを閉じる' : 'プレビューを表示'}
+            title={livePreviewEnabled ? t('preview.close') : t('preview.show')}
             active={livePreviewEnabled}
           >
             <Eye className="w-4 h-4" />
@@ -553,7 +555,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
             className="flex items-center justify-center min-w-[28px] h-7 px-1 rounded hover:bg-accent -ml-1"
             aria-expanded={showPreviewMenu}
             aria-haspopup="menu"
-            aria-label="プレビューメニュー"
+            aria-label={t('preview.menu')}
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
@@ -564,7 +566,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 onClick={() => { toggleLivePreview(); setShowPreviewMenu(false) }}
               >
                 <Eye className="w-3.5 h-3.5 shrink-0" />
-                プレビュー
+                {t('preview.label')}
                 {livePreviewEnabled && <span className="ml-auto text-[10px]">✓</span>}
               </button>
               <button
@@ -573,7 +575,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 disabled={isPreviewingPdf}
               >
                 <Eye className="w-3.5 h-3.5 shrink-0" />
-                {isPreviewingPdf ? 'PDF生成中...' : 'フルプレビュー（PDF）'}
+                {isPreviewingPdf ? t('preview.generatingPdf') : t('preview.fullPreviewPdf')}
               </button>
             </div>
           )}
@@ -583,7 +585,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
         <ToolbarButton
           onClick={handleValidate}
           disabled={!hasTemplateId || isValidating}
-          title="バリデーション実行"
+          title={t('validate.run')}
           active={violationCount > 0}
         >
           {violationCount > 0
@@ -601,7 +603,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           <ToolbarButton
             onClick={() => setShowExportMenu((v) => !v)}
             disabled={isExporting}
-            title="エクスポート"
+            title={t('export.title')}
             active={showExportMenu}
             ariaExpanded={showExportMenu}
             ariaHasPopup="menu"
@@ -615,26 +617,26 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 onClick={() => { void handleExportPdf(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileText className="w-4 h-4" />}
-                label="PDF（現在の編集内容・高品質）"
-                title="いま編集中の内容をサーバーでベクターPDF化します（推奨）"
+                label={t('export.pdfCurrent')}
+                title={t('export.pdfCurrentTitle')}
               />
               <MenuButton
                 onClick={() => { void handleExportExcel(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileSpreadsheet className="w-4 h-4" />}
-                label="Excel（帳票データ・サーバー生成）"
+                label={t('export.excel')}
               />
               <MenuButton
                 onClick={() => { handleExportCsv(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileSpreadsheet className="w-4 h-4" />}
-                label="CSV（帳票データ）"
+                label={t('export.csv')}
               />
               <MenuButton
                 onClick={() => { handleExportPng(); setShowExportMenu(false) }}
                 disabled={isExporting}
                 icon={<FileImage className="w-4 h-4" />}
-                label="PNG（現在のページ・画像）"
+                label={t('export.png')}
               />
               {hasTemplateId && backendConnected && (
                 <>
@@ -643,8 +645,8 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                     onClick={() => { handleBackendPdf(); setShowExportMenu(false) }}
                     disabled={isExporting}
                     icon={<FileText className="w-4 h-4" />}
-                    label="PDF（サーバー保存版から再生成）"
-                    title="サーバーに保存済みのテンプレート定義からPDFを再生成します（未保存の編集は反映されません）"
+                    label={t('export.pdfBackend')}
+                    title={t('export.pdfBackendTitle')}
                   />
                 </>
               )}
@@ -662,7 +664,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 className="flex items-center gap-1.5 h-7 px-2 rounded hover:bg-accent text-xs"
                 aria-expanded={showUserMenu}
                 aria-haspopup="menu"
-                aria-label="ユーザーメニュー"
+                aria-label={t('user.menu')}
               >
                 <User className="w-3.5 h-3.5" />
                 <span className="max-w-[80px] truncate">{currentUser.displayName}</span>
@@ -672,11 +674,11 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                 <div className="absolute top-full right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 min-w-[140px] py-1">
                   <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
                     onClick={() => { setShowServerSettings(true); setShowUserMenu(false) }}>
-                    設定
+                    {t('user.settings')}
                   </button>
                   <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-red-600"
                     onClick={() => { void logoutUser(); setShowUserMenu(false) }}>
-                    ログアウト
+                    {t('user.logout')}
                   </button>
                 </div>
               )}
