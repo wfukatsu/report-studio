@@ -27,7 +27,7 @@ export interface TenantCompanyNameElement extends ElementBase {
 
 | UIラベル | プロパティ | 型 | 既定値 | 説明・効果 |
 |---|---|---|---|---|
-| 未設定時テキスト | `fallback` | `string?` | `undefined` | テナント情報の会社名が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、内蔵の `（会社名未設定）` が使われる。 |
+| 未設定時テキスト | `fallback` | `string?` | `undefined` | テナント情報の会社名が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、その場合は要素ごと非描画になる（サーバ PDF と同一挙動、#315）。 |
 
 ### テキストスタイルセクション（`TextStyleSection` → `el.style`）
 
@@ -64,7 +64,7 @@ style: { fontSize: 14, color: '#000000', textAlign: 'left', fontWeight: 'bold' }
 Renderer は `resolveValues`（= 親から渡る `readonly`）で表示を切り替える。
 
 - **編集時（`resolveValues=false`）**: 常にリテラルトークン `{{会社名}}` を表示。`FIELD_PLACEHOLDER_STYLE`（薄い色）を重ねてプレースホルダとして描画する。
-- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.companyName` を表示。未設定なら `el.fallback`、それも未設定なら内蔵フォールバック `（会社名未設定）`。
+- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.companyName` を表示。未設定なら `el.fallback`、それも未設定なら**何も描画しない**（サーバ PDF が要素を出力しないのと一致、#315）。
 - どちらも `resolveStyle(el.style, defaultStyle)` で解決したスタイルを `TextContent` に適用する。
 
 ## テナント情報の設定場所

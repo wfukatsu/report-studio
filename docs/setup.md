@@ -125,7 +125,7 @@ npx vitest run src/lib/dataBinding.test.ts
 ```bash
 npm run dev:backend      # バックエンド起動 (http://localhost:8080)
 npm run test:backend     # バックエンドテスト（JUnit 5 + ゴールデン PDF 回帰テスト）
-npm run seed             # サンプルテーブル・データを投入（Gradle SeedData。サンプル帳票 5 種の seed:samples とは別系統 → 「サンプル帳票」の節を参照）
+npm run seed             # サンプルテーブル・データを投入（Gradle SeedData。サンプル帳票 6 種の seed:samples とは別系統 → 「サンプル帳票」の節を参照）
 ```
 
 > **注意（`build:backend`）:** `npm run build:backend` は `./gradlew shadowJar` を呼びますが、`server/build.gradle.kts` には Shadow プラグイン/`shadowJar` タスクが定義されていないため、このスクリプトは現状失敗します。実行可能な成果物を生成する動作する経路は `./gradlew installDist`（`server/build/install/` に自己完結ディストリビューションを生成、Docker ビルドと同じ方法）です。
@@ -195,7 +195,7 @@ scalar.db.transaction_manager=jdbc
 
 ## サンプルデータの投入
 
-サンプルの帳票テンプレート 5 種（請求書・見積書・発注書・納品書・領収書）と、そのバインド先となる ScalarDB テーブル・行データを投入できます。
+サンプルの帳票テンプレート 6 種（請求書・見積書・発注書・納品書・領収書・売上明細一覧）と、そのバインド先となる ScalarDB テーブル・行データを投入できます。売上明細一覧は繰り返しバンドの継続ページ分割（バンドフロー）を実演するサンプルで、明細 40 行がサーバ PDF で 3 ページに分割されます。
 
 ```bash
 # 1) テンプレート JSON と db-seed.json を生成（決定論的・べき等）
@@ -205,9 +205,9 @@ npm run build:samples
 npm run seed:samples
 ```
 
-- `build:samples`（`scripts/sample-forms/build.mjs`）: `scripts/sample-forms/templates/` に 5 種のテンプレートと `db-seed.json` を生成。ID は SHA1 由来で決定論的なため何度実行しても同じ結果になります。
+- `build:samples`（`scripts/sample-forms/build.mjs`）: `scripts/sample-forms/templates/` に 6 種のテンプレートと `db-seed.json` を生成。ID は SHA1 由来で決定論的なため何度実行しても同じ結果になります。
 - `seed:samples`（`scripts/sample-forms/seed.mjs`、要バックエンド `:8080`）: ①`/api/v1/auth/login` でログイン、②HTTP API 経由で ScalarDB テーブルを作成・行を投入（生の SQLite 書き込みは不可、ScalarDB トランザクション層を通す）、③各テンプレートを admin 所有の公開テンプレートとして保存。作成した ID は `server/data/sample-form-ids.json` に記録され、再実行時は上書き（べき等）。
-  - 環境変数: `API_BASE`（既定 `http://localhost:8080`）、`ADMIN_USER`（既定 `admin`）、`ADMIN_PASSWORD`（既定 `changeme`）。
+  - 環境変数: `API_BASE`（既定 `http://localhost:8080`）、`API_ORIGIN`（既定 `http://localhost:5173` — CSRF ガード用の Origin ヘッダ。サーバ自身のオリジンは CORS で拒否されるため Vite dev オリジンを送る）、`ADMIN_USER`（既定 `admin`）、`ADMIN_PASSWORD`（既定 `changeme`）。レートリミット（rows API 60 req/分）に当たった場合は 429 を自動リトライします。
   - テーブルは `demo.*` 名前空間（例: `demo.invmod_header`、`demo.delivery_items`）に作成されます。
 
 > 別系統として `npm run seed`（Gradle の `SeedData`）もあります。こちらは Java からサンプルテーブル・データを投入します。

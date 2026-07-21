@@ -26,7 +26,7 @@ export interface TenantRepresentativeElement extends ElementBase {
 
 | UIラベル | プロパティ | 型 | 既定値 | 説明・効果 |
 |---|---|---|---|---|
-| 未設定時テキスト | `fallback` | `string?` | `undefined` | 代表者名が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、内蔵の `（代表者名未設定）` が使われる。 |
+| 未設定時テキスト | `fallback` | `string?` | `undefined` | 代表者名が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、その場合は要素ごと非描画になる（サーバ PDF と同一挙動、#315）。 |
 
 ### テキストスタイルセクション（`TextStyleSection` → `el.style`）
 
@@ -62,7 +62,7 @@ style: { fontSize: 10, color: '#000000', textAlign: 'left' }
 Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 
 - **編集時（`resolveValues=false`）**: 常にリテラルトークン `{{代表者名}}` を `FIELD_PLACEHOLDER_STYLE` で描画。
-- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.representativeName` を表示。未設定なら `el.fallback`、それも未設定なら内蔵フォールバック `（代表者名未設定）`。
+- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.representativeName` を表示。未設定なら `el.fallback`、それも未設定なら**何も描画しない**（サーバ PDF と一致、#315）。
 - 役職（例: 「代表取締役」）は含まれない。役職を併記したい場合は隣接する [テキスト (text)](../text/text.md) 要素を添える。
 
 ## テナント情報の設定場所

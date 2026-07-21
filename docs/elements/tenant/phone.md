@@ -26,7 +26,7 @@ export interface TenantPhoneElement extends ElementBase {
 
 | UIラベル | プロパティ | 型 | 既定値 | 説明・効果 |
 |---|---|---|---|---|
-| 未設定時テキスト | `fallback` | `string?` | `undefined` | 電話番号が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、内蔵の `（電話番号未設定）` が使われる。 |
+| 未設定時テキスト | `fallback` | `string?` | `undefined` | 電話番号が未設定のときプレビュー／出力で表示する文字列。空にすると `undefined` に戻り、その場合は要素ごと非描画になる（サーバ PDF と同一挙動、#315）。 |
 
 ### テキストスタイルセクション（`TextStyleSection` → `el.style`）
 
@@ -62,7 +62,7 @@ style: { fontSize: 10, color: '#000000', textAlign: 'left' }
 Renderer は `resolveValues`（= `readonly`）で表示を切り替える。
 
 - **編集時（`resolveValues=false`）**: 常にリテラルトークン `{{電話番号}}` を `FIELD_PLACEHOLDER_STYLE` で描画。
-- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.phone` を表示。未設定なら `el.fallback`、それも未設定なら内蔵フォールバック `（電話番号未設定）`。
+- **プレビュー／出力時（`resolveValues=true`）**: `tenantInfo.phone` を表示。未設定なら `el.fallback`、それも未設定なら**何も描画しない**（サーバ PDF と一致、#315）。
 - ハイフン挿入などの整形は行わず、保存された値をそのまま描画する。
 
 ## テナント情報の設定場所

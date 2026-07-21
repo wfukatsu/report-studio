@@ -51,6 +51,8 @@
 
 両モードとも同じ `data`（`dataOverride ?? livePreviewData ?? sampleData`）に対して解決するため、フィールドの値は一致します。
 
+プレビューとサーバ PDF の見た目の一致（フォントファミリー/ウェイト・repeatingBand の装飾・shape の塗り/線・テナント非表示・letterSpacing）は #311〜#320 の一連の修正でピクセル実測により検証済み。バンドの装飾は `RepeatingBandPdfRenderer` が `headerStyle`/`style`/`oddRowColor`/`evenRowColor`/`borderColor`/`borderWidth` を、shape は `ShapePdfRenderer` が `fill`/`stroke`/`strokeWidth`/`strokeDash`/`borderRadius` を反映する（未指定時の既定値もフロントと同一）。
+
 ### 出力（`src/lib/exportUtils.ts`）
 
 - **PNG**: `html2canvas`（`scale=2`）→ `toDataURL('image/png')` → ダウンロード。
@@ -255,7 +257,9 @@ resources/
 - **`PdfRenderer`**: mm を pt に変換（`PdfUnits.MM_TO_PT`）。`render(json)→byte[]` と `renderToStream`（バッチ向け、ヒープ回避）。上限（投影あたりテンプレ 20 / 物理ページ 2000）。
 - **要素レンダラ**（`ElementPdfRendererRegistry`）: Text / Shape / Line / Barcode / QrCode / Image / Check / SealBox / Hanko / Divider / RevenueStamp / ApprovalStampRow / EraSelect / DataField / ManualEntry / Chart / Repeating* / Table / FormGrid / FormTable / StyledText（自動・テナント）など約 40 種。
 - **セクションレンダラ**（`SectionPdfRendererRegistry`、`SectionPdfRenderer` インターフェース）: `PageBaseSectionRenderer` / `DetailTableSectionRenderer` / `FreeSectionRenderer` / `MultiRowTableSectionRenderer`。ページ分割の詳細は [ページ分割仕様](./pagination-spec.md)。
-- **`FontProvider`**: CJK フォントを class 初期化時に 1 度ロードしバイト列を JVM レベルでキャッシュ。`PDType0Font` はサブセット化のためドキュメント単位に生成。CJK 不在時は Standard-14 Helvetica にフォールバック（`isSyntheticBold` で疑似ボールド）。
+- **`FontProvider`**: CJK フォントを class 初期化時に 1 度ロードしバイト列を JVM レベルでキャッシュ。`PDType0Font` はサブセット化のためドキュメント単位に生成。CJK 不在時は Standard-14 Helvetica にフォールバック（`isSyntheticBold` で疑似ボールド）。serif 判定は `isSerifFamily`（大文字小文字非依存で serif/mincho/明朝、`sans` は除外 — 汎用 `serif` キーワードも明朝に解決、#318）。
+- **フォントパリティ（#317/#318）**: フロントの帳票キャンバス（`.report-page`）はサーバ同梱フォントと同一ファイルから生成した自己ホスト woff2（`public/fonts/`、core+漢字の unicode-range 分割）で描画。汎用キーワードは `resolveFontFamily`（`styleUtils.ts`）で `sans-serif`→Noto Sans JP / `serif`→Noto Serif JP に解決し、クライアント側エクスポートは `document.fonts.ready` を待ってからキャプチャする。
+- **letterSpacing（#319）**: `TextStyle.letterSpacing` は em 単位（フロントは `${v}em`）。PDF 側は `em × fontSize` の pt 換算で `setCharacterSpacing` を適用し、折返し（`wrapText`）・中央/右寄せ・トランケート・縦書きのグリフ送りまで一貫して字間を算入する（`TextPdfRenderer` / `DataFieldPdfRenderer`）。
 - **画像**（`ImagePdfRenderer`）: Base64 データ URI と HTTP/HTTPS URL 対応。SSRF 対策で 10s タイムアウト・リダイレクト禁止・10MB 上限。
 
 ### ジョブ基盤
