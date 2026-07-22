@@ -144,7 +144,7 @@ export function AppShell() {
           aria-labelledby="top-tab-databrowser"
           className="flex flex-1 overflow-hidden"
         >
-          <aside className="w-60 shrink-0 border-r overflow-y-auto bg-muted/10" aria-label="データソース選択">
+          <aside className="w-60 shrink-0 border-r overflow-y-auto bg-muted/10" aria-label={t('dataBrowser.selectSourceAria')}>
             <DataSourceTree onSelect={setSource} selected={selectedSource} />
           </aside>
           <main className="flex-1 overflow-hidden flex flex-col">
@@ -153,8 +153,8 @@ export function AppShell() {
             ) : (
               <EmptyState
                 icon={<TableProperties className="w-10 h-10" />}
-                title="データソースを選択してください"
-                description="左のツリーからデータソースを選択すると、ここにデータが表示されます"
+                title={t('dataBrowser.emptyTitle')}
+                description={t('dataBrowser.emptyDescription')}
               />
             )}
           </main>

@@ -1,4 +1,13 @@
 {
+  "appError": {
+    "retry": "Retry",
+    "title": "An unexpected error occurred"
+  },
+  "dataBrowser": {
+    "emptyDescription": "Select a data source from the tree on the left to see its data here",
+    "emptyTitle": "Select a data source",
+    "selectSourceAria": "Data source selection"
+  },
   "language": {
     "en": "English",
     "ja": "日本語",

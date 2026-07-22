@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import i18next from 'eslint-plugin-i18next'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
@@ -44,5 +45,28 @@ export default tseslint.config(
     // component boundary, so the react-refresh rule does not apply.
     files: ['src/main.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    // i18n regression guard (#329): flag NEW hardcoded Japanese so it can't creep
+    // back in after the Phase 1-6 migration. Scoped to app source (not tests /
+    // stories, which legitimately assert Japanese copy). The `ignore` regex
+    // matches any literal with NO Japanese characters, so only Japanese-containing
+    // literals are flagged — this sidesteps the usual no-literal-string noise
+    // (className, role, English text, format tokens). Intentional non-translatable
+    // Japanese DATA (seed defaults, era tables, enum values, placeholder names) is
+    // annotated with `// eslint-disable-next-line i18next/no-literal-string`.
+    files: ['src/**/*.tsx'],
+    ignores: ['**/*.test.tsx', '**/*.spec.tsx', '**/*.stories.tsx', 'src/test/**'],
+    plugins: { i18next },
+    rules: {
+      'i18next/no-literal-string': ['error', {
+        mode: 'all',
+        // Exclude any literal with NO Japanese character, so only Japanese-
+        // containing strings are flagged (skips className, English text, symbols,
+        // format tokens — the usual no-literal-string noise). The second pattern
+        // exempts the "・" (U+30FB) list separator, which is punctuation, not copy.
+        words: { exclude: ['^[^\\u3040-\\u30ff\\u4e00-\\u9faf]*$', '^[・\\s]*$'] },
+      }],
+    },
   },
 )

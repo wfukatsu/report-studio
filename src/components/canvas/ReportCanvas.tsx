@@ -404,6 +404,7 @@ export function ReportCanvas({
         if (isNumeric) {
           const existingTotals = bandEl.totals ?? []
           if (!existingTotals.some((t) => t.fieldKey === payload.fieldKey)) {
+            // eslint-disable-next-line i18next/no-literal-string -- seed default label persisted to the data model
             patch.totals = [...existingTotals, { fieldKey: payload.fieldKey, formula: 'sum', label: '合計' }]
             patch.showFooter = true
           }
@@ -532,6 +533,7 @@ export function ReportCanvas({
         const existingTotalKeys = new Set(existingTotals.map((t) => t.fieldKey))
         const newTotals = addedFields
           .filter((f) => f.fieldType === 'number' && !existingTotalKeys.has(f.fieldKey))
+          // eslint-disable-next-line i18next/no-literal-string -- seed default label persisted to the data model
           .map((f) => ({ fieldKey: f.fieldKey, formula: 'sum' as const, label: '合計' }))
 
         const patch: Record<string, unknown> = {
