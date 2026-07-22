@@ -23,6 +23,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:5173',
+    // Pin the browser locale so the i18n language detector (navigator) resolves to
+    // Japanese (#329). Without this, CI runners report en-US and the app renders in
+    // English, breaking the suite's Japanese-text queries. The E2E flows assert the
+    // Japanese UI, so ja-JP is the deterministic language for them.
+    locale: 'ja-JP',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
