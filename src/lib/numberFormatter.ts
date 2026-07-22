@@ -8,22 +8,34 @@ import { formatAddress } from '@/elements/_blocks/formatAddress'
 interface EraEntry {
   name: string
   abbr: string
-  start: Date
+  // Era boundary as a civil (calendar) date. Comparing civil components — not
+  // `Date` instants — keeps 和暦 timezone-independent so it matches the server
+  // `ValueFormatter` (LocalDate) at boundary days like 2019-05-01 (令和元年).
+  // Using `new Date('2019-05-01')` (UTC midnight) here mis-classified that day
+  // as 平成 on +09:00 (JST) machines (#329 Phase 4).
+  startY: number
+  startM: number
+  startD: number
 }
 
 const ERA_TABLE: EraEntry[] = [
-  { name: '令和', abbr: 'R', start: new Date('2019-05-01') },
-  { name: '平成', abbr: 'H', start: new Date('1989-01-08') },
-  { name: '昭和', abbr: 'S', start: new Date('1926-12-25') },
-  { name: '大正', abbr: 'T', start: new Date('1912-07-30') },
-  { name: '明治', abbr: 'M', start: new Date('1868-01-25') },
+  { name: '令和', abbr: 'R', startY: 2019, startM: 5, startD: 1 },
+  { name: '平成', abbr: 'H', startY: 1989, startM: 1, startD: 8 },
+  { name: '昭和', abbr: 'S', startY: 1926, startM: 12, startD: 25 },
+  { name: '大正', abbr: 'T', startY: 1912, startM: 7, startD: 30 },
+  { name: '明治', abbr: 'M', startY: 1868, startM: 1, startD: 25 },
 ]
 
 function getEra(date: Date): { era: EraEntry; year: number } | null {
+  const y = date.getFullYear()
+  const m = date.getMonth() + 1
+  const d = date.getDate()
   for (const era of ERA_TABLE) {
-    if (date >= era.start) {
-      const year = date.getFullYear() - era.start.getFullYear() + 1
-      return { era, year }
+    const onOrAfter =
+      y > era.startY ||
+      (y === era.startY && (m > era.startM || (m === era.startM && d >= era.startD)))
+    if (onOrAfter) {
+      return { era, year: y - era.startY + 1 }
     }
   }
   return null
@@ -95,6 +107,18 @@ export function toKanjiNumeral(amount: number): string {
 // 数値フォーマット
 // ---------------------------------------------------------------------------
 
+// Explicit Intl.NumberFormat instances (Phase 4, #329) replacing ad-hoc
+// `Number.prototype.toLocaleString`. Same locale + options as before, so output
+// is byte-identical; the server `ValueFormatter` mirrors these (grouping "," /
+// decimal ".") and the shared golden fixture (numberFormatter.parity.test.ts /
+// ValueFormatterParityTest) pins the front↔server contract.
+const NF_CURRENCY_JPY = new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 0 })
+const NF_CURRENCY_USD = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+const NF_COMMA = new Intl.NumberFormat('ja-JP')
+
 export function formatNumber(value: number, format: CalculationFormat): string {
   const { type, decimalPlaces = 0, customPattern } = format
 
@@ -104,13 +128,13 @@ export function formatNumber(value: number, format: CalculationFormat): string {
     case 'decimal':
       return value.toFixed(decimalPlaces)
     case 'currency_jpy':
-      return `¥${value.toLocaleString('ja-JP', { maximumFractionDigits: 0 })}`
+      return `¥${NF_CURRENCY_JPY.format(value)}`
     case 'currency_usd':
-      return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      return `$${NF_CURRENCY_USD.format(value)}`
     case 'percent':
       return `${(value * 100).toFixed(decimalPlaces)}%`
     case 'comma':
-      return value.toLocaleString('ja-JP')
+      return NF_COMMA.format(value)
     case 'kanji_numeral':
       return toKanjiNumeral(value)
     case 'custom':
@@ -125,8 +149,24 @@ export function formatNumber(value: number, format: CalculationFormat): string {
 // 日付フォーマット
 // ---------------------------------------------------------------------------
 
+/**
+ * Parse a formatter input into a Date using **civil** (calendar) semantics for
+ * date-only strings, so date/和暦 output is timezone-independent and matches the
+ * server `ValueFormatter` (which parses with `LocalDate`). `new Date('2026-04-01')`
+ * parses as UTC midnight and shifts the day west of UTC; `new Date(y, m-1, d)`
+ * builds a local civil date that yields the same Y/M/D in every timezone (#329
+ * Phase 4). Strings carrying an explicit time/offset fall through to `new Date`.
+ */
+function toCivilDate(value: Date | string): Date {
+  if (value instanceof Date) return value
+  const s = String(value).trim()
+  const m = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(s)
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return new Date(s)
+}
+
 export function formatDate(value: Date | string, format: CalculationFormat): string {
-  const date = value instanceof Date ? value : new Date(String(value))
+  const date = toCivilDate(value)
   if (isNaN(date.getTime())) return String(value)
 
   const { type, customPattern } = format
@@ -241,7 +281,10 @@ function applyCustomPattern(value: number, pattern: string): string {
   const hasComma = pattern.includes(',')
   const decimals = (pattern.split('.')[1] ?? '').replace(/[^0#]/g, '').length
   let result = hasComma
-    ? value.toLocaleString('ja-JP', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    ? new Intl.NumberFormat('ja-JP', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      }).format(value)
     : value.toFixed(decimals)
   if (pattern.startsWith('¥') || pattern.startsWith('$')) result = pattern[0] + result
   return result

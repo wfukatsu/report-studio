@@ -110,6 +110,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // The shared front<->server formatter parity fixture lives in the frontend
+    // tree (#329 Phase 4). Declare it as an input so a fixture change re-runs the
+    // Java parity test (ValueFormatterParityTest) instead of staying UP-TO-DATE.
+    inputs.file(file("../src/lib/formatGolden.json")).withPathSensitivity(PathSensitivity.RELATIVE)
     finalizedBy(tasks.jacocoTestReport)
 }
 
