@@ -1,5 +1,7 @@
 import { toast } from 'sonner'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { ParseKeys } from 'i18next'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore, selectActivePageId, selectActivePage, flattenPageElements } from '@/store/reportStore'
 import { historyTimerRef } from '@/store/historyTimer'
@@ -28,20 +30,21 @@ import { ChevronLeft, ChevronRight, LayoutTemplate, Layers, BookOpen, Database }
 type LeftTab = 'elements' | 'pages' | 'layers' | 'schema'
 type RightTab = 'properties' | 'versions' | 'page'
 
-const LEFT_TABS: { id: LeftTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'elements', label: '要素',    icon: <LayoutTemplate className="w-3.5 h-3.5" /> },
-  { id: 'layers',   label: 'レイヤー', icon: <Layers className="w-3.5 h-3.5" /> },
-  { id: 'pages',    label: 'ページ',   icon: <BookOpen className="w-3.5 h-3.5" /> },
-  { id: 'schema',   label: 'スキーマ', icon: <Database className="w-3.5 h-3.5" /> },
-]
+const LEFT_TABS = [
+  { id: 'elements', labelKey: 'app.tabs.elements', icon: <LayoutTemplate className="w-3.5 h-3.5" /> },
+  { id: 'layers',   labelKey: 'app.tabs.layers',   icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: 'pages',    labelKey: 'app.tabs.pages',    icon: <BookOpen className="w-3.5 h-3.5" /> },
+  { id: 'schema',   labelKey: 'app.tabs.schema',   icon: <Database className="w-3.5 h-3.5" /> },
+] as const satisfies readonly { id: LeftTab; labelKey: ParseKeys<'core'>; icon: React.ReactNode }[]
 
-const RIGHT_TABS: { id: RightTab; label: string }[] = [
-  { id: 'properties', label: 'プロパティ' },
-  { id: 'versions', label: 'バージョン' },
-  { id: 'page', label: 'ページ設定' },
-]
+const RIGHT_TABS = [
+  { id: 'properties', labelKey: 'app.tabs.properties' },
+  { id: 'versions', labelKey: 'app.tabs.versions' },
+  { id: 'page', labelKey: 'app.tabs.page' },
+] as const satisfies readonly { id: RightTab; labelKey: ParseKeys<'core'> }[]
 
 export default function App() {
+  const { t } = useTranslation('core')
   const [leftTab, setLeftTab] = useState<LeftTab>('elements')
   const [rightTab, setRightTab] = useState<RightTab>('properties')
   const [showTemplateModal, setShowTemplateModal] = useState(false)
@@ -259,8 +262,8 @@ export default function App() {
           e.preventDefault()
           const count = selectedIds.length
           removeElements(activePageId, selectedIds)
-          toast(`${count}件の要素を削除しました`, {
-            action: { label: '元に戻す', onClick: () => undo() },
+          toast(t('app.elementsDeleted', { n: count }), {
+            action: { label: t('app.undo'), onClick: () => undo() },
             duration: 5000,
           })
         }
@@ -306,7 +309,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [activePageId, selectedIds, undo, redo, copyElements, cutElements, pasteElements,
     duplicateElement, removeElements, selectAll, setZoom, setEditorZoom, editorZoom, moveElement, pushHistory, activePage,
-    snapToGrid, gridSize, headerEditMode, setHeaderEditMode])
+    snapToGrid, gridSize, headerEditMode, setHeaderEditMode, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-background text-foreground">
@@ -318,7 +321,7 @@ export default function App() {
 
       {showRestorePrompt && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-xs">
-          <span>前回の作業内容が自動保存されています。</span>
+          <span>{t('app.restore.message')}</span>
           <button
             onClick={() => {
               const saved = autoSaveKey ? localStorage.getItem(autoSaveKey) : null
@@ -327,7 +330,7 @@ export default function App() {
             }}
             className="font-medium text-primary hover:underline"
           >
-            復元する
+            {t('app.restore.restore')}
           </button>
           <button
             onClick={() => {
@@ -336,13 +339,13 @@ export default function App() {
             }}
             className="text-muted-foreground hover:text-foreground"
           >
-            破棄
+            {t('app.restore.discard')}
           </button>
         </div>
       )}
       {autoSaveTime && !showRestorePrompt && (
         <div className="bg-muted/30 border-b px-4 py-1 text-[10px] text-muted-foreground">
-          自動保存済み {autoSaveTime}
+          {t('app.autoSaved', { time: autoSaveTime })}
         </div>
       )}
 
@@ -356,10 +359,10 @@ export default function App() {
               {leftSidebarOpen && (
                 <div
                   role="tablist"
-                  aria-label="サイドバーナビゲーション"
+                  aria-label={t('app.sidebar.leftNav')}
                   className="flex overflow-x-auto"
                   onKeyDown={(e) => {
-                    const tabIds = LEFT_TABS.map((t) => t.id)
+                    const tabIds = LEFT_TABS.map((tab) => tab.id)
                     const currentIndex = tabIds.indexOf(leftTab)
                     let nextIndex: number | null = null
                     if (e.key === 'ArrowRight') {
@@ -390,7 +393,7 @@ export default function App() {
                         id={`tab-${tab.id}`}
                         tabIndex={isActive ? 0 : -1}
                         onClick={() => setLeftTab(tab.id)}
-                        title={tab.label}
+                        title={t(tab.labelKey)}
                         className={cn(
                           'shrink-0 flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors whitespace-nowrap',
                           isActive
@@ -399,7 +402,7 @@ export default function App() {
                         )}
                       >
                         {tab.icon}
-                        <span className="text-[9px] leading-tight">{tab.label}</span>
+                        <span className="text-[9px] leading-tight">{t(tab.labelKey)}</span>
                       </button>
                     )
                   })}
@@ -408,8 +411,8 @@ export default function App() {
               <button
                 onClick={() => setLeftSidebarOpen(v => !v)}
                 className="ml-auto shrink-0 px-1 py-2 text-muted-foreground hover:text-foreground"
-                title={leftSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
-                aria-label={leftSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
+                title={leftSidebarOpen ? t('app.sidebar.collapse') : t('app.sidebar.expand')}
+                aria-label={leftSidebarOpen ? t('app.sidebar.collapse') : t('app.sidebar.expand')}
               >
                 {leftSidebarOpen ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               </button>
@@ -455,18 +458,18 @@ export default function App() {
               <button
                 onClick={() => setRightSidebarOpen(v => !v)}
                 className="shrink-0 px-1 py-2 text-muted-foreground hover:text-foreground"
-                title={rightSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
-                aria-label={rightSidebarOpen ? 'サイドバーを閉じる' : 'サイドバーを開く'}
+                title={rightSidebarOpen ? t('app.sidebar.collapse') : t('app.sidebar.expand')}
+                aria-label={rightSidebarOpen ? t('app.sidebar.collapse') : t('app.sidebar.expand')}
               >
                 {rightSidebarOpen ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
               </button>
               {rightSidebarOpen && (
                 <div
                   role="tablist"
-                  aria-label="右サイドバーナビゲーション"
+                  aria-label={t('app.sidebar.rightNav')}
                   className="flex overflow-x-auto"
                   onKeyDown={(e) => {
-                    const tabIds = RIGHT_TABS.map((t) => t.id)
+                    const tabIds = RIGHT_TABS.map((tab) => tab.id)
                     const currentIndex = tabIds.indexOf(rightTab)
                     let nextIndex: number | null = null
                     if (e.key === 'ArrowRight') {
@@ -501,7 +504,7 @@ export default function App() {
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      {tab.label}
+                      {t(tab.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -528,29 +531,29 @@ export default function App() {
         open={showTemplateModal}
         onClose={() => setShowTemplateModal(false)}
         onSelect={handleTemplateChange}
-        title={templateModalMode === 'new' ? 'テンプレートを選ぶ' : 'テンプレートを変更'}
-        confirmLabel={templateModalMode === 'new' ? '作成' : '変更'}
+        title={templateModalMode === 'new' ? t('app.templateModal.titleNew') : t('app.templateModal.titleChange')}
+        confirmLabel={templateModalMode === 'new' ? t('app.templateModal.confirmNew') : t('app.templateModal.confirmChange')}
       />
       <SubmitResponseModal />
 
       <ConfirmDialog
         open={showTemplateChangeConfirm}
-        title="未保存の変更があります"
-        message="編集中のテンプレートに未保存の変更があります。破棄して別のテンプレートを開きますか？"
-        confirmLabel="破棄して開く"
+        title={t('app.unsavedConfirm.title')}
+        message={t('app.unsavedConfirm.message')}
+        confirmLabel={t('app.unsavedConfirm.discardAndOpen')}
         confirmVariant="danger"
         // Offer a non-destructive "save first" path when an existing server
         // template is open (has an id to save to). A blank/unsaved-new draft has
         // no id, so only the discard path is shown there (#160).
-        secondaryLabel={useReportStore.getState().currentTemplateId ? '保存して開く' : undefined}
+        secondaryLabel={useReportStore.getState().currentTemplateId ? t('app.unsavedConfirm.saveAndOpen') : undefined}
         onSecondary={async () => {
           const { currentTemplateId, definition } = useReportStore.getState()
           if (currentTemplateId) {
             try {
               await saveReport(currentTemplateId, definition)
-              toast.success('保存しました')
+              toast.success(t('app.toast.saved'))
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : '保存に失敗しました', { duration: 8000 })
+              toast.error(err instanceof Error ? err.message : t('app.toast.saveFailed'), { duration: 8000 })
               return // keep the dialog open so the user doesn't lose the pending switch
             }
           }

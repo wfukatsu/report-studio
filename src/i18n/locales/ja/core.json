@@ -1,0 +1,50 @@
+{
+  "app": {
+    "autoSaved": "自動保存済み {{time}}",
+    "elementsDeleted": "{{n}}件の要素を削除しました",
+    "restore": {
+      "discard": "破棄",
+      "message": "前回の作業内容が自動保存されています。",
+      "restore": "復元する"
+    },
+    "sidebar": {
+      "collapse": "サイドバーを閉じる",
+      "expand": "サイドバーを開く",
+      "leftNav": "サイドバーナビゲーション",
+      "rightNav": "右サイドバーナビゲーション"
+    },
+    "tabs": {
+      "elements": "要素",
+      "layers": "レイヤー",
+      "page": "ページ設定",
+      "pages": "ページ",
+      "properties": "プロパティ",
+      "schema": "スキーマ",
+      "versions": "バージョン"
+    },
+    "templateModal": {
+      "confirmChange": "変更",
+      "confirmNew": "作成",
+      "titleChange": "テンプレートを変更",
+      "titleNew": "テンプレートを選ぶ"
+    },
+    "toast": {
+      "saveFailed": "保存に失敗しました",
+      "saved": "保存しました"
+    },
+    "undo": "元に戻す",
+    "unsavedConfirm": {
+      "discardAndOpen": "破棄して開く",
+      "message": "編集中のテンプレートに未保存の変更があります。破棄して別のテンプレートを開きますか？",
+      "saveAndOpen": "保存して開く",
+      "title": "未保存の変更があります"
+    }
+  },
+  "dataBrowserPage": {
+    "backToDesigner": "デザイナーに戻る",
+    "emptyDescription": "左のツリーからデータソースを選択すると、ここにデータが表示されます",
+    "emptyTitle": "データソースを選択してください",
+    "sourceSelection": "データソース選択",
+    "title": "データブラウザ"
+  }
+}
