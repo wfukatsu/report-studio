@@ -11,6 +11,7 @@ import type modals from './locales/ja/modals.json'
 import type elements from './locales/ja/elements.json'
 import type components from './locales/ja/components.json'
 import type core from './locales/ja/core.json'
+import type serverErrors from './locales/ja/serverErrors.json'
 
 declare module 'i18next' {
   interface CustomTypeOptions {
@@ -22,6 +23,7 @@ declare module 'i18next' {
       elements: typeof elements
       components: typeof components
       core: typeof core
+      serverErrors: typeof serverErrors
     }
   }
 }

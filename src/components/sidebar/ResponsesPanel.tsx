@@ -60,6 +60,7 @@ function formatDate(epochMs: number): string {
 
 export function ResponsesPanel() {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const currentTemplateId = useReportStore((s) => s.currentTemplateId)
   const responses = useReportStore((s) => s.responses)
@@ -208,12 +209,12 @@ export function ResponsesPanel() {
       invalidateResponsesCache()
       await fetchResponses(true)
     } catch (err) {
-      const copy = getErrorCopy(classifyError(err).code)
+      const copy = getErrorCopy(classifyError(err).code, tErr)
       toast.error(t('sidebar.responsesPanel.toast.deleteFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDeletingId(null)
     }
-  }, [currentTemplateId, invalidateResponsesCache, fetchResponses, t])
+  }, [currentTemplateId, invalidateResponsesCache, fetchResponses, t, tErr])
 
   const handleDelete = useCallback((response: FormResponseSummary) => {
     setDeleteTarget(response)
@@ -259,12 +260,12 @@ export function ResponsesPanel() {
     try {
       await exportResponses(currentTemplateId, format)
     } catch (err) {
-      const copy = getErrorCopy(classifyError(err).code)
+      const copy = getErrorCopy(classifyError(err).code, tErr)
       toast.error(t('sidebar.responsesPanel.toast.exportFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setIsExporting(false)
     }
-  }, [currentTemplateId, isExporting, t])
+  }, [currentTemplateId, isExporting, t, tErr])
 
   const handleDownloadPdf = useCallback(async (response: FormResponseSummary) => {
     if (!currentTemplateId) return
@@ -273,12 +274,12 @@ export function ResponsesPanel() {
       const blob = await getResponsePdf(currentTemplateId, response.id)
       downloadBlob(blob, `response-${response.id}.pdf`)
     } catch (err) {
-      const copy = getErrorCopy(classifyError(err).code)
+      const copy = getErrorCopy(classifyError(err).code, tErr)
       toast.error(t('sidebar.responsesPanel.toast.pdfFailed'), { description: copy.hint, duration: 6000 })
     } finally {
       if (mountedRef.current) setDownloadingPdfId(null)
     }
-  }, [currentTemplateId, t])
+  }, [currentTemplateId, t, tErr])
 
   if (!backendConnected || !currentTemplateId) {
     return (

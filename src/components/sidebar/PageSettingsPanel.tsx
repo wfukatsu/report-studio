@@ -19,6 +19,7 @@ interface PageSettingsPanelProps {
 
 export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
   const [metaOpen, setMetaOpen] = useState(false)
   const [seqOpen, setSeqOpen] = useState(false)
   const [seqConfig, setSeqConfig] = useState<SequenceConfig | null>(null)
@@ -57,7 +58,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
       const updated = await updateSequenceConfig(currentTemplateId, seqConfig)
       setSeqConfig(updated)
     } catch (err) {
-      const copy = getErrorCopy(classifyError(err).code)
+      const copy = getErrorCopy(classifyError(err).code, tErr)
       toast.error(t('sidebar.pageSettingsPanel.seqSaveFailed'), { description: copy.hint, duration: 6000 })
     }
     finally { setSeqSaving(false) }
