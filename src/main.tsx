@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import '@/index.css'
+import '@/i18n/config' // Initialize i18next before any component calls useTranslation (#329)
 import { AppShell } from '@/components/layout/AppShell'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 

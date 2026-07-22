@@ -1,5 +1,6 @@
 import { useRef, useCallback, useMemo } from 'react'
 import type { KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { AppTab } from '@/store/types'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ function isSeparator(item: TopNavItem): item is TopNavSeparator {
 }
 
 export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationProps) {
+  const { t } = useTranslation()
   // Memoize so `useCallback` consumers downstream see a stable array reference
   // across renders that don't change the tabs prop (the prop is a module-level
   // constant in AppShell, so this effectively runs once per mount).
@@ -66,7 +68,7 @@ export function TopNavigation({ activeTab, onTabChange, tabs }: TopNavigationPro
   return (
     <nav
       role="tablist"
-      aria-label="メインナビゲーション"
+      aria-label={t('nav.ariaLabel')}
       aria-orientation="horizontal"
       className="flex items-end border-b bg-card shrink-0 px-2"
     >
