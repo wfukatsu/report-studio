@@ -28,6 +28,8 @@ import jaElements from './locales/ja/elements.json'
 import enElements from './locales/en/elements.json'
 import jaComponents from './locales/ja/components.json'
 import enComponents from './locales/en/components.json'
+import jaCore from './locales/ja/core.json'
+import enCore from './locales/en/core.json'
 
 export const SUPPORTED_LANGUAGES = ['ja', 'en'] as const
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number]
@@ -40,8 +42,8 @@ export const DEFAULT_NS = 'common'
 export const LANGUAGE_STORAGE_KEY = 'reportStudioLang'
 
 export const resources = {
-  ja: { common: jaCommon, toolbar: jaToolbar, modals: jaModals, elements: jaElements, components: jaComponents },
-  en: { common: enCommon, toolbar: enToolbar, modals: enModals, elements: enElements, components: enComponents },
+  ja: { common: jaCommon, toolbar: jaToolbar, modals: jaModals, elements: jaElements, components: jaComponents, core: jaCore },
+  en: { common: enCommon, toolbar: enToolbar, modals: enModals, elements: enElements, components: enComponents, core: enCore },
 } as const
 
 // Vitest sets MODE === 'test'. Guard the access so non-Vite consumers (e.g. the
@@ -67,7 +69,7 @@ i18n
     // Map region variants (en-US → en) onto our language-only resource keys.
     load: 'languageOnly',
     nonExplicitSupportedLngs: true,
-    ns: [DEFAULT_NS, 'toolbar', 'modals', 'elements', 'components'],
+    ns: [DEFAULT_NS, 'toolbar', 'modals', 'elements', 'components', 'core'],
     defaultNS: DEFAULT_NS,
     interpolation: {
       // React already escapes; double-escaping would mangle output.

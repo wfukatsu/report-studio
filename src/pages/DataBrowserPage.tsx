@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowLeft, TableProperties } from 'lucide-react'
 import { useReportStore } from '@/store'
@@ -8,6 +9,7 @@ import { DataGrid } from '@/components/dataBrowser/DataGrid'
 import { EmptyState } from '@/components/dataBrowser/EmptyState'
 
 export function DataBrowserPage() {
+  const { t } = useTranslation('core')
   const currentUser = useReportStore((s) => s.currentUser)
   const authLoading = useReportStore((s) => s.authLoading)
   const checkAuth = useReportStore((s) => s.checkAuth)
@@ -34,15 +36,15 @@ export function DataBrowserPage() {
         <Link
           to="/"
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="デザイナーに戻る"
+          aria-label={t('dataBrowserPage.backToDesigner')}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          デザイナーに戻る
+          {t('dataBrowserPage.backToDesigner')}
         </Link>
         <div className="w-px h-4 bg-border" />
         <div className="flex items-center gap-2">
           <TableProperties className="w-4 h-4 text-primary" />
-          <h1 className="text-sm font-semibold">データブラウザ</h1>
+          <h1 className="text-sm font-semibold">{t('dataBrowserPage.title')}</h1>
         </div>
       </header>
 
@@ -51,7 +53,7 @@ export function DataBrowserPage() {
         {/* Left sidebar: source tree */}
         <aside
           className="w-60 shrink-0 border-r overflow-y-auto bg-muted/10"
-          aria-label="データソース選択"
+          aria-label={t('dataBrowserPage.sourceSelection')}
         >
           <DataSourceTree
             onSelect={setSource}
@@ -66,8 +68,8 @@ export function DataBrowserPage() {
           ) : (
             <EmptyState
               icon={<TableProperties className="w-10 h-10" />}
-              title="データソースを選択してください"
-              description="左のツリーからデータソースを選択すると、ここにデータが表示されます"
+              title={t('dataBrowserPage.emptyTitle')}
+              description={t('dataBrowserPage.emptyDescription')}
             />
           )}
         </main>

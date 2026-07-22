@@ -1,0 +1,50 @@
+{
+  "app": {
+    "autoSaved": "Auto-saved {{time}}",
+    "elementsDeleted": "Deleted {{n}} element(s)",
+    "restore": {
+      "discard": "Discard",
+      "message": "Your previous work was automatically saved.",
+      "restore": "Restore"
+    },
+    "sidebar": {
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "leftNav": "Sidebar navigation",
+      "rightNav": "Right sidebar navigation"
+    },
+    "tabs": {
+      "elements": "Elements",
+      "layers": "Layers",
+      "page": "Page Settings",
+      "pages": "Pages",
+      "properties": "Properties",
+      "schema": "Schema",
+      "versions": "Versions"
+    },
+    "templateModal": {
+      "confirmChange": "Change",
+      "confirmNew": "Create",
+      "titleChange": "Change template",
+      "titleNew": "Choose a template"
+    },
+    "toast": {
+      "saveFailed": "Failed to save",
+      "saved": "Saved"
+    },
+    "undo": "Undo",
+    "unsavedConfirm": {
+      "discardAndOpen": "Discard and open",
+      "message": "The template you are editing has unsaved changes. Discard them and open another template?",
+      "saveAndOpen": "Save and open",
+      "title": "You have unsaved changes"
+    }
+  },
+  "dataBrowserPage": {
+    "backToDesigner": "Back to designer",
+    "emptyDescription": "Select a data source from the tree on the left to display its data here",
+    "emptyTitle": "Select a data source",
+    "sourceSelection": "Data source selection",
+    "title": "Data Browser"
+  }
+}
