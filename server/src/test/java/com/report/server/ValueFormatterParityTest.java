@@ -16,12 +16,11 @@ import org.junit.jupiter.api.TestFactory;
 /**
  * Front&lt;-&gt;server formatter parity (#329 Phase 4).
  *
- * <p>Loads the SAME {@code src/lib/formatGolden.json} as the frontend
- * {@code src/lib/numberFormatter.parity.test.ts} and asserts
- * {@link ValueFormatter#applyFormat(JsonNode, JsonNode)} equals {@code expected} for every case.
- * A single shared fixture (instead of two hand-mirrored test files) means any drift between the TS
- * and Java formatters fails on exactly one side and is caught before it can break preview/PDF
- * parity (#311-#325).
+ * <p>Loads the SAME {@code src/lib/formatGolden.json} as the frontend {@code
+ * src/lib/numberFormatter.parity.test.ts} and asserts {@link ValueFormatter#applyFormat(JsonNode,
+ * JsonNode)} equals {@code expected} for every case. A single shared fixture (instead of two
+ * hand-mirrored test files) means any drift between the TS and Java formatters fails on exactly one
+ * side and is caught before it can break preview/PDF parity (#311-#325).
  *
  * <p>Date cases use a local {@code T00:00:00} form so both runtimes resolve the same civil date
  * regardless of timezone.
@@ -54,7 +53,11 @@ class ValueFormatterParityTest {
             tests.add(
                     DynamicTest.dynamicTest(
                             "applyFormat: " + name,
-                            () -> assertEquals(expected, ValueFormatter.applyFormat(value, format), name)));
+                            () ->
+                                    assertEquals(
+                                            expected,
+                                            ValueFormatter.applyFormat(value, format),
+                                            name)));
         }
         assertTrue(tests.size() > 20, "expected many parity cases");
         return tests.stream();

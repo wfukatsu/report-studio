@@ -3,6 +3,7 @@
  * PDF / XLSX generation endpoints.
  */
 import { apiFetchBlobWithFilename } from './client'
+import i18n from '@/i18n/config'
 
 // ---------------------------------------------------------------------------
 // Template PDF generation (backend)
@@ -54,8 +55,11 @@ export async function generateStatelessExcel(
   template: Record<string, unknown>,
   data: Record<string, unknown>,
 ): Promise<Blob> {
+  // Generated sheet chrome (項目/値/データ …) is localized server-side by request
+  // locale (#329 Phase 3). Report data itself is untouched user content.
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'ja'
   const { blob } = await apiFetchBlobWithFilename(
-    '/api/v2/excel/generate',
+    `/api/v2/excel/generate?locale=${encodeURIComponent(locale)}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

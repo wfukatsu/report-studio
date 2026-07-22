@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.WorkbookUtil;
@@ -46,6 +47,31 @@ public final class StatelessExcelController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 512 * 1024; // 512KB — matches stateless PDF
 
+    /**
+     * Localized labels for generated sheet names / headers (#329 Phase 3). The report's own data
+     * (field keys, cell values) is user content and stays as-is; only these generated chrome
+     * strings switch by request locale. Package-private so tests can assert the English variant.
+     */
+    record Labels(
+            String itemsSheet,
+            String itemHeader,
+            String valueHeader,
+            String dataSheet,
+            String noData,
+            String sheetFallback) {}
+
+    static final Labels JA = new Labels("項目", "項目", "値", "データ", "出力できるデータがありません", "シート");
+    static final Labels EN =
+            new Labels("Items", "Item", "Value", "Data", "No data available for export", "Sheet");
+
+    /** Pick labels from a request locale: {@code ?locale=en} or Accept-Language "en*" → English. */
+    static Labels labelsFor(Context ctx) {
+        String q = ctx.queryParam("locale");
+        String src = (q != null && !q.isBlank()) ? q : ctx.header("Accept-Language");
+        boolean en = src != null && src.toLowerCase(Locale.ROOT).startsWith("en");
+        return en ? EN : JA;
+    }
+
     /** POST /api/v2/excel/generate */
     public void generate(Context ctx) {
         String body = ctx.body();
@@ -80,7 +106,7 @@ public final class StatelessExcelController {
                         : MAPPER.createObjectNode();
 
         try {
-            byte[] xlsx = buildWorkbook(template, data);
+            byte[] xlsx = buildWorkbook(template, data, labelsFor(ctx));
             ctx.contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             ctx.header("Content-Disposition", "attachment; filename=\"report-data.xlsx\"");
             ctx.result(xlsx);
@@ -92,7 +118,12 @@ public final class StatelessExcelController {
 
     // ── Workbook assembly ───────────────────────────────────────────────────
 
+    /** Backwards-compatible entry point (Japanese labels). */
     static byte[] buildWorkbook(JsonNode template, JsonNode data) throws Exception {
+        return buildWorkbook(template, data, JA);
+    }
+
+    static byte[] buildWorkbook(JsonNode template, JsonNode data, Labels labels) throws Exception {
         List<String> preferredKeys = collectDataSourceKeys(template);
 
         try (SXSSFWorkbook wb = new SXSSFWorkbook(100)) {
@@ -101,10 +132,15 @@ public final class StatelessExcelController {
             // 1. Scalar master fields → 項目/値 sheet
             List<String[]> scalars = collectScalars(data);
             if (!scalars.isEmpty()) {
-                SXSSFSheet sheet = wb.createSheet(uniqueSheetName("項目", usedSheetNames));
+                SXSSFSheet sheet =
+                        wb.createSheet(
+                                uniqueSheetName(
+                                        labels.itemsSheet(),
+                                        usedSheetNames,
+                                        labels.sheetFallback()));
                 Row header = sheet.createRow(0);
-                header.createCell(0, CellType.STRING).setCellValue("項目");
-                header.createCell(1, CellType.STRING).setCellValue("値");
+                header.createCell(0, CellType.STRING).setCellValue(labels.itemHeader());
+                header.createCell(1, CellType.STRING).setCellValue(labels.valueHeader());
                 int r = 1;
                 for (String[] kv : scalars) {
                     Row row = sheet.createRow(r++);
@@ -125,13 +161,21 @@ public final class StatelessExcelController {
             }
 
             for (String key : tableKeys) {
-                writeTableSheet(wb, uniqueSheetName(key, usedSheetNames), data.get(key));
+                writeTableSheet(
+                        wb,
+                        uniqueSheetName(key, usedSheetNames, labels.sheetFallback()),
+                        data.get(key));
             }
 
             // 3. Ensure the workbook always has at least one sheet
             if (wb.getNumberOfSheets() == 0) {
-                SXSSFSheet sheet = wb.createSheet(uniqueSheetName("データ", usedSheetNames));
-                sheet.createRow(0).createCell(0, CellType.STRING).setCellValue("出力できるデータがありません");
+                SXSSFSheet sheet =
+                        wb.createSheet(
+                                uniqueSheetName(
+                                        labels.dataSheet(),
+                                        usedSheetNames,
+                                        labels.sheetFallback()));
+                sheet.createRow(0).createCell(0, CellType.STRING).setCellValue(labels.noData());
             }
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -223,8 +267,9 @@ public final class StatelessExcelController {
     }
 
     /** Sanitize + de-duplicate a sheet name within Excel's 31-char / charset limits. */
-    private static String uniqueSheetName(String raw, LinkedHashSet<String> used) {
-        String safe = WorkbookUtil.createSafeSheetName(raw == null || raw.isBlank() ? "シート" : raw);
+    private static String uniqueSheetName(String raw, LinkedHashSet<String> used, String fallback) {
+        String safe =
+                WorkbookUtil.createSafeSheetName(raw == null || raw.isBlank() ? fallback : raw);
         String candidate = safe;
         int n = 2;
         while (!used.add(candidate)) {

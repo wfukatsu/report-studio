@@ -11,6 +11,7 @@
  */
 
 import type { StateCreator } from 'zustand'
+import i18n from '@/i18n/config'
 import type {
   ProductCustomFieldDef,
   CreateProductRequest,
@@ -69,7 +70,7 @@ export const createProductSlice: StateCreator<
       set((s) => {
         if (_fetchSeq !== seq) return
         s.productsLoading = false
-        s.productsError = err instanceof Error ? err.message : '商品の読み込みに失敗しました'
+        s.productsError = err instanceof Error ? err.message : i18n.t('serverErrors:store.productsLoadFailed')
       })
     }
   },
