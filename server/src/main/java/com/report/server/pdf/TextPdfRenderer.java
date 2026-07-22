@@ -10,6 +10,8 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Renders text elements to PDF using Noto Sans JP for CJK support (issues #52/#56).
@@ -20,6 +22,8 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
  * style from props or the V2 {@code style} object.
  */
 public final class TextPdfRenderer implements ElementPdfRenderer {
+
+    private static final Logger log = LoggerFactory.getLogger(TextPdfRenderer.class);
 
     private static final float DEFAULT_LINE_HEIGHT = 1.4f;
 
@@ -286,7 +290,18 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float charSpacing)
             throws IOException {
         if (text.isEmpty()) return;
-        String safe = sanitizeForFont(font, text);
+        FontGlyphs.SanitizeResult sanitized = FontGlyphs.sanitize(font, text);
+        if (sanitized.hasDropped()) {
+            // #329 Phase 5: surface missing glyphs instead of silently blanking them. The embedded
+            // fonts cover Latin + Japanese; other scripts have no glyph and become whitespace.
+            log.warn(
+                    "PDF: embedded font cannot encode {} glyph(s); replaced with whitespace [{}]."
+                            + " Report PDFs cover Latin + Japanese only; other scripts (Hangul,"
+                            + " Simplified Chinese, Thai, …) are not rendered.",
+                    sanitized.droppedCodePoints().size(),
+                    FontGlyphs.summarize(sanitized.droppedCodePoints(), 10));
+        }
+        String safe = sanitized.text();
         cs.beginText();
         cs.setFont(font, size);
         if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
@@ -296,31 +311,10 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         if (charSpacing != 0) cs.setCharacterSpacing(0);
     }
 
-    /** Drop code points the font cannot encode, so showText never throws mid-render. */
-    private static String sanitizeForFont(PDFont font, String text) {
-        try {
-            font.getStringWidth(text);
-            return text;
-        } catch (Exception e) {
-            StringBuilder sb = new StringBuilder();
-            text.codePoints()
-                    .forEach(
-                            cp -> {
-                                String ch = new String(Character.toChars(cp));
-                                try {
-                                    font.getStringWidth(ch);
-                                    sb.append(ch);
-                                } catch (Exception ignored) {
-                                    sb.append(' ');
-                                }
-                            });
-            return sb.toString();
-        }
-    }
-
     private static float strWidth(PDFont font, String s, float size) {
         try {
-            return font.getStringWidth(sanitizeForFont(font, s)) / 1000 * size;
+            // Width of the drawable (sanitized) text; the draw path logs any dropped glyphs.
+            return font.getStringWidth(FontGlyphs.sanitize(font, s).text()) / 1000 * size;
         } catch (Exception e) {
             return s.length() * size;
         }
