@@ -92,17 +92,17 @@ describe('formatNumber', () => {
 // ---------------------------------------------------------------------------
 describe('formatWareki', () => {
   it('returns Reiwa era for 2026', () => {
-    const result = formatWareki(new Date('2026-04-01'), 'wareki_full')
+    const result = formatWareki(new Date('2026-04-01T00:00:00'), 'wareki_full')
     expect(result).toBe('令和8年4月1日')
   })
 
   it('returns short format', () => {
-    const result = formatWareki(new Date('2026-04-01'), 'wareki_short')
+    const result = formatWareki(new Date('2026-04-01T00:00:00'), 'wareki_short')
     expect(result).toBe('R08.04.01')
   })
 
   it('handles Heisei era', () => {
-    const result = formatWareki(new Date('2019-04-30'), 'wareki_full')
+    const result = formatWareki(new Date('2019-04-30T00:00:00'), 'wareki_full')
     expect(result).toBe('平成31年4月30日')
   })
 })
@@ -159,7 +159,7 @@ describe('formatDate', () => {
   })
 
   it('accepts Date object directly', () => {
-    const date = new Date('2026-04-01')
+    const date = new Date('2026-04-01T00:00:00')
     const result = formatDate(date, { type: 'yyyy/MM/dd' })
     expect(result).toBe('2026/04/01')
   })
@@ -188,7 +188,7 @@ describe('applyFormat', () => {
   })
 
   it('formats Date object with date format', () => {
-    const result = applyFormat(new Date('2026-04-01'), { type: 'yyyy/MM/dd' })
+    const result = applyFormat(new Date('2026-04-01T00:00:00'), { type: 'yyyy/MM/dd' })
     expect(result).toBe('2026/04/01')
   })
 
@@ -203,7 +203,7 @@ describe('applyFormat', () => {
 describe('formatWareki — edge cases', () => {
   it('returns 元年 for the first year of an era', () => {
     // Reiwa started 2019-05-01 → year 1 = '元'
-    const result = formatWareki(new Date('2019-05-01'), 'wareki_full')
+    const result = formatWareki(new Date('2019-05-01T00:00:00'), 'wareki_full')
     expect(result).toBe('令和元年5月1日')
   })
 
