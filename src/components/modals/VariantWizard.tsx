@@ -76,6 +76,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
           id: el.id,
           name: el.name?.trim() || el.type,
           type: el.type,
+          // eslint-disable-next-line i18next/no-literal-string -- default page-name fallback (data, not UI copy)
           pageLabel: page.name || 'ページ',
         })
       }

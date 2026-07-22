@@ -309,6 +309,7 @@ function inferSchemaFromSample(sample: Record<string, unknown>): SchemaDefinitio
 
   const groups: SchemaGroup[] = []
   if (masterFields.length > 0) {
+    // eslint-disable-next-line i18next/no-literal-string -- seed default group label persisted to the data model
     groups.push({ id: uuidv4(), label: 'マスター', role: 'master', dataKey: '', fields: masterFields })
   }
   groups.push(...detailGroups)

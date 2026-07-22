@@ -299,6 +299,7 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
 
   function addDef() {
     const newKey = `field${defs.length + 1}`
+    // eslint-disable-next-line i18next/no-literal-string -- seed default label persisted to the data model
     setDefs([...defs, { key: newKey, label: '新しいフィールド', type: 'text' }])
   }
 

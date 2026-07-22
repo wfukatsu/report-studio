@@ -55,6 +55,7 @@ export function DataSourcePanel() {
       fields[r.key.trim()] = r.value
     })
     if (Object.keys(fields).length > 0) {
+      // eslint-disable-next-line i18next/no-literal-string -- seed default data-source name persisted to the model
       setDataSource({ id: uuidv4(), name: 'フォームデータ', fields })
       setError(null)
     }

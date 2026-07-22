@@ -1,4 +1,13 @@
 {
+  "appError": {
+    "retry": "再試行",
+    "title": "予期しないエラーが発生しました"
+  },
+  "dataBrowser": {
+    "emptyDescription": "左のツリーからデータソースを選択すると、ここにデータが表示されます",
+    "emptyTitle": "データソースを選択してください",
+    "selectSourceAria": "データソース選択"
+  },
   "language": {
     "en": "English",
     "ja": "日本語",
