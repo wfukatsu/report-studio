@@ -38,5 +38,14 @@
   "unknown": {
     "title": "予期しないエラーが発生しました",
     "hint": "ページを再読み込みしてお試しください。"
+  },
+  "store": {
+    "schemaLoadFailed": "スキーマの読み込みに失敗しました",
+    "schemaVersionConflict": "他のユーザーがこのスキーマを更新しました。再読み込みしてください。",
+    "usersLoadFailed": "ユーザー一覧の取得に失敗しました",
+    "serverConfigLoadFailed": "設定の読み込みに失敗しました",
+    "productsLoadFailed": "商品の読み込みに失敗しました",
+    "productDuplicateCode": "この商品コードは既に使用されています",
+    "productVersionConflict": "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。"
   }
 }

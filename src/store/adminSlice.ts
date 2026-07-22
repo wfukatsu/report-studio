@@ -7,6 +7,7 @@
  */
 
 import type { StateCreator } from 'zustand'
+import i18n from '@/i18n/config'
 import type { StoreState } from './types'
 import {
   listUsers, createUser, deleteUser,
@@ -54,7 +55,7 @@ export const createAdminSlice: StateCreator<
       // rejection through would paint an error banner over freshly-loaded data (#156).
       if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) return
       set((s) => {
-        s.adminUsersError = 'ユーザー一覧の取得に失敗しました'
+        s.adminUsersError = i18n.t('serverErrors:store.usersLoadFailed')
         s.adminUsersLoading = false
       })
     }
@@ -86,7 +87,7 @@ export const createAdminSlice: StateCreator<
       })
     } catch {
       set((s) => {
-        s.adminServerConfigError = '設定の読み込みに失敗しました'
+        s.adminServerConfigError = i18n.t('serverErrors:store.serverConfigLoadFailed')
         s.adminServerConfigLoading = false
       })
     }

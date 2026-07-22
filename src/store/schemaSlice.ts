@@ -4,6 +4,7 @@
  */
 
 import type { StateCreator } from 'zustand'
+import i18n from '@/i18n/config'
 import { v4 as uuidv4 } from 'uuid'
 import type { SchemaGroup, SchemaField, SchemaRelation } from '@/types'
 import type { StoreState } from './types'
@@ -117,7 +118,7 @@ export const createSchemaSlice: StateCreator<
       if (_fetchSeq !== seq) return
       set((s) => {
         s.schemaLoading = false
-        s.schemaError = err instanceof Error ? err.message : 'スキーマの読み込みに失敗しました'
+        s.schemaError = err instanceof Error ? err.message : i18n.t('serverErrors:store.schemaLoadFailed')
       })
     }
   },
@@ -137,7 +138,7 @@ export const createSchemaSlice: StateCreator<
     } catch (err) {
       set((s) => {
         s.schemaLoading = false
-        s.schemaError = err instanceof Error ? err.message : 'スキーマの読み込みに失敗しました'
+        s.schemaError = err instanceof Error ? err.message : i18n.t('serverErrors:store.schemaLoadFailed')
       })
     }
   },
@@ -175,7 +176,7 @@ export const createSchemaSlice: StateCreator<
       }
     } catch (err) {
       if (isApiError(err) && err.status === 409) {
-        throw new Error('他のユーザーがこのスキーマを更新しました。再読み込みしてください。', {
+        throw new Error(i18n.t('serverErrors:store.schemaVersionConflict'), {
           cause: err,
         })
       }

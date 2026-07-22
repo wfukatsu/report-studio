@@ -91,6 +91,32 @@ class StatelessExcelControllerTest {
     }
 
     @Test
+    void buildWorkbook_englishLabelsForEnLocale() throws Exception {
+        // #329 Phase 3: generated sheet chrome switches by request locale; data is untouched.
+        JsonNode data = json("{ \"invoiceNo\": \"INV-1\" }");
+        try (XSSFWorkbook wb =
+                read(
+                        StatelessExcelController.buildWorkbook(
+                                json("{}"), data, StatelessExcelController.EN))) {
+            Sheet fields = wb.getSheet("Items");
+            assertNotNull(fields, "expected an English 'Items' sheet");
+            assertEquals("Item", fields.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Value", fields.getRow(0).getCell(1).getStringCellValue());
+            // data keys/values stay verbatim
+            assertEquals("invoiceNo", fields.getRow(1).getCell(0).getStringCellValue());
+        }
+        try (XSSFWorkbook wb =
+                read(
+                        StatelessExcelController.buildWorkbook(
+                                json("{}"), json("{}"), StatelessExcelController.EN))) {
+            assertEquals("Data", wb.getSheetName(0));
+            assertEquals(
+                    "No data available for export",
+                    wb.getSheet("Data").getRow(0).getCell(0).getStringCellValue());
+        }
+    }
+
+    @Test
     void buildWorkbook_unionsKeysAcrossRows() throws Exception {
         JsonNode tpl = templateWithBand("rows");
         JsonNode data = json("{ \"rows\": [ { \"a\": 1 }, { \"a\": 2, \"b\": 9 } ] }");

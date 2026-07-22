@@ -2,6 +2,7 @@
  * Product Master API — product CRUD, custom field definitions, CSV import.
  */
 import { apiFetch } from './client'
+import i18n from '@/i18n/config'
 import {
   ProductSchema,
   ProductListSchema,
@@ -16,7 +17,7 @@ import type { Product, ProductCustomFieldDef, CreateProductRequest, UpdateProduc
 /** Error thrown when a product code is already in use (409 Conflict). */
 export class DuplicateCodeError extends Error {
   constructor() {
-    super('この商品コードは既に使用されています')
+    super(i18n.t('serverErrors:store.productDuplicateCode'))
     this.name = 'DuplicateCodeError'
   }
 }
@@ -24,7 +25,7 @@ export class DuplicateCodeError extends Error {
 /** Error thrown on optimistic concurrency conflict (409 version mismatch). */
 export class VersionConflictError extends Error {
   constructor() {
-    super('他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。')
+    super(i18n.t('serverErrors:store.productVersionConflict'))
     this.name = 'VersionConflictError'
   }
 }

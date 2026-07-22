@@ -4,7 +4,10 @@ import i18n, { resources } from '@/i18n/config'
 
 // #329 Phase 3: error copy now lives in the `serverErrors` i18n namespace.
 const t = i18n.getFixedT('ja', 'serverErrors')
-const jaCopy = resources.ja.serverErrors as Record<string, { title: string; hint: string }>
+// The `store` section holds flat author-side error strings (#329 Phase 3 残),
+// not code {title,hint} copy — exclude it from the copy-shape assertions.
+const { store: _store, ...jaCodes } = resources.ja.serverErrors as Record<string, unknown>
+const jaCopy = jaCodes as Record<string, { title: string; hint: string }>
 
 describe('userFacingErrorMessages', () => {
   it('provides a non-empty title and hint for every error code (ja)', () => {

@@ -38,5 +38,14 @@
   "unknown": {
     "title": "An unexpected error occurred",
     "hint": "Please reload the page and try again."
+  },
+  "store": {
+    "schemaLoadFailed": "Failed to load the schema",
+    "schemaVersionConflict": "Another user updated this schema. Please reload.",
+    "usersLoadFailed": "Failed to load the user list",
+    "serverConfigLoadFailed": "Failed to load settings",
+    "productsLoadFailed": "Failed to load products",
+    "productDuplicateCode": "This product code is already in use",
+    "productVersionConflict": "Another user updated the same product. Please review the latest data and try again."
   }
 }
