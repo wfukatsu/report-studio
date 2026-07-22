@@ -10,8 +10,8 @@
       "copy": "Copy",
       "copyFailed": "Failed to copy",
       "create": "Issue",
-      "createdNotice": "The token has been issued. This value will not be shown again. Copy and store it now.",
       "createFailed": "Failed to create the token",
+      "createdNotice": "The token has been issued. This value will not be shown again. Copy and store it now.",
       "descAfter": ". The token is shown only once, at creation time.",
       "descBefore": "A token for accessing the API from a CLI or CI without logging in. Send it as",
       "empty": "No tokens have been issued.",
@@ -54,10 +54,10 @@
       "passwordSetPlaceholder": "(Already set)",
       "restart": "Restart server",
       "restartConfirm": "Restart",
-      "restarting": "Restarting...",
-      "restartingMessage": "The server is restarting. Please wait...",
       "restartMessage": "The server will be restarted. The connection will be temporarily lost during the restart. Do you want to proceed?",
       "restartTitle": "Restart server",
+      "restarting": "Restarting...",
+      "restartingMessage": "The server is restarting. Please wait...",
       "save": "Save settings",
       "saveFailed": "Failed to save the settings",
       "saveSuccess": "Settings saved. A restart is required to apply them.",
@@ -65,8 +65,8 @@
       "storageType": "Storage type",
       "test": "Test connection",
       "testFailure": "Connection failed",
-      "testing": "Testing...",
       "testSuccess": "Connection succeeded",
+      "testing": "Testing...",
       "title": "Server settings",
       "unsavedChanges": "Unsaved changes",
       "username": "Username"
@@ -125,8 +125,8 @@
       "addTitle": "Add computed field",
       "argsLabel": "Arguments:",
       "cancel": "Cancel",
-      "editorLoading": "Loading editor...",
       "editTitle": "Edit computed field",
+      "editorLoading": "Loading editor...",
       "errFormulaHasErrors": "The formula has errors. Please fix them before saving",
       "errFormulaRequired": "Please enter a formula",
       "errNameDuplicate": "Field name \"{{name}}\" is already in use",
@@ -175,6 +175,19 @@
       "title": "Template elements"
     },
     "libraryLabel": "Schema library:",
+    "livePreview": {
+      "autoFill": "(auto: {{name}})",
+      "autoFillAria": "Auto-filled",
+      "clear": "Clear",
+      "dataFetched": "Real data fetched",
+      "description": "Fetch real data from ScalarDB to preview. Enter the partition key value for each group.",
+      "genericError": "An error occurred",
+      "loading": "Fetching...",
+      "notSavedHint": "This template is connected to a database but has not been saved yet. To preview with real data, save the template first.",
+      "refresh": "Refresh preview",
+      "title": "Live preview",
+      "valuePlaceholder": "Enter a value..."
+    },
     "noSchemaPanel": {
       "addFirstGroup": "Add your first group",
       "descLine1": "Once you add a group and define fields,",
@@ -214,7 +227,7 @@
       "unset": "Not set…",
       "validationTitle": "There are problems in the relationship definitions ({{n}})"
     },
-    "roleDescriptor": "Connect template elements to data items (schema), and link them to the database if needed. You can check actual data in the \"Data\" panel of the design screen.",
+    "roleDescriptor": "Connect template elements to data items (schema), and link them to the database if needed. Once connected, fetch and check real data in the \"Live preview\" section below.",
     "saveFailed": "Failed to save",
     "saveSuccess": "Schema saved to the library",
     "saveToLibrary": "Save to library",
@@ -522,13 +535,6 @@
       "noDataSource": "No data source configured. Add data in the “Data source” section at the top of the “Data” tab.",
       "noFields": "No fields"
     },
-    "conditionalDisplayEditor": {
-      "addCondition": "Add condition",
-      "addConditionShort": "Add condition",
-      "combineLogic": "Condition combination logic",
-      "displayCondition": "Display condition",
-      "noConditions": "No conditions (always shown)"
-    },
     "conditionRow": {
       "compareValue": "Comparison value",
       "conditionRowLabel": "Condition row",
@@ -537,46 +543,22 @@
       "opContains": "contains",
       "opEmpty": "is empty",
       "opEquals": "equals",
-      "operator": "Operator",
       "opGreaterThan": "greater than",
       "opLessThan": "less than",
       "opNotContains": "does not contain",
       "opNotEmpty": "is not empty",
       "opNotEquals": "does not equal",
+      "operator": "Operator",
       "removeCondition": "Remove condition",
       "selectField": "-- Select a field --",
       "value": "Value"
     },
-    "dataBindingOverviewPanel": {
-      "emptyDataSource": "No data source configured. Add data in the section above.",
-      "intro": {
-        "descAfter": ".",
-        "descBefore": "This panel is for reviewing and editing data values. Set up links between elements and data fields on the ",
-        "linkText": "Binding screen"
-      },
-      "livePreview": {
-        "autoFill": "(auto: {{name}})",
-        "autoFillAria": "Auto-filled",
-        "clear": "Clear",
-        "dataFetched": "Real data fetched",
-        "description": "Fetch real data from ScalarDB to preview. Enter the partition key value for each group.",
-        "genericError": "An error occurred",
-        "loading": "Fetching...",
-        "notSavedHint": "This template is connected to a database but has not been saved yet. To preview with real data, save the template first.",
-        "refresh": "Refresh preview",
-        "title": "Live preview",
-        "valuePlaceholder": "Enter a value..."
-      },
-      "section": {
-        "dataSource": "Data source",
-        "fieldValue": "Field values",
-        "mapping": "Mappings",
-        "missingSample": "No sample value",
-        "unbound": "Unbound elements"
-      },
-      "suffix": {
-        "notSet": "Not set"
-      }
+    "conditionalDisplayEditor": {
+      "addCondition": "Add condition",
+      "addConditionShort": "Add condition",
+      "combineLogic": "Condition combination logic",
+      "displayCondition": "Display condition",
+      "noConditions": "No conditions (always shown)"
     },
     "dataSourcePanel": {
       "clear": "Clear",
@@ -628,6 +610,39 @@
       "show": "Show",
       "unlock": "Unlock"
     },
+    "layerUtils": {
+      "approvalStampRow": "Multi-tier seal row",
+      "barcode": "Barcode",
+      "chart": "Chart",
+      "checkbox": "Checkbox",
+      "currentDate": "Current date",
+      "dataField": "Data field",
+      "divider": "Divider",
+      "eraSelect": "Era selector",
+      "formTable": "Form table",
+      "hanko": "Seal",
+      "image": "Image",
+      "manualEntry": "Entry field",
+      "pageNumber": "Page number",
+      "repeatingBand": "Repeating band",
+      "repeatingList": "Repeating list",
+      "revenueStamp": "Revenue stamp",
+      "sectionBody": "Body",
+      "sectionCustom": "Custom",
+      "sectionFooter": "Footer",
+      "sectionHeader": "Header",
+      "shapeCircle": "Circle",
+      "shapeLine": "Line",
+      "shapeRect": "Rectangle",
+      "tenantAddress": "Address",
+      "tenantCompanyName": "Company name",
+      "tenantCustom": "Custom ({{field}})",
+      "tenantLogo": "Logo",
+      "tenantPhone": "Phone number",
+      "tenantRepresentative": "Representative name",
+      "text": "Text",
+      "unset": "Not set"
+    },
     "layersPanel": {
       "addEmptyGroup": "Add empty group",
       "addLayer": "Add new layer",
@@ -673,39 +688,6 @@
       "unlock": "Unlock",
       "unlockGroup": "Unlock group"
     },
-    "layerUtils": {
-      "approvalStampRow": "Multi-tier seal row",
-      "barcode": "Barcode",
-      "chart": "Chart",
-      "checkbox": "Checkbox",
-      "currentDate": "Current date",
-      "dataField": "Data field",
-      "divider": "Divider",
-      "eraSelect": "Era selector",
-      "formTable": "Form table",
-      "hanko": "Seal",
-      "image": "Image",
-      "manualEntry": "Entry field",
-      "pageNumber": "Page number",
-      "repeatingBand": "Repeating band",
-      "repeatingList": "Repeating list",
-      "revenueStamp": "Revenue stamp",
-      "sectionBody": "Body",
-      "sectionCustom": "Custom",
-      "sectionFooter": "Footer",
-      "sectionHeader": "Header",
-      "shapeCircle": "Circle",
-      "shapeLine": "Line",
-      "shapeRect": "Rectangle",
-      "tenantAddress": "Address",
-      "tenantCompanyName": "Company name",
-      "tenantCustom": "Custom ({{field}})",
-      "tenantLogo": "Logo",
-      "tenantPhone": "Phone number",
-      "tenantRepresentative": "Representative name",
-      "text": "Text",
-      "unset": "Not set"
-    },
     "pagePanel": {
       "addPage": "Add page",
       "confirmDelete": "Delete",
@@ -734,9 +716,9 @@
       "marginNarrow": "Narrow",
       "marginNone": "None",
       "marginRight": "Right",
-      "margins": "Margins (mm)",
       "marginStandard": "Standard",
       "marginTop": "Top",
+      "margins": "Margins (mm)",
       "metadata": "Metadata",
       "noPage": "No pages.",
       "orientation": "Orientation",
@@ -755,9 +737,9 @@
       "seqSaveFailed": "Failed to save numbering settings",
       "seqSaving": "Saving...",
       "seqSuffix": "Suffix",
-      "sequence": "Numbering settings",
       "seqYearlyReset": "Yearly reset",
       "seqYearlyResetHint": "Resets to 1 every January 1",
+      "sequence": "Numbering settings",
       "tags": "Tags",
       "version": "Version",
       "versionPlaceholder": "e.g. 1.0.0"
@@ -830,8 +812,8 @@
       "element": "Element",
       "height": "Height",
       "locked": "Locked",
-      "multiSelected": "{{n}} elements selected.",
       "multiSelectHint": "When multiple elements are selected, use the alignment tools in the toolbar.",
+      "multiSelected": "{{n}} elements selected.",
       "name": "Name",
       "namePlaceholder": "Element name (for layer display)",
       "pageSettingsHint": "You can change the page's paper size, margins, and more in the \"Page settings\" tab on the right sidebar.",
@@ -876,15 +858,15 @@
       "list": {
         "ariaLabel": "Form responses"
       },
+      "noTemplate": {
+        "body": "Open or create a template on the Design tab.",
+        "title": "No template selected"
+      },
       "notConnected": {
         "body": "Please wait a moment and try again.",
         "devHint": "Start the backend with the following command:",
         "devSummary": "For developers (dev)",
         "title": "Cannot connect to the backend"
-      },
-      "noTemplate": {
-        "body": "Open or create a template on the Design tab.",
-        "title": "No template selected"
       },
       "row": {
         "delete": "Delete",
@@ -992,8 +974,8 @@
         "restoreFailed": "Failed to restore"
       },
       "listAria": "Version list",
-      "notConnected": "Not connected to the backend. Start the backend to use version control.",
       "noTemplate": "Load a template from the backend to use version control.",
+      "notConnected": "Not connected to the backend. Start the backend to use version control.",
       "refresh": "Refresh",
       "refreshAria": "Refresh version list",
       "restoreItemAria": "Restore to v{{n}}",

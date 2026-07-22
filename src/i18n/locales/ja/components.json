@@ -10,8 +10,8 @@
       "copy": "コピー",
       "copyFailed": "コピーに失敗しました",
       "create": "発行",
-      "createdNotice": "トークンを発行しました。この値は再表示されません。今すぐコピーして保管してください。",
       "createFailed": "トークンの作成に失敗しました",
+      "createdNotice": "トークンを発行しました。この値は再表示されません。今すぐコピーして保管してください。",
       "descAfter": "で送信します。トークンは作成時に一度だけ表示されます。",
       "descBefore": "CLI や CI からログインせずに API を利用するためのトークンです。",
       "empty": "発行済みのトークンはありません。",
@@ -54,10 +54,10 @@
       "passwordSetPlaceholder": "（設定済み）",
       "restart": "サーバーを再起動",
       "restartConfirm": "再起動する",
-      "restarting": "再起動中...",
-      "restartingMessage": "サーバーが再起動中です。しばらくお待ちください...",
       "restartMessage": "サーバーを再起動します。再起動中は一時的に接続が切断されます。この操作を実行しますか？",
       "restartTitle": "サーバーを再起動",
+      "restarting": "再起動中...",
+      "restartingMessage": "サーバーが再起動中です。しばらくお待ちください...",
       "save": "設定を保存",
       "saveFailed": "設定の保存に失敗しました",
       "saveSuccess": "設定を保存しました。有効化するには再起動が必要です。",
@@ -65,8 +65,8 @@
       "storageType": "ストレージタイプ",
       "test": "接続テスト",
       "testFailure": "接続失敗",
-      "testing": "テスト中...",
       "testSuccess": "接続成功",
+      "testing": "テスト中...",
       "title": "サーバー設定",
       "unsavedChanges": "未保存の変更あり",
       "username": "ユーザー名"
@@ -125,8 +125,8 @@
       "addTitle": "計算フィールドを追加",
       "argsLabel": "引数:",
       "cancel": "キャンセル",
-      "editorLoading": "エディタを読み込み中...",
       "editTitle": "計算フィールドを編集",
+      "editorLoading": "エディタを読み込み中...",
       "errFormulaHasErrors": "計算式にエラーがあります。修正してから保存してください",
       "errFormulaRequired": "計算式を入力してください",
       "errNameDuplicate": "フィールド名 \"{{name}}\" は既に使用されています",
@@ -175,6 +175,19 @@
       "title": "テンプレート要素"
     },
     "libraryLabel": "スキーマライブラリ:",
+    "livePreview": {
+      "autoFill": "(自動: {{name}})",
+      "autoFillAria": "自動入力",
+      "clear": "クリア",
+      "dataFetched": "実データを取得しました",
+      "description": "ScalarDB から実データを取得してプレビューします。各グループのパーティションキー値を入力してください。",
+      "genericError": "エラーが発生しました",
+      "loading": "取得中...",
+      "notSavedHint": "このテンプレートはデータベースに接続されていますが、まだ保存されていません。 実データでプレビューするには、まずテンプレートを保存してください。",
+      "refresh": "プレビュー更新",
+      "title": "ライブプレビュー",
+      "valuePlaceholder": "値を入力..."
+    },
     "noSchemaPanel": {
       "addFirstGroup": "最初のグループを追加",
       "descLine1": "グループを追加してフィールドを定義すると、",
@@ -214,7 +227,7 @@
       "unset": "未設定…",
       "validationTitle": "関係定義に問題があります（{{n}} 件）"
     },
-    "roleDescriptor": "テンプレート要素とデータ項目（スキーマ）を結線し、必要ならDBに接続します。実データの確認はデザイン画面の「データ」パネルで行えます。",
+    "roleDescriptor": "テンプレート要素とデータ項目（スキーマ）を結線し、必要ならDBに接続します。DB 接続後は下の「ライブプレビュー」で実データを取得して確認できます。",
     "saveFailed": "保存に失敗しました",
     "saveSuccess": "スキーマをライブラリに保存しました",
     "saveToLibrary": "ライブラリに保存",
@@ -522,13 +535,6 @@
       "noDataSource": "データソースが設定されていません。「データ」タブ上部の「データソース」セクションでデータを追加してください。",
       "noFields": "フィールドなし"
     },
-    "conditionalDisplayEditor": {
-      "addCondition": "条件を追加",
-      "addConditionShort": "条件追加",
-      "combineLogic": "条件結合ロジック",
-      "displayCondition": "表示条件",
-      "noConditions": "条件なし（常に表示）"
-    },
     "conditionRow": {
       "compareValue": "比較値",
       "conditionRowLabel": "条件行",
@@ -537,46 +543,22 @@
       "opContains": "含む",
       "opEmpty": "空である",
       "opEquals": "等しい",
-      "operator": "演算子",
       "opGreaterThan": "より大きい",
       "opLessThan": "より小さい",
       "opNotContains": "含まない",
       "opNotEmpty": "空でない",
       "opNotEquals": "等しくない",
+      "operator": "演算子",
       "removeCondition": "条件を削除",
       "selectField": "-- フィールドを選択 --",
       "value": "値"
     },
-    "dataBindingOverviewPanel": {
-      "emptyDataSource": "データソースが未設定です。上のセクションでデータを追加してください。",
-      "intro": {
-        "descAfter": "で設定します。",
-        "descBefore": "このパネルはデータの値の確認・編集用です。要素とデータ項目の結線は",
-        "linkText": "バインド画面"
-      },
-      "livePreview": {
-        "autoFill": "(自動: {{name}})",
-        "autoFillAria": "自動入力",
-        "clear": "クリア",
-        "dataFetched": "実データを取得しました",
-        "description": "ScalarDB から実データを取得してプレビューします。各グループのパーティションキー値を入力してください。",
-        "genericError": "エラーが発生しました",
-        "loading": "取得中...",
-        "notSavedHint": "このテンプレートはデータベースに接続されていますが、まだ保存されていません。 実データでプレビューするには、まずテンプレートを保存してください。",
-        "refresh": "プレビュー更新",
-        "title": "ライブプレビュー",
-        "valuePlaceholder": "値を入力..."
-      },
-      "section": {
-        "dataSource": "データソース",
-        "fieldValue": "フィールド値",
-        "mapping": "マッピング",
-        "missingSample": "サンプル値なし",
-        "unbound": "未バインド要素"
-      },
-      "suffix": {
-        "notSet": "未設定"
-      }
+    "conditionalDisplayEditor": {
+      "addCondition": "条件を追加",
+      "addConditionShort": "条件追加",
+      "combineLogic": "条件結合ロジック",
+      "displayCondition": "表示条件",
+      "noConditions": "条件なし（常に表示）"
     },
     "dataSourcePanel": {
       "clear": "クリア",
@@ -628,6 +610,39 @@
       "show": "表示する",
       "unlock": "ロック解除"
     },
+    "layerUtils": {
+      "approvalStampRow": "多段印鑑欄",
+      "barcode": "バーコード",
+      "chart": "グラフ",
+      "checkbox": "チェックボックス",
+      "currentDate": "現在日付",
+      "dataField": "データフィールド",
+      "divider": "区切り線",
+      "eraSelect": "元号選択",
+      "formTable": "帳票テーブル",
+      "hanko": "印鑑",
+      "image": "画像",
+      "manualEntry": "記入欄",
+      "pageNumber": "ページ番号",
+      "repeatingBand": "繰り返しバンド",
+      "repeatingList": "繰り返しリスト",
+      "revenueStamp": "収入印紙欄",
+      "sectionBody": "ボディ",
+      "sectionCustom": "カスタム",
+      "sectionFooter": "フッター",
+      "sectionHeader": "ヘッダー",
+      "shapeCircle": "円",
+      "shapeLine": "線",
+      "shapeRect": "矩形",
+      "tenantAddress": "住所",
+      "tenantCompanyName": "会社名",
+      "tenantCustom": "カスタム({{field}})",
+      "tenantLogo": "ロゴ",
+      "tenantPhone": "電話番号",
+      "tenantRepresentative": "代表者名",
+      "text": "テキスト",
+      "unset": "未設定"
+    },
     "layersPanel": {
       "addEmptyGroup": "空のグループを追加",
       "addLayer": "新規レイヤーを追加",
@@ -673,39 +688,6 @@
       "unlock": "ロック解除",
       "unlockGroup": "グループのロックを解除"
     },
-    "layerUtils": {
-      "approvalStampRow": "多段印鑑欄",
-      "barcode": "バーコード",
-      "chart": "グラフ",
-      "checkbox": "チェックボックス",
-      "currentDate": "現在日付",
-      "dataField": "データフィールド",
-      "divider": "区切り線",
-      "eraSelect": "元号選択",
-      "formTable": "帳票テーブル",
-      "hanko": "印鑑",
-      "image": "画像",
-      "manualEntry": "記入欄",
-      "pageNumber": "ページ番号",
-      "repeatingBand": "繰り返しバンド",
-      "repeatingList": "繰り返しリスト",
-      "revenueStamp": "収入印紙欄",
-      "sectionBody": "ボディ",
-      "sectionCustom": "カスタム",
-      "sectionFooter": "フッター",
-      "sectionHeader": "ヘッダー",
-      "shapeCircle": "円",
-      "shapeLine": "線",
-      "shapeRect": "矩形",
-      "tenantAddress": "住所",
-      "tenantCompanyName": "会社名",
-      "tenantCustom": "カスタム({{field}})",
-      "tenantLogo": "ロゴ",
-      "tenantPhone": "電話番号",
-      "tenantRepresentative": "代表者名",
-      "text": "テキスト",
-      "unset": "未設定"
-    },
     "pagePanel": {
       "addPage": "ページを追加",
       "confirmDelete": "削除",
@@ -734,9 +716,9 @@
       "marginNarrow": "狭い",
       "marginNone": "なし",
       "marginRight": "右",
-      "margins": "余白 (mm)",
       "marginStandard": "標準",
       "marginTop": "上",
+      "margins": "余白 (mm)",
       "metadata": "メタデータ",
       "noPage": "ページがありません。",
       "orientation": "用紙方向",
@@ -755,9 +737,9 @@
       "seqSaveFailed": "採番設定の保存に失敗しました",
       "seqSaving": "保存中...",
       "seqSuffix": "サフィックス",
-      "sequence": "採番設定",
       "seqYearlyReset": "年次リセット",
       "seqYearlyResetHint": "毎年1月1日に1に戻す",
+      "sequence": "採番設定",
       "tags": "タグ",
       "version": "バージョン",
       "versionPlaceholder": "例: 1.0.0"
@@ -830,8 +812,8 @@
       "element": "要素",
       "height": "高さ",
       "locked": "ロック",
-      "multiSelected": "{{n}}個の要素を選択中。",
       "multiSelectHint": "複数選択時はツールバーの整列ツールを使用してください。",
+      "multiSelected": "{{n}}個の要素を選択中。",
       "name": "名前",
       "namePlaceholder": "要素名（レイヤー表示用）",
       "pageSettingsHint": "ページの用紙サイズ・余白などは右サイドバーの「ページ設定」タブで変更できます。",
@@ -876,15 +858,15 @@
       "list": {
         "ariaLabel": "フォーム回答一覧"
       },
+      "noTemplate": {
+        "body": "デザインタブでテンプレートを開くか作成してください。",
+        "title": "テンプレートが未選択です"
+      },
       "notConnected": {
         "body": "しばらく待ってから再試行してください。",
         "devHint": "以下のコマンドでバックエンドを起動してください:",
         "devSummary": "開発者向け (dev)",
         "title": "バックエンドに接続できません"
-      },
-      "noTemplate": {
-        "body": "デザインタブでテンプレートを開くか作成してください。",
-        "title": "テンプレートが未選択です"
       },
       "row": {
         "delete": "削除",
@@ -992,8 +974,8 @@
         "restoreFailed": "復元に失敗しました"
       },
       "listAria": "バージョン一覧",
-      "notConnected": "バックエンドに接続されていません。バックエンドを起動するとバージョン管理が使用できます。",
       "noTemplate": "バックエンドからテンプレートを読み込むとバージョン管理が使用できます。",
+      "notConnected": "バックエンドに接続されていません。バックエンドを起動するとバージョン管理が使用できます。",
       "refresh": "更新",
       "refreshAria": "バージョン一覧を更新",
       "restoreItemAria": "v{{n}} に復元",
