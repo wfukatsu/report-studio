@@ -15,6 +15,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Provides PDF fonts with JVM-level byte caching. Font bytes are loaded once at class
  * initialization; PDFont instances are created per-document (required for subsetting).
+ *
+ * <p><b>Language coverage (#329 Phase 5).</b> The embedded faces are Noto Sans/Serif JP, which
+ * cover Latin (including English) and Japanese — the supported output languages. Text in other
+ * scripts (Hangul, Simplified Chinese, Thai, …) has no glyph here; {@link FontGlyphs} replaces it
+ * with whitespace and WARNs rather than failing the render. Adding Noto Sans SC/KR (etc.) is a
+ * future option, weighed against the per-PDF embedded-font size it would add.
  */
 public final class FontProvider {
 
