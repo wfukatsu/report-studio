@@ -1,0 +1,42 @@
+{
+  "unauthorized": {
+    "title": "Sign-in required",
+    "hint": "Please sign in again and retry."
+  },
+  "forbidden": {
+    "title": "You don't have permission for this action",
+    "hint": "Please contact your administrator."
+  },
+  "not_found": {
+    "title": "Not found",
+    "hint": "It may have been deleted or is not published yet."
+  },
+  "conflict": {
+    "title": "Already exists",
+    "hint": "Please try a different name."
+  },
+  "invalid_request": {
+    "title": "There's a problem with your input",
+    "hint": "Please check the contents and resubmit."
+  },
+  "rate_limited": {
+    "title": "Too many requests",
+    "hint": "Please wait a moment and try again."
+  },
+  "unreachable": {
+    "title": "Can't reach the backend",
+    "hint": "Please wait a moment and try again."
+  },
+  "server_error": {
+    "title": "A temporary error occurred",
+    "hint": "Please wait a while and try again."
+  },
+  "network": {
+    "title": "Can't connect to the network",
+    "hint": "Please check your connection and try again."
+  },
+  "unknown": {
+    "title": "An unexpected error occurred",
+    "hint": "Please reload the page and try again."
+  }
+}

@@ -42,8 +42,9 @@ function isClassified(value: unknown): value is UserFacingError {
 
 export function InlineErrorBanner({ error, onRetry, tone = 'amber', className }: Props) {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
   const classified = isClassified(error) ? error : classifyError(error)
-  const copy = getErrorCopy(classified.code)
+  const copy = getErrorCopy(classified.code, tErr)
   const showRetry = classified.retryable && typeof onRetry === 'function'
 
   return (
