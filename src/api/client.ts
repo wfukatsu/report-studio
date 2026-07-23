@@ -32,12 +32,33 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * Thrown when a 2xx response body does not match its Zod schema. Wraps the raw
+ * `ZodError` as `cause` (logged, never surfaced) so the UI can show a friendly
+ * message instead of dumping the raw issue array to the user (#388).
+ */
+export class ResponseValidationError extends Error {
+  cause?: unknown
+  constructor(
+    public readonly path: string,
+    options?: { cause?: unknown },
+  ) {
+    super(`Response validation failed for ${path}`)
+    if (options?.cause !== undefined) this.cause = options.cause
+    this.name = 'ResponseValidationError'
+  }
+}
+
 export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError
 }
 
 export function isNetworkError(e: unknown): e is NetworkError {
   return e instanceof NetworkError
+}
+
+export function isResponseValidationError(e: unknown): e is ResponseValidationError {
+  return e instanceof ResponseValidationError
 }
 
 // ---------------------------------------------------------------------------
@@ -86,10 +107,28 @@ export async function apiFetch<T>(
   }
 
   if (res.status === 204) {
-    return schema.parse(undefined)
+    return parseOrThrow(schema, undefined, path)
   }
 
-  return schema.parse(await res.json())
+  return parseOrThrow(schema, await res.json(), path)
+}
+
+/**
+ * Validate `data` against `schema`, converting a `ZodError` into a
+ * `ResponseValidationError`. The raw issues are logged for debugging but never
+ * become the thrown error's message, so callers that surface `error.message`
+ * can't leak the raw Zod issue array into the UI (#388).
+ */
+function parseOrThrow<T>(schema: ZodSchema<T>, data: unknown, path: string): T {
+  try {
+    return schema.parse(data)
+  } catch (cause) {
+    if (cause instanceof z.ZodError) {
+      console.error(`Response validation failed for ${path}`, cause.issues)
+      throw new ResponseValidationError(path, { cause })
+    }
+    throw cause
+  }
 }
 
 // ---------------------------------------------------------------------------

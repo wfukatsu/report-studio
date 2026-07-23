@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
 import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl, fetchScalarDbCatalog, createScalarDbTable, resolveBindings } from './reportApi'
 import type { CreateScalarDbTableRequest } from './reportApi'
-import { ApiError, NetworkError } from './client'
+import { ApiError, NetworkError, isResponseValidationError } from './client'
 import type { ReportDefinition } from '@/types'
 
 // Minimal valid ReportDefinition payload
@@ -796,7 +796,7 @@ describe('fetchScalarDbCatalog', () => {
     expect((init as RequestInit).signal).toBe(controller.signal)
   })
 
-  it('rejects with ZodError when the response has an unknown DataType', async () => {
+  it('rejects with ResponseValidationError when the response has an unknown DataType', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -810,8 +810,13 @@ describe('fetchScalarDbCatalog', () => {
         }],
       }),
     }))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(fetchScalarDbCatalog()).rejects.toThrow(/JSONB|type/i)
+    // #388: schema mismatches are wrapped so the raw Zod issue (which would name
+    // the offending value/type) never becomes the surfaced error message.
+    const err = await fetchScalarDbCatalog().catch((e) => e)
+    expect(isResponseValidationError(err)).toBe(true)
+    expect(err.message).not.toMatch(/JSONB/)
   })
 
   it('rejects with ZodError when keyType is the legacy "column" sentinel', async () => {

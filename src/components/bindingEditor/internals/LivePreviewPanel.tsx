@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useReportStore } from '@/store'
 import { usePreviewData } from '@/hooks/usePreviewData'
 import { resolveBindings, fetchScalarDbCatalogCached } from '@/api/reportApi'
+import { isNetworkError, isResponseValidationError } from '@/api/client'
 import type { ScalarDbCatalog } from '@/api/reportApi'
 import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
 import { resolveField } from '@/lib/dataBinding'
@@ -70,19 +72,37 @@ function primaryKeyColumns(
 interface SectionProps {
   title: string
   icon?: string
+  /** When provided, the header becomes a collapse toggle (#390). */
+  collapsed?: boolean
+  onToggle?: () => void
   children: React.ReactNode
 }
 
-function Section({ title, icon, children }: SectionProps) {
+const SECTION_LABEL = 'text-[10px] font-semibold text-muted-foreground uppercase tracking-wide'
+
+function Section({ title, icon, collapsed, onToggle, children }: SectionProps) {
   return (
     <div className="border-b">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40">
-        {icon && <span className="text-xs">{icon}</span>}
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          {title}
-        </span>
-      </div>
-      {children}
+      {onToggle ? (
+        <button
+          type="button"
+          className="flex items-center gap-1.5 w-full px-3 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+        >
+          {collapsed
+            ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+          {icon && <span className="text-xs">{icon}</span>}
+          <span className={SECTION_LABEL}>{title}</span>
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40">
+          {icon && <span className="text-xs">{icon}</span>}
+          <span className={SECTION_LABEL}>{title}</span>
+        </div>
+      )}
+      {!collapsed && children}
     </div>
   )
 }
@@ -101,6 +121,9 @@ export function LivePreviewPanel() {
   const livePreviewData = useReportStore((s) => s.livePreviewData)
 
   const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' })
+  // Collapse the panel so the core binding canvas isn't pushed below the fold
+  // (#390). Default expanded; collapse is per-mount local state.
+  const [collapsed, setCollapsed] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const sampleData = usePreviewData()
 
@@ -213,7 +236,13 @@ export function LivePreviewPanel() {
       setPreviewState({ status: 'ready' })
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return
-      const msg = e instanceof Error ? e.message : t('bindingEditor.livePreview.genericError')
+      // Map to a friendly message — never surface a raw error string (e.g. the
+      // ZodError issue array from a response-shape mismatch) to the user (#388).
+      const msg = isResponseValidationError(e)
+        ? t('bindingEditor.livePreview.errorInvalidResponse')
+        : isNetworkError(e)
+          ? t('bindingEditor.livePreview.errorNetwork')
+          : t('bindingEditor.livePreview.genericError')
       setPreviewState({ status: 'error', message: msg })
     }
   }
@@ -270,7 +299,12 @@ export function LivePreviewPanel() {
   }
 
   return (
-    <Section title={t('bindingEditor.livePreview.title')} icon="⚡">
+    <Section
+      title={t('bindingEditor.livePreview.title')}
+      icon="⚡"
+      collapsed={collapsed}
+      onToggle={() => setCollapsed((v) => !v)}
+    >
       <div className="px-3 py-2 space-y-3">
         <p className="text-[10px] text-muted-foreground">
           {t('bindingEditor.livePreview.description')}

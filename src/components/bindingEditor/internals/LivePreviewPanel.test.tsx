@@ -2,12 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import * as reportApi from '@/api/reportApi'
+import { NetworkError, ResponseValidationError } from '@/api/client'
 import { LivePreviewPanel } from './LivePreviewPanel'
 import { tk } from '@/test/i18n'
 import type { SchemaField } from '@/types'
 
 const PLACEHOLDER = tk('components:bindingEditor.livePreview.valuePlaceholder')
 const REFRESH = tk('components:bindingEditor.livePreview.refresh')
+
+/** A saved, DB-bound master group so the panel renders its body + inputs. */
+function setupBoundMaster(): void {
+  const store = useReportStore.getState()
+  store.setCurrentTemplateId('tmpl-1')
+  store.addSchemaGroup('master')
+  const gid = useReportStore.getState().definition.schema!.groups[0].id
+  store.addSchemaField(gid, { key: 'reportId', label: '帳票ID', type: 'string', dbColumnName: 'report_id' } as SchemaField)
+  store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'invmod_header' })
+}
 
 beforeEach(() => {
   useReportStore.getState().newReport()
@@ -145,6 +156,55 @@ describe('LivePreviewPanel — partition-key column filtering', () => {
     // Default empty-catalog mock from beforeEach → no key info → show both.
     render(<LivePreviewPanel />)
     await vi.waitFor(() => expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(2))
+  })
+})
+
+// #390: the panel header collapses so it doesn't push the binding canvas below the fold.
+describe('LivePreviewPanel — collapse toggle', () => {
+  it('collapses and expands the body via the header toggle', async () => {
+    setupBoundMaster()
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(1))
+
+    // The collapsible header is the expanded button; clicking it hides the body.
+    const header = screen.getByRole('button', { expanded: true })
+    fireEvent.click(header)
+    expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(0)
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(1)
+  })
+})
+
+// #388: errors surface as friendly messages, never a raw error string.
+describe('LivePreviewPanel — error messages', () => {
+  it('maps a ResponseValidationError to the invalid-response message', async () => {
+    setupBoundMaster()
+    vi.spyOn(reportApi, 'resolveBindings').mockRejectedValue(
+      new ResponseValidationError('/api/v2/templates/tmpl-1/resolve-bindings', { cause: new Error('[{"code":"invalid_type"}]') }),
+    )
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.getByText(REFRESH)).toBeInTheDocument())
+    fireEvent.click(screen.getByText(REFRESH))
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(tk('components:bindingEditor.livePreview.errorInvalidResponse'))).toBeInTheDocument(),
+    )
+    // The raw cause string must not leak into the UI.
+    expect(screen.queryByText(/invalid_type/)).not.toBeInTheDocument()
+  })
+
+  it('maps a NetworkError to the network message', async () => {
+    setupBoundMaster()
+    vi.spyOn(reportApi, 'resolveBindings').mockRejectedValue(new NetworkError('Network request failed'))
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.getByText(REFRESH)).toBeInTheDocument())
+    fireEvent.click(screen.getByText(REFRESH))
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(tk('components:bindingEditor.livePreview.errorNetwork'))).toBeInTheDocument(),
+    )
   })
 })
 
