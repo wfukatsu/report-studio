@@ -207,33 +207,43 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                     default -> 0;
                 };
         float cursorY = y - vOffset - rubyH - fontSize;
-        for (String line : lines) {
+        for (int li = 0; li < lines.size(); li++) {
+            String line = lines.get(li);
             // CSS letter-spacing trails every glyph (incl. the last) and is part of
             // the line box, so alignment math includes the trailing spacing too
             float lineW =
                     strWidth(font, line, fontSize)
                             + line.codePointCount(0, line.length()) * charSpacing;
+            // textAlign:justify stretches inter-word gaps on every line but the last (#368)
+            boolean justify = "justify".equals(align) && li < lines.size() - 1;
+            int spaces = justify ? countChar(line, ' ') : 0;
+            float wordSpacing = spaces > 0 ? Math.max(0, (w - lineW) / spaces) : 0;
             float tx =
-                    switch (align) {
-                        case "center" -> x + (w - lineW) / 2;
-                        case "right" -> x + w - lineW;
-                        default -> x;
-                    };
+                    justify
+                            ? x
+                            : switch (align) {
+                                case "center" -> x + (w - lineW) / 2;
+                                case "right" -> x + w - lineW;
+                                default -> x;
+                            };
+            if (wordSpacing != 0) cs.setWordSpacing(wordSpacing);
             showLine(cs, font, fontSize, line, tx, cursorY, charSpacing, italic);
+            if (wordSpacing != 0) cs.setWordSpacing(0);
             // Decoration rules (#368): underline below the baseline, line-through mid-glyph
             if ((underline || lineThrough) && !line.isEmpty()) {
+                float drawnW = lineW + wordSpacing * spaces;
                 cs.setStrokingColor(color);
                 cs.setLineWidth(Math.max(0.3f, fontSize * 0.06f));
                 if (underline) {
                     float uy = cursorY - fontSize * 0.12f;
                     cs.moveTo(tx, uy);
-                    cs.lineTo(tx + lineW, uy);
+                    cs.lineTo(tx + drawnW, uy);
                     cs.stroke();
                 }
                 if (lineThrough) {
                     float sy = cursorY + fontSize * 0.30f;
                     cs.moveTo(tx, sy);
-                    cs.lineTo(tx + lineW, sy);
+                    cs.lineTo(tx + drawnW, sy);
                     cs.stroke();
                 }
             }
@@ -393,6 +403,12 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         cs.showText(safe);
         cs.endText();
         if (charSpacing != 0) cs.setCharacterSpacing(0);
+    }
+
+    private static int countChar(String s, char c) {
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) if (s.charAt(i) == c) n++;
+        return n;
     }
 
     private static float strWidth(PDFont font, String s, float size) {

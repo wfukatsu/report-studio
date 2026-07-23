@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.util.Matrix;
 
 /**
  * Renders V2 {@code dataField} elements to PDF (issue #53).
@@ -89,8 +90,43 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
         Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
         float letterSpacingEm = style != null ? floatOf(style, "letterSpacing", 0) : 0;
         String textFit = style != null ? textOf(style, "textFit", "") : "";
+        // Text-style extras, parity with text/TextContent (#368)
+        boolean italic = "italic".equals(style != null ? textOf(style, "fontStyle", "") : "");
+        String decoration = style != null ? textOf(style, "textDecoration", "") : "";
+        boolean underline = decoration.contains("underline");
+        boolean lineThrough =
+                decoration.contains("line-through") || decoration.contains("strikethrough");
+        boolean vertical =
+                "vertical-rl".equals(style != null ? textOf(style, "writingMode", "") : "");
+        String bgColorStr = style != null ? textOf(style, "backgroundColor", "") : "";
 
         PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
+
+        // Background fills the element box before the glyphs (frontend style.backgroundColor, #368)
+        Color bg = bgColorStr.isEmpty() ? null : parseColor(bgColorStr, null);
+        if (bg != null) {
+            cs.setNonStrokingColor(bg);
+            cs.addRect(x, y - h, w, h);
+            cs.fill();
+        }
+
+        // Vertical writing mode (縦書き) — columns top→bottom, right→left (#368)
+        if (vertical) {
+            drawVertical(
+                    cs,
+                    font,
+                    baseFontSize,
+                    lineHeight,
+                    letterSpacingEm,
+                    text,
+                    x,
+                    y,
+                    w,
+                    h,
+                    color,
+                    italic);
+            return;
+        }
 
         // padding (mm) shrinks the text area, mirroring the frontend inner box (#364)
         float padTop = padPt(style, "paddingTop");
@@ -131,24 +167,125 @@ public final class DataFieldPdfRenderer implements ElementPdfRenderer {
         cs.setNonStrokingColor(color);
         if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
         float cursorY = innerTopY - vOffset - fontSize;
-        for (String line : lines) {
+        for (int li = 0; li < lines.size(); li++) {
+            String line = lines.get(li);
             float lineW =
                     font.getStringWidth(line) / 1000 * fontSize
                             + line.codePointCount(0, line.length()) * charSpacing;
+            // textAlign:justify stretches inter-word gaps on every line but the last (#368)
+            boolean justify = "justify".equals(textAlign) && li < lines.size() - 1;
+            int spaces = justify ? countChar(line, ' ') : 0;
+            float wordSpacing = spaces > 0 ? Math.max(0, (innerW - lineW) / spaces) : 0;
             float tx =
-                    switch (textAlign) {
-                        case "center" -> innerX + Math.max(0, (innerW - lineW) / 2);
-                        case "right" -> innerX + Math.max(0, innerW - lineW);
-                        default -> innerX;
-                    };
-            cs.beginText();
-            cs.setFont(font, fontSize);
-            cs.newLineAtOffset(tx, cursorY);
-            cs.showText(line);
-            cs.endText();
+                    justify
+                            ? innerX
+                            : switch (textAlign) {
+                                case "center" -> innerX + Math.max(0, (innerW - lineW) / 2);
+                                case "right" -> innerX + Math.max(0, innerW - lineW);
+                                default -> innerX;
+                            };
+            if (wordSpacing != 0) cs.setWordSpacing(wordSpacing);
+            drawGlyphRun(cs, font, fontSize, line, tx, cursorY, italic);
+            if (wordSpacing != 0) cs.setWordSpacing(0);
+            // Decoration rules (#368)
+            if ((underline || lineThrough) && !line.isEmpty()) {
+                float drawnW = lineW + wordSpacing * spaces;
+                cs.setStrokingColor(color);
+                cs.setLineWidth(Math.max(0.3f, fontSize * 0.06f));
+                if (underline) {
+                    float uy = cursorY - fontSize * 0.12f;
+                    cs.moveTo(tx, uy);
+                    cs.lineTo(tx + drawnW, uy);
+                    cs.stroke();
+                }
+                if (lineThrough) {
+                    float sy = cursorY + fontSize * 0.30f;
+                    cs.moveTo(tx, sy);
+                    cs.lineTo(tx + drawnW, sy);
+                    cs.stroke();
+                }
+            }
             cursorY -= lineStep;
         }
         if (charSpacing != 0) cs.setCharacterSpacing(0);
+    }
+
+    private static final float ITALIC_SHEAR = 0.21f; // ~12° synthetic italic (#368)
+
+    /** Show one line, applying a synthetic-italic shear via the text matrix when {@code italic}. */
+    private static void drawGlyphRun(
+            PDPageContentStream cs,
+            PDFont font,
+            float fontSize,
+            String text,
+            float tx,
+            float baselineY,
+            boolean italic)
+            throws IOException {
+        cs.beginText();
+        cs.setFont(font, fontSize);
+        if (italic) {
+            cs.setTextMatrix(new Matrix(1, 0, ITALIC_SHEAR, 1, tx, baselineY));
+        } else {
+            cs.newLineAtOffset(tx, baselineY);
+        }
+        cs.showText(text);
+        cs.endText();
+    }
+
+    /** Vertical writing mode: glyphs down each column, columns right→left (#368). */
+    private static void drawVertical(
+            PDPageContentStream cs,
+            PDFont font,
+            float fontSize,
+            float lineHeight,
+            float letterSpacingEm,
+            String text,
+            float x,
+            float y,
+            float w,
+            float h,
+            Color color,
+            boolean italic)
+            throws IOException {
+        float charSpacing = letterSpacingEm * fontSize;
+        float glyphStep = fontSize + charSpacing;
+        float colStep = fontSize * lineHeight;
+        float colX = x + w - fontSize;
+        float startY = y - fontSize;
+        int maxPerCol = Math.max(1, (int) (h / glyphStep));
+        cs.setNonStrokingColor(color);
+        int[] cps = text.codePoints().toArray();
+        int rowIdx = 0;
+        for (int cp : cps) {
+            if (cp == '\n') {
+                colX -= colStep;
+                rowIdx = 0;
+                continue;
+            }
+            if (rowIdx >= maxPerCol) {
+                colX -= colStep;
+                rowIdx = 0;
+            }
+            if (colX < x) break;
+            String ch = new String(Character.toChars(cp));
+            float chW = font.getStringWidth(ch) / 1000 * fontSize;
+            drawGlyphRun(
+                    cs,
+                    font,
+                    fontSize,
+                    ch,
+                    colX + (fontSize - chW) / 2,
+                    startY - rowIdx * glyphStep,
+                    italic);
+            rowIdx++;
+        }
+    }
+
+    private static int countChar(String s, char c) {
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) if (s.charAt(i) == c) n++;
+        return n;
     }
 
     /** Padding value (mm → pt) from the style node; 0 when unset. */
