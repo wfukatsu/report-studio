@@ -2,6 +2,8 @@ package com.report.server.pdf;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.report.server.ConditionEvaluator;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Shared element-rendering facade for SectionPdfRenderer implementations.
@@ -69,7 +71,7 @@ public final class SectionRenderHelper {
                         ? pushdownLayout(section)
                         : RelativeLayoutResolver.PagedLayout.SINGLE_PAGE;
 
-        for (JsonNode el : elements) {
+        for (JsonNode el : sortedByZIndex(elements)) {
             String elId = PdfUtils.textOf(el, "id", "");
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, 0)) continue;
@@ -86,6 +88,23 @@ public final class SectionRenderHelper {
             JsonNode masked = ElementNodeSupport.applyMaskingToElement(resolved, variantCtx);
             renderElement(ctx, masked);
         }
+    }
+
+    /**
+     * Elements in {@code zIndex} ascending order, ties keeping array order (#355). The frontend
+     * paints in this order ({@code SectionContainer} sorts by {@code zIndex}; {@code setZOrder}
+     * changes only the value, not the array), so the PDF must match to reproduce overlap stacking.
+     * A stable sort makes an unset/equal {@code zIndex} fall back to document order (unchanged
+     * behavior when no z-ordering is used).
+     */
+    private static List<JsonNode> sortedByZIndex(JsonNode elements) {
+        List<JsonNode> list = new ArrayList<>(elements.size());
+        elements.forEach(list::add);
+        list.sort(
+                (a, b) ->
+                        Integer.compare(
+                                PdfUtils.intOf(a, "zIndex", 0), PdfUtils.intOf(b, "zIndex", 0)));
+        return list;
     }
 
     /**
@@ -117,7 +136,7 @@ public final class SectionRenderHelper {
             PageContext ctx, JsonNode section, JsonNode formData, VariantContext variantCtx) {
         JsonNode elements = section.get("elements");
         if (elements == null || !elements.isArray()) return;
-        for (JsonNode el : elements) {
+        for (JsonNode el : sortedByZIndex(elements)) {
             String kind = ElementNodeSupport.resolveKind(el);
             if ("row_block".equals(kind)) continue;
             if ("carryover_header".equals(kind) || "carryover_footer".equals(kind)) continue;
