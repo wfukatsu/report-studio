@@ -119,4 +119,38 @@ class PdfSystemVariableParseBackTest {
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
         assertTrue(probe.pageContains(0, "1 / 1"), probe.pageText(0));
     }
+
+    /** A pageNumber in a 30mm frame; {@code vAlign} injects an optional verticalAlign. */
+    private static String pageNumberFrame(String vAlign) {
+        return """
+            {"templates":[{
+              "id":"t1","name":"VAlign",
+              "sections":[{
+                "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
+                "elements":[{
+                  "id":"pn","type":"pageNumber","name":"ページ番号",
+                  "position":{"x":90,"y":40},"size":{"width":40,"height":30},
+                  "format":"{{page}} / {{pages}}",
+                  "style":{"fontSize":10,"textAlign":"center"%s}
+                }]
+              }]
+            }]}"""
+                .formatted(vAlign);
+    }
+
+    @Test
+    void styledText_honorsVerticalAlign_afterDelegation() throws IOException {
+        // #365: pageNumber/currentDate/tenant* delegate to TextPdfRenderer, so verticalAlign
+        // (previously dropped by the bespoke StyledText loop) now shifts the baseline.
+        PdfProbe top = PdfProbe.parse(PdfRenderer.render(pageNumberFrame("")));
+        PdfProbe mid =
+                PdfProbe.parse(
+                        PdfRenderer.render(pageNumberFrame(",\"verticalAlign\":\"middle\"")));
+        float topY = top.findRun(0, "1 / 1").orElseThrow().baselineYMm();
+        float midY = mid.findRun(0, "1 / 1").orElseThrow().baselineYMm();
+        assertTrue(
+                midY > topY + 8f,
+                "verticalAlign:middle should push the baseline down in the 30mm frame: top=%.1f mid=%.1f"
+                        .formatted(topY, midY));
+    }
 }
