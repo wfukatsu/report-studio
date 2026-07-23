@@ -788,6 +788,13 @@ export interface TenantInfo {
   logoBase64?: string
   /** Arbitrary custom key/value fields */
   custom?: Record<string, string>
+  /**
+   * Tax-type → rate (decimal fraction, e.g. 0.10 = 10%). Single source of truth
+   * for consumption-tax rates; resolved with {@link resolveTaxRates} defaults and
+   * exposed to JEXL calculation expressions as the `taxRates` context variable
+   * (e.g. `unitPrice * taxRates[taxType]`). Server mirrors the same defaults. (#333)
+   */
+  taxRates?: Partial<Record<TaxType, number>>
 }
 
 // ---------------------------------------------------------------------------

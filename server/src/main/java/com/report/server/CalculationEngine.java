@@ -39,19 +39,42 @@ public final class CalculationEngine {
      * @throws ExpressionTimeoutException if any expression evaluation times out
      */
     public static Map<String, Object> apply(JsonNode projection, JsonNode formData) {
+        return apply(projection, formData, Map.of());
+    }
+
+    /**
+     * As {@link #apply(JsonNode, JsonNode)}, but seeds the evaluation context with extra variables
+     * (e.g. {@code taxRates}) available to every rule expression. Injected keys that a rule does
+     * not overwrite are stripped from the returned map so they do not leak into the enriched form
+     * data.
+     */
+    public static Map<String, Object> apply(
+            JsonNode projection, JsonNode formData, Map<String, Object> extraContext) {
         Map<String, Object> context = formDataToMap(formData);
+        context.putAll(extraContext);
 
         List<CalcRule> rules = extractRules(projection);
-        if (rules.isEmpty()) return context;
+        if (rules.isEmpty()) {
+            extraContext.keySet().forEach(context::remove);
+            return context;
+        }
 
         List<CalcRule> ordered = topologicalSort(rules);
 
+        java.util.Set<String> ruleTargets = new java.util.HashSet<>();
         for (CalcRule rule : ordered) {
             Object value = ExpressionEngine.calculate(rule.expression(), context);
             if (value != null) {
                 value = applyRounding(value, rule.roundingPolicy(), rule.roundingScale());
             }
             context.put(rule.targetField(), value);
+            ruleTargets.add(rule.targetField());
+        }
+
+        // Don't leak injected helper vars into the enriched data — unless a rule
+        // deliberately produced a field of the same name.
+        for (String key : extraContext.keySet()) {
+            if (!ruleTargets.contains(key)) context.remove(key);
         }
 
         return context;

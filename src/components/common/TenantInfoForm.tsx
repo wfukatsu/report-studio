@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
-import type { TenantInfo } from '@/types'
+import type { TaxType, TenantInfo } from '@/types'
 import { TenantLogoField } from '@/components/common/TenantLogoField'
 import { AlertBanner } from '@/components/common/AlertBanner'
+import { resolveTaxRates } from '@/lib/taxRates'
+
+// Editable tax types (「非課税」= none is always 0% and shown read-only).
+const EDITABLE_TAX_TYPES: readonly TaxType[] = ['standard', 'reduced']
 
 const MAX_CUSTOM_FIELDS = 20
 
@@ -49,6 +53,7 @@ export function TenantInfoForm({ heading, fetchOnMount }: Props) {
 
   const isDirty = edited !== null && JSON.stringify(edited) !== JSON.stringify(tenantInfo ?? {})
   const customEntries = Object.entries(form.custom ?? {})
+  const effectiveRates = resolveTaxRates(form)
 
   const postalInvalid = !!form.postalCode?.trim() && !POSTAL_RE.test(form.postalCode.trim())
   const phoneInvalid = !!form.phone?.trim() && !PHONE_RE.test(form.phone.trim())
@@ -70,6 +75,16 @@ export function TenantInfoForm({ heading, fetchOnMount }: Props) {
     const a1 = part === 'address1' ? value : (form.address1 ?? '')
     const a2 = part === 'address2' ? value : (form.address2 ?? '')
     setEdited({ ...form, [part]: value, address: a1 + a2 })
+  }
+
+  // Tax rates are edited as percentages but stored as decimal fractions (#333).
+  // Blank/invalid clears the override so the statutory default applies again.
+  function setTaxRatePercent(type: TaxType, raw: string) {
+    const next = { ...(form.taxRates ?? {}) }
+    const pct = parseFloat(raw)
+    if (raw.trim() === '' || !isFinite(pct)) delete next[type]
+    else next[type] = pct / 100
+    setField('taxRates', next)
   }
 
   function addCustomField() {
@@ -220,6 +235,44 @@ export function TenantInfoForm({ heading, fetchOnMount }: Props) {
       <section>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t('tenantInfoForm.logo')}</p>
         <TenantLogoField value={form.logoBase64} onChange={(dataUrl) => setField('logoBase64', dataUrl)} />
+      </section>
+
+      {/* Tax rates — single source of truth referenced from calc expressions (#333) */}
+      <section>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('tenantInfoForm.taxRates')}</p>
+        <p className="text-[10px] text-muted-foreground mb-3">{t('tenantInfoForm.taxRatesHint')}</p>
+        <div className="flex flex-wrap gap-3">
+          {EDITABLE_TAX_TYPES.map((type) => (
+            <div key={type}>
+              <label className={labelClass}>{t(`tenantInfoForm.taxType.${type}`)}</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  className="border rounded px-2 py-1 text-xs w-24 bg-background text-right"
+                  aria-label={t(`tenantInfoForm.taxType.${type}`)}
+                  value={Number((effectiveRates[type] * 100).toFixed(4))}
+                  onChange={(e) => setTaxRatePercent(type, e.target.value)}
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+          ))}
+          <div>
+            <label className={labelClass}>{t('tenantInfoForm.taxType.none')}</label>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                className="border rounded px-2 py-1 text-xs w-24 bg-background text-right text-muted-foreground"
+                value={0}
+                disabled
+                aria-label={t('tenantInfoForm.taxType.none')}
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Custom fields — now available in both hosts (#332) */}

@@ -20,6 +20,16 @@ const TenantInfoSchema = z.object({
   representativeName: z.string().optional(),
   logoBase64: z.string().optional(),
   custom: z.record(z.string(), z.string()).optional(),
+  // Tax-type → rate (decimal fraction). Explicitly listed so it is not stripped
+  // by the object schema on round-trip (#333).
+  taxRates: z
+    .object({
+      none: z.number(),
+      standard: z.number(),
+      reduced: z.number(),
+    })
+    .partial()
+    .optional(),
 })
 
 /** GET /api/v2/tenant — returns {} when not yet configured */

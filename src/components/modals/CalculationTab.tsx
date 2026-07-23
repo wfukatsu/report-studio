@@ -10,6 +10,7 @@ import type {
 } from '@/types'
 import { cn } from '@/lib/utils'
 import { evaluateExpression } from '@/lib/jexlEngine'
+import { resolveTaxRates } from '@/lib/taxRates'
 import { FORMULA_FUNCTIONS } from '@/lib/formula/functionCatalog'
 import { formulaToJexl } from '@/lib/formula/expression/formulaToJexl'
 import type { UseFormulaEditorReturn } from '@/components/formulaEditor/useFormulaEditor'
@@ -478,6 +479,7 @@ export function CalculationTab() {
   const calculationRules = useReportStore((s) => s.definition.calculationRules)
   const schema = useReportStore((s) => s.definition.schema)
   const testData = useReportStore((s) => s.testData)
+  const tenantInfo = useReportStore((s) => s.tenantInfo)
   const addCalculationRule = useReportStore((s) => s.addCalculationRule)
   const updateCalculationRule = useReportStore((s) => s.updateCalculationRule)
   const removeCalculationRule = useReportStore((s) => s.removeCalculationRule)
@@ -501,6 +503,13 @@ export function CalculationTab() {
   const peerRuleExpressionsByKey = useMemo(
     () => new Map(calculationRules.map((r) => [r.key, r.expression])),
     [calculationRules],
+  )
+
+  // Inject the tenant tax-rate map so the local "test" button matches the server
+  // eval, which seeds `taxRates` into every calculation context (#333).
+  const testDataWithRates = useMemo(
+    () => ({ ...testData, taxRates: resolveTaxRates(tenantInfo) }),
+    [testData, tenantInfo],
   )
 
   // O(n) duplicate detection — passed to each RuleRow for O(1) lookup
@@ -556,7 +565,7 @@ export function CalculationTab() {
               allKeys={allKeys}
               duplicateKeySet={duplicateKeySet}
               schemaFields={schemaFields}
-              testData={testData}
+              testData={testDataWithRates}
               peerRuleExpressions={peerRuleExpressionsByKey}
               onUpdate={(patch) => updateCalculationRule(rule.key, patch)}
               onRemove={() => removeCalculationRule(rule.key)}

@@ -1095,6 +1095,13 @@
     "saveFailed": "保存に失敗しました",
     "saved": "保存しました",
     "saving": "保存中...",
+    "taxRates": "税率設定",
+    "taxRatesHint": "計算式から taxRates[税区分] で参照できます（例: 単価 × taxRates.standard）。区分ごとの税率（%）を設定します。",
+    "taxType": {
+      "none": "非課税",
+      "reduced": "軽減税率",
+      "standard": "標準税率"
+    },
     "unsavedChanges": "未保存の変更あり",
     "valuePlaceholder": "値"
   }

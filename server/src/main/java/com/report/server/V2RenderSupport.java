@@ -40,7 +40,8 @@ public final class V2RenderSupport {
                         ? testData
                         : null;
         try {
-            Map<String, Object> enriched = CalculationEngine.apply(root, data);
+            Map<String, Object> enriched =
+                    CalculationEngine.apply(root, data, Map.of("taxRates", TaxRates.resolve()));
             root.set("_formData", MAPPER.valueToTree(enriched));
         } catch (CircularDependencyException e) {
             log.warn("Circular dependency in V2 calculation: {}", e.getMessage());
