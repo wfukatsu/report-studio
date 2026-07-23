@@ -189,8 +189,10 @@
       "toColumnMissing": "結合キー不整合: 「{{group}}」に列 {{column}} がありません。"
     },
     "relationshipView": {
-      "addLookup": "＋ 商品ルックアップ",
+      "addLookup": "商品ルックアップ",
       "addLookupAria": "{{group}} に商品ルックアップを追加",
+      "addLookupTitle": "商品マスターへのルックアップを追加：明細の {{column}} 列を商品マスターに紐付けます",
+      "lookupMappingTitle": "商品マスターへのルックアップ：明細.{{from}} → 商品マスター.{{to}}",
       "approveAll": "すべて承認",
       "autoDetected": "{{n}} 件の関係を自動検出",
       "editParentTitle": "ダブルクリックで親マスターを編集",

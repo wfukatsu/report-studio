@@ -189,8 +189,10 @@
       "toColumnMissing": "Join-key mismatch: \"{{group}}\" has no column {{column}}."
     },
     "relationshipView": {
-      "addLookup": "＋ Product lookup",
+      "addLookup": "Product lookup",
       "addLookupAria": "Add product lookup to {{group}}",
+      "addLookupTitle": "Add a product-master lookup: link this detail's {{column}} column to the product master",
+      "lookupMappingTitle": "Product-master lookup: detail.{{from}} → product master.{{to}}",
       "approveAll": "Approve all",
       "autoDetected": "{{n}} relationship(s) auto-detected",
       "editParentTitle": "Double-click to edit the parent master",
