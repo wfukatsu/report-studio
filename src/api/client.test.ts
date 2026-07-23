@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { z } from 'zod'
-import { apiFetch, ApiError, NetworkError, isApiError, isNetworkError, parseApiErrorBody } from './client'
+import { apiFetch, ApiError, NetworkError, ResponseValidationError, isApiError, isNetworkError, isResponseValidationError, parseApiErrorBody } from './client'
 
 function mockFetch(response: Partial<Response> & { json?: () => Promise<unknown> }): void {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -26,11 +26,21 @@ describe('apiFetch', () => {
     expect(result.name).toBe('Test')
   })
 
-  it('throws ZodError when response does not match schema', async () => {
+  it('throws ResponseValidationError (not raw ZodError) when the body fails the schema', async () => {
     const schema = z.object({ id: z.string() })
     mockFetch({ json: () => Promise.resolve({ id: 42 }) })  // id should be string
+    vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(apiFetch('/api/v2/templates/1', schema)).rejects.toThrow()
+    // #388: response-shape mismatches surface as a typed error whose message is
+    // a stable string, NOT the raw Zod issue array — so the UI never dumps it.
+    const err = await apiFetch('/api/v2/templates/1', schema).catch((e) => e)
+    expect(isResponseValidationError(err)).toBe(true)
+    expect(err).toBeInstanceOf(ResponseValidationError)
+    expect(err.message).not.toContain('invalid_type')
+    expect(err.message).toContain('/api/v2/templates/1')
+    // Raw ZodError preserved as cause for debugging, and logged.
+    expect((err as ResponseValidationError).cause).toBeInstanceOf(z.ZodError)
+    expect(console.error).toHaveBeenCalled()
   })
 
   it('throws ApiError on 404 response', async () => {

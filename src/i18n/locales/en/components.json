@@ -161,6 +161,8 @@
       "clear": "Clear",
       "dataFetched": "Real data fetched",
       "description": "Fetch real data from ScalarDB to preview. Enter the partition key value for each group.",
+      "errorInvalidResponse": "The server response was not in the expected format. Please try again in a moment.",
+      "errorNetwork": "Could not connect to the server. Please check your network connection.",
       "genericError": "An error occurred",
       "loading": "Fetching...",
       "notSavedHint": "This template is connected to a database but has not been saved yet. To preview with real data, save the template first.",

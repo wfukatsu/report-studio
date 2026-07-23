@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useReportStore } from '@/store'
 import * as reportApi from '@/api/reportApi'
+import { NetworkError, ResponseValidationError } from '@/api/client'
 import { LivePreviewPanel } from './LivePreviewPanel'
 import { tk } from '@/test/i18n'
 import type { SchemaField } from '@/types'
@@ -9,10 +10,24 @@ import type { SchemaField } from '@/types'
 const PLACEHOLDER = tk('components:bindingEditor.livePreview.valuePlaceholder')
 const REFRESH = tk('components:bindingEditor.livePreview.refresh')
 
+/** A saved, DB-bound master group so the panel renders its body + inputs. */
+function setupBoundMaster(): void {
+  const store = useReportStore.getState()
+  store.setCurrentTemplateId('tmpl-1')
+  store.addSchemaGroup('master')
+  const gid = useReportStore.getState().definition.schema!.groups[0].id
+  store.addSchemaField(gid, { key: 'reportId', label: '帳票ID', type: 'string', dbColumnName: 'report_id' } as SchemaField)
+  store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'invmod_header' })
+}
+
 beforeEach(() => {
   useReportStore.getState().newReport()
   useReportStore.getState().setDataSource(null)
   vi.restoreAllMocks()
+  // Default: an empty catalog so the panel can't identify key columns and falls
+  // back to showing every mapped column (the pre-#389 behaviour these suites
+  // assert). Individual tests override with a real catalog.
+  vi.spyOn(reportApi, 'fetchScalarDbCatalogCached').mockResolvedValue({ namespaces: [] })
 })
 
 // Partition-key resolve flow (#330 reconnection; formerly DataBindingOverviewPanel)
@@ -95,6 +110,101 @@ describe('LivePreviewPanel — sample-data seeding', () => {
     await vi.waitFor(() => {
       expect((screen.getByPlaceholderText(PLACEHOLDER) as HTMLInputElement).value).toBe('RPT-0001')
     })
+  })
+})
+
+// #389: partition-key inputs must be restricted to actual key columns, not
+// every mapped column, when the catalog identifies the table's keys.
+describe('LivePreviewPanel — partition-key column filtering', () => {
+  function setupMasterWithMixedColumns() {
+    const store = useReportStore.getState()
+    store.setCurrentTemplateId('tmpl-1')
+    store.addSchemaGroup('master')
+    const gid = useReportStore.getState().definition.schema!.groups[0].id
+    // report_id is the partition key; doc_no is a regular mapped column.
+    store.addSchemaField(gid, { key: 'reportId', label: '帳票ID', type: 'string', dbColumnName: 'report_id' } as SchemaField)
+    store.addSchemaField(gid, { key: 'docNo', label: '請求番号', type: 'string', dbColumnName: 'doc_no' } as SchemaField)
+    store.bindGroupToTable(gid, { namespace: 'demo', tableName: 'invmod_header' })
+    return gid
+  }
+
+  it('shows an input for the partition-key column only, not regular columns', async () => {
+    setupMasterWithMixedColumns()
+    vi.spyOn(reportApi, 'fetchScalarDbCatalogCached').mockResolvedValue({
+      namespaces: [{
+        name: 'demo',
+        tables: [{
+          name: 'invmod_header',
+          columns: [
+            { name: 'report_id', type: 'TEXT', keyType: 'partition' },
+            { name: 'doc_no', type: 'TEXT' }, // regular column — no keyType
+          ],
+        }],
+      }],
+    })
+
+    render(<LivePreviewPanel />)
+
+    // Once the catalog loads, only report_id remains an input.
+    await vi.waitFor(() => expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(1))
+    expect(screen.getByText('report_id')).toBeInTheDocument()
+    expect(screen.queryByText('doc_no')).not.toBeInTheDocument()
+  })
+
+  it('falls back to all mapped columns when the catalog lacks the table', async () => {
+    setupMasterWithMixedColumns()
+    // Default empty-catalog mock from beforeEach → no key info → show both.
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(2))
+  })
+})
+
+// #390: the panel header collapses so it doesn't push the binding canvas below the fold.
+describe('LivePreviewPanel — collapse toggle', () => {
+  it('collapses and expands the body via the header toggle', async () => {
+    setupBoundMaster()
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(1))
+
+    // The collapsible header is the expanded button; clicking it hides the body.
+    const header = screen.getByRole('button', { expanded: true })
+    fireEvent.click(header)
+    expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(0)
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.queryAllByPlaceholderText(PLACEHOLDER)).toHaveLength(1)
+  })
+})
+
+// #388: errors surface as friendly messages, never a raw error string.
+describe('LivePreviewPanel — error messages', () => {
+  it('maps a ResponseValidationError to the invalid-response message', async () => {
+    setupBoundMaster()
+    vi.spyOn(reportApi, 'resolveBindings').mockRejectedValue(
+      new ResponseValidationError('/api/v2/templates/tmpl-1/resolve-bindings', { cause: new Error('[{"code":"invalid_type"}]') }),
+    )
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.getByText(REFRESH)).toBeInTheDocument())
+    fireEvent.click(screen.getByText(REFRESH))
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(tk('components:bindingEditor.livePreview.errorInvalidResponse'))).toBeInTheDocument(),
+    )
+    // The raw cause string must not leak into the UI.
+    expect(screen.queryByText(/invalid_type/)).not.toBeInTheDocument()
+  })
+
+  it('maps a NetworkError to the network message', async () => {
+    setupBoundMaster()
+    vi.spyOn(reportApi, 'resolveBindings').mockRejectedValue(new NetworkError('Network request failed'))
+    render(<LivePreviewPanel />)
+    await vi.waitFor(() => expect(screen.getByText(REFRESH)).toBeInTheDocument())
+    fireEvent.click(screen.getByText(REFRESH))
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(tk('components:bindingEditor.livePreview.errorNetwork'))).toBeInTheDocument(),
+    )
   })
 })
 

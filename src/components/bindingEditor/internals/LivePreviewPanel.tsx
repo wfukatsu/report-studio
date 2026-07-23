@@ -1,8 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useReportStore } from '@/store'
 import { usePreviewData } from '@/hooks/usePreviewData'
-import { resolveBindings } from '@/api/reportApi'
+import { resolveBindings, fetchScalarDbCatalogCached } from '@/api/reportApi'
+import { isNetworkError, isResponseValidationError } from '@/api/client'
+import type { ScalarDbCatalog } from '@/api/reportApi'
 import { buildFlatDataFromResolved } from '@/lib/previewDataTransform'
 import { resolveField } from '@/lib/dataBinding'
 import type { SchemaDefinition } from '@/types'
@@ -42,22 +45,64 @@ function computeDefaultPartitionKeys(
   return { [primary.id]: { [SHARED_PK_COLUMN]: value } }
 }
 
+/**
+ * Primary-key column names (partition + clustering) for a group's bound table,
+ * from the ScalarDB catalog. A row is fetched by its full primary key, so only
+ * these columns are meaningful partition-key inputs — regular columns are not.
+ *
+ * Returns `null` when the table can't be located in the catalog (not yet
+ * fetched, fetch failed, or table removed) OR the table exposes no key columns.
+ * Callers fall back to showing every mapped column in that case, so a missing
+ * catalog never hides an input the user might need. (#389)
+ */
+function primaryKeyColumns(
+  tableMeta: { namespace: string; tableName: string } | undefined,
+  catalog: ScalarDbCatalog | null,
+): ReadonlySet<string> | null {
+  if (!tableMeta || !catalog) return null
+  const ns = catalog.namespaces.find((n) => n.name === tableMeta.namespace)
+  const table = ns?.tables.find((tb) => tb.name === tableMeta.tableName)
+  if (!table) return null
+  const keys = table.columns
+    .filter((c) => c.keyType === 'partition' || c.keyType === 'clustering')
+    .map((c) => c.name)
+  return keys.length > 0 ? new Set(keys) : null
+}
+
 interface SectionProps {
   title: string
   icon?: string
+  /** When provided, the header becomes a collapse toggle (#390). */
+  collapsed?: boolean
+  onToggle?: () => void
   children: React.ReactNode
 }
 
-function Section({ title, icon, children }: SectionProps) {
+const SECTION_LABEL = 'text-[10px] font-semibold text-muted-foreground uppercase tracking-wide'
+
+function Section({ title, icon, collapsed, onToggle, children }: SectionProps) {
   return (
     <div className="border-b">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40">
-        {icon && <span className="text-xs">{icon}</span>}
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          {title}
-        </span>
-      </div>
-      {children}
+      {onToggle ? (
+        <button
+          type="button"
+          className="flex items-center gap-1.5 w-full px-3 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+        >
+          {collapsed
+            ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+          {icon && <span className="text-xs">{icon}</span>}
+          <span className={SECTION_LABEL}>{title}</span>
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40">
+          {icon && <span className="text-xs">{icon}</span>}
+          <span className={SECTION_LABEL}>{title}</span>
+        </div>
+      )}
+      {!collapsed && children}
     </div>
   )
 }
@@ -76,8 +121,25 @@ export function LivePreviewPanel() {
   const livePreviewData = useReportStore((s) => s.livePreviewData)
 
   const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' })
+  // Collapse the panel so the core binding canvas isn't pushed below the fold
+  // (#390). Default expanded; collapse is per-mount local state.
+  const [collapsed, setCollapsed] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const sampleData = usePreviewData()
+
+  // ScalarDB catalog — used to restrict partition-key inputs to actual key
+  // columns (#389). Cached at the module level (shared with DbPanel's fetch), so
+  // this is a cache hit in normal use. A failed/absent fetch leaves it null and
+  // the render falls back to showing every mapped column.
+  const [catalog, setCatalog] = useState<ScalarDbCatalog | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    let cancelled = false
+    fetchScalarDbCatalogCached(controller.signal)
+      .then((c) => { if (!cancelled) setCatalog(c) })
+      .catch(() => { /* fall back to showing all mapped columns */ })
+    return () => { cancelled = true; controller.abort() }
+  }, [])
 
   // Seed partition-key inputs from sample data when a new template loads. Defaults
   // are memoized per loaded template id; user edits are stored alongside the id so
@@ -174,7 +236,13 @@ export function LivePreviewPanel() {
       setPreviewState({ status: 'ready' })
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return
-      const msg = e instanceof Error ? e.message : t('bindingEditor.livePreview.genericError')
+      // Map to a friendly message — never surface a raw error string (e.g. the
+      // ZodError issue array from a response-shape mismatch) to the user (#388).
+      const msg = isResponseValidationError(e)
+        ? t('bindingEditor.livePreview.errorInvalidResponse')
+        : isNetworkError(e)
+          ? t('bindingEditor.livePreview.errorNetwork')
+          : t('bindingEditor.livePreview.genericError')
       setPreviewState({ status: 'error', message: msg })
     }
   }
@@ -186,7 +254,13 @@ export function LivePreviewPanel() {
   }
 
   const renderGroup = (group: (typeof boundMasterGroups)[number]) => {
-    const keyFields = group.fields.filter((f) => f.dbColumnName)
+    // Only partition/clustering-key columns are meaningful lookup inputs. When
+    // the catalog can't identify them, fall back to every mapped column so we
+    // never hide an input the resolve might need. (#389)
+    const keyCols = primaryKeyColumns(group.tableMeta, catalog)
+    const keyFields = group.fields.filter(
+      (f) => f.dbColumnName && (keyCols === null || keyCols.has(f.dbColumnName)),
+    )
     if (keyFields.length === 0) return null
     const linkedMaster = group.linkedMasterGroupId
       ? schema?.groups.find((g) => g.id === group.linkedMasterGroupId)
@@ -225,7 +299,12 @@ export function LivePreviewPanel() {
   }
 
   return (
-    <Section title={t('bindingEditor.livePreview.title')} icon="⚡">
+    <Section
+      title={t('bindingEditor.livePreview.title')}
+      icon="⚡"
+      collapsed={collapsed}
+      onToggle={() => setCollapsed((v) => !v)}
+    >
       <div className="px-3 py-2 space-y-3">
         <p className="text-[10px] text-muted-foreground">
           {t('bindingEditor.livePreview.description')}
