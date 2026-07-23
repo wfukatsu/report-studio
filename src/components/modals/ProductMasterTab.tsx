@@ -121,17 +121,18 @@ export function ProductMasterTab() {
 
   return (
     <div className="p-4 flex flex-col gap-4" role="tabpanel" aria-label={t('productMasterTab.tabLabel')}>
-      {/* Custom field defs section */}
+      {/* Custom field defs section (#395: management expands inline, not a modal) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {t('productMasterTab.customFieldsHeading')}
           </p>
           <button
-            onClick={() => setIsFieldDefsOpen(true)}
+            onClick={() => setIsFieldDefsOpen((v) => !v)}
+            aria-expanded={isFieldDefsOpen}
             className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
           >
-            {t('productMasterTab.manage')}
+            {isFieldDefsOpen ? t('productMasterTab.close') : t('productMasterTab.manage')}
           </button>
         </div>
         {customFieldDefs.length === 0 ? (
@@ -147,6 +148,11 @@ export function ProductMasterTab() {
                 <span className="text-muted-foreground">({def.type})</span>
               </span>
             ))}
+          </div>
+        )}
+        {isFieldDefsOpen && (
+          <div className="mt-2">
+            <CustomFieldDefsPanel onClose={() => setIsFieldDefsOpen(false)} />
           </div>
         )}
       </div>
@@ -167,8 +173,12 @@ export function ProductMasterTab() {
               className="border rounded px-2 py-1 text-xs bg-background w-48"
             />
             <button
-              onClick={() => setIsCsvImportOpen(true)}
-              className="px-3 py-1 text-xs border rounded hover:bg-accent transition-colors"
+              onClick={() => setIsCsvImportOpen((v) => !v)}
+              aria-expanded={isCsvImportOpen}
+              className={cn(
+                'px-3 py-1 text-xs border rounded hover:bg-accent transition-colors',
+                isCsvImportOpen && 'bg-accent',
+              )}
             >
               CSV
             </button>
@@ -180,6 +190,13 @@ export function ProductMasterTab() {
             </button>
           </div>
         </div>
+
+        {/* CSV import (#395: expands inline, not a stacked modal) */}
+        {isCsvImportOpen && (
+          <div className="mb-3">
+            <ProductCsvImportModal onClose={() => setIsCsvImportOpen(false)} />
+          </div>
+        )}
 
         {productsError && (
           <p className="text-xs text-red-500 mb-2">{productsError}</p>
@@ -303,17 +320,6 @@ export function ProductMasterTab() {
         />
       )}
 
-      {/* Custom field defs management dialog */}
-      {isFieldDefsOpen && (
-        <CustomFieldDefsDialog
-          onClose={() => setIsFieldDefsOpen(false)}
-        />
-      )}
-
-      {isCsvImportOpen && (
-        <ProductCsvImportModal onClose={() => setIsCsvImportOpen(false)} />
-      )}
-
       <ConfirmDialog
         open={deleteTarget !== null}
         title={t('productMasterTab.deleteConfirmTitle')}
@@ -331,7 +337,7 @@ export function ProductMasterTab() {
 // Custom field definitions management dialog
 // ---------------------------------------------------------------------------
 
-function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
+function CustomFieldDefsPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('modals')
   const customFieldDefs = useReportStore((s) => s.customFieldDefs)
   const updateCustomFieldDefs = useReportStore((s) => s.updateCustomFieldDefs)
@@ -372,14 +378,14 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
+    // #395: renders inline within ProductMasterTab (was a stacked full-screen
+    // modal on top of the product-master modal).
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-      role="dialog"
-      aria-modal="true"
+      className="border border-border rounded-lg bg-muted/20 flex flex-col max-h-[70vh]"
+      role="region"
       aria-label={t('productMasterTab.customFieldsDialogLabel')}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
     >
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col mx-4">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h3 className="text-sm font-semibold">{t('productMasterTab.customFieldsHeading')}</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded hover:bg-accent" aria-label={t('productMasterTab.close')}>✕</button>
@@ -442,7 +448,6 @@ function CustomFieldDefsDialog({ onClose }: { onClose: () => void }) {
             {saving ? t('productMasterTab.saving') : t('productMasterTab.save')}
           </button>
         </div>
-      </div>
 
       <ConfirmDialog
         open={removeDefTarget !== null}

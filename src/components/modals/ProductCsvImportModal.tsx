@@ -52,14 +52,14 @@ export function ProductCsvImportModal({ onClose }: Props) {
   }
 
   return (
+    // #395: renders inline within ProductMasterTab (was a stacked full-screen
+    // modal on top of the product-master modal). Kept as a self-contained panel.
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-      role="dialog"
-      aria-modal="true"
+      className="border border-border rounded-lg bg-muted/20 flex flex-col max-h-[70vh]"
+      role="region"
       aria-label={t('productCsvImportModal.dialogLabel')}
       onKeyDown={(e) => { if (e.key === 'Escape' && !isImporting) onClose() }}
     >
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[560px] max-h-[85vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h3 className="text-sm font-semibold">{t('productCsvImportModal.title')}</h3>
@@ -141,7 +141,6 @@ export function ProductCsvImportModal({ onClose }: Props) {
             </button>
           )}
         </div>
-      </div>
     </div>
   )
 }
