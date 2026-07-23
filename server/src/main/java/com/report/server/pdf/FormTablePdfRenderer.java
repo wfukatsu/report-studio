@@ -5,6 +5,8 @@ import static com.report.server.pdf.PdfUtils.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.Color;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -76,33 +78,35 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         // Form data for dataField resolution
         JsonNode formData = el.get("_formData");
 
+        // Row expansion (#352): when dataSource points at an array in _formData, repeat the body
+        // rows once per record (header/footer render once), mirroring FormTableLiveRenderer.
+        String dataSource =
+                props != null ? textOf(props, "dataSource", "") : textOf(el, "dataSource", "");
+        JsonNode records = null;
+        if (!dataSource.isEmpty() && formData != null) {
+            JsonNode arr = formData.get(dataSource);
+            if (arr != null && arr.isArray()) records = arr;
+        }
+        int maxItems = props != null ? intOf(props, "maxItems", 0) : intOf(el, "maxItems", 0);
+        List<RowCtx> plan = buildRowPlan(rows, records, maxItems, formData);
+
         // Pre-compute column X offsets (mm -> pt)
         float[] colXPt = computeColumnOffsets(columns, x);
         float[] colWidthPt = computeColumnWidths(columns);
 
         // Pre-compute row Y offsets (from top of element, going downward)
-        float[] rowYPt = computeRowOffsets(rows, y);
-        float[] rowHeightPt = computeRowHeights(rows);
+        float[] rowYPt = computeRowOffsets(plan, y);
+        float[] rowHeightPt = computeRowHeights(plan);
 
         cs.saveGraphicsState();
         try {
             // Render cells: backgrounds, text, then borders
-            renderCellBackgrounds(cs, el, rows, columns, colXPt, colWidthPt, rowYPt, rowHeightPt);
+            renderCellBackgrounds(cs, el, plan, columns, colXPt, colWidthPt, rowYPt, rowHeightPt);
             renderCellText(
-                    cs,
-                    el,
-                    rows,
-                    columns,
-                    colXPt,
-                    colWidthPt,
-                    rowYPt,
-                    rowHeightPt,
-                    formData,
-                    doc,
-                    fontCache);
+                    cs, el, plan, columns, colXPt, colWidthPt, rowYPt, rowHeightPt, doc, fontCache);
             renderCellBorders(
                     cs,
-                    rows,
+                    plan,
                     columns,
                     colXPt,
                     colWidthPt,
@@ -113,6 +117,48 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         } finally {
             cs.restoreGraphicsState();
         }
+    }
+
+    // ── Row plan (expansion) ──────────────────────────────────────────────────
+
+    /**
+     * A row slot in the rendered table: the template {@code row}, the {@code data} object its
+     * dataField cells resolve against, and its {@code recordIdx} (0-based for repeated body rows,
+     * -1 for header/footer or non-repeated body).
+     */
+    private record RowCtx(JsonNode row, JsonNode data, int recordIdx) {}
+
+    /**
+     * Build the ordered list of rendered rows: header rows once, then the body-row block repeated
+     * per record (each resolving dataField cells against its record), then footer rows once. When
+     * there is no bound {@code records} array, body rows render once against the root form data —
+     * preserving the pre-#352 single-row behavior.
+     */
+    private static List<RowCtx> buildRowPlan(
+            JsonNode rows, JsonNode records, int maxItems, JsonNode root) {
+        List<JsonNode> header = new ArrayList<>();
+        List<JsonNode> body = new ArrayList<>();
+        List<JsonNode> footer = new ArrayList<>();
+        for (JsonNode row : rows) {
+            String role = textOf(row, "role", "body");
+            if ("header".equals(role)) header.add(row);
+            else if ("footer".equals(role)) footer.add(row);
+            else body.add(row);
+        }
+
+        List<RowCtx> plan = new ArrayList<>();
+        for (JsonNode row : header) plan.add(new RowCtx(row, root, -1));
+        if (records != null) {
+            int n = maxItems > 0 ? Math.min(maxItems, records.size()) : records.size();
+            for (int i = 0; i < n; i++) {
+                JsonNode rec = records.get(i);
+                for (JsonNode row : body) plan.add(new RowCtx(row, rec, i));
+            }
+        } else {
+            for (JsonNode row : body) plan.add(new RowCtx(row, root, -1));
+        }
+        for (JsonNode row : footer) plan.add(new RowCtx(row, root, -1));
+        return plan;
     }
 
     // ── Column/Row geometry ───────────────────────────────────────────────────
@@ -136,22 +182,22 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         return widths;
     }
 
-    private static float[] computeRowOffsets(JsonNode rows, float startY) {
+    private static float[] computeRowOffsets(List<RowCtx> plan, float startY) {
         // PDF Y axis goes up; startY is top of element in PDF coords
-        float[] offsets = new float[rows.size()];
+        float[] offsets = new float[plan.size()];
         float currentY = startY;
-        for (int i = 0; i < rows.size(); i++) {
+        for (int i = 0; i < plan.size(); i++) {
             offsets[i] = currentY;
-            float heightMm = floatOf(rows.get(i), "height", 8f);
+            float heightMm = floatOf(plan.get(i).row(), "height", 8f);
             currentY -= heightMm * MM_TO_PT;
         }
         return offsets;
     }
 
-    private static float[] computeRowHeights(JsonNode rows) {
-        float[] heights = new float[rows.size()];
-        for (int i = 0; i < rows.size(); i++) {
-            heights[i] = floatOf(rows.get(i), "height", 8f) * MM_TO_PT;
+    private static float[] computeRowHeights(List<RowCtx> plan) {
+        float[] heights = new float[plan.size()];
+        for (int i = 0; i < plan.size(); i++) {
+            heights[i] = floatOf(plan.get(i).row(), "height", 8f) * MM_TO_PT;
         }
         return heights;
     }
@@ -161,7 +207,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     private static void renderCellBackgrounds(
             PDPageContentStream cs,
             JsonNode el,
-            JsonNode rows,
+            List<RowCtx> plan,
             JsonNode columns,
             float[] colXPt,
             float[] colWidthPt,
@@ -178,8 +224,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                         ? el.get("bodyStyle")
                         : (el.has("props") ? el.get("props").get("bodyStyle") : null);
 
-        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
-            JsonNode row = rows.get(rowIdx);
+        for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
+            JsonNode row = plan.get(rowIdx).row();
             String role = textOf(row, "role", "body");
             JsonNode cells = row.get("cells");
             if (cells == null || !cells.isArray()) continue;
@@ -201,7 +247,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                                 rowIdx,
                                 cell,
                                 columns.size(),
-                                rows.size(),
+                                plan.size(),
                                 colXPt,
                                 colWidthPt,
                                 rowYPt,
@@ -219,18 +265,19 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     private static void renderCellText(
             PDPageContentStream cs,
             JsonNode el,
-            JsonNode rows,
+            List<RowCtx> plan,
             JsonNode columns,
             float[] colXPt,
             float[] colWidthPt,
             float[] rowYPt,
             float[] rowHeightPt,
-            JsonNode formData,
             PDDocument doc,
             Map<String, PDFont> fontCache)
             throws IOException {
-        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
-            JsonNode row = rows.get(rowIdx);
+        for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
+            RowCtx ctx = plan.get(rowIdx);
+            JsonNode row = ctx.row();
+            JsonNode rowData = ctx.data();
             JsonNode cells = row.get("cells");
             if (cells == null || !cells.isArray()) continue;
 
@@ -238,7 +285,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 JsonNode cell = cells.get(colIdx);
                 if (isMergedInto(cell)) continue;
 
-                String text = resolveCellText(cell, formData);
+                String text = resolveCellText(cell, rowData);
                 if (text == null || text.isEmpty()) continue;
 
                 CellBounds bounds =
@@ -247,7 +294,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                                 rowIdx,
                                 cell,
                                 columns.size(),
-                                rows.size(),
+                                plan.size(),
                                 colXPt,
                                 colWidthPt,
                                 rowYPt,
@@ -298,7 +345,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
 
     private static void renderCellBorders(
             PDPageContentStream cs,
-            JsonNode rows,
+            List<RowCtx> plan,
             JsonNode columns,
             float[] colXPt,
             float[] colWidthPt,
@@ -310,8 +357,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         cs.setStrokingColor(borderColor);
         cs.setLineWidth(borderWidth * MM_TO_PT);
 
-        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
-            JsonNode row = rows.get(rowIdx);
+        for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
+            JsonNode row = plan.get(rowIdx).row();
             JsonNode cells = row.get("cells");
             if (cells == null || !cells.isArray()) continue;
 
@@ -325,7 +372,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                                 rowIdx,
                                 cell,
                                 columns.size(),
-                                rows.size(),
+                                plan.size(),
                                 colXPt,
                                 colWidthPt,
                                 rowYPt,
