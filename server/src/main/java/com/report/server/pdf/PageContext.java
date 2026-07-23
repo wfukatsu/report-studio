@@ -31,6 +31,7 @@ public final class PageContext implements AutoCloseable {
     private java.time.LocalDate printDate = java.time.LocalDate.now();
     private com.fasterxml.jackson.databind.JsonNode tenant;
     private float[] clipMarginsMm; // {top, right, bottom, left} — null = no clipping
+    private float sectionYOffsetMm; // cumulative top of the current section within the page (#354)
 
     public PageContext(PDDocument doc, PDRectangle pageSize, Map<String, PDFont> fontCache) {
         this(doc, pageSize, fontCache, VariantContext.empty());
@@ -67,6 +68,7 @@ public final class PageContext implements AutoCloseable {
         cs = new PDPageContentStream(doc, page);
         currentPageSize = size;
         pageIndex++;
+        sectionYOffsetMm = 0f; // reset section stacking for the new page (#354)
         applyMarginClip(size);
     }
 
@@ -117,6 +119,20 @@ public final class PageContext implements AutoCloseable {
     /** Set the tenant info document used by tenant* elements (may be null). */
     public void setTenant(com.fasterxml.jackson.databind.JsonNode tenant) {
         this.tenant = tenant;
+    }
+
+    /**
+     * Cumulative Y offset (mm) of the section currently being rendered — the sum of the heights of
+     * all preceding sections on the page (#354). Element Y positions are section-relative on the
+     * frontend, so the dispatcher adds this to place body/footer/custom-section content below the
+     * sections stacked above it. Zero for single-section pages (unchanged behavior).
+     */
+    public void setSectionYOffset(float offsetMm) {
+        this.sectionYOffsetMm = offsetMm;
+    }
+
+    public float sectionYOffsetMm() {
+        return sectionYOffsetMm;
     }
 
     /** Check if a section with the given pageScope should render on the current page. */

@@ -193,6 +193,8 @@ public final class PdfRenderer {
             for (int pageIdx = 0; pageIdx < totalPages; pageIdx++) {
                 ctx.newPage();
                 ctx.setLocalPage(pageIdx, totalPages); // V1: local == global (unchanged behavior)
+                // V1 projection sections are page-absolute page_base overlays (no stacking); the
+                // section-relative offset (#354) applies only to the V2 native pages[] path below.
                 for (int i = 0; i < orderedSections.size(); i++) {
                     JsonNode section = orderedSections.get(i);
                     String sectionType = resolveSectionType(section);
@@ -331,12 +333,15 @@ public final class PdfRenderer {
                     for (int localIdx = 0; localIdx < localCount; localIdx++) {
                         ctx.newPage(size);
                         ctx.setLocalPage(localIdx, localCount);
+                        float sectionOffsetMm = 0f; // stack sections top-to-bottom (#354)
                         for (int i = 0; i < ordered.size(); i++) {
                             JsonNode section = ordered.get(i);
                             SectionPdfRenderer r =
                                     SECTION_REGISTRY.getOrFallback(resolveSectionType(section));
                             int[] prm = params.get(i);
+                            ctx.setSectionYOffset(sectionOffsetMm);
                             r.renderPage(ctx, section, formData, null, localIdx, prm[0], prm[1]);
+                            sectionOffsetMm += PdfUtils.floatOf(section, "height", 0);
                         }
                     }
                 }
