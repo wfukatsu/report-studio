@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Pencil, Trash2, Fi
 import { BulkExportModal } from './BulkExportModal'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
+import { useReportStore } from '@/store'
 import type { Product } from '@/types'
 import {
   scanScalarDbTable,
   listResponses,
-  getProducts,
   deleteScalarDbRow,
   updateScalarDbRow,
 } from '@/api/reportApi'
@@ -61,8 +61,27 @@ export function DataGrid({ source }: Props) {
   // set a loading flag synchronously inside the load effect.
   const [loadResult, setLoadResult] = useState<{ key: string; state: LoadState; error?: string } | null>(null)
   const [scalarDbData, setScalarDbData] = useState<ScalarDbScanResponse | null>(null)
-  const [productRows, setProductRows] = useState<GridRow[]>([])
-  const [allProducts, setAllProducts] = useState<Product[]>([])  // full objects for detail panel
+  // #397: product-master rows are derived from the shared report store, not a
+  // local copy, so add/edit/delete/CSV in the ProductMasterTab modal (which
+  // mutates s.products) reflects live in this grid — including the "N 件" count.
+  const storeProducts = useReportStore((s) => s.products)
+  const fetchProducts = useReportStore((s) => s.fetchProducts)
+  const allProducts: Product[] = storeProducts  // full objects for detail panel
+  const productRows = useMemo<GridRow[]>(
+    () => storeProducts.map((p) => ({
+      id: p.id,
+      code: p.code,
+      name: p.name,
+      unitPrice: p.unitPrice,
+      category: p.category,
+      taxType: p.taxType,
+      unit: p.unit,
+      manufacturer: p.manufacturer,
+      stockCount: p.stockCount,
+      description: p.description,
+    })),
+    [storeProducts],
+  )
   const [formRows, setFormRows] = useState<GridRow[]>([])
   const [formTotal, setFormTotal] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
@@ -110,7 +129,10 @@ export function DataGrid({ source }: Props) {
     })
   }
 
-  // Derived load status for the current request key
+  // Derived load status for the current request key. Product master keeps using
+  // this keyed loadResult (NOT the shared s.productsLoading) so that the modal's
+  // own fetches don't flip this grid into a loading state — which would unmount
+  // the modal. Only the product *rows* come from the store (live via CRUD).
   const loadKey = `${sourceKey}|${currentPage}|${reloadKey}`
   const loadState: LoadState = loadResult?.key === loadKey ? loadResult.state : 'loading'
   const errorMsg = loadResult?.key === loadKey ? loadResult.error ?? '' : ''
@@ -138,34 +160,17 @@ export function DataGrid({ source }: Props) {
         })
 
     } else if (source.kind === 'product-master') {
-      // Product master: fetch full Product objects; build display rows separately
-      getProducts()
-        .then((products) => {
-          if (cancelled) return
-          setAllProducts(products)
-          setColumns(['code', 'name', 'unitPrice', 'category', 'taxType', 'unit', 'manufacturer', 'stockCount', 'description'])
-          setProductRows(products.map((p) => ({
-            id: p.id,
-            code: p.code,
-            name: p.name,
-            unitPrice: p.unitPrice,
-            category: p.category,
-            taxType: p.taxType,
-            unit: p.unit,
-            manufacturer: p.manufacturer,
-            stockCount: p.stockCount,
-            description: p.description,
-          })))
-          setLoadResult({ key: loadKey, state: 'ok' })
-        })
-        .catch((e) => {
-          if (cancelled) return
-          setLoadResult({
-            key: loadKey,
-            state: 'error',
-            error: e instanceof Error ? e.message : t('dataBrowser.dataGrid.productLoadFailed'),
-          })
-        })
+      // Product master: fetch into the shared store; rows derive from s.products
+      // (live). fetchProducts catches its own errors (into s.productsError) and
+      // never rejects, so read that flag after it settles to set the load state.
+      fetchProducts().then(() => {
+        if (cancelled) return
+        setColumns(['code', 'name', 'unitPrice', 'category', 'taxType', 'unit', 'manufacturer', 'stockCount', 'description'])
+        const err = useReportStore.getState().productsError
+        setLoadResult(err
+          ? { key: loadKey, state: 'error', error: err }
+          : { key: loadKey, state: 'ok' })
+      })
 
     } else if (source.kind === 'form-responses') {
       const offset = currentPage * PAGE_SIZE
@@ -577,12 +582,15 @@ export function DataGrid({ source }: Props) {
         onCancel={() => setDeleteTarget(null)}
       />
 
-      {/* Product master editor (#331) — reload the grid on close since edits
-          may have changed the product rows. */}
+      {/* Product master editor (#331). Edits reflect live via the shared store;
+          on close, reset to page 1 (#397: a bulk delete can shrink the list below
+          the current page, leaving it empty) and refetch to reconcile with the
+          server (e.g. after CSV import). */}
       {showProductMaster && (
         <ProductMasterModal
           onClose={() => {
             setShowProductMaster(false)
+            setPage(0)
             reload()
           }}
         />
