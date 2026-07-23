@@ -256,6 +256,8 @@
       "emptyHint": "Please add a schema field",
       "guideClick": "Click a field → click an element on the left to connect",
       "guideDrag": "You can also connect by dragging a field onto an element",
+      "newDetailName": "New detail {{n}}",
+      "newMasterName": "New master {{n}}",
       "searchPlaceholder": "Search fields...",
       "title": "Schema fields"
     },

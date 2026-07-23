@@ -200,19 +200,37 @@ export const createSchemaSlice: StateCreator<
 
   // ── Schema local actions ────────────────────────────────────────────────
 
-  addSchemaGroup: (role) => set((s) => {
-    if (!s.definition.schema) {
-      s.definition.schema = { groups: [] }
-    }
-    const group: SchemaGroup = {
-      id: uuidv4(),
-      label: role === 'master' ? 'マスター' : '明細',
-      role,
-      dataKey: '',
-      fields: [],
-    }
-    s.definition.schema.groups.push(group)
-  }),
+  addSchemaGroup: (role) => {
+    const id = uuidv4()
+    set((s) => {
+      if (!s.definition.schema) {
+        s.definition.schema = { groups: [] }
+      }
+      // #392: default to a distinct sequential name (e.g. 新規マスター1) rather
+      // than the bare role word ('マスター'/'明細'), which collided with the role
+      // badge and made freshly-added groups indistinguishable. Suffix bumps until
+      // the label is unique among existing groups.
+      const key = role === 'master'
+        ? 'components:bindingEditor.schemaPanel.newMasterName'
+        : 'components:bindingEditor.schemaPanel.newDetailName'
+      const existingLabels = new Set(s.definition.schema.groups.map((g) => g.label))
+      let n = s.definition.schema.groups.filter((g) => g.role === role).length + 1
+      let label = i18n.t(key, { n })
+      while (existingLabels.has(label)) {
+        n += 1
+        label = i18n.t(key, { n })
+      }
+      const group: SchemaGroup = {
+        id,
+        label,
+        role,
+        dataKey: '',
+        fields: [],
+      }
+      s.definition.schema.groups.push(group)
+    })
+    return id
+  },
 
   removeSchemaGroup: (groupId) => {
     set((s) => {

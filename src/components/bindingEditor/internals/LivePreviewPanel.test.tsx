@@ -53,7 +53,7 @@ describe('LivePreviewPanel — linked master/detail auto-fill', () => {
   it('shows a "(auto: …)" label on a detail group linked to a master', () => {
     setupLinkedGroups()
     render(<LivePreviewPanel />)
-    expect(screen.getByText(tk('components:bindingEditor.livePreview.autoFill', { name: 'マスター' }))).toBeInTheDocument()
+    expect(screen.getByText(tk('components:bindingEditor.livePreview.autoFill', { name: '新規マスター1' }))).toBeInTheDocument()
   })
 
   it('hides the manual input for a linked detail group', () => {

@@ -296,6 +296,7 @@ export function BindingEditor() {
             onToggleGroup={toggleFieldGroup}
             fieldRef={fieldRefCallback}
             onOpenComputedDialog={openComputedDialog}
+            onGroupAdded={expandFieldGroup}
           />
         </div>
 

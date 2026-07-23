@@ -19,6 +19,8 @@ interface SchemaPanelProps {
   readonly onToggleGroup: (groupId: string) => void
   readonly fieldRef: (fieldId: string, el: HTMLElement | null) => void
   readonly onOpenComputedDialog?: (groupId: string) => void
+  /** #392: called with the new group's id after adding, so the parent can expand it. */
+  readonly onGroupAdded?: (groupId: string) => void
 }
 
 export const SchemaPanel = memo(function SchemaPanel({
@@ -27,14 +29,19 @@ export const SchemaPanel = memo(function SchemaPanel({
   onToggleGroup,
   fieldRef,
   onOpenComputedDialog,
+  onGroupAdded,
 }: SchemaPanelProps) {
   const { t } = useTranslation('components')
   const [searchQuery, setSearchQuery] = useState('')
+  // #392: id of the group added by the last "＋マスター/＋明細" click, so it opens
+  // in inline-edit mode prompting a rename (instead of a role-word-named group).
+  const [justAddedGroupId, setJustAddedGroupId] = useState<string | null>(null)
 
   // Destructure the members used inside memoized callbacks so the dependency
   // arrays can list them directly (bs itself is a fresh object every render).
   const {
     addSchemaField,
+    addSchemaGroup,
     setAddingFieldGroupId,
     setBulk,
     updateSchemaGroup,
@@ -42,6 +49,15 @@ export const SchemaPanel = memo(function SchemaPanel({
     setHoveredGroupId,
     fieldMap,
   } = bs
+
+  const handleAddGroup = useCallback(
+    (role: 'master' | 'detail') => {
+      const id = addSchemaGroup(role)
+      setJustAddedGroupId(id)
+      onGroupAdded?.(id)
+    },
+    [addSchemaGroup, onGroupAdded],
+  )
 
   const handleAddField = useCallback(
     (groupId: string, field: Omit<SchemaField, 'id'>) => {
@@ -94,7 +110,7 @@ export const SchemaPanel = memo(function SchemaPanel({
           </p>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <NoSchemaPanel onAddGroup={() => bs.addSchemaGroup('master')} />
+          <NoSchemaPanel onAddGroup={() => handleAddGroup('master')} />
         </div>
       </div>
     )
@@ -182,6 +198,7 @@ export const SchemaPanel = memo(function SchemaPanel({
               fieldBoundCount={bs.fieldBoundCount}
               hoveredFieldId={bs.hoveredFieldId}
               onHoverField={handleHoverField}
+              autoEdit={group.id === justAddedGroupId}
             />
           )
         })}
@@ -198,13 +215,13 @@ export const SchemaPanel = memo(function SchemaPanel({
       <div className="flex items-center gap-3 px-3 py-2 border-t bg-muted/10 shrink-0">
         <button
           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-          onClick={() => bs.addSchemaGroup('master')}
+          onClick={() => handleAddGroup('master')}
         >
           <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaPanel.addMaster')}
         </button>
         <button
           className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium"
-          onClick={() => bs.addSchemaGroup('detail')}
+          onClick={() => handleAddGroup('detail')}
         >
           <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaPanel.addDetail')}
         </button>

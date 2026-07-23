@@ -256,6 +256,8 @@
       "emptyHint": "スキーマフィールドを追加してください",
       "guideClick": "フィールドをクリック → 左の要素をクリックで接続",
       "guideDrag": "フィールドを要素へドラッグしても接続できます",
+      "newDetailName": "新規明細{{n}}",
+      "newMasterName": "新規マスター{{n}}",
       "searchPlaceholder": "フィールドを検索...",
       "title": "スキーマフィールド"
     },
