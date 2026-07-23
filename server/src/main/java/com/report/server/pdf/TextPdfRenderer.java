@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.util.Matrix;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,12 +96,36 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                                         style != null ? textOf(style, "writingMode", "") : "",
                                         props != null ? textOf(props, "writingMode", "") : ""));
 
+        // Text-style extras (#368): synthetic italic, underline/line-through, background fill
+        boolean italic =
+                "italic"
+                        .equals(
+                                firstNonEmpty(
+                                        props != null ? textOf(props, "fontStyle", "") : "",
+                                        style != null ? textOf(style, "fontStyle", "") : ""));
+        String textDecoration =
+                firstNonEmpty(
+                        props != null ? textOf(props, "textDecoration", "") : "",
+                        style != null ? textOf(style, "textDecoration", "") : "");
+        String bgColorStr =
+                firstNonEmpty(
+                        props != null ? textOf(props, "backgroundColor", "") : "",
+                        style != null ? textOf(style, "backgroundColor", "") : "");
+
         // Furigana (ruby)
         String furigana = textOf(el, "furigana", "");
         float furiScale = firstNonZero(floatOf(el, "furiganaScale", 0), 0.5f);
 
         cs.saveGraphicsState();
         try {
+            // Background fills the element box (frontend applies style.backgroundColor to the text
+            // div, which is 100% of the element) — drawn before the glyphs.
+            Color bg = bgColorStr.isEmpty() ? null : parseColor(bgColorStr, null);
+            if (bg != null) {
+                cs.setNonStrokingColor(bg);
+                cs.addRect(x, y - h, w, h);
+                cs.fill();
+            }
             configureBold(cs, syntheticBold, fontSize, color);
             if (vertical) {
                 drawVertical(
@@ -115,7 +140,8 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                         h,
                         furigana,
                         furiScale,
-                        charSpacing);
+                        charSpacing,
+                        italic);
             } else {
                 drawHorizontal(
                         cs,
@@ -131,7 +157,10 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                         verticalAlign,
                         furigana,
                         furiScale,
-                        charSpacing);
+                        charSpacing,
+                        italic,
+                        textDecoration,
+                        color);
             }
         } finally {
             cs.restoreGraphicsState();
@@ -154,8 +183,16 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             String verticalAlign,
             String furigana,
             float furiScale,
-            float charSpacing)
+            float charSpacing,
+            boolean italic,
+            String textDecoration,
+            Color color)
             throws IOException {
+        boolean underline = textDecoration != null && textDecoration.contains("underline");
+        boolean lineThrough =
+                textDecoration != null
+                        && (textDecoration.contains("line-through")
+                                || textDecoration.contains("strikethrough"));
         float rubyH = furigana.isEmpty() ? 0 : fontSize * furiScale * 1.1f;
         List<String> lines = wrapText(text, font, fontSize, w, charSpacing);
         float lineStep = fontSize * lineHeight;
@@ -182,7 +219,24 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                         case "right" -> x + w - lineW;
                         default -> x;
                     };
-            showLine(cs, font, fontSize, line, tx, cursorY, charSpacing);
+            showLine(cs, font, fontSize, line, tx, cursorY, charSpacing, italic);
+            // Decoration rules (#368): underline below the baseline, line-through mid-glyph
+            if ((underline || lineThrough) && !line.isEmpty()) {
+                cs.setStrokingColor(color);
+                cs.setLineWidth(Math.max(0.3f, fontSize * 0.06f));
+                if (underline) {
+                    float uy = cursorY - fontSize * 0.12f;
+                    cs.moveTo(tx, uy);
+                    cs.lineTo(tx + lineW, uy);
+                    cs.stroke();
+                }
+                if (lineThrough) {
+                    float sy = cursorY + fontSize * 0.30f;
+                    cs.moveTo(tx, sy);
+                    cs.lineTo(tx + lineW, sy);
+                    cs.stroke();
+                }
+            }
             cursorY -= lineStep;
         }
         // Ruby over the first line, centered on the text block
@@ -220,7 +274,8 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float h,
             String furigana,
             float furiScale,
-            float charSpacing)
+            float charSpacing,
+            boolean italic)
             throws IOException {
         // Columns fill top-to-bottom, advancing right-to-left from the frame's right edge.
         // letter-spacing extends the per-glyph advance along the vertical flow (#319).
@@ -246,7 +301,15 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             if (colX < x) break; // out of horizontal space
             String ch = new String(Character.toChars(cp));
             float chW = strWidth(font, ch, fontSize);
-            showLine(cs, font, fontSize, ch, colX + (fontSize - chW) / 2, startY - row * glyphStep);
+            showLine(
+                    cs,
+                    font,
+                    fontSize,
+                    ch,
+                    colX + (fontSize - chW) / 2,
+                    startY - row * glyphStep,
+                    0f,
+                    italic);
             row++;
         }
         // Ruby to the right of the first column
@@ -277,7 +340,7 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
     private static void showLine(
             PDPageContentStream cs, PDFont font, float size, String text, float tx, float baselineY)
             throws IOException {
-        showLine(cs, font, size, text, tx, baselineY, 0f);
+        showLine(cs, font, size, text, tx, baselineY, 0f, false);
     }
 
     private static void showLine(
@@ -288,6 +351,22 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
             float tx,
             float baselineY,
             float charSpacing)
+            throws IOException {
+        showLine(cs, font, size, text, tx, baselineY, charSpacing, false);
+    }
+
+    // Synthetic italic shear: ~12° slant applied via the text matrix (#368)
+    private static final float ITALIC_SHEAR = 0.21f;
+
+    private static void showLine(
+            PDPageContentStream cs,
+            PDFont font,
+            float size,
+            String text,
+            float tx,
+            float baselineY,
+            float charSpacing,
+            boolean italic)
             throws IOException {
         if (text.isEmpty()) return;
         FontGlyphs.SanitizeResult sanitized = FontGlyphs.sanitize(font, text);
@@ -305,7 +384,12 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
         cs.beginText();
         cs.setFont(font, size);
         if (charSpacing != 0) cs.setCharacterSpacing(charSpacing);
-        cs.newLineAtOffset(tx, baselineY);
+        if (italic) {
+            // Shear the text space so glyphs slant right, then translate to (tx, baselineY).
+            cs.setTextMatrix(new Matrix(1, 0, ITALIC_SHEAR, 1, tx, baselineY));
+        } else {
+            cs.newLineAtOffset(tx, baselineY);
+        }
         cs.showText(safe);
         cs.endText();
         if (charSpacing != 0) cs.setCharacterSpacing(0);
