@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { DataGrid } from './DataGrid'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
+import { useReportStore } from '@/store'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
 import type { Product } from '@/types'
 
@@ -24,7 +25,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 import {
-  scanScalarDbTable, listResponses, getProducts,
+  scanScalarDbTable, listResponses,
   deleteScalarDbRow, updateScalarDbRow,
 } from '@/api/reportApi'
 import { downloadBlob } from '@/api/client'
@@ -32,7 +33,6 @@ import { toast } from 'sonner'
 
 const mockScan = vi.mocked(scanScalarDbTable)
 const mockListResponses = vi.mocked(listResponses)
-const mockGetProducts = vi.mocked(getProducts)
 const mockDelete = vi.mocked(deleteScalarDbRow)
 const mockUpdate = vi.mocked(updateScalarDbRow)
 const mockDownloadBlob = vi.mocked(downloadBlob)
@@ -75,6 +75,10 @@ beforeEach(() => {
     selectedSource: null, searchQuery: '', sortCol: null, sortDir: 'asc',
     currentPage: 0, detailRow: null,
   })
+  // #397: DataGrid now reads product-master rows from the shared report store.
+  // Reset it so each test controls products via setState (fetchProducts stubbed
+  // to a no-op so the load effect doesn't clobber the seeded state).
+  useReportStore.setState({ products: [], productsLoading: false, productsError: null, fetchProducts: async () => {} })
   mockScan.mockResolvedValue(scanResponse())
   mockDelete.mockResolvedValue({ message: 'ok' } as never)
   mockUpdate.mockResolvedValue({ row: {} } as never)
@@ -276,10 +280,15 @@ describe('DataGrid — pagination', () => {
 
 describe('DataGrid — product master source', () => {
   it('renders product rows and opens the read-only detail panel on click', async () => {
-    mockGetProducts.mockResolvedValue([
-      makeProduct({ id: 'p1', code: 'SKU-001', name: '商品A' }),
-      makeProduct({ id: 'p2', code: 'SKU-002', name: '商品B' }),
-    ])
+    useReportStore.setState({
+      products: [
+        makeProduct({ id: 'p1', code: 'SKU-001', name: '商品A' }),
+        makeProduct({ id: 'p2', code: 'SKU-002', name: '商品B' }),
+      ],
+      productsLoading: false,
+      productsError: null,
+      fetchProducts: async () => {},
+    })
     render(<DataGrid source={{ kind: 'product-master' }} />)
     expect(await screen.findByText('商品A')).toBeInTheDocument()
     expect(screen.getByText('SKU-002')).toBeInTheDocument()
@@ -291,7 +300,12 @@ describe('DataGrid — product master source', () => {
   })
 
   it('shows the error state when products cannot be loaded', async () => {
-    mockGetProducts.mockRejectedValueOnce(new Error('boom'))
+    useReportStore.setState({
+      products: [],
+      productsLoading: false,
+      productsError: 'boom',
+      fetchProducts: async () => {},
+    })
     render(<DataGrid source={{ kind: 'product-master' }} />)
     expect(await screen.findByText('データの読み込みに失敗しました')).toBeInTheDocument()
   })
