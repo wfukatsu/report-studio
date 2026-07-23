@@ -147,4 +147,23 @@ class PdfBandFlowParseBackTest {
         PdfProbe probe = PdfProbe.parse(PdfRenderer.renderDefinition(listJson(9, "grid")));
         assertEquals(1, probe.pageCount());
     }
+
+    @Test
+    void emptyBoundBand_isSuppressed() throws IOException {
+        // #371: a repeatingBand bound to an empty array renders nothing (no header/frame),
+        // matching the preview; static siblings are unaffected.
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(0, "\"maxItems\":0,")));
+        assertTrue(probe.pageContains(0, "バンド見出し"), "static text should still render");
+        assertFalse(probe.pageContains(0, "品名"), "empty band header should be suppressed");
+    }
+
+    @Test
+    void nonEmptyBand_stillRendersHeader() throws IOException {
+        // Control: a bound band with rows keeps its header (suppression is not over-eager).
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.renderDefinition(bandJson(3, "\"maxItems\":0,")));
+        assertTrue(probe.pageContains(0, "品名"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "品目1"), probe.pageText(0));
+    }
 }
