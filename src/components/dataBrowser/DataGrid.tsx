@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2, FileDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Pencil, Trash2, FileDown } from 'lucide-react'
 import { BulkExportModal } from './BulkExportModal'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
 import type { DataSourceNode } from '@/store/dataBrowserStore'
@@ -18,6 +18,7 @@ import { DataGridToolbar } from './DataGridToolbar'
 import { exportToCsv } from './exportToCsv'
 import { DataDetailPanel } from './DataDetailPanel'
 import { RowEditModal } from './RowEditModal'
+import { ProductMasterModal } from './ProductMasterModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { toast } from 'sonner'
 
@@ -71,6 +72,12 @@ export function DataGrid({ source }: Props) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editModalRow, setEditModalRow] = useState<ScalarDbRowValues | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<GridRow | null>(null)
+
+  // Product master editing (#331): the dedicated ProductMasterTab editor
+  // (add/edit/delete/CSV/custom-fields/duplicate-detection/optimistic-lock/
+  // 90-day delete warning) is reachable directly from the DataBrowser, closing
+  // the asymmetry with generic ScalarDB tables that already edit inline.
+  const [showProductMaster, setShowProductMaster] = useState(false)
 
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; column: string } | null>(null)
@@ -353,6 +360,15 @@ export function DataGrid({ source }: Props) {
             {t('dataBrowser.dataGrid.addRow')}
           </button>
         )}
+        {source.kind === 'product-master' && (
+          <button
+            onClick={() => setShowProductMaster(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-accent mr-2 shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            {t('dataBrowser.dataGrid.editProductMaster')}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -560,6 +576,17 @@ export function DataGrid({ source }: Props) {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Product master editor (#331) — reload the grid on close since edits
+          may have changed the product rows. */}
+      {showProductMaster && (
+        <ProductMasterModal
+          onClose={() => {
+            setShowProductMaster(false)
+            reload()
+          }}
+        />
+      )}
     </div>
   )
 }

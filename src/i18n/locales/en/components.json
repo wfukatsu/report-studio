@@ -434,6 +434,7 @@
       "delete": "Delete",
       "deleteConfirm": "Are you sure you want to delete this row? This action cannot be undone.",
       "deleteRow": "Delete row",
+      "editProductMaster": "Edit product master",
       "gridLabel": "Data grid",
       "loadFailed": "Failed to load data",
       "loading": "Loading...",
@@ -468,6 +469,10 @@
       "systemBadge": "System",
       "systemNsTitle": "Internal management tables (usually no editing required)",
       "treeLabel": "Data source tree"
+    },
+    "productMasterModal": {
+      "close": "Close",
+      "title": "Product master management"
     },
     "rowEditModal": {
       "add": "Add",

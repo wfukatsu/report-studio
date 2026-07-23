@@ -434,6 +434,7 @@
       "delete": "削除",
       "deleteConfirm": "この行を削除してもよろしいですか？この操作は元に戻せません。",
       "deleteRow": "行を削除",
+      "editProductMaster": "商品マスターを編集",
       "gridLabel": "データグリッド",
       "loadFailed": "データの読み込みに失敗しました",
       "loading": "読み込み中...",
@@ -468,6 +469,10 @@
       "systemBadge": "システム",
       "systemNsTitle": "内部管理テーブル（通常は編集不要）",
       "treeLabel": "データソースツリー"
+    },
+    "productMasterModal": {
+      "close": "閉じる",
+      "title": "商品マスターの管理"
     },
     "rowEditModal": {
       "add": "追加",
