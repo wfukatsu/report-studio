@@ -8,21 +8,29 @@ import { ProductEditDialog } from './ProductEditDialog'
 import { ProductCsvImportModal } from './ProductCsvImportModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
-type SortCol = 'code' | 'name' | 'category' | 'unitPrice'
+type SortCol = 'code' | 'name' | 'category' | 'unitPrice' | 'stockCount' | 'taxType'
 type SortDir = 'asc' | 'desc'
+
+// Rendered/sortable data columns, in table order. Expanded from the original
+// fixed 4 (code/name/category/unitPrice) to include stock and tax (#333).
+const SORT_COLS: readonly SortCol[] = ['code', 'name', 'category', 'unitPrice', 'stockCount', 'taxType']
+const NUMERIC_COLS: ReadonlySet<SortCol> = new Set(['unitPrice', 'stockCount'])
+const PAGE_SIZE = 50
 
 export function ProductMasterTab() {
   const { t } = useTranslation('modals')
+  const TAX_LABELS: Record<string, string> = {
+    none: t('productMasterTab.tax.none'),
+    standard: t('productMasterTab.tax.standard'),
+    reduced: t('productMasterTab.tax.reduced'),
+  }
   const COLUMN_LABELS: Record<SortCol, string> = {
     code: t('productMasterTab.columns.code'),
     name: t('productMasterTab.columns.name'),
     category: t('productMasterTab.columns.category'),
     unitPrice: t('productMasterTab.columns.unitPrice'),
-  }
-  const TAX_LABELS: Record<string, string> = {
-    none: t('productMasterTab.tax.none'),
-    standard: t('productMasterTab.tax.standard'),
-    reduced: t('productMasterTab.tax.reduced'),
+    stockCount: t('productMasterTab.columns.stockCount'),
+    taxType: t('productMasterTab.taxColumn'),
   }
   const products = useReportStore((s) => s.products)
   const customFieldDefs = useReportStore((s) => s.customFieldDefs)
@@ -37,6 +45,7 @@ export function ProductMasterTab() {
   const [search, setSearch] = useState('')
   const [sortCol, setSortCol] = useState<SortCol>('code')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [page, setPage] = useState(0)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isFieldDefsOpen, setIsFieldDefsOpen] = useState(false)
@@ -55,12 +64,25 @@ export function ProductMasterTab() {
       p.name.toLowerCase().includes(search.toLowerCase()),
   )
 
+  function sortValue(p: Product, col: SortCol): string | number {
+    if (col === 'unitPrice') return p.unitPrice
+    if (col === 'stockCount') return p.stockCount
+    if (col === 'taxType') return TAX_LABELS[p.taxType] ?? p.taxType
+    return String(p[col] ?? '')
+  }
+
   const sorted = [...filtered].sort((a, b) => {
-    const av = sortCol === 'unitPrice' ? a[sortCol] : String(a[sortCol] ?? '')
-    const bv = sortCol === 'unitPrice' ? b[sortCol] : String(b[sortCol] ?? '')
+    const av = sortValue(a, sortCol)
+    const bv = sortValue(b, sortCol)
     const cmp = typeof av === 'number' ? av - (bv as number) : String(av).localeCompare(String(bv), 'ja')
     return sortDir === 'asc' ? cmp : -cmp
   })
+
+  // Paginate the rendered rows (#333) so a large catalog never mounts thousands
+  // of DOM rows at once. `page` is clamped in case the filtered set shrank.
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const pageRows = sorted.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) {
@@ -69,6 +91,12 @@ export function ProductMasterTab() {
       setSortCol(col)
       setSortDir('asc')
     }
+    setPage(0)
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(0)
   }
 
   async function execDelete(product: Product) {
@@ -135,7 +163,7 @@ export function ProductMasterTab() {
               placeholder={t('productMasterTab.searchPlaceholder')}
               aria-label={t('productMasterTab.searchLabel')}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="border rounded px-2 py-1 text-xs bg-background w-48"
             />
             <button
@@ -162,11 +190,12 @@ export function ProductMasterTab() {
             {search ? t('productMasterTab.noSearchResults') : t('productMasterTab.noProducts')}
           </div>
         ) : (
+          <>
           <div className="border rounded overflow-auto max-h-80">
             <table className="w-full text-xs" aria-label={t('productMasterTab.productListLabel')}>
               <thead className="bg-muted/50 sticky top-0">
                 <tr>
-                  {(['code', 'name', 'category', 'unitPrice'] as SortCol[]).map((col) => (
+                  {SORT_COLS.map((col) => (
                     <th
                       key={col}
                       onClick={() => toggleSort(col)}
@@ -178,7 +207,8 @@ export function ProductMasterTab() {
                           : 'none'
                       }
                       className={cn(
-                        'px-3 py-2 text-left font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none whitespace-nowrap',
+                        'px-3 py-2 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none whitespace-nowrap',
+                        NUMERIC_COLS.has(col) ? 'text-right' : 'text-left',
                       )}
                     >
                       {COLUMN_LABELS[col]}
@@ -187,12 +217,11 @@ export function ProductMasterTab() {
                       )}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">{t('productMasterTab.taxColumn')}</th>
                   <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t('productMasterTab.actionsColumn')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sorted.map((product) => {
+                {pageRows.map((product) => {
                   const op = productOps.get(product.id)
                   const isBusy = !!op
                   return (
@@ -202,6 +231,9 @@ export function ProductMasterTab() {
                       <td className="px-3 py-1.5 text-muted-foreground">{product.category || '—'}</td>
                       <td className="px-3 py-1.5 text-right">
                         {t('productMasterTab.priceYen', { price: product.unitPrice.toLocaleString('ja-JP') })}
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-muted-foreground">
+                        {product.stockCount.toLocaleString('ja-JP')}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
                         {TAX_LABELS[product.taxType] ?? product.taxType}
@@ -233,6 +265,30 @@ export function ProductMasterTab() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+              <span>{t('productMasterTab.pageInfo', { current: safePage + 1, total: totalPages })}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(() => Math.max(0, safePage - 1))}
+                  disabled={safePage === 0}
+                  aria-label={t('productMasterTab.prevPage')}
+                  className="px-2 py-1 border rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={() => setPage(() => Math.min(totalPages - 1, safePage + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  aria-label={t('productMasterTab.nextPage')}
+                  className="px-2 py-1 border rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
