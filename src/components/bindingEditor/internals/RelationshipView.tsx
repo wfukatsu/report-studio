@@ -47,6 +47,8 @@ interface RelationshipViewProps {
   readonly onAddRelation?: (relation: Omit<SchemaRelation, 'id'>) => void
   /** #144: remove a named relation by id. */
   readonly onRemoveRelation?: (relationId: string) => void
+  /** #396: focus a group in the center schema panel (scroll + highlight). */
+  readonly onFocusGroup?: (groupId: string) => void
 }
 
 interface Line {
@@ -67,6 +69,7 @@ export const RelationshipView = memo(function RelationshipView({
   relations,
   onAddRelation,
   onRemoveRelation,
+  onFocusGroup,
 }: RelationshipViewProps) {
   const { t } = useTranslation('components')
   const [collapsed, setCollapsed] = useState(false)
@@ -304,10 +307,16 @@ export const RelationshipView = memo(function RelationshipView({
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       {masters.map((m) => (
-                        <div key={m.id} className="text-[10px] text-blue-600 flex items-center gap-1 truncate">
+                        <button
+                          key={m.id}
+                          type="button"
+                          className="text-[10px] text-blue-600 flex items-center gap-1 truncate text-left w-full hover:underline"
+                          onClick={() => onFocusGroup?.(m.id)}
+                          title={t('bindingEditor.relationshipView.focusGroupTitle')}
+                        >
                           {primary?.id === m.id && <span title={t('bindingEditor.relationshipView.primaryKeyTitle')}>★</span>}
                           <span className="truncate">{m.label || m.id}</span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -331,7 +340,14 @@ export const RelationshipView = memo(function RelationshipView({
                       title={t('bindingEditor.relationshipView.editParentTitle')}
                     >
                       <div className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
-                        <span className="truncate">{d.label || d.id}</span>
+                        <button
+                          type="button"
+                          className="truncate text-left hover:underline"
+                          onClick={(e) => { e.stopPropagation(); onFocusGroup?.(d.id) }}
+                          title={t('bindingEditor.relationshipView.focusGroupTitle')}
+                        >
+                          {d.label || d.id}
+                        </button>
                         <span className="text-[9px] font-normal text-amber-500">detail</span>
                         {!linked && <AlertTriangle className="w-3 h-3 text-red-500 ml-auto shrink-0" />}
                       </div>

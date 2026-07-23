@@ -9,7 +9,7 @@
  * Summary bar with group color legend at the bottom.
  */
 
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BookmarkPlus, FolderOpen } from 'lucide-react'
 import { useBindingState } from './hooks/useBindingState'
@@ -74,6 +74,28 @@ export function BindingEditor() {
     setDbCollapsed((prev) => !prev)
     setTimeout(() => triggerRecalc(), 320)
   }, [triggerRecalc])
+
+  // #396: focus a schema group from the relationship view — expand it, scroll it
+  // into view in the center panel, and briefly highlight it.
+  const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null)
+  const focusTimerRef = useRef<number | null>(null)
+  const handleFocusGroup = useCallback((groupId: string) => {
+    expandFieldGroup(groupId)
+    setFocusedGroupId(groupId)
+    if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current)
+    focusTimerRef.current = window.setTimeout(() => setFocusedGroupId(null), 1600)
+    // Scroll the group header into view. Called synchronously (NOT inside
+    // requestAnimationFrame): the connection-line rAF scroll listeners cancel a
+    // scrollIntoView scheduled on the next frame, so a direct call is required.
+    // Instant (not smooth) so it can't be interrupted mid-animation by those
+    // scroll listeners. The header position is unaffected by the expand above.
+    document
+      .querySelector(`[data-schemagroup-id="${groupId}"]`)
+      ?.scrollIntoView({ block: 'center' })
+  }, [expandFieldGroup])
+  useEffect(() => () => {
+    if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current)
+  }, [])
 
   // Computed field dialog state
   const [computedDialog, setComputedDialog] = useState<
@@ -228,6 +250,7 @@ export function BindingEditor() {
           }
           onAddRelation={addSchemaRelation}
           onRemoveRelation={removeSchemaRelation}
+          onFocusGroup={handleFocusGroup}
         />
       )}
 
@@ -297,6 +320,7 @@ export function BindingEditor() {
             fieldRef={fieldRefCallback}
             onOpenComputedDialog={openComputedDialog}
             onGroupAdded={expandFieldGroup}
+            focusedGroupId={focusedGroupId}
           />
         </div>
 
