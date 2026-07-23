@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useReportStore } from '@/store'
-import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl, fetchScalarDbCatalog, createScalarDbTable } from './reportApi'
+import { loadFromBackend, evaluateCalculations, evaluateValidate, listVersions, createVersion, restoreVersion, listReports, getReport, createReport, saveReport, deleteReport, getMe, login, logout, checkHealth, exportTemplate, importTemplate, submitResponse, listResponses, getResponse, deleteResponse, exportResponses, getResponsePdf, generateTemplatePdf, duplicateReport, getTemplateThumbnailUrl, fetchScalarDbCatalog, createScalarDbTable, resolveBindings } from './reportApi'
 import type { CreateScalarDbTableRequest } from './reportApi'
 import { ApiError, NetworkError } from './client'
 import type { ReportDefinition } from '@/types'
@@ -695,6 +695,51 @@ describe('getTemplateThumbnailUrl', () => {
 
   it('encodes special characters in id', () => {
     expect(getTemplateThumbnailUrl('tpl/1 2')).toBe('/api/v2/templates/tpl%2F1%202/thumbnail')
+  })
+})
+
+describe('resolveBindings', () => {
+  const request = {
+    schema: { groups: [] },
+    partitionKeys: { g1: { report_id: 'RPT-1' } },
+  }
+
+  // #387: the server writes an explicit `null` into `errors` for every group
+  // that resolved successfully (HTTP 207). The response schema must accept null
+  // values — requiring string rejected every successful resolve and dumped the
+  // raw Zod error into the live-preview UI.
+  it('accepts a 207 response with null error values (successful groups)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 207,
+      json: () => Promise.resolve({
+        resolved: { g1: { report_id: 'RPT-1', total: 12345 } },
+        errors: { g1: null, '__productMaster__': null },
+        requestId: 'corr-1',
+      }),
+    }))
+
+    const result = await resolveBindings('tpl-1', request)
+
+    expect(result.errors.g1).toBeNull()
+    expect(result.errors['__productMaster__']).toBeNull()
+    expect(result.resolved.g1).toEqual({ report_id: 'RPT-1', total: 12345 })
+  })
+
+  it('still accepts string failure messages alongside null successes', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 207,
+      json: () => Promise.resolve({
+        resolved: { g1: { report_id: 'RPT-1' } },
+        errors: { g1: null, g2: 'Row not found' },
+      }),
+    }))
+
+    const result = await resolveBindings('tpl-1', request)
+
+    expect(result.errors.g1).toBeNull()
+    expect(result.errors.g2).toBe('Row not found')
   })
 })
 

@@ -160,7 +160,14 @@ export interface ResolveBindingsResponse {
    * detail groups: array of rows [ { fieldKey → value }, ... ]
    */
   resolved: Record<string, ResolvedGroupValue>
-  errors: Record<string, string>
+  /**
+   * Per-group outcome: a diagnostic string when the group FAILED, or `null` when
+   * it resolved successfully. The server writes an explicit `null` for every
+   * successful group (BindingResolveController#putNull), so this map is keyed by
+   * every requested group — not only the failing ones. Consumers must treat
+   * `null` as "no error". (#387)
+   */
+  errors: Record<string, string | null>
   requestId?: string
 }
 
@@ -175,7 +182,10 @@ const ResolvedGroupValueSchema = z.union([
 
 const ResolveBindingsResponseSchema = z.object({
   resolved: z.record(z.string(), ResolvedGroupValueSchema),
-  errors: z.record(z.string(), z.string()),
+  // `null` = group resolved with no error; a string = failure message. The
+  // server emits an explicit null per successful group, so requiring a string
+  // here rejected every successful 207 response (#387).
+  errors: z.record(z.string(), z.string().nullable()),
   requestId: z.string().optional(),
 }) satisfies z.ZodType<ResolveBindingsResponse>
 
