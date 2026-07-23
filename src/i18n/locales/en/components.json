@@ -1095,6 +1095,13 @@
     "saveFailed": "Failed to save",
     "saved": "Saved",
     "saving": "Saving...",
+    "taxRates": "Tax rates",
+    "taxRatesHint": "Referenced from formulas as taxRates[taxType] (e.g. unitPrice × taxRates.standard). Set the rate (%) per tax type.",
+    "taxType": {
+      "none": "Tax-exempt",
+      "reduced": "Reduced rate",
+      "standard": "Standard rate"
+    },
     "unsavedChanges": "Unsaved changes",
     "valuePlaceholder": "Value"
   }

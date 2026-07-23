@@ -120,7 +120,9 @@ public final class EvaluateController {
 
         JsonNode projection = wrapForCalculation(id, definition);
         try {
-            Map<String, Object> computed = CalculationEngine.apply(projection, testData);
+            Map<String, Object> computed =
+                    CalculationEngine.apply(
+                            projection, testData, Map.of("taxRates", TaxRates.resolve()));
             // Return only the computed rule keys (not the original testData fields)
             for (JsonNode rule : calcRules) {
                 String key = rule.path("key").asText(null);
@@ -198,6 +200,7 @@ public final class EvaluateController {
 
         if (validationRules.isArray() && !validationRules.isEmpty()) {
             Map<String, Object> context = CalculationEngine.formDataToMap(testData);
+            context.put("taxRates", TaxRates.resolve());
 
             for (JsonNode rule : validationRules) {
                 String condition = rule.path("condition").asText(null);

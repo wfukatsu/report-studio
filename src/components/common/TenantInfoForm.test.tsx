@@ -55,6 +55,24 @@ describe('TenantInfoForm', () => {
     expect(screen.queryByPlaceholderText(ph('fieldNamePlaceholder'))).not.toBeInTheDocument()
   })
 
+  it('shows tax rates as percentages, defaulting to the statutory rates', () => {
+    render(<TenantInfoForm />)
+    expect(screen.getByRole('spinbutton', { name: ph('taxType.standard') })).toHaveValue(10)
+    expect(screen.getByRole('spinbutton', { name: ph('taxType.reduced') })).toHaveValue(8)
+    // 非課税 is fixed at 0% and read-only
+    expect(screen.getByRole('spinbutton', { name: ph('taxType.none') })).toBeDisabled()
+  })
+
+  it('edits a tax rate as a percentage and stores it as a decimal fraction', async () => {
+    const updateTenantInfo = vi.fn().mockResolvedValue(undefined)
+    seedStore({ updateTenantInfo })
+    render(<TenantInfoForm />)
+    fireEvent.change(screen.getByRole('spinbutton', { name: ph('taxType.standard') }), { target: { value: '12' } })
+    fireEvent.click(screen.getByRole('button', { name: ph('save') }))
+    await waitFor(() => expect(updateTenantInfo).toHaveBeenCalled())
+    expect(updateTenantInfo.mock.calls[0][0].taxRates).toMatchObject({ standard: 0.12 })
+  })
+
   it('composes address1 + address2 into a single address on save', async () => {
     const updateTenantInfo = vi.fn().mockResolvedValue(undefined)
     seedStore({ updateTenantInfo })
