@@ -71,26 +71,6 @@
       "unsavedChanges": "Unsaved changes",
       "username": "Username"
     },
-    "tenantSettings": {
-      "address1": "Address 1 (prefecture / city)",
-      "address1Placeholder": "Chiyoda, Chiyoda-ku, Tokyo",
-      "address2": "Address 2 (street / building)",
-      "address2Placeholder": "1-1-1 ABC Building 3F",
-      "companyName": "Company name",
-      "companyNamePlaceholder": "ABC Inc.",
-      "email": "Email address",
-      "logo": "Logo image",
-      "phone": "Phone number",
-      "postalCode": "Postal code",
-      "representativeName": "Representative name",
-      "representativeNamePlaceholder": "Taro Yamada",
-      "save": "Save",
-      "saveFailed": "Failed to save the tenant information",
-      "saveSuccess": "Tenant information saved.",
-      "saving": "Saving...",
-      "title": "Tenant information",
-      "unsavedChanges": "Unsaved changes"
-    },
     "userManagement": {
       "createFailed": "Failed to create the user (the ID may already exist)",
       "deleteConfirm": "Delete",
@@ -1099,5 +1079,36 @@
       "sectionVariants": "Variant Settings",
       "variantsHeading": "Variant Settings"
     }
+  },
+  "tenantInfoForm": {
+    "add": "+ Add",
+    "address1": "Address 1 (prefecture / city)",
+    "address1Placeholder": "Chiyoda, Chiyoda-ku, Tokyo",
+    "address2": "Address 2 (street / building)",
+    "address2Placeholder": "1-1-1 ABC Building 3F",
+    "adminTitle": "Tenant information",
+    "basicInfo": "Basic information",
+    "companyName": "Company name",
+    "companyNamePlaceholder": "Sample Inc.",
+    "customFields": "Custom fields",
+    "email": "Email address",
+    "fieldNamePlaceholder": "Field name",
+    "loading": "Loading tenant information...",
+    "logo": "Logo image",
+    "maxFields": "You can add up to {{max}} fields.",
+    "noCustomFields": "No custom fields yet. Add one with the \"+ Add\" button.",
+    "phone": "Phone number",
+    "phoneHint": "Check the phone number format (e.g. 03-1234-5678)",
+    "postalCode": "Postal code",
+    "postalCodeHint": "Enter the postal code as 123-4567",
+    "removeFieldLabel": "Remove this field",
+    "representativeName": "Representative name",
+    "representativeNamePlaceholder": "Taro Yamada",
+    "save": "Save",
+    "saveFailed": "Failed to save",
+    "saved": "Saved",
+    "saving": "Saving...",
+    "unsavedChanges": "Unsaved changes",
+    "valuePlaceholder": "Value"
   }
 }
