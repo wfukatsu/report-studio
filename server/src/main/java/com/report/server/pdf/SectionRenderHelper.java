@@ -76,6 +76,9 @@ public final class SectionRenderHelper {
             boolean baseVisible = PdfUtils.boolOf(el, "visible", true);
             if (!ConditionEvaluator.shouldRender(el, formData, 0)) continue;
             if (!variantCtx.isVisible(elId, baseVisible)) continue;
+            // Export is always "readonly": hide empty-bound repeatingBand/chart like the preview
+            // (frontend isDataEmptyInPreview, #371) so no orphan frame/title/header is drawn.
+            if (isBoundDataEmpty(el, formData)) continue;
             int elementPage = layout.pageOf().getOrDefault(elId, 0);
             if (elementPage > 0 && elementPage != pageIdx) continue;
             JsonNode withLayout =
@@ -105,6 +108,28 @@ public final class SectionRenderHelper {
                         Integer.compare(
                                 PdfUtils.intOf(a, "zIndex", 0), PdfUtils.intOf(b, "zIndex", 0)));
         return list;
+    }
+
+    /**
+     * Whether a data-bound element resolves to no rows and should be hidden on export, mirroring
+     * the frontend {@code isDataEmptyInPreview} (#371). Only {@code repeatingBand} (via {@code
+     * dataSource}) and {@code chart} (via {@code dataBinding}) are suppressed: an unbound element,
+     * or one whose key resolves to a non-empty array, always renders. Matches the preview exactly:
+     * {@code repeatingList}, formTable, etc. are never hidden here.
+     */
+    private static boolean isBoundDataEmpty(JsonNode el, JsonNode formData) {
+        String kind = ElementNodeSupport.resolveKind(el);
+        String key;
+        if ("repeatingBand".equals(kind)) {
+            key = PdfUtils.elementTextOf(el, "dataSource", "");
+        } else if ("chart".equals(kind)) {
+            key = PdfUtils.elementTextOf(el, "dataBinding", "");
+        } else {
+            return false;
+        }
+        if (key.isEmpty()) return false; // unbound → static, always shown
+        JsonNode arr = formData != null ? formData.get(key) : null;
+        return arr == null || !arr.isArray() || arr.isEmpty();
     }
 
     /**

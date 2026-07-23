@@ -102,7 +102,9 @@ class PdfDataElementsParseBackTest {
     }
 
     @Test
-    void chart_withNoData_rendersEmptyState() throws IOException {
+    void chart_withEmptyBoundData_isSuppressed() throws IOException {
+        // #371: a chart bound to an absent/empty array is hidden entirely (frontend
+        // isDataEmptyInPreview), not drawn as a server-only "データなし" empty state.
         PdfProbe probe =
                 PdfProbe.parse(
                         PdfRenderer.render(
@@ -112,7 +114,8 @@ class PdfDataElementsParseBackTest {
              "dataBinding":"missing","xAxisKey":"month","yAxisKeys":["amount"],
              "position":{"x":20,"y":20},"size":{"width":120,"height":70}}""",
                                         "{}")));
-        assertTrue(probe.pageContains(0, "データなし"), probe.pageText(0));
+        assertFalse(probe.pageContains(0, "データなし"), probe.pageText(0));
+        assertTrue(probe.runs(0).isEmpty(), "empty-bound chart should render nothing");
     }
 
     @Test
