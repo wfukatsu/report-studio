@@ -48,16 +48,37 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
             return;
         }
 
+        // Front parity (#367): bar color, background color, and the human-readable caption
+        Color dark = parseColor(elementTextOf(el, "darkColor", ""), Color.BLACK);
+        Color light = parseColor(elementTextOf(el, "lightColor", ""), Color.WHITE);
+        boolean showText = elementBoolOf(el, "showText", true);
+
         try {
             String format = elementTextOf(el, "format", "");
             if (format.isEmpty()) format = textOf(el, "kind", "CODE_128");
             BarcodeFormat bf = toBarcodeFormat(format);
+
+            // Reserve a caption band at the bottom when showText, so bars don't overlap it.
+            float captionFont = showText ? Math.min(8f, h * 0.35f) : 0f;
+            float captionH = showText ? captionFont * 1.5f : 0f;
+            float barsH = Math.max(1f, h - captionH);
+
             BitMatrix matrix =
                     new MultiFormatWriter()
-                            .encode(value, bf, (int) (w / MM_TO_PT * 3), (int) (h / MM_TO_PT * 3));
+                            .encode(
+                                    value,
+                                    bf,
+                                    (int) (w / MM_TO_PT * 3),
+                                    (int) (barsH / MM_TO_PT * 3));
 
+            // Background fills the whole frame (front <svg> has an opaque background).
+            cs.setNonStrokingColor(light);
+            cs.addRect(x, y - h, w, h);
+            cs.fill();
+
+            // Bars occupy the top region above the caption band.
             float barWidth = w / matrix.getWidth();
-            cs.setNonStrokingColor(Color.BLACK);
+            cs.setNonStrokingColor(dark);
             for (int col = 0; col < matrix.getWidth(); col++) {
                 boolean hasBlack = false;
                 for (int row = 0; row < matrix.getHeight(); row++) {
@@ -67,10 +88,23 @@ public final class BarcodePdfRenderer implements ElementPdfRenderer {
                     }
                 }
                 if (hasBlack) {
-                    cs.addRect(x + col * barWidth, y - h, barWidth, h);
+                    cs.addRect(x + col * barWidth, y - barsH, barWidth, barsH);
                 }
             }
             cs.fill();
+
+            // Caption: the value, centred below the bars.
+            if (showText && captionFont > 0) {
+                PDFont font = FontProvider.getFont(doc, fontCache);
+                float textW = font.getStringWidth(value) / 1000 * captionFont;
+                float tx = x + (w - textW) / 2;
+                cs.beginText();
+                cs.setFont(font, captionFont);
+                cs.setNonStrokingColor(dark);
+                cs.newLineAtOffset(tx, y - barsH - captionFont);
+                cs.showText(value);
+                cs.endText();
+            }
         } catch (Exception e) {
             log.warn("Barcode render failed for value '{}': {}", value, e.getMessage());
             renderBorder(cs, x, y, w, h);
