@@ -19,6 +19,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,11 +73,13 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
             throws IOException {
         JsonNode props = el.get("props");
         String src = props != null ? textOf(props, "src", "") : "";
+        String objectFit = elementTextOf(el, "objectFit", "contain");
+        float opacity = elementFloatOf(el, "opacity", 1f);
 
         byte[] imageBytes = resolveImageBytes(src);
         if (imageBytes != null) {
             try {
-                drawImage(cs, x, y, w, h, doc, imageBytes);
+                drawImage(cs, x, y, w, h, doc, imageBytes, objectFit, opacity);
                 return;
             } catch (Exception e) {
                 log.warn("Failed to render image: {}", e.getMessage());
@@ -177,8 +180,9 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
     }
 
     /**
-     * Draw {@code imageBytes} aspect-fit and centred inside the box whose top-left is ({@code x},
-     * {@code y}) in PDF coordinates ({@code y} = box top).
+     * Draw {@code imageBytes} aspect-fit ({@code contain}), centred in the box whose top-left is
+     * ({@code x}, {@code y}=top). For callers that don't specify object-fit (e.g. approvalStampRow,
+     * which manages its own opacity).
      */
     static void drawImage(
             PDPageContentStream cs,
@@ -189,24 +193,85 @@ public final class ImagePdfRenderer implements ElementPdfRenderer {
             PDDocument doc,
             byte[] imageBytes)
             throws IOException {
+        drawImage(cs, x, y, w, h, doc, imageBytes, "contain", 1f);
+    }
+
+    /**
+     * Draw {@code imageBytes} in the box at ({@code x}, {@code y}=top) per {@code objectFit} and
+     * {@code opacity}, mirroring the frontend {@code <img>} (#366).
+     *
+     * <ul>
+     *   <li>{@code contain} (default) / {@code none} — scale to fit, preserve aspect, centred
+     *   <li>{@code cover} — scale to fill, preserve aspect, centred and clipped to the box
+     *   <li>{@code fill} — stretch to the box, ignoring aspect
+     * </ul>
+     *
+     * {@code opacity} &lt; 1 is applied via a non-stroking alpha graphics state.
+     */
+    static void drawImage(
+            PDPageContentStream cs,
+            float x,
+            float y,
+            float w,
+            float h,
+            PDDocument doc,
+            byte[] imageBytes,
+            String objectFit,
+            float opacity)
+            throws IOException {
         PDImageXObject image =
                 PDImageXObject.createFromByteArray(doc, imageBytes, "embedded-image");
 
-        // Draw with aspect ratio preservation
         float imgAspect = (float) image.getWidth() / image.getHeight();
         float boxAspect = w / h;
-        float drawW, drawH;
-        if (imgAspect > boxAspect) {
-            drawW = w;
-            drawH = w / imgAspect;
-        } else {
-            drawH = h;
-            drawW = h * imgAspect;
+        float drawW;
+        float drawH;
+        boolean clip = false;
+        switch (objectFit) {
+            case "fill" -> {
+                drawW = w;
+                drawH = h;
+            }
+            case "cover" -> {
+                // fill the box on the constraining axis; the other axis overflows and is clipped
+                if (imgAspect > boxAspect) {
+                    drawH = h;
+                    drawW = h * imgAspect;
+                } else {
+                    drawW = w;
+                    drawH = w / imgAspect;
+                }
+                clip = true;
+            }
+            default -> { // contain / none / unknown
+                if (imgAspect > boxAspect) {
+                    drawW = w;
+                    drawH = w / imgAspect;
+                } else {
+                    drawH = h;
+                    drawW = h * imgAspect;
+                }
+            }
         }
         float drawX = x + (w - drawW) / 2;
         float drawY = y - h + (h - drawH) / 2;
 
-        cs.drawImage(image, drawX, drawY, drawW, drawH);
+        boolean needState = clip || opacity < 1f;
+        if (needState) cs.saveGraphicsState();
+        try {
+            if (opacity < 1f) {
+                PDExtendedGraphicsState alpha = new PDExtendedGraphicsState();
+                alpha.setNonStrokingAlphaConstant(Math.max(0f, opacity));
+                cs.setGraphicsStateParameters(alpha);
+            }
+            if (clip) {
+                cs.addRect(x, y - h, w, h);
+                cs.clip();
+            }
+            cs.drawImage(image, drawX, drawY, drawW, drawH);
+        } finally {
+            if (needState) cs.restoreGraphicsState();
+        }
     }
 
     /**
