@@ -1,9 +1,6 @@
 package com.report.server.pdf;
 
-import static com.report.server.pdf.PdfUtils.*;
-
 import com.fasterxml.jackson.databind.JsonNode;
-import java.awt.Color;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -11,16 +8,19 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
 /**
- * Generic single-line text renderer for elements whose value is resolved upstream into {@code
- * props.text} — used for V2 {@code pageNumber} and {@code currentDate} (issue #54), whose values
- * SectionRenderHelper computes from the page context before dispatch.
+ * Renderer for elements whose value is resolved upstream into {@code props.text} — V2 {@code
+ * pageNumber} / {@code currentDate} (issue #54) and the {@code tenant*} text elements, whose values
+ * SectionRenderHelper computes before dispatch.
  *
- * <p>Honors the element's {@code style} (TextStyle subset): fontSize, bold, fontFamily, color,
- * textAlign.
+ * <p>These carry the same {@code props.text} + {@code style} shape as the {@code text} element, so
+ * this delegates rendering to {@link TextPdfRenderer} (#365). That closes a path asymmetry: the old
+ * bespoke draw loop only did fontSize/bold/fontFamily/color/textAlign and dropped writingMode
+ * (縦書き), letterSpacing, verticalAlign, lineHeight, and multi-line wrapping — all already supported
+ * by {@code text}. Sharing one path keeps the two in lock-step going forward.
  */
 public final class StyledTextPdfRenderer implements ElementPdfRenderer {
 
-    private static final float DEFAULT_FONT_SIZE = 10f;
+    private static final TextPdfRenderer DELEGATE = new TextPdfRenderer();
 
     private final String elementKind;
 
@@ -45,43 +45,6 @@ public final class StyledTextPdfRenderer implements ElementPdfRenderer {
             PDDocument doc,
             Map<String, PDFont> fontCache)
             throws IOException {
-        JsonNode props = el.get("props");
-        String text = props != null ? textOf(props, "text", "") : "";
-        if (text.isEmpty()) return;
-
-        JsonNode style = el.get("style");
-        if (style == null && props != null) style = props.get("style");
-        float fontSize =
-                style != null ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE) : DEFAULT_FONT_SIZE;
-        boolean bold = isBold(style);
-        String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
-        String textAlign = style != null ? textOf(style, "textAlign", "left") : "left";
-        Color color = parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
-
-        PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
-
-        // Multi-line values (e.g. multiLine tenant addresses) draw one line
-        // per \n with a 1.2 line-height; PDFBox showText rejects newlines.
-        String[] lines = text.split("\n", -1);
-        float lineY = y - fontSize;
-        for (String line : lines) {
-            if (!line.isEmpty()) {
-                String truncated = truncateToWidth(line, font, fontSize, w);
-                float textWidth = font.getStringWidth(truncated) / 1000 * fontSize;
-                float tx =
-                        switch (textAlign) {
-                            case "center" -> x + (w - textWidth) / 2;
-                            case "right" -> x + w - textWidth;
-                            default -> x;
-                        };
-                cs.beginText();
-                cs.setFont(font, fontSize);
-                cs.setNonStrokingColor(color);
-                cs.newLineAtOffset(tx, lineY);
-                cs.showText(truncated);
-                cs.endText();
-            }
-            lineY -= fontSize * 1.2f;
-        }
+        DELEGATE.render(cs, el, x, y, w, h, pageHeight, doc, fontCache);
     }
 }
