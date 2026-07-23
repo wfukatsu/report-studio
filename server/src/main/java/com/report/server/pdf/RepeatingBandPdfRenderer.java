@@ -97,9 +97,14 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         float cellFontSize = cellStyle != null ? floatOf(cellStyle, "fontSize", FONT) : FONT;
         Color oddBg = parseColor(elementTextOf(el, "oddRowColor", ""), null);
         Color evenBg = parseColor(elementTextOf(el, "evenRowColor", ""), null);
-        Color border = parseColor(elementTextOf(el, "borderColor", ""), BORDER);
-        float borderWmm = elementFloatOf(el, "borderWidth", BORDER_W_MM);
-        float borderPt = Math.max(0.1f, borderWmm * PdfUnits.MM_TO_PT);
+        // Per-edge border overrides (#372), mirroring bandStyles.ts fallback chains:
+        //   header/data/column: *BorderWidth/Color → innerBorder* → borderWidth/Color
+        //   outer: borderWidth/Color
+        Edge outer = edge(el, "borderWidth", "borderColor", false);
+        Edge headerEdge = edge(el, "headerBorderWidth", "headerBorderColor", true);
+        Edge dataEdge = edge(el, "dataBorderWidth", "dataBorderColor", true);
+        Edge columnEdge = edge(el, "columnBorderWidth", "columnBorderColor", true);
+        boolean wrapText = elementBoolOf(el, "wrapText", false);
         PDFont boldFont = FontProvider.getBoldFont(doc, fontCache);
 
         cs.saveGraphicsState();
@@ -122,7 +127,8 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                             cursorTop,
                             headerH,
                             "center",
-                            headerText);
+                            headerText,
+                            wrapText);
                 }
                 cursorTop -= headerH;
             }
@@ -152,11 +158,12 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                             cursorTop,
                             rowH,
                             c.align,
-                            cellText);
+                            cellText,
+                            wrapText);
                 }
                 // Horizontal row separator (the frontend draws borderBottom on every row)
-                cs.setStrokingColor(border);
-                cs.setLineWidth(borderPt);
+                cs.setStrokingColor(dataEdge.color());
+                cs.setLineWidth(dataEdge.widthPt());
                 cs.moveTo(x, cursorTop - rowH);
                 cs.lineTo(x + w, cursorTop - rowH);
                 cs.stroke();
@@ -181,8 +188,8 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                                     ? emptyBudget
                                     : (maxItems > 0 ? Math.max(0, maxItems - rowCount) : 0));
             if (emptyCount > 0) {
-                cs.setStrokingColor(border);
-                cs.setLineWidth(borderPt);
+                cs.setStrokingColor(dataEdge.color());
+                cs.setLineWidth(dataEdge.widthPt());
                 for (int r = 0; r < emptyCount; r++) {
                     if (cursorTop - rowH < y - h - 0.5f) break; // clip to the box
                     cursorTop -= rowH;
@@ -195,18 +202,23 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
                 }
             }
 
-            // Grid
-            cs.setStrokingColor(border);
-            cs.setLineWidth(borderPt);
+            // Outer frame (borderWidth/Color)
+            cs.setStrokingColor(outer.color());
+            cs.setLineWidth(outer.widthPt());
             float gridBottom = Math.max(cursorTop, y - h);
             cs.addRect(x, gridBottom, w, y - gridBottom);
             cs.stroke();
             if (showHeader) {
-                // Header bottom border (frontend hbs)
+                // Header bottom border (frontend hbs) — header edge
+                cs.setStrokingColor(headerEdge.color());
+                cs.setLineWidth(headerEdge.widthPt());
                 cs.moveTo(x, y - headerH);
                 cs.lineTo(x + w, y - headerH);
                 cs.stroke();
             }
+            // Column dividers (columnBorder)
+            cs.setStrokingColor(columnEdge.color());
+            cs.setLineWidth(columnEdge.widthPt());
             for (int i = 1; i < cols.size(); i++) {
                 cs.moveTo(colX[i], y);
                 cs.lineTo(colX[i], Math.max(dataBottom, y - h));
@@ -231,6 +243,35 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         return style != null ? textOf(style, field, "") : "";
     }
 
+    /** A resolved border edge: stroking color + width in points. */
+    private record Edge(Color color, float widthPt) {}
+
+    /**
+     * Resolve an edge's width/color with the frontend fallback chain (#372): the edge-specific keys
+     * first, then {@code innerBorder*} when {@code useInner}, then the outer {@code
+     * borderWidth}/{@code borderColor}.
+     */
+    private static Edge edge(JsonNode el, String widthKey, String colorKey, boolean useInner) {
+        Float wMm = optFloat(el, widthKey);
+        if (wMm == null && useInner) wMm = optFloat(el, "innerBorderWidth");
+        if (wMm == null) wMm = elementFloatOf(el, "borderWidth", BORDER_W_MM);
+
+        String colorStr = elementTextOf(el, colorKey, "");
+        if (colorStr.isEmpty() && useInner) colorStr = elementTextOf(el, "innerBorderColor", "");
+        if (colorStr.isEmpty()) colorStr = elementTextOf(el, "borderColor", "");
+
+        return new Edge(parseColor(colorStr, BORDER), Math.max(0.1f, wMm * PdfUnits.MM_TO_PT));
+    }
+
+    /** Numeric field (top level or props) as a boxed Float, or null when absent. */
+    private static Float optFloat(JsonNode el, String key) {
+        JsonNode v = el.get(key);
+        if (v != null && v.isNumber()) return v.floatValue();
+        JsonNode props = el.get("props");
+        JsonNode pv = props != null ? props.get(key) : null;
+        return (pv != null && pv.isNumber()) ? pv.floatValue() : null;
+    }
+
     private static void drawCell(
             PDPageContentStream cs,
             PDFont font,
@@ -241,12 +282,51 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
             float top,
             float rowH,
             String align,
-            Color color)
+            Color color,
+            boolean wrap)
             throws IOException {
         if (text == null || text.isEmpty()) return;
         float cellW = x1 - x0;
-        String truncated = truncateToWidth(text, font, fontSize, cellW - 2);
-        float tw = font.getStringWidth(truncated) / 1000 * fontSize;
+        if (!wrap) {
+            String truncated = truncateToWidth(text, font, fontSize, cellW - 2);
+            drawCellLine(
+                    cs,
+                    font,
+                    fontSize,
+                    truncated,
+                    x0,
+                    x1,
+                    cellW,
+                    align,
+                    color,
+                    top - rowH / 2 - fontSize * 0.35f);
+            return;
+        }
+        // wrapText (#372): multiple lines, block vertically centred in the row
+        List<String> lines = wrapText(text, font, fontSize, cellW - 2, 0f);
+        float lineStep = fontSize * 1.2f;
+        float blockH = lines.size() * lineStep;
+        float baseY = top - Math.max(0f, (rowH - blockH) / 2f) - fontSize;
+        for (String line : lines) {
+            drawCellLine(cs, font, fontSize, line, x0, x1, cellW, align, color, baseY);
+            baseY -= lineStep;
+        }
+    }
+
+    private static void drawCellLine(
+            PDPageContentStream cs,
+            PDFont font,
+            float fontSize,
+            String text,
+            float x0,
+            float x1,
+            float cellW,
+            String align,
+            Color color,
+            float baselineY)
+            throws IOException {
+        if (text.isEmpty()) return;
+        float tw = font.getStringWidth(text) / 1000 * fontSize;
         float tx =
                 switch (align) {
                     case "center" -> x0 + (cellW - tw) / 2;
@@ -256,8 +336,8 @@ public final class RepeatingBandPdfRenderer implements ElementPdfRenderer {
         cs.beginText();
         cs.setFont(font, fontSize);
         cs.setNonStrokingColor(color);
-        cs.newLineAtOffset(tx, top - rowH / 2 - fontSize * 0.35f);
-        cs.showText(truncated);
+        cs.newLineAtOffset(tx, baselineY);
+        cs.showText(text);
         cs.endText();
     }
 
