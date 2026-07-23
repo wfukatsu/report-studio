@@ -81,8 +81,11 @@ public final class HankoPdfRenderer implements ElementPdfRenderer {
                 }
             }
 
+            // Frontend renders text inside a 100-unit viewBox scaled to the box, at
+            // fontSize = el.fontSize * 3.78 (viewBox units) — so the effective size is
+            // el.fontSize * 3.78/100 * boxSize, not el.fontSize mm directly (#373).
             float fontSizeMm = elementFloatOf(el, "fontSize", 0);
-            float fontSize = fontSizeMm > 0 ? fontSizeMm * MM_TO_PT : min * 0.35f;
+            float fontSize = fontSizeMm > 0 ? fontSizeMm * (3.78f / 100f) * min : min * 0.35f;
             PDFont font = FontProvider.getFont(doc, fontCache);
             cs.setNonStrokingColor(textColor);
 

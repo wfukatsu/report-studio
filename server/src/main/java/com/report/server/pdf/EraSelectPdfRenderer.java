@@ -66,7 +66,7 @@ public final class EraSelectPdfRenderer implements ElementPdfRenderer {
             cs.setNonStrokingColor(Color.BLACK);
             for (int i = 0; i < eras.size(); i++) {
                 String era = eras.get(i);
-                String text = (era.equals(selected) ? "●" : "○") + era;
+                String marker = era.equals(selected) ? "●" : "○";
                 float itemX;
                 float centerY;
                 switch (layout) {
@@ -87,10 +87,21 @@ public final class EraSelectPdfRenderer implements ElementPdfRenderer {
                         centerY = y - slotH * i - slotH / 2;
                     }
                 }
+                // Frontend draws the marker and era in a flex row with a 0.3mm gap (#373),
+                // not a single concatenated glyph run.
+                float baselineY = centerY - fontSize * 0.35f;
                 cs.beginText();
                 cs.setFont(font, fontSize);
-                cs.newLineAtOffset(itemX, centerY - fontSize * 0.35f);
-                cs.showText(text);
+                cs.newLineAtOffset(itemX, baselineY);
+                cs.showText(marker);
+                cs.endText();
+
+                float markerW = font.getStringWidth(marker) / 1000 * fontSize;
+                float eraX = itemX + markerW + 0.3f * MM_TO_PT;
+                cs.beginText();
+                cs.setFont(font, fontSize);
+                cs.newLineAtOffset(eraX, baselineY);
+                cs.showText(era);
                 cs.endText();
             }
         } finally {
