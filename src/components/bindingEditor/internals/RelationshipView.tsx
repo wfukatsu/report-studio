@@ -21,7 +21,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ChevronDown, ChevronRight, Sparkles, Boxes, Link2, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Sparkles, Boxes, Link2, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SchemaGroup, SchemaRelation } from '@/types'
 import { SYSTEM_GROUP_PRODUCT_MASTER } from '@/store/systemGroups'
@@ -368,9 +368,17 @@ export const RelationshipView = memo(function RelationshipView({
                         )
                         if (rel) {
                           return (
-                            <div className="mt-1 flex items-center gap-1 text-[9px] text-amber-600">
+                            <div
+                              className="mt-1 flex items-center gap-1 text-[9px] text-amber-600"
+                              title={t('bindingEditor.relationshipView.lookupMappingTitle', {
+                                from: rel.on.fromColumn,
+                                to: rel.on.toColumn,
+                              })}
+                            >
                               <Link2 className="w-2.5 h-2.5 shrink-0" />
-                              <span className="font-mono truncate">{rel.name}</span>
+                              <span className="font-mono truncate">
+                                {rel.on.fromColumn} → {product.label || t('bindingEditor.relationshipView.productMasterDefault')}
+                              </span>
                               {onRemoveRelation && (
                                 <button
                                   className="text-amber-400 hover:text-red-500 shrink-0"
@@ -387,10 +395,12 @@ export const RelationshipView = memo(function RelationshipView({
                         if (onAddRelation) {
                           return (
                             <button
-                              className="mt-1 flex items-center gap-1 text-[9px] text-amber-600 hover:text-amber-800 border border-dashed border-amber-300 rounded px-1 py-0.5"
+                              className="mt-1 flex items-center gap-1 text-[9px] text-amber-600 hover:text-amber-800 hover:bg-amber-50 border border-dashed border-amber-300 rounded px-1 py-0.5"
                               onClick={(e) => { e.stopPropagation(); handleAddLookup(d.id, fkCol) }}
+                              title={t('bindingEditor.relationshipView.addLookupTitle', { column: fkCol })}
                               aria-label={t('bindingEditor.relationshipView.addLookupAria', { group: d.label || d.id })}
                             >
+                              <Plus className="w-2.5 h-2.5 shrink-0" />
                               {t('bindingEditor.relationshipView.addLookup')}
                             </button>
                           )
