@@ -43,6 +43,23 @@ class PdfDataElementsParseBackTest {
     }
 
     @Test
+    void manualEntry_placeholderUsesStyleFontSize() throws IOException {
+        // #373: placeholder honors style.fontSize (front parity) instead of a fixed 2.8mm run.
+        PdfProbe probe =
+                PdfProbe.parse(
+                        PdfRenderer.render(
+                                pageWith(
+                                        """
+            {"id":"m1","type":"manualEntry","name":"氏名欄","label":"","labelPosition":"none",
+             "displayMode":"line","lineColor":"#000000","placeholder":"記入例",
+             "style":{"fontSize":11},
+             "position":{"x":20,"y":20},"size":{"width":80,"height":15}}""",
+                                        null)));
+        PdfProbe.TextRun ph = probe.findRun(0, "記入例").orElseThrow();
+        assertEquals(11f, ph.fontSizePt(), 0.01f, "placeholder should render at style.fontSize");
+    }
+
+    @Test
     void manualEntry_gridDrawsSeparators() throws IOException {
         PdfProbe probe =
                 PdfProbe.parse(

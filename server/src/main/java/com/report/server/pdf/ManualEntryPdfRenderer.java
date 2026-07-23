@@ -28,6 +28,9 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
     private static final float BORDER_PT = 0.3f * MM_TO_PT;
     private static final float LABEL_FONT_PT = 2.8f * MM_TO_PT;
 
+    /** Frontend DEFAULT_FONT_SIZE (10pt), used when the element style leaves fontSize unset. */
+    private static final float DEFAULT_PLACEHOLDER_PT = 10f;
+
     @Override
     public String kind() {
         return "manualEntry";
@@ -147,11 +150,17 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
                                 bottom + 1f); // line
             }
 
-            // Placeholder (faint, centered)
+            // Placeholder (faint, centered). Mirrors the frontend: style.fontSize (default 10pt)
+            // and style.color at CSS opacity 0.4 — emulated by blending toward the white page
+            // (#373).
             if (!placeholder.isEmpty()) {
-                float ph = LABEL_FONT_PT;
+                JsonNode style = el.get("style");
+                float ph = style != null ? floatOf(style, "fontSize", 0) : 0;
+                if (ph <= 0) ph = DEFAULT_PLACEHOLDER_PT;
+                Color base =
+                        parseColor(style != null ? textOf(style, "color", "") : "", Color.BLACK);
                 float tw = font.getStringWidth(placeholder) / 1000 * ph;
-                cs.setNonStrokingColor(new Color(150, 150, 150));
+                cs.setNonStrokingColor(blendOverWhite(base, 0.4f));
                 cs.beginText();
                 cs.setFont(font, ph);
                 cs.newLineAtOffset(areaX + (areaW - tw) / 2, bottom + areaH / 2 - ph * 0.35f);
@@ -192,5 +201,16 @@ public final class ManualEntryPdfRenderer implements ElementPdfRenderer {
 
     private static float clamp(float v, float lo, float hi) {
         return Math.max(lo, Math.min(hi, v));
+    }
+
+    /**
+     * Approximate CSS {@code opacity: alpha} text over a white page by alpha-compositing {@code c}
+     * onto white: {@code alpha*c + (1-alpha)*255} per channel.
+     */
+    private static Color blendOverWhite(Color c, float alpha) {
+        int r = Math.round(alpha * c.getRed() + (1 - alpha) * 255);
+        int g = Math.round(alpha * c.getGreen() + (1 - alpha) * 255);
+        int b = Math.round(alpha * c.getBlue() + (1 - alpha) * 255);
+        return new Color(r, g, b);
     }
 }
