@@ -515,6 +515,11 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
     <div className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5">
       <input
         autoFocus
+        // #394: suppress the browser's autofill/datalist chrome (▼ / ⓘ) that
+        // overlapped these short editing fields.
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
         className="flex-1 min-w-0 text-xs border rounded-md px-2 py-1 bg-background"
         placeholder={t('bindingEditor.schemaGroupBlock.groupName')}
         value={label}
@@ -527,6 +532,9 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
         aria-label={t('bindingEditor.schemaGroupBlock.groupName')}
       />
       <input
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
         className="w-24 shrink-0 text-xs border rounded-md px-2 py-1 bg-background font-mono"
         placeholder="dataKey"
         value={dataKey}
