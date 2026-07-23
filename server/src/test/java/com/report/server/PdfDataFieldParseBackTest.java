@@ -170,4 +170,63 @@ class PdfDataFieldParseBackTest {
         float midY = mid.findRun(0, "検証").orElseThrow().baselineYMm();
         assertEquals(topY + 7.0f, midY, 0.6f, "middle should center the value in the 20mm frame");
     }
+
+    // ── #364: wrapping / padding / textFit ──────────────────────────────────
+
+    private static final String LONG_VALUE = "\"c.v\":\"あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほ\"";
+
+    @Test
+    void longValue_wrapsToMultipleLines() throws IOException {
+        // A long value in a narrow frame must wrap (was single-line horizontal truncation, #364).
+        String el =
+                """
+            {"id":"d1","type":"dataField","name":"備考","fieldKey":"c.v",
+             "position":{"x":20,"y":20},"size":{"width":40,"height":60},
+             "style":{"fontSize":12}}""";
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(el, LONG_VALUE)));
+        var runs = probe.runs(0);
+        assertTrue(runs.size() >= 2, "expected wrapped multi-line, got " + runs.size());
+        // Position-sorted runs stack top-to-bottom.
+        assertTrue(
+                runs.get(0).baselineYMm() < runs.get(1).baselineYMm(),
+                "wrapped lines should stack downward");
+    }
+
+    @Test
+    void padding_shiftsTextInward() throws IOException {
+        // paddingLeft/Top move the text inside the frame (#364).
+        String el =
+                """
+            {"id":"d1","type":"dataField","name":"名","fieldKey":"c.v",
+             "position":{"x":20,"y":20},"size":{"width":100,"height":40},
+             "style":{"fontSize":12,"paddingLeft":10,"paddingTop":8}}""";
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(el, "\"c.v\":\"検証\"")));
+        PdfProbe.TextRun run = probe.findRun(0, "検証").orElseThrow();
+        // x = frame 20mm + paddingLeft 10mm.
+        assertEquals(PdfProbe.expectedXMm(30), run.xMm(), 0.6f, "paddingLeft should shift x");
+        // baseline sits below frame-top(20) + paddingTop(8); compare against no-padding baseline.
+        String noPad =
+                """
+            {"id":"d1","type":"dataField","name":"名","fieldKey":"c.v",
+             "position":{"x":20,"y":20},"size":{"width":100,"height":40},
+             "style":{"fontSize":12}}""";
+        PdfProbe base = PdfProbe.parse(PdfRenderer.render(pageWith(noPad, "\"c.v\":\"検証\"")));
+        float dy = run.baselineYMm() - base.findRun(0, "検証").orElseThrow().baselineYMm();
+        assertEquals(8f, dy, 0.6f, "paddingTop should push the baseline down by 8mm");
+    }
+
+    @Test
+    void shrinkText_reducesFontToFit() throws IOException {
+        // textFit:shrinkText shrinks the font so the wrapped block fits a short frame (#364).
+        String el =
+                """
+            {"id":"d1","type":"dataField","name":"備考","fieldKey":"c.v",
+             "position":{"x":20,"y":20},"size":{"width":40,"height":10},
+             "style":{"fontSize":12,"textFit":"shrinkText"}}""";
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(pageWith(el, LONG_VALUE)));
+        PdfProbe.TextRun run = probe.runs(0).stream().findFirst().orElseThrow();
+        assertTrue(
+                run.fontSizePt() < 12f,
+                "shrinkText should reduce font below 12pt, got " + run.fontSizePt());
+    }
 }
