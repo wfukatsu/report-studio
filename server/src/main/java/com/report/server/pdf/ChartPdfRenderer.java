@@ -20,6 +20,10 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
  * and {@code yAxisKeys} select the numeric series ({@code ['value']} by default). This is a static
  * chart — no animation, no interactivity — matching the exported (non-interactive) appearance of
  * the Recharts preview.
+ *
+ * <p>Recharts parity (#369): dashed Y gridlines + Y-axis tick labels ({@code showGrid}, default
+ * on), a bottom legend ({@code showLegend}, default on), monotone-smoothed line series, and
+ * pie-slice labels.
  */
 public final class ChartPdfRenderer implements ElementPdfRenderer {
 
@@ -35,6 +39,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     };
 
     private static final Color AXIS = new Color(0x99, 0x99, 0x99);
+    private static final Color GRID = new Color(0xCC, 0xCC, 0xCC);
+    private static final Color LABEL = Color.GRAY;
+    private static final int Y_TICKS = 5;
 
     @Override
     public String kind() {
@@ -58,6 +65,8 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         List<String> yKeys = readYKeys(el);
         List<Color> colors = readColors(el);
         JsonNode rows = readData(el);
+        boolean showLegend = elementBoolOf(el, "showLegend", true);
+        boolean showGrid = elementBoolOf(el, "showGrid", true);
         PDFont font = FontProvider.getFont(doc, fontCache);
 
         float top = y, bottom = y - h, left = x, right = x + w;
@@ -83,103 +92,140 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
                 return;
             }
 
+            float legendH = showLegend ? 5f * MM_TO_PT : 0f;
+            float plotBottomWithLegend = bottom + legendH;
+
             switch (chartType) {
-                case "pie", "donut" ->
-                        renderPie(
-                                cs,
-                                rows,
-                                yKeys.get(0),
-                                colors,
-                                left,
-                                right,
-                                chartTop,
-                                bottom,
-                                "donut".equals(chartType));
-                case "line" ->
-                        renderLine(
-                                cs, rows, xKey, yKeys, colors, font, left, right, chartTop, bottom);
-                default ->
-                        renderBar(
-                                cs, rows, xKey, yKeys, colors, font, left, right, chartTop, bottom);
+                case "pie", "donut" -> {
+                    renderPie(
+                            cs,
+                            font,
+                            rows,
+                            xKey,
+                            yKeys.get(0),
+                            colors,
+                            left,
+                            right,
+                            chartTop,
+                            plotBottomWithLegend,
+                            "donut".equals(chartType));
+                    if (showLegend) {
+                        drawLegend(
+                                cs, font, categoryNames(rows, xKey), colors, left, right, bottom);
+                    }
+                }
+                case "line" -> {
+                    renderXYChart(
+                            cs,
+                            font,
+                            rows,
+                            xKey,
+                            yKeys,
+                            colors,
+                            left,
+                            right,
+                            chartTop,
+                            plotBottomWithLegend,
+                            showGrid,
+                            true);
+                    if (showLegend) {
+                        drawLegend(cs, font, yKeys, colors, left, right, bottom);
+                    }
+                }
+                default -> {
+                    renderXYChart(
+                            cs,
+                            font,
+                            rows,
+                            xKey,
+                            yKeys,
+                            colors,
+                            left,
+                            right,
+                            chartTop,
+                            plotBottomWithLegend,
+                            showGrid,
+                            false);
+                    if (showLegend) {
+                        drawLegend(cs, font, yKeys, colors, left, right, bottom);
+                    }
+                }
             }
         } finally {
             cs.restoreGraphicsState();
         }
     }
 
-    // ── Bar ─────────────────────────────────────────────────────────────
+    // ── Bar / Line (shared plot area) ───────────────────────────────────
 
-    private void renderBar(
+    private void renderXYChart(
             PDPageContentStream cs,
+            PDFont font,
             JsonNode rows,
             String xKey,
             List<String> yKeys,
             List<Color> colors,
-            PDFont font,
             float left,
             float right,
             float top,
-            float bottom)
+            float bottom,
+            boolean showGrid,
+            boolean line)
             throws IOException {
-        float plotLeft = left + 6 * MM_TO_PT;
-        float plotBottom = bottom + 5 * MM_TO_PT;
-        double max = maxValue(rows, yKeys);
-        drawAxes(cs, plotLeft, right, plotBottom, top);
+        float yAxisW = 9f * MM_TO_PT; // room for Y tick labels
+        float xAxisH = 4f * MM_TO_PT; // room for X category labels
+        float plotLeft = left + yAxisW;
+        float plotRight = right - 1f * MM_TO_PT;
+        float plotBottom = bottom + xAxisH;
+        float plotTop = top;
 
-        int n = rows.size();
-        int series = yKeys.size();
-        float groupW = (right - plotLeft) / n;
-        float barW = groupW * 0.7f / series;
-        for (int i = 0; i < n; i++) {
-            JsonNode row = rows.get(i);
-            float gx = plotLeft + groupW * i + groupW * 0.15f;
-            for (int s = 0; s < series; s++) {
-                double v = num(row.get(yKeys.get(s)));
-                float bh = max > 0 ? (float) (v / max) * (top - plotBottom) : 0;
-                cs.setNonStrokingColor(colors.get(s % colors.size()));
-                cs.addRect(gx + barW * s, plotBottom, barW, bh);
-                cs.fill();
-            }
-            drawAxisLabel(cs, font, str(row.get(xKey)), gx + groupW * 0.35f, plotBottom - 3f);
+        double niceMax = niceMax(maxValue(rows, yKeys));
+
+        // Grid + Y-axis tick labels (#369)
+        if (showGrid) {
+            drawGridAndYTicks(cs, font, plotLeft, plotRight, plotBottom, plotTop, niceMax);
         }
-    }
-
-    // ── Line ────────────────────────────────────────────────────────────
-
-    private void renderLine(
-            PDPageContentStream cs,
-            JsonNode rows,
-            String xKey,
-            List<String> yKeys,
-            List<Color> colors,
-            PDFont font,
-            float left,
-            float right,
-            float top,
-            float bottom)
-            throws IOException {
-        float plotLeft = left + 6 * MM_TO_PT;
-        float plotBottom = bottom + 5 * MM_TO_PT;
-        double max = maxValue(rows, yKeys);
-        drawAxes(cs, plotLeft, right, plotBottom, top);
+        drawAxes(cs, plotLeft, plotRight, plotBottom, plotTop);
 
         int n = rows.size();
-        float step = n > 1 ? (right - plotLeft) / (n - 1) : 0;
-        cs.setLineWidth(1f);
-        for (int s = 0; s < yKeys.size(); s++) {
-            cs.setStrokingColor(colors.get(s % colors.size()));
+        float plotH = plotTop - plotBottom;
+        if (line) {
+            float step = n > 1 ? (plotRight - plotLeft) / (n - 1) : 0;
+            for (int s = 0; s < yKeys.size(); s++) {
+                cs.setStrokingColor(colors.get(s % colors.size()));
+                cs.setLineWidth(1f);
+                List<float[]> pts = new ArrayList<>(n);
+                for (int i = 0; i < n; i++) {
+                    double v = num(rows.get(i).get(yKeys.get(s)));
+                    float px = plotLeft + step * i;
+                    float py = plotBottom + (niceMax > 0 ? (float) (v / niceMax) * plotH : 0);
+                    pts.add(new float[] {px, py});
+                }
+                strokeSmooth(cs, pts); // monotone-style smoothing (Recharts default)
+            }
+        } else {
+            int series = yKeys.size();
+            float groupW = (plotRight - plotLeft) / n;
+            float barW = groupW * 0.7f / series;
             for (int i = 0; i < n; i++) {
-                double v = num(rows.get(i).get(yKeys.get(s)));
-                float px = plotLeft + step * i;
-                float py = plotBottom + (max > 0 ? (float) (v / max) * (top - plotBottom) : 0);
-                if (i == 0) cs.moveTo(px, py);
-                else cs.lineTo(px, py);
+                float gx = plotLeft + groupW * i + groupW * 0.15f;
+                for (int s = 0; s < series; s++) {
+                    double v = num(rows.get(i).get(yKeys.get(s)));
+                    float bh = niceMax > 0 ? (float) (v / niceMax) * plotH : 0;
+                    cs.setNonStrokingColor(colors.get(s % colors.size()));
+                    cs.addRect(gx + barW * s, plotBottom, barW, bh);
+                    cs.fill();
+                }
             }
-            cs.stroke();
         }
+
+        // X category labels
         for (int i = 0; i < n; i++) {
-            drawAxisLabel(
-                    cs, font, str(rows.get(i).get(xKey)), plotLeft + step * i, plotBottom - 3f);
+            float cx =
+                    line
+                            ? plotLeft + (n > 1 ? (plotRight - plotLeft) / (n - 1) : 0) * i
+                            : plotLeft + ((plotRight - plotLeft) / n) * (i + 0.5f);
+            drawCenteredLabel(cs, font, str(rows.get(i).get(xKey)), cx, plotBottom - 3f);
         }
     }
 
@@ -187,7 +233,9 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
 
     private void renderPie(
             PDPageContentStream cs,
+            PDFont font,
             JsonNode rows,
+            String xKey,
             String valueKey,
             List<Color> colors,
             float left,
@@ -197,7 +245,7 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
             boolean donut)
             throws IOException {
         float cx = (left + right) / 2, cy = (top + bottom) / 2;
-        float r = Math.min(right - left, top - bottom) / 2 * 0.9f;
+        float r = Math.min(right - left, top - bottom) / 2 * 0.8f;
         double total = 0;
         for (JsonNode row : rows) total += Math.max(0, num(row.get(valueKey)));
         if (total <= 0) return;
@@ -213,6 +261,18 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         if (donut) {
             cs.setNonStrokingColor(Color.WHITE);
             fillCircle(cs, cx, cy, r * 0.55f);
+        } else {
+            // Pie-slice labels (#369): category name at each slice's mid-angle, just outside r
+            double mid = 90;
+            for (int i = 0; i < rows.size(); i++) {
+                double frac = Math.max(0, num(rows.get(i).get(valueKey))) / total;
+                double sweep = frac * 360;
+                double a = Math.toRadians(mid - sweep / 2);
+                float lx = cx + (float) Math.cos(a) * (r + 2f);
+                float ly = cy + (float) Math.sin(a) * (r + 2f);
+                drawCenteredLabel(cs, font, str(rows.get(i).get(xKey)), lx, ly);
+                mid -= sweep;
+            }
         }
     }
 
@@ -229,7 +289,74 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         cs.stroke();
     }
 
-    private static void drawAxisLabel(
+    /** Dashed horizontal gridlines and left-side numeric tick labels (Recharts CartesianGrid). */
+    private static void drawGridAndYTicks(
+            PDPageContentStream cs,
+            PDFont font,
+            float left,
+            float right,
+            float bottom,
+            float top,
+            double niceMax)
+            throws IOException {
+        float labelSize = 2f * MM_TO_PT;
+        for (int t = 0; t <= Y_TICKS; t++) {
+            float gy = bottom + (top - bottom) * t / Y_TICKS;
+            cs.setStrokingColor(GRID);
+            cs.setLineWidth(0.3f);
+            cs.setLineDashPattern(new float[] {2f, 2f}, 0);
+            cs.moveTo(left, gy);
+            cs.lineTo(right, gy);
+            cs.stroke();
+            cs.setLineDashPattern(new float[] {}, 0); // reset to solid
+
+            String label = formatTick(niceMax * t / Y_TICKS);
+            float tw = font.getStringWidth(label) / 1000 * labelSize;
+            cs.beginText();
+            cs.setFont(font, labelSize);
+            cs.setNonStrokingColor(LABEL);
+            cs.newLineAtOffset(left - tw - 1.5f, gy - labelSize * 0.35f);
+            cs.showText(label);
+            cs.endText();
+        }
+    }
+
+    /** Bottom legend row: colored swatch + name per series/category, centred (Recharts default). */
+    private static void drawLegend(
+            PDPageContentStream cs,
+            PDFont font,
+            List<String> names,
+            List<Color> colors,
+            float left,
+            float right,
+            float bottom)
+            throws IOException {
+        float size = 2f * MM_TO_PT;
+        float sw = 2f * MM_TO_PT; // swatch
+        float gap = 1f * MM_TO_PT;
+        float itemGap = 3f * MM_TO_PT;
+        float total = 0;
+        for (String name : names) {
+            total += sw + gap + font.getStringWidth(name) / 1000 * size + itemGap;
+        }
+        float cursorX = Math.max(left, (left + right) / 2 - total / 2);
+        float rowY = bottom + 1f * MM_TO_PT;
+        for (int i = 0; i < names.size(); i++) {
+            cs.setNonStrokingColor(colors.get(i % colors.size()));
+            cs.addRect(cursorX, rowY, sw, sw);
+            cs.fill();
+            cursorX += sw + gap;
+            cs.beginText();
+            cs.setFont(font, size);
+            cs.setNonStrokingColor(Color.DARK_GRAY);
+            cs.newLineAtOffset(cursorX, rowY);
+            cs.showText(names.get(i));
+            cs.endText();
+            cursorX += font.getStringWidth(names.get(i)) / 1000 * size + itemGap;
+        }
+    }
+
+    private static void drawCenteredLabel(
             PDPageContentStream cs, PDFont font, String text, float centerX, float baselineY)
             throws IOException {
         if (text.isEmpty()) return;
@@ -237,7 +364,7 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         float tw = font.getStringWidth(text) / 1000 * size;
         cs.beginText();
         cs.setFont(font, size);
-        cs.setNonStrokingColor(Color.GRAY);
+        cs.setNonStrokingColor(LABEL);
         cs.newLineAtOffset(centerX - tw / 2, baselineY - size);
         cs.showText(text);
         cs.endText();
@@ -261,7 +388,32 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
         cs.endText();
     }
 
-    /** Fill a pie sector from angle a1 to a2 (degrees) with a fan of bezier-free line segments. */
+    /**
+     * Stroke a smooth curve through {@code pts} using Catmull-Rom → Bézier (monotone-ish, #369).
+     */
+    private static void strokeSmooth(PDPageContentStream cs, List<float[]> pts) throws IOException {
+        int n = pts.size();
+        if (n == 0) return;
+        cs.moveTo(pts.get(0)[0], pts.get(0)[1]);
+        if (n == 1) {
+            cs.stroke();
+            return;
+        }
+        for (int i = 0; i < n - 1; i++) {
+            float[] p0 = pts.get(Math.max(0, i - 1));
+            float[] p1 = pts.get(i);
+            float[] p2 = pts.get(i + 1);
+            float[] p3 = pts.get(Math.min(n - 1, i + 2));
+            float c1x = p1[0] + (p2[0] - p0[0]) / 6f;
+            float c1y = p1[1] + (p2[1] - p0[1]) / 6f;
+            float c2x = p2[0] - (p3[0] - p1[0]) / 6f;
+            float c2y = p2[1] - (p3[1] - p1[1]) / 6f;
+            cs.curveTo(c1x, c1y, c2x, c2y, p2[0], p2[1]);
+        }
+        cs.stroke();
+    }
+
+    /** Fill a pie sector from angle a1 to a2 (degrees) with a fan of line segments. */
     private static void fillSector(
             PDPageContentStream cs, float cx, float cy, float r, double a1, double a2)
             throws IOException {
@@ -288,6 +440,27 @@ public final class ChartPdfRenderer implements ElementPdfRenderer {
     }
 
     // ── Data helpers ────────────────────────────────────────────────────
+
+    private static List<String> categoryNames(JsonNode rows, String xKey) {
+        List<String> names = new ArrayList<>();
+        for (JsonNode row : rows) names.add(str(row.get(xKey)));
+        return names;
+    }
+
+    /** Round a raw maximum up to a "nice" axis ceiling (1/2/5 × 10^k). */
+    private static double niceMax(double raw) {
+        if (raw <= 0) return 1;
+        double exp = Math.floor(Math.log10(raw));
+        double base = Math.pow(10, exp);
+        double f = raw / base;
+        double nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+        return nf * base;
+    }
+
+    private static String formatTick(double v) {
+        if (v == Math.rint(v) && Math.abs(v) < 1e15) return String.valueOf((long) v);
+        return String.valueOf(Math.round(v * 100) / 100.0);
+    }
 
     private static JsonNode readData(JsonNode el) {
         // Resolved upstream: _formData[dataBinding] copied into props.data
