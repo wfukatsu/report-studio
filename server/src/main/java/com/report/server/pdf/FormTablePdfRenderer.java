@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.util.Matrix;
 
 /**
  * Renders formTable elements to PDF.
@@ -39,6 +40,16 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     private static final float DEFAULT_FONT_SIZE = 8f;
     private static final String DEFAULT_HEADER_BG = "#f3f4f6";
     private static final String DEFAULT_FOOTER_BG = "#f9fafb";
+    // Cell-widget parity constants (front CellContent, Renderer.tsx) — #373
+    private static final Color INPUT_PLACEHOLDER_COLOR = new Color(0x9c, 0xa3, 0xaf); // #9ca3af
+    private static final float ITALIC_SHEAR = 0.21f; // ~12° synthetic italic (matches #368)
+    private static final String[] DEFAULT_ERAS = {"明", "大", "昭", "平", "令"};
+    private static final float CHECKBOX_SIZE_PT = 3f * MM_TO_PT;
+    private static final float CHECKBOX_BORDER_PT = 0.25f * MM_TO_PT;
+    private static final float CHECKMARK_FONT_PT = 2.2f * MM_TO_PT;
+    private static final float CHECKBOX_GAP_PT = 0.5f * MM_TO_PT;
+    private static final float ERA_FONT_PT = 2f * MM_TO_PT;
+    private static final float ERA_GAP_PT = 0.2f * MM_TO_PT;
 
     @Override
     public String kind() {
@@ -106,6 +117,8 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             // Render cells: backgrounds, text, then borders
             renderCellBackgrounds(cs, el, plan, columns, colXPt, colWidthPt, rowYPt, rowHeightPt);
             renderCellText(
+                    cs, el, plan, columns, colXPt, colWidthPt, rowYPt, rowHeightPt, doc, fontCache);
+            renderCellWidgets(
                     cs, el, plan, columns, colXPt, colWidthPt, rowYPt, rowHeightPt, doc, fontCache);
             renderCellBorders(
                     cs,
@@ -295,6 +308,10 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 JsonNode cell = cells.get(colIdx);
                 if (isMergedInto(cell)) continue;
 
+                // checkbox / eraSelect are drawn as widgets (box, era markers) in a later pass.
+                String cellType = textOf(cell, "type", "label");
+                if ("checkbox".equals(cellType) || "eraSelect".equals(cellType)) continue;
+
                 String text = resolveCellText(cell, rowData);
                 if (text == null || text.isEmpty()) continue;
 
@@ -318,7 +335,20 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
                 PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
 
-                Color textColor = resolveTextColor(style, col, headerStyle, role);
+                // input placeholder renders faint gray-italic (front CellContent); others per
+                // style.
+                boolean isInput = "input".equals(cellType);
+                Color textColor =
+                        isInput
+                                ? INPUT_PLACEHOLDER_COLOR
+                                : resolveTextColor(style, col, headerStyle, role);
+                boolean italic =
+                        isInput
+                                || "italic"
+                                        .equals(
+                                                style != null
+                                                        ? textOf(style, "fontStyle", "")
+                                                        : "");
                 String textAlign = resolveTextAlign(style, col);
                 String verticalAlign =
                         style != null ? textOf(style, "verticalAlign", "middle") : "middle";
@@ -338,10 +368,180 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 cs.beginText();
                 cs.setFont(font, fontSize);
                 cs.setNonStrokingColor(textColor);
-                cs.newLineAtOffset(textX, textY);
+                if (italic) {
+                    cs.setTextMatrix(new Matrix(1, 0, ITALIC_SHEAR, 1, textX, textY));
+                } else {
+                    cs.newLineAtOffset(textX, textY);
+                }
                 cs.showText(truncated);
                 cs.endText();
             }
+        }
+    }
+
+    // ── Cell widgets (checkbox box, era markers) ──────────────────────────────
+
+    /**
+     * Draw the non-text cell types that the frontend {@code CellContent} renders as widgets rather
+     * than plain text (#373): {@code checkbox} (a bordered box + optional checkmark and label) and
+     * {@code eraSelect} (○/● markers with era names in a row or column). Mirrors the frontend
+     * geometry so the PDF matches the on-screen form rather than an ASCII approximation.
+     */
+    private static void renderCellWidgets(
+            PDPageContentStream cs,
+            JsonNode el,
+            List<RowCtx> plan,
+            JsonNode columns,
+            float[] colXPt,
+            float[] colWidthPt,
+            float[] rowYPt,
+            float[] rowHeightPt,
+            PDDocument doc,
+            Map<String, PDFont> fontCache)
+            throws IOException {
+        JsonNode headerStyle = elementSubStyle(el, "headerStyle");
+        PDFont font = FontProvider.getFont(doc, fontCache);
+
+        for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
+            RowCtx ctx = plan.get(rowIdx);
+            JsonNode row = ctx.row();
+            JsonNode rowData = ctx.data();
+            String role = textOf(row, "role", "body");
+            JsonNode cells = row.get("cells");
+            if (cells == null || !cells.isArray()) continue;
+
+            for (int colIdx = 0; colIdx < Math.min(cells.size(), columns.size()); colIdx++) {
+                JsonNode cell = cells.get(colIdx);
+                if (isMergedInto(cell)) continue;
+                String cellType = textOf(cell, "type", "label");
+                boolean isCheckbox = "checkbox".equals(cellType);
+                boolean isEra = "eraSelect".equals(cellType);
+                if (!isCheckbox && !isEra) continue;
+
+                CellBounds bounds =
+                        computeCellBounds(
+                                colIdx,
+                                rowIdx,
+                                cell,
+                                columns.size(),
+                                plan.size(),
+                                colXPt,
+                                colWidthPt,
+                                rowYPt,
+                                rowHeightPt);
+
+                if (isCheckbox) {
+                    JsonNode col = columns.get(colIdx);
+                    float labelSize = resolveFontSize(cell.get("style"), col, headerStyle, role);
+                    drawCheckboxCell(cs, font, cell, rowData, bounds, labelSize);
+                } else {
+                    drawEraSelectCell(cs, font, cell, rowData, bounds);
+                }
+            }
+        }
+    }
+
+    /** Bordered box, centered checkmark when checked, then the optional label to its right. */
+    private static void drawCheckboxCell(
+            PDPageContentStream cs,
+            PDFont font,
+            JsonNode cell,
+            JsonNode rowData,
+            CellBounds bounds,
+            float labelSize)
+            throws IOException {
+        boolean checked = cell.path("checked").asBoolean(false);
+        String ds = textOf(cell, "checkboxDataSource", "");
+        if (!ds.isEmpty() && rowData != null) {
+            JsonNode val = SectionRenderHelper.resolveDataPath(rowData, ds);
+            checked = val != null && !val.isNull() && !val.asText("").isEmpty();
+        }
+
+        float boxX = bounds.x + CELL_PADDING_PT;
+        float centerY = bounds.y - bounds.h / 2;
+        float boxBottom = centerY - CHECKBOX_SIZE_PT / 2;
+
+        cs.setStrokingColor(Color.BLACK);
+        cs.setLineWidth(CHECKBOX_BORDER_PT);
+        cs.addRect(boxX, boxBottom, CHECKBOX_SIZE_PT, CHECKBOX_SIZE_PT);
+        cs.stroke();
+
+        if (checked) {
+            String mark = textOf(cell, "checkmark", "✓");
+            if (!mark.isEmpty()) {
+                float markW = estimateTextWidth(mark, font, CHECKMARK_FONT_PT);
+                float markX = boxX + (CHECKBOX_SIZE_PT - markW) / 2;
+                cs.beginText();
+                cs.setFont(font, CHECKMARK_FONT_PT);
+                cs.setNonStrokingColor(Color.BLACK);
+                cs.newLineAtOffset(markX, centerY - CHECKMARK_FONT_PT * 0.35f);
+                cs.showText(mark);
+                cs.endText();
+            }
+        }
+
+        String label = textOf(cell, "text", "");
+        if (!label.isEmpty()) {
+            float labelX = boxX + CHECKBOX_SIZE_PT + CHECKBOX_GAP_PT;
+            cs.beginText();
+            cs.setFont(font, labelSize);
+            cs.setNonStrokingColor(Color.BLACK);
+            cs.newLineAtOffset(labelX, centerY - labelSize * 0.35f);
+            cs.showText(label);
+            cs.endText();
+        }
+    }
+
+    /**
+     * Era markers spread across the cell: {@code row} layout distributes items horizontally (each
+     * centered in an equal slot), {@code column} stacks them vertically. Each item is a ○/● marker
+     * and the era name drawn as separate glyph runs with a 0.2mm gap (front flex gap).
+     */
+    private static void drawEraSelectCell(
+            PDPageContentStream cs, PDFont font, JsonNode cell, JsonNode rowData, CellBounds bounds)
+            throws IOException {
+        String ds = textOf(cell, "eraDataSource", "");
+        String selected = "";
+        if (!ds.isEmpty() && rowData != null) {
+            JsonNode val = SectionRenderHelper.resolveDataPath(rowData, ds);
+            if (val != null && !val.isNull()) selected = val.asText("");
+        }
+        String layout = textOf(cell, "eraLayout", "column");
+        boolean rowLayout = "row".equals(layout);
+        int count = DEFAULT_ERAS.length;
+
+        cs.setNonStrokingColor(Color.BLACK);
+        for (int i = 0; i < count; i++) {
+            String era = DEFAULT_ERAS[i];
+            String marker = era.equals(selected) ? "●" : "○";
+            float markerW = estimateTextWidth(marker, font, ERA_FONT_PT);
+            float eraW = estimateTextWidth(era, font, ERA_FONT_PT);
+            float itemW = markerW + ERA_GAP_PT + eraW;
+
+            float itemX;
+            float centerY;
+            if (rowLayout) {
+                float slotW = bounds.w / count;
+                itemX = bounds.x + slotW * i + Math.max(0, (slotW - itemW) / 2);
+                centerY = bounds.y - bounds.h / 2;
+            } else {
+                float slotH = bounds.h / count;
+                itemX = bounds.x + CELL_PADDING_PT;
+                centerY = bounds.y - slotH * i - slotH / 2;
+            }
+            float baselineY = centerY - ERA_FONT_PT * 0.35f;
+
+            cs.beginText();
+            cs.setFont(font, ERA_FONT_PT);
+            cs.newLineAtOffset(itemX, baselineY);
+            cs.showText(marker);
+            cs.endText();
+
+            cs.beginText();
+            cs.setFont(font, ERA_FONT_PT);
+            cs.newLineAtOffset(itemX + markerW + ERA_GAP_PT, baselineY);
+            cs.showText(era);
+            cs.endText();
         }
     }
 
@@ -448,36 +648,12 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             }
             return "";
         }
-        if ("checkbox".equals(cellType)) {
-            boolean checked = cell.path("checked").asBoolean(false);
-            // Data binding: if checkboxDataSource resolves to non-empty, checked
-            String ds = textOf(cell, "checkboxDataSource", "");
-            if (!ds.isEmpty() && formData != null) {
-                JsonNode val = formData.get(ds);
-                checked = val != null && !val.isNull() && !val.asText("").isEmpty();
-            }
-            String mark = textOf(cell, "checkmark", "✓");
-            String label = textOf(cell, "text", "");
-            return checked
-                    ? (mark + (label.isEmpty() ? "" : " " + label))
-                    : (label.isEmpty() ? "" : "□ " + label);
+        if ("input".equals(cellType)) {
+            // Front renders the placeholder as faint gray-italic filler text.
+            return textOf(cell, "placeholder", "");
         }
-        if ("eraSelect".equals(cellType)) {
-            String ds = textOf(cell, "eraDataSource", "");
-            String selected = "";
-            if (!ds.isEmpty() && formData != null) {
-                JsonNode val = formData.get(ds);
-                if (val != null) selected = val.asText("");
-            }
-            String[] eras = {"明", "大", "昭", "平", "令"};
-            StringBuilder sb = new StringBuilder();
-            for (String era : eras) {
-                if (sb.length() > 0) sb.append(" ");
-                sb.append(era.equals(selected) ? "●" : "○").append(era);
-            }
-            return sb.toString();
-        }
-        // label or input: use text content
+        // checkbox / eraSelect are drawn as widgets, not here (see renderCellWidgets).
+        // label: use text content
         return textOf(cell, "text", "");
     }
 

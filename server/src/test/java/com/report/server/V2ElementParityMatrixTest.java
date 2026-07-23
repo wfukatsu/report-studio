@@ -67,7 +67,9 @@ class V2ElementParityMatrixTest {
                 "repeatingBand",
                 "対応（RepeatingBandPdfRenderer — 要素内テーブル。groupBy/小計は detail_table セクション側）");
         m.put("repeatingList", "対応（RepeatingListPdfRenderer — vertical/horizontal/grid カードレイアウト）");
-        m.put("formTable", "対応（kind 名一致）。eraSelect セルは resolveCellText で対応");
+        m.put(
+                "formTable",
+                "対応（kind 名一致）。input=プレースホルダ灰斜体・checkbox=枠付きボックス+チェック・eraSelect=○●マーカーを front 同様にウィジェット描画（#373）");
         m.put("shape", "対応");
         m.put("image", "対応（URL 取得時は SSRF ガードあり）");
         m.put("barcode", "対応（qrcode は別 kind）");

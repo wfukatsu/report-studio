@@ -91,16 +91,50 @@ class PdfFormTableParseBackTest {
 
     @Test
     void eraSelectCell_marksSelectedEra() throws IOException {
+        // #373: era markers are drawn as widgets — ●selected / ○unselected and era names as
+        // separate glyph runs, so the page carries both marker glyphs plus each era name.
         String json = tableJson(",\"_formData\":{%s}".formatted(PERSON_DATA), "");
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
-        assertTrue(probe.pageContains(0, "●昭"), probe.pageText(0));
-        assertTrue(probe.pageContains(0, "○平"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "●"), probe.pageText(0)); // selected (昭)
+        assertTrue(probe.pageContains(0, "○"), probe.pageText(0)); // unselected eras
+        assertTrue(probe.pageContains(0, "昭"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "平"), probe.pageText(0));
     }
 
     @Test
     void checkboxCell_rendersCheckmarkWithLabel() throws IOException {
+        // #373: checkbox draws a bordered box + centered checkmark (checked) + label to its right,
+        // so the checkmark and the label are separate glyph runs rather than a "✓ 男" text run.
         PdfProbe probe = PdfProbe.parse(PdfRenderer.render(tableJson("", "")));
-        assertTrue(probe.pageContains(0, "✓ 男"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "✓"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "男"), probe.pageText(0));
+    }
+
+    @Test
+    void inputCell_rendersPlaceholderText() throws IOException {
+        // #373: input cells render their placeholder as faint filler text (front CellContent),
+        // not the cell's label/text field.
+        String json =
+                """
+            {"templates":[{
+              "id":"t1","name":"Input",
+              "sections":[{
+                "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
+                "elements":[{
+                  "id":"ft1","kind":"formTable","name":"記入",
+                  "frame":{"x":15,"y":40,"width":80,"height":8,"rotation":0},
+                  "columns":[{"width":80}],
+                  "rows":[
+                    {"height":8,"role":"body","cells":[
+                      {"type":"input","placeholder":"ここに記入","text":"IGNORED"}
+                    ]}
+                  ]
+                }]
+              }]
+            }]}""";
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
+        assertTrue(probe.pageContains(0, "ここに記入"), probe.pageText(0));
+        assertFalse(probe.pageContains(0, "IGNORED"), probe.pageText(0));
     }
 
     /**

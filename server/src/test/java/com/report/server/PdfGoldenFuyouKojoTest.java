@@ -75,14 +75,22 @@ class PdfGoldenFuyouKojoTest {
 
     @Test
     void eraSelectCellsMarkTheBoundEra() {
-        // taxpayer: 昭 selected; spouse: 平 selected
-        assertTrue(probe.pageContains(0, "●昭"), probe.pageText(0));
-        assertTrue(probe.pageContains(0, "●平"), probe.pageText(0));
+        // #373: era markers are drawn as widgets (●selected / ○unselected + era names as separate
+        // glyph runs). taxpayer: 昭 selected; spouse: 平 selected.
+        assertTrue(probe.pageContains(0, "●"), probe.pageText(0)); // selected markers
+        assertTrue(probe.pageContains(0, "○"), probe.pageText(0)); // unselected markers
+        assertTrue(probe.pageContains(0, "昭"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "平"), probe.pageText(0));
     }
 
     @Test
     void checkboxCellsRenderCheckedAndUncheckedStates() {
-        assertTrue(probe.pageContains(0, "✓ 源泉控除"), probe.pageText(0));
-        assertTrue(probe.pageContains(0, "□ 源泉控除"), probe.pageText(0));
+        // #373: checkbox draws a bordered box + centered checkmark when checked (no "□" glyph for
+        // unchecked). Both rows carry the label; exactly one (spouse) is checked, so a single ✓.
+        assertTrue(probe.pageContains(0, "源泉控除"), probe.pageText(0));
+        assertEquals(
+                1,
+                probe.findRuns("✓").size(),
+                "only the checked (spouse) checkbox should emit a checkmark");
     }
 }
