@@ -103,6 +103,69 @@ class PdfFormTableParseBackTest {
         assertTrue(probe.pageContains(0, "✓ 男"), probe.pageText(0));
     }
 
+    /**
+     * A single-body-row formTable bound to {@code dataSource:"items"}, with an optional maxItems.
+     */
+    private static String detailTableJson(String extraElProps, String itemsArray) {
+        return """
+            {"templates":[{
+              "id":"t1","name":"Detail",
+              "sections":[{
+                "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
+                "elements":[{
+                  "id":"ft1","kind":"formTable","name":"明細","dataSource":"items"%s,
+                  "frame":{"x":15,"y":40,"width":120,"height":32,"rotation":0},
+                  "columns":[{"width":60},{"width":60}],
+                  "rows":[
+                    {"height":8,"role":"header","cells":[
+                      {"type":"label","text":"品名"},
+                      {"type":"label","text":"数量"}
+                    ]},
+                    {"height":8,"role":"body","cells":[
+                      {"type":"dataField","fieldKey":"name"},
+                      {"type":"dataField","fieldKey":"qty"}
+                    ]}
+                  ]
+                }]
+              }]
+            }],"_formData":{"items":%s}}"""
+                .formatted(extraElProps, itemsArray);
+    }
+
+    private static final String THREE_ITEMS =
+            "[{\"name\":\"りんご\",\"qty\":\"3\"},"
+                    + "{\"name\":\"みかん\",\"qty\":\"5\"},"
+                    + "{\"name\":\"ぶどう\",\"qty\":\"2\"}]";
+
+    @Test
+    void bodyRows_repeatPerRecord_whenDataSourceBound() throws IOException {
+        // #352: dataSource-bound body rows repeat once per record (header renders once).
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(detailTableJson("", THREE_ITEMS)));
+        assertTrue(probe.pageContains(0, "品名"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "りんご"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "みかん"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "ぶどう"), probe.pageText(0));
+
+        // Rows stack top-to-bottom in record order: りんご above みかん above ぶどう.
+        PdfProbe.TextRun r0 = probe.findRun(0, "りんご").orElseThrow();
+        PdfProbe.TextRun r1 = probe.findRun(0, "みかん").orElseThrow();
+        PdfProbe.TextRun r2 = probe.findRun(0, "ぶどう").orElseThrow();
+        assertTrue(
+                r0.baselineYMm() < r1.baselineYMm() && r1.baselineYMm() < r2.baselineYMm(),
+                "record rows should stack downward: %.1f < %.1f < %.1f"
+                        .formatted(r0.baselineYMm(), r1.baselineYMm(), r2.baselineYMm()));
+    }
+
+    @Test
+    void bodyRows_respectMaxItems() throws IOException {
+        // #352: maxItems caps the number of repeated body rows.
+        PdfProbe probe =
+                PdfProbe.parse(PdfRenderer.render(detailTableJson(",\"maxItems\":2", THREE_ITEMS)));
+        assertTrue(probe.pageContains(0, "りんご"), probe.pageText(0));
+        assertTrue(probe.pageContains(0, "みかん"), probe.pageText(0));
+        assertFalse(probe.pageContains(0, "ぶどう"), probe.pageText(0));
+    }
+
     @Test
     void mergedCells_areSkipped() throws IOException {
         String json =
