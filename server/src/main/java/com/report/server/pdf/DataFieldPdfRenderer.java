@@ -30,7 +30,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
  */
 public final class DataFieldPdfRenderer implements ElementPdfRenderer {
 
-    private static final float DEFAULT_FONT_SIZE = 12f;
+    private static final float DEFAULT_FONT_SIZE = 10f; // frontend DEFAULT_FONT_SIZE (#373)
     private static final float DEFAULT_LINE_HEIGHT = 1.4f;
     private static final float MM_TO_PT = PdfUnits.MM_TO_PT;
 

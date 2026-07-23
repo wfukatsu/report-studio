@@ -86,25 +86,54 @@ public final class PdfUtils {
     }
 
     /** Parse a {@code #RRGGBB} or {@code #RGB} hex color; fall back on anything else. */
-    public static Color parseColor(String hex, Color defaultColor) {
-        if (hex == null || hex.isEmpty() || !hex.startsWith("#")) return defaultColor;
+    public static Color parseColor(String value, Color defaultColor) {
+        if (value == null || value.isBlank()) return defaultColor;
+        String v = value.trim();
         try {
-            if (hex.length() == 7) {
-                return new Color(
-                        Integer.parseInt(hex.substring(1, 3), 16),
-                        Integer.parseInt(hex.substring(3, 5), 16),
-                        Integer.parseInt(hex.substring(5, 7), 16));
+            if (v.startsWith("#")) {
+                String hex = v.substring(1);
+                // #RGB / #RGBA → expand each nibble; alpha nibble dropped (#373)
+                if (hex.length() == 3 || hex.length() == 4) {
+                    StringBuilder sb = new StringBuilder(6);
+                    for (int i = 0; i < 3; i++) sb.append(hex.charAt(i)).append(hex.charAt(i));
+                    hex = sb.toString();
+                } else if (hex.length() == 8) {
+                    hex = hex.substring(0, 6); // #RRGGBBAA → drop alpha
+                }
+                if (hex.length() == 6) {
+                    return new Color(
+                            Integer.parseInt(hex.substring(0, 2), 16),
+                            Integer.parseInt(hex.substring(2, 4), 16),
+                            Integer.parseInt(hex.substring(4, 6), 16));
+                }
+                return defaultColor;
             }
-            if (hex.length() == 4) {
-                int r = Integer.parseInt(hex.substring(1, 2), 16);
-                int g = Integer.parseInt(hex.substring(2, 3), 16);
-                int b = Integer.parseInt(hex.substring(3, 4), 16);
-                return new Color(r * 17, g * 17, b * 17);
+            // rgb()/rgba() — the alpha channel is ignored (opaque draw); previously black (#373)
+            String lower = v.toLowerCase();
+            if (lower.startsWith("rgb(") || lower.startsWith("rgba(")) {
+                int open = v.indexOf('(');
+                int close = v.indexOf(')');
+                if (open >= 0 && close > open) {
+                    String[] p = v.substring(open + 1, close).split(",");
+                    if (p.length >= 3) {
+                        return new Color(colorByte(p[0]), colorByte(p[1]), colorByte(p[2]));
+                    }
+                }
             }
-        } catch (NumberFormatException ignored) {
+        } catch (RuntimeException ignored) {
             // fall through to default
         }
         return defaultColor;
+    }
+
+    /** Parse one rgb() component (integer, float, or percentage) to a clamped 0–255 byte. */
+    private static int colorByte(String s) {
+        String t = s.trim();
+        float val =
+                t.endsWith("%")
+                        ? Float.parseFloat(t.substring(0, t.length() - 1)) * 255f / 100f
+                        : Float.parseFloat(t);
+        return Math.max(0, Math.min(255, Math.round(val)));
     }
 
     /**
