@@ -35,7 +35,10 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     private static final float CELL_PADDING_PT = 2f;
     private static final Color DEFAULT_BORDER_COLOR = Color.BLACK;
     private static final float DEFAULT_BORDER_WIDTH = 0.3f;
-    private static final float DEFAULT_FONT_SIZE = 10f;
+    // Front default cell font size (constants.ts DEFAULT_CELL_FONT_SIZE_PT); server matches (#353)
+    private static final float DEFAULT_FONT_SIZE = 8f;
+    private static final String DEFAULT_HEADER_BG = "#f3f4f6";
+    private static final String DEFAULT_FOOTER_BG = "#f9fafb";
 
     @Override
     public String kind() {
@@ -214,18 +217,14 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             float[] rowYPt,
             float[] rowHeightPt)
             throws IOException {
-        // Element-level header/body styles
-        JsonNode headerStyle =
-                el.has("headerStyle")
-                        ? el.get("headerStyle")
-                        : (el.has("props") ? el.get("props").get("headerStyle") : null);
-        JsonNode bodyStyle =
-                el.has("bodyStyle")
-                        ? el.get("bodyStyle")
-                        : (el.has("props") ? el.get("props").get("bodyStyle") : null);
+        // Element-level header style + zebra colors (#353; body bg is zebra-only, front parity)
+        JsonNode headerStyle = elementSubStyle(el, "headerStyle");
+        String oddRowColor = elementTextOf(el, "oddRowColor", "");
+        String evenRowColor = elementTextOf(el, "evenRowColor", "");
 
         for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
-            JsonNode row = plan.get(rowIdx).row();
+            RowCtx ctx = plan.get(rowIdx);
+            JsonNode row = ctx.row();
             String role = textOf(row, "role", "body");
             JsonNode cells = row.get("cells");
             if (cells == null || !cells.isArray()) continue;
@@ -234,8 +233,15 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                 JsonNode cell = cells.get(colIdx);
                 if (isMergedInto(cell)) continue;
 
-                // Cell background color: cell.style.backgroundColor > row role style > none
-                String bgColor = resolveBgColor(cell, role, headerStyle, bodyStyle);
+                // Cell background: cell.style > role default > zebra (front parity, #353)
+                String bgColor =
+                        resolveBgColor(
+                                cell,
+                                role,
+                                headerStyle,
+                                ctx.recordIdx(),
+                                oddRowColor,
+                                evenRowColor);
                 if (bgColor == null || bgColor.isBlank()) continue;
 
                 Color bg = parseColor(bgColor, null);
@@ -274,10 +280,14 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             PDDocument doc,
             Map<String, PDFont> fontCache)
             throws IOException {
+        JsonNode headerStyle = elementSubStyle(el, "headerStyle");
+        JsonNode bodyStyle = elementSubStyle(el, "bodyStyle");
+
         for (int rowIdx = 0; rowIdx < plan.size(); rowIdx++) {
             RowCtx ctx = plan.get(rowIdx);
             JsonNode row = ctx.row();
             JsonNode rowData = ctx.data();
+            String role = textOf(row, "role", "body");
             JsonNode cells = row.get("cells");
             if (cells == null || !cells.isArray()) continue;
 
@@ -300,22 +310,16 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
                                 rowYPt,
                                 rowHeightPt);
 
-                // Resolve font from cell style
+                // Resolve style with cell → column → role priority (#353, front parity)
                 JsonNode style = cell.get("style");
-                float fontSize =
-                        style != null
-                                ? floatOf(style, "fontSize", DEFAULT_FONT_SIZE)
-                                : DEFAULT_FONT_SIZE;
-                boolean bold = isBold(style);
+                JsonNode col = columns.get(colIdx);
+                float fontSize = resolveFontSize(style, col, headerStyle, role);
+                boolean bold = resolveBold(headerStyle, bodyStyle, role);
                 String fontFamily = style != null ? textOf(style, "fontFamily", "") : "";
                 PDFont font = FontProvider.getFontForFamily(doc, fontCache, fontFamily, bold);
 
-                // Text color
-                String colorStr = style != null ? textOf(style, "color", "") : "";
-                Color textColor = parseColor(colorStr, Color.BLACK);
-
-                // Text alignment
-                String textAlign = style != null ? textOf(style, "textAlign", "left") : "left";
+                Color textColor = resolveTextColor(style, col, headerStyle, role);
+                String textAlign = resolveTextAlign(style, col);
                 String verticalAlign =
                         style != null ? textOf(style, "verticalAlign", "middle") : "middle";
 
@@ -477,22 +481,104 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
         return textOf(cell, "text", "");
     }
 
+    /**
+     * Cell background, mirroring the frontend {@code resolveBackground} (#353): cell style wins;
+     * header falls back to {@code headerStyle.backgroundColor} then {@code #f3f4f6}; footer to
+     * {@code #f9fafb}; repeated body rows use zebra {@code odd/evenRowColor} by record index.
+     * Non-repeated body rows ({@code recordIdx < 0}) get no background — matching the frontend,
+     * which never applies {@code bodyStyle.backgroundColor} to body cells.
+     */
     private static String resolveBgColor(
-            JsonNode cell, String role, JsonNode headerStyle, JsonNode bodyStyle) {
-        // Cell-level style takes priority
+            JsonNode cell,
+            String role,
+            JsonNode headerStyle,
+            int recordIdx,
+            String oddRowColor,
+            String evenRowColor) {
         JsonNode style = cell.get("style");
         if (style != null) {
             String bg = textOf(style, "backgroundColor", "");
             if (!bg.isEmpty()) return bg;
         }
-        // Fall back to role-level style
-        if ("header".equals(role) && headerStyle != null) {
-            return textOf(headerStyle, "backgroundColor", "");
+        if ("header".equals(role)) {
+            String hb = headerStyle != null ? textOf(headerStyle, "backgroundColor", "") : "";
+            return hb.isEmpty() ? DEFAULT_HEADER_BG : hb;
         }
-        if (("body".equals(role) || "footer".equals(role)) && bodyStyle != null) {
-            return textOf(bodyStyle, "backgroundColor", "");
+        if ("footer".equals(role)) {
+            return DEFAULT_FOOTER_BG;
+        }
+        if ("body".equals(role) && recordIdx >= 0) {
+            return recordIdx % 2 == 0 ? oddRowColor : evenRowColor;
         }
         return "";
+    }
+
+    // ── Cell style cascade (cell → column → role), front parity (#353) ─────────
+
+    /**
+     * Element-level sub-style object ({@code headerStyle}/{@code bodyStyle}), top level or props.
+     */
+    private static JsonNode elementSubStyle(JsonNode el, String key) {
+        if (el.has(key)) return el.get(key);
+        JsonNode props = el.get("props");
+        return props != null ? props.get(key) : null;
+    }
+
+    /** Alignment: cell.style.textAlign → column.align → "left". */
+    private static String resolveTextAlign(JsonNode cellStyle, JsonNode col) {
+        if (cellStyle != null) {
+            String a = textOf(cellStyle, "textAlign", "");
+            if (!a.isEmpty()) return a;
+        }
+        if (col != null) {
+            String a = textOf(col, "align", "");
+            if (!a.isEmpty()) return a;
+        }
+        return "left";
+    }
+
+    /** Font size: cell.style → column.style → headerStyle (header rows) → default 8pt. */
+    private static float resolveFontSize(
+            JsonNode cellStyle, JsonNode col, JsonNode headerStyle, String role) {
+        if (cellStyle != null && cellStyle.hasNonNull("fontSize")) {
+            return floatOf(cellStyle, "fontSize", DEFAULT_FONT_SIZE);
+        }
+        JsonNode colStyle = col != null ? col.get("style") : null;
+        if (colStyle != null && colStyle.hasNonNull("fontSize")) {
+            return floatOf(colStyle, "fontSize", DEFAULT_FONT_SIZE);
+        }
+        if ("header".equals(role) && headerStyle != null && headerStyle.hasNonNull("fontSize")) {
+            return floatOf(headerStyle, "fontSize", DEFAULT_FONT_SIZE);
+        }
+        return DEFAULT_FONT_SIZE;
+    }
+
+    /** Text color: cell.style → column.style → headerStyle (header rows) → black. */
+    private static Color resolveTextColor(
+            JsonNode cellStyle, JsonNode col, JsonNode headerStyle, String role) {
+        String c = cellStyle != null ? textOf(cellStyle, "color", "") : "";
+        if (c.isEmpty() && col != null) {
+            JsonNode colStyle = col.get("style");
+            if (colStyle != null) c = textOf(colStyle, "color", "");
+        }
+        if (c.isEmpty() && "header".equals(role) && headerStyle != null) {
+            c = textOf(headerStyle, "color", "");
+        }
+        return parseColor(c, Color.BLACK);
+    }
+
+    /**
+     * Bold: header/footer default to bold (unless {@code headerStyle.fontWeight} says otherwise);
+     * body follows {@code bodyStyle.fontWeight}. Mirrors the frontend {@code resolveFontWeight}.
+     */
+    private static boolean resolveBold(JsonNode headerStyle, JsonNode bodyStyle, String role) {
+        if ("header".equals(role) || "footer".equals(role)) {
+            if (headerStyle != null && headerStyle.hasNonNull("fontWeight")) {
+                return isBold(headerStyle);
+            }
+            return true;
+        }
+        return isBold(bodyStyle);
     }
 
     private static Color parseColor(String hex, Color defaultColor) {
