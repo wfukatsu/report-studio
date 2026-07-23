@@ -32,7 +32,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
     private static final float MM_TO_PT = SectionRenderHelper.MM_TO_PT;
     private static final float CELL_PADDING_PT = 2f;
     private static final Color DEFAULT_BORDER_COLOR = Color.BLACK;
-    private static final float DEFAULT_BORDER_WIDTH = 0.5f;
+    private static final float DEFAULT_BORDER_WIDTH = 0.3f;
     private static final float DEFAULT_FONT_SIZE = 10f;
 
     @Override
@@ -308,7 +308,7 @@ public final class FormTablePdfRenderer implements ElementPdfRenderer {
             float borderWidth)
             throws IOException {
         cs.setStrokingColor(borderColor);
-        cs.setLineWidth(borderWidth);
+        cs.setLineWidth(borderWidth * MM_TO_PT);
 
         for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
             JsonNode row = rows.get(rowIdx);
