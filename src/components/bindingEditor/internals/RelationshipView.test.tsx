@@ -59,6 +59,13 @@ describe('RelationshipView (#141/#142/#143)', () => {
     expect(onSetLinkedMaster).toHaveBeenCalledWith('items', 'header')
   })
 
+  it('#396: clicking a group name focuses it in the schema panel', () => {
+    const onFocusGroup = vi.fn()
+    render(<RelationshipView groups={schema()} onSetLinkedMaster={vi.fn()} onFocusGroup={onFocusGroup} />)
+    fireEvent.click(screen.getByText('明細'))
+    expect(onFocusGroup).toHaveBeenCalledWith('items')
+  })
+
   it('#143: surfaces a shared-key suggestion and approves it on click', () => {
     const onSetLinkedMaster = vi.fn()
     render(<RelationshipView groups={schema({ itemsLinked: false })} onSetLinkedMaster={onSetLinkedMaster} />)

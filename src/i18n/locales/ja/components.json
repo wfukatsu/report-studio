@@ -196,6 +196,7 @@
       "approveAll": "すべて承認",
       "autoDetected": "{{n}} 件の関係を自動検出",
       "editParentTitle": "ダブルクリックで親マスターを編集",
+      "focusGroupTitle": "スキーマフィールドで表示",
       "headerNode": "ヘッダ",
       "inferredHint": "共有キーから関係を推定しました。承認するとリンクを設定します。",
       "lookupSource": "lookup 元（product_code で参照）",

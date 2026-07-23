@@ -21,6 +21,8 @@ interface SchemaPanelProps {
   readonly onOpenComputedDialog?: (groupId: string) => void
   /** #392: called with the new group's id after adding, so the parent can expand it. */
   readonly onGroupAdded?: (groupId: string) => void
+  /** #396: the group to briefly highlight (focused from the relationship view). */
+  readonly focusedGroupId?: string | null
 }
 
 export const SchemaPanel = memo(function SchemaPanel({
@@ -30,6 +32,7 @@ export const SchemaPanel = memo(function SchemaPanel({
   fieldRef,
   onOpenComputedDialog,
   onGroupAdded,
+  focusedGroupId,
 }: SchemaPanelProps) {
   const { t } = useTranslation('components')
   const [searchQuery, setSearchQuery] = useState('')
@@ -199,6 +202,7 @@ export const SchemaPanel = memo(function SchemaPanel({
               hoveredFieldId={bs.hoveredFieldId}
               onHoverField={handleHoverField}
               autoEdit={group.id === justAddedGroupId}
+              focused={group.id === focusedGroupId}
             />
           )
         })}

@@ -61,6 +61,8 @@ interface SchemaGroupBlockProps {
   readonly onHoverField: (fieldId: string | null) => void
   /** #392: open the inline name editor on mount (freshly-added group), prompting a rename. */
   readonly autoEdit?: boolean
+  /** #396: briefly highlight this group (focused from the relationship view). */
+  readonly focused?: boolean
 }
 
 export const SchemaGroupBlock = memo(function SchemaGroupBlock({
@@ -89,6 +91,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   hoveredFieldId,
   onHoverField,
   autoEdit = false,
+  focused = false,
 }: SchemaGroupBlockProps) {
   const { t } = useTranslation('components')
   const [editing, setEditing] = useState(autoEdit)
@@ -97,7 +100,12 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   const color = getGroupColor(groupIndex)
 
   return (
-    <div className="mb-1">
+    <div
+      className={cn(
+        'mb-1 rounded-md transition-shadow',
+        focused && 'ring-2 ring-[#6366f1] ring-offset-1',
+      )}
+    >
       {/* Group header — toggle button + edit/bulk-generate triggers as siblings
           (a button cannot nest inside a button). #139: pencil toggles inline edit. */}
       <div

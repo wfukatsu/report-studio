@@ -196,6 +196,7 @@
       "approveAll": "Approve all",
       "autoDetected": "{{n}} relationship(s) auto-detected",
       "editParentTitle": "Double-click to edit the parent master",
+      "focusGroupTitle": "Show in schema fields",
       "headerNode": "Header",
       "inferredHint": "Relationships were inferred from shared keys. Approve to set the links.",
       "lookupSource": "lookup source (referenced by product_code)",
