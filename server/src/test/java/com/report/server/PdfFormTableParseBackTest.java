@@ -167,6 +167,53 @@ class PdfFormTableParseBackTest {
     }
 
     @Test
+    void defaultCellFontSize_is8pt() throws IOException {
+        // #353: server default cell font size matches the front (DEFAULT_CELL_FONT_SIZE_PT = 8pt).
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(tableJson("", "")));
+        PdfProbe.TextRun name = probe.findRun(0, "氏名").orElseThrow();
+        assertEquals(8f, name.fontSizePt(), 0.01f, "unstyled cell should render at 8pt");
+    }
+
+    @Test
+    void headerRow_defaultsBold_bodyStaysRegular() throws IOException {
+        // #353: header rows default to bold; body rows do not (front resolveFontWeight parity).
+        String json = tableJson(",\"_formData\":{%s}".formatted(PERSON_DATA), "");
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
+        PdfProbe.TextRun header = probe.findRun(0, "氏名").orElseThrow();
+        assertTrue(header.fontName().contains("NotoSansJP-Bold"), header.fontName());
+        PdfProbe.TextRun body = probe.findRun(0, "山田太郎").orElseThrow();
+        assertFalse(body.fontName().contains("Bold"), body.fontName());
+    }
+
+    @Test
+    void columnAlign_rightAlignsCellText() throws IOException {
+        // #353: column.align feeds cell text alignment when the cell has no explicit textAlign.
+        String json =
+                """
+            {"templates":[{
+              "id":"t1","name":"Align",
+              "sections":[{
+                "id":"s1","type":"page_base","name":"Base","y":0,"height":297,
+                "elements":[{
+                  "id":"ft1","kind":"formTable","name":"揃え",
+                  "frame":{"x":15,"y":40,"width":80,"height":8,"rotation":0},
+                  "columns":[{"width":80,"align":"right"}],
+                  "rows":[
+                    {"height":8,"role":"header","cells":[{"type":"label","text":"右"}]}
+                  ]
+                }]
+              }]
+            }]}""";
+        PdfProbe probe = PdfProbe.parse(PdfRenderer.render(json));
+        PdfProbe.TextRun run = probe.findRun(0, "右").orElseThrow();
+        // Column spans x=15..95mm; right-aligned text sits in the right half (default left ≈ 16mm).
+        assertTrue(
+                run.xMm() > 55f,
+                "right-aligned text should sit near the right edge, got x=%.1f"
+                        .formatted(run.xMm()));
+    }
+
+    @Test
     void mergedCells_areSkipped() throws IOException {
         String json =
                 """
