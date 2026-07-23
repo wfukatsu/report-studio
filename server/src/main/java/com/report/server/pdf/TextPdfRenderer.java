@@ -55,7 +55,7 @@ public final class TextPdfRenderer implements ElementPdfRenderer {
                 firstNonZero(
                         props != null ? floatOf(props, "fontSize", 0) : 0,
                         style != null ? floatOf(style, "fontSize", 0) : 0,
-                        12);
+                        10); // frontend DEFAULT_FONT_SIZE (#373)
         boolean bold = isBold(props) || isBold(style);
         String fontFamily =
                 firstNonEmpty(

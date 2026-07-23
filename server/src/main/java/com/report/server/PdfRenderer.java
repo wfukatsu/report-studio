@@ -274,10 +274,12 @@ public final class PdfRenderer {
             java.util.List<java.util.List<JsonNode>> pageSections = new java.util.ArrayList<>();
             java.util.List<java.util.List<int[]>> pageParams = new java.util.ArrayList<>();
             java.util.List<Integer> localCounts = new java.util.ArrayList<>();
+            java.util.List<String> pageBackgrounds = new java.util.ArrayList<>();
             int globalTotal = 0;
 
             for (JsonNode page : pages) {
                 pageSizes.add(resolvePageSizeForPage(page, def.path("pageSettings")));
+                pageBackgrounds.add(page.path("background").asText(""));
                 java.util.List<JsonNode> ordered = new java.util.ArrayList<>();
                 java.util.List<int[]> params = new java.util.ArrayList<>();
                 int localCount = 1;
@@ -332,6 +334,7 @@ public final class PdfRenderer {
                     int localCount = localCounts.get(p);
                     for (int localIdx = 0; localIdx < localCount; localIdx++) {
                         ctx.newPage(size);
+                        fillPageBackground(ctx, size, pageBackgrounds.get(p)); // #373
                         ctx.setLocalPage(localIdx, localCount);
                         float sectionOffsetMm = 0f; // stack sections top-to-bottom (#354)
                         for (int i = 0; i < ordered.size(); i++) {
@@ -353,6 +356,22 @@ public final class PdfRenderer {
     /**
      * Page size for a designed page: its own width/height (mm) wins, else the pageSettings preset.
      */
+    /**
+     * Paint the V2 {@code page.background} (#373). Skipped for an unset or white background (the
+     * default paper), so only a real color adds a full-page fill.
+     */
+    private static void fillPageBackground(
+            com.report.server.pdf.PageContext ctx, PDRectangle size, String background)
+            throws IOException {
+        if (background == null || background.isBlank()) return;
+        java.awt.Color c = PdfUtils.parseColor(background, null);
+        if (c == null || c.equals(java.awt.Color.WHITE)) return;
+        PDPageContentStream cs = ctx.contentStream();
+        cs.setNonStrokingColor(c);
+        cs.addRect(0, 0, size.getWidth(), size.getHeight());
+        cs.fill();
+    }
+
     private static PDRectangle resolvePageSizeForPage(JsonNode page, JsonNode pageSettings) {
         float wMm = PdfUtils.floatOf(page, "width", 0);
         float hMm = PdfUtils.floatOf(page, "height", 0);
