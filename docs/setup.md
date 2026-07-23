@@ -158,6 +158,27 @@ scalar.db.transaction_manager=jdbc
 
 `scalar.db.contact_points` を対象 DB の JDBC URL に変更し、`scalar.db.username` / `scalar.db.password` を設定します。
 
+本アプリはすべてのデータアクセスを ScalarDB（3.17）経由で行うため、接続先は **ScalarDB が対応するデータベース**に限られます。本アプリは `scalar.db.storage=jdbc`（JDBC ストレージ + JDBC トランザクションマネージャ）で構築・検証しているため、実運用で選べるのは **ScalarDB の JDBC アダプタが対応する関係データベース**です。
+
+| データベース | 備考 |
+|--------------|------|
+| **PostgreSQL** | Amazon Aurora PostgreSQL / YugabyteDB / AlloyDB など PostgreSQL 互換も同マッピングで利用可 |
+| **MySQL** | Amazon Aurora MySQL / MariaDB / TiDB など MySQL 互換も同マッピングで利用可 |
+| **MariaDB** | |
+| **Oracle Database** | |
+| **SQL Server** | |
+| **IBM Db2** | |
+| **SQLite** | 開発既定。単一ファイル・単一プロセス向け |
+
+- **JDBC URL の例**:
+  - PostgreSQL: `jdbc:postgresql://<host>:5432/<database>`
+  - MySQL: `jdbc:mysql://<host>:3306/<database>`
+  - SQL Server: `jdbc:sqlserver://<host>:1433;databaseName=<database>`
+- **対応バージョンは ScalarDB のバージョンごとに異なります**。正確な組み合わせは ScalarDB 公式の対応マトリクス（<https://scalardb.scalar-labs.com/docs/latest/requirements>）を必ず確認してください。
+- アプリのテーブルは起動時に名前空間 `report_studio` へ自動作成されます。帳票のデータバインド先テーブルも同じ ScalarDB インスタンス上のテーブルである必要があります（別系統の DB を混在させることはできません）。
+
+> **NoSQL バックエンドについて**: ScalarDB 自体は Cassandra / Amazon DynamoDB / Azure Cosmos DB などの NoSQL にも対応しており、`SCALARDB_STORAGE`（下記）を切り替えれば理論上は指定可能です。ただし本アプリのコード（JDBC 接続プール設定を前提）とドキュメント・テストは **JDBC 経路のみを検証**しているため、非 JDBC バックエンドは動作保証外です。
+
 ### 環境変数によるオーバーライド
 
 `SCALARDB_CONTACT_POINTS` が設定されている場合、環境変数がファイルより優先されます（Docker 構成はこの方式を使用）。
