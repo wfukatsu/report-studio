@@ -70,8 +70,12 @@ final class ElementRenderDispatcher {
                 hMm = PdfUtils.floatOf(size, "height");
             }
 
+            // Element Y is section-relative on the frontend; add the section's cumulative top
+            // (sum of preceding section heights) so stacked sections don't overlap (#354).
             float x = xMm * SectionRenderHelper.MM_TO_PT;
-            float y = ctx.pageHeight() - (yMm * SectionRenderHelper.MM_TO_PT);
+            float y =
+                    ctx.pageHeight()
+                            - ((yMm + ctx.sectionYOffsetMm()) * SectionRenderHelper.MM_TO_PT);
             float w = Math.min(wMm * SectionRenderHelper.MM_TO_PT, MAX_DIMENSION_PT);
             float h = Math.min(hMm * SectionRenderHelper.MM_TO_PT, MAX_DIMENSION_PT);
             ELEMENT_REGISTRY
