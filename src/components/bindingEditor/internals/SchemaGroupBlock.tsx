@@ -59,6 +59,8 @@ interface SchemaGroupBlockProps {
   readonly fieldBoundCount: ReadonlyMap<string, number>
   readonly hoveredFieldId: string | null
   readonly onHoverField: (fieldId: string | null) => void
+  /** #392: open the inline name editor on mount (freshly-added group), prompting a rename. */
+  readonly autoEdit?: boolean
 }
 
 export const SchemaGroupBlock = memo(function SchemaGroupBlock({
@@ -86,9 +88,10 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   fieldBoundCount,
   hoveredFieldId,
   onHoverField,
+  autoEdit = false,
 }: SchemaGroupBlockProps) {
   const { t } = useTranslation('components')
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(autoEdit)
   const handleToggle = useCallback(() => onToggle(group.id), [onToggle, group.id])
   const boundCount = group.fields.filter((f) => boundFieldIds.has(f.id)).length
   const color = getGroupColor(groupIndex)

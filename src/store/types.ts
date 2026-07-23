@@ -287,7 +287,7 @@ export interface StoreState {
   cleanupVariantRefsForElement: (elementId: string) => void
 
   // ── Schema slice actions ──────────────────────────────────────────────────
-  addSchemaGroup: (role: 'master' | 'detail') => void
+  addSchemaGroup: (role: 'master' | 'detail') => string
   removeSchemaGroup: (groupId: string) => void
   updateSchemaGroup: (groupId: string, patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>) => void
   addSchemaField: (groupId: string, field: Omit<SchemaField, 'id'>) => void

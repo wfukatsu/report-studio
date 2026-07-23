@@ -20,14 +20,29 @@ describe('addSchemaGroup', () => {
     const groups = getGroups()
     expect(groups).toHaveLength(1)
     expect(groups[0].role).toBe('master')
-    expect(groups[0].label).toBe('マスター')
+    // #392: default name is a distinct sequential label, not the bare role word.
+    expect(groups[0].label).toBe('新規マスター1')
   })
 
   it('detail グループを追加できる', () => {
     useReportStore.getState().addSchemaGroup('detail')
     const groups = getGroups()
     expect(groups[0].role).toBe('detail')
-    expect(groups[0].label).toBe('明細')
+    expect(groups[0].label).toBe('新規明細1')
+  })
+
+  it('#392: 同一ロールの追加ごとに連番が振られる', () => {
+    const store = useReportStore.getState()
+    store.addSchemaGroup('master')
+    store.addSchemaGroup('master')
+    store.addSchemaGroup('detail')
+    const groups = getGroups()
+    expect(groups.map((g) => g.label)).toEqual(['新規マスター1', '新規マスター2', '新規明細1'])
+  })
+
+  it('#392: 新規グループの id を返す', () => {
+    const id = useReportStore.getState().addSchemaGroup('master')
+    expect(id).toBe(getGroups()[0].id)
   })
 
   it('schema が未定義でも初期化される', () => {
@@ -91,7 +106,7 @@ describe('updateSchemaGroup', () => {
   it('存在しない id は無視する', () => {
     useReportStore.getState().addSchemaGroup('master')
     expect(() => useReportStore.getState().updateSchemaGroup('nonexistent', { label: 'X' })).not.toThrow()
-    expect(getGroups()[0].label).toBe('マスター')
+    expect(getGroups()[0].label).toBe('新規マスター1')
   })
 
   it('Phase 3.5: linkedMasterGroupId を設定できる', () => {
