@@ -21,6 +21,7 @@ import { ConnectionLines } from './internals/ConnectionLines'
 import { SummaryBar } from './internals/SummaryBar'
 import { BulkGenerateBar } from './internals/BulkGenerateBar'
 import { RelationshipView } from './internals/RelationshipView'
+import { LivePreviewPanel } from './internals/LivePreviewPanel'
 import { SchemaLibraryModal } from '@/components/modals/SchemaLibraryModal'
 import { PromptDialog } from '@/components/common/PromptDialog'
 import { saveToSchemaLibrary } from '@/api/reportApi'
@@ -229,6 +230,11 @@ export function BindingEditor() {
           onRemoveRelation={removeSchemaRelation}
         />
       )}
+
+      {/* Live preview from ScalarDB (#330) — enter partition keys and resolve real
+          data (with per-row product lookup enrichment) into the canvas preview.
+          Self-gates: renders only when at least one group has DB bindings. */}
+      <LivePreviewPanel />
 
       {/* Bulk generate bar — shown while a bulk request is pending. Renders even
           with zero items so the trigger gives feedback instead of a silent no-op. */}
