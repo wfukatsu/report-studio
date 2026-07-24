@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.report.server.auth.Principal;
+import com.report.server.job.BatchPdfOrchestrator;
 import com.report.server.job.JobRecord;
 import com.report.server.testsupport.InMemoryJobStore;
 import io.javalin.http.Context;
@@ -37,7 +38,11 @@ class BatchPdfControllerTest {
         responseRepo = mock(JsonBlobRepository.class);
         jobStore = new InMemoryJobStore();
         executor = Executors.newSingleThreadExecutor();
-        controller = new BatchPdfController(definitionsRepo, responseRepo, jobStore, executor);
+        controller =
+                new BatchPdfController(
+                        definitionsRepo,
+                        jobStore,
+                        new BatchPdfOrchestrator(responseRepo, jobStore, executor));
 
         ctx = mock(Context.class);
         when(ctx.status(any(HttpStatus.class)))

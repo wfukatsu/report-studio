@@ -5,6 +5,7 @@ import com.report.server.auth.AuthController;
 import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRepository;
+import com.report.server.job.BatchPdfOrchestrator;
 import com.report.server.job.BatchPdfProcessor;
 import com.report.server.job.JobController;
 import com.report.server.job.JobRepository;
@@ -73,6 +74,7 @@ public final class AppWiring {
     final ProductController productCtrl;
     final ScalarDbScanController scalarDbScanCtrl;
     final ScalarDbRowController scalarDbRowCtrl;
+    final BatchPdfOrchestrator batchPdfOrchestrator;
     final BatchPdfController batchPdfCtrl;
     final JsonBlobRepository sequenceRepo;
     final SequenceController sequenceCtrl;
@@ -265,8 +267,8 @@ public final class AppWiring {
         productCtrl = new ProductController(productRepo, productCatalog);
         scalarDbScanCtrl = new ScalarDbScanController(factory, txManager);
         scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
-        batchPdfCtrl =
-                new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
+        batchPdfOrchestrator = new BatchPdfOrchestrator(v2ResponseRepo, jobRepo, pdfExecutor);
+        batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, jobRepo, batchPdfOrchestrator);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         healthCtrl =
                 new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
@@ -278,7 +280,7 @@ public final class AppWiring {
         authCtrl.shutdown();
         formSessionManager.shutdown();
         jobTtlReaper.close();
-        batchPdfCtrl.shutdown();
+        batchPdfOrchestrator.shutdown();
         jobExecutor.shutdown();
         pdfExecutor.shutdown();
         webhookExecutor.shutdown();
