@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Plus, Trash2 } from 'lucide-react'
-import { useBrandColors } from '@/hooks/useColorPrefs'
+import { useBrandColors, brandColorName } from '@/hooks/useColorPrefs'
 import { isValidHex, expandHex } from '@/lib/colorUtils'
 import { cn } from '@/lib/utils'
 
@@ -132,10 +132,10 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
                 <button
                   type="button"
                   className="flex-1 text-left text-xs truncate hover:text-primary"
-                  onClick={() => handleStartEdit(c.hex, c.name)}
+                  onClick={() => handleStartEdit(c.hex, brandColorName(c, t))}
                   title={t('base.brandColorManager.editNameTooltip')}
                 >
-                  {c.name || c.hex}
+                  {brandColorName(c, t)}
                 </button>
               )}
               <span className="text-[10px] text-muted-foreground font-mono shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -145,7 +145,7 @@ export function BrandColorManagerModal({ onClose }: BrandColorManagerModalProps)
                 type="button"
                 className="shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => remove(c.hex)}
-                aria-label={t('base.brandColorManager.deleteColorLabel', { name: c.name || c.hex })}
+                aria-label={t('base.brandColorManager.deleteColorLabel', { name: brandColorName(c, t) })}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

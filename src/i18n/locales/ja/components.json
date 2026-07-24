@@ -482,7 +482,103 @@
       "saving": "保存中..."
     }
   },
+  "formulaCatalog": {
+    "avg": {
+      "args": {
+        "array": "数値の配列"
+      },
+      "description": "配列の平均値を返します",
+      "label": "平均"
+    },
+    "category": {
+      "aggregate": "集計",
+      "arithmetic": "算術",
+      "condition": "条件",
+      "date": "日付",
+      "text": "文字列"
+    },
+    "concat": {
+      "args": {
+        "value1": "文字列1",
+        "value2": "文字列2"
+      },
+      "description": "複数の文字列を連結します",
+      "label": "文字列結合"
+    },
+    "count": {
+      "args": {
+        "array": "配列"
+      },
+      "description": "配列の要素数を返します",
+      "label": "個数"
+    },
+    "formatDate": {
+      "args": {
+        "date": "書式化する日付",
+        "format": "書式パターン (yyyy/MM/dd 等)"
+      },
+      "description": "日付を指定の書式で文字列に変換します",
+      "label": "日付書式"
+    },
+    "if": {
+      "args": {
+        "condition": "条件式",
+        "elseValue": "偽の場合の値",
+        "thenValue": "真の場合の値"
+      },
+      "description": "条件が真なら thenValue、偽なら elseValue を返します",
+      "label": "条件分岐"
+    },
+    "max": {
+      "args": {
+        "array": "数値の配列"
+      },
+      "description": "配列の最大値を返します",
+      "label": "最大値"
+    },
+    "min": {
+      "args": {
+        "array": "数値の配列"
+      },
+      "description": "配列の最小値を返します",
+      "label": "最小値"
+    },
+    "round": {
+      "args": {
+        "places": "小数点以下の桁数",
+        "value": "丸める数値"
+      },
+      "description": "数値を指定した小数点以下の桁数で丸めます",
+      "label": "四捨五入"
+    },
+    "sum": {
+      "args": {
+        "array": "数値の配列"
+      },
+      "description": "配列の合計値を返します",
+      "label": "合計"
+    },
+    "text": {
+      "args": {
+        "format": "書式パターン (#,##0 等)",
+        "value": "書式化する数値"
+      },
+      "description": "数値を指定の書式で文字列に変換します",
+      "label": "数値書式"
+    }
+  },
   "formulaEditor": {
+    "completions": {
+      "computedFieldType": "型: {{type}} (計算フィールド) — {{group}}",
+      "computedTypeLabel": "{{type}} (計算)",
+      "fieldType": "型: {{type}} — {{group}}",
+      "sectionComputed": "計算値",
+      "sectionFields": "フィールド",
+      "sectionFunctions": "関数"
+    },
+    "fieldChip": {
+      "ariaLabel": "フィールド: {{label}}"
+    },
     "fieldTreePanel": {
       "computedBadge": "計算",
       "groupAriaLabel": "{{label}} ({{n}}件)",
@@ -529,6 +625,32 @@
     "useFormulaEditor": {
       "defaultPlaceholder": "式を入力..."
     }
+  },
+  "paperSizes": {
+    "a3": "A3 (297×420mm)",
+    "a4": "A4 (210×297mm)",
+    "a5": "A5 (148×210mm)",
+    "a6": "A6 (105×148mm)",
+    "b4": "B4 (250×353mm)",
+    "b5": "B5 (176×250mm)",
+    "custom": "カスタム",
+    "hagaki": "はがき (100×148mm)",
+    "jisB4": "B4 (JIS 257×364mm)",
+    "jisB5": "B5 (JIS 182×257mm)",
+    "legal": "Legal (8.5×14\")",
+    "letter": "Letter (8.5×11\")",
+    "tabloid": "Tabloid (11×17\")"
+  },
+  "preview": {
+    "pageCount_one": "プレビュー — {{count}}ページ",
+    "pageCount_other": "プレビュー — {{count}}ページ"
+  },
+  "scalardbLabels": {
+    "clusteringKey": "クラスタリングキー",
+    "index": "索引",
+    "partitionKey": "パーティションキー",
+    "roleDetail": "明細",
+    "roleMaster": "マスター"
   },
   "sidebar": {
     "bindingPanel": {

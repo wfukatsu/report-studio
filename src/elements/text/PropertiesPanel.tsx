@@ -32,7 +32,7 @@ export function TextPropertiesPanel({ el, onChange }: Props) {
           value={el.content}
           onChange={(v) => onChange({ content: v })}
           rows={4}
-          placeholder={t('text.contentPlaceholder', { token: '{{フィールドキー}}' })}
+          placeholder={t('text.contentPlaceholder', { token: `{{${t('text.tokenName')}}}` })}
         />
       </PropSection>
     </>

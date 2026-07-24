@@ -482,7 +482,103 @@
       "saving": "Saving..."
     }
   },
+  "formulaCatalog": {
+    "avg": {
+      "args": {
+        "array": "Array of numbers"
+      },
+      "description": "Returns the average of an array",
+      "label": "Average"
+    },
+    "category": {
+      "aggregate": "Aggregate",
+      "arithmetic": "Arithmetic",
+      "condition": "Condition",
+      "date": "Date",
+      "text": "Text"
+    },
+    "concat": {
+      "args": {
+        "value1": "String 1",
+        "value2": "String 2"
+      },
+      "description": "Concatenates multiple strings",
+      "label": "Concatenate"
+    },
+    "count": {
+      "args": {
+        "array": "Array"
+      },
+      "description": "Returns the number of elements in an array",
+      "label": "Count"
+    },
+    "formatDate": {
+      "args": {
+        "date": "Date to format",
+        "format": "Format pattern (e.g. yyyy/MM/dd)"
+      },
+      "description": "Formats a date as a string using the given pattern",
+      "label": "Date format"
+    },
+    "if": {
+      "args": {
+        "condition": "Condition expression",
+        "elseValue": "Value when false",
+        "thenValue": "Value when true"
+      },
+      "description": "Returns thenValue when the condition is true, elseValue otherwise",
+      "label": "Conditional"
+    },
+    "max": {
+      "args": {
+        "array": "Array of numbers"
+      },
+      "description": "Returns the maximum value of an array",
+      "label": "Maximum"
+    },
+    "min": {
+      "args": {
+        "array": "Array of numbers"
+      },
+      "description": "Returns the minimum value of an array",
+      "label": "Minimum"
+    },
+    "round": {
+      "args": {
+        "places": "Number of decimal places",
+        "value": "Number to round"
+      },
+      "description": "Rounds a number to the given number of decimal places",
+      "label": "Round"
+    },
+    "sum": {
+      "args": {
+        "array": "Array of numbers"
+      },
+      "description": "Returns the sum of an array",
+      "label": "Sum"
+    },
+    "text": {
+      "args": {
+        "format": "Format pattern (e.g. #,##0)",
+        "value": "Number to format"
+      },
+      "description": "Formats a number as a string using the given pattern",
+      "label": "Number format"
+    }
+  },
   "formulaEditor": {
+    "completions": {
+      "computedFieldType": "Type: {{type}} (computed field) — {{group}}",
+      "computedTypeLabel": "{{type}} (computed)",
+      "fieldType": "Type: {{type}} — {{group}}",
+      "sectionComputed": "Computed values",
+      "sectionFields": "Fields",
+      "sectionFunctions": "Functions"
+    },
+    "fieldChip": {
+      "ariaLabel": "Field: {{label}}"
+    },
     "fieldTreePanel": {
       "computedBadge": "Calc",
       "groupAriaLabel": "{{label}} ({{n}})",
@@ -529,6 +625,32 @@
     "useFormulaEditor": {
       "defaultPlaceholder": "Enter a formula..."
     }
+  },
+  "paperSizes": {
+    "a3": "A3 (297×420mm)",
+    "a4": "A4 (210×297mm)",
+    "a5": "A5 (148×210mm)",
+    "a6": "A6 (105×148mm)",
+    "b4": "B4 (250×353mm)",
+    "b5": "B5 (176×250mm)",
+    "custom": "Custom",
+    "hagaki": "Hagaki (100×148mm)",
+    "jisB4": "B4 (JIS 257×364mm)",
+    "jisB5": "B5 (JIS 182×257mm)",
+    "legal": "Legal (8.5×14\")",
+    "letter": "Letter (8.5×11\")",
+    "tabloid": "Tabloid (11×17\")"
+  },
+  "preview": {
+    "pageCount_one": "Preview — {{count}} page",
+    "pageCount_other": "Preview — {{count}} pages"
+  },
+  "scalardbLabels": {
+    "clusteringKey": "Clustering key",
+    "index": "Index",
+    "partitionKey": "Partition key",
+    "roleDetail": "Detail",
+    "roleMaster": "Master"
   },
   "sidebar": {
     "bindingPanel": {

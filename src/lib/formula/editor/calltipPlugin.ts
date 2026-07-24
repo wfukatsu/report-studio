@@ -12,6 +12,7 @@ import { type Tooltip, type TooltipView, showTooltip } from '@codemirror/view'
 import { syntaxTree } from '@codemirror/language'
 import { completionStatus } from '@codemirror/autocomplete'
 import type { SyntaxNode } from '@lezer/common'
+import i18n from '@/i18n/config'
 import { FORMULA_FUNCTIONS, type FunctionDef } from '../functionCatalog'
 
 const FUNCTION_MAP = new Map<string, FunctionDef>(
@@ -90,7 +91,8 @@ function buildCalltipContent(functionName: string, activeIndex: number): HTMLEle
     if (activeArg) {
       const descLine = document.createElement('div')
       descLine.className = 'cm-calltip-desc'
-      descLine.textContent = `${activeArg.name}: ${activeArg.type} — ${activeArg.descriptionJa}`
+      const argDescription = i18n.getFixedT(null, 'components')(activeArg.descriptionKey)
+      descLine.textContent = `${activeArg.name}: ${activeArg.type} — ${argDescription}`
       dom.appendChild(descLine)
     }
   }

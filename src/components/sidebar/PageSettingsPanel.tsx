@@ -102,7 +102,7 @@ export function PageSettingsPanel({ onTemplateChange }: PageSettingsPanelProps) 
             onChange={(e) => updateSettings({ paperSize: e.target.value as PaperSize })}
           >
             {PAPER_SIZE_ORDER.map((size) => (
-              <option key={size} value={size}>{PAPER_SIZES[size].label}</option>
+              <option key={size} value={size}>{t(PAPER_SIZES[size].labelKey)}</option>
             ))}
           </select>
           <span className="text-xs text-muted-foreground whitespace-nowrap">

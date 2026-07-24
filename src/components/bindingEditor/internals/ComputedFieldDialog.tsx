@@ -241,9 +241,9 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
                   <>
                     <p className="font-semibold text-foreground text-xs">
                       {selectedFn.name}({selectedFn.args.map((a) => a.optional ? `${a.name}?` : a.name).join(', ')})
-                      <span className="ml-2 font-normal text-muted-foreground">{selectedFn.labelJa}</span>
+                      <span className="ml-2 font-normal text-muted-foreground">{t(selectedFn.labelKey)}</span>
                     </p>
-                    <p>{selectedFn.descriptionJa}</p>
+                    <p>{t(selectedFn.descriptionKey)}</p>
                     {selectedFn.args.length > 0 && (
                       <div className="space-y-0.5">
                         <p className="font-medium text-foreground">{t('bindingEditor.computedFieldDialog.argsLabel')}</p>
@@ -251,7 +251,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
                           <p key={arg.name} className="pl-2">
                             <code className="font-mono text-[#6E5DCF]">{arg.name}</code>
                             <span className="text-muted-foreground"> ({arg.type})</span>
-                            {' — '}{arg.descriptionJa}
+                            {' — '}{t(arg.descriptionKey)}
                             {arg.optional && <span className="text-muted-foreground">{t('bindingEditor.computedFieldDialog.optional')}</span>}
                           </p>
                         ))}
@@ -276,7 +276,7 @@ export const ComputedFieldDialog = memo(function ComputedFieldDialog({
                       {FORMULA_FUNCTIONS.map((fn) => (
                         <p key={fn.name}>
                           <strong>{fn.name}</strong>
-                          <span className="text-muted-foreground"> — {fn.labelJa}</span>
+                          <span className="text-muted-foreground"> — {t(fn.labelKey)}</span>
                         </p>
                       ))}
                     </div>

@@ -6,7 +6,8 @@ const mockAdd = vi.fn()
 const mockRemove = vi.fn()
 const mockUpdate = vi.fn()
 
-vi.mock('@/hooks/useColorPrefs', () => ({
+vi.mock('@/hooks/useColorPrefs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useColorPrefs')>()),
   useBrandColors: () => ({
     colors: [
       { hex: '#E74C3C', name: 'メインレッド' },

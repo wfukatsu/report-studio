@@ -6,7 +6,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FORMULA_FUNCTIONS, CATEGORY_LABELS_JA, type FunctionCategory, type FunctionDef } from '@/lib/formula/functionCatalog'
+import { FORMULA_FUNCTIONS, CATEGORY_LABEL_KEYS, type FunctionCategory, type FunctionDef } from '@/lib/formula/functionCatalog'
 
 interface FunctionListProps {
   readonly onInsert: (template: string) => void
@@ -33,7 +33,7 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
     { key: 'all', label: t('formulaEditor.functionList.categoryAll'), count: FORMULA_FUNCTIONS.length },
     ...(['aggregate', 'arithmetic', 'condition', 'text', 'date'] as const).map((cat) => ({
       key: cat as CategoryKey,
-      label: CATEGORY_LABELS_JA[cat],
+      label: t(CATEGORY_LABEL_KEYS[cat]),
       count: FORMULA_FUNCTIONS.filter((f) => f.category === cat).length,
     })).filter((c) => c.count > 0),
   ], [t])
@@ -48,12 +48,12 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
       result = result.filter(
         (f) =>
           f.name.toLowerCase().includes(q) ||
-          f.labelJa.includes(q) ||
-          f.descriptionJa.includes(q),
+          t(f.labelKey).includes(q) ||
+          t(f.descriptionKey).includes(q),
       )
     }
     return result
-  }, [activeCategory, search])
+  }, [activeCategory, search, t])
 
   const handleClick = useCallback((def: FunctionDef) => {
     setSelectedName(def.name)
@@ -108,10 +108,10 @@ export function FunctionList({ onInsert, onSelect }: FunctionListProps) {
                   type="button"
                   className="flex-1 text-left flex items-center gap-1.5 min-w-0"
                   onClick={() => handleSelect(def)}
-                  title={`${def.name}(${def.args.map((a) => a.name).join(', ')}) — ${def.labelJa}`}
+                  title={`${def.name}(${def.args.map((a) => a.name).join(', ')}) — ${t(def.labelKey)}`}
                 >
                   <span className="font-mono font-semibold text-[#6E5DCF] shrink-0">{def.name}</span>
-                  <span className="text-muted-foreground truncate">{def.labelJa}</span>
+                  <span className="text-muted-foreground truncate">{t(def.labelKey)}</span>
                 </button>
                 <button
                   type="button"

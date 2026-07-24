@@ -1,23 +1,30 @@
 /**
- * Plain-Japanese labels for ScalarDB technical vocabulary shown to non-engineer
+ * Plain-language labels for ScalarDB technical vocabulary shown to non-engineer
  * designers in the binding UI (#128). Keeps the raw identifier available but
  * softens the jargon (`partition` → `パーティションキー`, `master` → `マスター`).
+ * Labels are resolved with `i18n.t()` at call time (#410) so they follow the
+ * active language.
  */
+import type { ParseKeys } from 'i18next'
+import i18n from '@/i18n/config'
 import type { ScalarDbKeyType } from '@/types/scalardb'
 
-const KEY_TYPE_LABELS: Record<ScalarDbKeyType, string> = {
-  partition: 'パーティションキー',
-  clustering: 'クラスタリングキー',
-  index: '索引',
+const KEY_TYPE_LABEL_KEYS: Record<ScalarDbKeyType, ParseKeys<'components'>> = {
+  partition: 'scalardbLabels.partitionKey',
+  clustering: 'scalardbLabels.clusteringKey',
+  index: 'scalardbLabels.index',
 }
 
-/** Japanese label for a column's key role, e.g. "partition" → "パーティションキー". */
+/** Localized label for a column's key role, e.g. "partition" → "パーティションキー". */
 export function keyTypeLabel(keyType: ScalarDbKeyType | undefined | null): string | null {
   if (!keyType) return null
-  return KEY_TYPE_LABELS[keyType] ?? keyType
+  const key = KEY_TYPE_LABEL_KEYS[keyType]
+  if (!key) return keyType
+  return i18n.getFixedT(null, 'components')(key)
 }
 
-/** Japanese label for a schema group role. */
+/** Localized label for a schema group role. */
 export function groupRoleLabel(role: 'master' | 'detail'): string {
-  return role === 'master' ? 'マスター' : '明細'
+  const t = i18n.getFixedT(null, 'components')
+  return role === 'master' ? t('scalardbLabels.roleMaster') : t('scalardbLabels.roleDetail')
 }

@@ -2,7 +2,7 @@ import { AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PageNumberElement, PageNumberFormat } from '@/types'
 import { PropSection, PropRow, NumInput, ColorInput, IconToggle } from '@/elements/_base/sharedUI'
-import { FONT_FAMILIES, FONT_FAMILY_LABELS } from '@/elements/_blocks/constants'
+import { FONT_FAMILIES, FONT_FAMILY_LABEL_KEYS } from '@/elements/_blocks/constants'
 
 // `as const satisfies` keeps `labelKey`/`exampleKey` as literal key types so
 // `t(...)` type-checks against the typed i18next catalog (#329). `value` stays
@@ -60,7 +60,7 @@ export function PageNumberPropertiesPanel({ el, onChange }: Props) {
       <PropSection title={t('pageNumber.styleSection')}>
         <PropRow label={t('pageNumber.font')}>
           <select className="border rounded px-2 py-1 text-xs w-full bg-background" value={style.fontFamily ?? 'sans-serif'} onChange={(e) => onStyle({ fontFamily: e.target.value })}>
-            {FONT_FAMILIES.map((f) => <option key={f} value={f}>{FONT_FAMILY_LABELS[f] ?? f}</option>)}
+            {FONT_FAMILIES.map((f) => <option key={f} value={f}>{t(FONT_FAMILY_LABEL_KEYS[f])}</option>)}
           </select>
         </PropRow>
         <PropRow label={t('pageNumber.size')}>

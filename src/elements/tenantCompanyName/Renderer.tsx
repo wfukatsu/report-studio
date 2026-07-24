@@ -23,7 +23,7 @@ export const TenantCompanyNameRenderer = memo(function TenantCompanyNameRenderer
   // which omits the element entirely (#315). The designer keeps its token.
   const resolved = companyName ?? el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : t('tenantCompanyName.placeholder', { token: '{{会社名}}' })
+  const value = resolveValues ? resolved! : t('tenantCompanyName.placeholder', { token: `{{${t('tenantCompanyName.tokenName')}}}` })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

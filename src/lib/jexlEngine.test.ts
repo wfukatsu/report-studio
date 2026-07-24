@@ -119,10 +119,10 @@ describe('JEXL_BUILTINS', () => {
     expect(names).toContain('round')
   })
 
-  it('各関数に signature と description がある', () => {
+  it('各関数に signature と descriptionKey がある', () => {
     for (const fn of JEXL_BUILTINS) {
       expect(fn.signature).toBeTruthy()
-      expect(fn.description).toBeTruthy()
+      expect(fn.descriptionKey).toBeTruthy()
     }
   })
 })
