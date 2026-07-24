@@ -4,14 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.RateLimiter;
-import com.scalar.db.api.DistributedTransaction;
-import com.scalar.db.api.DistributedTransactionAdmin;
-import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Result;
 import com.scalar.db.api.Scan;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.io.DataType;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.ServiceUnavailableResponse;
@@ -60,23 +56,17 @@ public final class ScalarDbScanController {
     static final int MAX_SCAN_ROWS = 10_000;
     static final int PAGE_LIMIT = 50;
 
-    private final TransactionFactory factory;
-    private final DistributedTransactionManager manager;
+    private final ScalarDbGateway gateway;
     private final RateLimiter rateLimiter;
 
     /** Production constructor: 20 scans per minute per user. */
-    public ScalarDbScanController(
-            TransactionFactory factory, DistributedTransactionManager manager) {
-        this(factory, manager, new RateLimiter(20, 60_000L));
+    public ScalarDbScanController(ScalarDbGateway gateway) {
+        this(gateway, new RateLimiter(20, 60_000L));
     }
 
     /** Package-private for testing with custom rate limiter. */
-    ScalarDbScanController(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
-            RateLimiter rateLimiter) {
-        this.factory = factory;
-        this.manager = manager;
+    ScalarDbScanController(ScalarDbGateway gateway, RateLimiter rateLimiter) {
+        this.gateway = gateway;
         this.rateLimiter = rateLimiter;
     }
 
@@ -131,14 +121,10 @@ public final class ScalarDbScanController {
         int offset = parseIntParam(ctx.queryParam("offset"), 0, 0, MAX_SCAN_ROWS);
         int limit = parseIntParam(ctx.queryParam("limit"), PAGE_LIMIT, 1, PAGE_LIMIT);
 
-        DistributedTransactionManager mgr = manager;
-        DistributedTransaction tx = null;
         try {
-            // Fetch table metadata (name-based column mapping — never positional)
-            TableMetadata meta;
-            try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
-                meta = admin.getTableMetadata(namespace, tableName);
-            }
+            // Fetch table metadata (name-based column mapping — never positional).
+            // Uncached on purpose: the data browser must see DDL changes immediately.
+            TableMetadata meta = gateway.getTableMetadata(namespace, tableName);
             if (meta == null) {
                 ApiError.respond(
                         ctx,
@@ -160,10 +146,7 @@ public final class ScalarDbScanController {
                             .limit(fetchCount)
                             .build();
 
-            tx = mgr.start();
-            List<Result> fetched = tx.scan(scan);
-            tx.commit();
-            tx = null;
+            List<Result> fetched = gateway.inTransaction(tx -> tx.scan(scan));
 
             // Detect truncation: if we reached the overall MAX_SCAN_ROWS boundary
             boolean truncated =
@@ -211,7 +194,6 @@ public final class ScalarDbScanController {
                     limit);
 
         } catch (Exception e) {
-            abortQuietly(tx);
             log.warn("ScalarDB scan failed ns={} table={}", namespace, tableName, e);
             throw new ServiceUnavailableResponse("ScalarDB unreachable or scan failed");
         }
@@ -272,14 +254,6 @@ public final class ScalarDbScanController {
             return Math.min(max, Math.max(min, Integer.parseInt(raw)));
         } catch (NumberFormatException e) {
             return defaultVal;
-        }
-    }
-
-    private static void abortQuietly(DistributedTransaction tx) {
-        if (tx == null) return;
-        try {
-            tx.abort();
-        } catch (Exception ignored) {
         }
     }
 }

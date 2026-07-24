@@ -47,7 +47,8 @@ class HealthControllerTest {
 
         when(factory.getTransactionAdmin()).thenReturn(admin);
 
-        controller = new HealthController(factory, jobStore, jobsRoot, metrics);
+        controller =
+                new HealthController(new ScalarDbGateway(factory), jobStore, jobsRoot, metrics);
 
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenReturn(ctx);

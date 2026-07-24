@@ -70,7 +70,8 @@ class ScalarDbRowControllerTest {
         when(txManager.start()).thenReturn(tx);
         when(rateLimiter.isAllowed(anyString())).thenReturn(true);
 
-        controller = new ScalarDbRowController(factory, txManager, rateLimiter);
+        controller =
+                new ScalarDbRowController(new ScalarDbGateway(factory, txManager), rateLimiter);
 
         ctx = mock(Context.class);
         when(ctx.status(anyInt())).thenReturn(ctx);

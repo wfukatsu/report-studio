@@ -2,7 +2,6 @@ package com.report.server;
 
 import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.TableMetadata;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.ServiceUnavailableResponse;
 import java.util.ArrayList;
@@ -58,15 +57,15 @@ public final class ScalarDbCatalogController {
 
     private static final Logger log = LoggerFactory.getLogger(ScalarDbCatalogController.class);
 
-    private final TransactionFactory factory;
+    private final ScalarDbGateway gateway;
 
-    public ScalarDbCatalogController(TransactionFactory factory) {
-        this.factory = factory;
+    public ScalarDbCatalogController(ScalarDbGateway gateway) {
+        this.gateway = gateway;
     }
 
     /** {@code GET /api/v2/scalardb/catalog} */
     public void getCatalog(Context ctx) {
-        try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
+        try (DistributedTransactionAdmin admin = gateway.createAdmin()) {
             List<Map<String, Object>> namespaces = new ArrayList<>();
 
             for (String namespace : admin.getNamespaceNames()) {

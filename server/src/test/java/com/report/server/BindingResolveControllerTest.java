@@ -45,8 +45,7 @@ class BindingResolveControllerTest {
         // Unlimited rate limiter for tests
         controller =
                 new BindingResolveController(
-                        factory,
-                        manager,
+                        new ScalarDbGateway(factory, manager),
                         definitionsRepo,
                         productCatalog,
                         new RateLimiter(1000, 60_000L));

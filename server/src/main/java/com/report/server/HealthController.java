@@ -4,7 +4,6 @@ import com.report.server.job.JobRecord;
 import com.report.server.job.JobStatus;
 import com.report.server.job.JobStore;
 import com.scalar.db.api.DistributedTransactionAdmin;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import java.io.File;
 import java.nio.file.Path;
@@ -43,14 +42,14 @@ public final class HealthController {
     /** Fractional usable-space floor (10%) for the jobs disk before DEGRADED. */
     static final double DISK_FREE_DEGRADED_RATIO = 0.10;
 
-    private final TransactionFactory factory;
+    private final ScalarDbGateway gateway;
     private final JobStore jobStore;
     private final Path jobsRoot;
     private final Metrics metrics;
 
     public HealthController(
-            TransactionFactory factory, JobStore jobStore, Path jobsRoot, Metrics metrics) {
-        this.factory = factory;
+            ScalarDbGateway gateway, JobStore jobStore, Path jobsRoot, Metrics metrics) {
+        this.gateway = gateway;
         this.jobStore = jobStore;
         this.jobsRoot = jobsRoot;
         this.metrics = metrics;
@@ -88,7 +87,7 @@ public final class HealthController {
     private Map<String, Object> checkScalarDb() {
         Map<String, Object> result = new LinkedHashMap<>();
         long t0 = System.nanoTime();
-        try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
+        try (DistributedTransactionAdmin admin = gateway.createAdmin()) {
             admin.namespaceExists(PROBE_NAMESPACE); // cheap metadata round-trip
             result.put("status", "up");
             result.put("latencyMillis", (System.nanoTime() - t0) / 1_000_000);
