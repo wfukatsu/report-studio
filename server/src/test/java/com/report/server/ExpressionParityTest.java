@@ -59,8 +59,7 @@ class ExpressionParityTest {
     private static void assertMatches(JsonNode expected, Object actual, String name) {
         if (expected.isNumber()) {
             assertInstanceOf(Number.class, actual, name + ": expected a number, got " + actual);
-            assertEquals(
-                    expected.asDouble(), ((Number) actual).doubleValue(), TOLERANCE, name);
+            assertEquals(expected.asDouble(), ((Number) actual).doubleValue(), TOLERANCE, name);
         } else if (expected.isBoolean()) {
             assertEquals(expected.asBoolean(), actual, name);
         } else if (expected.isNull()) {
