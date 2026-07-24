@@ -323,8 +323,23 @@ public final class RequestValidator {
      * @return the first unknown kind found, or null if all are known
      */
     private static String findUnknownElementKind(JsonNode template) {
+        var unknown = findUnknownElementKinds(template);
+        return unknown.isEmpty() ? null : unknown.iterator().next();
+    }
+
+    /**
+     * #416: collect every element type/kind in the template that no PDF renderer handles. Such
+     * elements render as an empty frame in PDF output ("silent omission"), so save paths use this
+     * to log a warning while the stateless path keeps rejecting via {@link
+     * #validatePdfGenerateRequest}. Kinds are sanitized (length-capped, identifier chars only) so
+     * they are safe to embed in error messages and logs.
+     *
+     * @return sorted set of unknown kinds; empty when all elements are renderable
+     */
+    public static java.util.SortedSet<String> findUnknownElementKinds(JsonNode template) {
+        var unknown = new java.util.TreeSet<String>();
         JsonNode pages = template.get("pages");
-        if (pages == null || !pages.isArray()) return null;
+        if (pages == null || !pages.isArray()) return unknown;
         for (JsonNode page : pages) {
             JsonNode sections = page.get("sections");
             if (sections == null || !sections.isArray()) continue;
@@ -346,12 +361,12 @@ public final class RequestValidator {
                         // Sanitize for safe error message
                         String safe =
                                 effective.length() > 50 ? effective.substring(0, 50) : effective;
-                        return safe.replaceAll("[^a-zA-Z0-9_-]", "?");
+                        unknown.add(safe.replaceAll("[^a-zA-Z0-9_-]", "?"));
                     }
                 }
             }
         }
-        return null;
+        return unknown;
     }
 
     /**

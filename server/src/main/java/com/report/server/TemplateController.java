@@ -208,6 +208,18 @@ public final class TemplateController {
             return;
         }
 
+        // #416: unlike the stateless PDF path (which rejects), the save path accepts
+        // unknown element kinds for forward-compat — but they render as empty frames
+        // in PDF output, so make the mismatch visible instead of silent.
+        var unknownKinds = RequestValidator.findUnknownElementKinds(definition);
+        if (!unknownKinds.isEmpty()) {
+            log.warn(
+                    "Template {} contains element kinds with no PDF renderer {} —"
+                            + " these render as empty frames in PDF output",
+                    id,
+                    unknownKinds);
+        }
+
         // Preserve created_at and created_by from existing envelope, and verify ownership
         long createdAt = System.currentTimeMillis();
         String createdBy = null;
