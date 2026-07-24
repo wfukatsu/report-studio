@@ -596,6 +596,16 @@ paths:
                         summary:
                           type: array
                           items: { type: string }
+                        # Structured summary (#412): text for scalar leaves, count for arrays.
+                        summaryItems:
+                          type: array
+                          items:
+                            type: object
+                            required: [key]
+                            properties:
+                              key: { type: string }
+                              text: { type: string }
+                              count: { type: integer }
                   total: { type: integer }
                   offset: { type: integer }
                   limit: { type: integer }

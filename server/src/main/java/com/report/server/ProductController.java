@@ -534,7 +534,7 @@ public final class ProductController {
 
             if (hasReservedKey) {
                 skipped++;
-                addError(errors, rowNum, "key", "", "プロトタイプ汚染キーが含まれています");
+                addError(errors, rowNum, "key", "", "RESERVED_KEY", "プロトタイプ汚染キーが含まれています");
                 continue;
             }
 
@@ -542,12 +542,18 @@ public final class ProductController {
             String code = known.getOrDefault("code", "").trim();
             if (code.isEmpty()) {
                 skipped++;
-                addError(errors, rowNum, "code", "", "商品コードは必須です");
+                addError(errors, rowNum, "code", "", "CODE_REQUIRED", "商品コードは必須です");
                 continue;
             }
             if (!SAFE_KEY.matcher(code).matches()) {
                 skipped++;
-                addError(errors, rowNum, "code", code, "商品コードは英数字・ハイフン・アンダースコアのみ");
+                addError(
+                        errors,
+                        rowNum,
+                        "code",
+                        code,
+                        "CODE_INVALID_CHARS",
+                        "商品コードは英数字・ハイフン・アンダースコアのみ");
                 continue;
             }
 
@@ -559,7 +565,7 @@ public final class ProductController {
                     unitPrice = Double.parseDouble(priceStr);
                 } catch (NumberFormatException e) {
                     skipped++;
-                    addError(errors, rowNum, "unitPrice", priceStr, "数値ではありません");
+                    addError(errors, rowNum, "unitPrice", priceStr, "PRICE_INVALID", "数値ではありません");
                     continue;
                 }
             }
@@ -567,7 +573,7 @@ public final class ProductController {
             // Check code uniqueness via sentinel
             if (repo.get(SENTINEL_PREFIX + code).isPresent()) {
                 skipped++;
-                addError(errors, rowNum, "code", code, "コード重複: " + code);
+                addError(errors, rowNum, "code", code, "CODE_DUPLICATE", "コード重複: " + code);
                 continue;
             }
 
@@ -618,17 +624,24 @@ public final class ProductController {
         ctx.result(MAPPER.writeValueAsString(result));
     }
 
+    /**
+     * Adds a structured CSV row error (#412). {@code reason} is the human-readable ja message
+     * (kept for backward compatibility); {@code reasonCode} is the machine-readable UPPER_SNAKE
+     * code the frontend translates via the {@code serverErrors} namespace.
+     */
     private static void addError(
             com.fasterxml.jackson.databind.node.ArrayNode errors,
             int row,
             String column,
             String value,
+            String reasonCode,
             String reason) {
         com.fasterxml.jackson.databind.node.ObjectNode e = errors.objectNode();
         e.put("row", row);
         e.put("column", column);
         e.put("value", value);
         e.put("reason", reason);
+        e.put("reasonCode", reasonCode);
         errors.add(e);
     }
 

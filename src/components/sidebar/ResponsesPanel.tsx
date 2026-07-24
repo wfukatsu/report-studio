@@ -45,6 +45,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 import { classifyError, type UserFacingError } from '@/lib/userFacingError'
 import { getErrorCopy } from '@/lib/userFacingErrorMessages'
+import { formatSummaryLines } from '@/lib/summaryFormat'
 
 function formatDate(epochMs: number): string {
   if (!epochMs) return '—'
@@ -496,7 +497,7 @@ export function ResponsesPanel() {
                 </div>
                 {resp.summary.length > 0 && (
                   <ul className="text-xs text-gray-700 space-y-0.5">
-                    {resp.summary.map((s, i) => (
+                    {formatSummaryLines(resp.summary, resp.summaryItems, tErr).map((s, i) => (
                       <li key={i} className="truncate">{s}</li>
                     ))}
                   </ul>

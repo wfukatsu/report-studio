@@ -13,6 +13,7 @@ import {
   type FormResponseList,
   type ReportStatus,
 } from '@/lib/schemas/formResponse'
+import type { SummaryItem } from '@/lib/summaryFormat'
 
 // ---------------------------------------------------------------------------
 // Form responses
@@ -99,6 +100,8 @@ export interface IssuedDocument {
   submittedAt: number
   submittedBy: string
   summary: string[]
+  /** Structured summary (#412): `{key, text}` for scalar leaves, `{key, count}` for arrays. */
+  summaryItems?: SummaryItem[]
 }
 
 export interface IssuedDocumentList {

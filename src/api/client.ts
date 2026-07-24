@@ -68,11 +68,13 @@ export function isResponseValidationError(e: unknown): e is ResponseValidationEr
 const ApiErrorBodySchema = z.object({
   message: z.string().optional(),
   code: z.string().optional(),
+  /** Fine-grained validation code alongside the generic `code` (#412). */
+  detailCode: z.string().optional(),
 })
 
 export function parseApiErrorBody(
   err: ApiError,
-): { message?: string; code?: string } | null {
+): { message?: string; code?: string; detailCode?: string } | null {
   return ApiErrorBodySchema.safeParse(err.body).data ?? null
 }
 

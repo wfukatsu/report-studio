@@ -10,11 +10,37 @@ interface Props {
 interface ImportResult {
   imported: number
   skipped: number
-  errors: { row: number; column: string; value: string; reason: string }[]
+  errors: RowError[]
 }
+
+interface RowError {
+  row: number
+  column: string
+  value: string
+  reason: string
+  reasonCode?: string
+}
+
+/**
+ * Server `reasonCode` → serverErrors translation key (#412). Unknown codes fall
+ * back to the raw ja `reason` the server always sends.
+ */
+const CSV_REASON_KEY = {
+  CODE_DUPLICATE: 'csvImport.CODE_DUPLICATE',
+  CODE_INVALID_CHARS: 'csvImport.CODE_INVALID_CHARS',
+  CODE_REQUIRED: 'csvImport.CODE_REQUIRED',
+  PRICE_INVALID: 'csvImport.PRICE_INVALID',
+  RESERVED_KEY: 'csvImport.RESERVED_KEY',
+} as const
 
 export function ProductCsvImportModal({ onClose }: Props) {
   const { t } = useTranslation('modals')
+  const { t: tErr } = useTranslation('serverErrors')
+
+  const reasonText = (e: RowError): string => {
+    const key = e.reasonCode ? CSV_REASON_KEY[e.reasonCode as keyof typeof CSV_REASON_KEY] : undefined
+    return key ? tErr(key, { code: e.value }) : e.reason
+  }
   const fetchProducts = useReportStore((s) => s.fetchProducts)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [csvText, setCsvText] = useState('')
@@ -114,7 +140,7 @@ export function ProductCsvImportModal({ onClose }: Props) {
                   <p className="text-xs font-medium text-muted-foreground mb-1">{t('productCsvImportModal.errorDetails')}</p>
                   {result.errors.map((e, i) => (
                     <div key={i} className="text-[10px] text-red-500">
-                      {t('productCsvImportModal.errorRow', { row: e.row, column: e.column, reason: e.reason })}{e.value ? ` (${e.value})` : ''}
+                      {t('productCsvImportModal.errorRow', { row: e.row, column: e.column, reason: reasonText(e) })}{e.value ? ` (${e.value})` : ''}
                     </div>
                   ))}
                 </div>

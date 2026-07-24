@@ -5,9 +5,19 @@ import i18n, { resources } from '@/i18n/config'
 // #329 Phase 3: error copy now lives in the `serverErrors` i18n namespace.
 const t = i18n.getFixedT('ja', 'serverErrors')
 // The `store` section holds flat author-side error strings (#329 Phase 3 残),
-// and the `lib` section holds flat lib-layer error strings (#409) — neither is
-// code {title,hint} copy, so exclude both from the copy-shape assertions.
-const { store: _store, lib: _lib, ...jaCodes } = resources.ja.serverErrors as Record<string, unknown>
+// the `lib` section holds flat lib-layer error strings (#409), and the
+// `admin`/`adminUsers`/`csvImport`/`summary` sections hold flat server-code
+// translations (#412) — none is code {title,hint} copy, so exclude them all
+// from the copy-shape assertions.
+const {
+  store: _store,
+  lib: _lib,
+  admin: _admin,
+  adminUsers: _adminUsers,
+  csvImport: _csvImport,
+  summary: _summary,
+  ...jaCodes
+} = resources.ja.serverErrors as Record<string, unknown>
 const jaCopy = jaCodes as Record<string, { title: string; hint: string }>
 
 describe('userFacingErrorMessages', () => {

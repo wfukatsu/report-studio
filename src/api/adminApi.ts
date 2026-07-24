@@ -56,10 +56,17 @@ export async function putServerConfig(config: ServerConfig): Promise<{ message: 
   return apiFetch('/api/v1/admin/server-config', z.object({ message: z.string() }), jsonBody(config))
 }
 
-export async function testServerConfig(config: ServerConfig): Promise<{ success: boolean; message: string }> {
+/**
+ * Tests the server config. `message` is the ja server wording; `code`
+ * (`CONNECTION_TEST_SUCCESS` / `CONNECTION_TEST_FAILED`) is the machine-readable
+ * contract the UI translates, falling back to `message` (#412).
+ */
+export async function testServerConfig(
+  config: ServerConfig,
+): Promise<{ success: boolean; message: string; code?: string }> {
   return apiFetch(
     '/api/v1/admin/server-config/test',
-    z.object({ success: z.boolean(), message: z.string() }),
+    z.object({ success: z.boolean(), message: z.string(), code: z.string().optional() }),
     jsonBody(config),
   )
 }

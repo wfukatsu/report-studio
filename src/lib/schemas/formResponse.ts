@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { SummaryItem } from '@/lib/summaryFormat'
 
 export interface FormResponse {
   id: string
@@ -29,7 +30,15 @@ export interface FormResponseSummary {
   submittedBy: string
   status?: ReportStatus
   summary: string[]
+  /** Structured summary (#412): `{key, text}` for scalar leaves, `{key, count}` for arrays. */
+  summaryItems?: SummaryItem[]
 }
+
+export const SummaryItemSchema = z.object({
+  key: z.string(),
+  text: z.string().optional(),
+  count: z.number().optional(),
+}) satisfies z.ZodType<SummaryItem>
 
 export const FormResponseSummarySchema = z.object({
   id: z.string(),
@@ -38,6 +47,7 @@ export const FormResponseSummarySchema = z.object({
   submittedBy: z.string(),
   status: z.enum(['draft', 'issued', 'sent', 'void']).optional(),
   summary: z.array(z.string()),
+  summaryItems: z.array(SummaryItemSchema).optional(),
 }) satisfies z.ZodType<FormResponseSummary>
 
 export const FormResponseSchema = z.object({
