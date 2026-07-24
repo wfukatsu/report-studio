@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
-import com.scalar.db.api.DistributedTransactionManager;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import java.util.ArrayList;
@@ -70,24 +68,22 @@ public final class BindingResolveController {
     private final BindingQueryExecutor queryExecutor;
 
     public BindingResolveController(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
+            ScalarDbGateway gateway,
             JsonBlobRepository definitionsRepo,
             ProductCatalogService productCatalog) {
-        this(factory, manager, definitionsRepo, productCatalog, new RateLimiter(3, 10_000L));
+        this(gateway, definitionsRepo, productCatalog, new RateLimiter(3, 10_000L));
     }
 
     /** Package-private constructor for testing. */
     BindingResolveController(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
+            ScalarDbGateway gateway,
             JsonBlobRepository definitionsRepo,
             ProductCatalogService productCatalog,
             RateLimiter rateLimiter) {
         this.definitionsRepo = definitionsRepo;
         this.rateLimiter = rateLimiter;
         this.productMaster = new ProductMasterResolver(productCatalog);
-        this.queryExecutor = new BindingQueryExecutor(factory, manager, this.productMaster);
+        this.queryExecutor = new BindingQueryExecutor(gateway, this.productMaster);
     }
 
     /** {@code POST /api/v2/templates/{id}/resolve-bindings} */

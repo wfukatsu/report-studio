@@ -7,7 +7,6 @@ import com.report.server.auth.Principal;
 import com.report.server.auth.RateLimiter;
 import com.scalar.db.api.Delete;
 import com.scalar.db.api.DistributedTransaction;
-import com.scalar.db.api.DistributedTransactionAdmin;
 import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
 import com.scalar.db.api.Put;
@@ -17,7 +16,6 @@ import com.scalar.db.exception.transaction.CommitConflictException;
 import com.scalar.db.exception.transaction.TransactionException;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.ServiceUnavailableResponse;
@@ -25,7 +23,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,26 +60,15 @@ public final class ScalarDbRowController {
     /** Namespaces that reject write operations (shared with the read/scan side). */
     private static final Set<String> PROTECTED_NAMESPACES = SystemNamespaces.PROTECTED;
 
-    private final TransactionFactory factory;
-    private final DistributedTransactionManager manager;
+    private final ScalarDbGateway gateway;
     private final RateLimiter rateLimiter;
-    private static final long METADATA_CACHE_TTL_MS = 5 * 60 * 1000L; // 5 minutes
 
-    private record CachedMeta(TableMetadata meta, long cachedAt) {}
-
-    private final ConcurrentHashMap<String, CachedMeta> metadataCache = new ConcurrentHashMap<>();
-
-    public ScalarDbRowController(
-            TransactionFactory factory, DistributedTransactionManager manager) {
-        this(factory, manager, new RateLimiter(60, 60_000L));
+    public ScalarDbRowController(ScalarDbGateway gateway) {
+        this(gateway, new RateLimiter(60, 60_000L));
     }
 
-    ScalarDbRowController(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
-            RateLimiter rateLimiter) {
-        this.factory = factory;
-        this.manager = manager;
+    ScalarDbRowController(ScalarDbGateway gateway, RateLimiter rateLimiter) {
+        this.gateway = gateway;
         this.rateLimiter = rateLimiter;
     }
 
@@ -168,7 +154,7 @@ public final class ScalarDbRowController {
                 buildPutWithValues(
                         rc.namespace, rc.table, partitionKey, clusteringKey, values, allKeys, meta);
 
-        DistributedTransactionManager mgr = manager;
+        DistributedTransactionManager mgr = gateway.transactionManager();
         DistributedTransaction tx = null;
         try {
             tx = mgr.start();
@@ -287,29 +273,25 @@ public final class ScalarDbRowController {
             delBuilder.clusteringKey(buildKey(keys, clusteringKeys, meta));
         }
 
-        DistributedTransactionManager mgr = manager;
-        DistributedTransaction tx = null;
         try {
-            tx = mgr.start();
-            tx.delete(delBuilder.build());
-            tx.commit();
-            tx = null;
+            gateway.inTransaction(
+                    tx -> {
+                        tx.delete(delBuilder.build());
+                        return null;
+                    });
 
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "deleted", correlationId);
             ctx.status(204);
 
         } catch (CommitConflictException e) {
-            abortQuietly(tx);
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "conflict", correlationId);
             ApiError.respond(
                     ctx, 409, "CONFLICT", "Conflict: row was modified concurrently", correlationId);
         } catch (TransactionException e) {
-            abortQuietly(tx);
             AuditLog.op(
                     "delete_row", rc.userId, rc.namespace, rc.table, "unreachable", correlationId);
             throw new ServiceUnavailableResponse();
         } catch (Exception e) {
-            abortQuietly(tx);
             AuditLog.op("delete_row", rc.userId, rc.namespace, rc.table, "error", correlationId);
             log.error(
                     "DELETE failed ns={} table={} correlationId={}",
@@ -323,17 +305,12 @@ public final class ScalarDbRowController {
 
     // ── Cache management ────────────────────────────────────────────────────
 
-    /** Invalidate cached metadata for a table. Call after createTable. */
+    /**
+     * Invalidate cached metadata for a table. Call after createTable. Delegates to the shared
+     * {@link ScalarDbGateway} cache (#421).
+     */
     public void invalidateMetadataCache(String namespace, String table) {
-        metadataCache.remove(namespace + "." + table);
-    }
-
-    /** Remove all expired entries from the cache. */
-    void cleanExpiredCache() {
-        long now = System.currentTimeMillis();
-        metadataCache
-                .entrySet()
-                .removeIf(e -> now - e.getValue().cachedAt >= METADATA_CACHE_TTL_MS);
+        gateway.invalidateMetadataCache(namespace, table);
     }
 
     // ── Shared validation ───────────────────────────────────────────────────
@@ -406,7 +383,7 @@ public final class ScalarDbRowController {
         // Table metadata
         TableMetadata meta;
         try {
-            meta = getCachedMetadata(namespace, table);
+            meta = gateway.getCachedTableMetadata(namespace, table);
         } catch (ExecutionException e) {
             log.error(
                     "Failed to retrieve table metadata ns={} table={} correlationId={}",
@@ -425,23 +402,6 @@ public final class ScalarDbRowController {
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
-
-    private TableMetadata getCachedMetadata(String namespace, String table)
-            throws ExecutionException {
-        String key = namespace + "." + table;
-        CachedMeta cached = metadataCache.get(key);
-        if (cached != null
-                && System.currentTimeMillis() - cached.cachedAt < METADATA_CACHE_TTL_MS) {
-            return cached.meta;
-        }
-
-        try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
-            TableMetadata meta = admin.getTableMetadata(namespace, table);
-            if (meta != null)
-                metadataCache.put(key, new CachedMeta(meta, System.currentTimeMillis()));
-            return meta;
-        }
-    }
 
     private static Key buildKey(
             JsonNode values, LinkedHashSet<String> keyColumns, TableMetadata meta) {

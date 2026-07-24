@@ -40,7 +40,7 @@ class ScalarDbCatalogControllerTest {
         admin = mock(DistributedTransactionAdmin.class);
         when(factory.getTransactionAdmin()).thenReturn(admin);
 
-        controller = new ScalarDbCatalogController(factory);
+        controller = new ScalarDbCatalogController(new ScalarDbGateway(factory));
         ctx = mock(Context.class);
         doAnswer(
                         inv -> {

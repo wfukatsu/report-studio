@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.scalar.db.api.*;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import java.time.Instant;
@@ -37,11 +36,8 @@ public final class VersionController {
     private final JsonBlobRepository definitionsRepo;
 
     /** Production constructor — creates its own V2VersionRepository. */
-    public VersionController(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
-            JsonBlobRepository definitionsRepo) {
-        this(new V2VersionRepository(factory, manager), definitionsRepo);
+    public VersionController(ScalarDbGateway gateway, JsonBlobRepository definitionsRepo) {
+        this(new V2VersionRepository(gateway), definitionsRepo);
     }
 
     /** Package-private constructor for testing — accepts pre-built repository. */
@@ -168,19 +164,17 @@ public final class VersionController {
         private static final String COL_VERSION_NUMBER = "version_number";
         private static final String COL_CREATED_BY = "created_by";
 
-        private final TransactionFactory factory;
-        private final DistributedTransactionManager manager;
+        private final ScalarDbGateway gateway;
 
-        V2VersionRepository(TransactionFactory factory, DistributedTransactionManager manager) {
-            this.factory = factory;
-            this.manager = manager;
+        V2VersionRepository(ScalarDbGateway gateway) {
+            this.gateway = gateway;
         }
 
         record VersionMeta(
                 String versionId, String templateId, long versionNumber, String createdBy) {}
 
         void ensureTable() {
-            try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
+            try (DistributedTransactionAdmin admin = gateway.createAdmin()) {
                 if (!admin.tableExists(NAMESPACE, TABLE)) {
                     TableMetadata metadata =
                             TableMetadata.newBuilder()
@@ -202,10 +196,7 @@ public final class VersionController {
         }
 
         void createVersion(String versionId, String templateId, String json, long versionNumber) {
-            DistributedTransactionManager mgr = manager;
-            DistributedTransaction tx = null;
             try {
-                tx = mgr.start();
                 Put put =
                         Put.newBuilder()
                                 .namespace(NAMESPACE)
@@ -216,11 +207,13 @@ public final class VersionController {
                                 .bigIntValue(COL_VERSION_NUMBER, versionNumber)
                                 .textValue(COL_CREATED_BY, "")
                                 .build();
-                tx.put(put);
-                tx.commit();
+                gateway.inTransaction(
+                        tx -> {
+                            tx.put(put);
+                            return null;
+                        });
                 log.info("Created V2 version {} for template {}", versionId, templateId);
             } catch (Exception e) {
-                abortQuietly(tx);
                 throw new JsonBlobRepository.RepositoryException(
                         "Failed to create V2 version for " + templateId, e);
             }
@@ -228,18 +221,14 @@ public final class VersionController {
 
         /** List versions for a template, sorted by versionNumber descending. */
         List<VersionMeta> listVersions(String templateId) {
-            DistributedTransactionManager mgr = manager;
-            DistributedTransaction tx = null;
             try {
-                tx = mgr.start();
                 Scan scan =
                         Scan.newBuilder()
                                 .namespace(NAMESPACE)
                                 .table(TABLE)
                                 .indexKey(Key.ofText(COL_TEMPLATE_ID, templateId))
                                 .build();
-                List<Result> results = tx.scan(scan);
-                tx.commit();
+                List<Result> results = gateway.inTransaction(tx -> tx.scan(scan));
 
                 List<VersionMeta> versions = new ArrayList<>();
                 for (Result r : results) {
@@ -253,7 +242,6 @@ public final class VersionController {
                 versions.sort(Comparator.comparingLong(VersionMeta::versionNumber).reversed());
                 return versions;
             } catch (Exception e) {
-                abortQuietly(tx);
                 throw new JsonBlobRepository.RepositoryException(
                         "Failed to list V2 versions for " + templateId, e);
             }
@@ -264,18 +252,14 @@ public final class VersionController {
          * version belongs to a different template.
          */
         Optional<String> getVersion(String versionId, String expectedTemplateId) {
-            DistributedTransactionManager mgr = manager;
-            DistributedTransaction tx = null;
             try {
-                tx = mgr.start();
                 Get get =
                         Get.newBuilder()
                                 .namespace(NAMESPACE)
                                 .table(TABLE)
                                 .partitionKey(Key.ofText(COL_VERSION_ID, versionId))
                                 .build();
-                Optional<Result> result = tx.get(get);
-                tx.commit();
+                Optional<Result> result = gateway.inTransaction(tx -> tx.get(get));
 
                 if (result.isEmpty()) return Optional.empty();
 
@@ -292,18 +276,8 @@ public final class VersionController {
 
                 return Optional.of(result.get().getText(COL_JSON));
             } catch (Exception e) {
-                abortQuietly(tx);
                 throw new JsonBlobRepository.RepositoryException(
                         "Failed to get V2 version " + versionId, e);
-            }
-        }
-
-        private static void abortQuietly(DistributedTransaction tx) {
-            if (tx != null) {
-                try {
-                    tx.abort();
-                } catch (Exception ignored) {
-                }
             }
         }
 

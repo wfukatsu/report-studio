@@ -4,16 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.scalar.db.api.DistributedTransaction;
-import com.scalar.db.api.DistributedTransactionAdmin;
-import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
 import com.scalar.db.api.Result;
 import com.scalar.db.api.Scan;
 import com.scalar.db.api.TableMetadata;
 import com.scalar.db.io.DataType;
 import com.scalar.db.io.Key;
-import com.scalar.db.service.TransactionFactory;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -35,16 +31,11 @@ final class BindingQueryExecutor {
     private static final Logger log = LoggerFactory.getLogger(BindingQueryExecutor.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final TransactionFactory factory;
-    private final DistributedTransactionManager manager;
+    private final ScalarDbGateway gateway;
     private final ProductMasterResolver productMaster;
 
-    BindingQueryExecutor(
-            TransactionFactory factory,
-            DistributedTransactionManager manager,
-            ProductMasterResolver productMaster) {
-        this.factory = factory;
-        this.manager = manager;
+    BindingQueryExecutor(ScalarDbGateway gateway, ProductMasterResolver productMaster) {
+        this.gateway = gateway;
         this.productMaster = productMaster;
     }
 
@@ -72,15 +63,9 @@ final class BindingQueryExecutor {
             ObjectNode errors,
             String correlationId,
             String userId) {
-        DistributedTransactionManager mgr = manager;
-        DistributedTransaction tx = null;
-
         try {
-            // Fetch TableMetadata (Admin, try-with-resources — same as resolveGroup)
-            TableMetadata meta;
-            try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
-                meta = admin.getTableMetadata(namespace, tableName);
-            }
+            // Fetch TableMetadata (uncached — same freshness semantics as before #421)
+            TableMetadata meta = gateway.getTableMetadata(namespace, tableName);
 
             // TOCTOU guard: table may have been dropped since schema was saved
             if (meta == null) {
@@ -121,9 +106,7 @@ final class BindingQueryExecutor {
                             .limit(maxRows)
                             .build();
 
-            tx = mgr.start();
-            List<Result> rows = tx.scan(scan);
-            tx.commit();
+            List<Result> rows = gateway.inTransaction(tx -> tx.scan(scan));
 
             // Build JSON array: [{ fieldKey: value, ... }, ...]
             // Empty scan returns empty array — this is NOT an error.
@@ -153,7 +136,6 @@ final class BindingQueryExecutor {
             errors.putNull(groupId);
 
         } catch (Exception e) {
-            abortQuietly(tx);
             // Never include e.getMessage() in response — may contain internal details
             log.warn(
                     "resolve-bindings detail groupId={} correlationId={} failed",
@@ -176,15 +158,9 @@ final class BindingQueryExecutor {
             ObjectNode errors,
             String correlationId,
             String userId) {
-        DistributedTransactionManager mgr = manager;
-        DistributedTransaction tx = null;
-
         try {
-            // Fetch TableMetadata first (using Admin, try-with-resources)
-            TableMetadata meta;
-            try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
-                meta = admin.getTableMetadata(namespace, tableName);
-            }
+            // Fetch TableMetadata first (uncached — same freshness semantics as before #421)
+            TableMetadata meta = gateway.getTableMetadata(namespace, tableName);
 
             // TOCTOU guard: table may have been dropped since schema was saved
             if (meta == null) {
@@ -217,15 +193,13 @@ final class BindingQueryExecutor {
             }
 
             // Execute Get (TransactionManager — not Admin)
-            tx = mgr.start();
             Get get =
                     Get.newBuilder()
                             .namespace(namespace)
                             .table(tableName)
                             .partitionKey(partitionKey)
                             .build();
-            Optional<Result> resultOpt = tx.get(get);
-            tx.commit();
+            Optional<Result> resultOpt = gateway.inTransaction(tx -> tx.get(get));
 
             // Optional.empty() = row not found (not an exception)
             if (resultOpt.isEmpty()) {
@@ -252,7 +226,6 @@ final class BindingQueryExecutor {
             errors.putNull(groupId); // explicit null = no error for this group
 
         } catch (Exception e) {
-            abortQuietly(tx);
             // Never include e.getMessage() in the response — it may contain internal details
             log.warn(
                     "resolve-bindings groupId={} correlationId={} failed",
@@ -368,15 +341,6 @@ final class BindingQueryExecutor {
                         correlationId);
                 rowData.putNull(fieldKey);
                 context.put(fieldKey, null);
-            }
-        }
-    }
-
-    private static void abortQuietly(DistributedTransaction tx) {
-        if (tx != null) {
-            try {
-                tx.abort();
-            } catch (Exception ignored) {
             }
         }
     }

@@ -8,7 +8,6 @@ import com.scalar.db.api.TableMetadata;
 import com.scalar.db.exception.storage.ExecutionException;
 import com.scalar.db.exception.storage.RetriableExecutionException;
 import com.scalar.db.io.DataType;
-import com.scalar.db.service.TransactionFactory;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.InternalServerErrorResponse;
@@ -69,10 +68,10 @@ public final class ScalarDbTableController {
     /** Maximum request body size (1 MB). Matches SchemaInferController. */
     private static final int MAX_BODY_BYTES = 1_048_576;
 
-    private final TransactionFactory factory;
+    private final ScalarDbGateway gateway;
 
-    public ScalarDbTableController(TransactionFactory factory) {
-        this.factory = factory;
+    public ScalarDbTableController(ScalarDbGateway gateway) {
+        this.gateway = gateway;
     }
 
     /**
@@ -303,7 +302,7 @@ public final class ScalarDbTableController {
         Object attr = ctx.attribute("principal");
         String userId = (attr instanceof Principal p) ? p.userId() : "unknown";
 
-        try (DistributedTransactionAdmin admin = factory.getTransactionAdmin()) {
+        try (DistributedTransactionAdmin admin = gateway.createAdmin()) {
             // Idempotency guard — return 409 instead of letting ScalarDB throw
             if (admin.tableExists(namespace, tableName)) {
                 AuditLog.op(
@@ -374,7 +373,7 @@ public final class ScalarDbTableController {
             // TOCTOU recovery: Java try-with-resources closes `admin` before any catch block
             // runs, so a new admin connection is required here. The inner catch handles the
             // edge case where the re-check itself fails (resource exhaustion etc.).
-            try (DistributedTransactionAdmin adminCheck = factory.getTransactionAdmin()) {
+            try (DistributedTransactionAdmin adminCheck = gateway.createAdmin()) {
                 if (adminCheck.tableExists(namespace, tableName)) {
                     AuditLog.op(
                             "create_table",

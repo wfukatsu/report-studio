@@ -28,11 +28,18 @@ public final class AppWiring {
     private static final String NAMESPACE = "report_studio";
 
     /**
-     * The single app-wide {@link DistributedTransactionManager}. ScalarDB managers are thread-safe
-     * and meant to be created once and reused; {@code factory.getTransactionManager()} builds a
-     * fresh manager (with its own connection pool) on every call and never closes it, so
-     * repositories and controllers must share this one instance rather than call the factory per
-     * operation (issue #203). Closed in {@link #shutdown()}.
+     * Single access point for direct ScalarDB usage (#421): owns the app-wide transaction manager,
+     * hands out short-lived admin instances, and hosts the shared TableMetadata cache. Controllers
+     * that talk to ScalarDB directly receive this instead of the raw {@link TransactionFactory}.
+     */
+    private final ScalarDbGateway gateway;
+
+    /**
+     * The single app-wide {@link DistributedTransactionManager} (owned by {@link #gateway}).
+     * ScalarDB managers are thread-safe and meant to be created once and reused; {@code
+     * factory.getTransactionManager()} builds a fresh manager (with its own connection pool) on
+     * every call and never closes it, so repositories and controllers must share this one instance
+     * rather than call the factory per operation (issue #203). Closed in {@link #shutdown()}.
      */
     private final DistributedTransactionManager txManager;
 
@@ -113,9 +120,10 @@ public final class AppWiring {
     final RateLimiter v2ExportLimiter;
 
     public AppWiring(TransactionFactory factory) {
-        // Single shared transaction manager — created once, reused by every repository
-        // and controller, closed on shutdown (issue #203).
-        txManager = factory.getTransactionManager();
+        // Single shared gateway + transaction manager — created once, reused by every
+        // repository and controller, closed on shutdown (issues #203, #421).
+        gateway = new ScalarDbGateway(factory);
+        txManager = gateway.transactionManager();
 
         // Repositories
         projRepo = new ProjectionRepository(factory, txManager);
@@ -188,7 +196,7 @@ public final class AppWiring {
         schemaLibraryRepo.ensureTable();
         schemaLibraryCtrl = new SchemaLibraryController(schemaLibraryRepo);
         evalCtrl = new EvaluateController();
-        versionCtrl = new VersionController(factory, txManager, v2DefinitionsRepo);
+        versionCtrl = new VersionController(gateway, v2DefinitionsRepo);
         versionCtrl.ensureTable();
         // Document numbering, status audit, and webhook dispatch are created before the
         // form-response controller so the submit flow receives them via constructor
@@ -238,8 +246,8 @@ public final class AppWiring {
         pdfJobCtrl = new PdfJobController(v2DefinitionsRepo, jobRepo, pdfExecutor);
         statelessPdfCtrl = new StatelessPdfController(pdfExecutor);
         statelessExcelCtrl = new StatelessExcelController();
-        scalarDbCatalogCtrl = new ScalarDbCatalogController(factory);
-        scalarDbTableCtrl = new ScalarDbTableController(factory);
+        scalarDbCatalogCtrl = new ScalarDbCatalogController(gateway);
+        scalarDbTableCtrl = new ScalarDbTableController(gateway);
         // Product catalog is created before the controllers that read it, so both
         // ProductController and BindingResolveController receive it via constructor
         // injection (#418 — the old controller-to-controller setter wiring is gone).
@@ -247,7 +255,7 @@ public final class AppWiring {
         productRepo.ensureTable();
         productCatalog = new ProductCatalogService(productRepo);
         bindingResolveCtrl =
-                new BindingResolveController(factory, txManager, v2DefinitionsRepo, productCatalog);
+                new BindingResolveController(gateway, v2DefinitionsRepo, productCatalog);
         tenantRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
         tenantCtrl = new TenantController(tenantRepo);
@@ -265,13 +273,13 @@ public final class AppWiring {
                     }
                 });
         productCtrl = new ProductController(productRepo, productCatalog);
-        scalarDbScanCtrl = new ScalarDbScanController(factory, txManager);
-        scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
+        scalarDbScanCtrl = new ScalarDbScanController(gateway);
+        scalarDbRowCtrl = new ScalarDbRowController(gateway);
         batchPdfOrchestrator = new BatchPdfOrchestrator(v2ResponseRepo, jobRepo, pdfExecutor);
         batchPdfCtrl = new BatchPdfController(v2DefinitionsRepo, jobRepo, batchPdfOrchestrator);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         healthCtrl =
-                new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
+                new HealthController(gateway, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);
     }
 
     /** Gracefully shuts down all executor pools (call from Javalin serverStopping event). */
