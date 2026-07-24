@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isDataEmptyInPreview } from './previewUtils'
+import { isDataEmptyInPreview } from './registry'
 import type { ReportElement } from '@/types'
 
 // ---------------------------------------------------------------------------

@@ -111,7 +111,7 @@ Data binding in elements uses `{{fieldKey}}` tokens in text content and dot-nota
 
 One flag drives every design-vs-preview difference: **`readonly`** (`false` = design/editor canvas, `true` = live preview pane / preview modal / PDF-PNG export). It is a **prop threaded down the tree** (`ReportCanvas` → `SectionContainer` → `CanvasElement` → `ElementRenderer`), *not* the `uiSlice.previewMode` store boolean. Both modes resolve against the **same** `data` (`useResolvedData`: `dataOverride ?? livePreviewData ?? sampleData`), so per-field *values* are identical — only presentation differs. `ElementRenderer` gates the differences:
 
-- **Empty-binding suppression** (`readonly` only): `isDataEmptyInPreview` (`src/lib/previewUtils.ts`) returns `null` for bound elements that resolve empty (empty `dataField`/`text`, empty `repeatingBand`/`chart` array). In the editor these show placeholders instead; calc-output keys and `fallbackText` fields are never hidden.
+- **Empty-binding suppression** (`readonly` only): `isDataEmptyInPreview` (`src/elements/registry.ts`, #414 — per-type 判定は各 def の `isEmptyInPreview`; 旧 `src/lib/previewUtils.ts` は削除) returns `null` for bound elements that resolve empty (empty `dataField`/`text`, empty `repeatingBand`/`chart` array). In the editor these show placeholders instead; calc-output keys and `fallbackText` fields are never hidden.
 - **Repeating containers** — `repeatingBand`, `repeatingList`, **and `formTable`** all take `records` only when `readonly && element.dataSource`. In the editor `records` is `undefined` → each renderer shows its *design preview* (faded mock rows, `{{fieldKey}}` cells, blue `… · <dataSource>` badge); in preview they render live rows. Keep the three in sync — `formTable` was previously ungated (showed live rows in the editor); do not reintroduce that asymmetry.
 - **Auto/tenant fields** — `pageNumber`, `currentDate`, and the `tenant*` text elements get `resolveValues={readonly}`: editor shows a literal token/format placeholder (`{{会社名}}`, `yyyy/MM/dd`), preview shows the resolved value. A `tenant*` element whose tenant value **and** `fallback` are both unset renders **nothing** in preview/export (#315) — matching the server PDF, which omits the element; the old `（…未設定）` fallback text is designer-only history. `tenantLogo` reads `tenantInfo` in both modes (no `resolveValues`).
 - **Design-mode sample hints** (`sampleHint={!readonly}`, editor only, non-destructive — absent from preview/export): `dataField` and data-driven `text` (content contains a `{{token}}`) get a subtle dotted underline; an unbound `chart` showing hardcoded `SAMPLE_DATA` gets a "サンプル" badge. Shared style: `SAMPLE_VALUE_HINT_STYLE` / `SAMPLE_VALUE_HINT_COLOR` in `_blocks/constants.ts`. Empty placeholders (already grey-italic) and static literal text get no hint.
@@ -137,14 +137,15 @@ One flag drives every design-vs-preview difference: **`readonly`** (`false` = de
 - **Auto-fields**: `pageNumber`, `currentDate`, `divider`
 - **Tenant fields**: `tenantCompanyName`, `tenantAddress`, `tenantPhone`, `tenantRepresentative`, `tenantLogo`, `tenantCustom`
 
-Add a new element type by:
-1. Defining the interface extending `ElementBase` in `src/types/index.ts`
-2. Adding to the `ReportElement` union
+Add a new element type by (#414 — registrations converge on `src/elements/registry.ts`):
+1. Defining the interface extending `ElementBase` in `src/types/index.ts` and adding it to the `ReportElement` union
+2. Adding the type string to `ELEMENT_TYPES` (`src/types/elementTypes.ts`, compile-enforced both directions, #415) and running `npm run generate:schema`
 3. Creating `src/elements/{type}/Renderer.tsx` — **compose from `_blocks/` building blocks** (TextContent, ElementFrame, GridLines, useDataResolver 等)
 4. Creating `src/elements/{type}/PropertiesPanel.tsx` — **compose from `_blocks/panels/`** (TextStyleSection, BorderSection, DataBindingSection, FormatSection 等)
-5. Adding the `type` case in `ElementRenderer.tsx` and `PropertiesPanel.tsx` (sidebar)
-6. Creating a factory in `elementFactories.ts`
-7. Adding a palette item in `ElementPalette.tsx`
+5. Creating `src/elements/{type}/index.tsx` exporting the `ElementDef` (`{type}Def`): `renderElement` adapter (readonly/design 差異の吸収はここ), `PropertiesPanel`, `layerIcon`, `layerName`, `bindable`, optional `isEmptyInPreview`
+6. Registering the def in `ELEMENT_REGISTRY` (`src/elements/registry.ts`) — the map is a `Record` over the union, so a missing (or extra) key is a **compile error**; ElementRenderer / sidebar PropertiesPanel / layerUtils / BINDABLE_TYPES / preview-empty 判定はすべてここから引かれる
+7. Creating a factory in `elementFactories.ts`
+8. Adding a palette item in `paletteData.tsx` (rendered by `ElementPalette.tsx`; `registry.test.ts` が palette/factory ↔ registry の整合を検証)
 
 ### Composition ブロック (`src/elements/_blocks/`)
 

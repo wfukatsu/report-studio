@@ -8,6 +8,8 @@
  */
 
 import type { SchemaField, SchemaGroup, ReportElement } from '@/types'
+import { ELEMENT_TYPES } from '@/types/elementTypes'
+import { ELEMENT_REGISTRY } from '@/elements/registry'
 
 // ---------------------------------------------------------------------------
 // Element display model (derived from store pages/sections/elements)
@@ -149,14 +151,14 @@ export interface ReorderWarning {
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Element types that support schemaBinding. */
-export const BINDABLE_TYPES = new Set([
-  'dataField', 'text', 'checkbox', 'eraSelect',
-] as const)
+/** Element types that support schemaBinding — derived from the element registry (#414). */
+export const BINDABLE_TYPES: ReadonlySet<string> = new Set(
+  ELEMENT_TYPES.filter((type) => ELEMENT_REGISTRY[type].bindable),
+)
 
 /** Check if an element type supports schema binding. */
 export function isBindableType(type: string): boolean {
-  return BINDABLE_TYPES.has(type as never)
+  return BINDABLE_TYPES.has(type)
 }
 
 // ---------------------------------------------------------------------------
