@@ -25,6 +25,7 @@ import { createSchemaSlice } from './schemaSlice'
 import { createVariantsSlice } from './variantsSlice'
 import { createResponsesSlice } from './responsesSlice'
 import { createAuthSlice } from './authSlice'
+import { createOrchestrationSlice } from './orchestrationSlice'
 import { createTenantSlice } from './tenantSlice'
 import { createProductSlice } from './productSlice'
 import { createAdminSlice } from './adminSlice'
@@ -48,6 +49,7 @@ export const useReportStore = create<StoreState>()(
     const tenant = createTenantSlice(...a)
     const product = createProductSlice(...a)
     const admin = createAdminSlice(...a)
+    const orchestration = createOrchestrationSlice(...a)
 
     // Initialize history with the default definition's initial pages
     const initialHistory = [snapshotPages(createDefaultDefinition().pages)]
@@ -66,6 +68,7 @@ export const useReportStore = create<StoreState>()(
       ...tenant,
       ...product,
       ...admin,
+      ...orchestration,
       // Override initial history state with populated snapshot
       history: initialHistory,
       historyIndex: 0,

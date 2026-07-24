@@ -9,7 +9,6 @@
 import type { StateCreator } from 'zustand'
 import type { Me } from '@/api/reportApi'
 import { getMe, login, logout } from '@/api/reportApi'
-import { getAutoSaveKey } from '@/lib/autoSaveKey'
 import type { StoreState } from './types'
 
 export type AuthSlice = Pick<StoreState,
@@ -71,18 +70,10 @@ export const createAuthSlice: StateCreator<
     } finally {
       const prevUserId = get().currentUser?.userId ?? null
       set((s) => { s.currentUser = null })
-      if (prevUserId !== null) {
-        // Post-logout cleanup (prevent data leakage between users): drop the
-        // user's autosave draft and reset the loaded template. Lives here —
-        // not in an App effect — so it runs for every logout path and keeps
-        // refs out of effects (react-hooks/immutability).
-        const prevKey = getAutoSaveKey(prevUserId)
-        if (prevKey) {
-          try { localStorage.removeItem(prevKey) } catch { /* storage disabled */ }
-        }
-        get().setCurrentTemplateId(null)
-        get().newReport()
-      }
+      // #437: post-logout cleanup is a cross-slice concern — delegated to the
+      // orchestration slice so authSlice doesn't own the editing-domain
+      // lifecycle. Runs for every logout path (not an App effect) as before.
+      get().resetForUserSwitch(prevUserId)
     }
   },
 })

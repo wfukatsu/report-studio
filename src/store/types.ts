@@ -113,25 +113,31 @@ export interface ValidationViolation {
 // Combined store state + actions interface
 // ---------------------------------------------------------------------------
 
-export interface StoreState {
-  // ── Auth slice ────────────────────────────────────────────────────────────
+/** ── Auth slice ── */
+export interface AuthSliceTypes {
   currentUser: Me | null
   authLoading: boolean
   checkAuth: () => Promise<void>
   loginUser: (userId: string, password: string) => Promise<void>
   logoutUser: () => Promise<void>
+}
 
-  // ── Layout slice ─────────────────────────────────────────────────────────
+/** ── Layout slice ── */
+export interface LayoutSliceStateTypes {
   definition: ReportDefinition
   selection: SelectionState
   /** Flattened test data merged from all dataSources (for expression evaluation) */
   testData: Record<string, unknown>
+}
 
-  // ── History slice ─────────────────────────────────────────────────────────
+/** ── History slice ── */
+export interface HistorySliceStateTypes {
   history: HistoryEntry[]
   historyIndex: number
+}
 
-  // ── UI slice ──────────────────────────────────────────────────────────────
+/** ── UI slice ── */
+export interface UiSliceStateTypes {
   /** Active top-level navigation tab */
   activeTab: AppTab
   setActiveTab: (tab: AppTab) => void
@@ -176,14 +182,18 @@ export interface StoreState {
   livePreviewData: LivePreviewData | null
   setLivePreviewData: (data: LivePreviewData | null) => void
   invalidateLivePreviewData: () => void
+}
 
-  // ── Computed slice (expression evaluation — not in undo/redo history) ─────
+/** ── Computed slice (expression evaluation — not in undo/redo history) ── */
+export interface ComputedSliceStateTypes {
   computedValues: Record<string, ComputedValue>
   computedErrors: Record<string, string>
   computedViolations: ValidationViolation[]
   computedLoading: boolean
+}
 
-  // ── Layout actions ───────────────────────────────────────────────────────
+/** ── Layout actions ── */
+export interface LayoutSliceActionTypes {
   setReportName: (name: string) => void
   updateMetadata: (patch: Partial<ReportDefinition['metadata']>) => void
   updateSettings: (settings: Partial<ReportDefinition['pageSettings']>) => void
@@ -238,8 +248,10 @@ export interface StoreState {
   setSelectionIds: (ids: string[]) => void
   setMasterHeader: (section: Section | null) => void
   setMasterFooter: (section: Section | null) => void
+}
 
-  // ── Rules actions ─────────────────────────────────────────────────────────
+/** ── Rules actions ── */
+export interface RulesSliceTypes {
   addCalculationRule: (rule: CalculationRule) => void
   updateCalculationRule: (key: string, patch: Partial<CalculationRule>) => void
   removeCalculationRule: (key: string) => void
@@ -247,13 +259,17 @@ export interface StoreState {
   addValidationRule: (rule: ValidationRule) => void
   updateValidationRule: (id: string, patch: Partial<ValidationRule>) => void
   removeValidationRule: (id: string) => void
+}
 
-  // ── History actions ───────────────────────────────────────────────────────
+/** ── History actions ── */
+export interface HistorySliceActionTypes {
   undo: () => void
   redo: () => void
   pushHistory: () => void
+}
 
-  // ── UI actions ────────────────────────────────────────────────────────────
+/** ── UI actions ── */
+export interface UiSliceActionTypes {
   setPreviewMode: (enabled: boolean) => void
   /** Set both editor and preview zoom simultaneously (used by toolbar) */
   setZoom: (zoom: number) => void
@@ -275,8 +291,10 @@ export interface StoreState {
   setSaveState: (state: SaveState) => void
   incrementLoadGeneration: () => void
   setLayerSearchQuery: (query: string) => void
+}
 
-  // ── Variants slice actions ────────────────────────────────────────────────
+/** ── Variants slice actions ── */
+export interface VariantsSliceTypes {
   addVariant: (name: string) => void
   removeVariant: (variantId: string) => void
   updateVariant: (variantId: string, patch: Partial<Pick<OutputVariant, 'name' | 'targetAudience'>>) => void
@@ -285,8 +303,10 @@ export interface StoreState {
   removeMaskingRule: (variantId: string, ruleId: string) => void
   replaceMaskingRule: (variantId: string, rule: MaskingRule) => void
   cleanupVariantRefsForElement: (elementId: string) => void
+}
 
-  // ── Schema slice actions ──────────────────────────────────────────────────
+/** ── Schema slice actions ── */
+export interface SchemaSliceActionTypes {
   addSchemaGroup: (role: 'master' | 'detail') => string
   removeSchemaGroup: (groupId: string) => void
   updateSchemaGroup: (groupId: string, patch: Partial<Pick<SchemaGroup, 'label' | 'role' | 'dataKey' | 'linkedMasterGroupId'>>) => void
@@ -334,8 +354,10 @@ export interface StoreState {
   setElementSchemaBinding: (pageId: string, elementId: string, fieldId: string | undefined) => void
   /** Ensures the __productMaster__ system group exists in the current schema. */
   ensureProductMasterGroup: () => void
+}
 
-  // ── Schema API state & actions ────────────────────────────────────────────
+/** ── Schema API state & actions ── */
+export interface SchemaApiTypes {
   /** Backend schema ID (null if not yet persisted) */
   schemaId: string | null
   schemaName: string
@@ -351,8 +373,10 @@ export interface StoreState {
   loadSchema: (id: string) => Promise<void>
   saveSchema: () => Promise<void>
   deleteSchema: (id: string) => Promise<void>
+}
 
-  // ── Computed slice actions ────────────────────────────────────────────────
+/** ── Computed slice actions ── */
+export interface ComputedSliceActionTypes {
   setComputedResults: (payload: {
     results: Record<string, ComputedValue>
     errors: Record<string, string>
@@ -360,16 +384,20 @@ export interface StoreState {
   setComputedLoading: (loading: boolean) => void
   setComputedViolations: (violations: ValidationViolation[]) => void
   invalidateComputed: () => void
+}
 
-  // ── Tenant slice ──────────────────────────────────────────────────────────
+/** ── Tenant slice ── */
+export interface TenantSliceTypes {
   tenantInfo: TenantInfo | null
   tenantLoading: boolean
   /** #433: last fetchTenantInfo failure (excluding expected pre-login 401/403). */
   tenantError: unknown
   fetchTenantInfo: () => Promise<void>
   updateTenantInfo: (info: TenantInfo) => Promise<void>
+}
 
-  // ── Product Master slice ──────────────────────────────────────────────────
+/** ── Product Master slice ── */
+export interface ProductSliceTypes {
   products: import('@/types').Product[]
   customFieldDefs: import('@/types').ProductCustomFieldDef[]
   productsLoading: boolean
@@ -384,9 +412,10 @@ export interface StoreState {
   fetchCustomFieldDefs: () => Promise<void>
   updateCustomFieldDefs: (defs: import('@/types').ProductCustomFieldDef[]) => Promise<void>
   setProductOp: (id: string, op: 'idle' | 'saving' | 'deleting') => void
+}
 
-
-  // ── Admin slice ───────────────────────────────────────────────────────────
+/** ── Admin slice ── */
+export interface AdminSliceTypes {
   adminUsers: UserSummary[]
   adminUsersLoading: boolean
   adminUsersError: string | null
@@ -401,8 +430,10 @@ export interface StoreState {
   fetchAdminServerConfig: () => Promise<void>
   setAdminServerConfigField: (key: string, value: string) => void
   saveAdminServerConfig: () => Promise<void>
+}
 
-  // ── Responses slice ───────────────────────────────────────────────────────
+/** ── Responses slice ── */
+export interface ResponsesSliceTypes {
   responses: FormResponseSummary[]
   responsesTotal: number
   /** Epoch ms of last successful responses fetch. 0 = cache miss. */
@@ -415,3 +446,38 @@ export interface StoreState {
   openSubmitResponseModal: () => void
   closeSubmitResponseModal: () => void
 }
+
+/** ── Cross-slice orchestration ── */
+export interface OrchestrationSliceTypes {
+  /**
+   * #437: post-logout / user-switch cleanup (drop the previous user's autosave
+   * draft, unbind the loaded template, reset to a blank report). Lives here as
+   * a cross-slice orchestrator so authSlice doesn't own the editing-domain
+   * lifecycle; add future cleanup targets here, not in authSlice.
+   */
+  resetForUserSwitch: (prevUserId: string | null) => void
+}
+
+// #437: StoreState is composed from per-section interfaces (below) instead of
+// one 400-line flat interface, so each slice's contract is locally visible and
+// a conflicting re-declaration surfaces as a `never`-typed key at the slice
+// implementation site instead of silent spread-order precedence.
+export type StoreState = OrchestrationSliceTypes
+  & AuthSliceTypes
+  & LayoutSliceStateTypes
+  & HistorySliceStateTypes
+  & UiSliceStateTypes
+  & ComputedSliceStateTypes
+  & LayoutSliceActionTypes
+  & RulesSliceTypes
+  & HistorySliceActionTypes
+  & UiSliceActionTypes
+  & VariantsSliceTypes
+  & SchemaSliceActionTypes
+  & SchemaApiTypes
+  & ComputedSliceActionTypes
+  & TenantSliceTypes
+  & ProductSliceTypes
+  & AdminSliceTypes
+  & ResponsesSliceTypes
+
