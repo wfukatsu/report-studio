@@ -48,7 +48,7 @@ const FORBIDDEN_FIELD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 /** ScalarDB column identifier — same rule the backend enforces (^[a-zA-Z_][a-zA-Z0-9_]*$) */
 const DbIdentifierSchema = z.string().max(128).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます')
 
-const SchemaFieldSchema = z.object({
+export const SchemaFieldSchema = z.object({
   id: z.string(),
   key: z.string()
     .max(128)
@@ -70,12 +70,12 @@ const SchemaFieldSchema = z.object({
 })
 
 /** ScalarDB table binding on a schema group — `undefined` means "unlinked". */
-const ScalarDbTableMetaSchema = z.object({
+export const ScalarDbTableMetaSchema = z.object({
   namespace: DbIdentifierSchema,
   tableName: DbIdentifierSchema,
 })
 
-const SchemaGroupSchema = z.object({
+export const SchemaGroupSchema = z.object({
   id: z.string(),
   label: z.string().max(200),
   role: z.enum(['master', 'detail']),
@@ -91,7 +91,7 @@ const SchemaGroupSchema = z.object({
  * #144: named relationship object. Explicitly modeled (not passthrough) so it
  * survives the template import boundary, same as tableMeta/dbColumnName.
  */
-const SchemaRelationSchema = z.object({
+export const SchemaRelationSchema = z.object({
   id: z.string(),
   // Doubles as the flat key prefix for looked-up fields → identifier chars only.
   name: z.string().max(64).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます'),
@@ -104,7 +104,7 @@ const SchemaRelationSchema = z.object({
   kind: z.enum(['lookup', 'master-detail']),
 })
 
-const SchemaDefinitionSchema = z.object({
+export const SchemaDefinitionSchema = z.object({
   groups: z.array(SchemaGroupSchema).max(20),
   relations: z.array(SchemaRelationSchema).max(40).optional(),
 })
