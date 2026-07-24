@@ -20,7 +20,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +65,6 @@ public final class ScalarDbTableController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Identifier regex — ASCII only, must start with letter or underscore. */
-    private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     /** Maximum request body size (1 MB). Matches SchemaInferController. */
     private static final int MAX_BODY_BYTES = 1_048_576;
@@ -136,7 +134,7 @@ public final class ScalarDbTableController {
                             + "...'");
             return;
         }
-        if (!IDENTIFIER.matcher(namespace).matches()) {
+        if (!SharedConstants.DB_IDENTIFIER.matcher(namespace).matches()) {
             ApiError.respond(
                     ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + namespace + "'");
             return;
@@ -153,7 +151,7 @@ public final class ScalarDbTableController {
                             + "...'");
             return;
         }
-        if (!IDENTIFIER.matcher(tableName).matches()) {
+        if (!SharedConstants.DB_IDENTIFIER.matcher(tableName).matches()) {
             ApiError.respond(
                     ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + tableName + "'");
             return;
@@ -199,7 +197,7 @@ public final class ScalarDbTableController {
                                 + "...'");
                 return;
             }
-            if (!IDENTIFIER.matcher(name).matches()) {
+            if (!SharedConstants.DB_IDENTIFIER.matcher(name).matches()) {
                 ApiError.respond(
                         ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + name + "'");
                 return;
@@ -473,7 +471,7 @@ public final class ScalarDbTableController {
                                 + "...'");
                 return true;
             }
-            if (!IDENTIFIER.matcher(k).matches()) {
+            if (!SharedConstants.DB_IDENTIFIER.matcher(k).matches()) {
                 ApiError.respond(ctx, 400, "VALIDATION_ERROR", "Invalid identifier: '" + k + "'");
                 return true;
             }

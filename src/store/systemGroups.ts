@@ -6,8 +6,10 @@
  * would create an import cycle.
  */
 
-/** ID of the product master system group — must match backend constant. */
-export const SYSTEM_GROUP_PRODUCT_MASTER = '__productMaster__'
+import sharedConstants from '../../schemas/shared-constants.json'
+
+/** ID of the product master system group — single source: schemas/shared-constants.json (#425). */
+export const SYSTEM_GROUP_PRODUCT_MASTER: string = sharedConstants.systemGroupProductMaster
 
 /** Returns true for system-reserved group IDs (double-underscore pattern). */
 export function isSystemGroup(id: string): boolean {

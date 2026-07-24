@@ -13,8 +13,11 @@
  */
 
 import { MAX_IDENTIFIER_LENGTH } from './scalardbLimits'
+import sharedConstants from '../../schemas/shared-constants.json'
 
-export const SCALARDB_IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+// Single source: schemas/shared-constants.json (#425) — the server mirrors it
+// in SharedConstants.java, pinned by SharedConstantsTest.
+export const SCALARDB_IDENTIFIER_REGEX = new RegExp(sharedConstants.dbIdentifierPattern)
 
 /**
  * Validate a ScalarDB identifier (namespace, table name, or column name).
