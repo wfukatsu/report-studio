@@ -168,6 +168,7 @@ export const ElementPanel = memo(function ElementPanel({
           <button
             className="ml-auto text-muted-foreground hover:text-foreground shrink-0"
             onClick={bs.clearSelection}
+            aria-label={t('bindingEditor.elementPanel.clearSelectionAria')}
           >
             <X className="w-3.5 h-3.5" />
           </button>

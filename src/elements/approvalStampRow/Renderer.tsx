@@ -19,7 +19,8 @@ export const ApprovalStampRowRenderer = memo(function ApprovalStampRowRenderer({
             </div>
           )}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {cell.stampSrc && isSafeImageSrc(cell.stampSrc) && <img src={cell.stampSrc} style={{ maxWidth: '80%', maxHeight: '80%', opacity: 0.85 }} draggable={false} />}
+            {/* Decorative: the role label is rendered as adjacent text */}
+            {cell.stampSrc && isSafeImageSrc(cell.stampSrc) && <img src={cell.stampSrc} alt="" style={{ maxWidth: '80%', maxHeight: '80%', opacity: 0.85 }} draggable={false} />}
           </div>
           {el.labelPosition === 'bottom' && (
             <div style={{ height: labelH, fontSize: '2.5mm', textAlign: 'center', borderTop: `${bw} solid ${el.borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#374151' }}>

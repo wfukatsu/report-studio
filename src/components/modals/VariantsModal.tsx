@@ -309,7 +309,11 @@ function MaskingRuleRow({
         <span className="text-xs font-medium flex-1 truncate">
           {elementNames.get(rule.targetElementId) ?? rule.targetElementId}
         </span>
-        <button onClick={onRemove} className="p-0.5 rounded hover:bg-destructive/20 text-destructive">
+        <button
+          onClick={onRemove}
+          className="p-0.5 rounded hover:bg-destructive/20 text-destructive"
+          aria-label={t('variantsModal.removeRuleAria')}
+        >
           <Trash2 className="w-3 h-3" />
         </button>
       </div>

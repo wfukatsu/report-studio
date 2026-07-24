@@ -143,6 +143,7 @@
     },
     "elementPanel": {
       "boundStatus": "{{bound}}/{{total}} bound",
+      "clearSelectionAria": "Clear selection",
       "clickToConnect": "Click an element to connect",
       "draggingElement": "Dragging element: {{element}} → drop onto a field",
       "draggingField": "Dragging field: {{field}} → drop onto an element",
@@ -224,6 +225,7 @@
       "addField": "Add field",
       "bulkGenerateAria": "Generate elements from fields",
       "bulkGenerateTitle": "Generate all not-yet-placed elements on the canvas from this group's fields",
+      "cancelAddFieldAria": "Cancel adding field",
       "cancelAria": "Cancel editing",
       "cancelTitle": "Cancel",
       "dataKeyAria": "Data key",

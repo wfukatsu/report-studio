@@ -666,7 +666,11 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
       <button className="text-xs text-[#6366f1] font-medium px-1.5 shrink-0" onClick={handleSubmit}>
         {t('bindingEditor.schemaGroupBlock.add')}
       </button>
-      <button className="text-muted-foreground hover:text-foreground p-0.5 shrink-0" onClick={onCancel}>
+      <button
+        className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+        onClick={onCancel}
+        aria-label={t('bindingEditor.schemaGroupBlock.cancelAddFieldAria')}
+      >
         <X className="w-3.5 h-3.5" />
       </button>
     </div>

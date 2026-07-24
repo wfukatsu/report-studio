@@ -496,6 +496,7 @@
     "noHiddenElements": "非表示要素がありません。プロパティパネルから要素を非表示に設定できます。",
     "noMaskingRules": "マスキングルールがありません。",
     "noVariants": "バリアントがありません。PDF出力時に特定の要素を非表示・マスクするバリアントを追加できます。",
+    "removeRuleAria": "マスキングルールを削除",
     "replaceValue": "置換値:",
     "summary": "非表示 {{hidden}} / マスク {{masked}}",
     "target": "対象:",
