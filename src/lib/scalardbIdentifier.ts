@@ -12,6 +12,7 @@
  * and prevents cross-database quoting surprises.
  */
 
+import i18n from '@/i18n/config'
 import { MAX_IDENTIFIER_LENGTH } from './scalardbLimits'
 import sharedConstants from '../../schemas/shared-constants.json'
 
@@ -34,18 +35,18 @@ export function validateScalarDbIdentifier(
   value: string,
 ): { valid: true } | { valid: false; error: string } {
   if (value === '') {
-    return { valid: false, error: '識別子が空です' }
+    return { valid: false, error: i18n.t('serverErrors:lib.identifierEmpty') }
   }
   if (value.length > MAX_IDENTIFIER_LENGTH) {
     return {
       valid: false,
-      error: `識別子が長すぎます (最大 ${MAX_IDENTIFIER_LENGTH} 文字): "${value.slice(0, 20)}..."`,
+      error: i18n.t('serverErrors:lib.identifierTooLong', { max: MAX_IDENTIFIER_LENGTH, value: value.slice(0, 20) }),
     }
   }
   if (!SCALARDB_IDENTIFIER_REGEX.test(value)) {
     return {
       valid: false,
-      error: `識別子が不正です: "${value}" (英字・数字・アンダースコアのみ、先頭は英字またはアンダースコア)`,
+      error: i18n.t('serverErrors:lib.identifierInvalid', { value }),
     }
   }
   return { valid: true }

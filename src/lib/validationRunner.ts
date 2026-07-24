@@ -2,6 +2,7 @@
  * Pre-flight validation runner.
  * Evaluates ValidationRule conditions with JEXL and returns all violations.
  */
+import i18n from '@/i18n/config'
 import { evaluateExpression } from './jexlEngine'
 import type { ValidationRule } from '@/types'
 import type { ValidationViolation } from '@/store/types'
@@ -68,7 +69,7 @@ export async function runValidation(
           // error-severity rule failed to evaluate → block export
           violations.push({
             ruleKey: rule.id,
-            message: `バリデーションルールの評価に失敗しました: ${msg}`,
+            message: i18n.t('serverErrors:lib.validationRuleEvalFailed', { message: msg }),
           })
         }
         // warning-severity evaluation errors are skipped silently

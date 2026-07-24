@@ -2,6 +2,7 @@
  * Pure utility functions for parsing data source values.
  */
 
+import i18n from '@/i18n/config'
 import type { DataSourceDefinition } from '@/types'
 
 /**
@@ -32,11 +33,11 @@ export function parseDataSourceJSON(
   try {
     const parsed = JSON.parse(json)
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return { ok: false, error: 'JSONはオブジェクトである必要があります' }
+      return { ok: false, error: i18n.t('serverErrors:lib.dataSourceNotObject') }
     }
     return { ok: true, fields: parsed as Record<string, unknown> }
   } catch {
-    return { ok: false, error: '無効なJSON形式です' }
+    return { ok: false, error: i18n.t('serverErrors:lib.dataSourceInvalidJson') }
   }
 }
 

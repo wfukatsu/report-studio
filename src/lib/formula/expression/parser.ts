@@ -5,6 +5,7 @@
  * Security guards: MAX_AST_NODES=100, MAX_NESTING=10, MAX_ARGS=10 (SEC-02)
  */
 
+import i18n from '@/i18n/config'
 import type { Token, TokenKind } from './tokens'
 import type { VisualExpression, ArithmeticOp, ComparisonOp } from './types'
 import { FORMULA_FUNCTION_NAMES } from '../functionCatalog'
@@ -46,7 +47,7 @@ export function parse(source: string): VisualExpression {
   function countNode(): void {
     nodeCount++
     if (nodeCount > MAX_AST_NODES) {
-      throw error('式が複雑すぎます（ノード数上限超過）', current())
+      throw error(i18n.t('serverErrors:lib.parserTooComplex'), current())
     }
   }
 
@@ -63,7 +64,13 @@ export function parse(source: string): VisualExpression {
   function expect(kind: TokenKind): Token {
     const t = current()
     if (t.kind !== kind) {
-      throw error(`'${kindLabel(kind)}' が必要ですが '${t.value || kindLabel(t.kind)}' がありました`, t)
+      throw error(
+        i18n.t('serverErrors:lib.parserExpected', {
+          expected: kindLabel(kind),
+          actual: t.value || kindLabel(t.kind),
+        }),
+        t,
+      )
     }
     return advance()
   }
@@ -75,7 +82,7 @@ export function parse(source: string): VisualExpression {
   function parseExpr(minBp: number): VisualExpression {
     nestingDepth++
     if (nestingDepth > MAX_NESTING) {
-      throw error('ネストが深すぎます（上限10レベル）', current())
+      throw error(i18n.t('serverErrors:lib.parserNestingTooDeep', { max: MAX_NESTING }), current())
     }
 
     let left = parsePrefix()
@@ -151,7 +158,10 @@ export function parse(source: string): VisualExpression {
       case 'LPAREN':
         return parseGrouped()
       default:
-        throw error(`予期しないトークン: '${token.value || kindLabel(token.kind)}'`, token)
+        throw error(
+          i18n.t('serverErrors:lib.parserUnexpectedToken', { token: token.value || kindLabel(token.kind) }),
+          token,
+        )
     }
   }
 
@@ -189,7 +199,7 @@ export function parse(source: string): VisualExpression {
   function parseFunctionCall(nameToken: Token): VisualExpression {
     const funcName = nameToken.value.toUpperCase()
     if (!FORMULA_FUNCTION_NAMES.has(funcName)) {
-      throw error(`未知の関数: '${nameToken.value}'`, nameToken)
+      throw error(i18n.t('serverErrors:lib.parserUnknownFunction', { name: nameToken.value }), nameToken)
     }
 
     advance() // skip (
@@ -199,7 +209,7 @@ export function parse(source: string): VisualExpression {
       while (current().kind === 'COMMA') {
         advance()
         if (args.length >= MAX_ARGS) {
-          throw error(`関数の引数が多すぎます（上限${MAX_ARGS}個）`, current())
+          throw error(i18n.t('serverErrors:lib.parserTooManyArgs', { max: MAX_ARGS }), current())
         }
         args.push(parseExpr(0))
       }
@@ -218,7 +228,7 @@ export function parse(source: string): VisualExpression {
 
   const result = parseExpr(0)
   if (current().kind !== 'EOF') {
-    throw error(`式の末尾に余分なトークンがあります: '${current().value}'`, current())
+    throw error(i18n.t('serverErrors:lib.parserTrailingToken', { token: current().value }), current())
   }
   return result
 }
@@ -226,8 +236,11 @@ export function parse(source: string): VisualExpression {
 function kindLabel(kind: TokenKind): string {
   const labels: Record<string, string> = {
     RPAREN: ')', LPAREN: '(', RBRACKET: ']', LBRACKET: '[',
-    COMMA: ',', DOT: '.', EOF: '式の末尾',
-    IDENT: '識別子', NUMBER: '数値', STRING: '文字列',
+    COMMA: ',', DOT: '.',
+    EOF: i18n.t('serverErrors:lib.tokenKindEof'),
+    IDENT: i18n.t('serverErrors:lib.tokenKindIdentifier'),
+    NUMBER: i18n.t('serverErrors:lib.tokenKindNumber'),
+    STRING: i18n.t('serverErrors:lib.tokenKindString'),
   }
   return labels[kind] ?? kind
 }

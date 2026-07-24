@@ -4,6 +4,7 @@
  * UNIT_CONVERSION: converts various unit strings to mm (the canonical unit).
  */
 
+import i18n from '@/i18n/config'
 import { v4 as uuidv4 } from 'uuid'
 import type {
   Report,
@@ -363,7 +364,7 @@ export function importFromJSON(
     parsed = JSON.parse(json)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: `JSONの解析に失敗しました: ${message}` }
+    return { ok: false, error: i18n.t('serverErrors:lib.migrationJsonParseFailed', { message }) }
   }
 
   // Sanitize: strip prototype pollution keys + enforce structural limits
@@ -371,7 +372,7 @@ export function importFromJSON(
   try {
     sanitized = sanitizeJSON(parsed)
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : '不正なJSON構造です' }
+    return { ok: false, error: err instanceof Error ? err.message : i18n.t('serverErrors:lib.migrationInvalidJsonStructure') }
   }
 
   if (typeof sanitized !== 'object' || sanitized === null || Array.isArray(sanitized)) {
@@ -383,7 +384,7 @@ export function importFromJSON(
 
   if (initialVersion === null) {
     if (typeof obj['$schema'] === 'string' && obj['$schema'] !== '') {
-      return { ok: false, error: `非対応スキーマ: ${obj['$schema']}` }
+      return { ok: false, error: i18n.t('serverErrors:lib.migrationUnsupportedSchema', { schema: obj['$schema'] }) }
     }
     return { ok: false, error: 'Invalid report JSON: missing required fields (id, pages)' }
   }
@@ -391,7 +392,7 @@ export function importFromJSON(
   if (initialVersion > FORMAT_VERSION) {
     return {
       ok: false,
-      error: `このファイルは新しい形式 (formatVersion: ${initialVersion}) で作成されています。対応バージョンは ${FORMAT_VERSION} までです`,
+      error: i18n.t('serverErrors:lib.migrationNewerFormat', { version: initialVersion, supported: FORMAT_VERSION }),
     }
   }
 
@@ -400,14 +401,14 @@ export function importFromJSON(
   for (let v = initialVersion; v < FORMAT_VERSION; v++) {
     const step = MIGRATIONS[v]
     if (!step) {
-      return { ok: false, error: `formatVersion ${v} からの移行はサポートされていません` }
+      return { ok: false, error: i18n.t('serverErrors:lib.migrationUnsupportedVersion', { version: v }) }
     }
     current = step(current)
   }
 
   const inner = current['definition']
   if (typeof inner !== 'object' || inner === null) {
-    return { ok: false, error: `formatVersion: ${FORMAT_VERSION} エンベロープに definition がありません` }
+    return { ok: false, error: i18n.t('serverErrors:lib.migrationMissingDefinition', { version: FORMAT_VERSION }) }
   }
 
   // Validate with the Zod schema. The v0 legacy path is exempt: migrateReport
@@ -423,8 +424,8 @@ export function importFromJSON(
       const path = first?.path.join('.') ?? ''
       const msg = first?.message ?? 'unknown'
       const prefix = initialVersion === 1
-        ? 'Invalid report-definition/v1: 必須フィールドが不正または不足しています'
-        : 'バリデーションエラー'
+        ? i18n.t('serverErrors:lib.migrationInvalidV1')
+        : i18n.t('serverErrors:lib.migrationValidationError')
       return { ok: false, error: `${prefix} (${path}: ${msg})` }
     }
     definition = result.data as unknown as ReportDefinition

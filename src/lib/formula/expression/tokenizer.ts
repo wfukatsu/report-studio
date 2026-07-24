@@ -8,6 +8,7 @@
  * - Underscore-prefix identifiers rejected (SEC-03)
  */
 
+import i18n from '@/i18n/config'
 import type { Token, TokenKind } from './tokens'
 import { ParseError } from './errors'
 
@@ -37,7 +38,7 @@ const FORBIDDEN_IDENTIFIERS = new Set([
 
 export function tokenize(source: string): readonly Token[] {
   if (source.length > MAX_FORMULA_LENGTH) {
-    throw new ParseError(`式が長すぎます (最大 ${MAX_FORMULA_LENGTH} 文字)`, 0, source)
+    throw new ParseError(i18n.t('serverErrors:lib.tokenizerFormulaTooLong', { max: MAX_FORMULA_LENGTH }), 0, source)
   }
 
   const tokens: Token[] = []
@@ -84,7 +85,7 @@ export function tokenize(source: string): readonly Token[] {
     let value = ''
     while (pos < source.length && source[pos] !== "'") {
       if (UNSAFE_STRING_CHARS.has(source[pos])) {
-        throw new ParseError(`文字列リテラルに '${source[pos]}' は使用できません`, pos, source)
+        throw new ParseError(i18n.t('serverErrors:lib.tokenizerUnsafeStringChar', { char: source[pos] }), pos, source)
       }
       if (source[pos] === '\\' && pos + 1 < source.length && source[pos + 1] === "'") {
         value += "'"
@@ -95,7 +96,7 @@ export function tokenize(source: string): readonly Token[] {
       pos++
     }
     if (pos >= source.length) {
-      throw new ParseError('文字列リテラルが閉じられていません', start, source)
+      throw new ParseError(i18n.t('serverErrors:lib.tokenizerUnterminatedString'), start, source)
     }
     pos++ // skip closing '
     return { kind: 'STRING', value, start, end: pos }
@@ -107,12 +108,12 @@ export function tokenize(source: string): readonly Token[] {
 
     // SEC-03: Reject identifiers starting with _
     if (value.startsWith('_')) {
-      throw new ParseError('識別子に "_" で始まる名前は使用できません', start, source)
+      throw new ParseError(i18n.t('serverErrors:lib.tokenizerUnderscoreIdentifier'), start, source)
     }
 
     // SEC-03: Reject forbidden identifiers (prototype chain escapes + JS globals)
     if (FORBIDDEN_IDENTIFIERS.has(value)) {
-      throw new ParseError(`'${value}' は予約されたキーワードであり使用できません`, start, source)
+      throw new ParseError(i18n.t('serverErrors:lib.tokenizerReservedKeyword', { name: value }), start, source)
     }
 
     const upper = value.toUpperCase()
@@ -141,7 +142,7 @@ export function tokenize(source: string): readonly Token[] {
     if (ch === "'") { tokens.push(readString(start)); continue }
     if (isIdentStart(ch)) { tokens.push(readIdentifier(start)); continue }
 
-    throw new ParseError(`予期しない文字: '${ch}'`, start, source)
+    throw new ParseError(i18n.t('serverErrors:lib.tokenizerUnexpectedChar', { char: ch }), start, source)
   }
 
   tokens.push({ kind: 'EOF', value: '', start: pos, end: pos })

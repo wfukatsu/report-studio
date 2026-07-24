@@ -5,6 +5,8 @@
  * to prevent DoS via deeply nested or excessively large JSON payloads.
  */
 
+import i18n from '@/i18n/config'
+
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 const MAX_DEPTH = 50
@@ -31,10 +33,10 @@ function sanitizeValue(
   if (obj === null || typeof obj !== 'object') return obj
 
   if (depth > MAX_DEPTH) {
-    throw new Error('JSON構造が深すぎます（最大50階層）')
+    throw new Error(i18n.t('serverErrors:lib.sanitizeTooDeep', { max: MAX_DEPTH }))
   }
   if (++counter.count > MAX_OBJECT_COUNT) {
-    throw new Error('JSONオブジェクト数が上限を超えています（最大5000）')
+    throw new Error(i18n.t('serverErrors:lib.sanitizeTooManyObjects', { max: MAX_OBJECT_COUNT }))
   }
 
   if (Array.isArray(obj)) {
