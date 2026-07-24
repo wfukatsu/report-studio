@@ -20,9 +20,21 @@ const jexl = new Jexl()
 // Custom functions (V1 backend compatible)
 // ---------------------------------------------------------------------------
 
-/** sum(array) — returns 0 for empty/non-array */
-jexl.addFunction('sum', (arr: unknown) => {
+/**
+ * sum(array) / sum(array, field) — returns 0 for empty/non-array (#449).
+ * 1-arg form sums numeric elements; 2-arg form sums a field across an array of
+ * objects (numeric strings are parsed). Mirrors the server JexlFunctions.sum overloads.
+ */
+jexl.addFunction('sum', (arr: unknown, field?: unknown) => {
   if (!Array.isArray(arr)) return 0
+  if (field != null) {
+    return arr.reduce<number>((acc, v) => {
+      if (typeof v !== 'object' || v === null) return acc
+      const raw = (v as Record<string, unknown>)[field as string]
+      const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+      return acc + (isFinite(n) ? n : 0)
+    }, 0)
+  }
   return arr.reduce<number>((acc, v) => acc + (typeof v === 'number' ? v : 0), 0)
 })
 
@@ -32,13 +44,26 @@ jexl.addFunction('count', (arr: unknown) => {
   return arr.length
 })
 
-/** round(value, decimalPlaces?) — returns null for non-finite inputs */
+/**
+ * round(value, decimalPlaces?) — returns null for non-finite inputs.
+ * Decimal (string-based) HALF_UP rounding to match the server's
+ * BigDecimal.setScale(HALF_UP): binary-float boundaries like 2.675 round up
+ * to 2.68 instead of the naive Math.round(n * 100) / 100 result 2.67 (#449).
+ */
 jexl.addFunction('round', (value: unknown, places: unknown) => {
   const n = typeof value === 'number' ? value : Number(value)
   if (!isFinite(n)) return null
   const p = typeof places === 'number' ? places : 0
-  const factor = Math.pow(10, p)
-  return Math.round(n * factor) / factor
+  // Shift the decimal point via string exponent notation (exact, no binary error),
+  // round half away from zero (HALF_UP), then shift back.
+  const sign = n < 0 ? -1 : 1
+  const shifted = Number(`${Math.abs(n)}e${p}`)
+  if (!isFinite(shifted)) {
+    // e.g. very small magnitudes already stringified in exponent form
+    const factor = Math.pow(10, p)
+    return Math.round(n * factor) / factor
+  }
+  return sign * Number(`${Math.round(shifted)}e${-p}`)
 })
 
 // ---------------------------------------------------------------------------
@@ -99,7 +124,9 @@ jexl.addFunction('formatNumber', (value: unknown, pattern?: unknown) => {
   const n = typeof value === 'number' ? value : Number(value)
   if (!isFinite(n)) return String(value ?? '')
   const pat = String(pattern ?? 'integer')
-  if (pat === 'currency') return n.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })
+  // currency: half-width ¥ (U+00A5) + grouping, matching the server's DecimalFormat("¥#,##0")
+  // — Intl style:'currency' would emit the full-width ￥ sign (#449)
+  if (pat === 'currency') return '¥' + n.toLocaleString('ja-JP', { maximumFractionDigits: 0 })
   if (pat === 'decimal2') return n.toLocaleString('ja-JP', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return n.toLocaleString('ja-JP', { maximumFractionDigits: 0 })
 })

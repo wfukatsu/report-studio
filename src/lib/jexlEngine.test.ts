@@ -48,6 +48,23 @@ describe('evaluateExpression — カスタム関数', () => {
     expect(await evaluateExpression('sum(nums)', { nums: [1, 'x', 2] })).toBe(3)
   })
 
+  // #449: サーバ JexlFunctions.sum(collection, field) と揃えた 2引数フィールド版
+  it('sum() — フィールド指定でマップ配列を合計する（文字列数値もパース）', async () => {
+    expect(
+      await evaluateExpression('sum(items, "price")', {
+        items: [{ price: 100 }, { price: '200' }, { price: 300 }],
+      }),
+    ).toBe(600)
+  })
+
+  it('sum() — フィールド指定で非数値フィールドはスキップされる', async () => {
+    expect(
+      await evaluateExpression('sum(items, "price")', {
+        items: [{ price: 100 }, { price: 'abc' }, {}],
+      }),
+    ).toBe(100)
+  })
+
   it('count() — 配列長を返す', async () => {
     expect(await evaluateExpression('count(items)', { items: [1, 2, 3] })).toBe(3)
   })
@@ -71,6 +88,16 @@ describe('evaluateExpression — カスタム関数', () => {
 
   it('round() — 非数値は null を返す', async () => {
     expect(await evaluateExpression('round(val)', { val: 'abc' })).toBe(null)
+  })
+
+  // #449: 二進誤差境界も十進丸め（サーバ BigDecimal HALF_UP と一致）。
+  // 旧実装 Math.round(2.675 * 100) / 100 は 2.67 になっていた
+  it('round() — 2.675 は十進丸めで 2.68 になる', async () => {
+    expect(await evaluateExpression('round(val, 2)', { val: 2.675 })).toBe(2.68)
+  })
+
+  it('round() — 負数は HALF_UP（絶対値で切り上げ）で丸める', async () => {
+    expect(await evaluateExpression('round(val, 0)', { val: -2.5 })).toBe(-3)
   })
 })
 
@@ -169,6 +196,20 @@ describe('Phase 3 built-in functions', () => {
   it('formatNumber — 整数書式化', async () => {
     const result = await evaluateExpression('formatNumber(1234567)', {})
     expect(String(result)).toContain('1,234,567')
+  })
+
+  // #449: currency は半角 ¥ (U+00A5) + 桁区切りに統一（サーバ DecimalFormat("¥#,##0") と一致）。
+  // 旧実装の Intl style:'currency' は全角 ￥ を出力していた
+  it('formatNumber — currency は半角 ¥ + 桁区切り', async () => {
+    await expect(evaluateExpression('formatNumber(1234567, "currency")', {})).resolves.toBe(
+      '¥1,234,567',
+    )
+  })
+
+  it('formatNumber — decimal2 は桁区切りあり', async () => {
+    await expect(evaluateExpression('formatNumber(1234.5, "decimal2")', {})).resolves.toBe(
+      '1,234.50',
+    )
   })
 
   it('formatDate — 日付書式化', async () => {
