@@ -11,8 +11,12 @@
       "collapse": "サイドバーを閉じる",
       "expand": "サイドバーを開く",
       "leftNav": "サイドバーナビゲーション",
+      "resizeLeft": "左サイドバーの幅を変更",
+      "resizeRight": "右サイドバーの幅を変更",
       "rightNav": "右サイドバーナビゲーション"
     },
+    "smallScreenDismiss": "ヒントを閉じる",
+    "smallScreenHint": "ウィンドウ幅が狭いためエディタが窮屈になることがあります。1024px 以上を推奨します。",
     "tabs": {
       "elements": "要素",
       "layers": "レイヤー",

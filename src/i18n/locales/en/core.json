@@ -11,8 +11,12 @@
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar",
       "leftNav": "Sidebar navigation",
+      "resizeLeft": "Resize left sidebar",
+      "resizeRight": "Resize right sidebar",
       "rightNav": "Right sidebar navigation"
     },
+    "smallScreenDismiss": "Dismiss hint",
+    "smallScreenHint": "The editor may feel cramped at this window width. 1024px or wider is recommended.",
     "tabs": {
       "elements": "Elements",
       "layers": "Layers",

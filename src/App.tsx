@@ -1,5 +1,12 @@
 import { toast } from 'sonner'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import {
+  SidebarResizeHandle,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_DEFAULT_WIDTH,
+} from '@/components/common/SidebarResizeHandle'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useTranslation } from 'react-i18next'
 import type { ParseKeys } from 'i18next'
 import { useShallow } from 'zustand/shallow'
@@ -43,6 +50,15 @@ const RIGHT_TABS = [
   { id: 'page', labelKey: 'app.tabs.page' },
 ] as const satisfies readonly { id: RightTab; labelKey: ParseKeys<'core'> }[]
 
+/** #439: stored sidebar width, clamped to the valid range (falls back to default). */
+function readSidebarWidth(side: 'left' | 'right'): number {
+  try {
+    const raw = Number(localStorage.getItem(`rds.sidebarWidth.${side}`))
+    if (Number.isFinite(raw) && raw >= SIDEBAR_MIN_WIDTH && raw <= SIDEBAR_MAX_WIDTH) return raw
+  } catch { /* storage unavailable (private mode) */ }
+  return SIDEBAR_DEFAULT_WIDTH
+}
+
 export default function App() {
   const { t } = useTranslation('core')
   const [leftTab, setLeftTab] = useState<LeftTab>('elements')
@@ -57,6 +73,17 @@ export default function App() {
   }, [])
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
+  // #439: user-resizable sidebar widths, persisted per side
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(() => readSidebarWidth('left'))
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readSidebarWidth('right'))
+  const resizeSidebar = (side: 'left' | 'right', width: number) => {
+    if (side === 'left') setLeftSidebarWidth(width)
+    else setRightSidebarWidth(width)
+    try { localStorage.setItem(`rds.sidebarWidth.${side}`, String(width)) } catch { /* private mode */ }
+  }
+  // #439: below ~1024px the three-pane layout gets cramped — show a dismissible hint
+  const isSmallScreen = useMediaQuery('(max-width: 1023px)')
+  const [smallScreenHintDismissed, setSmallScreenHintDismissed] = useState(false)
   const [autoSaveTime, setAutoSaveTime] = useState<string | null>(null)
   // Restore prompt: shown when a restorable autosave was found for the current
   // user and the user hasn't acted on it yet (復元する / 破棄 record the user id
@@ -349,12 +376,37 @@ export default function App() {
         </div>
       )}
 
+      {/* #439: the editor layout assumes desktop widths — hint instead of breaking */}
+      {isSmallScreen && !smallScreenHintDismissed && !previewMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-1 text-[11px] text-amber-800 flex items-center gap-2">
+          <span>{t('app.smallScreenHint')}</span>
+          <button
+            onClick={() => setSmallScreenHintDismissed(true)}
+            className="ml-auto shrink-0 hover:text-amber-950"
+            aria-label={t('app.smallScreenDismiss')}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {previewMode ? (
         <LivePreviewPanel />
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <aside className={cn('border-r bg-card flex flex-col shrink-0 overflow-hidden transition-all', leftSidebarOpen ? 'w-64' : 'w-8')}>
+          <aside
+            className="relative border-r bg-card flex flex-col shrink-0 overflow-hidden"
+            style={{ width: leftSidebarOpen ? leftSidebarWidth : 32 }}
+          >
+            {leftSidebarOpen && (
+              <SidebarResizeHandle
+                side="left"
+                width={leftSidebarWidth}
+                onResize={(w) => resizeSidebar('left', w)}
+                ariaLabel={t('app.sidebar.resizeLeft')}
+              />
+            )}
             <div className="flex border-b overflow-x-auto shrink-0">
               {leftSidebarOpen && (
                 <div
@@ -453,7 +505,18 @@ export default function App() {
           {livePreviewEnabled && <PreviewPane />}
 
           {/* Right Sidebar: Properties / Versions */}
-          <aside className={cn('border-l bg-card flex flex-col shrink-0 overflow-hidden transition-all', rightSidebarOpen ? 'w-64' : 'w-8')}>
+          <aside
+            className="relative border-l bg-card flex flex-col shrink-0 overflow-hidden"
+            style={{ width: rightSidebarOpen ? rightSidebarWidth : 32 }}
+          >
+            {rightSidebarOpen && (
+              <SidebarResizeHandle
+                side="right"
+                width={rightSidebarWidth}
+                onResize={(w) => resizeSidebar('right', w)}
+                ariaLabel={t('app.sidebar.resizeRight')}
+              />
+            )}
             <div className="flex border-b shrink-0">
               <button
                 onClick={() => setRightSidebarOpen(v => !v)}
