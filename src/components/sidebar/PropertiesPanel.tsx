@@ -1,6 +1,7 @@
 /**
- * PropertiesPanel — thin dispatcher that routes to type-specific properties panels.
- * Each element type lives in src/elements/{type}/PropertiesPanel.tsx.
+ * PropertiesPanel — thin dispatcher that routes to type-specific properties panels
+ * via the element registry (#414). Each element type lives in
+ * src/elements/{type}/PropertiesPanel.tsx and is registered in src/elements/registry.ts.
  */
 
 import { memo, useMemo } from 'react'
@@ -10,68 +11,22 @@ import { CopyPlus, Trash2, ShieldAlert } from 'lucide-react'
 import { useReportStore, selectActivePage } from '@/store/reportStore'
 import { ConditionalDisplayEditor } from './ConditionalDisplayEditor'
 import type { OutputVariant } from '@/types'
-import { TextPropertiesPanel } from '@/elements/text/PropertiesPanel'
-import { DataFieldPropertiesPanel } from '@/elements/dataField/PropertiesPanel'
-import { ImagePropertiesPanel } from '@/elements/image/PropertiesPanel'
-import { ShapePropertiesPanel } from '@/elements/shape/PropertiesPanel'
-import { ChartPropertiesPanel } from '@/elements/chart/PropertiesPanel'
-import { BarcodePropertiesPanel } from '@/elements/barcode/PropertiesPanel'
-import { ManualEntryPropertiesPanel } from '@/elements/manualEntry/PropertiesPanel'
-import { HankoPropertiesPanel } from '@/elements/hanko/PropertiesPanel'
-import { ApprovalStampRowPropertiesPanel } from '@/elements/approvalStampRow/PropertiesPanel'
-import { RevenueStampPropertiesPanel } from '@/elements/revenueStamp/PropertiesPanel'
-import { RepeatingBandPropertiesPanel } from '@/elements/repeatingBand/PropertiesPanel'
-import { RepeatingListPropertiesPanel } from '@/elements/repeatingList/PropertiesPanel'
-import { FormTablePropertiesPanel } from '@/elements/formTable/PropertiesPanel'
-import { CheckboxPropertiesPanel } from '@/elements/checkbox/PropertiesPanel'
-import { EraSelectPropertiesPanel } from '@/elements/eraSelect/PropertiesPanel'
-import { PageNumberPropertiesPanel } from '@/elements/pageNumber/PropertiesPanel'
-import { CurrentDatePropertiesPanel } from '@/elements/currentDate/PropertiesPanel'
-import { DividerPropertiesPanel } from '@/elements/divider/PropertiesPanel'
-import { TenantCompanyNamePropertiesPanel } from '@/elements/tenantCompanyName/PropertiesPanel'
-import { TenantAddressPropertiesPanel } from '@/elements/tenantAddress/PropertiesPanel'
-import { TenantPhonePropertiesPanel } from '@/elements/tenantPhone/PropertiesPanel'
-import { TenantRepresentativePropertiesPanel } from '@/elements/tenantRepresentative/PropertiesPanel'
-import { TenantLogoPropertiesPanel } from '@/elements/tenantLogo/PropertiesPanel'
-import { TenantCustomPropertiesPanel } from '@/elements/tenantCustom/PropertiesPanel'
+import { ELEMENT_REGISTRY } from '@/elements/registry'
+import type { ElementDef } from '@/elements/elementDef'
 import { PropSection, PropRow, NumInput } from '@/elements/_base/sharedUI'
 import type { ReportElement } from '@/types'
 
-function assertNever(x: never): null {
-  console.error('Unhandled element type in PropertiesPanel:', x)
-  return null
-}
-
-// Type-specific panel dispatcher — exhaustiveness-checked via assertNever.
-// Adding a new element type without updating this function causes a compile error.
+// Type-specific panel dispatcher — routed through ELEMENT_REGISTRY (#414).
+// Exhaustiveness is enforced at compile time by the registry's Record type:
+// adding a new element type without an ElementDef fails to compile there.
 function renderTypePanel(el: ReportElement, update: (patch: Partial<typeof el>) => void) {
-  switch (el.type) {
-    case 'text':               return <TextPropertiesPanel el={el} onChange={update} />
-    case 'dataField':          return <DataFieldPropertiesPanel el={el} onChange={update} />
-    case 'shape':              return <ShapePropertiesPanel el={el} onChange={update} />
-    case 'image':              return <ImagePropertiesPanel el={el} onChange={update} />
-    case 'chart':              return <ChartPropertiesPanel el={el} onChange={update} />
-    case 'barcode':            return <BarcodePropertiesPanel el={el} onChange={update} />
-    case 'manualEntry':        return <ManualEntryPropertiesPanel el={el} onChange={update} />
-    case 'hanko':              return <HankoPropertiesPanel el={el} onChange={update} />
-    case 'approvalStampRow':   return <ApprovalStampRowPropertiesPanel el={el} onChange={update} />
-    case 'revenueStamp':       return <RevenueStampPropertiesPanel el={el} onChange={update} />
-    case 'repeatingBand':      return <RepeatingBandPropertiesPanel el={el} onChange={update} />
-    case 'repeatingList':      return <RepeatingListPropertiesPanel el={el} onChange={update} />
-    case 'formTable':          return <FormTablePropertiesPanel el={el} onChange={update} />
-    case 'checkbox':           return <CheckboxPropertiesPanel el={el} onChange={update} />
-    case 'eraSelect':          return <EraSelectPropertiesPanel el={el} onChange={update} />
-    case 'pageNumber':         return <PageNumberPropertiesPanel el={el} onChange={update} />
-    case 'currentDate':        return <CurrentDatePropertiesPanel el={el} onChange={update} />
-    case 'divider':            return <DividerPropertiesPanel el={el} onChange={update} />
-    case 'tenantCompanyName':  return <TenantCompanyNamePropertiesPanel el={el} onChange={update} />
-    case 'tenantAddress':      return <TenantAddressPropertiesPanel el={el} onChange={update} />
-    case 'tenantPhone':        return <TenantPhonePropertiesPanel el={el} onChange={update} />
-    case 'tenantRepresentative': return <TenantRepresentativePropertiesPanel el={el} onChange={update} />
-    case 'tenantLogo':         return <TenantLogoPropertiesPanel el={el} onChange={update} />
-    case 'tenantCustom':       return <TenantCustomPropertiesPanel el={el} onChange={update} />
-    default:                   return assertNever(el)
+  const def = ELEMENT_REGISTRY[el.type] as unknown as ElementDef | undefined
+  if (!def) {
+    console.error('Unhandled element type in PropertiesPanel:', el)
+    return null
   }
+  const TypePanel = def.PropertiesPanel
+  return <TypePanel el={el} onChange={update} />
 }
 
 // ---------------------------------------------------------------------------

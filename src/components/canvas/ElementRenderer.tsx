@@ -1,6 +1,9 @@
 /**
- * ElementRenderer — thin dispatcher that routes to type-specific renderers.
- * Each element type lives in src/elements/{type}/Renderer.tsx.
+ * ElementRenderer — thin dispatcher that routes to type-specific renderers
+ * via the element registry (#414). Each element type lives in
+ * src/elements/{type}/ (Renderer.tsx + index.tsx ElementDef); the per-type
+ * prop differences (resolveValues / records / sampleHint …) are absorbed by
+ * each def's `renderElement` adapter.
  *
  * P1: computedValues from the store are merged into `data` so that all child
  * renderers can reference calculated field values (e.g. {{total}}, fieldKey="subtotal")
@@ -17,32 +20,7 @@ import { useReportStore } from '@/store/reportStore'
 import type { RepeatingBandField } from '@/types'
 import type { ReportElement, TextStyle } from '@/types'
 import { evaluateConditionalDisplay } from '@/lib/conditionEvaluator'
-import { isDataEmptyInPreview } from '@/lib/previewUtils'
-
-import { TextRenderer } from '@/elements/text/Renderer'
-import { DataFieldRenderer } from '@/elements/dataField/Renderer'
-import { ImageRenderer } from '@/elements/image/Renderer'
-import { ShapeRenderer } from '@/elements/shape/Renderer'
-import { ChartRenderer } from '@/elements/chart/Renderer'
-import { BarcodeRenderer } from '@/elements/barcode/Renderer'
-import { ManualEntryRenderer } from '@/elements/manualEntry/Renderer'
-import { HankoRenderer } from '@/elements/hanko/Renderer'
-import { ApprovalStampRowRenderer } from '@/elements/approvalStampRow/Renderer'
-import { RevenueStampRenderer } from '@/elements/revenueStamp/Renderer'
-import { RepeatingBandRenderer } from '@/elements/repeatingBand/Renderer'
-import { RepeatingListRenderer } from '@/elements/repeatingList/Renderer'
-import { FormTableRenderer } from '@/elements/formTable/Renderer'
-import { CheckboxRenderer } from '@/elements/checkbox/Renderer'
-import { EraSelectRenderer } from '@/elements/eraSelect/Renderer'
-import { PageNumberRenderer } from '@/elements/pageNumber/Renderer'
-import { CurrentDateRenderer } from '@/elements/currentDate/Renderer'
-import { DividerRenderer } from '@/elements/divider/Renderer'
-import { TenantCompanyNameRenderer } from '@/elements/tenantCompanyName/Renderer'
-import { TenantAddressRenderer } from '@/elements/tenantAddress/Renderer'
-import { TenantPhoneRenderer } from '@/elements/tenantPhone/Renderer'
-import { TenantRepresentativeRenderer } from '@/elements/tenantRepresentative/Renderer'
-import { TenantLogoRenderer } from '@/elements/tenantLogo/Renderer'
-import { TenantCustomRenderer } from '@/elements/tenantCustom/Renderer'
+import { getElementDef, isDataEmptyInPreview } from '@/elements/registry'
 
 interface Props {
   element: ReportElement
@@ -109,55 +87,14 @@ export const ElementRenderer = memo(function ElementRenderer({
   if (!element.visible || !isConditionVisible) return null
   if (isEmptyInPreview) return null
 
-  switch (element.type) {
-    case 'text':            return <TextRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} sampleHint={!readonly} />
-    case 'dataField':       return <DataFieldRenderer element={element} data={mergedData} defaultStyle={defaultTextStyle} sampleHint={!readonly} />
-    case 'image':           return <ImageRenderer element={element} />
-    case 'shape':           return <ShapeRenderer element={element} />
-    case 'chart':           return <ChartRenderer element={element} data={mergedData} sampleHint={!readonly} />
-    case 'barcode':         return <BarcodeRenderer element={element} data={mergedData} />
-    case 'manualEntry':     return <ManualEntryRenderer element={element} data={mergedData} />
-    case 'hanko':           return <HankoRenderer element={element} data={mergedData} />
-    case 'approvalStampRow': return <ApprovalStampRowRenderer element={element} />
-    case 'revenueStamp':    return <RevenueStampRenderer element={element} />
-    case 'repeatingBand': {
-      // Editor mode: show design preview (placeholders). Preview mode: show live data.
-      const bandRecords = readonly && element.dataSource
-        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
-        : undefined
-      return <RepeatingBandRenderer element={element} records={bandRecords} onFieldsChange={readonly ? undefined : onBandFieldsChange} />
-    }
-    case 'repeatingList': {
-      const listRecords = readonly && element.dataSource
-        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
-        : undefined
-      return <RepeatingListRenderer element={element} records={listRecords} />
-    }
-    case 'formTable': {
-      // Editor mode: show design preview (placeholders). Preview mode: show live data.
-      // Gated on `readonly` for parity with repeatingBand / repeatingList — otherwise a
-      // data-bound table would render live rows in the design canvas while the other two
-      // repeating containers show placeholders.
-      const tableRecords = readonly && element.dataSource
-        ? (mergedData[element.dataSource] as Record<string, unknown>[] | undefined)
-        : undefined
-      return <FormTableRenderer element={element} records={tableRecords} />
-    }
-    case 'checkbox':        return <CheckboxRenderer element={element} data={mergedData} />
-    case 'eraSelect':       return <EraSelectRenderer element={element} data={mergedData} />
-    case 'pageNumber':      return <PageNumberRenderer element={element} resolveValues={readonly} pageIndex={pageIndex} totalPages={totalPages} />
-    case 'currentDate':     return <CurrentDateRenderer element={element} resolveValues={readonly} />
-    case 'divider':               return <DividerRenderer element={element} />
-    case 'tenantCompanyName':     return <TenantCompanyNameRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
-    case 'tenantAddress':         return <TenantAddressRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
-    case 'tenantPhone':           return <TenantPhoneRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
-    case 'tenantRepresentative':  return <TenantRepresentativeRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
-    case 'tenantLogo':    return <TenantLogoRenderer element={element} />
-    case 'tenantCustom':  return <TenantCustomRenderer element={element} resolveValues={readonly} defaultStyle={defaultTextStyle} />
-    default:                      return assertNever(element)
-  }
+  const def = getElementDef(element.type)
+  return def.renderElement({
+    element,
+    data: mergedData,
+    readonly,
+    defaultStyle: defaultTextStyle,
+    pageIndex,
+    totalPages,
+    onBandFieldsChange,
+  })
 })
-
-function assertNever(x: never): never {
-  throw new Error(`Unhandled element type: ${(x as { type: string }).type}`)
-}
