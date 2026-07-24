@@ -32,6 +32,7 @@ export type ProductSlice = Pick<StoreState,
   | 'customFieldDefs'
   | 'productsLoading'
   | 'productsError'
+  | 'customFieldDefsError'
   | 'productOps'
   | 'fetchProducts'
   | 'addProduct'
@@ -54,6 +55,7 @@ export const createProductSlice: StateCreator<
   customFieldDefs: [],
   productsLoading: false,
   productsError: null,
+  customFieldDefsError: null,
   productOps: new Map(),
 
   fetchProducts: async () => {
@@ -98,11 +100,15 @@ export const createProductSlice: StateCreator<
   },
 
   fetchCustomFieldDefs: async () => {
+    set((s) => { s.customFieldDefsError = null })
     try {
       const defs = await getProductCustomFieldDefs()
       set((s) => { s.customFieldDefs = defs })
     } catch (err) {
+      // #433: previously console-only — custom columns silently vanished from
+      // the product grid with no way to tell why. Keep the error for the UI.
       console.error('[productSlice] fetchCustomFieldDefs failed:', err)
+      set((s) => { s.customFieldDefsError = err })
     }
   },
 

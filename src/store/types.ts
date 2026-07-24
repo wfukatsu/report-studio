@@ -364,6 +364,8 @@ export interface StoreState {
   // ── Tenant slice ──────────────────────────────────────────────────────────
   tenantInfo: TenantInfo | null
   tenantLoading: boolean
+  /** #433: last fetchTenantInfo failure (excluding expected pre-login 401/403). */
+  tenantError: unknown
   fetchTenantInfo: () => Promise<void>
   updateTenantInfo: (info: TenantInfo) => Promise<void>
 
@@ -372,6 +374,8 @@ export interface StoreState {
   customFieldDefs: import('@/types').ProductCustomFieldDef[]
   productsLoading: boolean
   productsError: string | null
+  /** #433: last fetchCustomFieldDefs failure — custom columns silently missing otherwise. */
+  customFieldDefsError: unknown
   productOps: Map<string, 'idle' | 'saving' | 'deleting'>
   fetchProducts: () => Promise<void>
   addProduct: (p: import('@/types').CreateProductRequest) => Promise<import('@/types').Product>

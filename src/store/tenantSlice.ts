@@ -16,6 +16,7 @@ import { isApiError } from '@/api/client'
 export type TenantSlice = Pick<StoreState,
   | 'tenantInfo'
   | 'tenantLoading'
+  | 'tenantError'
   | 'fetchTenantInfo'
   | 'updateTenantInfo'
 >
@@ -28,9 +29,10 @@ export const createTenantSlice: StateCreator<
 > = (set) => ({
   tenantInfo: null,
   tenantLoading: false,
+  tenantError: null,
 
   fetchTenantInfo: async () => {
-    set((s) => { s.tenantLoading = true })
+    set((s) => { s.tenantLoading = true; s.tenantError = null })
     try {
       const info = await getTenantInfo()
       set((s) => {
@@ -39,11 +41,16 @@ export const createTenantSlice: StateCreator<
       })
     } catch (err) {
       // 401/403 before login is expected (session not established yet) — not an
-      // error worth surfacing to the console. Only log genuinely unexpected failures.
-      if (!(isApiError(err) && (err.status === 401 || err.status === 403))) {
+      // error worth surfacing. Only log/expose genuinely unexpected failures (#433:
+      // previously console-only, which left the form silently empty).
+      const expectedAuthMiss = isApiError(err) && (err.status === 401 || err.status === 403)
+      if (!expectedAuthMiss) {
         console.error('[tenantSlice] fetchTenantInfo failed:', err)
       }
-      set((s) => { s.tenantLoading = false })
+      set((s) => {
+        s.tenantLoading = false
+        if (!expectedAuthMiss) s.tenantError = err
+      })
     }
   },
 

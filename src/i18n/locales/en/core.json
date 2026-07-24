@@ -29,6 +29,8 @@
       "titleNew": "Choose a template"
     },
     "toast": {
+      "autoSaveFailed": "Auto-save failed. Check your network or server status.",
+      "autoSaveRetry": "Retry",
       "saveFailed": "Failed to save",
       "saved": "Saved"
     },
