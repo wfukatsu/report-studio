@@ -625,9 +625,9 @@ public final class ProductController {
     }
 
     /**
-     * Adds a structured CSV row error (#412). {@code reason} is the human-readable ja message
-     * (kept for backward compatibility); {@code reasonCode} is the machine-readable UPPER_SNAKE
-     * code the frontend translates via the {@code serverErrors} namespace.
+     * Adds a structured CSV row error (#412). {@code reason} is the human-readable ja message (kept
+     * for backward compatibility); {@code reasonCode} is the machine-readable UPPER_SNAKE code the
+     * frontend translates via the {@code serverErrors} namespace.
      */
     private static void addError(
             com.fasterxml.jackson.databind.node.ArrayNode errors,

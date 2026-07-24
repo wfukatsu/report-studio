@@ -9,9 +9,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Structured summary entries (#412): {@code buildSummaryItems} carries {@code {key, text}} /
- * {@code {key, count}} objects, and the legacy {@code buildSummary} lines (ja wording, "N件" for
- * arrays) are derived from them unchanged.
+ * Structured summary entries (#412): {@code buildSummaryItems} carries {@code {key, text}} / {@code
+ * {key, count}} objects, and the legacy {@code buildSummary} lines (ja wording, "N件" for arrays)
+ * are derived from them unchanged.
  */
 class ResponsePayloadSupportTest {
 

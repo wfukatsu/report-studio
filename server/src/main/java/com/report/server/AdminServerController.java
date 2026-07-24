@@ -156,12 +156,7 @@ public final class AdminServerController {
 
         Principal principal = ctx.attribute("principal");
         String userId = (principal != null) ? principal.userId() : "unknown";
-        ctx.json(
-                Map.of(
-                        "message",
-                        "再起動中...サーバーが再起動するまでしばらくお待ちください。",
-                        "code",
-                        "RESTART_SCHEDULED"));
+        ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。", "code", "RESTART_SCHEDULED"));
         log.warn("Admin [{}] requested server restart — exiting JVM in 2 seconds", userId);
 
         CompletableFuture.runAsync(
