@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +56,6 @@ public final class BindingResolveController {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** Same identifier regex as ScalarDbTableController — keep in sync. */
-    private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
-
     /** Structural limits — align with ScalarDbLimits and frontend */
     private static final int MAX_GROUPS = 10;
 
@@ -68,8 +65,8 @@ public final class BindingResolveController {
     /** Maximum rows returned per detail group Scan — prevents accidental large result sets. */
     private static final int MAX_DETAIL_ROWS = 500;
 
-    /** System group ID for the product master — must match frontend constant */
-    static final String SYSTEM_GROUP_PRODUCT_MASTER = "__productMaster__";
+    /** System group ID for the product master — single source: SharedConstants (#425). */
+    static final String SYSTEM_GROUP_PRODUCT_MASTER = SharedConstants.SYSTEM_GROUP_PRODUCT_MASTER;
 
     private final TransactionFactory factory;
     private final DistributedTransactionManager manager;
@@ -825,7 +822,7 @@ public final class BindingResolveController {
     private static boolean isValidIdentifier(String value) {
         if (value == null || value.isBlank()) return false;
         if (value.length() > ScalarDbLimits.MAX_IDENTIFIER_LENGTH) return false;
-        return IDENTIFIER.matcher(value).matches();
+        return SharedConstants.DB_IDENTIFIER.matcher(value).matches();
     }
 
     private static String sanitize(String s) {

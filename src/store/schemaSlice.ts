@@ -39,7 +39,7 @@ function buildProductMasterGroup(): SchemaGroup {
     id: SYSTEM_GROUP_PRODUCT_MASTER,
     label: '商品マスター',
     role: 'master',
-    dataKey: '__productMaster__',
+    dataKey: SYSTEM_GROUP_PRODUCT_MASTER,
     fields: [
       { id: PRODUCT_MASTER_FIELD_IDS.id, key: 'id', label: '商品ID', type: 'string' },
       { id: PRODUCT_MASTER_FIELD_IDS.code, key: 'code', label: '商品コード', type: 'string' },

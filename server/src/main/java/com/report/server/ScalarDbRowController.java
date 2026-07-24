@@ -26,7 +26,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +57,6 @@ public final class ScalarDbRowController {
 
     private static final Logger log = LoggerFactory.getLogger(ScalarDbRowController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Pattern IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
     private static final int MAX_BODY_BYTES = 65_536; // 64 KB
     private static final int MAX_IDENTIFIER_LENGTH = 64;
 
@@ -514,7 +512,9 @@ public final class ScalarDbRowController {
     }
 
     private static boolean isValidIdentifier(String s) {
-        return s != null && s.length() <= MAX_IDENTIFIER_LENGTH && IDENTIFIER.matcher(s).matches();
+        return s != null
+                && s.length() <= MAX_IDENTIFIER_LENGTH
+                && SharedConstants.DB_IDENTIFIER.matcher(s).matches();
     }
 
     private static void abortQuietly(DistributedTransaction tx) {

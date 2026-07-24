@@ -9,6 +9,10 @@
  */
 import { z } from 'zod'
 import { REPORT_DEFINITION_LIMITS as LIMITS } from './limits'
+import sharedConstants from '../../../schemas/shared-constants.json'
+
+// #425: identifier grammar single source — mirrored by server SharedConstants.java
+const DB_IDENTIFIER_RE = new RegExp(sharedConstants.dbIdentifierPattern)
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -46,13 +50,13 @@ const SchemaFieldTypeSchema = z.enum(['string', 'number', 'date', 'boolean', 'ar
 const FORBIDDEN_FIELD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 /** ScalarDB column identifier — same rule the backend enforces (^[a-zA-Z_][a-zA-Z0-9_]*$) */
-const DbIdentifierSchema = z.string().max(128).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます')
+const DbIdentifierSchema = z.string().max(128).regex(DB_IDENTIFIER_RE, '識別子文字（英数字・_）のみ使用できます')
 
 export const SchemaFieldSchema = z.object({
   id: z.string(),
   key: z.string()
     .max(128)
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます')
+    .regex(DB_IDENTIFIER_RE, '識別子文字（英数字・_）のみ使用できます')
     .refine(
       (k) => !FORBIDDEN_FIELD_KEYS.has(k),
       { message: 'このキー名は予約されており使用できません' },
@@ -94,7 +98,7 @@ export const SchemaGroupSchema = z.object({
 export const SchemaRelationSchema = z.object({
   id: z.string(),
   // Doubles as the flat key prefix for looked-up fields → identifier chars only.
-  name: z.string().max(64).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '識別子文字（英数字・_）のみ使用できます'),
+  name: z.string().max(64).regex(DB_IDENTIFIER_RE, '識別子文字（英数字・_）のみ使用できます'),
   from: z.string(),
   to: z.string(),
   on: z.object({
@@ -234,7 +238,7 @@ const MetadataSchema = z.object({
 const CalculationRuleSchema = z.object({
   /** Stable UUID — optional for backward compat with older saved reports. */
   id: z.string().optional(),
-  key: z.string().min(1).max(100).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'キーは英数字とアンダースコアのみ使用できます'),
+  key: z.string().min(1).max(100).regex(DB_IDENTIFIER_RE, 'キーは英数字とアンダースコアのみ使用できます'),
   label: z.string().max(200),
   description: z.string().optional(),
   expression: z.string().max(500),

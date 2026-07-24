@@ -263,7 +263,7 @@ public final class ScalarDbScanController {
     }
 
     private static boolean isValidIdentifier(String s) {
-        return s != null && s.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+        return s != null && SharedConstants.DB_IDENTIFIER.matcher(s).matches();
     }
 
     private static int parseIntParam(String raw, int defaultVal, int min, int max) {
