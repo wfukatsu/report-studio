@@ -27,6 +27,7 @@ import { useShallow } from 'zustand/shallow'
 import { flattenPageElements } from '@/store/selectors'
 import type { MaskingRule, OutputVariant } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,6 +53,16 @@ interface Props {
   /** Pass an existing variant to edit; omit for new creation. */
   readonly editVariant?: OutputVariant
   readonly onClose: () => void
+}
+
+/** #432: canonical form of a draft for dirty-checking (Set order normalized). */
+function serializeDraft(d: WizardDraft): string {
+  return JSON.stringify({
+    name: d.name,
+    audience: d.targetAudience,
+    hidden: [...d.hiddenElementIds].sort(),
+    rules: d.maskingRules,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +104,16 @@ export function VariantWizard({ editVariant, onClose }: Props) {
   }))
 
   const [step, setStep] = useState<Step>(0)
+
+  // #432: closing loses the whole multi-step draft, so a dirty draft confirms first.
+  const [initialDraftSnapshot] = useState(() => serializeDraft(draft))
+  const isDirty = serializeDraft(draft) !== initialDraftSnapshot
+
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
+  const requestClose = useCallback(() => {
+    if (isDirty) setConfirmingDiscard(true)
+    else onClose()
+  }, [isDirty, onClose])
 
   // Step validation
   const canProceed = step === 0 ? draft.name.trim().length > 0 : true
@@ -152,7 +173,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label={t('variantWizard.ariaLabel')}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
@@ -160,7 +181,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
           <h2 className="text-sm font-semibold">
             {editVariant ? t('variantWizard.editTitle') : t('variantWizard.newTitle')}
           </h2>
-          <button onClick={onClose} className="rounded hover:bg-accent p-1" aria-label={t('variantWizard.close')}>
+          <button onClick={requestClose} className="rounded hover:bg-accent p-1" aria-label={t('variantWizard.close')}>
             <X className="w-4 h-4" />
           </button>
         </header>
@@ -179,7 +200,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
         {/* Footer navigation */}
         <footer className="flex items-center justify-between px-5 py-3 border-t shrink-0 bg-muted/20">
           <button
-            onClick={step === 0 ? onClose : handleBack}
+            onClick={step === 0 ? requestClose : handleBack}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border hover:bg-accent transition-colors"
           >
             {step === 0 ? (
@@ -213,6 +234,17 @@ export function VariantWizard({ editVariant, onClose }: Props) {
           )}
         </footer>
       </div>
+
+      {/* #432: confirm before discarding an edited draft */}
+      <ConfirmDialog
+        open={confirmingDiscard}
+        title={t('variantWizard.discardTitle')}
+        message={t('variantWizard.discardMessage')}
+        confirmLabel={t('variantWizard.discardConfirm')}
+        confirmVariant="danger"
+        onConfirm={onClose}
+        onCancel={() => setConfirmingDiscard(false)}
+      />
     </div>
   )
 }

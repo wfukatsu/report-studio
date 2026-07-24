@@ -56,3 +56,43 @@ describe('SaveTemplateDialog', () => {
     expect(screen.getByRole('button', { name: '保存中...' })).toBeDisabled()
   })
 })
+
+describe('SaveTemplateDialog — #432 破棄ガード', () => {
+  it('入力を変更した後のキャンセルは確認ダイアログを挟む', () => {
+    const onCancel = vi.fn()
+    render(<SaveTemplateDialog open={true} onSave={vi.fn()} onCancel={onCancel} defaultName="" />)
+    fireEvent.change(screen.getByLabelText('テンプレート名'), { target: { value: '新しい見積書' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+    // Not closed yet — the discard confirm is showing instead
+    expect(onCancel).not.toHaveBeenCalled()
+    expect(screen.getByText('変更を破棄')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '破棄して閉じる' }))
+    expect(onCancel).toHaveBeenCalled()
+  })
+
+  it('確認をキャンセルすると編集を継続できる', () => {
+    const onCancel = vi.fn()
+    render(<SaveTemplateDialog open={true} onSave={vi.fn()} onCancel={onCancel} defaultName="" />)
+    fireEvent.change(screen.getByLabelText('テンプレート名'), { target: { value: '編集中' } })
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+    // ConfirmDialog's own cancel button — scope to the inner dialog to avoid
+    // matching the SaveTemplateDialog cancel button
+    const buttons = screen.getAllByRole('button', { name: 'キャンセル' })
+    fireEvent.click(buttons[buttons.length - 1])
+
+    expect(onCancel).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('テンプレート名')).toHaveValue('編集中')
+  })
+
+  it('未編集ならキャンセルで即閉じる', () => {
+    const onCancel = vi.fn()
+    render(<SaveTemplateDialog open={true} onSave={vi.fn()} onCancel={onCancel} defaultName="テスト" />)
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(onCancel).toHaveBeenCalled()
+    expect(screen.queryByText('変更を破棄')).not.toBeInTheDocument()
+  })
+})
