@@ -10,8 +10,6 @@ import io.javalin.http.HttpStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,8 +37,10 @@ public final class ProductController {
     private static final Logger log = LoggerFactory.getLogger(ProductController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final String GROUP_KEY = "products";
-    private static final String SENTINEL_PREFIX = "product-code:";
+    /** Single source for the group key / sentinel prefix: {@link ProductCatalogService} (#418). */
+    private static final String GROUP_KEY = ProductCatalogService.GROUP_KEY;
+
+    private static final String SENTINEL_PREFIX = ProductCatalogService.SENTINEL_PREFIX;
     private static final String FIELDS_ID = "product-fields";
     private static final String EMPTY_ARRAY = "[]";
     private static final int MAX_PRICE_HISTORY = 365;
@@ -54,27 +54,20 @@ public final class ProductController {
             java.util.Set.of("__proto__", "constructor", "prototype");
 
     private final JsonBlobRepository repo;
+    private final ProductCatalogService catalog;
 
-    public ProductController(JsonBlobRepository repo) {
+    public ProductController(JsonBlobRepository repo, ProductCatalogService catalog) {
         this.repo = repo;
+        this.catalog = catalog;
     }
 
     // ── Read endpoints ────────────────────────────────────────────────────────
 
     /** GET /api/v1/products Returns all non-deleted products. */
     public void list(Context ctx) throws Exception {
-        List<String> blobs = repo.listByGroupKey(GROUP_KEY);
         ArrayNode result = MAPPER.createArrayNode();
-        for (String blob : blobs) {
-            try {
-                JsonNode product = MAPPER.readTree(blob);
-                // Filter out soft-deleted products
-                if (!product.path("deletedAt").isNull()) continue;
-                result.add(product);
-            } catch (Exception e) {
-                // Skip malformed blobs
-                log.warn("Skipping malformed product blob: {}", e.getMessage());
-            }
+        for (JsonNode product : catalog.listActiveProducts()) {
+            result.add(product);
         }
         ctx.contentType("application/json");
         ctx.result(MAPPER.writeValueAsString(result));
@@ -637,48 +630,6 @@ public final class ProductController {
         e.put("value", value);
         e.put("reason", reason);
         errors.add(e);
-    }
-
-    // ── Package-private helpers (used by ProductMasterResolver) ──────────────
-
-    /** Returns all active (non-deleted) products. Used by the resolve-bindings pipeline. */
-    List<JsonNode> listActiveProducts() {
-        try {
-            List<String> blobs = repo.listByGroupKey(GROUP_KEY);
-            List<JsonNode> result = new ArrayList<>();
-            for (String blob : blobs) {
-                try {
-                    JsonNode product = MAPPER.readTree(blob);
-                    if (product.path("deletedAt").isNull()) {
-                        result.add(product);
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-            return result;
-        } catch (Exception e) {
-            log.warn("Failed to list active products: {}", e.getMessage());
-            return List.of();
-        }
-    }
-
-    /** Returns a single active product by code. Used by the resolve-bindings pipeline. */
-    Optional<JsonNode> findByCode(String code) {
-        try {
-            Optional<String> sentinel = repo.get(SENTINEL_PREFIX + code);
-            if (sentinel.isEmpty()) return Optional.empty();
-            JsonNode sentinelNode = MAPPER.readTree(sentinel.get());
-            String productId = sentinelNode.path("productId").asText(null);
-            if (productId == null) return Optional.empty();
-            Optional<String> productBlob = repo.get(productId);
-            if (productBlob.isEmpty()) return Optional.empty();
-            JsonNode product = MAPPER.readTree(productBlob.get());
-            if (!product.path("deletedAt").isNull()) return Optional.empty();
-            return Optional.of(product);
-        } catch (Exception e) {
-            log.warn("Failed to find product by code {}: {}", code, e.getMessage());
-            return Optional.empty();
-        }
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────

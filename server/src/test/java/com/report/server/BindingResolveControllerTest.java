@@ -31,6 +31,7 @@ class BindingResolveControllerTest {
     private TransactionFactory factory;
     private DistributedTransactionManager manager;
     private JsonBlobRepository definitionsRepo;
+    private ProductCatalogService productCatalog;
     private BindingResolveController controller;
     private Context ctx;
     private Principal principal;
@@ -40,10 +41,15 @@ class BindingResolveControllerTest {
         factory = mock(TransactionFactory.class);
         manager = mock(DistributedTransactionManager.class);
         definitionsRepo = mock(JsonBlobRepository.class);
+        productCatalog = mock(ProductCatalogService.class);
         // Unlimited rate limiter for tests
         controller =
                 new BindingResolveController(
-                        factory, manager, definitionsRepo, new RateLimiter(1000, 60_000L));
+                        factory,
+                        manager,
+                        definitionsRepo,
+                        productCatalog,
+                        new RateLimiter(1000, 60_000L));
         ctx = mock(Context.class);
         principal = mock(Principal.class);
         when(principal.userId()).thenReturn("test-user");
@@ -482,16 +488,14 @@ class BindingResolveControllerTest {
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
         mockDetailScanWithProductCode("W-001");
 
-        // ProductController returns a product for code W-001.
-        ProductController productCtrl = mock(ProductController.class);
+        // The product catalog returns a product for code W-001.
         JsonNode product =
                 MAPPER.readTree(
                         """
             {"id":"p1","code":"W-001","name":"ワイヤレスマウス","unitPrice":2980,
              "category":"周辺機器","taxType":"standard","stockCount":10,"unit":"個","manufacturer":"ACME","description":""}
             """);
-        when(productCtrl.findByCode("W-001")).thenReturn(Optional.of(product));
-        controller.setProductController(productCtrl);
+        when(productCatalog.findByCode("W-001")).thenReturn(Optional.of(product));
 
         when(ctx.body()).thenReturn(detailBodyWithLookup());
         controller.resolve(ctx);
@@ -514,9 +518,7 @@ class BindingResolveControllerTest {
         when(definitionsRepo.get("tmpl-1")).thenReturn(Optional.of(envelope));
         mockDetailScanWithProductCode("GHOST");
 
-        ProductController productCtrl = mock(ProductController.class);
-        when(productCtrl.findByCode("GHOST")).thenReturn(Optional.empty());
-        controller.setProductController(productCtrl);
+        when(productCatalog.findByCode("GHOST")).thenReturn(Optional.empty());
 
         when(ctx.body()).thenReturn(detailBodyWithLookup());
         controller.resolve(ctx);
