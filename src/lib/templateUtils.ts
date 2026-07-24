@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { migrateReport } from '@/lib/migration'
-import { createDefaultDefinition } from '@/store/layoutSlice'
+import { createDefaultDefinition } from '@/lib/defaultDefinition'
 import type { Template, Report, ReportDefinition } from '@/types'
 
 /**

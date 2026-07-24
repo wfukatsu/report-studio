@@ -171,6 +171,10 @@ _blocks/
 └── constants.ts       MM_TO_PX, DEFAULT_FONT_SIZE 等
 ```
 
+**`_base` と `_blocks` の役割分担（#436）**: `_base/` は PropertiesPanel 用の UI プリミティブ（`sharedUI.tsx` の PropSection/PropRow/NumInput、`styleUtils.ts`、ColorPickerPopover）、`_blocks/` はそれらを含む合成ビルディングブロック（renderers/hooks/panels）。新要素は `_blocks` から合成し、汎用入力部品を追加するときのみ `_base` に置く。
+
+**レイヤ方向規約（#436、ESLint で強制）**: `src/lib/` は `store` / `components` / `elements` を**ランタイム import しない**（`import type` は許可、`@/store/selectors` のみ明示 disable 付きで例外）。lib から必要になった純ロジックは lib へ移動する（例: `defaultDefinition` / `eras` / `formatAddress` / `pageNumberFormat` / `currentDateFormat` — 旧パスは re-export スタブ）。
+
 ### FormTable インタラクティブ編集 (`src/elements/formTable/`)
 
 テーブル要素はキャンバス上で Excel 風の直接操作をサポート:

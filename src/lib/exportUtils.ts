@@ -2,8 +2,8 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { FORMAT_VERSION } from './formatVersion'
 import type { ReportDefinition } from '@/types'
-import { formatPageNumber } from '@/elements/pageNumber/format'
-import { formatCurrentDate } from '@/elements/currentDate/format'
+import { formatPageNumber } from '@/lib/pageNumberFormat'
+import { formatCurrentDate } from '@/lib/currentDateFormat'
 import type { PageNumberElement, CurrentDateElement } from '@/types'
 
 const EXPORT_SCALE = 2

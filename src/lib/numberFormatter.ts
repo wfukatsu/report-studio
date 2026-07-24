@@ -1,5 +1,5 @@
 import type { CalculationFormat, NumberFormatType, DateFormatType, AddressFormatType } from '@/types'
-import { formatAddress } from '@/elements/_blocks/formatAddress'
+import { formatAddress } from '@/lib/formatAddress'
 
 // ---------------------------------------------------------------------------
 // 和暦変換テーブル
