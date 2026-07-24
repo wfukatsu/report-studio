@@ -41,6 +41,20 @@ public final class JexlFunctions {
 
     // ── V1 Compatible ─────────────────────────────────────────────────────────
 
+    /**
+     * Sum numeric elements of a collection (1-arg form, #449). Mirrors the frontend jexlEngine
+     * {@code sum(array)}: only Number elements are added (numeric strings are NOT parsed in this
+     * form); non-collection/empty returns 0.
+     */
+    public double sum(Object items) {
+        if (!(items instanceof Collection<?> col)) return 0.0;
+        double total = 0.0;
+        for (Object item : col) {
+            if (item instanceof Number n) total += n.doubleValue();
+        }
+        return total;
+    }
+
     /** Sum a numeric field across a collection of maps. */
     public double sum(Object items, String field) {
         if (!(items instanceof Collection<?> col)) return 0.0;
@@ -66,6 +80,11 @@ public final class JexlFunctions {
         return col.size();
     }
 
+    /** Round to an integer (1-arg form, #449 — mirrors the frontend's optional places arg). */
+    public double round(double value) {
+        return round(value, 0);
+    }
+
     /**
      * Round a numeric value to the given number of decimal places. Accepts Number for scale — JEXL
      * passes Byte/Short/Integer for small integer literals.
@@ -77,6 +96,24 @@ public final class JexlFunctions {
     }
 
     // ── Phase 3 additions ─────────────────────────────────────────────────────
+
+    /**
+     * Average of numeric elements of a collection (1-arg form, #449). Mirrors the frontend {@code
+     * avg(array)}: numeric strings are parsed; empty or all-non-numeric returns null.
+     */
+    public Object avg(Object items) {
+        if (!(items instanceof Collection<?> col) || col.isEmpty()) return null;
+        double total = 0.0;
+        int count = 0;
+        for (Object item : col) {
+            Double d = toDouble(item);
+            if (d != null) {
+                total += d;
+                count++;
+            }
+        }
+        return count == 0 ? null : total / count;
+    }
 
     /**
      * Average of a numeric field across a collection of maps. Returns null for empty collections.
@@ -99,6 +136,20 @@ public final class JexlFunctions {
     }
 
     /**
+     * Minimum of numeric elements of a collection (1-arg form, #449). Mirrors the frontend {@code
+     * min(array)}: numeric strings are parsed; empty or all-non-numeric returns null.
+     */
+    public Object min(Object items) {
+        if (!(items instanceof Collection<?> col) || col.isEmpty()) return null;
+        Double minVal = null;
+        for (Object item : col) {
+            Double d = toDouble(item);
+            if (d != null && (minVal == null || d < minVal)) minVal = d;
+        }
+        return minVal;
+    }
+
+    /**
      * Minimum of a numeric field across a collection of maps. Returns null for empty collections.
      */
     public Object min(Object items, String field) {
@@ -111,6 +162,20 @@ public final class JexlFunctions {
             }
         }
         return minVal;
+    }
+
+    /**
+     * Maximum of numeric elements of a collection (1-arg form, #449). Mirrors the frontend {@code
+     * max(array)}: numeric strings are parsed; empty or all-non-numeric returns null.
+     */
+    public Object max(Object items) {
+        if (!(items instanceof Collection<?> col) || col.isEmpty()) return null;
+        Double maxVal = null;
+        for (Object item : col) {
+            Double d = toDouble(item);
+            if (d != null && (maxVal == null || d > maxVal)) maxVal = d;
+        }
+        return maxVal;
     }
 
     /**
@@ -143,9 +208,27 @@ public final class JexlFunctions {
      * ifExpr(score >= 60, "合格", "不合格")}
      */
     public Object ifExpr(Object condition, Object thenValue, Object elseValue) {
-        boolean cond =
-                condition instanceof Boolean b ? b : (condition != null && !condition.equals(0));
-        return cond ? thenValue : elseValue;
+        // #449: match JS truthiness — null, false, numeric 0/0.0 (any Number type, incl. NaN)
+        // and the empty string are falsy; everything else is truthy. The previous
+        // condition.equals(0) only matched Integer 0, so Double 0.0 and "" were truthy here
+        // while the frontend engine treated them as falsy.
+        return isTruthy(condition) ? thenValue : elseValue;
+    }
+
+    private static boolean isTruthy(Object condition) {
+        if (condition == null) return false;
+        if (condition instanceof Boolean b) return b;
+        if (condition instanceof Number n) {
+            double d = n.doubleValue();
+            return d != 0.0 && !Double.isNaN(d);
+        }
+        if (condition instanceof String s) return !s.isEmpty();
+        return true;
+    }
+
+    /** Format with the default "integer" pattern (1-arg form, #449 — mirrors the frontend). */
+    public String formatNumber(Object value) {
+        return formatNumber(value, null);
     }
 
     /**
@@ -158,10 +241,17 @@ public final class JexlFunctions {
                 value instanceof Number n ? n.doubleValue() : Double.parseDouble(value.toString());
         String pat = pattern == null ? "integer" : pattern.toString();
         return switch (pat) {
-            case "decimal2" -> String.format("%.2f", d);
+            // #449: grouping separator included (1,234.50) to match the frontend
+            // toLocaleString('ja-JP', {min/maximumFractionDigits: 2}) — was String.format("%.2f")
+            case "decimal2" -> new DecimalFormat("#,##0.00").format(d);
             case "currency" -> new DecimalFormat("¥#,##0").format(d);
             default -> new DecimalFormat("#,##0").format(d);
         };
+    }
+
+    /** Format with the default "yyyy/MM/dd" pattern (1-arg form, #449 — mirrors the frontend). */
+    public String formatDate(Object dateStr) {
+        return formatDate(dateStr, null);
     }
 
     /**

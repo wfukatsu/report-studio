@@ -192,6 +192,55 @@ class ExpressionEngineTest {
 
     // ── Phase 3 built-in functions ────────────────────────────────────────────
 
+    // ── #449: 1-arg overloads + JS-aligned semantics ─────────────────────────
+
+    @Test
+    void calculate_sumFunction_oneArg_sumsNumericElements() {
+        // #449: sum(array) overload added to mirror the frontend engine
+        Object result =
+                ExpressionEngine.calculate(
+                        "sum(nums)", Map.of("nums", List.of(100.0, 200.0, 300.0)));
+        assertEquals(600.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_avgFunction_oneArg_returnsAverage() {
+        Object result =
+                ExpressionEngine.calculate("avg(nums)", Map.of("nums", List.of(10.0, 20.0, 30.0)));
+        assertEquals(20.0, ((Number) result).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_minMaxFunction_oneArg_work() {
+        Map<String, Object> ctx = Map.of("nums", List.of(5.0, 3.0, 8.0));
+        assertEquals(
+                3.0, ((Number) ExpressionEngine.calculate("min(nums)", ctx)).doubleValue(), 0.001);
+        assertEquals(
+                8.0, ((Number) ExpressionEngine.calculate("max(nums)", ctx)).doubleValue(), 0.001);
+    }
+
+    @Test
+    void calculate_ifExpr_emptyStringAndDoubleZero_areFalsy() {
+        // #449: truthiness aligned with the frontend JS engine — '' and 0.0 are falsy
+        // (previously condition.equals(0) matched only Integer 0, so both were truthy)
+        assertEquals(
+                "NONE",
+                ExpressionEngine.calculate("ifExpr(note, 'HAS', 'NONE')", Map.of("note", "")));
+        assertEquals(
+                "NONE",
+                ExpressionEngine.calculate("ifExpr(amount, 'HAS', 'NONE')", Map.of("amount", 0.0)));
+        assertEquals(
+                "HAS",
+                ExpressionEngine.calculate("ifExpr(amount, 'HAS', 'NONE')", Map.of("amount", 0.5)));
+    }
+
+    @Test
+    void calculate_formatNumber_decimal2_hasGroupingSeparator() {
+        // #449: decimal2 now includes the grouping separator (was "%.2f" → 1234.50)
+        Object result = ExpressionEngine.calculate("formatNumber(1234.5, 'decimal2')", Map.of());
+        assertEquals("1,234.50", result);
+    }
+
     @Test
     void calculate_avgFunction_returnsAverage() throws Exception {
         var items = List.of(Map.of("score", 10.0), Map.of("score", 20.0), Map.of("score", 30.0));

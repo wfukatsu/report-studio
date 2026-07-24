@@ -1,5 +1,5 @@
 {
-  "$comment": "#423: Shared JEXL expression parity fixture. Single source asserted by BOTH src/lib/jexlParity.test.ts (vitest, @pawel-up/jexl engine) and server ExpressionParityTest.java (JUnit, Apache JEXL engine). Add a case here when template-facing expression behavior must match between the editor test-run and server-side evaluation. Numeric comparison tolerance: 1e-9. Cases must avoid the knownDivergences below until those are fixed.",
+  "$comment": "#423: Shared JEXL expression parity fixture. Single source asserted by BOTH src/lib/jexlParity.test.ts (vitest, @pawel-up/jexl engine) and server ExpressionParityTest.java (JUnit, Apache JEXL engine). Add a case here when template-facing expression behavior must match between the editor test-run and server-side evaluation. Numeric comparison tolerance: 1e-9. All previously known divergences (sum/avg/min/max signatures, ifExpr truthiness, formatNumber grouping/yen-sign, round decimal boundary) were resolved in #449 and promoted to cases; record any new divergence in knownDivergences until fixed.",
   "cases": [
     {
       "name": "arith-multiply",
@@ -90,13 +90,79 @@
       "expression": "formatDate('2026-07-24', 'yyyy年MM月dd日')",
       "context": {},
       "expected": "2026年07月24日"
+    },
+    {
+      "name": "sum-number-array",
+      "expression": "sum(nums)",
+      "context": { "nums": [100, 200, 300] },
+      "expected": 600
+    },
+    {
+      "name": "sum-field",
+      "expression": "sum(items, 'price')",
+      "context": { "items": [{ "price": 100 }, { "price": "200" }, { "price": 300 }] },
+      "expected": 600
+    },
+    {
+      "name": "avg-number-array",
+      "expression": "avg(nums)",
+      "context": { "nums": [10, 20, 30] },
+      "expected": 20
+    },
+    {
+      "name": "avg-field",
+      "expression": "avg(items, 'score')",
+      "context": { "items": [{ "score": 10 }, { "score": 20 }, { "score": 30 }] },
+      "expected": 20
+    },
+    {
+      "name": "min-number-array",
+      "expression": "min(nums)",
+      "context": { "nums": [5, 3, 8] },
+      "expected": 3
+    },
+    {
+      "name": "max-field",
+      "expression": "max(items, 'v')",
+      "context": { "items": [{ "v": 5 }, { "v": 3 }, { "v": 8 }] },
+      "expected": 8
+    },
+    {
+      "name": "ifExpr-empty-string-falsy",
+      "expression": "ifExpr(note, 'HAS', 'NONE')",
+      "context": { "note": "" },
+      "expected": "NONE"
+    },
+    {
+      "name": "ifExpr-double-zero-falsy",
+      "expression": "ifExpr(amount, 'HAS', 'NONE')",
+      "context": { "amount": 0.0 },
+      "expected": "NONE"
+    },
+    {
+      "name": "formatNumber-decimal2-grouped",
+      "expression": "formatNumber(1234.5, 'decimal2')",
+      "context": {},
+      "expected": "1,234.50"
+    },
+    {
+      "name": "formatNumber-currency-halfwidth-yen",
+      "expression": "formatNumber(1234567, 'currency')",
+      "context": {},
+      "expected": "¥1,234,567"
+    },
+    {
+      "name": "formatNumber-integer-grouped",
+      "expression": "formatNumber(1234567)",
+      "context": {},
+      "expected": "1,234,567"
+    },
+    {
+      "name": "round-decimal-boundary",
+      "expression": "round(2.675, 2)",
+      "context": {},
+      "expected": 2.68
     }
   ],
-  "knownDivergences": [
-    "sum: JS は sum(数値配列)、Java は sum(コレクション, フィールド名) とシグネチャが異なる。sum(items, 'price') は JS で常に 0、sum(items) は Java で解決失敗",
-    "avg/min/max: JS は avg(数値配列) と avg(マップ配列, field) の両対応、Java は field 必須の2引数のみ",
-    "ifExpr の truthiness: 空文字列 '' と Double 0.0 は JS で falsy、Java で truthy（condition.equals(0) は Integer 0 のみ一致）",
-    "formatNumber: decimal2 は JS が桁区切りあり（1,234.50）、Java は無し（1234.50）。currency は ¥ の全角/半角が異なる",
-    "round の二進誤差境界: round(2.675, 2) は JS 2.67（浮動小数点）、Java 2.68（BigDecimal HALF_UP）"
-  ]
+  "knownDivergences": []
 }
