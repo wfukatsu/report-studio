@@ -9,7 +9,8 @@ import { resolveFontFamily } from '@/lib/styleUtils'
 /**
  * i18n keys for the human-readable placeholder labels shown in the editor
  * instead of resolved values. Keys map the raw CurrentDateFormat enum; the
- * wareki entries carry a literal `{{元号}}` era token via interpolation.
+ * wareki entries carry an era token (`currentDate.eraTokenName`, wrapped in
+ * `{{ }}`) via interpolation.
  */
 const FORMAT_PLACEHOLDER_KEYS = {
   'yyyy/MM/dd':            'currentDate.placeholderYmdSlash',
@@ -42,7 +43,7 @@ export const CurrentDateRenderer = memo(function CurrentDateRenderer({
       return el.customFormat ?? t('currentDate.placeholderCustom')
     }
     if (el.format === 'wareki_full' || el.format === 'wareki_short') {
-      return t(FORMAT_PLACEHOLDER_KEYS[el.format], { eraToken: '{{元号}}' })
+      return t(FORMAT_PLACEHOLDER_KEYS[el.format], { eraToken: `{{${t('currentDate.eraTokenName')}}}` })
     }
     return t(FORMAT_PLACEHOLDER_KEYS[el.format])
   }, [el.format, el.customFormat, resolveValues, t])

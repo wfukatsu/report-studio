@@ -1,29 +1,31 @@
 /**
  * CodeMirror 6 autocomplete source for formula-v1 expressions.
  *
- * Pre-builds completions at creation time (not per-keystroke).
- * Supports Japanese label search for function name boosting.
+ * Pre-builds completions at creation time (not per-keystroke). Labels are
+ * resolved with `i18n.t()` when the source is created (#410) — the source is
+ * rebuilt per editor mount, so a language switch is picked up on the next
+ * editor open.
+ * Supports localized label search for function name boosting.
  */
 
 import type { CompletionContext, CompletionResult, Completion, CompletionSection } from '@codemirror/autocomplete'
 import type { SchemaGroup } from '@/types'
-import { FORMULA_FUNCTIONS, CATEGORY_LABELS_JA } from '../functionCatalog'
+import i18n from '@/i18n/config'
+import { FORMULA_FUNCTIONS, CATEGORY_LABEL_KEYS } from '../functionCatalog'
 
-const fieldSection: CompletionSection = { name: 'フィールド', rank: 0 }
-const computedSection: CompletionSection = { name: '計算値', rank: 1 }
-const functionSection: CompletionSection = { name: '関数', rank: 2 }
+function buildFunctionCompletions(section: CompletionSection): readonly Completion[] {
+  const t = i18n.getFixedT(null, 'components')
 
-function buildFunctionCompletions(): readonly Completion[] {
   return FORMULA_FUNCTIONS.map((def): Completion => {
     const argsHint = def.args.map((a) => a.name).join(', ')
-    const category = CATEGORY_LABELS_JA[def.category]
+    const category = t(CATEGORY_LABEL_KEYS[def.category])
 
     return {
       label: def.name,
-      displayLabel: `${def.name}  ${def.labelJa}`,
+      displayLabel: `${def.name}  ${t(def.labelKey)}`,
       detail: category,
       type: 'function',
-      section: functionSection,
+      section,
       apply: `${def.name}()`,
       boost: -1,
       info: () => {
@@ -42,7 +44,7 @@ function buildFunctionCompletions(): readonly Completion[] {
 
         const desc = document.createElement('div')
         desc.className = 'cm-completion-info-desc'
-        desc.textContent = def.descriptionJa
+        desc.textContent = t(def.descriptionKey)
         dom.appendChild(desc)
 
         return { dom }
@@ -51,7 +53,11 @@ function buildFunctionCompletions(): readonly Completion[] {
   })
 }
 
-function buildFieldCompletions(groups: readonly SchemaGroup[]): readonly Completion[] {
+function buildFieldCompletions(
+  groups: readonly SchemaGroup[],
+  sections: { readonly field: CompletionSection; readonly computed: CompletionSection },
+): readonly Completion[] {
+  const t = i18n.getFixedT(null, 'components')
   const completions: Completion[] = []
 
   for (const group of groups) {
@@ -59,8 +65,10 @@ function buildFieldCompletions(groups: readonly SchemaGroup[]): readonly Complet
 
     for (const field of group.fields) {
       const isComputed = !!field.computed
-      const section = isComputed ? computedSection : fieldSection
-      const typeLabel = isComputed ? `${field.type} (計算)` : field.type
+      const section = isComputed ? sections.computed : sections.field
+      const typeLabel = isComputed
+        ? t('formulaEditor.completions.computedTypeLabel', { type: field.type })
+        : field.type
       const path = `${group.dataKey}.${field.key}`
 
       completions.push({
@@ -81,7 +89,9 @@ function buildFieldCompletions(groups: readonly SchemaGroup[]): readonly Complet
           dom.appendChild(pathLine)
 
           const typeLine = document.createElement('div')
-          typeLine.textContent = `型: ${field.type}${isComputed ? ' (計算フィールド)' : ''} — ${group.label}`
+          typeLine.textContent = isComputed
+            ? t('formulaEditor.completions.computedFieldType', { type: field.type, group: group.label })
+            : t('formulaEditor.completions.fieldType', { type: field.type, group: group.label })
           dom.appendChild(typeLine)
 
           return { dom }
@@ -100,14 +110,19 @@ function buildFieldCompletions(groups: readonly SchemaGroup[]): readonly Complet
 export function createFormulaCompletionSource(
   groups: readonly SchemaGroup[],
 ): (context: CompletionContext) => CompletionResult | null {
-  const functionCompletions = buildFunctionCompletions()
-  const fieldCompletions = buildFieldCompletions(groups)
+  const t = i18n.getFixedT(null, 'components')
+  const fieldSection: CompletionSection = { name: t('formulaEditor.completions.sectionFields'), rank: 0 }
+  const computedSection: CompletionSection = { name: t('formulaEditor.completions.sectionComputed'), rank: 1 }
+  const functionSection: CompletionSection = { name: t('formulaEditor.completions.sectionFunctions'), rank: 2 }
+
+  const functionCompletions = buildFunctionCompletions(functionSection)
+  const fieldCompletions = buildFieldCompletions(groups, { field: fieldSection, computed: computedSection })
   const allCompletions = [...fieldCompletions, ...functionCompletions]
 
-  // Japanese search index: jpLabel → function label
+  // Localized-label search index: label → function label
   const jpSearchIndex = new Map<string, string>()
   for (const def of FORMULA_FUNCTIONS) {
-    jpSearchIndex.set(def.labelJa, def.name)
+    jpSearchIndex.set(t(def.labelKey), def.name)
   }
 
   return (context: CompletionContext): CompletionResult | null => {

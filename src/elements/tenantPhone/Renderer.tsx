@@ -14,7 +14,7 @@ export const TenantPhoneRenderer = memo(function TenantPhoneRenderer({ element: 
   // Preview/export: unset renders nothing, matching the server PDF (#315)
   const resolved = phone ?? el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : t('tenantPhone.placeholder', { token: '{{電話番号}}' })
+  const value = resolveValues ? resolved! : t('tenantPhone.placeholder', { token: `{{${t('tenantPhone.tokenName')}}}` })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

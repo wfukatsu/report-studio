@@ -22,7 +22,7 @@ describe('LivePreviewPanel', () => {
 
   it('shows page count in header', () => {
     render(<LivePreviewPanel />)
-    expect(screen.getByText(/Preview — 1 page/)).toBeInTheDocument()
+    expect(screen.getByText('プレビュー — 1ページ')).toBeInTheDocument()
   })
 
   it('shows page name below canvas', () => {
@@ -38,10 +38,10 @@ describe('LivePreviewPanel', () => {
     expect(screen.getAllByTestId('report-canvas')).toHaveLength(1)
   })
 
-  it('shows plural "pages" for multiple pages', () => {
+  it('shows the count for multiple pages', () => {
     // Add a second page
     useReportStore.getState().addPage()
     render(<LivePreviewPanel />)
-    expect(screen.getByText(/Preview — 2 pages/)).toBeInTheDocument()
+    expect(screen.getByText('プレビュー — 2ページ')).toBeInTheDocument()
   })
 })

@@ -71,13 +71,13 @@ export function ProductCsvImportModal({ onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
           <p className="text-xs text-muted-foreground">
             {t('productCsvImportModal.autoDetectHeader')}<br />
-            {t('productCsvImportModal.supportedColumns')}<code className="bg-muted px-1 rounded">code</code>{t('productCsvImportModal.codeRequired')}・
-            <code className="bg-muted px-1 rounded">name</code>・
-            <code className="bg-muted px-1 rounded">unitPrice</code>・
-            <code className="bg-muted px-1 rounded">category</code>・
-            <code className="bg-muted px-1 rounded">taxType</code>・
-            <code className="bg-muted px-1 rounded">unit</code>・
-            <code className="bg-muted px-1 rounded">manufacturer</code>・
+            {t('productCsvImportModal.supportedColumns')}<code className="bg-muted px-1 rounded">code</code>{t('productCsvImportModal.codeRequired')}
+            <code className="bg-muted px-1 rounded">name</code>{t('productCsvImportModal.columnSeparator')}
+            <code className="bg-muted px-1 rounded">unitPrice</code>{t('productCsvImportModal.columnSeparator')}
+            <code className="bg-muted px-1 rounded">category</code>{t('productCsvImportModal.columnSeparator')}
+            <code className="bg-muted px-1 rounded">taxType</code>{t('productCsvImportModal.columnSeparator')}
+            <code className="bg-muted px-1 rounded">unit</code>{t('productCsvImportModal.columnSeparator')}
+            <code className="bg-muted px-1 rounded">manufacturer</code>
             {t('productCsvImportModal.otherColumns')}
           </p>
 

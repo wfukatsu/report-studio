@@ -41,6 +41,14 @@
       "newNameLabel": "Name for new color",
       "title": "Brand Colors"
     },
+    "brandColors": {
+      "amber": "Amber",
+      "black": "Black",
+      "blue": "Blue",
+      "green": "Green",
+      "red": "Red",
+      "white": "White"
+    },
     "colorPicker": {
       "applyCustom": "Apply custom color",
       "brandColors": "Brand colors",
@@ -83,6 +91,20 @@
       "delete": "Delete",
       "displayError": "⚠ Display error",
       "retry": "Retry"
+    },
+    "fontFamily": {
+      "bizUdpGothic": "BIZ UDP Gothic",
+      "bizUdpMincho": "BIZ UDP Mincho",
+      "meiryo": "Meiryo (Gothic)",
+      "monospace": "Monospace",
+      "msGothic": "MS Gothic",
+      "msMincho": "MS Mincho",
+      "notoSansJp": "Noto Sans JP (Gothic)",
+      "notoSerifJp": "Noto Serif JP (Mincho)",
+      "sansSerif": "Sans-serif (default)",
+      "serif": "Serif (default)",
+      "yuGothic": "Yu Gothic",
+      "yuMincho": "Yu Mincho"
     },
     "format": {
       "addressMultiline": "Address (3 lines)",
@@ -184,6 +206,7 @@
     "customFormat": "Custom format",
     "customPlaceholder": "yyyy/MM/dd (ddd)",
     "dateSection": "Date",
+    "eraTokenName": "元号",
     "font": "Font",
     "format": "Format",
     "horizontalAlign": "Horizontal align",
@@ -530,6 +553,7 @@
     "sortOrder": "Sort order",
     "subtotal": "Subtotal",
     "total": "Total",
+    "uncategorized": "(Uncategorized)",
     "unknownOption": "Unknown: {{value}}",
     "unselected": "Not selected…",
     "widthMm": "Width (mm)",
@@ -604,13 +628,15 @@
     "multiLine": "Three lines",
     "placeholder": "{{token}}",
     "single": "Single line",
-    "title": "Address"
+    "title": "Address",
+    "tokenName": "Address"
   },
   "tenantCompanyName": {
     "fallbackLabel": "Fallback text",
     "fallbackPlaceholder": "(Company name not set)",
     "placeholder": "{{token}}",
-    "title": "Company name"
+    "title": "Company name",
+    "tokenName": "Company name"
   },
   "tenantCustom": {
     "fallbackLabel": "Fallback text",
@@ -636,17 +662,20 @@
     "fallbackLabel": "Fallback text",
     "fallbackPlaceholder": "(Phone number not set)",
     "placeholder": "{{token}}",
-    "title": "Phone number"
+    "title": "Phone number",
+    "tokenName": "Phone number"
   },
   "tenantRepresentative": {
     "fallbackLabel": "Fallback text",
     "fallbackPlaceholder": "(Representative name not set)",
     "placeholder": "{{token}}",
-    "title": "Representative name"
+    "title": "Representative name",
+    "tokenName": "Representative name"
   },
   "text": {
     "contentPlaceholder": "Text content (reference data with {{token}})",
     "contentTitle": "Content",
-    "editAriaLabel": "Edit text"
+    "editAriaLabel": "Edit text",
+    "tokenName": "fieldKey"
   }
 }

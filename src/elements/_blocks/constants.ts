@@ -3,6 +3,7 @@
  * Centralizes magic numbers and configuration values.
  */
 
+import type { ParseKeys } from 'i18next'
 import { mmToPx } from '@/lib/paperSizes'
 
 /** 1mm = 96/25.4 ≈ 3.7795275591px @ 96dpi — single source: paperSizes.mmToPx */
@@ -31,23 +32,25 @@ export const FONT_FAMILIES = [
 ] as const
 
 /**
- * Business-friendly Japanese labels for font families (#111). Keeps the CSS
- * family value intact while showing 明朝／ゴシック vocabulary the non-technical
- * persona recognizes instead of technical values like `sans-serif`.
+ * Business-friendly display labels for font families (#111), stored as i18n
+ * keys (`elements` namespace, #410) and resolved with `t()` at render time.
+ * Keeps the CSS family value intact while showing 明朝／ゴシック vocabulary the
+ * non-technical persona recognizes instead of technical values like
+ * `sans-serif`.
  */
-export const FONT_FAMILY_LABELS: Record<(typeof FONT_FAMILIES)[number], string> = {
-  'sans-serif': 'ゴシック体（標準）',
-  'serif': '明朝体（標準）',
-  'monospace': '等幅',
-  'Noto Sans JP': 'Noto Sans JP（ゴシック）',
-  'Noto Serif JP': 'Noto Serif JP（明朝）',
-  'BIZ UDPGothic': 'BIZ UDP ゴシック',
-  'BIZ UDPMincho': 'BIZ UDP 明朝',
-  'Meiryo': 'メイリオ（ゴシック）',
-  'MS Gothic': 'MS ゴシック',
-  'MS Mincho': 'MS 明朝',
-  'Yu Gothic': '游ゴシック',
-  'Yu Mincho': '游明朝',
+export const FONT_FAMILY_LABEL_KEYS: Record<(typeof FONT_FAMILIES)[number], ParseKeys<'elements'>> = {
+  'sans-serif': 'blocks.fontFamily.sansSerif',
+  'serif': 'blocks.fontFamily.serif',
+  'monospace': 'blocks.fontFamily.monospace',
+  'Noto Sans JP': 'blocks.fontFamily.notoSansJp',
+  'Noto Serif JP': 'blocks.fontFamily.notoSerifJp',
+  'BIZ UDPGothic': 'blocks.fontFamily.bizUdpGothic',
+  'BIZ UDPMincho': 'blocks.fontFamily.bizUdpMincho',
+  'Meiryo': 'blocks.fontFamily.meiryo',
+  'MS Gothic': 'blocks.fontFamily.msGothic',
+  'MS Mincho': 'blocks.fontFamily.msMincho',
+  'Yu Gothic': 'blocks.fontFamily.yuGothic',
+  'Yu Mincho': 'blocks.fontFamily.yuMincho',
 }
 
 /**

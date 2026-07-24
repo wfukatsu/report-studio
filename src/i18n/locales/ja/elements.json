@@ -41,6 +41,14 @@
       "newNameLabel": "新しいカラーの名前",
       "title": "ブランドカラー管理"
     },
+    "brandColors": {
+      "amber": "アンバー",
+      "black": "ブラック",
+      "blue": "ブルー",
+      "green": "グリーン",
+      "red": "レッド",
+      "white": "ホワイト"
+    },
     "colorPicker": {
       "applyCustom": "カスタムカラーを適用",
       "brandColors": "ブランドカラー",
@@ -83,6 +91,20 @@
       "delete": "削除",
       "displayError": "⚠ 表示エラー",
       "retry": "再試行"
+    },
+    "fontFamily": {
+      "bizUdpGothic": "BIZ UDP ゴシック",
+      "bizUdpMincho": "BIZ UDP 明朝",
+      "meiryo": "メイリオ（ゴシック）",
+      "monospace": "等幅",
+      "msGothic": "MS ゴシック",
+      "msMincho": "MS 明朝",
+      "notoSansJp": "Noto Sans JP（ゴシック）",
+      "notoSerifJp": "Noto Serif JP（明朝）",
+      "sansSerif": "ゴシック体（標準）",
+      "serif": "明朝体（標準）",
+      "yuGothic": "游ゴシック",
+      "yuMincho": "游明朝"
     },
     "format": {
       "addressMultiline": "住所（3行）",
@@ -184,6 +206,7 @@
     "customFormat": "カスタム書式",
     "customPlaceholder": "yyyy/MM/dd (ddd)",
     "dateSection": "日付",
+    "eraTokenName": "元号",
     "font": "フォント",
     "format": "書式",
     "horizontalAlign": "横揃え",
@@ -530,6 +553,7 @@
     "sortOrder": "ソート順",
     "subtotal": "小計",
     "total": "合計",
+    "uncategorized": "(未分類)",
     "unknownOption": "不明: {{value}}",
     "unselected": "未選択…",
     "widthMm": "幅 (mm)",
@@ -604,13 +628,15 @@
     "multiLine": "3行表示",
     "placeholder": "{{token}}",
     "single": "1行表示",
-    "title": "住所"
+    "title": "住所",
+    "tokenName": "住所"
   },
   "tenantCompanyName": {
     "fallbackLabel": "未設定時テキスト",
     "fallbackPlaceholder": "（会社名未設定）",
     "placeholder": "{{token}}",
-    "title": "会社名"
+    "title": "会社名",
+    "tokenName": "会社名"
   },
   "tenantCustom": {
     "fallbackLabel": "未設定時テキスト",
@@ -636,17 +662,20 @@
     "fallbackLabel": "未設定時テキスト",
     "fallbackPlaceholder": "（電話番号未設定）",
     "placeholder": "{{token}}",
-    "title": "電話番号"
+    "title": "電話番号",
+    "tokenName": "電話番号"
   },
   "tenantRepresentative": {
     "fallbackLabel": "未設定時テキスト",
     "fallbackPlaceholder": "（代表者名未設定）",
     "placeholder": "{{token}}",
-    "title": "代表者名"
+    "title": "代表者名",
+    "tokenName": "代表者名"
   },
   "text": {
     "contentPlaceholder": "テキスト内容（{{token}} でデータ参照）",
     "contentTitle": "コンテンツ",
-    "editAriaLabel": "テキスト編集"
+    "editAriaLabel": "テキスト編集",
+    "tokenName": "フィールドキー"
   }
 }

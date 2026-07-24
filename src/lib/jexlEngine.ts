@@ -126,20 +126,24 @@ jexl.addFunction('formatDate', (dateStr: unknown, format?: unknown) => {
 /**
  * All functions registered in the JEXL sandbox.
  * Import this in CalculationTab and any agent context that needs to enumerate
- * available functions.
+ * available functions. Descriptions are i18n keys into the shared
+ * `formulaCatalog` section (components namespace) — the catalog in
+ * functionCatalog.ts describes the same functions, so the keys are reused
+ * instead of duplicating the copy (#410). Resolve with
+ * `t(fn.descriptionKey)` (components namespace) at display time.
  */
 export const JEXL_BUILTINS = [
-  { name: 'sum',          signature: 'sum(array)',                description: '配列の合計値' },
-  { name: 'count',        signature: 'count(array)',              description: '配列の要素数' },
-  { name: 'round',        signature: 'round(value, places?)',     description: '小数の丸め' },
-  { name: 'avg',          signature: 'avg(array, field?)',        description: '配列の平均値' },
-  { name: 'min',          signature: 'min(array, field?)',        description: '配列の最小値' },
-  { name: 'max',          signature: 'max(array, field?)',        description: '配列の最大値' },
-  { name: 'concat',       signature: 'concat(...strings)',        description: '文字列の連結' },
-  { name: 'ifExpr',       signature: 'ifExpr(cond, then, else)',  description: '条件分岐 (if の代替)' },
-  { name: 'formatNumber', signature: 'formatNumber(value, fmt?)', description: '数値書式化' },
-  { name: 'formatDate',   signature: 'formatDate(date, fmt?)',    description: '日付書式化' },
-] as const
+  { name: 'sum',          signature: 'sum(array)',                descriptionKey: 'formulaCatalog.sum.description' },
+  { name: 'count',        signature: 'count(array)',              descriptionKey: 'formulaCatalog.count.description' },
+  { name: 'round',        signature: 'round(value, places?)',     descriptionKey: 'formulaCatalog.round.description' },
+  { name: 'avg',          signature: 'avg(array, field?)',        descriptionKey: 'formulaCatalog.avg.description' },
+  { name: 'min',          signature: 'min(array, field?)',        descriptionKey: 'formulaCatalog.min.description' },
+  { name: 'max',          signature: 'max(array, field?)',        descriptionKey: 'formulaCatalog.max.description' },
+  { name: 'concat',       signature: 'concat(...strings)',        descriptionKey: 'formulaCatalog.concat.description' },
+  { name: 'ifExpr',       signature: 'ifExpr(cond, then, else)',  descriptionKey: 'formulaCatalog.if.description' },
+  { name: 'formatNumber', signature: 'formatNumber(value, fmt?)', descriptionKey: 'formulaCatalog.text.description' },
+  { name: 'formatDate',   signature: 'formatDate(date, fmt?)',    descriptionKey: 'formulaCatalog.formatDate.description' },
+] as const satisfies readonly { name: string; signature: string; descriptionKey: import('i18next').ParseKeys<'components'> }[]
 
 // ---------------------------------------------------------------------------
 // Security: prototype-escape keyword guard

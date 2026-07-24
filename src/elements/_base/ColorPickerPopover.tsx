@@ -2,7 +2,7 @@ import { useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { useDropdownDismiss } from '@/hooks/useDropdownDismiss'
-import { useBrandColors, useRecentColors } from '@/hooks/useColorPrefs'
+import { useBrandColors, useRecentColors, brandColorName } from '@/hooks/useColorPrefs'
 import { Tooltip } from '@/components/common/Tooltip'
 import { BrandColorManagerModal } from './BrandColorManagerModal'
 import { isValidHex, expandHex, PRESET_COLOR_COLUMNS } from '@/lib/colorUtils'
@@ -157,7 +157,7 @@ export function ColorPickerPopover({ value, onChange, onClose }: ColorPickerPopo
             <ColorSwatch
               key={c.hex}
               hex={c.hex}
-              name={c.name || undefined}
+              name={brandColorName(c, t)}
               isActive={c.hex.toLowerCase() === value.toLowerCase()}
               onClick={() => handleSelectColor(c.hex)}
             />

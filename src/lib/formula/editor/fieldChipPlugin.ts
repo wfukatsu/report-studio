@@ -13,6 +13,7 @@ import { WidgetType, Decoration, ViewPlugin } from '@codemirror/view'
 import type { EditorView, ViewUpdate, DecorationSet } from '@codemirror/view'
 import { syntaxTree } from '@codemirror/language'
 import type { Range } from '@codemirror/state'
+import i18n from '@/i18n/config'
 import type { SchemaGroup } from '@/types'
 
 export type ChipScope = 'master' | 'detail' | 'computed'
@@ -39,7 +40,7 @@ class FieldChipWidget extends WidgetType {
     const chip = document.createElement('span')
     chip.className = `cm-field-chip ${SCOPE_CLASS[this.scope]}`
     chip.textContent = this.displayLabel
-    chip.setAttribute('aria-label', `フィールド: ${this.displayLabel}`)
+    chip.setAttribute('aria-label', i18n.t('components:formulaEditor.fieldChip.ariaLabel', { label: this.displayLabel }))
     return chip
   }
 

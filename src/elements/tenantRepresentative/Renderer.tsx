@@ -14,7 +14,7 @@ export const TenantRepresentativeRenderer = memo(function TenantRepresentativeRe
   // Preview/export: unset renders nothing, matching the server PDF (#315)
   const resolved = representative ?? el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : t('tenantRepresentative.placeholder', { token: '{{代表者名}}' })
+  const value = resolveValues ? resolved! : t('tenantRepresentative.placeholder', { token: `{{${t('tenantRepresentative.tokenName')}}}` })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

@@ -27,7 +27,7 @@ export const TenantAddressRenderer = memo(function TenantAddressRenderer({ eleme
     address: tenantInfo?.address,
   }, mode) || el.fallback
   if (resolveValues && !resolved) return null
-  const value = resolveValues ? resolved! : t('tenantAddress.placeholder', { token: '{{住所}}' })
+  const value = resolveValues ? resolved! : t('tenantAddress.placeholder', { token: `{{${t('tenantAddress.tokenName')}}}` })
 
   const resolvedStyle = resolveStyle(el.style, defaultStyle ?? {})
   return <TextContent text={value} style={resolveValues ? resolvedStyle : { ...resolvedStyle, ...FIELD_PLACEHOLDER_STYLE }} />

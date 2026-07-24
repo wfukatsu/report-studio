@@ -2,6 +2,7 @@
  * Grouping utilities for RepeatingBand groupBy feature.
  */
 
+import i18n from '@/i18n/config'
 import { resolveField } from './dataBinding'
 
 export interface GroupedData {
@@ -13,12 +14,11 @@ export interface GroupedData {
   records: Record<string, unknown>[]
 }
 
-const UNCATEGORIZED_LABEL = '(未分類)'
-
 /**
  * レコードを groupByField でグルーピングする。
  * グループの順序はデータ出現順を維持する。
- * null/undefined/空文字のフィールド値は「(未分類)」グループにまとめる。
+ * null/undefined/空文字のフィールド値は「(未分類)」グループにまとめる
+ * （ラベルは i18n キー `elements:repeatingBand.uncategorized`、#410）。
  */
 export function groupRecords(
   records: Record<string, unknown>[],
@@ -26,12 +26,13 @@ export function groupRecords(
 ): GroupedData[] {
   if (records.length === 0) return []
 
+  const uncategorizedLabel = i18n.t('elements:repeatingBand.uncategorized')
   const groupMap = new Map<string, Record<string, unknown>[]>()
   const groupOrder: string[] = []
 
   for (const record of records) {
     const raw = resolveField(record, groupByField)
-    const value = raw === '' ? UNCATEGORIZED_LABEL : raw
+    const value = raw === '' ? uncategorizedLabel : raw
 
     if (!groupMap.has(value)) {
       groupMap.set(value, [])

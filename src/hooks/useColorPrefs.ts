@@ -8,6 +8,7 @@
  */
 
 import { useSyncExternalStore, useCallback } from 'react'
+import type { ParseKeys, TFunction } from 'i18next'
 
 const BRAND_KEY = 'rds2:brandColors'
 const RECENT_KEY = 'rds2:recentColors'
@@ -17,17 +18,34 @@ const CHANGE_EVENT = 'color-prefs-change'
 
 export interface BrandColor {
   hex: string
+  /** User-given name. Empty for untouched default colors (see nameKey). */
   name: string
+  /**
+   * i18n key (`elements` namespace) for the default palette names (#410).
+   * Resolved at display time via {{brandColorName}} so the default names
+   * follow language switches; a user-entered `name` always wins.
+   */
+  nameKey?: ParseKeys<'elements'>
 }
 
 export const DEFAULT_BRAND_COLORS: BrandColor[] = [
-  { hex: '#000000', name: 'ブラック' },
-  { hex: '#FFFFFF', name: 'ホワイト' },
-  { hex: '#1E40AF', name: 'ブルー' },
-  { hex: '#DC2626', name: 'レッド' },
-  { hex: '#16A34A', name: 'グリーン' },
-  { hex: '#D97706', name: 'アンバー' },
+  { hex: '#000000', name: '', nameKey: 'base.brandColors.black' },
+  { hex: '#FFFFFF', name: '', nameKey: 'base.brandColors.white' },
+  { hex: '#1E40AF', name: '', nameKey: 'base.brandColors.blue' },
+  { hex: '#DC2626', name: '', nameKey: 'base.brandColors.red' },
+  { hex: '#16A34A', name: '', nameKey: 'base.brandColors.green' },
+  { hex: '#D97706', name: '', nameKey: 'base.brandColors.amber' },
 ]
+
+/**
+ * Display name for a brand color: user-given name → localized default name
+ * → hex fallback. `t` must be bound to the `elements` namespace.
+ */
+export function brandColorName(color: BrandColor, t: TFunction<'elements'>): string {
+  if (color.name) return color.name
+  if (color.nameKey) return t(color.nameKey)
+  return color.hex
+}
 
 // ---------------------------------------------------------------------------
 // Read / write helpers

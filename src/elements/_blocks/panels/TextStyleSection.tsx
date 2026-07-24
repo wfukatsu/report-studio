@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -9,9 +10,7 @@ import {
   TextAlignTopIcon, TextAlignMiddleIcon, TextAlignBottomIcon,
   WritingHorizontalIcon, WritingVerticalIcon,
 } from '@/elements/_base/TextVerticalAlignIcons'
-import { FONT_FAMILIES, FONT_FAMILY_LABELS, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT } from '../constants'
-
-const fontFamilyOptions = FONT_FAMILIES.map((f) => ({ value: f, label: FONT_FAMILY_LABELS[f] ?? f }))
+import { FONT_FAMILIES, FONT_FAMILY_LABEL_KEYS, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT } from '../constants'
 
 // `as const satisfies` keeps `labelKey` literal so `t(o.labelKey)` type-checks
 // against the typed i18next catalog (#329). `value` stays the textFit enum.
@@ -45,6 +44,10 @@ export function TextStyleSection({
   onFuriganaChange,
 }: TextStyleSectionProps) {
   const { t } = useTranslation('elements')
+  const fontFamilyOptions = useMemo(
+    () => FONT_FAMILIES.map((f) => ({ value: f, label: t(FONT_FAMILY_LABEL_KEYS[f]) })),
+    [t],
+  )
   // Helper: is the given property inherited from defaultStyle?
   const inh = <K extends keyof TextStyle>(key: K): boolean =>
     style[key] === undefined

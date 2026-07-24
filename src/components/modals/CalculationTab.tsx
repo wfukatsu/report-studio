@@ -170,6 +170,7 @@ function VariablePanel({
   onInsert: (token: string) => void
 }) {
   const { t } = useTranslation('modals')
+  const { t: tCatalog } = useTranslation('components')
   const [open, setOpen] = useState(false)
 
   return (
@@ -228,7 +229,7 @@ function VariablePanel({
                   key={fn.name}
                   onClick={() => onInsert(`${fn.name}(`)}
                   className="px-1.5 py-0.5 text-[9px] font-mono bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900 transition-colors"
-                  title={fn.descriptionJa}
+                  title={tCatalog(fn.descriptionKey)}
                 >
                   {fn.name}({fn.args.map(a => a.name).join(', ')})
                 </button>

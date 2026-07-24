@@ -8,9 +8,18 @@
  * - FormulaToolbar quick-insert buttons
  * - formulaMetadata for calltip / help text
  *
+ * Display strings are stored as i18n keys (`components` namespace,
+ * `formulaCatalog.*` section, #410) and resolved with `t()` at render time so
+ * they follow language switches. `ParseKeys<'components'>` makes a key typo a
+ * compile error.
+ *
  * Phase 1: 10 functions (existing JEXL equivalents)
  * Phase 2+: Extend to 42 functions (v1 full set)
  */
+
+import type { ParseKeys } from 'i18next'
+
+type CatalogKey = ParseKeys<'components'>
 
 export type FunctionCategory =
   | 'aggregate'
@@ -24,7 +33,7 @@ export type ArgType = 'number' | 'string' | 'boolean' | 'date' | 'array' | 'any'
 export interface FunctionArg {
   readonly name: string
   readonly type: ArgType
-  readonly descriptionJa: string
+  readonly descriptionKey: CatalogKey
   readonly optional?: true
 }
 
@@ -37,8 +46,8 @@ export interface FunctionDef {
   readonly name: string
   readonly jexlName: string
   readonly category: FunctionCategory
-  readonly labelJa: string
-  readonly descriptionJa: string
+  readonly labelKey: CatalogKey
+  readonly descriptionKey: CatalogKey
   readonly args: readonly FunctionArg[]
   readonly returnType: ArgType
   readonly examples: readonly FunctionExample[]
@@ -49,9 +58,9 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'SUM',
     jexlName: 'sum',
     category: 'aggregate',
-    labelJa: '合計',
-    descriptionJa: '配列の合計値を返します',
-    args: [{ name: 'array', type: 'array', descriptionJa: '数値の配列' }],
+    labelKey: 'formulaCatalog.sum.label',
+    descriptionKey: 'formulaCatalog.sum.description',
+    args: [{ name: 'array', type: 'array', descriptionKey: 'formulaCatalog.sum.args.array' }],
     returnType: 'number',
     examples: [{ formula: 'SUM(items)', result: '150' }],
   },
@@ -59,9 +68,9 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'COUNT',
     jexlName: 'count',
     category: 'aggregate',
-    labelJa: '個数',
-    descriptionJa: '配列の要素数を返します',
-    args: [{ name: 'array', type: 'array', descriptionJa: '配列' }],
+    labelKey: 'formulaCatalog.count.label',
+    descriptionKey: 'formulaCatalog.count.description',
+    args: [{ name: 'array', type: 'array', descriptionKey: 'formulaCatalog.count.args.array' }],
     returnType: 'number',
     examples: [{ formula: 'COUNT(items)', result: '3' }],
   },
@@ -69,9 +78,9 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'AVG',
     jexlName: 'avg',
     category: 'aggregate',
-    labelJa: '平均',
-    descriptionJa: '配列の平均値を返します',
-    args: [{ name: 'array', type: 'array', descriptionJa: '数値の配列' }],
+    labelKey: 'formulaCatalog.avg.label',
+    descriptionKey: 'formulaCatalog.avg.description',
+    args: [{ name: 'array', type: 'array', descriptionKey: 'formulaCatalog.avg.args.array' }],
     returnType: 'number',
     examples: [{ formula: 'AVG(scores)', result: '85' }],
   },
@@ -79,9 +88,9 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'MIN',
     jexlName: 'min',
     category: 'aggregate',
-    labelJa: '最小値',
-    descriptionJa: '配列の最小値を返します',
-    args: [{ name: 'array', type: 'array', descriptionJa: '数値の配列' }],
+    labelKey: 'formulaCatalog.min.label',
+    descriptionKey: 'formulaCatalog.min.description',
+    args: [{ name: 'array', type: 'array', descriptionKey: 'formulaCatalog.min.args.array' }],
     returnType: 'number',
     examples: [{ formula: 'MIN(scores)', result: '60' }],
   },
@@ -89,9 +98,9 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'MAX',
     jexlName: 'max',
     category: 'aggregate',
-    labelJa: '最大値',
-    descriptionJa: '配列の最大値を返します',
-    args: [{ name: 'array', type: 'array', descriptionJa: '数値の配列' }],
+    labelKey: 'formulaCatalog.max.label',
+    descriptionKey: 'formulaCatalog.max.description',
+    args: [{ name: 'array', type: 'array', descriptionKey: 'formulaCatalog.max.args.array' }],
     returnType: 'number',
     examples: [{ formula: 'MAX(scores)', result: '100' }],
   },
@@ -99,11 +108,11 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'ROUND',
     jexlName: 'round',
     category: 'arithmetic',
-    labelJa: '四捨五入',
-    descriptionJa: '数値を指定した小数点以下の桁数で丸めます',
+    labelKey: 'formulaCatalog.round.label',
+    descriptionKey: 'formulaCatalog.round.description',
     args: [
-      { name: 'value', type: 'number', descriptionJa: '丸める数値' },
-      { name: 'places', type: 'number', descriptionJa: '小数点以下の桁数', optional: true },
+      { name: 'value', type: 'number', descriptionKey: 'formulaCatalog.round.args.value' },
+      { name: 'places', type: 'number', descriptionKey: 'formulaCatalog.round.args.places', optional: true },
     ],
     returnType: 'number',
     examples: [
@@ -115,12 +124,12 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'IF',
     jexlName: 'ifExpr',
     category: 'condition',
-    labelJa: '条件分岐',
-    descriptionJa: '条件が真なら thenValue、偽なら elseValue を返します',
+    labelKey: 'formulaCatalog.if.label',
+    descriptionKey: 'formulaCatalog.if.description',
     args: [
-      { name: 'condition', type: 'boolean', descriptionJa: '条件式' },
-      { name: 'thenValue', type: 'any', descriptionJa: '真の場合の値' },
-      { name: 'elseValue', type: 'any', descriptionJa: '偽の場合の値' },
+      { name: 'condition', type: 'boolean', descriptionKey: 'formulaCatalog.if.args.condition' },
+      { name: 'thenValue', type: 'any', descriptionKey: 'formulaCatalog.if.args.thenValue' },
+      { name: 'elseValue', type: 'any', descriptionKey: 'formulaCatalog.if.args.elseValue' },
     ],
     returnType: 'any',
     examples: [{ formula: "IF(score >= 60, '合格', '不合格')", result: '合格' }],
@@ -129,11 +138,11 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'CONCAT',
     jexlName: 'concat',
     category: 'text',
-    labelJa: '文字列結合',
-    descriptionJa: '複数の文字列を連結します',
+    labelKey: 'formulaCatalog.concat.label',
+    descriptionKey: 'formulaCatalog.concat.description',
     args: [
-      { name: 'value1', type: 'string', descriptionJa: '文字列1' },
-      { name: 'value2', type: 'string', descriptionJa: '文字列2' },
+      { name: 'value1', type: 'string', descriptionKey: 'formulaCatalog.concat.args.value1' },
+      { name: 'value2', type: 'string', descriptionKey: 'formulaCatalog.concat.args.value2' },
     ],
     returnType: 'string',
     examples: [{ formula: "CONCAT('Hello', ' ', 'World')", result: 'Hello World' }],
@@ -142,11 +151,11 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'TEXT',
     jexlName: 'formatNumber',
     category: 'text',
-    labelJa: '数値書式',
-    descriptionJa: '数値を指定の書式で文字列に変換します',
+    labelKey: 'formulaCatalog.text.label',
+    descriptionKey: 'formulaCatalog.text.description',
     args: [
-      { name: 'value', type: 'number', descriptionJa: '書式化する数値' },
-      { name: 'format', type: 'string', descriptionJa: "書式パターン (#,##0 等)", optional: true },
+      { name: 'value', type: 'number', descriptionKey: 'formulaCatalog.text.args.value' },
+      { name: 'format', type: 'string', descriptionKey: 'formulaCatalog.text.args.format', optional: true },
     ],
     returnType: 'string',
     examples: [
@@ -158,11 +167,11 @@ export const FORMULA_FUNCTIONS: readonly FunctionDef[] = [
     name: 'FORMAT_DATE',
     jexlName: 'formatDate',
     category: 'date',
-    labelJa: '日付書式',
-    descriptionJa: '日付を指定の書式で文字列に変換します',
+    labelKey: 'formulaCatalog.formatDate.label',
+    descriptionKey: 'formulaCatalog.formatDate.description',
     args: [
-      { name: 'date', type: 'date', descriptionJa: '書式化する日付' },
-      { name: 'format', type: 'string', descriptionJa: "書式パターン (yyyy/MM/dd 等)", optional: true },
+      { name: 'date', type: 'date', descriptionKey: 'formulaCatalog.formatDate.args.date' },
+      { name: 'format', type: 'string', descriptionKey: 'formulaCatalog.formatDate.args.format', optional: true },
     ],
     returnType: 'string',
     examples: [
@@ -186,11 +195,11 @@ export const FORMULA_TO_JEXL_MAP: ReadonlyMap<string, string> = new Map(
   FORMULA_FUNCTIONS.map((f) => [f.name, f.jexlName]),
 )
 
-/** Category labels in Japanese */
-export const CATEGORY_LABELS_JA: Record<FunctionCategory, string> = {
-  aggregate: '集計',
-  arithmetic: '算術',
-  condition: '条件',
-  text: '文字列',
-  date: '日付',
+/** Category label i18n keys (`components` namespace) */
+export const CATEGORY_LABEL_KEYS: Record<FunctionCategory, CatalogKey> = {
+  aggregate: 'formulaCatalog.category.aggregate',
+  arithmetic: 'formulaCatalog.category.arithmetic',
+  condition: 'formulaCatalog.category.condition',
+  text: 'formulaCatalog.category.text',
+  date: 'formulaCatalog.category.date',
 }

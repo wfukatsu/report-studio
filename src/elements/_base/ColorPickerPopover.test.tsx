@@ -3,8 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ColorPickerPopover } from './ColorPickerPopover'
 import { isValidHex, expandHex } from '@/lib/colorUtils'
 
-// Mock useColorPrefs to avoid localStorage coupling
-vi.mock('@/hooks/useColorPrefs', () => ({
+// Mock useColorPrefs to avoid localStorage coupling (brandColorName stays real)
+vi.mock('@/hooks/useColorPrefs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useColorPrefs')>()),
   useBrandColors: () => ({
     colors: [
       { hex: '#E74C3C', name: 'メインレッド' },
