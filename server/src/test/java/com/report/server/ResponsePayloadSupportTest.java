@@ -23,8 +23,7 @@ class ResponsePayloadSupportTest {
 
     @Test
     void buildSummaryItems_emitsTextForScalarsAndCountForArrays() throws Exception {
-        JsonNode data =
-                json("{\"customer\":{\"name\":\"評価商事\"},\"items\":[1,2,3],\"total\":1200}");
+        JsonNode data = json("{\"customer\":{\"name\":\"評価商事\"},\"items\":[1,2,3],\"total\":1200}");
 
         List<Map<String, Object>> items = ResponsePayloadSupport.buildSummaryItems(data);
 
@@ -36,13 +35,11 @@ class ResponsePayloadSupportTest {
 
     @Test
     void buildSummary_linesMatchLegacyWording() throws Exception {
-        JsonNode data =
-                json("{\"customer\":{\"name\":\"評価商事\"},\"items\":[1,2,3],\"total\":1200}");
+        JsonNode data = json("{\"customer\":{\"name\":\"評価商事\"},\"items\":[1,2,3],\"total\":1200}");
 
         List<String> lines = ResponsePayloadSupport.buildSummary(data);
 
-        assertEquals(
-                List.of("customer.name: 評価商事", "items: 3件", "total: 1200"), lines);
+        assertEquals(List.of("customer.name: 評価商事", "items: 3件", "total: 1200"), lines);
     }
 
     @Test
