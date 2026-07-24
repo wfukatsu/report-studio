@@ -65,7 +65,7 @@ cd server && ./gradlew installDist
 
 ### State management (`src/store/`)
 
-Single Zustand store composed from 13 slices via immer middleware. Import via `useReportStore`. A separate `dataBrowserStore` handles the data browser page independently.
+Single Zustand store composed from 14 slices via immer middleware. Import via `useReportStore`. A separate `dataBrowserStore` handles the data browser page independently.
 
 | Slice | Responsibility |
 |-------|----------------|
@@ -81,6 +81,7 @@ Single Zustand store composed from 13 slices via immer middleware. Import via `u
 | `productSlice` | Product master catalog (SKU, price, tax, custom fields) |
 | `authSlice` | User login/session state |
 | `adminSlice` | Admin user list and server-config state |
+| `orchestrationSlice` | Cross-slice workflows no single domain owns (e.g. `resetForUserSwitch` on user switch, #437) |
 | `computedSlice` | Derived selectors only (no state) |
 
 Key selectors exported from the store:
