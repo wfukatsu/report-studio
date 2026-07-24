@@ -1,0 +1,102 @@
+{
+  "$comment": "#423: Shared JEXL expression parity fixture. Single source asserted by BOTH src/lib/jexlParity.test.ts (vitest, @pawel-up/jexl engine) and server ExpressionParityTest.java (JUnit, Apache JEXL engine). Add a case here when template-facing expression behavior must match between the editor test-run and server-side evaluation. Numeric comparison tolerance: 1e-9. Cases must avoid the knownDivergences below until those are fixed.",
+  "cases": [
+    {
+      "name": "arith-multiply",
+      "expression": "price * qty",
+      "context": { "price": 100, "qty": 3 },
+      "expected": 300
+    },
+    {
+      "name": "arith-tax-float",
+      "expression": "price * qty * 1.1",
+      "context": { "price": 100, "qty": 3 },
+      "expected": 330.00000000000006
+    },
+    {
+      "name": "arith-parens",
+      "expression": "(subtotal - discount) * 2",
+      "context": { "subtotal": 1500, "discount": 200 },
+      "expected": 2600
+    },
+    {
+      "name": "round-two-places",
+      "expression": "round(3.14159, 2)",
+      "context": {},
+      "expected": 3.14
+    },
+    {
+      "name": "round-half-up-integer",
+      "expression": "round(2.5, 0)",
+      "context": {},
+      "expected": 3
+    },
+    {
+      "name": "count-rows",
+      "expression": "count(items)",
+      "context": { "items": [{ "q": 1 }, { "q": 2 }, { "q": 3 }] },
+      "expected": 3
+    },
+    {
+      "name": "concat-strings",
+      "expression": "concat(lastName, ' ', firstName)",
+      "context": { "lastName": "Yamada", "firstName": "Taro" },
+      "expected": "Yamada Taro"
+    },
+    {
+      "name": "concat-null-is-empty",
+      "expression": "concat(a, b)",
+      "context": { "a": "x", "b": null },
+      "expected": "x"
+    },
+    {
+      "name": "ifExpr-then",
+      "expression": "ifExpr(score >= 60, 'PASS', 'FAIL')",
+      "context": { "score": 75 },
+      "expected": "PASS"
+    },
+    {
+      "name": "ifExpr-else",
+      "expression": "ifExpr(score >= 60, 'PASS', 'FAIL')",
+      "context": { "score": 59 },
+      "expected": "FAIL"
+    },
+    {
+      "name": "property-access",
+      "expression": "customer.name",
+      "context": { "customer": { "name": "Acme" } },
+      "expected": "Acme"
+    },
+    {
+      "name": "comparison-boolean",
+      "expression": "qty > 2",
+      "context": { "qty": 3 },
+      "expected": true
+    },
+    {
+      "name": "string-equality",
+      "expression": "status == 'active'",
+      "context": { "status": "active" },
+      "expected": true
+    },
+    {
+      "name": "formatDate-slash",
+      "expression": "formatDate('2026-07-24', 'yyyy/MM/dd')",
+      "context": {},
+      "expected": "2026/07/24"
+    },
+    {
+      "name": "formatDate-kanji",
+      "expression": "formatDate('2026-07-24', 'yyyy年MM月dd日')",
+      "context": {},
+      "expected": "2026年07月24日"
+    }
+  ],
+  "knownDivergences": [
+    "sum: JS は sum(数値配列)、Java は sum(コレクション, フィールド名) とシグネチャが異なる。sum(items, 'price') は JS で常に 0、sum(items) は Java で解決失敗",
+    "avg/min/max: JS は avg(数値配列) と avg(マップ配列, field) の両対応、Java は field 必須の2引数のみ",
+    "ifExpr の truthiness: 空文字列 '' と Double 0.0 は JS で falsy、Java で truthy（condition.equals(0) は Integer 0 のみ一致）",
+    "formatNumber: decimal2 は JS が桁区切りあり（1,234.50）、Java は無し（1234.50）。currency は ¥ の全角/半角が異なる",
+    "round の二進誤差境界: round(2.675, 2) は JS 2.67（浮動小数点）、Java 2.68（BigDecimal HALF_UP）"
+  ]
+}
