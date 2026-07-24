@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import i18n from '@/i18n/config'
 import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement, PageNumberElement, CurrentDateElement, DividerElement, TenantCompanyNameElement, TenantAddressElement, TenantPhoneElement, TenantRepresentativeElement, TenantLogoElement, TenantCustomElement } from '@/types'
 import { DEFAULT_ERAS } from '@/lib/eras'
 
@@ -6,7 +7,13 @@ import { DEFAULT_ERAS } from '@/lib/eras'
  * Factory functions for creating new elements with sensible defaults.
  * All position and size values are in mm.
  * Used by ElementPalette and available for programmatic/agent use.
+ *
+ * #411: default names/labels persisted into the template (content, labels,
+ * approval roles, band columns, …) are resolved with `i18n.t()` at creation
+ * time, so they follow the UI language active when the element is created.
+ * Already-saved templates are never rewritten.
  */
+const tf = () => i18n.getFixedT(null, 'elements')
 
 export function createTextElement(overrides?: Partial<ReportElement>): ReportElement {
   return {
@@ -17,7 +24,7 @@ export function createTextElement(overrides?: Partial<ReportElement>): ReportEle
     zIndex: 1,
     visible: true,
     locked: false,
-    content: 'テキスト',
+    content: tf()('factories.textContent'),
     style: { fontSize: 10, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement
@@ -70,7 +77,7 @@ export function createChartElement(overrides?: Partial<ReportElement>): ReportEl
     visible: true,
     locked: false,
     chartType: 'bar' as const,
-    title: 'グラフ',
+    title: tf()('factories.chartTitle'),
     xAxisKey: 'name',
     yAxisKeys: ['value'],
     showLegend: true,
@@ -96,7 +103,7 @@ export function createDataFieldElement(overrides?: Partial<ReportElement>): Repo
     visible: true,
     locked: false,
     fieldKey: `field.value${dataFieldKeySeq}`,
-    label: 'フィールド',
+    label: tf()('factories.dataFieldLabel'),
     style: { fontSize: 10, fontWeight: 'normal', color: '#000000', textAlign: 'left' },
     fallbackText: '',
     ...overrides,
@@ -129,11 +136,11 @@ export function createManualEntryField(overrides?: Partial<ReportElement>): Repo
     zIndex: 1,
     visible: true,
     locked: false,
-    label: '記入欄',
+    label: tf()('factories.manualEntryLabel'),
     labelPosition: 'top' as const,
     displayMode: 'line' as const,
     lineColor: '#000000',
-    placeholder: '（記入）',
+    placeholder: tf()('factories.manualEntryPlaceholder'),
     style: { fontSize: 10, color: '#000000' },
     ...overrides,
   } as ReportElement
@@ -148,7 +155,7 @@ export function createHankoElement(overrides?: Partial<ReportElement>): ReportEl
     zIndex: 1,
     visible: true,
     locked: false,
-    text: '印',
+    text: tf()('factories.hankoText'),
     shape: 'circle' as const,
     borderColor: '#cc0000',
     textColor: '#cc0000',
@@ -206,11 +213,11 @@ export function createApprovalStampRowElement(overrides?: Partial<ReportElement>
     visible: true,
     locked: false,
     cells: [
-      { role: '担当', width: 15 },
-      { role: '係長', width: 15 },
-      { role: '課長', width: 15 },
-      { role: '部長', width: 15 },
-      { role: '社長', width: 15 },
+      { role: tf()('factories.approvalRoleStaff'), width: 15 },
+      { role: tf()('factories.approvalRoleChief'), width: 15 },
+      { role: tf()('factories.approvalRoleManager'), width: 15 },
+      { role: tf()('factories.approvalRoleDirector'), width: 15 },
+      { role: tf()('factories.approvalRolePresident'), width: 15 },
     ],
     labelPosition: 'bottom' as const,
     borderColor: '#000000',
@@ -237,13 +244,13 @@ export function createRevenueStampElement(overrides?: Partial<ReportElement>): R
   } as ReportElement
 }
 
-const DEFAULT_BAND_FIELDS: RepeatingBandField[] = [
-  { key: 'no',          label: 'No.',        width: 12, align: 'center' },
-  { key: 'name',        label: '品目',        width: 55, align: 'left' },
-  { key: 'quantity',    label: '数量',        width: 18, align: 'right' },
-  { key: 'unit',        label: '単位',        width: 14, align: 'center' },
-  { key: 'unitPrice',   label: '単価',        width: 22, align: 'right', format: { type: 'comma' } },
-  { key: 'amount',      label: '金額',        width: 25, align: 'right', format: { type: 'comma' } },
+const defaultBandFields = (): RepeatingBandField[] => [
+  { key: 'no',          label: 'No.',                              width: 12, align: 'center' },
+  { key: 'name',        label: tf()('factories.bandColItem'),      width: 55, align: 'left' },
+  { key: 'quantity',    label: tf()('factories.bandColQuantity'),  width: 18, align: 'right' },
+  { key: 'unit',        label: tf()('factories.bandColUnit'),      width: 14, align: 'center' },
+  { key: 'unitPrice',   label: tf()('factories.bandColUnitPrice'), width: 22, align: 'right', format: { type: 'comma' } },
+  { key: 'amount',      label: tf()('factories.bandColAmount'),    width: 25, align: 'right', format: { type: 'comma' } },
 ]
 
 export function createRepeatingBandElement(overrides?: Partial<ReportElement>): ReportElement {
@@ -280,17 +287,17 @@ export function createRepeatingBandElement(overrides?: Partial<ReportElement>): 
 export function createRepeatingBandWithDefaults(overrides?: Partial<ReportElement>): ReportElement {
   return createRepeatingBandElement({
     dataSource: 'items',
-    fields: DEFAULT_BAND_FIELDS as RepeatingBandField[],
+    fields: defaultBandFields(),
     showFooter: true,
-    totals: [{ fieldKey: 'amount', formula: 'sum', label: '合計' }],
+    totals: [{ fieldKey: 'amount', formula: 'sum', label: tf()('factories.bandTotalLabel') }],
     ...overrides,
   } as Partial<ReportElement>)
 }
 
-const DEFAULT_LIST_FIELDS: RepeatingListField[] = [
-  { key: 'name',  label: '名前',  x: 2, y: 2,  width: 36, height: 5, style: { fontSize: 11, fontWeight: 'bold' } },
-  { key: 'title', label: '役職',  x: 2, y: 8,  width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
-  { key: 'dept',  label: '部署',  x: 2, y: 13, width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
+const defaultListFields = (): RepeatingListField[] => [
+  { key: 'name',  label: tf()('factories.listFieldName'),  x: 2, y: 2,  width: 36, height: 5, style: { fontSize: 11, fontWeight: 'bold' } },
+  { key: 'title', label: tf()('factories.listFieldTitle'), x: 2, y: 8,  width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
+  { key: 'dept',  label: tf()('factories.listFieldDept'),  x: 2, y: 13, width: 36, height: 4, style: { fontSize: 8.5, color: '#6b7280' } },
 ]
 
 const DEFAULT_FORM_TABLE_COLUMNS: FormTableColumn[] = [
@@ -299,15 +306,15 @@ const DEFAULT_FORM_TABLE_COLUMNS: FormTableColumn[] = [
   { id: 'col-default-3', width: 40, align: 'left' },
 ]
 
-const DEFAULT_FORM_TABLE_ROWS: FormTableRow[] = [
+const defaultFormTableRows = (): FormTableRow[] => [
   {
     id: 'row-default-header',
     role: 'header',
     height: 8,
     cells: [
-      { id: 'cell-h1', type: 'label', text: '項目 1' },
-      { id: 'cell-h2', type: 'label', text: '項目 2' },
-      { id: 'cell-h3', type: 'label', text: '項目 3' },
+      { id: 'cell-h1', type: 'label', text: tf()('factories.formTableHeaderCell', { n: 1 }) },
+      { id: 'cell-h2', type: 'label', text: tf()('factories.formTableHeaderCell', { n: 2 }) },
+      { id: 'cell-h3', type: 'label', text: tf()('factories.formTableHeaderCell', { n: 3 }) },
     ],
   },
   {
@@ -332,7 +339,7 @@ export function createFormTableElement(overrides?: Partial<ReportElement>): Repo
     locked: false,
     visible: true,
     columns: DEFAULT_FORM_TABLE_COLUMNS.map(c => ({ ...c, id: uuidv4() })),
-    rows: DEFAULT_FORM_TABLE_ROWS.map(r => ({
+    rows: defaultFormTableRows().map(r => ({
       ...r,
       id: uuidv4(),
       cells: r.cells.map(c => ({ ...c, id: uuidv4() })),
@@ -358,7 +365,7 @@ export function createRepeatingListElement(overrides?: Partial<ReportElement>): 
     itemWidth: 55,
     itemHeight: 20,
     gap: 2,
-    fields: DEFAULT_LIST_FIELDS,
+    fields: defaultListFields(),
     maxItems: 0,
     borderColor: '#d1d5db',
     borderWidth: 0.3,
@@ -424,7 +431,7 @@ export function createCurrentDateElement(overrides?: Partial<CurrentDateElement>
     zIndex: 1,
     visible: true,
     locked: false,
-    format: 'yyyy年MM月dd日',
+    format: tf()('factories.currentDateFormat'),
     style: { fontSize: 8.5, color: '#000000', textAlign: 'left' },
     ...overrides,
   } as ReportElement

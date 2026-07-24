@@ -124,7 +124,7 @@ export function ColumnEditor({
           className="px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded"
           onClick={() => {
             const next = [...fields]
-            next.splice(colIndex + 1, 0, { key: 'new_field', label: '新列', width: 20, align: 'left' })
+            next.splice(colIndex + 1, 0, { key: 'new_field', label: t('repeatingBand.newColumnLabel'), width: 20, align: 'left' })
             onFieldsChange(next)
           }}
           title={t('repeatingBand.addColumnRight')}

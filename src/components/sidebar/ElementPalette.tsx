@@ -55,7 +55,9 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
   const dragPreviewRef = useRef<HTMLElement | null>(null)
 
   const handleDragStart = useCallback((e: React.DragEvent, item: PaletteItem) => {
-    e.dataTransfer.setData('application/rds-palette', item.label)
+    // #411: the drag payload is the item's stable ASCII type id, never the
+    // localized label — ReportCanvas resolves it via PALETTE_ITEM_MAP.
+    e.dataTransfer.setData('application/rds-palette', item.type)
     e.dataTransfer.effectAllowed = 'copy'
 
     // Create a custom drag image showing approximate element size
@@ -86,7 +88,7 @@ function CategoryPanel({ category, onAdd }: CategoryPanelProps) {
       {expanded && (
         <div className="grid grid-cols-2 gap-1 mb-2">
           {category.items.map((item) => (
-            <Tooltip key={item.label} content={item.descriptionKey ? t(item.descriptionKey, { token: '{{fieldKey}}' }) : undefined} placement="bottom">
+            <Tooltip key={item.type} content={item.descriptionKey ? t(item.descriptionKey, { token: '{{fieldKey}}' }) : undefined} placement="bottom">
               <button
                 draggable
                 onDragStart={(e) => handleDragStart(e, item)}

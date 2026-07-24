@@ -271,6 +271,7 @@
       "guideDrag": "フィールドを要素へドラッグしても接続できます",
       "newDetailName": "新規明細{{n}}",
       "newMasterName": "新規マスター{{n}}",
+      "newSchemaName": "新しいスキーマ",
       "searchPlaceholder": "フィールドを検索...",
       "title": "スキーマフィールド"
     },
@@ -645,6 +646,19 @@
     "pageCount_one": "プレビュー — {{count}}ページ",
     "pageCount_other": "プレビュー — {{count}}ページ"
   },
+  "productMaster": {
+    "fieldCategory": "カテゴリ",
+    "fieldCode": "商品コード",
+    "fieldDescription": "説明",
+    "fieldId": "商品ID",
+    "fieldManufacturer": "メーカー",
+    "fieldName": "商品名",
+    "fieldStockCount": "在庫数",
+    "fieldTaxType": "税区分",
+    "fieldUnit": "単位",
+    "fieldUnitPrice": "単価",
+    "groupLabel": "商品マスター"
+  },
   "scalardbLabels": {
     "clusteringKey": "クラスタリングキー",
     "index": "索引",
@@ -696,6 +710,7 @@
         "sampleValue": "サンプル値",
         "valuePlaceholder": "例: 山田太郎"
       },
+      "formDataSourceName": "フォームデータ",
       "json": {
         "pasteLabel": "JSONデータを貼り付け:"
       },
@@ -1064,6 +1079,7 @@
       "inferFromJson": "JSON から推測",
       "inferHint": "サンプルJSONを貼り付けてください。配列フィールドは detail グループになります。",
       "inferJsonAria": "スキーマ推測用JSONサンプル",
+      "inferredMasterLabel": "マスター",
       "jsonInvalidObject": "JSONオブジェクトを入力してください",
       "jsonParseFailed": "JSONの解析に失敗しました",
       "makeComputed": "計算フィールドに変更",

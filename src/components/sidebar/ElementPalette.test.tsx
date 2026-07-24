@@ -72,10 +72,12 @@ describe('ElementPalette', () => {
 })
 
 describe('PALETTE_CATEGORIES', () => {
-  it('all items have a label, icon, and createElement function', () => {
+  it('all items have a type id, icon, and createElement function', () => {
     for (const cat of PALETTE_CATEGORIES) {
       for (const item of cat.items) {
-        expect(item.label).toBeTruthy()
+        expect(item.type).toBeTruthy()
+        // #411: the drag/lookup id must be a stable ASCII identifier, never a localized label
+        expect(item.type).toMatch(/^[a-zA-Z0-9]+$/)
         expect(item.icon).toBeDefined()
         expect(typeof item.createElement).toBe('function')
       }
@@ -96,15 +98,15 @@ describe('PALETTE_CATEGORIES', () => {
 })
 
 describe('PALETTE_ITEM_MAP', () => {
-  it('maps label strings to createElement functions', () => {
-    expect(typeof PALETTE_ITEM_MAP['テキスト']).toBe('function')
-    expect(typeof PALETTE_ITEM_MAP['矩形']).toBe('function')
+  it('maps stable type ids to createElement functions', () => {
+    expect(typeof PALETTE_ITEM_MAP['text']).toBe('function')
+    expect(typeof PALETTE_ITEM_MAP['rectangle']).toBe('function')
   })
 
   it('includes all palette items', () => {
-    const allLabels = PALETTE_CATEGORIES.flatMap((c) => c.items.map((i) => i.label))
-    for (const label of allLabels) {
-      expect(PALETTE_ITEM_MAP[label]).toBeDefined()
+    const allTypes = PALETTE_CATEGORIES.flatMap((c) => c.items.map((i) => i.type))
+    for (const type of allTypes) {
+      expect(PALETTE_ITEM_MAP[type]).toBeDefined()
     }
   })
 })

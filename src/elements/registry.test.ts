@@ -59,7 +59,7 @@ describe('registry ↔ paletteData integrity', () => {
     expect(items.length).toBeGreaterThan(0)
     for (const item of items) {
       const el = item.createElement()
-      expect(ELEMENT_REGISTRY[el.type], `palette item "${item.label}" → type "${el.type}"`).toBeTruthy()
+      expect(ELEMENT_REGISTRY[el.type], `palette item "${item.type}" → type "${el.type}"`).toBeTruthy()
     }
   })
 })

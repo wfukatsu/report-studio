@@ -253,9 +253,10 @@ export function ReportCanvas({
 
   const handlePaletteDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      const label = e.dataTransfer.getData('application/rds-palette')
-      if (!label || !page) return
-      const createElement = PALETTE_ITEM_MAP[label]
+      // #411: the payload is the palette item's stable ASCII type id (not a label)
+      const paletteType = e.dataTransfer.getData('application/rds-palette')
+      if (!paletteType || !page) return
+      const createElement = PALETTE_ITEM_MAP[paletteType]
       if (!createElement) return
       e.preventDefault()
 

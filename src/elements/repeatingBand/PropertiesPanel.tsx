@@ -298,7 +298,7 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
               )}
             </div>
           ))}
-          <button className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded" onClick={() => onChange({ fields: [...el.fields, { key: 'field', label: '新列', width: 20, align: 'left' }] })}>{t('repeatingBand.addColumn')}</button>
+          <button className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded" onClick={() => onChange({ fields: [...el.fields, { key: 'field', label: t('repeatingBand.newColumnLabel'), width: 20, align: 'left' }] })}>{t('repeatingBand.addColumn')}</button>
         </div>
       </PropSection>
 
@@ -391,7 +391,7 @@ export function RepeatingBandPropertiesPanel({ el, onChange }: Props) {
                 </label>
               </div>
             ))}
-            <button className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded" onClick={() => onChange({ totals: [...el.totals, { fieldKey: 'amount', formula: 'sum', label: '合計' }] })}>{t('repeatingBand.addAggregate')}</button>
+            <button className="w-full py-1 text-xs text-blue-600 hover:underline border border-dashed rounded" onClick={() => onChange({ totals: [...el.totals, { fieldKey: 'amount', formula: 'sum', label: t('factories.bandTotalLabel') }] })}>{t('repeatingBand.addAggregate')}</button>
           </div>
         </PropSection>
       )}
