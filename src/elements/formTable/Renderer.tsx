@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FormTableElement, FormTableRow, FormTableCell, EraSelectLayout } from '@/types'
 import { resolveField } from '@/lib/dataBinding'
-import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
+import { DEFAULT_ERAS } from '@/lib/eras'
 import { DEFAULT_CELL_FONT_SIZE_PT } from '@/elements/_blocks/constants'
 import { REPORT_SANS_STACK } from '@/lib/styleUtils'
 

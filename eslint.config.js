@@ -47,6 +47,23 @@ export default tseslint.config(
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
+    // #436: layer direction — lib must not runtime-import store/components/
+    // elements (type-only imports allowed). One documented exception:
+    // @/store/selectors is a pure derive module with no store instance.
+    // Pure logic needed from lib belongs in lib (see defaultDefinition/eras/
+    // formatAddress/pageNumberFormat/currentDateFormat moves).
+    files: ['src/lib/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['@/store/*', '@/store', '@/components/*', '@/elements/*'],
+          allowTypeImports: true,
+          message: 'lib は store/components/elements を import できません（型のみ許可・#436）。純ロジックは lib へ移動してください。',
+        }],
+      }],
+    },
+  },
+  {
     // i18n regression guard (#329): flag NEW hardcoded Japanese so it can't creep
     // back in after the Phase 1-6 migration. Scoped to app source (not tests /
     // stories, which legitimately assert Japanese copy). The `ignore` regex

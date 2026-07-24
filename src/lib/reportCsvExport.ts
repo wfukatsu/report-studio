@@ -13,6 +13,8 @@
  */
 
 import type { ReportDefinition, ReportElement } from '@/types'
+// #436 documented exception: selectors is a pure derive module (no store instance)
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { flattenPageElements } from '@/store/selectors'
 
 type Row = Record<string, unknown>

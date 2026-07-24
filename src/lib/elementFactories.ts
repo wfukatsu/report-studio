@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { ReportElement, RepeatingBandField, RepeatingListField, FormTableColumn, FormTableRow, CheckmarkStyle, EraSelectElement, PageNumberElement, CurrentDateElement, DividerElement, TenantCompanyNameElement, TenantAddressElement, TenantPhoneElement, TenantRepresentativeElement, TenantLogoElement, TenantCustomElement } from '@/types'
-import { DEFAULT_ERAS } from '@/elements/eraSelect/constants'
+import { DEFAULT_ERAS } from '@/lib/eras'
 
 /**
  * Factory functions for creating new elements with sensible defaults.

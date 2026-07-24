@@ -42,52 +42,14 @@ function fitBodyToPage(page: PageDef): void {
   body.height = Math.max(50, page.height - nonBodyHeight)
 }
 
-function createDefaultSection(elements: ReportElement[] = [], height?: number): Section {
-  return {
-    id: uuidv4(),
-    sectionType: 'body',
-    height: height ?? 0,
-    elements,
-  }
-}
-
-export function createDefaultPageDef(name = 'ページ 1'): PageDef {
-  const dims = getPageDimensions('A4', 'portrait')
-  const section = createDefaultSection([], dims.height)
-  return {
-    id: uuidv4(),
-    name,
-    background: '#ffffff',
-    width: dims.width,
-    height: dims.height,
-    sections: [section],
-  }
-}
-
-export function createDefaultDefinition(): ReportDefinition {
-  return {
-    id: uuidv4(),
-    metadata: {
-      documentName: '無題の帳票',
-      version: '1.0',
-      reportType: 'general',
-    },
-    pageSettings: {
-      paperSize: 'A4',
-      orientation: 'portrait',
-      margins: { top: 20, right: 20, bottom: 20, left: 20 },
-      unit: 'mm',
-    },
-    defaultTextStyle: {},
-    templateVariables: [],
-    calculationRules: [],
-    dataSources: [],
-    outputVariants: [],
-    submissionModels: [],
-    validationRules: [],
-    pages: [createDefaultPageDef()],
-  }
-}
+// #436: blank-definition factories moved to @/lib/defaultDefinition (lib must
+// not depend on the store) — re-exported here for existing consumers.
+import {
+  createDefaultSection,
+  createDefaultPageDef,
+  createDefaultDefinition,
+} from '@/lib/defaultDefinition'
+export { createDefaultPageDef, createDefaultDefinition }
 
 // ---------------------------------------------------------------------------
 // Slice type
