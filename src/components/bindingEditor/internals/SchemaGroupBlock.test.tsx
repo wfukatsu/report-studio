@@ -24,6 +24,7 @@ function renderBlock(
   masterGroups: readonly MasterGroupOption[],
   onSetLinkedMaster = vi.fn(),
   onUpdateGroup = vi.fn(),
+  onRemoveGroup?: (groupId: string) => void,
 ) {
   const noop = () => {}
   render(
@@ -39,6 +40,7 @@ function renderBlock(
       onToggle={noop}
       onAddField={noop}
       onRemoveField={noop}
+      onRemoveGroup={onRemoveGroup}
       onSetAddingField={noop}
       onConnect={noop}
       fieldRef={noop}
@@ -185,6 +187,11 @@ describe('SchemaGroupBlock — inline group edit (#139)', () => {
     })
   })
 
+  it('does not render a group-delete button when onRemoveGroup is omitted', () => {
+    renderBlock(makeMasterGroup(), MASTERS)
+    expect(screen.queryByLabelText('グループを削除')).not.toBeInTheDocument()
+  })
+
   it('cancel discards edits without calling onUpdateGroup', () => {
     const { onUpdateGroup } = renderBlock(makeMasterGroup(), MASTERS)
     fireEvent.click(screen.getByLabelText('グループを編集'))
@@ -193,5 +200,27 @@ describe('SchemaGroupBlock — inline group edit (#139)', () => {
     expect(onUpdateGroup).not.toHaveBeenCalled()
     // Back to display mode.
     expect(screen.queryByLabelText('グループ名称')).not.toBeInTheDocument()
+  })
+})
+
+describe('SchemaGroupBlock — group deletion (#407)', () => {
+  it('calls onRemoveGroup with the group id when the delete button is clicked', () => {
+    const onRemoveGroup = vi.fn()
+    renderBlock(makeMasterGroup(), MASTERS, vi.fn(), vi.fn(), onRemoveGroup)
+    fireEvent.click(screen.getByLabelText('グループを削除'))
+    expect(onRemoveGroup).toHaveBeenCalledWith('header')
+  })
+
+  it('hides the delete button for system groups (商品マスター)', () => {
+    renderBlock(
+      makeMasterGroup({ id: '__productMaster__', label: '商品マスター' }),
+      MASTERS,
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+    )
+    expect(screen.queryByLabelText('グループを削除')).not.toBeInTheDocument()
+    // The edit affordance stays available.
+    expect(screen.getByLabelText('グループを編集')).toBeInTheDocument()
   })
 })

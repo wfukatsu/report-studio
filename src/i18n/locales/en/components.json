@@ -243,6 +243,8 @@
       "parentMaster": "Parent master",
       "parentMasterAria": "Parent master of {{group}}",
       "relationRequiredError": "The relationship is not set. Detail rows won't be tied to a parent master, so they won't resolve correctly against live data.",
+      "removeGroupAria": "Delete group",
+      "removeGroupTitle": "Delete this group",
       "roleDetailBadge": "↻ Detail",
       "roleDetailOption": "Detail",
       "roleMaster": "Master",
@@ -256,6 +258,9 @@
     "schemaPanel": {
       "addDetail": "Detail",
       "addMaster": "Master",
+      "deleteGroupConfirm": "Delete",
+      "deleteGroupMessage": "Delete \"{{name}}\". Its {{fields}} field(s) and the bindings of {{bound}} connected element(s) will be removed. This cannot be undone.",
+      "deleteGroupTitle": "Delete group",
       "emptyHint": "Please add a schema field",
       "guideClick": "Click a field → click an element on the left to connect",
       "guideDrag": "You can also connect by dragging a field onto an element",
