@@ -143,6 +143,7 @@
     },
     "elementPanel": {
       "boundStatus": "{{bound}}/{{total}} バインド済み",
+      "clearSelectionAria": "選択を解除",
       "clickToConnect": "接続する要素をクリック",
       "draggingElement": "要素をドラッグ中: {{element}} → フィールドにドロップ",
       "draggingField": "フィールドをドラッグ中: {{field}} → 要素にドロップ",
@@ -224,6 +225,7 @@
       "addField": "フィールド追加",
       "bulkGenerateAria": "フィールドから要素を一括生成",
       "bulkGenerateTitle": "このグループのフィールドから、まだ配置されていない要素をキャンバスに一括生成",
+      "cancelAddFieldAria": "フィールド追加をキャンセル",
       "cancelAria": "編集をキャンセル",
       "cancelTitle": "キャンセル",
       "dataKeyAria": "データキー",

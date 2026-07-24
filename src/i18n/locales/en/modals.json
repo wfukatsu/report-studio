@@ -496,6 +496,7 @@
     "noHiddenElements": "No hidden elements. You can hide elements from the properties panel.",
     "noMaskingRules": "No masking rules.",
     "noVariants": "No variants yet. You can add variants that hide or mask specific elements when exporting a PDF.",
+    "removeRuleAria": "Delete masking rule",
     "replaceValue": "Replacement:",
     "summary": "Hidden {{hidden}} / Masked {{masked}}",
     "target": "Target:",
