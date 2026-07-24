@@ -8,6 +8,7 @@ import { filterTemplates, collectCategories, collectTags } from '@/lib/templateF
 import { listReports, getReport, duplicateReport, exportTemplate, importTemplate, deleteReport, saveReport, getTemplateThumbnailUrl, listPublicReports, copyTemplate } from '@/api/reportApi'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { TemplateManagerModal } from './TemplateManagerModal'
+import { useModalA11y } from '@/hooks/useModalA11y'
 import { downloadBlob } from '@/api/client'
 import type { TemplateListItem } from '@/api/reportApi'
 import type { ReportDefinition } from '@/types'
@@ -293,9 +294,19 @@ function TemplateSelectionModalContent({
     onClose()
   }
 
+  // #428: focus trap + Esc + opener focus restore (mounted only while open).
+  // The nested TemplateManagerModal keeps its own Esc handling and stops
+  // propagation, so it is not affected by this hook.
+  const { dialogRef } = useModalA11y({ open: true, onClose: handleClose })
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col mx-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label={displayTitle}
+    >
+      <div ref={dialogRef} className="bg-background border border-border rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
           <h2 className="text-sm font-semibold">{displayTitle}</h2>

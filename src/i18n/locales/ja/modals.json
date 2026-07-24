@@ -367,6 +367,7 @@
   },
   "schemaLibraryModal": {
     "apply": "適用",
+    "close": "閉じる",
     "delete": "削除",
     "errorApply": "スキーマの適用に失敗しました",
     "errorDelete": "削除に失敗しました",

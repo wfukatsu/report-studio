@@ -14,6 +14,7 @@ import {
   listReports, submitBatchPdfJobFromRows, getBatchPdfStatus, downloadBatchPdfResult,
   type TemplateListItem,
 } from '@/api/reportApi'
+import { useModalA11y } from '@/hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -40,6 +41,9 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
   }, [open])
 
   useEffect(() => () => { if (cancelRef.current) cancelRef.current.canceled = true }, [])
+
+  // #428: focus trap + Esc + opener focus restore
+  const { dialogRef } = useModalA11y({ open, onClose })
 
   if (!open) return null
 
@@ -85,9 +89,11 @@ export function BulkExportModal({ open, rows, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="bg-background rounded-lg shadow-xl w-full max-w-md p-4 space-y-3"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label={t('dataBrowser.bulkExportModal.title')}
       >
         <div className="flex items-center justify-between">

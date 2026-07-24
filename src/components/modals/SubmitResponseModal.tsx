@@ -14,6 +14,7 @@ import { X, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { useShallow } from 'zustand/shallow'
 import { useReportStore } from '@/store'
 import { submitResponse } from '@/api/reportApi'
+import { useModalA11y } from '@/hooks/useModalA11y'
 
 export function SubmitResponseModal() {
   const { t } = useTranslation('modals')
@@ -26,6 +27,15 @@ export function SubmitResponseModal() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+
+  const handleClose = () => {
+    setSubmitted(false)
+    setError(null)
+    close()
+  }
+
+  // #428: focus trap + Esc + opener focus restore
+  const { dialogRef } = useModalA11y({ open, onClose: handleClose })
 
   if (!open) return null
 
@@ -46,12 +56,6 @@ export function SubmitResponseModal() {
     }
   }
 
-  const handleClose = () => {
-    setSubmitted(false)
-    setError(null)
-    close()
-  }
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -60,7 +64,7 @@ export function SubmitResponseModal() {
       aria-label={t('submitResponseModal.title')}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className="bg-background rounded-lg shadow-xl w-96 max-h-[80vh] flex flex-col overflow-hidden">
+      <div ref={dialogRef} className="bg-background rounded-lg shadow-xl w-96 max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="text-sm font-semibold">{t('submitResponseModal.heading')}</h2>

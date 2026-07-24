@@ -11,6 +11,7 @@ import { Database, Globe, Lock, Loader2, Trash2 } from 'lucide-react'
 import { getSchema } from '@/api/reportApi'
 import { useReportStore } from '@/store/reportStore'
 import { toast } from 'sonner'
+import { useModalA11y } from '@/hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -59,14 +60,21 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
     }
   }, [storeDeleteSchema, t])
 
+  // #428: focus trap + Esc + opener focus restore
+  const { dialogRef } = useModalA11y({ open, onClose })
+
   if (!open) return null
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('schemaLibraryModal.title')}
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="bg-background border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[70vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -77,6 +85,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
           <button
             className="text-muted-foreground hover:text-foreground text-lg leading-none"
             onClick={onClose}
+            aria-label={t('schemaLibraryModal.close')}
           >
             ✕
           </button>

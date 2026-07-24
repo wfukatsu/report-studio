@@ -367,6 +367,7 @@
   },
   "schemaLibraryModal": {
     "apply": "Apply",
+    "close": "Close",
     "delete": "Delete",
     "errorApply": "Failed to apply the schema",
     "errorDelete": "Failed to delete",
