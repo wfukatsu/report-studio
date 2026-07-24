@@ -20,6 +20,13 @@ import { clearHistoryTimer } from '@/store/historyTimer'
 import { useResolvedData } from '@/hooks/useResolvedData'
 import { SectionContainer } from './SectionContainer'
 import { snapAxis, findSectionAtY, topmostElementAt } from './canvasGeometry'
+import {
+  SCHEMA_DROP_BINDABLE_TYPES,
+  REPEATING_CONTAINER_TYPES,
+  buildBandColumnsPatch,
+  resolveCollisionFreePosition,
+  type BandLike,
+} from './schemaDrop'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { mmToPx, pxToMm } from '@/lib/paperSizes'
 import type { PageDef } from '@/types'
@@ -277,28 +284,12 @@ export function ReportCanvas({
 
       const el = createElement()
 
-      // Offset position if it overlaps existing elements in the same section (#188).
-      // Use a for-loop with a hard limit to prevent infinite loops when the section
-      // corner is completely occupied.
-      const sectionElements = (targetSection?.elements ?? [])
-      let posX = finalX
-      let posY = finalY
-      const OFFSET_STEP = 5 // 5mm per step
-      const MAX_OFFSET_ATTEMPTS = Math.ceil(Math.max(page.width, sectionH) / OFFSET_STEP) + 1
-      for (let attempt = 0; attempt < MAX_OFFSET_ATTEMPTS; attempt++) {
-        const overlaps = sectionElements.some((ex) =>
-          ex.position.x < posX + el.size.width &&
-          ex.position.x + ex.size.width > posX &&
-          ex.position.y < posY + el.size.height &&
-          ex.position.y + ex.size.height > posY,
-        )
-        if (!overlaps) break
-        const nextOffset = (attempt + 1) * OFFSET_STEP
-        posX = Math.min(finalX + nextOffset, page.width - el.size.width)
-        posY = Math.min(finalY + nextOffset, sectionH - el.size.height)
-      }
+      // Offset position if it overlaps existing elements in the same section (#188)
+      const pos = resolveCollisionFreePosition(
+        finalX, finalY, el.size, targetSection?.elements ?? [], page.width, sectionH,
+      )
 
-      addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
+      addElement(page.id, { ...el, position: pos }, sectionId)
     },
     [page, zoom, snapToGrid, gridSize, margins, addElement, ref],
   )
@@ -328,36 +319,13 @@ export function ReportCanvas({
       const xMm = pxToMm((e.clientX - rect.left) / zoom)
       const yMm = pxToMm((e.clientY - rect.top) / zoom)
 
-      // Determine section
-      let sectionId: string | undefined
-      let sectionOffsetY = 0
-      for (const sec of page.sections) {
-        if (yMm < sectionOffsetY + sec.height) {
-          sectionId = sec.id
-          break
-        }
-        sectionOffsetY += sec.height
-      }
-      const relativeY = yMm - sectionOffsetY
-      const targetSection = page.sections.find((s) => s.id === sectionId)
+      const { section: targetSection, relativeY } = findSectionAtY(page.sections, yMm)
+      const sectionId = targetSection?.id
       const sectionH = targetSection?.height ?? page.height
       const sectionElements = targetSection?.elements ?? []
 
-      // Hit-test: find topmost element at drop coordinate (zIndex descending)
-      // Both xMm and relativeY are section-relative coordinates
-      const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
-      let hitElement: ReportElement | null = null
-      for (const el of sorted) {
-        if (
-          xMm >= el.position.x &&
-          xMm <= el.position.x + el.size.width &&
-          relativeY >= el.position.y &&
-          relativeY <= el.position.y + el.size.height
-        ) {
-          hitElement = el
-          break
-        }
-      }
+      // Hit-test: topmost element at the drop coordinate (both section-relative)
+      const hitElement = topmostElementAt(sectionElements, xMm, relativeY) ?? null
       if (process.env.NODE_ENV === 'development') {
         console.log('[schema-field-drop] hit-test:', {
           dropX: xMm.toFixed(1), dropY: relativeY.toFixed(1),
@@ -366,54 +334,23 @@ export function ReportCanvas({
         })
       }
 
-      // Branch based on hit element type
-      const BINDABLE_TYPES = new Set(['dataField', 'text', 'checkbox', 'eraSelect'])
-      const REPEATING_TYPES = new Set(['repeatingBand', 'repeatingList'])
-
-      if (hitElement && BINDABLE_TYPES.has(hitElement.type)) {
+      if (hitElement && SCHEMA_DROP_BINDABLE_TYPES.has(hitElement.type)) {
         // Case 1: Drop on existing bindable element → set schemaBinding
         setElementSchemaBinding(page.id, hitElement.id, payload.fieldId)
         return
       }
 
-      if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
+      if (hitElement && REPEATING_CONTAINER_TYPES.has(hitElement.type)) {
         // Case 2: Drop on repeatingBand/List → add column + set dataSource
-        const bandEl = hitElement as ReportElement & {
-          fields?: { key: string; label: string; width: number; align?: string; format?: { type: string } }[]
-          dataSource?: string
-          totals?: { fieldKey: string; formula: string; label?: string }[]
-          showFooter?: boolean
+        const result = buildBandColumnsPatch(
+          hitElement as ReportElement & BandLike,
+          [{ fieldKey: payload.fieldKey, fieldLabel: payload.fieldLabel, fieldType: payload.fieldType }],
+          payload.groupDataKey,
+        )
+        if (result) {
+          updateElement(page.id, hitElement.id, result.patch)
+          toast.success(t('canvas.reportCanvas.columnAdded', { label: payload.fieldLabel }))
         }
-        const existingFields = bandEl.fields ?? []
-        if (existingFields.some((f) => f.key === payload.fieldKey)) return
-
-        // Detect if field is numeric → right-align + comma format
-        const isNumeric = payload.fieldType === 'number'
-        const newField = {
-          key: payload.fieldKey,
-          label: payload.fieldLabel,
-          width: 20,
-          align: (isNumeric ? 'right' : 'left') as 'left' | 'right' | 'center',
-          ...(isNumeric ? { format: { type: 'comma' as const } } : {}),
-        }
-
-        const patch: Record<string, unknown> = {
-          fields: [...existingFields, newField],
-        }
-        // Auto-add total for numeric fields
-        if (isNumeric) {
-          const existingTotals = bandEl.totals ?? []
-          if (!existingTotals.some((t) => t.fieldKey === payload.fieldKey)) {
-            // eslint-disable-next-line i18next/no-literal-string -- seed default label persisted to the data model
-            patch.totals = [...existingTotals, { fieldKey: payload.fieldKey, formula: 'sum', label: '合計' }]
-            patch.showFooter = true
-          }
-        }
-        if (!bandEl.dataSource && payload.groupDataKey) {
-          patch.dataSource = payload.groupDataKey
-        }
-        updateElement(page.id, hitElement.id, patch)
-        toast.success(t('canvas.reportCanvas.columnAdded', { label: payload.fieldLabel }))
         return
       }
 
@@ -429,25 +366,11 @@ export function ReportCanvas({
         fieldLabel: payload.fieldLabel,
       })
 
-      // Collision avoidance (same as handlePaletteDrop)
-      let posX = finalX
-      let posY = finalY
-      const OFFSET_STEP = 5
-      const MAX_OFFSET_ATTEMPTS = Math.ceil(Math.max(page.width, sectionH) / OFFSET_STEP) + 1
-      for (let attempt = 0; attempt < MAX_OFFSET_ATTEMPTS; attempt++) {
-        const overlaps = sectionElements.some((ex) =>
-          ex.position.x < posX + el.size.width &&
-          ex.position.x + ex.size.width > posX &&
-          ex.position.y < posY + el.size.height &&
-          ex.position.y + ex.size.height > posY,
-        )
-        if (!overlaps) break
-        const nextOffset = (attempt + 1) * OFFSET_STEP
-        posX = Math.min(finalX + nextOffset, page.width - el.size.width)
-        posY = Math.min(finalY + nextOffset, sectionH - el.size.height)
-      }
+      const pos = resolveCollisionFreePosition(
+        finalX, finalY, el.size, sectionElements, page.width, sectionH,
+      )
 
-      addElement(page.id, { ...el, position: { x: posX, y: posY } }, sectionId)
+      addElement(page.id, { ...el, position: pos }, sectionId)
     },
     [page, zoom, snapToGrid, gridSize, margins, addElement, updateElement, setElementSchemaBinding, ref, t],
   )
@@ -474,80 +397,22 @@ export function ReportCanvas({
       const xMm = pxToMm((e.clientX - rect.left) / zoom)
       const yMm = pxToMm((e.clientY - rect.top) / zoom)
 
-      // Determine section
-      let sectionId: string | undefined
-      let sectionOffsetY = 0
-      for (const sec of page.sections) {
-        if (yMm < sectionOffsetY + sec.height) {
-          sectionId = sec.id
-          break
-        }
-        sectionOffsetY += sec.height
-      }
-      const relativeY = yMm - sectionOffsetY
-      const targetSection = page.sections.find((s) => s.id === sectionId)
+      const { section: targetSection, relativeY } = findSectionAtY(page.sections, yMm)
       const sectionElements = targetSection?.elements ?? []
 
       // Hit-test for repeatingBand/List
-      const sorted = [...sectionElements].sort((a, b) => b.zIndex - a.zIndex)
-      let hitElement: ReportElement | null = null
-      for (const el of sorted) {
-        if (
-          xMm >= el.position.x &&
-          xMm <= el.position.x + el.size.width &&
-          relativeY >= el.position.y &&
-          relativeY <= el.position.y + el.size.height
-        ) {
-          hitElement = el
-          break
-        }
-      }
+      const hitElement = topmostElementAt(sectionElements, xMm, relativeY) ?? null
 
-      const REPEATING_TYPES = new Set(['repeatingBand', 'repeatingList'])
-
-      if (hitElement && REPEATING_TYPES.has(hitElement.type)) {
+      if (hitElement && REPEATING_CONTAINER_TYPES.has(hitElement.type)) {
         // Drop group onto repeatingBand → add all fields as columns
-        const bandEl = hitElement as ReportElement & {
-          fields?: { key: string; label: string; width: number; align?: string; format?: { type: string } }[]
-          dataSource?: string
-          totals?: { fieldKey: string; formula: string; label?: string }[]
-          showFooter?: boolean
-        }
-        const existingKeys = new Set((bandEl.fields ?? []).map((f) => f.key))
-        const addedFields = payload.fields.filter((f) => !existingKeys.has(f.fieldKey))
-        if (addedFields.length === 0) return
-
-        const newFields = addedFields.map((f) => {
-          const isNumeric = f.fieldType === 'number'
-          return {
-            key: f.fieldKey,
-            label: f.fieldLabel,
-            width: 20,
-            align: (isNumeric ? 'right' : 'left') as 'left' | 'right' | 'center',
-            ...(isNumeric ? { format: { type: 'comma' as const } } : {}),
-          }
-        })
-
-        // Auto-add totals for numeric fields
-        const existingTotals = bandEl.totals ?? []
-        const existingTotalKeys = new Set(existingTotals.map((t) => t.fieldKey))
-        const newTotals = addedFields
-          .filter((f) => f.fieldType === 'number' && !existingTotalKeys.has(f.fieldKey))
-          // eslint-disable-next-line i18next/no-literal-string -- seed default label persisted to the data model
-          .map((f) => ({ fieldKey: f.fieldKey, formula: 'sum' as const, label: '合計' }))
-
-        const patch: Record<string, unknown> = {
-          fields: [...(bandEl.fields ?? []), ...newFields],
-        }
-        if (newTotals.length > 0) {
-          patch.totals = [...existingTotals, ...newTotals]
-          patch.showFooter = true
-        }
-        if (!bandEl.dataSource && payload.groupDataKey) {
-          patch.dataSource = payload.groupDataKey
-        }
-        updateElement(page.id, hitElement.id, patch)
-        toast.success(t('canvas.reportCanvas.columnsAdded', { n: addedFields.length }))
+        const result = buildBandColumnsPatch(
+          hitElement as ReportElement & BandLike,
+          payload.fields,
+          payload.groupDataKey,
+        )
+        if (!result) return
+        updateElement(page.id, hitElement.id, result.patch)
+        toast.success(t('canvas.reportCanvas.columnsAdded', { n: result.addedCount }))
       }
       // If not dropped on a repeating element, do nothing (group-level drop only makes sense for repeating)
     },
