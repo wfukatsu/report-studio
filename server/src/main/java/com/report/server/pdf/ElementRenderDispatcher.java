@@ -78,9 +78,17 @@ final class ElementRenderDispatcher {
                             - ((yMm + ctx.sectionYOffsetMm()) * SectionRenderHelper.MM_TO_PT);
             float w = Math.min(wMm * SectionRenderHelper.MM_TO_PT, MAX_DIMENSION_PT);
             float h = Math.min(hMm * SectionRenderHelper.MM_TO_PT, MAX_DIMENSION_PT);
-            ELEMENT_REGISTRY
-                    .get(kind)
-                    .orElse(ELEMENT_FALLBACK)
+            var renderer = ELEMENT_REGISTRY.get(kind);
+            if (renderer.isEmpty()) {
+                // #416: previously a silent empty frame — make the omission visible so a
+                // frontend-only element type is caught instead of shipping blank PDFs.
+                log.warn(
+                        "Unknown element kind '{}' (element id {}) — no PDF renderer registered,"
+                                + " rendering an empty frame",
+                        kind,
+                        PdfUtils.textOf(el, "id", "?"));
+            }
+            renderer.orElse(ELEMENT_FALLBACK)
                     .render(
                             ctx.contentStream(),
                             el,

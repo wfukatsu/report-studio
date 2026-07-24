@@ -210,5 +210,47 @@ class RequestValidatorTest {
             assertNotNull(error);
             assertTrue(error.contains("Unknown element type"));
         }
+
+        // #416: findUnknownElementKinds — the audit used by save paths (warn, not reject)
+
+        @Test
+        void findUnknownElementKindsReturnsEmptyForKnownKinds() throws Exception {
+            JsonNode template = requestWithElementType("text").get("template");
+            assertTrue(RequestValidator.findUnknownElementKinds(template).isEmpty());
+        }
+
+        @Test
+        void findUnknownElementKindsCollectsAllUnknownKindsSorted() throws Exception {
+            JsonNode template =
+                    M.readTree(
+                            """
+                        {"pages":[{"sections":[{"elements":[
+                          {"id":"e1","type":"zebraType"},
+                          {"id":"e2","type":"alphaType"},
+                          {"id":"e3","type":"text"},
+                          {"id":"e4","type":"alphaType"}
+                        ]}]}]}""");
+            var unknown = RequestValidator.findUnknownElementKinds(template);
+            assertEquals(
+                    java.util.List.of("alphaType", "zebraType"), java.util.List.copyOf(unknown));
+        }
+
+        @Test
+        void findUnknownElementKindsSanitizesKindNames() throws Exception {
+            JsonNode template =
+                    M.readTree(
+                            """
+                        {"pages":[{"sections":[{"elements":[
+                          {"id":"e1","type":"bad<script>kind"}
+                        ]}]}]}""");
+            var unknown = RequestValidator.findUnknownElementKinds(template);
+            assertEquals(1, unknown.size());
+            assertEquals("bad?script?kind", unknown.iterator().next());
+        }
+
+        @Test
+        void findUnknownElementKindsHandlesMissingPages() throws Exception {
+            assertTrue(RequestValidator.findUnknownElementKinds(M.readTree("{}")).isEmpty());
+        }
     }
 }
