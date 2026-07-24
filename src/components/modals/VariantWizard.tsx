@@ -28,6 +28,7 @@ import { flattenPageElements } from '@/store/selectors'
 import type { MaskingRule, OutputVariant } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { useModalA11y } from '@/hooks/useModalA11y'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +116,10 @@ export function VariantWizard({ editVariant, onClose }: Props) {
     else onClose()
   }, [isDirty, onClose])
 
+  // #428: focus trap + Esc + opener focus restore. Esc routes through the
+  // dirty guard (#432); the nested ConfirmDialog takes stack precedence.
+  const { dialogRef } = useModalA11y({ open: true, onClose: requestClose })
+
   // Step validation
   const canProceed = step === 0 ? draft.name.trim().length > 0 : true
 
@@ -175,7 +180,7 @@ export function VariantWizard({ editVariant, onClose }: Props) {
       aria-label={t('variantWizard.ariaLabel')}
       onClick={(e) => { if (e.target === e.currentTarget) requestClose() }}
     >
-      <div className="bg-background rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col overflow-hidden">
+      <div ref={dialogRef} className="bg-background rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-5 py-3 border-b shrink-0">
           <h2 className="text-sm font-semibold">

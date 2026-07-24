@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { isApiError } from '@/api/client'
+import { useModalA11y } from '@/hooks/useModalA11y'
+
+/** The login gate cannot be dismissed — Esc is intentionally a no-op (#428). */
+const NOOP_CLOSE = () => {}
 
 /**
  * LoginModal — shown when backendConnected=true but currentUser=null.
@@ -15,6 +19,9 @@ export function LoginModal() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // #428: focus trap only — the login gate must not be dismissible via Esc
+  const { dialogRef } = useModalA11y({ open: true, onClose: NOOP_CLOSE })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,7 +54,7 @@ export function LoginModal() {
       aria-modal="true"
       aria-labelledby="login-modal-title"
     >
-      <div className="bg-background border border-border rounded-lg shadow-2xl w-80 p-6">
+      <div ref={dialogRef} className="bg-background border border-border rounded-lg shadow-2xl w-80 p-6">
         <h2 id="login-modal-title" className="text-sm font-semibold mb-4 text-center">
           {t('loginModal.title')}
         </h2>

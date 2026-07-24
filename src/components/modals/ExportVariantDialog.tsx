@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { useShallow } from 'zustand/shallow'
 import type { OutputVariant } from '@/types'
+import { useModalA11y } from '@/hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -21,6 +22,9 @@ export function ExportVariantDialog({ open, onSelect, onCancel }: Props) {
     useShallow((s) => s.definition.outputVariants as OutputVariant[]),
   )
 
+  // #428: focus trap + Esc + opener focus restore
+  const { dialogRef } = useModalA11y({ open, onClose: onCancel })
+
   if (!open) return null
 
   return (
@@ -31,7 +35,7 @@ export function ExportVariantDialog({ open, onSelect, onCancel }: Props) {
       aria-label={t('exportVariantDialog.ariaLabel')}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
-      <div className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
+      <div ref={dialogRef} className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">
           <h2 className="text-sm font-semibold">{t('exportVariantDialog.title')}</h2>
           <button

@@ -51,6 +51,12 @@ describe('ExportVariantDialog — 基本表示', () => {
     fireEvent.click(dialog)
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
+
+  it('#428: calls onCancel on Escape key', () => {
+    render(<ExportVariantDialog open={true} onSelect={onSelect} onCancel={onCancel} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('ExportVariantDialog — なし選択', () => {

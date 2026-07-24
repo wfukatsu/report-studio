@@ -76,4 +76,30 @@ describe('VariantWizard — #432 破棄ガード', () => {
 
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('#428: Esc でも閉じられ、入力後は破棄ガードを経由する', () => {
+    const onClose = vi.fn()
+    render(<VariantWizard onClose={onClose} />)
+
+    // 未編集: Esc で即閉じ
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('#428: 入力後の Esc は確認ダイアログを挟む', () => {
+    const onClose = vi.fn()
+    render(<VariantWizard onClose={onClose} />)
+    fireEvent.change(nameInput(), { target: { value: '編集中' } })
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByText('変更を破棄')).toBeInTheDocument()
+
+    // ConfirmDialog がスタック最上位なので、もう一度 Esc すると確認だけが閉じる
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.queryByText('変更を破棄')).not.toBeInTheDocument()
+    expect(nameInput()).toHaveValue('編集中')
+  })
 })
