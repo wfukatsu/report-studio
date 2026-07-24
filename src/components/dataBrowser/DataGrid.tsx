@@ -20,6 +20,7 @@ import { DataDetailPanel } from './DataDetailPanel'
 import { RowEditModal } from './RowEditModal'
 import { ProductMasterModal } from './ProductMasterModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { formatSummaryLines } from '@/lib/summaryFormat'
 import { toast } from 'sonner'
 
 const PAGE_SIZE = 50
@@ -46,6 +47,7 @@ function toSourceKey(source: DataSourceNode): string {
 
 export function DataGrid({ source }: Props) {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
   const searchQuery = useDataBrowserStore((s) => s.searchQuery)
   const setSearch = useDataBrowserStore((s) => s.setSearch)
   const sortCol = useDataBrowserStore((s) => s.sortCol)
@@ -182,7 +184,7 @@ export function DataGrid({ source }: Props) {
           setFormRows(data.items.map((r) => ({
             submittedAt: new Date(r.submittedAt).toLocaleString('ja-JP'),
             submittedBy: r.submittedBy,
-            summary: r.summary.join(', '),
+            summary: formatSummaryLines(r.summary, r.summaryItems, tErr).join(', '),
           })))
           setLoadResult({ key: loadKey, state: 'ok' })
         })

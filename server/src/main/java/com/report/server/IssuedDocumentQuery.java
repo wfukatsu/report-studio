@@ -123,7 +123,10 @@ final class IssuedDocumentQuery {
             item.put("documentNumber", node.path("documentNumber").asText(""));
             item.put("submittedAt", node.path("submittedAt").asLong());
             item.put("submittedBy", node.path("submittedBy").asText(""));
-            item.put("summary", ResponsePayloadSupport.buildSummary(node.path("data")));
+            List<Map<String, Object>> summaryItems =
+                    ResponsePayloadSupport.buildSummaryItems(node.path("data"));
+            item.put("summary", ResponsePayloadSupport.summaryLines(summaryItems));
+            item.put("summaryItems", summaryItems);
             items.add(item);
         }
 

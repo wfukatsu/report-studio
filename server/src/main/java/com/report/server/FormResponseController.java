@@ -263,7 +263,10 @@ public final class FormResponseController {
             item.put("submittedAt", entry.submittedAt());
             item.put("submittedBy", entry.submittedBy());
             item.put("status", statusById.getOrDefault(entry.id(), DEFAULT_STATUS));
-            item.put("summary", ResponsePayloadSupport.buildSummary(entry.data()));
+            List<Map<String, Object>> summaryItems =
+                    ResponsePayloadSupport.buildSummaryItems(entry.data());
+            item.put("summary", ResponsePayloadSupport.summaryLines(summaryItems));
+            item.put("summaryItems", summaryItems);
             items.add(item);
         }
 

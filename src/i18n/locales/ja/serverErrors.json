@@ -39,6 +39,27 @@
     "title": "予期しないエラーが発生しました",
     "hint": "ページを再読み込みしてお試しください。"
   },
+  "admin": {
+    "CONNECTION_TEST_FAILED": "接続テストに失敗しました。サーバーログを確認してください。",
+    "CONNECTION_TEST_SUCCESS": "接続テスト成功"
+  },
+  "adminUsers": {
+    "CANNOT_DELETE_SELF": "自分自身のアカウントは削除できません",
+    "PASSWORD_LENGTH_INVALID": "パスワードは8〜128文字で入力してください",
+    "ROLE_INVALID": "無効なロールが含まれています。使用可能: user, admin",
+    "USERID_INVALID_CHARS": "ユーザーIDに使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです",
+    "USERID_PASSWORD_REQUIRED": "ユーザーIDとパスワードは必須です",
+    "USERID_TOO_LONG": "ユーザーIDは64文字以内で入力してください",
+    "USER_ALREADY_EXISTS": "このユーザーIDは既に存在します",
+    "USER_NOT_FOUND": "ユーザーが見つかりません"
+  },
+  "csvImport": {
+    "CODE_DUPLICATE": "コード重複: {{code}}",
+    "CODE_INVALID_CHARS": "商品コードは英数字・ハイフン・アンダースコアのみ",
+    "CODE_REQUIRED": "商品コードは必須です",
+    "PRICE_INVALID": "数値ではありません",
+    "RESERVED_KEY": "プロトタイプ汚染キーが含まれています"
+  },
   "lib": {
     "dataSourceInvalidJson": "無効なJSON形式です",
     "dataSourceNotObject": "JSONはオブジェクトである必要があります",
@@ -96,5 +117,8 @@
     "productsLoadFailed": "商品の読み込みに失敗しました",
     "productDuplicateCode": "この商品コードは既に使用されています",
     "productVersionConflict": "他のユーザーが同じ商品を更新しました。最新データを確認してから再試行してください。"
+  },
+  "summary": {
+    "arrayCount": "{{n}}件"
   }
 }

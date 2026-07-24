@@ -2,7 +2,9 @@ package com.report.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared response-payload helpers: listing limits, summary flattening, nesting-depth guard, and
@@ -24,32 +26,62 @@ final class ResponsePayloadSupport {
 
     private ResponsePayloadSupport() {}
 
+    /**
+     * Legacy flat summary lines ("a.b.c: value"). Derived from {@link #buildSummaryItems} so both
+     * shapes always agree; the ja wording ("3件" for arrays) is unchanged for backward
+     * compatibility.
+     */
     static List<String> buildSummary(JsonNode data) {
-        List<String> summary = new ArrayList<>();
-        if (data == null || !data.isObject()) return summary;
+        return summaryLines(buildSummaryItems(data));
+    }
+
+    /**
+     * Structured summary entries (#412): {@code {key, text}} for scalar leaves, {@code {key,
+     * count}} for arrays. The frontend renders {@code count} entries via i18n instead of the
+     * ja-only "N件" concatenation baked into {@link #buildSummary}.
+     */
+    static List<Map<String, Object>> buildSummaryItems(JsonNode data) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (data == null || !data.isObject()) return items;
         // Flatten nested objects to dot-notation leaves so the summary shows the
         // actual value (customer.customerName: 評価商事) instead of a raw JSON blob
         // (customer: {"customerName":"評価商事"}) — #170.
-        collectLeafSummaries(data, "", summary);
-        return summary;
+        collectLeafItems(data, "", items);
+        return items;
     }
 
-    /** Depth-first flatten of leaf (scalar) values into "a.b.c: value" lines, capped. */
-    private static void collectLeafSummaries(JsonNode node, String prefix, List<String> out) {
+    /** Renders structured entries back into the legacy "key: value" lines (ja wording). */
+    static List<String> summaryLines(List<Map<String, Object>> items) {
+        List<String> out = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            Object count = item.get("count");
+            String text = (count != null) ? count + "件" : (String) item.get("text");
+            out.add(item.get("key") + ": " + text);
+        }
+        return out;
+    }
+
+    /** Depth-first flatten of leaf (scalar) values into structured entries, capped. */
+    private static void collectLeafItems(
+            JsonNode node, String prefix, List<Map<String, Object>> out) {
         var fields = node.fields();
         while (fields.hasNext() && out.size() < SUMMARY_FIELD_COUNT) {
             var field = fields.next();
             String key = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
             JsonNode value = field.getValue();
             if (value.isObject()) {
-                collectLeafSummaries(value, key, out);
+                collectLeafItems(value, key, out);
             } else {
-                String text =
-                        value.isTextual()
-                                ? value.asText()
-                                : value.isArray() ? value.size() + "件" : value.asText();
-                if (text.length() > 50) text = text.substring(0, 50) + "...";
-                out.add(key + ": " + text);
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("key", key);
+                if (value.isArray()) {
+                    item.put("count", value.size());
+                } else {
+                    String text = value.asText();
+                    if (text.length() > 50) text = text.substring(0, 50) + "...";
+                    item.put("text", text);
+                }
+                out.add(item);
             }
         }
     }

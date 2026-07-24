@@ -18,6 +18,7 @@ import {
 import { downloadBlob } from '@/api/client'
 import type { ReportStatus } from '@/lib/schemas/formResponse'
 import { REPORT_STATUSES } from '@/lib/schemas/formResponse'
+import { formatSummaryLines } from '@/lib/summaryFormat'
 
 const STATUS_BADGE: Record<ReportStatus, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -39,6 +40,7 @@ function formatDate(epochMs: number): string {
 
 export function IssuedDocumentsPanel() {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
   const STATUS_LABEL: Record<ReportStatus, string> = {
     draft: t('tabs.issuedDocumentsPanel.statusDraft'),
     issued: t('tabs.issuedDocumentsPanel.statusIssued'),
@@ -240,7 +242,7 @@ export function IssuedDocumentsPanel() {
                     </td>
                     <td className="px-3 py-2 font-mono text-gray-700">{doc.documentNumber || '—'}</td>
                     <td className="px-3 py-2 text-gray-700 truncate max-w-[10rem]">{doc.templateName}</td>
-                    <td className="px-3 py-2 text-gray-600 truncate max-w-[16rem]">{doc.summary.join(' / ')}</td>
+                    <td className="px-3 py-2 text-gray-600 truncate max-w-[16rem]">{formatSummaryLines(doc.summary, doc.summaryItems, tErr).join(' / ')}</td>
                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{formatDate(doc.submittedAt)}</td>
                     <td className="px-3 py-2 text-gray-500">{doc.submittedBy}</td>
                     <td className="px-3 py-2">

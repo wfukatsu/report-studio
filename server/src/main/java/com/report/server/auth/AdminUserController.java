@@ -70,7 +70,8 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "userId and password are required");
+                    "userId and password are required",
+                    Map.of("detailCode", "USERID_PASSWORD_REQUIRED"));
             return;
         }
         if (userId.length() > 64) {
@@ -78,7 +79,8 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "userId must be 64 characters or less");
+                    "userId must be 64 characters or less",
+                    Map.of("detailCode", "USERID_TOO_LONG"));
             return;
         }
         if (!USERID_PATTERN.matcher(userId).matches()) {
@@ -86,18 +88,27 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "userId に使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです");
+                    "userId に使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです",
+                    Map.of("detailCode", "USERID_INVALID_CHARS"));
             return;
         }
         if (password.length() < 8 || password.length() > 128) {
             ApiError.respond(
-                    ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "パスワードは8〜128文字で入力してください");
+                    ctx,
+                    HttpStatus.BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    "パスワードは8〜128文字で入力してください",
+                    Map.of("detailCode", "PASSWORD_LENGTH_INVALID"));
             return;
         }
 
         if (userRepo.findById(userId).isPresent()) {
             ApiError.respond(
-                    ctx, HttpStatus.CONFLICT, "CONFLICT", "User already exists: " + userId);
+                    ctx,
+                    HttpStatus.CONFLICT,
+                    "CONFLICT",
+                    "User already exists: " + userId,
+                    Map.of("detailCode", "USER_ALREADY_EXISTS"));
             return;
         }
 
@@ -110,7 +121,8 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "無効なロールが含まれています。使用可能: user, admin");
+                    "無効なロールが含まれています。使用可能: user, admin",
+                    Map.of("detailCode", "ROLE_INVALID"));
             return;
         }
 
@@ -138,7 +150,12 @@ public final class AdminUserController {
         String targetId = ctx.pathParam("id");
         var existing = userRepo.findById(targetId);
         if (existing.isEmpty()) {
-            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "User not found: " + targetId);
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.NOT_FOUND,
+                    "NOT_FOUND",
+                    "User not found: " + targetId,
+                    Map.of("detailCode", "USER_NOT_FOUND"));
             return;
         }
 
@@ -157,7 +174,11 @@ public final class AdminUserController {
         if (newPassword != null && !newPassword.isBlank()) {
             if (newPassword.length() < 8 || newPassword.length() > 128) {
                 ApiError.respond(
-                        ctx, HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "パスワードは8〜128文字で入力してください");
+                        ctx,
+                        HttpStatus.BAD_REQUEST,
+                        "VALIDATION_ERROR",
+                        "パスワードは8〜128文字で入力してください",
+                        Map.of("detailCode", "PASSWORD_LENGTH_INVALID"));
                 return;
             }
             updatedHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
@@ -173,7 +194,8 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "無効なロールが含まれています。使用可能: user, admin");
+                    "無効なロールが含まれています。使用可能: user, admin",
+                    Map.of("detailCode", "ROLE_INVALID"));
             return;
         }
 
@@ -200,12 +222,18 @@ public final class AdminUserController {
                     ctx,
                     HttpStatus.BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    "Cannot delete your own account");
+                    "Cannot delete your own account",
+                    Map.of("detailCode", "CANNOT_DELETE_SELF"));
             return;
         }
 
         if (userRepo.findById(targetId).isEmpty()) {
-            ApiError.respond(ctx, HttpStatus.NOT_FOUND, "NOT_FOUND", "User not found: " + targetId);
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.NOT_FOUND,
+                    "NOT_FOUND",
+                    "User not found: " + targetId,
+                    Map.of("detailCode", "USER_NOT_FOUND"));
             return;
         }
 

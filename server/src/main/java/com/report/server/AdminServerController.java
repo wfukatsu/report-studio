@@ -83,7 +83,12 @@ public final class AdminServerController {
             Properties props = mergeIncoming(incoming);
             saveProps(props);
             log.info("Admin updated server config");
-            ctx.json(Map.of("message", "Config saved. Restart the server to apply."));
+            ctx.json(
+                    Map.of(
+                            "message",
+                            "Config saved. Restart the server to apply.",
+                            "code",
+                            "CONFIG_SAVED"));
         } catch (IOException e) {
             log.error("Failed to write server config", e);
             ApiError.respond(
@@ -105,14 +110,28 @@ public final class AdminServerController {
             // Try to create a factory — if it succeeds, connection is valid
             com.scalar.db.service.TransactionFactory.create(props);
 
-            ctx.json(Map.of("success", true, "message", "接続テスト成功"));
+            ctx.json(
+                    Map.of(
+                            "success",
+                            true,
+                            "message",
+                            "接続テスト成功",
+                            "code",
+                            "CONNECTION_TEST_SUCCESS"));
             log.info("Admin server-config test: success");
         } catch (Exception e) {
             Principal principal = ctx.attribute("principal");
             String userId = (principal != null) ? principal.userId() : "unknown";
             log.warn("Admin [{}] server-config test failed: {}", userId, e.getMessage());
             ctx.status(HttpStatus.BAD_GATEWAY);
-            ctx.json(Map.of("success", false, "message", "接続テストに失敗しました。サーバーログを確認してください。"));
+            ctx.json(
+                    Map.of(
+                            "success",
+                            false,
+                            "message",
+                            "接続テストに失敗しました。サーバーログを確認してください。",
+                            "code",
+                            "CONNECTION_TEST_FAILED"));
         }
     }
 
@@ -137,7 +156,7 @@ public final class AdminServerController {
 
         Principal principal = ctx.attribute("principal");
         String userId = (principal != null) ? principal.userId() : "unknown";
-        ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。"));
+        ctx.json(Map.of("message", "再起動中...サーバーが再起動するまでしばらくお待ちください。", "code", "RESTART_SCHEDULED"));
         log.warn("Admin [{}] requested server restart — exiting JVM in 2 seconds", userId);
 
         CompletableFuture.runAsync(

@@ -39,6 +39,27 @@
     "title": "An unexpected error occurred",
     "hint": "Please reload the page and try again."
   },
+  "admin": {
+    "CONNECTION_TEST_FAILED": "Connection test failed. Please check the server logs.",
+    "CONNECTION_TEST_SUCCESS": "Connection test succeeded"
+  },
+  "adminUsers": {
+    "CANNOT_DELETE_SELF": "You cannot delete your own account",
+    "PASSWORD_LENGTH_INVALID": "Password must be 8–128 characters",
+    "ROLE_INVALID": "Invalid role included. Allowed: user, admin",
+    "USERID_INVALID_CHARS": "User ID may only contain letters, digits, dots, underscores, hyphens, and @",
+    "USERID_PASSWORD_REQUIRED": "User ID and password are required",
+    "USERID_TOO_LONG": "User ID must be 64 characters or less",
+    "USER_ALREADY_EXISTS": "This user ID already exists",
+    "USER_NOT_FOUND": "User not found"
+  },
+  "csvImport": {
+    "CODE_DUPLICATE": "Duplicate code: {{code}}",
+    "CODE_INVALID_CHARS": "Product code may only contain letters, digits, hyphens, and underscores",
+    "CODE_REQUIRED": "Product code is required",
+    "PRICE_INVALID": "Not a number",
+    "RESERVED_KEY": "Contains a prototype-polluting key"
+  },
   "lib": {
     "dataSourceInvalidJson": "Invalid JSON format",
     "dataSourceNotObject": "JSON must be an object",
@@ -96,5 +117,8 @@
     "productsLoadFailed": "Failed to load products",
     "productDuplicateCode": "This product code is already in use",
     "productVersionConflict": "Another user updated the same product. Please review the latest data and try again."
+  },
+  "summary": {
+    "arrayCount": "{{n}} items"
   }
 }

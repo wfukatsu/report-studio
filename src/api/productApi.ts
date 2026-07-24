@@ -112,7 +112,8 @@ export async function putProductCustomFieldDefs(
 export async function importProductsCsv(csvText: string): Promise<{
   imported: number
   skipped: number
-  errors: { row: number; column: string; value: string; reason: string }[]
+  /** `reason` is the ja server wording; `reasonCode` is the UPPER_SNAKE code for i18n (#412). */
+  errors: { row: number; column: string; value: string; reason: string; reasonCode?: string }[]
 }> {
   const res = await fetch('/api/v1/products/import', {
     method: 'POST',

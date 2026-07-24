@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isApiError, parseApiErrorBody } from '@/api/client'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { AlertBanner } from '@/components/common/AlertBanner'
@@ -8,8 +9,32 @@ import { CreateUserForm } from '@/components/admin/CreateUserForm'
 import { Loader2 } from 'lucide-react'
 import type { UserRole } from '@/api/reportApi'
 
+/**
+ * Server `detailCode` → serverErrors key (#412). Codes outside this map fall back
+ * to the generic create/delete failure message.
+ */
+const USER_DETAIL_KEY = {
+  CANNOT_DELETE_SELF: 'adminUsers.CANNOT_DELETE_SELF',
+  PASSWORD_LENGTH_INVALID: 'adminUsers.PASSWORD_LENGTH_INVALID',
+  ROLE_INVALID: 'adminUsers.ROLE_INVALID',
+  USERID_INVALID_CHARS: 'adminUsers.USERID_INVALID_CHARS',
+  USERID_PASSWORD_REQUIRED: 'adminUsers.USERID_PASSWORD_REQUIRED',
+  USERID_TOO_LONG: 'adminUsers.USERID_TOO_LONG',
+  USER_ALREADY_EXISTS: 'adminUsers.USER_ALREADY_EXISTS',
+  USER_NOT_FOUND: 'adminUsers.USER_NOT_FOUND',
+} as const
+
 export function UserManagement() {
   const { t } = useTranslation('components')
+  const { t: tErr } = useTranslation('serverErrors')
+
+  /** Translates a known `detailCode`; returns null when the caller should use its fallback. */
+  function detailMessage(err: unknown): string | null {
+    if (!isApiError(err)) return null
+    const detailCode = parseApiErrorBody(err)?.detailCode
+    const key = detailCode ? USER_DETAIL_KEY[detailCode as keyof typeof USER_DETAIL_KEY] : undefined
+    return key ? tErr(key) : null
+  }
   const currentUser = useReportStore((s) => s.currentUser)
   const users = useReportStore((s) => s.adminUsers)
   const loading = useReportStore((s) => s.adminUsersLoading)
@@ -33,8 +58,8 @@ export function UserManagement() {
     setLocalError(null)
     try {
       await createAdminUser(user)
-    } catch {
-      setLocalError(t('admin.userManagement.createFailed'))
+    } catch (err) {
+      setLocalError(detailMessage(err) ?? t('admin.userManagement.createFailed'))
     }
   }
 
@@ -42,8 +67,8 @@ export function UserManagement() {
     setLocalError(null)
     try {
       await deleteAdminUser(userId)
-    } catch {
-      setLocalError(t('admin.userManagement.deleteFailed'))
+    } catch (err) {
+      setLocalError(detailMessage(err) ?? t('admin.userManagement.deleteFailed'))
     }
   }
 

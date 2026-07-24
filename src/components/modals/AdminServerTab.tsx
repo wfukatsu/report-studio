@@ -2,13 +2,21 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getServerConfig, putServerConfig, testServerConfig, restartServer } from '@/api/reportApi'
 import type { ServerConfig } from '@/api/reportApi'
+import { isApiError, parseApiErrorBody } from '@/api/client'
 import { useReportStore } from '@/store/reportStore'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 const STORAGE_OPTIONS = ['jdbc', 'cassandra', 'cosmos', 'dynamo'] as const
 
+/** Server `code` → serverErrors key; unknown codes fall back to the raw `message` (#412). */
+const TEST_RESULT_KEY = {
+  CONNECTION_TEST_FAILED: 'admin.CONNECTION_TEST_FAILED',
+  CONNECTION_TEST_SUCCESS: 'admin.CONNECTION_TEST_SUCCESS',
+} as const
+
 export function AdminServerTab() {
   const { t } = useTranslation('modals')
+  const { t: tErr } = useTranslation('serverErrors')
   const backendConnected = useReportStore((s) => s.backendConnected)
   const [config, setConfig] = useState<ServerConfig>({})
   const [loading, setLoading] = useState(true)
@@ -16,7 +24,7 @@ export function AdminServerTab() {
   const [testing, setTesting] = useState(false)
   const [restarting, setRestarting] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; code?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
 
@@ -65,11 +73,24 @@ export function AdminServerTab() {
     try {
       const result = await testServerConfig(config)
       setTestResult(result)
-    } catch {
-      setTestResult({ success: false, message: t('adminServerTab.testFailed') })
+    } catch (e) {
+      // The server answers a failed test with HTTP 502 + { success, message, code },
+      // which apiFetch surfaces as an ApiError — recover the structured body.
+      const body = isApiError(e) ? parseApiErrorBody(e) : null
+      setTestResult({
+        success: false,
+        message: body?.message ?? t('adminServerTab.testFailed'),
+        code: body?.code,
+      })
     } finally {
       setTesting(false)
     }
+  }
+
+  /** Prefers the code-based translation; falls back to the raw server message. */
+  function testResultText(result: { message: string; code?: string }): string {
+    const key = result.code ? TEST_RESULT_KEY[result.code as keyof typeof TEST_RESULT_KEY] : undefined
+    return key ? tErr(key) : result.message
   }
 
   async function execRestart() {
@@ -156,7 +177,7 @@ export function AdminServerTab() {
 
       {testResult && (
         <p className={`text-xs ${testResult.success ? 'text-green-600' : 'text-red-500'}`}>
-          {testResult.message}
+          {testResultText(testResult)}
         </p>
       )}
       {saved && <p className="text-xs text-green-600">{t('adminServerTab.savedNote')}</p>}
