@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { CategoryCombobox } from '@/components/common/CategoryCombobox'
 import { TagInput } from '@/components/common/TagInput'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 interface Props {
   open: boolean
@@ -45,6 +46,17 @@ function SaveTemplateDialogContent({
     if (canSave) onSave(name.trim(), category, tags.length > 0 ? tags : undefined)
   }
 
+  // #432: edited-but-unsaved fields confirm before the dialog closes.
+  const isDirty =
+    name !== defaultName ||
+    (category ?? '') !== (defaultCategory ?? '') ||
+    tags.join('\n') !== defaultTags.join('\n')
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
+  const requestClose = () => {
+    if (isDirty) setConfirmingDiscard(true)
+    else onCancel()
+  }
+
   const categoryOptions: string[] = []
 
   return (
@@ -53,13 +65,13 @@ function SaveTemplateDialogContent({
       role="dialog"
       aria-modal="true"
       aria-label={t('saveTemplateDialog.title')}
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose() }}
     >
       <div className="bg-background rounded-lg shadow-xl w-80 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b">
           <h2 className="text-sm font-semibold">{t('saveTemplateDialog.title')}</h2>
           <button
-            onClick={onCancel}
+            onClick={requestClose}
             className="rounded hover:bg-accent p-1"
             aria-label={t('saveTemplateDialog.close')}
           >
@@ -80,7 +92,7 @@ function SaveTemplateDialogContent({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleSave()
-              if (e.key === 'Escape') onCancel()
+              if (e.key === 'Escape') requestClose()
             }}
             className="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder={t('saveTemplateDialog.namePlaceholder')}
@@ -104,7 +116,7 @@ function SaveTemplateDialogContent({
 
         <footer className="flex justify-end gap-2 px-4 py-3 border-t">
           <button
-            onClick={onCancel}
+            onClick={requestClose}
             className="px-3 py-1.5 text-sm rounded-md hover:bg-accent"
             aria-label={t('saveTemplateDialog.cancel')}
           >
@@ -120,6 +132,17 @@ function SaveTemplateDialogContent({
           </button>
         </footer>
       </div>
+
+      {/* #432: confirm before discarding edited fields */}
+      <ConfirmDialog
+        open={confirmingDiscard}
+        title={t('saveTemplateDialog.discardTitle')}
+        message={t('saveTemplateDialog.discardMessage')}
+        confirmLabel={t('saveTemplateDialog.discardConfirm')}
+        confirmVariant="danger"
+        onConfirm={onCancel}
+        onCancel={() => setConfirmingDiscard(false)}
+      />
     </div>
   )
 }
