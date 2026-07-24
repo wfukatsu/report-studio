@@ -184,7 +184,7 @@ export const ElementPanel = memo(function ElementPanel({
       )}
 
       {bs.isDraggingElement && bs.dragState?.source === 'element' && (
-        <div className="bg-[#00C853]/10 border-t px-3 py-2 text-xs text-[#00C853] flex items-center gap-2 shrink-0 animate-pulse">
+        <div className="bg-binding-success/10 border-t px-3 py-2 text-xs text-binding-success-text flex items-center gap-2 shrink-0 animate-pulse">
           <span className="font-medium truncate">
             {t('bindingEditor.elementPanel.draggingElement', { element: bs.dragState.elementLabel })}
           </span>

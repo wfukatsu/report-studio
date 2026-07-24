@@ -207,7 +207,7 @@ export function BindingEditor() {
       <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/10 shrink-0">
         <span className="text-xs text-muted-foreground">{t('bindingEditor.libraryLabel')}</span>
         <button
-          className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 font-medium px-2 py-1 rounded hover:bg-[#6366f1]/5"
+          className="flex items-center gap-1 text-xs text-binding hover:text-binding/80 font-medium px-2 py-1 rounded hover:bg-binding/5"
           onClick={() => setLibraryModalOpen(true)}
         >
           <FolderOpen className="w-3.5 h-3.5" />

@@ -298,9 +298,9 @@ function SchemaFieldsSection() {
                           e.dataTransfer.setData(SCHEMA_FIELD_MIME, JSON.stringify(payload))
                           e.dataTransfer.effectAllowed = 'copy'
                         }}
-                        className="w-full flex flex-col items-center gap-0.5 p-1.5 rounded-lg border border-dashed border-[#6366f1]/30 bg-[#6366f1]/5 hover:bg-[#6366f1]/10 hover:border-[#6366f1]/50 transition-colors text-xs cursor-grab active:cursor-grabbing"
+                        className="w-full flex flex-col items-center gap-0.5 p-1.5 rounded-lg border border-dashed border-binding/30 bg-binding/5 hover:bg-binding/10 hover:border-binding/50 transition-colors text-xs cursor-grab active:cursor-grabbing"
                       >
-                        <span className="text-[10px] font-mono truncate w-full text-center text-[#6366f1]">
+                        <span className="text-[10px] font-mono truncate w-full text-center text-binding">
                           {field.label || field.key}
                         </span>
                       </button>

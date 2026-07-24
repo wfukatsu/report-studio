@@ -35,6 +35,7 @@ import {
   PRODUCT_FK_COLUMN,
 } from './relationshipGraph'
 import { validateRelations } from './relationshipValidation'
+import { BINDING_ACCENT, RELATION_LOOKUP } from '@/lib/uiColors'
 
 interface RelationshipViewProps {
   /** Full schema groups, INCLUDING the product master system group. */
@@ -194,7 +195,7 @@ export const RelationshipView = memo(function RelationshipView({
         onClick={() => setCollapsed((v) => !v)}
       >
         {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        <Boxes className="w-3.5 h-3.5 text-[#6366f1]" />
+        <Boxes className="w-3.5 h-3.5 text-binding" />
         {t('bindingEditor.relationshipView.title')}
         <span className="text-[10px] text-muted-foreground font-normal">
           {t('bindingEditor.relationshipView.subtitle')}
@@ -263,7 +264,7 @@ export const RelationshipView = memo(function RelationshipView({
               {lines.map((l, i) => {
                 const midX = (l.x1 + l.x2) / 2
                 const midY = (l.y1 + l.y2) / 2
-                const color = l.kind === 'lookup' ? '#f59e0b' : '#6366f1'
+                const color = l.kind === 'lookup' ? RELATION_LOOKUP : BINDING_ACCENT
                 return (
                   <g key={i}>
                     <path

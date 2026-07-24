@@ -1,4 +1,9 @@
 import type { Config } from 'tailwindcss'
+import {
+  BINDING_ACCENT,
+  BINDING_SUCCESS,
+  BINDING_SUCCESS_TEXT,
+} from './src/lib/uiColors'
 
 const config: Config = {
   darkMode: ['class'],
@@ -22,6 +27,12 @@ const config: Config = {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+        },
+        // #438: binding-editor accents — values live in src/lib/uiColors.ts
+        binding: {
+          DEFAULT: BINDING_ACCENT,
+          success: BINDING_SUCCESS,
+          'success-text': BINDING_SUCCESS_TEXT,
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

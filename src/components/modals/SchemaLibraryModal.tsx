@@ -80,7 +80,7 @@ export function SchemaLibraryModal({ open, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
-          <Database className="w-4 h-4 text-[#6366f1]" />
+          <Database className="w-4 h-4 text-binding" />
           <h3 className="text-sm font-medium flex-1">{t('schemaLibraryModal.title')}</h3>
           <button
             className="text-muted-foreground hover:text-foreground text-lg leading-none"

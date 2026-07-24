@@ -23,6 +23,7 @@ import {
 } from './bandStyles'
 import { BandContainer } from './BandParts'
 import { ColumnEditor, type ColumnMenuState } from './ColumnEditor'
+import { BINDING_ACCENT } from '@/lib/uiColors'
 
 // ---------------------------------------------------------------------------
 // Design preview (no real data — shows faded mock rows)
@@ -147,10 +148,10 @@ export function RepeatingBandDesignPreview({ element: el, onFieldsChange }: { el
               style={{
                 ...baseCellLayout(colPcts[i], undefined),
                 justifyContent: 'center',
-                backgroundColor: colMenu?.colIndex === i ? '#6366f120' : (el.headerStyle?.backgroundColor ?? DEFAULT_HEADER_BG),
+                backgroundColor: colMenu?.colIndex === i ? `${BINDING_ACCENT}20` : (el.headerStyle?.backgroundColor ?? DEFAULT_HEADER_BG),
                 fontWeight: 'bold',
                 color: el.headerStyle?.color ?? DEFAULT_HEADER_COLOR,
-                borderBottom: colMenu?.colIndex === i ? '2px solid #6366f1' : 'none',
+                borderBottom: colMenu?.colIndex === i ? `2px solid ${BINDING_ACCENT}` : 'none',
                 position: 'relative',
                 cursor: onFieldsChange ? 'pointer' : 'default',
                 transition: 'background-color 0.1s',
