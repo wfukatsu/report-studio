@@ -167,7 +167,13 @@ class OpenApiSchemaParityTest {
 
         TemplateController templateCtrl = new TemplateController(definitionsRepo);
         FormResponseController formResponseCtrl =
-                new FormResponseController(responseRepo, definitionsRepo, submitLimiter);
+                new FormResponseController(
+                        responseRepo,
+                        definitionsRepo,
+                        submitLimiter,
+                        mock(DocumentNumberService.class),
+                        mock(WebhookDispatchService.class),
+                        mock(StatusAuditRepository.class));
         SchemaLibraryController schemaCtrl = new SchemaLibraryController(schemaRepo);
 
         InMemoryJobStore jobStore = new InMemoryJobStore();

@@ -76,10 +76,12 @@ public final class AppWiring {
     final BatchPdfController batchPdfCtrl;
     final JsonBlobRepository sequenceRepo;
     final SequenceController sequenceCtrl;
+    final DocumentNumberService documentNumberService;
     final StatusAuditRepository statusAuditRepo;
     final JsonBlobRepository webhookRepo;
     final WebhookDispatcher webhookDispatcher;
     final WebhookController webhookCtrl;
+    final WebhookDispatchService webhookDispatchService;
     final java.util.concurrent.ExecutorService webhookExecutor;
 
     // ── Admin controllers ─────────────────────────────────────────────────────
@@ -186,8 +188,44 @@ public final class AppWiring {
         evalCtrl = new EvaluateController();
         versionCtrl = new VersionController(factory, txManager, v2DefinitionsRepo);
         versionCtrl.ensureTable();
+        // Document numbering, status audit, and webhook dispatch are created before the
+        // form-response controller so the submit flow receives them via constructor
+        // injection (#419 — the old lazy setter wiring is gone).
+        sequenceRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "sequences");
+        sequenceRepo.ensureTable();
+        sequenceCtrl = new SequenceController(sequenceRepo, v2DefinitionsRepo);
+        documentNumberService = new DocumentNumberService(sequenceRepo);
+        // Status-transition audit trail (#188)
+        statusAuditRepo =
+                new StatusAuditRepository(
+                        new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
+        statusAuditRepo.ensureTable();
+        webhookRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "webhooks");
+        webhookRepo.ensureTable();
+        webhookDispatcher = new WebhookDispatcher();
+        webhookExecutor =
+                new java.util.concurrent.ThreadPoolExecutor(
+                        2,
+                        8,
+                        60L,
+                        java.util.concurrent.TimeUnit.SECONDS,
+                        new java.util.concurrent.LinkedBlockingQueue<>(100),
+                        new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        SecretCrypto webhookCrypto = SecretCrypto.fromEnv();
+        webhookCtrl =
+                new WebhookController(
+                        webhookRepo, v2DefinitionsRepo, webhookDispatcher, webhookCrypto);
+        webhookDispatchService =
+                new WebhookDispatchService(
+                        webhookRepo, webhookDispatcher, webhookCrypto, webhookExecutor);
         formResponseCtrl =
-                new FormResponseController(v2ResponseRepo, v2DefinitionsRepo, v2SubmitLimiter);
+                new FormResponseController(
+                        v2ResponseRepo,
+                        v2DefinitionsRepo,
+                        v2SubmitLimiter,
+                        documentNumberService,
+                        webhookDispatchService,
+                        statusAuditRepo);
         responseExportCtrl =
                 new ResponseExportController(v2ResponseRepo, v2DefinitionsRepo, v2ExportLimiter);
         responsePdfCtrl = new ResponsePdfController(v2ResponseRepo, v2DefinitionsRepo, pdfExecutor);
@@ -229,31 +267,6 @@ public final class AppWiring {
         scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
         batchPdfCtrl =
                 new BatchPdfController(v2DefinitionsRepo, v2ResponseRepo, jobRepo, pdfExecutor);
-        sequenceRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "sequences");
-        sequenceRepo.ensureTable();
-        sequenceCtrl = new SequenceController(sequenceRepo, v2DefinitionsRepo);
-        formResponseCtrl.setSequenceController(sequenceCtrl);
-        // Status-transition audit trail (#188)
-        statusAuditRepo =
-                new StatusAuditRepository(
-                        new JsonBlobRepository(factory, txManager, NAMESPACE, "status_audit"));
-        statusAuditRepo.ensureTable();
-        formResponseCtrl.setStatusAuditRepository(statusAuditRepo);
-        webhookRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "webhooks");
-        webhookRepo.ensureTable();
-        webhookDispatcher = new WebhookDispatcher();
-        webhookExecutor =
-                new java.util.concurrent.ThreadPoolExecutor(
-                        2,
-                        8,
-                        60L,
-                        java.util.concurrent.TimeUnit.SECONDS,
-                        new java.util.concurrent.LinkedBlockingQueue<>(100),
-                        new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
-        webhookCtrl =
-                new WebhookController(
-                        webhookRepo, v2DefinitionsRepo, webhookDispatcher, SecretCrypto.fromEnv());
-        formResponseCtrl.setWebhookController(webhookCtrl, webhookExecutor);
         jobCtrl = new JobController(jobRepo, new BatchPdfProcessor(projRepo, jobRepo), jobExecutor);
         healthCtrl =
                 new HealthController(factory, jobRepo, JobRepository.jobsRoot(), Metrics.GLOBAL);

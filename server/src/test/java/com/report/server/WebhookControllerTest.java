@@ -238,46 +238,4 @@ class WebhookControllerTest {
 
         verify(dispatcher).dispatch(eq(URL), eq("hook-secret-1234"), anyString());
     }
-
-    @Test
-    void dispatchAsync_decryptsSecretBeforeDispatch() throws Exception {
-        String encrypted = crypto.encrypt("hook-secret-1234");
-        when(repo.get(TEMPLATE_ID))
-                .thenReturn(
-                        Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"" + encrypted + "\"}"));
-
-        java.util.concurrent.ExecutorService direct =
-                mock(java.util.concurrent.ExecutorService.class);
-        doAnswer(
-                        inv -> {
-                            ((Runnable) inv.getArgument(0)).run();
-                            return null;
-                        })
-                .when(direct)
-                .execute(any(Runnable.class));
-
-        controller.dispatchAsync(TEMPLATE_ID, "resp-1", "{\"data\":{}}", direct);
-
-        verify(dispatcher).dispatch(eq(URL), eq("hook-secret-1234"), anyString());
-    }
-
-    @Test
-    void dispatchAsync_legacyPlaintextSecretStillWorks() throws Exception {
-        when(repo.get(TEMPLATE_ID))
-                .thenReturn(Optional.of("{\"url\":\"" + URL + "\",\"secret\":\"legacy-plain\"}"));
-
-        java.util.concurrent.ExecutorService direct =
-                mock(java.util.concurrent.ExecutorService.class);
-        doAnswer(
-                        inv -> {
-                            ((Runnable) inv.getArgument(0)).run();
-                            return null;
-                        })
-                .when(direct)
-                .execute(any(Runnable.class));
-
-        controller.dispatchAsync(TEMPLATE_ID, "resp-1", "{\"data\":{}}", direct);
-
-        verify(dispatcher).dispatch(eq(URL), eq("legacy-plain"), anyString());
-    }
 }
