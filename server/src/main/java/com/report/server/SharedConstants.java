@@ -4,10 +4,10 @@ import java.util.regex.Pattern;
 
 /**
  * Cross-language shared constants (#425). The single source of truth is {@code
- * schemas/shared-constants.json} (imported directly by the frontend); this class mirrors the
- * values for Java and {@code SharedConstantsTest} pins the parity, so drift fails the build
- * instead of surfacing as a runtime mismatch. Replaces the previous per-class copies with
- * "must match frontend constant" comments.
+ * schemas/shared-constants.json} (imported directly by the frontend); this class mirrors the values
+ * for Java and {@code SharedConstantsTest} pins the parity, so drift fails the build instead of
+ * surfacing as a runtime mismatch. Replaces the previous per-class copies with "must match frontend
+ * constant" comments.
  */
 public final class SharedConstants {
 

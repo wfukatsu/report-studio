@@ -512,7 +512,9 @@ public final class ScalarDbRowController {
     }
 
     private static boolean isValidIdentifier(String s) {
-        return s != null && s.length() <= MAX_IDENTIFIER_LENGTH && SharedConstants.DB_IDENTIFIER.matcher(s).matches();
+        return s != null
+                && s.length() <= MAX_IDENTIFIER_LENGTH
+                && SharedConstants.DB_IDENTIFIER.matcher(s).matches();
     }
 
     private static void abortQuietly(DistributedTransaction tx) {
