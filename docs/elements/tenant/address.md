@@ -9,7 +9,7 @@
 - **ファクトリ**: `createTenantAddressElement()` (`src/lib/elementFactories.ts`)
 - **Renderer**: `src/elements/tenantAddress/Renderer.tsx`
 - **PropertiesPanel**: `src/elements/tenantAddress/PropertiesPanel.tsx`
-- **整形**: `src/elements/_blocks/formatAddress.ts`
+- **整形**: `src/lib/formatAddress.ts`（#436 で lib へ移設。旧 `src/elements/_blocks/formatAddress.ts` は re-export スタブ）
 
 ## 型定義
 

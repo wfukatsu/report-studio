@@ -24,7 +24,8 @@ JobTtlReaper                  ← TTL 回収スケジューラ(60 秒周期)
 | V2 バッチ (`BatchPdfController`) | `V2_BATCH` | `/api/v2/pdf-jobs/batch` | `data/jobs/{id}/output.zip` | 300 秒 | 10(統合時に新設) |
 
 - `/api/v1/jobs` は `jobType` で V1 ジョブのみを返す(V2 ジョブはストアを共有するが V1 API には現れない)。V1 の status/cancel/download も V1 ジョブ以外は 404
-- V2 API は**互換レイヤ**: エンドポイント・レスポンス形状・小文字ステータスは統合前と同一
+- V2 の submit/status/result は**互換レイヤ**: エンドポイント・レスポンス形状・小文字ステータスは統合前と同一(submit/status/result は `PdfJobController`、バッチ submit/status/result は `BatchPdfController`)
+- **統合リスト/キャンセル(#191)**: `GET /api/v2/pdf-jobs`(`JobController.listUnified`)は**全ジョブタイプ**(V1 CSV バッチ・V2 単発・V2 バッチ)を横断して返す — 所有者スコープ(自分のジョブ + 所有者なしジョブ、admin は全件)、`jobId`/`jobType`/小文字 `status`/`total`/`completed`/`failed` 等の安定 DTO。`DELETE /api/v2/pdf-jobs/{jobId}`(`JobController.cancelUnified`)も**全タイプ横断**でキャンセル/削除する(terminal は成果物ごと削除、稼働中 V1 は協調キャンセル、稼働中 V2 は CANCELLED マーク)
 
 ## ステータス語彙(`JobStatus`)
 

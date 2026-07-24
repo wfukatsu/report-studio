@@ -22,6 +22,9 @@ The session cookie is saved to `~/.report-studio/cookies` (override with
 
 ```
 login / whoami                       authenticate / show current user
+tokens list                          list API tokens
+tokens create --label <use>          issue an API token (PAT/Bearer, #195)
+tokens revoke <id>                   revoke an API token
 
 templates list                       list templates (id, name, visibility, updated)
 templates get <id>                   print the full template definition
@@ -31,10 +34,15 @@ templates delete <id>                delete a template
 
 pdf <id> [--data d.json] [--out f]   single PDF (optional testData JSON override)
 batch <id> --csv rows.csv [--out d]  one PDF per CSV row into a directory
-                                     --name <col> names files by a column value
+                                     --filename-template "{col}_{date}.pdf" or --name <col>
 
-jobs list                            list batch jobs and their status
+responses list <id>                  list a template's responses (with status)
+responses status <id> <rid> <status> set one response's status (draft|issued|sent|void)
+responses set-status <id> <status>   bulk status change (--ids a,b or --status-from <old>)
+
+jobs list                            list jobs (all types) and their status
 jobs status <jobId>                  print one job's status
+jobs cancel <jobId>                  cancel / delete a job
 
 db tables                            list ScalarDB namespaces + tables
 db rows <ns.table>                   scan rows of a table

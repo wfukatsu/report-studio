@@ -20,7 +20,7 @@ language-agnostic; feel free to open issues/PRs in English.
 
 ### 前提条件
 
-- **Node.js 20+ / npm 10+**
+- **Node.js 22+ / npm 10+**（CI は Node 22 で検証）
 - **JDK 21**（[Temurin](https://adoptium.net/) 推奨、または `brew install openjdk@21`）
 
 > **JDK バージョンに注意:** バックエンドの Gradle は Java 21 toolchain を要求します。
@@ -139,7 +139,7 @@ cd server && ./gradlew test --tests "com.report.server.SequenceControllerTest"  
 - 迷ったら、まわりの既存コードのスタイル（命名・コメント量・イディオム）に合わせてください。
 
 アーキテクチャの全体像は [docs/architecture.md](./docs/architecture.md)、
-API 仕様は [docs/detailed-design.md](./docs/detailed-design.md) にあります。
+API 仕様は [docs/openapi.yaml](./docs/openapi.yaml) にあります。
 
 ---
 
