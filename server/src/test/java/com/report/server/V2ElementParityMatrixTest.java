@@ -25,7 +25,12 @@ import org.junit.jupiter.api.Test;
  */
 class V2ElementParityMatrixTest {
 
-    /** All V2 element types — mirror of the ReportElement union in src/types/index.ts. */
+    /**
+     * All V2 element types with server-support notes. #415: the key set is pinned to {@code
+     * schemas/element-types.json} (generated from the frontend ReportElement union) by {@link
+     * #typeListMatchesFrontendGeneratedJson} — a type added on the frontend fails this test until a
+     * renderer/notes entry exists, instead of shipping as a silent empty frame.
+     */
     private static final Map<String, String> V2_TYPES_WITH_NOTES = buildTypeNotes();
 
     /** V2 types that resolve to a registered renderer today. */
@@ -93,6 +98,30 @@ class V2ElementParityMatrixTest {
         m.put("tenantLogo", "対応（logoBase64 data-URI を image 要素として描画）");
         m.put("tenantCustom", "対応（custom[fieldKey]）");
         return m;
+    }
+
+    /** #415: the machine-readable type list generated from src/types/elementTypes.ts. */
+    private static Set<String> loadFrontendElementTypes() throws IOException {
+        Path json = Path.of("..", "schemas", "element-types.json");
+        assertTrue(
+                Files.exists(json),
+                "schemas/element-types.json must exist (run: npm run generate:schema)");
+        Set<String> types = new TreeSet<>();
+        new ObjectMapper()
+                .readTree(Files.readString(json))
+                .path("elementTypes")
+                .forEach(n -> types.add(n.asText()));
+        return types;
+    }
+
+    @Test
+    void typeListMatchesFrontendGeneratedJson() throws IOException {
+        assertEquals(
+                loadFrontendElementTypes(),
+                new TreeSet<>(V2_TYPES_WITH_NOTES.keySet()),
+                "frontend ReportElement union changed (schemas/element-types.json) — register a"
+                        + " PDF renderer and add a notes entry to buildTypeNotes(), or record the"
+                        + " gap explicitly");
     }
 
     @Test
