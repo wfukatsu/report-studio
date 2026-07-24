@@ -85,32 +85,93 @@ describe('SchemaPanel — フィールド追加', () => {
   })
 })
 
-describe('SchemaPanel — グループ削除', () => {
-  it('removes a group when delete button is clicked', () => {
+describe('SchemaPanel — グループ削除（#431 確認ダイアログ）', () => {
+  it('shows a confirm dialog and removes the group only after confirming', () => {
     render(<SchemaPanel />)
     fireEvent.click(screen.getByText(/master グループ/))
 
-    // Click delete button for the group
-    const deleteBtn = screen.getByRole('button', { name: 'グループを削除' })
-    fireEvent.click(deleteBtn)
+    // Click delete button for the group — the group survives until confirmed
+    fireEvent.click(screen.getByRole('button', { name: 'グループを削除' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema?.groups ?? []).toHaveLength(1)
 
-    const state = useReportStore.getState()
-    const groups = state.definition.schema?.groups ?? []
-    expect(groups).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    expect(useReportStore.getState().definition.schema?.groups ?? []).toHaveLength(0)
+  })
+
+  it('keeps the group when the dialog is cancelled', () => {
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByText(/master グループ/))
+    fireEvent.click(screen.getByRole('button', { name: 'グループを削除' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema?.groups ?? []).toHaveLength(1)
   })
 })
 
 describe('SchemaPanel — フィールド削除', () => {
-  it('removes a field when field delete button is clicked', () => {
+  it('removes an unbound field immediately without confirmation', () => {
     render(<SchemaPanel />)
     fireEvent.click(screen.getByText(/master グループ/))
     fireEvent.click(screen.getByText('フィールド追加'))
 
     fireEvent.click(screen.getByRole('button', { name: 'フィールドを削除' }))
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     const state = useReportStore.getState()
     const groups = state.definition.schema?.groups ?? []
     expect(groups[0].fields).toHaveLength(0)
+  })
+
+  it('#431: confirms before removing a field bound to an element', () => {
+    // Setup: group + field + a dataField element bound to the field
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: '氏名', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, {
+      id: 'el-bound', type: 'dataField',
+      position: { x: 0, y: 0 }, size: { width: 50, height: 10 },
+      zIndex: 1, visible: true, locked: false, fieldKey: '', style: {},
+    } as unknown as import('@/types').ReportElement)
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-bound', fieldId)
+
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'フィールドを削除' }))
+
+    // Dialog shown; field survives until confirmed
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(0)
+    // The binding cascade also cleared the element's schemaBinding
+    const el = useReportStore.getState().definition.pages[0]
+      .sections!.flatMap((s) => s.elements).find((e) => e.id === 'el-bound')!
+    expect(el.schemaBinding).toBeUndefined()
+  })
+
+  it('#431: keeps a bound field when the dialog is cancelled', () => {
+    useReportStore.getState().addSchemaGroup('master')
+    const groupId = useReportStore.getState().definition.schema!.groups[0].id
+    useReportStore.getState().addSchemaField(groupId, { key: 'name', label: '氏名', type: 'string' })
+    const fieldId = useReportStore.getState().definition.schema!.groups[0].fields[0].id
+    const pageId = useReportStore.getState().definition.pages[0].id
+    useReportStore.getState().addElement(pageId, {
+      id: 'el-bound-2', type: 'dataField',
+      position: { x: 0, y: 0 }, size: { width: 50, height: 10 },
+      zIndex: 1, visible: true, locked: false, fieldKey: '', style: {},
+    } as unknown as import('@/types').ReportElement)
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-bound-2', fieldId)
+
+    render(<SchemaPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'フィールドを削除' }))
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(1)
   })
 })
 

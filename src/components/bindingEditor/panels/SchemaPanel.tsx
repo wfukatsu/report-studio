@@ -43,6 +43,10 @@ export const SchemaPanel = memo(function SchemaPanel({
   // #407: group pending deletion — the delete is destructive (drops the group's
   // fields and unbinds every element bound to them), so it goes through a confirm.
   const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null)
+  // #431: bound-field pending deletion — deleting a field that still has connected
+  // elements unbinds them, so it also confirms; unbound fields delete immediately.
+  const [pendingDeleteFieldRef, setPendingDeleteFieldRef] =
+    useState<{ groupId: string; fieldId: string } | null>(null)
 
   // Destructure the members used inside memoized callbacks so the dependency
   // arrays can list them directly (bs itself is a fresh object every render).
@@ -66,7 +70,7 @@ export const SchemaPanel = memo(function SchemaPanel({
     [addSchemaGroup, onGroupAdded],
   )
 
-  const { removeSchemaGroup, fieldBoundCount } = bs
+  const { removeSchemaGroup, removeSchemaField, fieldBoundCount } = bs
 
   const pendingDeleteGroup = useMemo(
     () => bs.schemaGroups.find((g) => g.id === pendingDeleteGroupId) ?? null,
@@ -87,6 +91,31 @@ export const SchemaPanel = memo(function SchemaPanel({
     if (pendingDeleteGroupId) removeSchemaGroup(pendingDeleteGroupId)
     setPendingDeleteGroupId(null)
   }, [pendingDeleteGroupId, removeSchemaGroup])
+
+  // #431: route field deletion through a confirm when the field is still bound.
+  const handleRemoveField = useCallback(
+    (groupId: string, fieldId: string) => {
+      if ((fieldBoundCount.get(fieldId) ?? 0) > 0) {
+        setPendingDeleteFieldRef({ groupId, fieldId })
+      } else {
+        removeSchemaField(groupId, fieldId)
+      }
+    },
+    [fieldBoundCount, removeSchemaField],
+  )
+
+  const pendingDeleteField = useMemo(() => {
+    if (!pendingDeleteFieldRef) return null
+    const group = bs.schemaGroups.find((g) => g.id === pendingDeleteFieldRef.groupId)
+    return group?.fields.find((f) => f.id === pendingDeleteFieldRef.fieldId) ?? null
+  }, [bs.schemaGroups, pendingDeleteFieldRef])
+
+  const handleConfirmDeleteField = useCallback(() => {
+    if (pendingDeleteFieldRef) {
+      removeSchemaField(pendingDeleteFieldRef.groupId, pendingDeleteFieldRef.fieldId)
+    }
+    setPendingDeleteFieldRef(null)
+  }, [pendingDeleteFieldRef, removeSchemaField])
 
   const handleAddField = useCallback(
     (groupId: string, field: Omit<SchemaField, 'id'>) => {
@@ -213,7 +242,7 @@ export const SchemaPanel = memo(function SchemaPanel({
               addingField={bs.addingFieldGroupId === group.id}
               onToggle={onToggleGroup}
               onAddField={handleAddField}
-              onRemoveField={bs.removeSchemaField}
+              onRemoveField={handleRemoveField}
               onRemoveGroup={setPendingDeleteGroupId}
               onSetAddingField={bs.setAddingFieldGroupId}
               onBulkGenerate={handleBulkGenerate}
@@ -271,6 +300,22 @@ export const SchemaPanel = memo(function SchemaPanel({
         confirmVariant="danger"
         onConfirm={handleConfirmDeleteGroup}
         onCancel={() => setPendingDeleteGroupId(null)}
+      />
+
+      {/* #431: confirm before dropping a field that still has bound elements */}
+      <ConfirmDialog
+        open={pendingDeleteField !== null}
+        title={t('bindingEditor.schemaPanel.deleteFieldTitle')}
+        message={t('bindingEditor.schemaPanel.deleteFieldMessage', {
+          name: pendingDeleteField?.label || pendingDeleteField?.key || '',
+          bound: pendingDeleteFieldRef
+            ? fieldBoundCount.get(pendingDeleteFieldRef.fieldId) ?? 0
+            : 0,
+        })}
+        confirmLabel={t('bindingEditor.schemaPanel.deleteFieldConfirm')}
+        confirmVariant="danger"
+        onConfirm={handleConfirmDeleteField}
+        onCancel={() => setPendingDeleteFieldRef(null)}
       />
     </div>
   )

@@ -7,7 +7,7 @@
  * fx button → dialog props → addSchemaField(computed).
  */
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { BindingEditor } from './BindingEditor'
 import { useReportStore } from '@/store'
 import type { ReportElement } from '@/types'
@@ -218,6 +218,47 @@ describe('BindingEditor — 列未割当の警告（#130）', () => {
     setupSchemaAndElements()
     render(<BindingEditor />)
     expect(screen.queryByLabelText('DBカラム未割当')).not.toBeInTheDocument()
+  })
+})
+
+describe('BindingEditor — フィールド削除の確認（#431）', () => {
+  it('未接続フィールドは確認なしで即削除される', () => {
+    setupSchemaAndElements()
+    render(<BindingEditor />)
+
+    fireEvent.click(screen.getByTitle('削除'))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(0)
+  })
+
+  it('接続済みフィールドは確認ダイアログを経て削除され、要素のバインドが解除される', () => {
+    const { fieldId, pageId } = setupSchemaAndElements()
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-1', fieldId)
+    render(<BindingEditor />)
+
+    fireEvent.click(screen.getByTitle('削除'))
+
+    // Dialog shown; the field survives until confirmed
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(1)
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: '削除' }))
+
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(0)
+    expect(getBinding(pageId, 'el-1')).toBeUndefined()
+  })
+
+  it('キャンセルするとフィールドもバインドも残る', () => {
+    const { fieldId, pageId } = setupSchemaAndElements()
+    useReportStore.getState().setElementSchemaBinding(pageId, 'el-1', fieldId)
+    render(<BindingEditor />)
+
+    fireEvent.click(screen.getByTitle('削除'))
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useReportStore.getState().definition.schema!.groups[0].fields).toHaveLength(1)
+    expect(getBinding(pageId, 'el-1')?.fieldId).toBe(fieldId)
   })
 })
 

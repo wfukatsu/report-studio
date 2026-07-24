@@ -10,9 +10,10 @@ import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/shallow'
 import { ChevronDown, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store'
-import type { SchemaField, SchemaFieldType, SchemaGroup, SchemaDefinition } from '@/types'
+import type { Page, SchemaField, SchemaFieldType, SchemaGroup, SchemaDefinition } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { isSystemGroup } from '@/store/schemaSlice'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -389,10 +390,24 @@ const InferPanel = memo(function InferPanel({
 // SchemaPanel — main component
 // ---------------------------------------------------------------------------
 
+/** #431: number of elements whose schemaBinding points at one of the given fields. */
+function countBoundElements(pages: Page[], fieldIds: ReadonlySet<string>): number {
+  let count = 0
+  for (const page of pages) {
+    for (const section of page.sections ?? []) {
+      for (const el of section.elements) {
+        if (el.schemaBinding && fieldIds.has(el.schemaBinding.fieldId)) count++
+      }
+    }
+  }
+  return count
+}
+
 export const SchemaPanel = memo(function SchemaPanel() {
   const { t } = useTranslation('components')
   const schema = useReportStore((s) => s.definition.schema)
   const groups = useReportStore(useShallow((s) => s.definition.schema?.groups ?? []))
+  const pages = useReportStore((s) => s.definition.pages)
   const masterGroups = groups.filter((g) => g.role === 'master')
 
   const {
@@ -404,6 +419,35 @@ export const SchemaPanel = memo(function SchemaPanel() {
     updateSchemaField,
     setSchema,
   } = useReportStore()
+
+  // #431: group/field deletion is destructive (drops fields and unbinds every
+  // element bound to them) and is not undoable, so it goes through a confirm.
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null)
+  const [pendingDeleteFieldRef, setPendingDeleteFieldRef] =
+    useState<{ groupId: string; fieldId: string } | null>(null)
+
+  const pendingDeleteGroup = groups.find((g) => g.id === pendingDeleteGroupId) ?? null
+  const pendingGroupBoundCount = pendingDeleteGroup
+    ? countBoundElements(pages, new Set(pendingDeleteGroup.fields.map((f) => f.id)))
+    : 0
+
+  const pendingDeleteField = pendingDeleteFieldRef
+    ? groups
+        .find((g) => g.id === pendingDeleteFieldRef.groupId)
+        ?.fields.find((f) => f.id === pendingDeleteFieldRef.fieldId) ?? null
+    : null
+  const pendingFieldBoundCount = pendingDeleteField
+    ? countBoundElements(pages, new Set([pendingDeleteField.id]))
+    : 0
+
+  // Bound fields go through a confirm; unbound ones delete immediately.
+  const handleRemoveField = (groupId: string, fieldId: string) => {
+    if (countBoundElements(pages, new Set([fieldId])) > 0) {
+      setPendingDeleteFieldRef({ groupId, fieldId })
+    } else {
+      removeSchemaField(groupId, fieldId)
+    }
+  }
 
   return (
     <div className="p-3 space-y-2">
@@ -443,10 +487,10 @@ export const SchemaPanel = memo(function SchemaPanel() {
           group={g}
           masterGroups={masterGroups}
           onUpdateGroup={(patch) => updateSchemaGroup(g.id, patch)}
-          onRemoveGroup={() => removeSchemaGroup(g.id)}
+          onRemoveGroup={() => setPendingDeleteGroupId(g.id)}
           onAddField={() => addSchemaField(g.id, { key: '', label: '', type: 'string' })}
           onUpdateField={(fieldId, patch) => updateSchemaField(g.id, fieldId, patch)}
-          onRemoveField={(fieldId) => removeSchemaField(g.id, fieldId)}
+          onRemoveField={(fieldId) => handleRemoveField(g.id, fieldId)}
         />
       ))}
 
@@ -455,6 +499,43 @@ export const SchemaPanel = memo(function SchemaPanel() {
           {t('sidebar.schemaPanel.fieldDefCount', { n: groups.reduce((acc, g) => acc + g.fields.length, 0) })}
         </p>
       )}
+
+      {/* #431: confirm before dropping a group (fields + element bindings go with it) */}
+      <ConfirmDialog
+        open={pendingDeleteGroup !== null}
+        title={t('sidebar.schemaPanel.deleteGroupTitle')}
+        message={t('sidebar.schemaPanel.deleteGroupMessage', {
+          name: pendingDeleteGroup?.label || pendingDeleteGroup?.id || '',
+          fields: pendingDeleteGroup?.fields.length ?? 0,
+          bound: pendingGroupBoundCount,
+        })}
+        confirmLabel={t('sidebar.schemaPanel.deleteGroupConfirm')}
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (pendingDeleteGroupId) removeSchemaGroup(pendingDeleteGroupId)
+          setPendingDeleteGroupId(null)
+        }}
+        onCancel={() => setPendingDeleteGroupId(null)}
+      />
+
+      {/* #431: confirm before dropping a field that still has bound elements */}
+      <ConfirmDialog
+        open={pendingDeleteField !== null}
+        title={t('sidebar.schemaPanel.deleteFieldTitle')}
+        message={t('sidebar.schemaPanel.deleteFieldMessage', {
+          name: pendingDeleteField?.label || pendingDeleteField?.key || '',
+          bound: pendingFieldBoundCount,
+        })}
+        confirmLabel={t('sidebar.schemaPanel.deleteFieldConfirm')}
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (pendingDeleteFieldRef) {
+            removeSchemaField(pendingDeleteFieldRef.groupId, pendingDeleteFieldRef.fieldId)
+          }
+          setPendingDeleteFieldRef(null)
+        }}
+        onCancel={() => setPendingDeleteFieldRef(null)}
+      />
     </div>
   )
 })
