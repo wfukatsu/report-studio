@@ -4,6 +4,7 @@ import { useReportStore } from '@/store/reportStore'
 import type { TaxType, TenantInfo } from '@/types'
 import { TenantLogoField } from '@/components/common/TenantLogoField'
 import { AlertBanner } from '@/components/common/AlertBanner'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 import { resolveTaxRates } from '@/lib/taxRates'
 
 // Editable tax types (「非課税」= none is always 0% and shown read-only).
@@ -39,6 +40,7 @@ export function TenantInfoForm({ heading, fetchOnMount }: Props) {
   const { t } = useTranslation('components')
   const tenantInfo = useReportStore((s) => s.tenantInfo)
   const tenantLoading = useReportStore((s) => s.tenantLoading)
+  const tenantError = useReportStore((s) => s.tenantError)
   const fetchTenantInfo = useReportStore((s) => s.fetchTenantInfo)
   const updateTenantInfo = useReportStore((s) => s.updateTenantInfo)
 
@@ -149,6 +151,11 @@ export function TenantInfoForm({ heading, fetchOnMount }: Props) {
         </div>
       )}
 
+      {/* #433: fetch failure was previously console-only — the form rendered
+          empty and read as "テナント情報未設定" with no hint of the real cause. */}
+      {tenantError != null && (
+        <InlineErrorBanner error={tenantError} onRetry={() => { void fetchTenantInfo() }} />
+      )}
       {error && <AlertBanner variant="error" message={error} />}
       {saveMessage && <AlertBanner variant="success" message={saveMessage} />}
 

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { ProductEditDialog } from './ProductEditDialog'
 import { ProductCsvImportModal } from './ProductCsvImportModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { InlineErrorBanner } from '@/components/common/InlineErrorBanner'
 
 type SortCol = 'code' | 'name' | 'category' | 'unitPrice' | 'stockCount' | 'taxType'
 type SortDir = 'asc' | 'desc'
@@ -39,6 +40,7 @@ export function ProductMasterTab() {
   const productOps = useReportStore((s) => s.productOps)
   const fetchProducts = useReportStore((s) => s.fetchProducts)
   const fetchCustomFieldDefs = useReportStore((s) => s.fetchCustomFieldDefs)
+  const customFieldDefsError = useReportStore((s) => s.customFieldDefsError)
   const deleteProduct = useReportStore((s) => s.deleteProduct)
   const setProductOp = useReportStore((s) => s.setProductOp)
 
@@ -200,6 +202,15 @@ export function ProductMasterTab() {
 
         {productsError && (
           <p className="text-xs text-red-500 mb-2">{productsError}</p>
+        )}
+
+        {/* #433: custom columns silently vanished when the defs fetch failed */}
+        {customFieldDefsError != null && (
+          <InlineErrorBanner
+            className="mb-2"
+            error={customFieldDefsError}
+            onRetry={() => { void fetchCustomFieldDefs() }}
+          />
         )}
 
         {sorted.length === 0 ? (

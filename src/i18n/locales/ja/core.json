@@ -29,6 +29,8 @@
       "titleNew": "テンプレートを選ぶ"
     },
     "toast": {
+      "autoSaveFailed": "自動保存に失敗しました。ネットワークまたはサーバの状態を確認してください。",
+      "autoSaveRetry": "再試行",
       "saveFailed": "保存に失敗しました",
       "saved": "保存しました"
     },

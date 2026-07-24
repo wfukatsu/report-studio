@@ -7,7 +7,12 @@ vi.mock('@/api/reportApi', () => ({
   saveReport: vi.fn().mockResolvedValue({}),
 }))
 
+vi.mock('sonner', () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), dismiss: vi.fn() }),
+}))
+
 import { saveReport } from '@/api/reportApi'
+import { toast } from 'sonner'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -192,5 +197,60 @@ describe('useAutoSave', () => {
     expect(url).toBe('/api/v2/templates/template-1')
     expect(body).toBeInstanceOf(Blob)
     expect((body as Blob).type).toBe('application/json')
+  })
+})
+
+describe('useAutoSave — #433 保存失敗のフィードバック', () => {
+  it('shows a retry toast when auto-save fails', async () => {
+    vi.mocked(saveReport).mockRejectedValueOnce(new Error('Network error'))
+
+    renderHook(() => useAutoSave())
+    act(() => { useReportStore.getState().setReportName('Fail Toast') })
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        id: 'autosave-error',
+        action: expect.objectContaining({ onClick: expect.any(Function) }),
+      }),
+    )
+  })
+
+  it('retry action re-attempts the save and dismisses the toast on success', async () => {
+    vi.mocked(saveReport).mockRejectedValueOnce(new Error('server down'))
+
+    renderHook(() => useAutoSave())
+    act(() => { useReportStore.getState().setReportName('Retry Me') })
+    await act(async () => { vi.advanceTimersByTime(2000) })
+    expect(useReportStore.getState().saveState).toBe('error')
+
+    const lastCall = vi.mocked(toast.error).mock.calls.at(-1)!
+    const { action } = lastCall[1] as unknown as { action: { onClick: () => void } }
+    await act(async () => { action.onClick() })
+
+    expect(saveReport).toHaveBeenCalledTimes(2)
+    expect(useReportStore.getState().saveState).toBe('saved')
+    expect(toast.dismiss).toHaveBeenCalledWith('autosave-error')
+  })
+
+  it('blocks beforeunload while saveState is error', () => {
+    renderHook(() => useAutoSave())
+    act(() => { useReportStore.getState().setSaveState('error') })
+
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+
+    expect(e.defaultPrevented).toBe(true)
+  })
+
+  it('does not block beforeunload when saved', () => {
+    renderHook(() => useAutoSave())
+    act(() => { useReportStore.getState().setSaveState('saved') })
+
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+
+    expect(e.defaultPrevented).toBe(false)
   })
 })

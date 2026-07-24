@@ -117,13 +117,27 @@ describe('productSlice — custom field defs', () => {
     expect(useReportStore.getState().customFieldDefs).toEqual([{ key: 'sku', label: 'SKU' }])
   })
 
-  it('fetchCustomFieldDefs swallows errors (logs, keeps prior state)', async () => {
+  it('fetchCustomFieldDefs keeps prior state and exposes the error on failure (#433)', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     useReportStore.setState({ customFieldDefs: [{ key: 'old' }] as never })
-    vi.mocked(getProductCustomFieldDefs).mockRejectedValue(new Error('x'))
+    const err = new Error('x')
+    vi.mocked(getProductCustomFieldDefs).mockRejectedValue(err)
     await useReportStore.getState().fetchCustomFieldDefs()
     expect(useReportStore.getState().customFieldDefs).toEqual([{ key: 'old' }])
+    expect(useReportStore.getState().customFieldDefsError).toBe(err)
     expect(spy).toHaveBeenCalled()
+  })
+
+  it('fetchCustomFieldDefs clears the error on a subsequent success (#433)', async () => {
+    vi.mocked(getProductCustomFieldDefs).mockRejectedValueOnce(new Error('x'))
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await useReportStore.getState().fetchCustomFieldDefs()
+    expect(useReportStore.getState().customFieldDefsError).not.toBeNull()
+    spy.mockRestore()
+
+    vi.mocked(getProductCustomFieldDefs).mockResolvedValue([] as never)
+    await useReportStore.getState().fetchCustomFieldDefs()
+    expect(useReportStore.getState().customFieldDefsError).toBeNull()
   })
 
   it('updateCustomFieldDefs stores the persisted defs from the API', async () => {
