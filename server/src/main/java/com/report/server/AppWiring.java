@@ -69,6 +69,7 @@ public final class AppWiring {
 
     // ── Product Master ─────────────────────────────────────────────────────────
     final JsonBlobRepository productRepo;
+    final ProductCatalogService productCatalog;
     final ProductController productCtrl;
     final ScalarDbScanController scalarDbScanCtrl;
     final ScalarDbRowController scalarDbRowCtrl;
@@ -199,7 +200,14 @@ public final class AppWiring {
         statelessExcelCtrl = new StatelessExcelController();
         scalarDbCatalogCtrl = new ScalarDbCatalogController(factory);
         scalarDbTableCtrl = new ScalarDbTableController(factory);
-        bindingResolveCtrl = new BindingResolveController(factory, txManager, v2DefinitionsRepo);
+        // Product catalog is created before the controllers that read it, so both
+        // ProductController and BindingResolveController receive it via constructor
+        // injection (#418 — the old controller-to-controller setter wiring is gone).
+        productRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "products");
+        productRepo.ensureTable();
+        productCatalog = new ProductCatalogService(productRepo);
+        bindingResolveCtrl =
+                new BindingResolveController(factory, txManager, v2DefinitionsRepo, productCatalog);
         tenantRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "tenant");
         tenantRepo.ensureTable();
         tenantCtrl = new TenantController(tenantRepo);
@@ -216,10 +224,7 @@ public final class AppWiring {
                         return null;
                     }
                 });
-        productRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "products");
-        productRepo.ensureTable();
-        productCtrl = new ProductController(productRepo);
-        bindingResolveCtrl.setProductController(productCtrl);
+        productCtrl = new ProductController(productRepo, productCatalog);
         scalarDbScanCtrl = new ScalarDbScanController(factory, txManager);
         scalarDbRowCtrl = new ScalarDbRowController(factory, txManager);
         batchPdfCtrl =
