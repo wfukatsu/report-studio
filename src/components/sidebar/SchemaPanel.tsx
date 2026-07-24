@@ -7,6 +7,7 @@
 
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n/config'
 import { useShallow } from 'zustand/shallow'
 import { ChevronDown, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useReportStore } from '@/store'
@@ -310,8 +311,7 @@ function inferSchemaFromSample(sample: Record<string, unknown>): SchemaDefinitio
 
   const groups: SchemaGroup[] = []
   if (masterFields.length > 0) {
-    // eslint-disable-next-line i18next/no-literal-string -- seed default group label persisted to the data model
-    groups.push({ id: uuidv4(), label: 'マスター', role: 'master', dataKey: '', fields: masterFields })
+    groups.push({ id: uuidv4(), label: i18n.t('components:sidebar.schemaPanel.inferredMasterLabel'), role: 'master', dataKey: '', fields: masterFields })
   }
   groups.push(...detailGroups)
   return { groups }

@@ -261,6 +261,30 @@
     "layoutRow": "Single Row",
     "sectionTitle": "Era Selection"
   },
+  "factories": {
+    "approvalRoleChief": "Chief",
+    "approvalRoleDirector": "Director",
+    "approvalRoleManager": "Manager",
+    "approvalRolePresident": "President",
+    "approvalRoleStaff": "Staff",
+    "bandColAmount": "Amount",
+    "bandColItem": "Item",
+    "bandColQuantity": "Qty",
+    "bandColUnit": "Unit",
+    "bandColUnitPrice": "Unit price",
+    "bandTotalLabel": "Total",
+    "chartTitle": "Chart",
+    "currentDateFormat": "yyyy/MM/dd",
+    "dataFieldLabel": "Field",
+    "formTableHeaderCell": "Item {{n}}",
+    "hankoText": "Seal",
+    "listFieldDept": "Dept.",
+    "listFieldName": "Name",
+    "listFieldTitle": "Title",
+    "manualEntryLabel": "Entry field",
+    "manualEntryPlaceholder": "(fill in)",
+    "textContent": "Text"
+  },
   "formTable": {
     "align": {
       "center": "Center",
@@ -524,6 +548,7 @@
     "moveLeft": "Move left",
     "moveRight": "Move right",
     "moveUp": "Move up",
+    "newColumnLabel": "New column",
     "noData": "No data",
     "noDetailGroups": "No detail groups. Please add a detail group to the schema.",
     "oddRowColor": "Odd row background color",

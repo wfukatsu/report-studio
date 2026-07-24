@@ -327,6 +327,7 @@
     "labelPlaceholder": "Display name",
     "loading": "Loading the product master...",
     "manage": "Manage",
+    "newFieldLabel": "New field",
     "nextPage": "Next page",
     "noCustomFields": "No custom fields",
     "noProducts": "No products yet. Add one from \"Add\".",

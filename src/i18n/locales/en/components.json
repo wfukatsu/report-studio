@@ -271,6 +271,7 @@
       "guideDrag": "You can also connect by dragging a field onto an element",
       "newDetailName": "New detail {{n}}",
       "newMasterName": "New master {{n}}",
+      "newSchemaName": "New schema",
       "searchPlaceholder": "Search fields...",
       "title": "Schema fields"
     },
@@ -645,6 +646,19 @@
     "pageCount_one": "Preview — {{count}} page",
     "pageCount_other": "Preview — {{count}} pages"
   },
+  "productMaster": {
+    "fieldCategory": "Category",
+    "fieldCode": "Product code",
+    "fieldDescription": "Description",
+    "fieldId": "Product ID",
+    "fieldManufacturer": "Manufacturer",
+    "fieldName": "Product name",
+    "fieldStockCount": "Stock",
+    "fieldTaxType": "Tax type",
+    "fieldUnit": "Unit",
+    "fieldUnitPrice": "Unit price",
+    "groupLabel": "Product master"
+  },
   "scalardbLabels": {
     "clusteringKey": "Clustering key",
     "index": "Index",
@@ -696,6 +710,7 @@
         "sampleValue": "Sample value",
         "valuePlaceholder": "e.g. John Doe"
       },
+      "formDataSourceName": "Form data",
       "json": {
         "pasteLabel": "Paste JSON data:"
       },
@@ -1064,6 +1079,7 @@
       "inferFromJson": "Infer from JSON",
       "inferHint": "Paste a sample JSON. Array fields become detail groups.",
       "inferJsonAria": "Sample JSON for schema inference",
+      "inferredMasterLabel": "Master",
       "jsonInvalidObject": "Please enter a JSON object",
       "jsonParseFailed": "Failed to parse JSON",
       "makeComputed": "Convert to computed field",

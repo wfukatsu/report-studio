@@ -35,22 +35,25 @@ const PRODUCT_MASTER_FIELD_IDS = {
 } as const
 
 function buildProductMasterGroup(): SchemaGroup {
+  // #411: labels are persisted into the schema definition; they follow the UI
+  // language active when the group is created (existing schemas keep theirs).
+  const t = i18n.getFixedT(null, 'components')
   return {
     id: SYSTEM_GROUP_PRODUCT_MASTER,
-    label: '商品マスター',
+    label: t('productMaster.groupLabel'),
     role: 'master',
     dataKey: SYSTEM_GROUP_PRODUCT_MASTER,
     fields: [
-      { id: PRODUCT_MASTER_FIELD_IDS.id, key: 'id', label: '商品ID', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.code, key: 'code', label: '商品コード', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.name, key: 'name', label: '商品名', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.unitPrice, key: 'unitPrice', label: '単価', type: 'number' },
-      { id: PRODUCT_MASTER_FIELD_IDS.category, key: 'category', label: 'カテゴリ', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.description, key: 'description', label: '説明', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.stockCount, key: 'stockCount', label: '在庫数', type: 'number' },
-      { id: PRODUCT_MASTER_FIELD_IDS.taxType, key: 'taxType', label: '税区分', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.unit, key: 'unit', label: '単位', type: 'string' },
-      { id: PRODUCT_MASTER_FIELD_IDS.manufacturer, key: 'manufacturer', label: 'メーカー', type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.id, key: 'id', label: t('productMaster.fieldId'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.code, key: 'code', label: t('productMaster.fieldCode'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.name, key: 'name', label: t('productMaster.fieldName'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.unitPrice, key: 'unitPrice', label: t('productMaster.fieldUnitPrice'), type: 'number' },
+      { id: PRODUCT_MASTER_FIELD_IDS.category, key: 'category', label: t('productMaster.fieldCategory'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.description, key: 'description', label: t('productMaster.fieldDescription'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.stockCount, key: 'stockCount', label: t('productMaster.fieldStockCount'), type: 'number' },
+      { id: PRODUCT_MASTER_FIELD_IDS.taxType, key: 'taxType', label: t('productMaster.fieldTaxType'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.unit, key: 'unit', label: t('productMaster.fieldUnit'), type: 'string' },
+      { id: PRODUCT_MASTER_FIELD_IDS.manufacturer, key: 'manufacturer', label: t('productMaster.fieldManufacturer'), type: 'string' },
     ],
   }
 }
@@ -155,7 +158,7 @@ export const createSchemaSlice: StateCreator<
       if (state.schemaId) {
         // Existing schema — PUT with optimistic lock
         const res = await updateSchema(state.schemaId, {
-          name: state.schemaName || '新しいスキーマ',
+          name: state.schemaName || i18n.t('components:bindingEditor.schemaPanel.newSchemaName'),
           visibility: state.schemaVisibility,
           definition,
           updatedAt: state.schemaUpdatedAt,
@@ -165,7 +168,7 @@ export const createSchemaSlice: StateCreator<
         // New schema — POST
         set((s) => { s.schemaPendingCreate = true })
         const res = await createSchema(
-          state.schemaName || '新しいスキーマ',
+          state.schemaName || i18n.t('components:bindingEditor.schemaPanel.newSchemaName'),
           definition,
           state.schemaVisibility,
         )

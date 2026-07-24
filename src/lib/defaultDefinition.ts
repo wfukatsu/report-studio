@@ -4,6 +4,7 @@
  * layoutSlice re-exports these for existing consumers.
  */
 import { v4 as uuidv4 } from 'uuid'
+import i18n from '@/i18n/config'
 import type { PageDef, ReportDefinition, ReportElement, Section } from '@/types'
 import { getPageDimensions } from '@/lib/paperSizes'
 
@@ -16,12 +17,14 @@ export function createDefaultSection(elements: ReportElement[] = [], height?: nu
   }
 }
 
-export function createDefaultPageDef(name = 'ページ 1'): PageDef {
+export function createDefaultPageDef(name?: string): PageDef {
+  // #411: persisted default names follow the UI language at creation time.
+  const pageName = name ?? i18n.t('core:defaults.pageName', { n: 1 })
   const dims = getPageDimensions('A4', 'portrait')
   const section = createDefaultSection([], dims.height)
   return {
     id: uuidv4(),
-    name,
+    name: pageName,
     background: '#ffffff',
     width: dims.width,
     height: dims.height,
@@ -33,7 +36,7 @@ export function createDefaultDefinition(): ReportDefinition {
   return {
     id: uuidv4(),
     metadata: {
-      documentName: '無題の帳票',
+      documentName: i18n.t('core:defaults.documentName'),
       version: '1.0',
       reportType: 'general',
     },

@@ -52,5 +52,10 @@
     "emptyTitle": "Select a data source",
     "sourceSelection": "Data source selection",
     "title": "Data Browser"
+  },
+  "defaults": {
+    "documentName": "Untitled Report",
+    "layerGroupName": "Group",
+    "pageName": "Page {{n}}"
   }
 }

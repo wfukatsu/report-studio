@@ -261,6 +261,30 @@
     "layoutRow": "横1行",
     "sectionTitle": "元号選択"
   },
+  "factories": {
+    "approvalRoleChief": "係長",
+    "approvalRoleDirector": "部長",
+    "approvalRoleManager": "課長",
+    "approvalRolePresident": "社長",
+    "approvalRoleStaff": "担当",
+    "bandColAmount": "金額",
+    "bandColItem": "品目",
+    "bandColQuantity": "数量",
+    "bandColUnit": "単位",
+    "bandColUnitPrice": "単価",
+    "bandTotalLabel": "合計",
+    "chartTitle": "グラフ",
+    "currentDateFormat": "yyyy年MM月dd日",
+    "dataFieldLabel": "フィールド",
+    "formTableHeaderCell": "項目 {{n}}",
+    "hankoText": "印",
+    "listFieldDept": "部署",
+    "listFieldName": "名前",
+    "listFieldTitle": "役職",
+    "manualEntryLabel": "記入欄",
+    "manualEntryPlaceholder": "（記入）",
+    "textContent": "テキスト"
+  },
   "formTable": {
     "align": {
       "center": "中央",
@@ -524,6 +548,7 @@
     "moveLeft": "左に移動",
     "moveRight": "右に移動",
     "moveUp": "上に移動",
+    "newColumnLabel": "新列",
     "noData": "データなし",
     "noDetailGroups": "明細グループがありません。スキーマに明細（detail）グループを追加してください。",
     "oddRowColor": "奇数行の背景色",

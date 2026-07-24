@@ -11,7 +11,13 @@ import { SaveTemplateDialog } from '@/components/modals/SaveTemplateDialog'
 import { TemplateManagerModal } from '@/components/modals/TemplateManagerModal'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
-/** Default/placeholder document names not worth pre-filling in the save dialog (#158). */
+/**
+ * Default/placeholder document names not worth pre-filling in the save dialog (#158).
+ * Deliberately literal (NOT t()): saved documents keep the default name of the UI
+ * language they were created under (#411), so detection must match every language's
+ * default — `core:defaults.documentName` ja/en plus the server-side 「新しいテンプレート」.
+ * Add the new literal here when a language is added.
+ */
 const PLACEHOLDER_TEMPLATE_NAMES = new Set(['無題の帳票', 'Untitled Report', '新しいテンプレート', ''])
 
 interface Props {

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n/config'
 import { v4 as uuidv4 } from 'uuid'
 import {
   Eye, EyeOff, Lock, Unlock, Search, FolderPlus, Plus,
@@ -282,7 +283,7 @@ export function LayersPanel() {
                     </div>
                     {cat.items.map((item) => (
                       <button
-                        key={item.label}
+                        key={item.type}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground text-left"
                         onClick={() => handleAddElement(item.createElement)}
                         title={item.descriptionKey ? t(item.descriptionKey) : undefined}
@@ -307,7 +308,7 @@ export function LayersPanel() {
             if (!activePage) return
             addLayerGroup(activePage.id, {
               id: uuidv4(),
-              name: 'グループ',
+              name: i18n.t('core:defaults.layerGroupName'),
               elementIds: [],
               collapsed: false,
               visible: true,

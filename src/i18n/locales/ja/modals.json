@@ -327,6 +327,7 @@
     "labelPlaceholder": "表示名",
     "loading": "商品マスターを読み込んでいます...",
     "manage": "管理",
+    "newFieldLabel": "新しいフィールド",
     "nextPage": "次のページ",
     "noCustomFields": "カスタムフィールドはありません",
     "noProducts": "商品がありません。「追加」から登録してください。",

@@ -6,6 +6,7 @@
 import type { StateCreator } from 'zustand'
 import { castDraft } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
+import i18n from '@/i18n/config'
 import type {
   ReportDefinition,
   PageDef,
@@ -218,7 +219,7 @@ export const createLayoutSlice: StateCreator<
   addPage: (name) => {
     clearHistoryTimer()
     set((s) => {
-      const pageName = name ?? `ページ ${s.definition.pages.length + 1}`
+      const pageName = name ?? i18n.t('core:defaults.pageName', { n: s.definition.pages.length + 1 })
       const page = createDefaultPageDef(pageName)
       const { masterHeader, masterFooter } = s.definition
       if (masterHeader) {
@@ -628,7 +629,7 @@ export const createLayoutSlice: StateCreator<
     }
     const group: LayerGroup = {
       id: uuidv4(),
-      name: name ?? 'グループ',
+      name: name ?? i18n.t('core:defaults.layerGroupName'),
       elementIds: [...selectedIds],
       collapsed: false,
       visible: true,

@@ -52,5 +52,10 @@
     "emptyTitle": "データソースを選択してください",
     "sourceSelection": "データソース選択",
     "title": "データブラウザ"
+  },
+  "defaults": {
+    "documentName": "無題の帳票",
+    "layerGroupName": "グループ",
+    "pageName": "ページ {{n}}"
   }
 }
