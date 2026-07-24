@@ -4,7 +4,7 @@
  * Ported from the legacy binding editor's ConnectionLines
  * (the pre-Zustand generation — unrelated to the HTTP API v1/v2):
  * - Bezier paths with curve factor 0.4 (not straight lines)
- * - Indigo (#6366f1) as primary connection color
+ * - Indigo (BINDING_ACCENT) as primary connection color
  * - Group color coding
  * - Hover: line thickens, disconnect ✕ button appears
  * - 14px invisible hit area for easy interaction
@@ -13,6 +13,7 @@
 import { memo, useCallback, useState } from 'react'
 import type { LinePos, DragState } from '../types'
 import { getGroupColor } from '../types'
+import { BINDING_ACCENT, BINDING_SUCCESS } from '@/lib/uiColors'
 
 const CURVE_FACTOR = 0.4
 
@@ -156,13 +157,13 @@ export const ConnectionLines = memo(function ConnectionLines({
       {/* Drag rubber-band line — supports both field→element and element→field */}
       {dragState && containerRect && (() => {
         let sourceEl: HTMLElement | null | undefined
-        let color = '#6366f1'
+        let color: string = BINDING_ACCENT
 
         if (dragState.source === 'field') {
           sourceEl = fieldRefs.current?.get(dragState.fieldId)
         } else {
           sourceEl = elementRefs?.current?.get(dragState.elementId)
-          color = '#00C853'
+          color = BINDING_SUCCESS
         }
         if (!sourceEl) return null
 

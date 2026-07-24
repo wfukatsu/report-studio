@@ -12,6 +12,7 @@ import { ChevronDown, ChevronRight, Database, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BindableElement, ElementSubGroup, FieldItem } from '../types'
 import { getGroupColor } from '../types'
+import { BINDING_SUCCESS } from '@/lib/uiColors'
 
 interface ElementGroupBlockProps {
   readonly pageId: string
@@ -273,14 +274,14 @@ const ElementSlot = memo(function ElementSlot({
       className={cn(
         'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left transition-all cursor-grab',
         boundField
-          ? 'border-2 border-[#00C853]/40 bg-[#00C853]/5'
+          ? 'border-2 border-binding-success/40 bg-binding-success/5'
           : 'border-2 border-dashed border-border/60 bg-background',
-        isConnectedToSelected && 'ring-2 ring-[#6366f1]/30',
-        isHoveredConnection && 'bg-[#6366f1]/5',
+        isConnectedToSelected && 'ring-2 ring-binding/30',
+        isHoveredConnection && 'bg-binding/5',
         // Drop target highlight (when dragging a field onto this element)
-        isDraggingField && 'hover:ring-2 hover:ring-[#6366f1] hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
+        isDraggingField && 'hover:ring-2 hover:ring-binding hover:bg-binding/10 hover:border-binding/40 cursor-pointer',
         // Click-to-connect mode
-        !isDragging && selectedFieldId !== null && 'hover:bg-[#6366f1]/10 hover:border-[#6366f1]/40 cursor-pointer',
+        !isDragging && selectedFieldId !== null && 'hover:bg-binding/10 hover:border-binding/40 cursor-pointer',
         !isDragging && selectedFieldId === null && boundField && 'hover:border-red-300 hover:bg-red-50/50',
       )}
       onClick={handleClick}
@@ -294,8 +295,8 @@ const ElementSlot = memo(function ElementSlot({
       <span
         className="w-2 h-2 rounded-full shrink-0 transition-colors"
         style={{
-          backgroundColor: boundField ? (groupColor ?? '#00C853') : 'var(--border)',
-          boxShadow: boundField ? `0 0 0 2px ${groupColor ?? '#00C853'}33` : undefined,
+          backgroundColor: boundField ? (groupColor ?? BINDING_SUCCESS) : 'var(--border)',
+          boxShadow: boundField ? `0 0 0 2px ${groupColor ?? BINDING_SUCCESS}33` : undefined,
         }}
       />
 
@@ -316,9 +317,9 @@ const ElementSlot = memo(function ElementSlot({
           ← {boundField.fieldKey}
         </span>
       ) : isDraggingField ? (
-        <span className="text-[10px] text-[#6366f1] animate-pulse shrink-0">{t('bindingEditor.elementGroupBlock.drop')}</span>
+        <span className="text-[10px] text-binding animate-pulse shrink-0">{t('bindingEditor.elementGroupBlock.drop')}</span>
       ) : (selectedFieldId !== null) ? (
-        <span className="text-[10px] text-[#6366f1] shrink-0">{t('bindingEditor.elementGroupBlock.connect')}</span>
+        <span className="text-[10px] text-binding shrink-0">{t('bindingEditor.elementGroupBlock.connect')}</span>
       ) : (
         <span className="text-[10px] text-muted-foreground/50 italic shrink-0">{t('bindingEditor.elementGroupBlock.unbound')}</span>
       )}

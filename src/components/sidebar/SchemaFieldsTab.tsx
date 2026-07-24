@@ -122,17 +122,17 @@ function SchemaGroupSection({ group }: { group: { id: string; label: string; rol
                     e.dataTransfer.setData(SCHEMA_FIELD_MIME, JSON.stringify(payload))
                     e.dataTransfer.effectAllowed = 'copy'
                   }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded border border-dashed border-[#6366f1]/30 bg-[#6366f1]/5 hover:bg-[#6366f1]/10 hover:border-[#6366f1]/50 transition-colors text-xs cursor-grab active:cursor-grabbing group"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded border border-dashed border-binding/30 bg-binding/5 hover:bg-binding/10 hover:border-binding/50 transition-colors text-xs cursor-grab active:cursor-grabbing group"
                 >
-                  <GripVertical className="w-3 h-3 text-muted-foreground/40 group-hover:text-[#6366f1] shrink-0" />
-                  <span className="font-mono font-medium text-[#6366f1] truncate flex-1 text-left">
+                  <GripVertical className="w-3 h-3 text-muted-foreground/40 group-hover:text-binding shrink-0" />
+                  <span className="font-mono font-medium text-binding truncate flex-1 text-left">
                     {field.label || field.key}
                   </span>
                   <span className="text-[9px] text-muted-foreground font-mono shrink-0">
                     {field.type}
                   </span>
                   {field.computed && (
-                    <span className="text-[8px] font-bold italic bg-[#6366f1] text-white rounded px-0.5">fx</span>
+                    <span className="text-[8px] font-bold italic bg-binding text-white rounded px-0.5">fx</span>
                   )}
                 </button>
               )

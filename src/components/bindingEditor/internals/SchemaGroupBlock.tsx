@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { isSystemGroup } from '@/store/systemGroups'
 import { getGroupColor } from '../types'
 import type { SchemaGroup, SchemaField, SchemaFieldType } from '@/types'
+import { BINDING_ACCENT } from '@/lib/uiColors'
 
 /** Minimal shape of a master-group candidate offered in the 親マスター picker. */
 export interface MasterGroupOption {
@@ -110,7 +111,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
     <div
       className={cn(
         'mb-1 rounded-md transition-shadow',
-        focused && 'ring-2 ring-[#6366f1] ring-offset-1',
+        focused && 'ring-2 ring-binding ring-offset-1',
       )}
     >
       {/* Group header — toggle button + edit/bulk-generate triggers as siblings
@@ -156,7 +157,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
         </button>
         {onBulkGenerate && group.fields.length > 0 && (
           <button
-            className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
+            className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-binding transition-colors"
             onClick={() => onBulkGenerate(group.id)}
             title={t('bindingEditor.schemaGroupBlock.bulkGenerateTitle')}
             aria-label={t('bindingEditor.schemaGroupBlock.bulkGenerateAria')}
@@ -165,7 +166,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
           </button>
         )}
         <button
-          className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-[#6366f1] transition-colors"
+          className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-binding transition-colors"
           onClick={() => setEditing(true)}
           title={t('bindingEditor.schemaGroupBlock.editGroupTitle')}
           aria-label={t('bindingEditor.schemaGroupBlock.editGroupAria')}
@@ -248,18 +249,18 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
               <>
                 {/* legacy-editor-style dashed add button */}
                 <button
-                  className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-[#00C853] hover:border-[#00C853]/50 hover:bg-[#00C853]/5 w-full ml-4 py-1.5 border-2 border-dashed border-border/30 rounded-md transition-colors"
+                  className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-binding-success-text hover:border-binding-success/50 hover:bg-binding-success/5 w-full ml-4 py-1.5 border-2 border-dashed border-border/30 rounded-md transition-colors"
                   onClick={() => onSetAddingField(group.id)}
                 >
                   <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaGroupBlock.addField')}
                 </button>
                 {onOpenComputedDialog && (
                   <button
-                    className="flex items-center gap-1 text-xs text-[#6366f1] hover:text-[#6366f1]/80 px-2 py-1.5 shrink-0 font-medium"
+                    className="flex items-center gap-1 text-xs text-binding hover:text-binding/80 px-2 py-1.5 shrink-0 font-medium"
                     onClick={() => onOpenComputedDialog(group.id)}
                     title={t('bindingEditor.schemaGroupBlock.addComputedTitle')}
                   >
-                    <span className="text-[9px] font-bold italic bg-[#6366f1] text-white rounded px-1 py-px">fx</span>
+                    <span className="text-[9px] font-bold italic bg-binding text-white rounded px-1 py-px">fx</span>
                   </button>
                 )}
               </>
@@ -401,16 +402,16 @@ const FieldCard = memo(function FieldCard({
         'w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-left select-none cursor-grab group transition-all',
         // legacy-editor style: ring shadow + computed border
         field.computed
-          ? 'bg-[#6366f1]/5 border-l-[3px] border-l-[#6366f1]/40'
+          ? 'bg-binding/5 border-l-[3px] border-l-binding/40'
           : 'bg-background',
         // Bound: indigo ring
         isBound && !field.computed && 'shadow-[0_0_0_1px_rgba(99,102,241,0.3),0_1px_3px_rgba(99,102,241,0.08)]',
         // Unbound: subtle ring
         !isBound && !field.computed && 'shadow-[0_0_0_1px_rgba(0,0,0,0.08)]',
         // Selection
-        isSelected && 'ring-2 ring-[#6366f1] shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_2px_8px_rgba(99,102,241,0.15)]',
+        isSelected && 'ring-2 ring-binding shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_2px_8px_rgba(99,102,241,0.15)]',
         // Drop target highlight (when dragging an element)
-        isDraggingElement && 'hover:ring-2 hover:ring-[#00C853] hover:bg-[#00C853]/5',
+        isDraggingElement && 'hover:ring-2 hover:ring-binding-success hover:bg-binding-success/5',
         // Hover lift (legacy: translateX(-2px))
         isHovered && !isSelected && !isDraggingElement && '-translate-x-0.5 shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
         !isSelected && !isHovered && !isDraggingElement && 'hover:-translate-x-0.5 hover:shadow-[0_2px_8px_rgba(99,102,241,0.1)]',
@@ -433,14 +434,14 @@ const FieldCard = memo(function FieldCard({
       <span
         className="w-2 h-2 rounded-full shrink-0 transition-colors"
         style={{
-          backgroundColor: isBound ? '#6366f1' : 'var(--border)',
+          backgroundColor: isBound ? BINDING_ACCENT : 'var(--border)',
           boxShadow: isBound ? '0 0 0 2px rgba(99,102,241,0.2)' : undefined,
         }}
       />
 
       {/* Computed badge */}
       {field.computed && (
-        <span className="text-[9px] font-bold italic bg-[#6366f1] text-white rounded px-1 py-px shrink-0 min-w-[20px] text-center">
+        <span className="text-[9px] font-bold italic bg-binding text-white rounded px-1 py-px shrink-0 min-w-[20px] text-center">
           fx
         </span>
       )}
@@ -575,7 +576,7 @@ function InlineGroupEdit({ group, onSave, onClose }: InlineGroupEditProps) {
         <option value="detail">{t('bindingEditor.schemaGroupBlock.roleDetailOption')}</option>
       </select>
       <button
-        className="text-[#00C853] hover:text-[#00C853]/80 p-0.5 shrink-0"
+        className="text-binding-success-text hover:text-binding-success-text/80 p-0.5 shrink-0"
         onClick={handleSave}
         title={t('bindingEditor.schemaGroupBlock.saveTitle')}
         aria-label={t('bindingEditor.schemaGroupBlock.saveAria')}
@@ -663,7 +664,7 @@ function InlineAddField({ groupId, onAdd, onCancel }: InlineAddFieldProps) {
           <option key={item.value} value={item.value}>{t(item.labelKey)}</option>
         ))}
       </select>
-      <button className="text-xs text-[#6366f1] font-medium px-1.5 shrink-0" onClick={handleSubmit}>
+      <button className="text-xs text-binding font-medium px-1.5 shrink-0" onClick={handleSubmit}>
         {t('bindingEditor.schemaGroupBlock.add')}
       </button>
       <button
