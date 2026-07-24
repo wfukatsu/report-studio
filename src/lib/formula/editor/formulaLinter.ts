@@ -10,6 +10,7 @@
  * SEC-05: Wall-clock check (100ms) on preview evaluation.
  */
 
+import i18n from '@/i18n/config'
 import { StateField, StateEffect } from '@codemirror/state'
 import { linter } from '@codemirror/lint'
 import type { Diagnostic } from '@codemirror/lint'
@@ -121,14 +122,14 @@ export function createFormulaLinter(options?: {
             from: MAX_FORMULA_LENGTH,
             to: charCount,
             severity: 'error',
-            message: `式の長さが上限(${MAX_FORMULA_LENGTH}文字)を超えています (${charCount}/${MAX_FORMULA_LENGTH})`,
+            message: i18n.t('serverErrors:lib.linterLengthExceeded', { max: MAX_FORMULA_LENGTH, current: charCount }),
           })
         } else if (charCount > CHAR_WARNING_THRESHOLD) {
           diagnostics.push({
             from: CHAR_WARNING_THRESHOLD,
             to: charCount,
             severity: 'warning',
-            message: `式の長さが上限に近づいています (${charCount}/${MAX_FORMULA_LENGTH})`,
+            message: i18n.t('serverErrors:lib.linterLengthNearLimit', { current: charCount, max: MAX_FORMULA_LENGTH }),
           })
         }
 
@@ -153,7 +154,7 @@ export function createFormulaLinter(options?: {
                       from: 0,
                       to: doc.length,
                       severity: 'error',
-                      message: `循環参照: ${currentKey} → ${ref} → ${currentKey}`,
+                      message: i18n.t('serverErrors:lib.linterCircularReference', { from: currentKey, via: ref }),
                     })
                   }
                 } catch {
@@ -216,7 +217,7 @@ export function createFormulaLinter(options?: {
 
           return diagnostics
         } catch (err) {
-          const message = err instanceof ParseError ? err.message : '構文エラー'
+          const message = err instanceof ParseError ? err.message : i18n.t('serverErrors:lib.linterSyntaxError')
           const offset = err instanceof ParseError ? err.offset : 0
           diagnostics.push({
             from: offset,

@@ -7,6 +7,7 @@
  * Used by migration.ts to auto-convert templates on import.
  */
 
+import i18n from '@/i18n/config'
 import { JEXL_TO_FORMULA_MAP } from './functionCatalog'
 
 export interface MigrationWarning {
@@ -65,7 +66,7 @@ export function migrateJexlExpression(jexl: string): MigrationResult {
     if (ch === '?') {
       warnings.push({
         kind: 'unmigrable_syntax',
-        detail: '三項演算子 ?: は formula-v1 でサポートされていません。IF() に変換してください。',
+        detail: i18n.t('serverErrors:lib.migratorTernaryUnsupported'),
         position: i,
       })
       out += ch
@@ -77,7 +78,7 @@ export function migrateJexlExpression(jexl: string): MigrationResult {
     if (ch === '|') {
       warnings.push({
         kind: 'unmigrable_syntax',
-        detail: 'パイプ演算子 | は formula-v1 でサポートされていません。',
+        detail: i18n.t('serverErrors:lib.migratorPipeUnsupported'),
         position: i,
       })
       out += ch
@@ -239,7 +240,7 @@ function translateFormatNumber(
   }
   warnings.push({
     kind: 'manual_review',
-    detail: `formatNumber パターン '${rawPattern}' は formula-v1 に自動変換できません。`,
+    detail: i18n.t('serverErrors:lib.migratorFormatNumberPattern', { pattern: rawPattern }),
     position,
   })
   return `TEXT(${valueArg}, '${rawPattern}')`

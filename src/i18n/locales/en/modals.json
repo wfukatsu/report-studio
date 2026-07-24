@@ -116,7 +116,8 @@
     },
     "resultTypeLabel": "Type",
     "schemaFields": "Schema fields",
-    "test": "Test"
+    "test": "Test",
+    "testError": "Error: {{message}}"
   },
   "createTableForm": {
     "arrayFieldNotice": "* Array-type fields cannot be mapped to a single ScalarDB column and have been excluded.",

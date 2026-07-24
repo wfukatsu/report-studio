@@ -265,7 +265,7 @@ const RuleRow = memo(function RuleRow({
   onRemove: () => void
 }) {
   const { t } = useTranslation('modals')
-  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [testing, setTesting] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [validationState, setValidationState] = useState<FormulaValidationState | undefined>()
@@ -302,9 +302,9 @@ const RuleRow = memo(function RuleRow({
       // Translate formula-v1 to JEXL for evaluation
       const jexlExpr = formulaToJexl(rule.expression)
       const result = await evaluateExpression(jexlExpr, testData)
-      setTestResult(String(result))
+      setTestResult({ ok: true, message: String(result) })
     } catch (e) {
-      setTestResult(`エラー: ${e instanceof Error ? e.message : String(e)}`)
+      setTestResult({ ok: false, message: e instanceof Error ? e.message : String(e) })
     } finally {
       setTesting(false)
     }
@@ -459,11 +459,12 @@ const RuleRow = memo(function RuleRow({
       {testResult !== null && (
         <div className={cn(
           'text-[10px] px-2 py-1 rounded font-mono',
-          testResult.startsWith('エラー')
-            ? 'bg-destructive/10 text-destructive'
-            : 'bg-muted text-foreground',
+          testResult.ok
+            ? 'bg-muted text-foreground'
+            : 'bg-destructive/10 text-destructive',
         )}>
-          {t('calculationTab.result')}{testResult}
+          {t('calculationTab.result')}
+          {testResult.ok ? testResult.message : t('calculationTab.testError', { message: testResult.message })}
         </div>
       )}
     </div>

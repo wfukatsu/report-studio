@@ -6,6 +6,7 @@
  * - mergedInto tracks which master cell owns each hidden cell
  */
 
+import i18n from '@/i18n/config'
 import type { FormTableElement, FormTableCell, FormTableRow } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ function validateMergeRect(
   positions: CellPosition[],
 ): { valid: boolean; minRow: number; maxRow: number; minCol: number; maxCol: number; reason?: string } {
   if (positions.length < 2) {
-    return { valid: false, minRow: 0, maxRow: 0, minCol: 0, maxCol: 0, reason: '2つ以上のセルを選択してください' }
+    return { valid: false, minRow: 0, maxRow: 0, minCol: 0, maxCol: 0, reason: i18n.t('serverErrors:lib.tableMergeSelectTwo') }
   }
 
   const minRow = Math.min(...positions.map((p) => p.rowIdx))
@@ -55,19 +56,19 @@ function validateMergeRect(
   // Check same role
   const roles = new Set(positions.map((p) => el.rows[p.rowIdx].role))
   if (roles.size > 1) {
-    return { valid: false, minRow, maxRow, minCol, maxCol, reason: '異なるロール（header/body/footer）をまたぐ結合はできません' }
+    return { valid: false, minRow, maxRow, minCol, maxCol, reason: i18n.t('serverErrors:lib.tableMergeCrossRole') }
   }
 
   // Check rectangle completeness
   const expectedCount = (maxRow - minRow + 1) * (maxCol - minCol + 1)
   if (positions.length !== expectedCount) {
-    return { valid: false, minRow, maxRow, minCol, maxCol, reason: '矩形範囲を選択してください' }
+    return { valid: false, minRow, maxRow, minCol, maxCol, reason: i18n.t('serverErrors:lib.tableMergeNotRectangle') }
   }
 
   // Check no already-merged cells in the range
   for (const pos of positions) {
     if (pos.cell.mergedInto) {
-      return { valid: false, minRow, maxRow, minCol, maxCol, reason: '既に結合されたセルが含まれています' }
+      return { valid: false, minRow, maxRow, minCol, maxCol, reason: i18n.t('serverErrors:lib.tableMergeAlreadyMerged') }
     }
   }
 

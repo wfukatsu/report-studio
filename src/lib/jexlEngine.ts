@@ -11,6 +11,7 @@
  * in an isolated context with no access to the JS runtime.
  */
 
+import i18n from '@/i18n/config'
 import { Jexl } from '@pawel-up/jexl'
 
 const jexl = new Jexl()
@@ -156,6 +157,9 @@ const JEXL_FORBIDDEN = /\b(constructor|__proto__|prototype)\b/
 
 const TIMEOUT_MS = 500
 
+/** Max expression length (mirrors the server-side ExpressionEngine limit). */
+const MAX_EXPRESSION_LENGTH = 500
+
 /**
  * Race a promise against a timeout, clearing the timer when the promise settles.
  * Without the .finally() clear, the timer would fire 500ms later as a no-op,
@@ -165,7 +169,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timerId: ReturnType<typeof setTimeout>
   const timeoutP = new Promise<never>((_, reject) => {
     timerId = setTimeout(
-      () => reject(new Error(`式の評価がタイムアウトしました (${ms}ms)`)),
+      () => reject(new Error(i18n.t('serverErrors:lib.evalTimeout', { ms }))),
       ms,
     )
   })
@@ -180,11 +184,11 @@ export async function evaluateExpression(
   expression: string,
   context: Record<string, unknown>,
 ): Promise<unknown> {
-  if (expression.length > 500) {
-    throw new Error('式が長すぎます (最大500文字)')
+  if (expression.length > MAX_EXPRESSION_LENGTH) {
+    throw new Error(i18n.t('serverErrors:lib.evalTooLong', { max: MAX_EXPRESSION_LENGTH }))
   }
   if (JEXL_FORBIDDEN.test(expression)) {
-    throw new Error('式に禁止されているキーワードが含まれています')
+    throw new Error(i18n.t('serverErrors:lib.evalForbiddenKeyword'))
   }
   // jexl.eval() is JEXL library's sandboxed evaluator, not JS native eval()
   return withTimeout(jexl.eval(expression, context), TIMEOUT_MS)
