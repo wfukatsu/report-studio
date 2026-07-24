@@ -20,6 +20,9 @@ import org.slf4j.LoggerFactory;
  *   <li>PUT /api/v1/webhooks/{templateId} — update config
  *   <li>POST /api/v1/webhooks/{templateId}/test — send test payload
  * </ul>
+ *
+ * <p>The asynchronous submission dispatch ({@code form_response.received}) lives in {@link
+ * WebhookDispatchService} (#419).
  */
 public final class WebhookController {
 
@@ -174,50 +177,6 @@ public final class WebhookController {
         dispatcher.dispatch(url, secret, MAPPER.writeValueAsString(payload));
         ctx.json(Map.of("delivered", true, "url", url));
         log.info("Test webhook sent to {} for template {}", url, templateId);
-    }
-
-    // ── Package-private: dispatch for form response submission ────────────────
-
-    /**
-     * Dispatch webhook asynchronously for a form response. Called from FormResponseController. Does
-     * NOT block — dispatch happens in the provided executor.
-     */
-    public void dispatchAsync(
-            String templateId,
-            String responseId,
-            String responseJson,
-            java.util.concurrent.ExecutorService executor) {
-        executor.execute(
-                () -> {
-                    try {
-                        Optional<String> stored = webhookRepo.get(templateId);
-                        if (stored.isEmpty()) return;
-                        JsonNode config = MAPPER.readTree(stored.get());
-                        String url = config.path("url").asText(null);
-                        if (url == null || url.isBlank()) return;
-                        String secret = crypto.decrypt(config.path("secret").asText(null));
-
-                        JsonNode resp = MAPPER.readTree(responseJson);
-                        ObjectNode payload = MAPPER.createObjectNode();
-                        payload.put("event", "form_response.received");
-                        payload.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
-                        payload.put("templateId", templateId);
-                        payload.put("responseId", responseId);
-                        payload.put("submittedAt", resp.path("submittedAt").asText(""));
-                        payload.put("submittedBy", resp.path("submittedBy").asText(""));
-                        // summary
-                        payload.set("data", resp.path("data"));
-
-                        dispatcher.dispatch(url, secret, MAPPER.writeValueAsString(payload));
-                    } catch (Exception e) {
-                        // Never propagate — form response is already saved
-                        log.warn(
-                                "Webhook dispatch failed for template={} response={}: {}",
-                                templateId,
-                                responseId,
-                                e.getMessage());
-                    }
-                });
     }
 
     private boolean requireAuth(Context ctx) {

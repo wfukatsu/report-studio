@@ -23,6 +23,9 @@ class FormResponseControllerTest {
     private JsonBlobRepository responseRepo;
     private JsonBlobRepository definitionsRepo;
     private RateLimiter submitLimiter;
+    private DocumentNumberService documentNumbers;
+    private WebhookDispatchService webhookDispatch;
+    private StatusAuditRepository statusAuditRepo;
     private FormResponseController controller;
     private Context ctx;
     private Principal principal;
@@ -32,7 +35,19 @@ class FormResponseControllerTest {
         responseRepo = mock(JsonBlobRepository.class);
         definitionsRepo = mock(JsonBlobRepository.class);
         submitLimiter = mock(RateLimiter.class);
-        controller = new FormResponseController(responseRepo, definitionsRepo, submitLimiter);
+        // Constructor-injected submit-flow services (#419). The numbering service mock
+        // returns null (= no sequence configured), so submit falls back to a plain put.
+        documentNumbers = mock(DocumentNumberService.class);
+        webhookDispatch = mock(WebhookDispatchService.class);
+        statusAuditRepo = mock(StatusAuditRepository.class);
+        controller =
+                new FormResponseController(
+                        responseRepo,
+                        definitionsRepo,
+                        submitLimiter,
+                        documentNumbers,
+                        webhookDispatch,
+                        statusAuditRepo);
         ctx = mock(Context.class);
         principal = new Principal("user-1", "Test User", java.util.Set.of("user"));
         when(ctx.attribute("principal")).thenReturn(principal);

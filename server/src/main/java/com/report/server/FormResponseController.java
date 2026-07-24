@@ -36,6 +36,11 @@ import org.slf4j.LoggerFactory;
  * status transition + audit wiring), {@link TemplateAccessPolicy} (envelope loading / ownership),
  * {@link IssuedDocumentQuery} (cross-template document listing), and {@link ResponsePayloadSupport}
  * (limits, summaries, param parsing).
+ *
+ * <p>The submit flow orchestrates document numbering, status audit, and webhook notification
+ * through constructor-injected services (#419): {@link DocumentNumberService} (atomic 採番 TX),
+ * {@link StatusAuditRepository} (best-effort transition trail), and {@link WebhookDispatchService}
+ * (async fire-and-forget dispatch).
  */
 public final class FormResponseController {
 
@@ -55,36 +60,24 @@ public final class FormResponseController {
     private final RateLimiter submitLimiter;
     private final TemplateAccessPolicy accessPolicy;
     private final IssuedDocumentQuery documentQuery;
-    private SequenceController sequenceCtrl; // injected lazily
-    private WebhookController webhookCtrl; // injected lazily
-    private java.util.concurrent.ExecutorService webhookExecutor;
-    private StatusAuditRepository statusAuditRepo; // injected lazily (#188)
+    private final DocumentNumberService documentNumbers;
+    private final WebhookDispatchService webhookDispatch;
+    private final StatusAuditRepository statusAuditRepo;
 
     public FormResponseController(
             JsonBlobRepository responseRepo,
             JsonBlobRepository definitionsRepo,
-            RateLimiter submitLimiter) {
+            RateLimiter submitLimiter,
+            DocumentNumberService documentNumbers,
+            WebhookDispatchService webhookDispatch,
+            StatusAuditRepository statusAuditRepo) {
         this.responseRepo = responseRepo;
         this.submitLimiter = submitLimiter;
         this.accessPolicy = new TemplateAccessPolicy(definitionsRepo);
         this.documentQuery = new IssuedDocumentQuery(responseRepo, accessPolicy);
-    }
-
-    /** Inject sequence controller after construction (avoids circular dependency). */
-    public void setSequenceController(SequenceController ctrl) {
-        this.sequenceCtrl = ctrl;
-    }
-
-    /** Inject the status-transition audit store after construction (#188). */
-    public void setStatusAuditRepository(StatusAuditRepository repo) {
-        this.statusAuditRepo = repo;
-    }
-
-    /** Inject webhook controller after construction. */
-    public void setWebhookController(
-            WebhookController ctrl, java.util.concurrent.ExecutorService executor) {
-        this.webhookCtrl = ctrl;
-        this.webhookExecutor = executor;
+        this.documentNumbers = documentNumbers;
+        this.webhookDispatch = webhookDispatch;
+        this.statusAuditRepo = statusAuditRepo;
     }
 
     // ── submit ────────────────────────────────────────────────────────────────
@@ -131,20 +124,16 @@ public final class FormResponseController {
         response.put("status", DEFAULT_STATUS);
 
         try {
-            // If sequence controller is configured, use single atomic TX (seq + response)
-            if (sequenceCtrl != null) {
-                String responseJson = MAPPER.writeValueAsString(response);
-                String docNumber =
-                        sequenceCtrl.nextAndStamp(
-                                templateId, responseRepo, responseId, responseJson, templateId);
-                if (docNumber == null) {
-                    // No sequence configured — save response normally
-                    responseRepo.put(responseId, responseJson, templateId);
-                }
-                // If docNumber != null, the response was saved inside the TX with documentNumber
-            } else {
-                responseRepo.put(responseId, MAPPER.writeValueAsString(response), templateId);
+            // Single atomic TX (seq + response) when the template has a sequence configured
+            String responseJson = MAPPER.writeValueAsString(response);
+            String docNumber =
+                    documentNumbers.nextAndStamp(
+                            templateId, responseRepo, responseId, responseJson, templateId);
+            if (docNumber == null) {
+                // No sequence configured — save response normally
+                responseRepo.put(responseId, responseJson, templateId);
             }
+            // If docNumber != null, the response was saved inside the TX with documentNumber
         } catch (Exception e) {
             log.error("Failed to save V2 form response for template {}", templateId, e);
             ApiError.respond(
@@ -159,13 +148,11 @@ public final class FormResponseController {
         recordAudit(responseId, templateId, null, DEFAULT_STATUS, principal.userId());
 
         // Async webhook dispatch (non-blocking, failure does NOT affect response)
-        if (webhookCtrl != null && webhookExecutor != null) {
-            try {
-                String savedJson = MAPPER.writeValueAsString(response);
-                webhookCtrl.dispatchAsync(templateId, responseId, savedJson, webhookExecutor);
-            } catch (Exception ignored) {
-                /* webhook errors must never surface to user */
-            }
+        try {
+            String savedJson = MAPPER.writeValueAsString(response);
+            webhookDispatch.dispatchAsync(templateId, responseId, savedJson);
+        } catch (Exception ignored) {
+            /* webhook errors must never surface to user */
         }
 
         ctx.status(HttpStatus.CREATED);
@@ -440,7 +427,7 @@ public final class FormResponseController {
         ResponseStatusUpdater.update(
                 ctx,
                 responseRepo,
-                sequenceCtrl,
+                documentNumbers,
                 this::recordAudit,
                 templateId,
                 responseId,
@@ -492,15 +479,13 @@ public final class FormResponseController {
             return;
         }
 
-        List<Map<String, Object>> entries =
-                statusAuditRepo == null ? List.of() : statusAuditRepo.listForResponse(responseId);
+        List<Map<String, Object>> entries = statusAuditRepo.listForResponse(responseId);
         ctx.json(Map.of("responseId", responseId, "entries", entries));
     }
 
     /** Append a status-transition record. Never throws — audit is best-effort. */
     private void recordAudit(
             String responseId, String templateId, String from, String to, String by) {
-        if (statusAuditRepo == null) return;
         try {
             statusAuditRepo.append(responseId, templateId, from, to, by);
         } catch (Exception e) {

@@ -45,7 +45,7 @@ final class ResponseStatusUpdater {
     static void update(
             Context ctx,
             JsonBlobRepository responseRepo,
-            SequenceController sequenceCtrl,
+            DocumentNumberService documentNumbers,
             AuditSink audit,
             String templateId,
             String responseId,
@@ -111,8 +111,8 @@ final class ResponseStatusUpdater {
                 boolean needsNumber =
                         "issued".equals(newStatus)
                                 && node.path("documentNumber").asText("").isEmpty();
-                if (needsNumber && sequenceCtrl != null) {
-                    assignedNumber = sequenceCtrl.nextNumberWithinTx(tx, templateId);
+                if (needsNumber) {
+                    assignedNumber = documentNumbers.nextNumberWithinTx(tx, templateId);
                     if (assignedNumber != null) node.put("documentNumber", assignedNumber);
                 }
 
