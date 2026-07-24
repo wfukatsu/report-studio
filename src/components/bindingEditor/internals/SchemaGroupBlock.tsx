@@ -17,6 +17,7 @@ import {
   ChevronDown, ChevronRight, Plus, Trash2, X, RefreshCw, Wand2, AlertTriangle, Link2, Pencil, Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isSystemGroup } from '@/store/systemGroups'
 import { getGroupColor } from '../types'
 import type { SchemaGroup, SchemaField, SchemaFieldType } from '@/types'
 
@@ -46,6 +47,11 @@ interface SchemaGroupBlockProps {
   readonly onToggle: (groupId: string) => void
   readonly onAddField: (groupId: string, field: Omit<SchemaField, 'id'>) => void
   readonly onRemoveField: (groupId: string, fieldId: string) => void
+  /**
+   * #407: delete the whole group (master/detail). The parent owns the
+   * confirmation dialog. Omitted → no delete affordance is rendered.
+   */
+  readonly onRemoveGroup?: (groupId: string) => void
   readonly onSetAddingField: (groupId: string | null) => void
   readonly onBulkGenerate?: (groupId: string) => void
   readonly onOpenComputedDialog?: (groupId: string) => void
@@ -77,6 +83,7 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
   onToggle,
   onAddField,
   onRemoveField,
+  onRemoveGroup,
   onSetAddingField,
   onBulkGenerate,
   onOpenComputedDialog,
@@ -165,6 +172,17 @@ export const SchemaGroupBlock = memo(function SchemaGroupBlock({
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
+        {/* #407: delete the group. System groups (商品マスター) are not removable. */}
+        {onRemoveGroup && !isSystemGroup(group.id) && (
+          <button
+            className="shrink-0 px-2 py-1.5 text-muted-foreground hover:text-red-500 transition-colors"
+            onClick={() => onRemoveGroup(group.id)}
+            title={t('bindingEditor.schemaGroupBlock.removeGroupTitle')}
+            aria-label={t('bindingEditor.schemaGroupBlock.removeGroupAria')}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
         </>
         )}
       </div>

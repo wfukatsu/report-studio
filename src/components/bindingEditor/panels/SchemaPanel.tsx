@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Link, Search, X, MousePointerClick, Hand } from 'lucide-react'
 import { SchemaGroupBlock } from '../internals/SchemaGroupBlock'
 import { NoSchemaPanel } from '../internals/NoSchemaPanel'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import type { BindingState } from '../hooks/useBindingState'
 import type { SchemaField } from '@/types'
 
@@ -39,6 +40,9 @@ export const SchemaPanel = memo(function SchemaPanel({
   // #392: id of the group added by the last "＋マスター/＋明細" click, so it opens
   // in inline-edit mode prompting a rename (instead of a role-word-named group).
   const [justAddedGroupId, setJustAddedGroupId] = useState<string | null>(null)
+  // #407: group pending deletion — the delete is destructive (drops the group's
+  // fields and unbinds every element bound to them), so it goes through a confirm.
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null)
 
   // Destructure the members used inside memoized callbacks so the dependency
   // arrays can list them directly (bs itself is a fresh object every render).
@@ -61,6 +65,28 @@ export const SchemaPanel = memo(function SchemaPanel({
     },
     [addSchemaGroup, onGroupAdded],
   )
+
+  const { removeSchemaGroup, fieldBoundCount } = bs
+
+  const pendingDeleteGroup = useMemo(
+    () => bs.schemaGroups.find((g) => g.id === pendingDeleteGroupId) ?? null,
+    [bs.schemaGroups, pendingDeleteGroupId],
+  )
+
+  /** Number of element bindings that will be cleared by deleting the pending group. */
+  const pendingDeleteBoundCount = useMemo(
+    () =>
+      (pendingDeleteGroup?.fields ?? []).reduce(
+        (sum, f) => sum + (fieldBoundCount.get(f.id) ?? 0),
+        0,
+      ),
+    [pendingDeleteGroup, fieldBoundCount],
+  )
+
+  const handleConfirmDeleteGroup = useCallback(() => {
+    if (pendingDeleteGroupId) removeSchemaGroup(pendingDeleteGroupId)
+    setPendingDeleteGroupId(null)
+  }, [pendingDeleteGroupId, removeSchemaGroup])
 
   const handleAddField = useCallback(
     (groupId: string, field: Omit<SchemaField, 'id'>) => {
@@ -188,6 +214,7 @@ export const SchemaPanel = memo(function SchemaPanel({
               onToggle={onToggleGroup}
               onAddField={handleAddField}
               onRemoveField={bs.removeSchemaField}
+              onRemoveGroup={setPendingDeleteGroupId}
               onSetAddingField={bs.setAddingFieldGroupId}
               onBulkGenerate={handleBulkGenerate}
               onOpenComputedDialog={onOpenComputedDialog}
@@ -230,6 +257,21 @@ export const SchemaPanel = memo(function SchemaPanel({
           <Plus className="w-3.5 h-3.5" /> {t('bindingEditor.schemaPanel.addDetail')}
         </button>
       </div>
+
+      {/* #407: confirm before dropping a group (fields + element bindings go with it) */}
+      <ConfirmDialog
+        open={pendingDeleteGroup !== null}
+        title={t('bindingEditor.schemaPanel.deleteGroupTitle')}
+        message={t('bindingEditor.schemaPanel.deleteGroupMessage', {
+          name: pendingDeleteGroup?.label || pendingDeleteGroup?.id || '',
+          fields: pendingDeleteGroup?.fields.length ?? 0,
+          bound: pendingDeleteBoundCount,
+        })}
+        confirmLabel={t('bindingEditor.schemaPanel.deleteGroupConfirm')}
+        confirmVariant="danger"
+        onConfirm={handleConfirmDeleteGroup}
+        onCancel={() => setPendingDeleteGroupId(null)}
+      />
     </div>
   )
 })

@@ -243,6 +243,8 @@
       "parentMaster": "親マスター",
       "parentMasterAria": "{{group}} の親マスター",
       "relationRequiredError": "関係が未設定です。明細行が親マスターに紐付かないため、実データで正しく解決されません。",
+      "removeGroupAria": "グループを削除",
+      "removeGroupTitle": "このグループを削除",
       "roleDetailBadge": "↻ 明細",
       "roleDetailOption": "明細",
       "roleMaster": "マスター",
@@ -256,6 +258,9 @@
     "schemaPanel": {
       "addDetail": "明細",
       "addMaster": "マスター",
+      "deleteGroupConfirm": "削除",
+      "deleteGroupMessage": "「{{name}}」を削除します。フィールド {{fields}} 件と、それに接続済みの要素 {{bound}} 件のバインドが解除されます。この操作は元に戻せません。",
+      "deleteGroupTitle": "グループを削除",
       "emptyHint": "スキーマフィールドを追加してください",
       "guideClick": "フィールドをクリック → 左の要素をクリックで接続",
       "guideDrag": "フィールドを要素へドラッグしても接続できます",

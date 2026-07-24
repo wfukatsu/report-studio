@@ -82,6 +82,33 @@ describe('removeSchemaGroup', () => {
   it('schema が未定義のときは何もしない', () => {
     expect(() => useReportStore.getState().removeSchemaGroup('nonexistent')).not.toThrow()
   })
+
+  it('削除したマスターを参照する明細の linkedMasterGroupId を解除する (#407)', () => {
+    const masterId = useReportStore.getState().addSchemaGroup('master')
+    const detailId = useReportStore.getState().addSchemaGroup('detail')
+    useReportStore.getState().updateSchemaGroup(detailId, { linkedMasterGroupId: masterId })
+
+    useReportStore.getState().removeSchemaGroup(masterId)
+
+    expect(getGroups().find((g) => g.id === detailId)!.linkedMasterGroupId).toBeUndefined()
+  })
+
+  it('削除したグループを参照する relation を除去する (#407)', () => {
+    const masterId = useReportStore.getState().addSchemaGroup('master')
+    const detailId = useReportStore.getState().addSchemaGroup('detail')
+    useReportStore.getState().addSchemaRelation({
+      name: 'product',
+      from: detailId,
+      to: masterId,
+      on: { fromColumn: 'code', toColumn: 'code' },
+      kind: 'lookup',
+    })
+    expect(useReportStore.getState().definition.schema!.relations).toHaveLength(1)
+
+    useReportStore.getState().removeSchemaGroup(masterId)
+
+    expect(useReportStore.getState().definition.schema!.relations).toEqual([])
+  })
 })
 
 // ---------------------------------------------------------------------------

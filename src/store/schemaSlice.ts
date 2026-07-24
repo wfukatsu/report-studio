@@ -241,6 +241,16 @@ export const createSchemaSlice: StateCreator<
       // Collect field IDs before removing the group (immer-safe: build Set outside draft ops)
       const removedFieldIds = new Set(group.fields.map((f) => f.id))
       s.definition.schema.groups = s.definition.schema.groups.filter((g) => g.id !== groupId)
+      // Drop references to the removed group so the schema never persists a
+      // dangling id: detail groups' 親マスター link and #144 relation objects.
+      for (const g of s.definition.schema.groups) {
+        if (g.linkedMasterGroupId === groupId) g.linkedMasterGroupId = undefined
+      }
+      if (s.definition.schema.relations) {
+        s.definition.schema.relations = s.definition.schema.relations.filter(
+          (r) => r.from !== groupId && r.to !== groupId,
+        )
+      }
       // Clear schemaBinding on elements that referenced any field in this group
       for (const page of s.definition.pages) {
         for (const section of page.sections ?? []) {
