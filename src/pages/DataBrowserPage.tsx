@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router'
 import { ArrowLeft, TableProperties } from 'lucide-react'
 import { useReportStore } from '@/store'
 import { useDataBrowserStore } from '@/store/dataBrowserStore'
