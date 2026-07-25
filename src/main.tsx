@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import { Toaster } from 'sonner'
 import '@/index.css'
 import '@/i18n/config' // Initialize i18next before any component calls useTranslation (#329)

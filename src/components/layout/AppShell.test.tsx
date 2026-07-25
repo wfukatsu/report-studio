@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { AppShell } from './AppShell'
 import { useReportStore } from '@/store'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router'
 
 // App内の重いコンポーネントをモック
 vi.mock('@/App', () => ({ default: () => <div data-testid="app-design" /> }))

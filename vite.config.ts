@@ -39,7 +39,7 @@ export default defineConfig({
             return 'export-vendor'
           // recharts とその d3 依存（victory-vendor 経由でバンドルされる）
           if (/[\\/](recharts|victory-vendor|d3-[^\\/]+)[\\/]/.test(id)) return 'charts'
-          if (/[\\/](react|react-dom|react-router-dom|scheduler)[\\/]/.test(id))
+          if (/[\\/](react|react-dom|react-router|scheduler)[\\/]/.test(id))
             return 'react-vendor'
           if (/[\\/]@radix-ui[\\/]/.test(id)) return 'radix'
           if (/[\\/]@dnd-kit[\\/]/.test(id)) return 'dnd'
