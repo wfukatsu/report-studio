@@ -33,7 +33,7 @@ dependencies {
     implementation("com.scalar-labs:scalardb:3.18.0")
 
     // SQLite JDBC (ScalarDB storage backend)
-    implementation("org.xerial:sqlite-jdbc:3.53.2.0")
+    implementation("org.xerial:sqlite-jdbc:3.53.2.1")
 
     // PDF generation
     implementation("org.apache.pdfbox:pdfbox:3.0.8")
