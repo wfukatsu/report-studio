@@ -2,7 +2,7 @@ plugins {
     java
     application
     jacoco
-    id("com.diffplug.spotless") version "8.8.0"
+    id("com.diffplug.spotless") version "8.9.0"
 }
 
 group = "com.report"
@@ -30,7 +30,7 @@ dependencies {
     // mattered under the catalog-listing workload of ScalarDbCatalogController is
     // included in all 3.15+ releases).
     // See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md (Risks table).
-    implementation("com.scalar-labs:scalardb:3.18.0")
+    implementation("com.scalar-labs:scalardb:3.19.0")
 
     // SQLite JDBC (ScalarDB storage backend)
     implementation("org.xerial:sqlite-jdbc:3.53.2.0")
@@ -57,7 +57,7 @@ dependencies {
     // Logging (#274): logback with pattern console output by default; LOG_FORMAT=json
     // switches to logstash JSON encoding. The <if> conditional in logback.xml needs
     // janino at runtime — smallest working combination for an optional JSON mode.
-    implementation("ch.qos.logback:logback-classic:1.5.38")
+    implementation("ch.qos.logback:logback-classic:1.6.1")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
     runtimeOnly("org.codehaus.janino:janino:3.1.12")
 
