@@ -52,3 +52,7 @@ work/
 
 # Claude Code session artifacts (agent worktrees etc.)
 .claude/worktrees/
+
+# Claude Code: machine-local permission/settings overrides (shared config lives
+# in .claude/settings.json; .claude/skills/ is a tracked team artifact)
+.claude/settings.local.json

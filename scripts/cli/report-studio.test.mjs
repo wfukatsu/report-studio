@@ -63,6 +63,49 @@ describe('report-studio CLI — dispatch (network-free)', () => {
     expect(code).toBe(1)
     expect(stderr).toContain('不明なサブコマンド')
   })
+
+  it('an unknown versions action is rejected with the valid actions', async () => {
+    const { code, stderr } = await runCli('templates', 'versions', 'frobnicate', 'abc')
+    expect(code).toBe(1)
+    expect(stderr).toContain('list|snapshot|restore')
+  })
+
+  it('help documents the new agent-facing commands', async () => {
+    const { stdout } = await runCli('help')
+    for (const cmd of ['summary', 'outline', 'edit', 'validate', 'thumbnail', 'versions', 'evaluate', 'bindings']) {
+      expect(stdout).toContain(cmd)
+    }
+  })
+})
+
+describe('report-studio CLI — destructive guards (network-free)', () => {
+  // The guard must trip before any request: a mistyped ID should cost nothing.
+  // --url points at a closed port, so reaching the network would surface as the
+  // connection error instead of the guard message.
+  const CLOSED = ['--url', 'http://127.0.0.1:9']
+
+  it('templates delete refuses without --yes and names the safer alternatives', async () => {
+    const { code, stderr } = await runCli('templates', 'delete', 'some-id', ...CLOSED)
+    expect(code).toBe(1)
+    expect(stderr).toContain('--yes')
+    expect(stderr).toContain('取り消せません')
+    expect(stderr).toContain('templates export')
+    // Proof the guard ran before the request, not after a failed one.
+    expect(stderr).not.toContain('バックエンドに接続できません')
+  })
+
+  it('templates delete without an id explains the required form', async () => {
+    const { code, stderr } = await runCli('templates', 'delete', ...CLOSED)
+    expect(code).toBe(1)
+    expect(stderr).toContain('templates delete <id> --yes')
+  })
+
+  it('templates edit requires --ops before contacting the server', async () => {
+    const { code, stderr } = await runCli('templates', 'edit', 'some-id', ...CLOSED)
+    expect(code).toBe(1)
+    expect(stderr).toContain('--ops')
+    expect(stderr).not.toContain('バックエンドに接続できません')
+  })
 })
 
 describe('report-studio CLI — unreachable server', () => {

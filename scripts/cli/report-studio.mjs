@@ -4,9 +4,7 @@
  *
  * A thin, dependency-free wrapper over the REST API so every product goal
  * (template management, single/batch PDF output, schema/DB operations, job
- * status) is scriptable — not just clickable. Auth is the same session-cookie
- * flow the browser uses; the cookie is persisted to a jar file so subsequent
- * commands don't re-login.
+ * status) is scriptable — not just clickable.
  *
  * Usage:
  *   node scripts/cli/report-studio.mjs <command> [options]
@@ -17,139 +15,44 @@
  *   --json           Machine-readable JSON output where applicable
  *   --user/--password  Credentials for `login` (default admin/changeme for dev)
  *
+ * Auth: prefer a PAT ($REPORT_STUDIO_TOKEN or `login --token`). The CLI sends no
+ * Origin header, and the server's CSRF filter only exempts a missing Origin on
+ * /api/v1/auth/* and /api/v1/public/* — so a *cookie* session can log in but is
+ * rejected (403) on every other write. A Bearer PAT bypasses the CSRF check
+ * outright (ApiRoutes.csrfRejectReason) and is the supported headless path.
+ *
  * Design notes:
  *   - No npm dependencies — uses global fetch (Node 18+) and node:fs/os only.
  *   - The cookie jar lives at ~/.report-studio/cookies (override: $REPORT_STUDIO_HOME).
- *   - State-changing requests send an Origin header to satisfy the server's CSRF check.
+ *   - Shared HTTP / projection / ops layers live in ./lib (reusable by an MCP server).
  *   - Batch/job commands poll to completion and stream the ZIP/PDF to disk.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, createWriteStream } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, createWriteStream, statSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 import { Readable } from 'node:stream'
 
-// ---------------------------------------------------------------------------
-// Config & tiny arg parser
-// ---------------------------------------------------------------------------
+import { parseArgs, createConfig, flagValue } from './lib/config.mjs'
+import { out, err, die, printJson, pad, sleep } from './lib/output.mjs'
+import { createClient } from './lib/http.mjs'
+import {
+  unwrapEnvelope, buildSummary, formatSummary, buildOutline, formatOutline,
+} from './lib/projection.mjs'
+import { saveHandles, resolveElementRef, pruneHandles } from './lib/handles.mjs'
+import { applyOps, checkInvariants, OpsError } from './lib/ops.mjs'
 
-const HOME = process.env.REPORT_STUDIO_HOME || join(homedir(), '.report-studio')
-const COOKIE_JAR = join(HOME, 'cookies')
-const TOKEN_FILE = join(HOME, 'token')
-
-function parseArgs(argv) {
-  const positionals = []
-  const flags = {}
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]
-    if (a.startsWith('--')) {
-      const key = a.slice(2)
-      const next = argv[i + 1]
-      if (next === undefined || next.startsWith('--')) {
-        flags[key] = true
-      } else {
-        flags[key] = next
-        i++
-      }
-    } else {
-      positionals.push(a)
-    }
-  }
-  return { positionals, flags }
-}
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
 
 const { positionals, flags } = parseArgs(process.argv.slice(2))
 const command = positionals[0]
-const BASE_URL = (flags.url || process.env.REPORT_STUDIO_URL || 'http://localhost:8080').replace(/\/$/, '')
-const JSON_OUT = Boolean(flags.json)
+const config = createConfig(flags)
+const { baseUrl: BASE_URL, jsonOut: JSON_OUT, cookieJar: COOKIE_JAR, tokenFile: TOKEN_FILE } = config
+const { api, saveToken } = createClient(config)
 
-// ---------------------------------------------------------------------------
-// Output helpers
-// ---------------------------------------------------------------------------
-
-function out(msg) { process.stdout.write(msg + '\n') }
-function err(msg) { process.stderr.write(msg + '\n') }
-function die(msg, code = 1) { err(`✗ ${msg}`); process.exit(code) }
-function printJson(obj) { out(JSON.stringify(obj, null, 2)) }
-
-// ---------------------------------------------------------------------------
-// Cookie jar (persisted session)
-// ---------------------------------------------------------------------------
-
-function loadCookie() {
-  try { return readFileSync(COOKIE_JAR, 'utf8').trim() } catch { return '' }
-}
-
-function saveCookie(setCookieHeader) {
-  if (!setCookieHeader) return
-  // Keep only the name=value part of each Set-Cookie entry.
-  const cookie = setCookieHeader.split(/,(?=[^ ;]+=)/).map((c) => c.split(';')[0].trim()).join('; ')
-  if (!existsSync(HOME)) mkdirSync(HOME, { recursive: true })
-  writeFileSync(COOKIE_JAR, cookie, { mode: 0o600 })
-}
-
-// ---------------------------------------------------------------------------
-// API token (PAT) — Bearer auth for CI / headless use (#195)
-// ---------------------------------------------------------------------------
-
-/** $REPORT_STUDIO_TOKEN takes precedence over a token saved via `login --token`. */
-function loadToken() {
-  if (process.env.REPORT_STUDIO_TOKEN) return process.env.REPORT_STUDIO_TOKEN.trim()
-  try { return readFileSync(TOKEN_FILE, 'utf8').trim() } catch { return '' }
-}
-
-function saveToken(token) {
-  if (!existsSync(HOME)) mkdirSync(HOME, { recursive: true })
-  writeFileSync(TOKEN_FILE, token, { mode: 0o600 })
-}
-
-// ---------------------------------------------------------------------------
-// HTTP
-// ---------------------------------------------------------------------------
-
-async function api(method, path, { body, raw = false, formData } = {}) {
-  // Deliberately send NO Origin header: the server's CSRF filter only rejects a
-  // *present, mismatched* Origin, so non-browser clients (curl, this CLI) pass by
-  // omitting it. Sending the backend's own origin trips a CORS 400.
-  const headers = {}
-  const cookie = loadCookie()
-  if (cookie) headers.Cookie = cookie
-  // Bearer PAT auth (#195). The server tries the session cookie first, then this.
-  const token = loadToken()
-  if (token) headers.Authorization = `Bearer ${token}`
-  let payload
-  if (formData) {
-    payload = formData
-  } else if (body !== undefined) {
-    headers['Content-Type'] = 'application/json'
-    payload = JSON.stringify(body)
-  }
-  let res
-  try {
-    res = await fetch(`${BASE_URL}${path}`, { method, headers, body: payload })
-  } catch (e) {
-    die(`バックエンドに接続できません (${BASE_URL}): ${e.message}. サーバー起動と --url を確認してください。`)
-  }
-  const setCookie = res.headers.get('set-cookie')
-  if (setCookie) saveCookie(setCookie)
-  // Friendly auth errors instead of a raw HTTP dump (#174). 401 on `login`
-  // itself means bad credentials, not a missing session.
-  if (res.status === 401 && path !== '/api/v1/auth/login') {
-    die('ログインしていません。`report-studio login` を実行してください（セッション切れの可能性もあります）。')
-  }
-  if (res.status === 403) {
-    die('権限がありません。この操作には別の権限（管理者など）が必要です。')
-  }
-  if (raw) return res
-  const text = await res.text()
-  let json
-  try { json = text ? JSON.parse(text) : null } catch { json = text }
-  if (!res.ok) {
-    const detail = json && typeof json === 'object' && json.error ? json.error : text
-    die(`${method} ${path} → HTTP ${res.status}: ${detail || '(no body)'}`)
-  }
-  return json
-}
+/** Full-template output guard: above this, `templates get` demands --force. */
+const FULL_OUTPUT_LIMIT_BYTES = 40 * 1024
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -226,10 +129,289 @@ async function cmdTemplatesList() {
   }
 }
 
-async function cmdTemplateGet(id) {
-  if (!id) die('テンプレートIDを指定してください: templates get <id>')
+/** Fetch a template and split it into {definition, meta}. */
+async function fetchTemplate(id) {
   const res = await api('GET', `/api/v2/templates/${encodeURIComponent(id)}`)
+  return { raw: res, ...unwrapEnvelope(res) }
+}
+
+async function cmdTemplateGet(id) {
+  if (!id) die('テンプレートIDを指定してください: templates get <id> [--force] [--out file.json]')
+  const res = await api('GET', `/api/v2/templates/${encodeURIComponent(id)}`)
+  const text = JSON.stringify(res, null, 2)
+
+  const outFile = flagValue(flags, 'out')
+  if (outFile) {
+    writeFileEnsured(outFile, text)
+    return out(`✓ 定義を書き出しました → ${outFile} (${text.length} bytes)`)
+  }
+  // Guard: a real template is 25-65 KB of JSON (~18-20k tokens). Dumping it to
+  // stdout by reflex is the single easiest way to blow an agent's context, so
+  // require an explicit --force and point at the cheap views first.
+  if (text.length > FULL_OUTPUT_LIMIT_BYTES && !flags.force) {
+    die(
+      `定義が大きすぎます (${text.length} bytes > ${FULL_OUTPUT_LIMIT_BYTES})。\n` +
+        `  → 概要は \`templates summary ${id}\`、要素一覧は \`templates outline ${id}\` を使ってください。\n` +
+        '  → 全文が必要なら --force、ファイルに落とすなら --out <file> を付けてください。',
+    )
+  }
   printJson(res)
+}
+
+async function cmdTemplateSummary(id) {
+  if (!id) die('テンプレートIDを指定してください: templates summary <id>')
+  const { raw } = await fetchTemplate(id)
+  const summary = buildSummary(unwrapEnvelope(raw))
+  if (JSON_OUT) return printJson(summary)
+  out(formatSummary(summary))
+}
+
+async function cmdTemplateOutline(id) {
+  if (!id) die('テンプレートIDを指定してください: templates outline <id> [--page N]')
+  const { definition, meta } = await fetchTemplate(id)
+  const pageArg = flagValue(flags, 'page')
+  const outline = buildOutline(definition, {
+    pageFilter: pageArg === undefined ? undefined : Number(pageArg),
+  })
+  // Persist the handle map so `templates edit --ops` can accept e1/e2/… later.
+  const handleFile = saveHandles(config, id, meta.updatedAt, outline.map)
+  pruneHandles(config)
+  if (JSON_OUT) return printJson({ meta, ...outline, handleFile })
+  out(formatOutline({ ...meta, pageCount: (definition.pages ?? []).length }, outline, handleFile))
+}
+
+async function cmdTemplateCreate(name) {
+  if (!name) die('名前を指定してください: templates create <name> [--from <id>] [--import <file>]')
+  const importFile = flagValue(flags, 'import')
+  const fromId = flagValue(flags, 'from')
+
+  if (importFile) {
+    const parsed = JSON.parse(readFileSync(importFile, 'utf8'))
+    // The import endpoint requires the canonical envelope; wrap a bare definition.
+    const envelope = parsed.formatVersion ? parsed : { formatVersion: 2, definition: parsed }
+    const res = await api('POST', '/api/v2/templates/import', { body: envelope })
+    // The endpoint answers {id, name}; never echo a whole definition back.
+    const summary = { id: res.id, name: res.name }
+    if (JSON_OUT) return printJson(summary)
+    return out(`✓ インポートしました: ${summary.name} (${summary.id})`)
+  }
+  if (fromId) {
+    const res = await api('POST', `/api/v2/templates/${encodeURIComponent(fromId)}/duplicate`, {
+      body: { name },
+    })
+    if (JSON_OUT) return printJson(res)
+    return out(`✓ 複製しました: ${res.name ?? name} (${res.id})`)
+  }
+  const res = await api('POST', '/api/v2/templates', { body: { name } })
+  if (JSON_OUT) return printJson(res)
+  out(`✓ 作成しました: ${res.name ?? name} (${res.id})`)
+}
+
+// ── versions (undo for `templates edit`) ─────────────────────────────────────
+
+async function cmdVersionsList(id) {
+  if (!id) die('テンプレートIDを指定してください: templates versions list <id>')
+  const res = await api('GET', `/api/v2/templates/${encodeURIComponent(id)}/versions`)
+  const items = Array.isArray(res) ? res : (res.items ?? [])
+  if (JSON_OUT) return printJson(items)
+  if (items.length === 0) return out('バージョンがありません。')
+  out(pad('VERSION ID', 38) + pad('作成', 26) + '作成者')
+  for (const v of items) out(pad(v.id, 38) + pad(v.createdAt ?? '', 26) + (v.createdBy ?? ''))
+}
+
+/** Snapshot whatever is currently stored. Returns the new version item. */
+async function snapshotVersion(id) {
+  return api('POST', `/api/v2/templates/${encodeURIComponent(id)}/versions`, { body: {} })
+}
+
+async function cmdVersionsSnapshot(id) {
+  if (!id) die('テンプレートIDを指定してください: templates versions snapshot <id>')
+  const v = await snapshotVersion(id)
+  if (JSON_OUT) return printJson(v)
+  out(`✓ スナップショットを作成しました: ${v.id} (${v.createdAt})`)
+}
+
+async function cmdVersionsRestore(id, versionId) {
+  if (!id || !versionId) die('使い方: templates versions restore <id> <versionId>')
+  // The restore endpoint only *returns* the archived definition — the frontend
+  // saves it back. Do the same here, otherwise "restore" would change nothing.
+  const archived = await api(
+    'POST',
+    `/api/v2/templates/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
+  )
+  const definition = archived?.definition
+  if (!definition) die('復元対象の定義を取得できませんでした。')
+
+  // Snapshot the state we are about to overwrite, so restore is itself undoable.
+  if (!flags['no-snapshot']) {
+    const v = await snapshotVersion(id)
+    out(`  復元前の状態を ${v.id} として保存しました`)
+  }
+  const saved = await api('PUT', `/api/v2/templates/${encodeURIComponent(id)}`, {
+    body: { formatVersion: 2, definition },
+  })
+  const meta = unwrapEnvelope(saved).meta
+  saveHandles(config, id, meta.updatedAt, {})
+  if (JSON_OUT) return printJson({ id, restoredFrom: versionId, updatedAt: meta.updatedAt })
+  out(`✓ ${versionId} から復元しました → ${id} (updatedAt=${meta.updatedAt})`)
+  out(`  ハンドルは無効化されました。\`templates outline ${id}\` を実行してください。`)
+}
+
+async function cmdTemplateEdit(id) {
+  if (!id) die('使い方: templates edit <id> --ops ops.json [--expect-updated-at <iso>] [--dry-run]')
+  const opsFile = flagValue(flags, 'ops')
+  if (!opsFile) die('--ops <file.json> を指定してください（{"ops":[…]} 形式）。')
+
+  let parsed
+  try {
+    parsed = JSON.parse(readFileSync(opsFile, 'utf8'))
+  } catch (e) {
+    die(`ops ファイルを読めません (${opsFile}): ${e.message}`)
+  }
+  const ops = Array.isArray(parsed) ? parsed : parsed.ops
+
+  const { definition, meta } = await fetchTemplate(id)
+  const expected = flagValue(flags, 'expect-updated-at')
+  if (expected && expected !== meta.updatedAt) {
+    die(
+      `[VERSION_CONFLICT] テンプレートは更新されています（期待 ${expected} / 現在 ${meta.updatedAt}）。\n` +
+        `  → \`templates outline ${id}\` で取り直して再実行してください。`,
+    )
+  }
+
+  let result
+  try {
+    result = applyOps(definition, ops, (ref) => resolveElementRef(config, id, ref, meta.updatedAt))
+  } catch (e) {
+    if (e instanceof OpsError) die(`ops の適用に失敗しました:\n  ${e.errors.join('\n  ')}`)
+    throw e
+  }
+
+  for (const line of result.diff) out(`  ${line}`)
+  for (const w of result.warnings) err(`  ⚠ ${w}`)
+
+  if (flags['dry-run']) {
+    return out(`✓ dry-run: ${result.diff.length} 件の変更を検証しました（保存していません）`)
+  }
+
+  // Snapshot BEFORE the PUT — `templates edit` overwrites in place and the server
+  // has no undo. Opt-out rather than opt-in: the failure mode we are guarding
+  // against is precisely forgetting to snapshot, and a safety net you have to
+  // remember is not a safety net.
+  if (!flags['no-snapshot']) {
+    const v = await snapshotVersion(id)
+    out(`  変更前の状態を ${v.id} として保存しました（復元: templates versions restore ${id} ${v.id}）`)
+  }
+
+  const saved = await api('PUT', `/api/v2/templates/${encodeURIComponent(id)}`, {
+    body: { formatVersion: 2, definition },
+  })
+  const newMeta = unwrapEnvelope(saved).meta
+  // Element IDs may have changed; the stale handle map must not be reused.
+  saveHandles(config, id, newMeta.updatedAt, {})
+  if (JSON_OUT) return printJson({ id, updatedAt: newMeta.updatedAt, diff: result.diff, warnings: result.warnings })
+  out(`✓ ${result.diff.length} ops 適用 → ${id} (updatedAt=${newMeta.updatedAt})`)
+  out(`  ハンドルは無効化されました。再編集の前に \`templates outline ${id}\` を実行してください。`)
+}
+
+async function cmdTemplateValidate(id) {
+  if (!id) die('テンプレートIDを指定してください: templates validate <id> [--data data.json]')
+  const { definition } = await fetchTemplate(id)
+
+  // Local invariants first — these are the ones the server cannot see.
+  const local = checkInvariants(definition)
+  const testData = flagValue(flags, 'data')
+    ? JSON.parse(readFileSync(flagValue(flags, 'data'), 'utf8'))
+    : {}
+  const server = await api('POST', `/api/v2/templates/${encodeURIComponent(id)}/validate`, {
+    body: { definition, testData },
+  })
+
+  if (JSON_OUT) return printJson({ local, server })
+  if (local.errors.length === 0 && local.warnings.length === 0) {
+    out('✓ ローカル検査: 問題なし（要素格納先・スキーマ階層・要素型・Zod strip）')
+  }
+  for (const e of local.errors) err(`✗ ${e}`)
+  for (const w of local.warnings) err(`⚠ ${w}`)
+
+  const violations = server?.violations ?? []
+  if (violations.length === 0) out('✓ 検証ルール: 違反なし')
+  else {
+    out(`検証ルール違反 (${violations.length}):`)
+    for (const v of violations) out(`  - ${v.message ?? JSON.stringify(v)}`)
+  }
+  if (local.errors.length > 0) process.exit(1)
+}
+
+async function cmdTemplateThumbnail(id) {
+  if (!id) die('テンプレートIDを指定してください: templates thumbnail <id> [--out file.jpg]')
+  const res = await api('GET', `/api/v2/templates/${encodeURIComponent(id)}/thumbnail`, { raw: true })
+  if (!res.ok) die(`サムネイル取得に失敗しました (HTTP ${res.status})`)
+  const file = flagValue(flags, 'out') || join(config.artifactDir, `${id}.jpg`)
+  const dir = dirname(file)
+  if (dir && dir !== '.' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
+  await streamToFile(res, file)
+  out(`✓ サムネイル → ${file}`)
+}
+
+// ── expression / binding diagnostics ─────────────────────────────────────────
+
+async function cmdEvaluate(id) {
+  if (!id) die('使い方: evaluate <templateId> --data data.json')
+  const dataFile = flagValue(flags, 'data')
+  const testData = dataFile ? JSON.parse(readFileSync(dataFile, 'utf8')) : {}
+  const { definition } = await fetchTemplate(id)
+  const res = await api('POST', `/api/v2/templates/${encodeURIComponent(id)}/evaluate`, {
+    body: { definition, testData },
+  })
+  if (JSON_OUT) return printJson(res)
+  const results = res?.results ?? {}
+  const errors = res?.errors ?? {}
+  if (Object.keys(results).length === 0 && Object.keys(errors).length === 0) {
+    return out('計算ルールがありません。')
+  }
+  out(pad('KEY', 30) + '結果')
+  for (const [k, v] of Object.entries(results)) out(pad(k, 30) + JSON.stringify(v))
+  for (const [k, v] of Object.entries(errors)) err(`✗ ${pad(k, 28)} ${v}`)
+}
+
+async function cmdBindingsResolve(id) {
+  if (!id) die('使い方: bindings resolve <templateId> [--keys keys.json]')
+  const { definition } = await fetchTemplate(id)
+  const keysFile = flagValue(flags, 'keys')
+  const partitionKeys = keysFile ? JSON.parse(readFileSync(keysFile, 'utf8')) : {}
+  const res = await api('POST', `/api/v2/templates/${encodeURIComponent(id)}/resolve-bindings`, {
+    body: { schema: definition.schema ?? { groups: [] }, partitionKeys },
+  })
+  if (JSON_OUT) return printJson(res)
+  // HTTP 207: `resolved` and `errors` are both objects keyed by schema group id.
+  for (const [groupId, row] of Object.entries(res?.resolved ?? {})) {
+    const cells = Object.entries(row ?? {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    out(`✓ ${groupId}: ${cells.join(' ') || '(空)'}`)
+  }
+  for (const [groupId, message] of Object.entries(res?.errors ?? {})) {
+    err(`✗ ${groupId}: ${message}`)
+  }
+  if (res?.requestId) out(`requestId=${res.requestId}`)
+}
+
+async function cmdSchemaInfer() {
+  const dataFile = flagValue(flags, 'data')
+  if (!dataFile) die('使い方: schema infer --data sample.json')
+  const parsed = JSON.parse(readFileSync(dataFile, 'utf8'))
+  // The endpoint wants {sample: {...}}; accept a bare record and wrap it.
+  const body = parsed && typeof parsed === 'object' && parsed.sample ? parsed : { sample: parsed }
+  const res = await api('POST', '/api/v2/schemas/infer', { body })
+  printJson(res)
+}
+
+async function cmdSchemaList() {
+  const res = await api('GET', '/api/v2/schemas')
+  const items = Array.isArray(res) ? res : (res.items ?? [])
+  if (JSON_OUT) return printJson(items)
+  if (items.length === 0) return out('スキーマがありません。')
+  out(pad('ID', 38) + pad('名前', 24) + '更新')
+  for (const s of items) out(pad(s.id, 38) + pad(s.name ?? '', 24) + (s.updatedAt ?? ''))
 }
 
 async function cmdTemplateExport(id) {
@@ -249,16 +431,65 @@ async function cmdTemplateImport(file) {
 }
 
 async function cmdTemplateDelete(id) {
-  if (!id) die('テンプレートIDを指定してください: templates delete <id>')
+  if (!id) die('テンプレートIDを指定してください: templates delete <id> --yes')
+  // Deletion is a hard delete server-side (definitionsRepo.delete — no soft
+  // delete, no restore path), and callers now routinely hold IDs copied out of
+  // `outline`/`summary` output. Require the intent to be stated explicitly.
+  // Checked before any request so a mistake costs nothing.
+  if (!flags.yes) {
+    die(
+      `削除は取り消せません（サーバー側で完全削除されます）。実行するには --yes を付けてください:\n` +
+        `  templates delete ${id} --yes\n` +
+        `  → 中身を確認するなら先に \`templates summary ${id}\`、` +
+        `退避するなら \`templates export ${id} --out backup.json\``,
+    )
+  }
+  // Name the thing being destroyed — a confirmation that shows nothing confirms nothing.
+  let name = ''
+  const probe = await api('GET', `/api/v2/templates/${encodeURIComponent(id)}`, { raw: true })
+  if (probe.ok) {
+    try {
+      name = unwrapEnvelope(await probe.json()).meta.name
+    } catch {
+      // Non-fatal: proceed with the delete even if the probe body is unreadable.
+    }
+  }
   await api('DELETE', `/api/v2/templates/${encodeURIComponent(id)}`, { raw: true })
-  out(`✓ 削除しました: ${id}`)
+  out(`✓ 削除しました: ${name ? `${name} (${id})` : id}`)
 }
 
 async function streamToFile(res, file) {
+  const dir = dirname(file)
+  if (dir && dir !== '.' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
   const stream = createWriteStream(file)
   await new Promise((resolve, reject) => {
     Readable.fromWeb(res.body).pipe(stream).on('finish', resolve).on('error', reject)
   })
+}
+
+/**
+ * Warn on a suspiciously small PDF.
+ *
+ * A template whose elements never made it into a section renders as a valid but
+ * empty document — historically a 534-byte envelope that looks like success.
+ * Size is the cheapest signal that nothing was drawn.
+ */
+const EMPTY_PDF_BYTES = 2000
+
+function warnIfBlankPdf(file) {
+  let bytes = 0
+  try {
+    bytes = statSync(file).size
+  } catch {
+    return
+  }
+  if (bytes < EMPTY_PDF_BYTES) {
+    err(
+      `⚠ PDF が ${bytes} バイトしかありません — 白紙の可能性があります。\n` +
+        '  → 要素が sections[].elements にあるか（`templates outline <id>`）、' +
+        'バインドが解決しているか（`bindings resolve <id>`）を確認してください。',
+    )
+  }
 }
 
 async function cmdPdf(id) {
@@ -270,9 +501,10 @@ async function cmdPdf(id) {
   }
   const res = await api('POST', `/api/v2/templates/${encodeURIComponent(id)}/pdf`, { body, raw: true })
   if (!res.ok) die(`PDF生成に失敗しました (HTTP ${res.status})`)
-  const file = flags.out || `${id}.pdf`
+  const file = flags.out || join(config.artifactDir, `${id}.pdf`)
   await streamToFile(res, file)
-  out(`✓ PDFを生成しました → ${file}`)
+  warnIfBlankPdf(file)
+  out(`✓ PDFを生成しました → ${file} (${statSync(file).size} bytes)`)
 }
 
 async function cmdBatch(id) {
@@ -484,8 +716,12 @@ async function cmdDbRows(nsTable) {
 // Utils
 // ---------------------------------------------------------------------------
 
-function pad(s, n) { s = String(s ?? ''); return s.length >= n ? s.slice(0, n - 1) + ' ' : s + ' '.repeat(n - s.length) }
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)) }
+/** Write a file, creating parent directories as needed. */
+function writeFileEnsured(file, content) {
+  const dir = dirname(file)
+  if (dir && dir !== '.' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
+  writeFileSync(file, content)
+}
 
 function printHelp() {
   out(`report-studio CLI — Report Studio backend をコマンドラインから操作
@@ -503,10 +739,26 @@ function printHelp() {
 
 テンプレート:
   templates list              テンプレート一覧
-  templates get <id>          テンプレート定義を表示
+  templates summary <id>      概要（ページ/要素種別/スキーマ/ルール）— まずこれ
+  templates outline <id>      要素一覧 TSV + 短縮ハンドル  --page N
+  templates get <id>          定義の全文（40KB 超は --force か --out が必要）
+  templates create <name>     新規作成  --from <id>（複製） --import <file>
+  templates edit <id> --ops ops.json   op ベース部分編集（既定で編集前スナップショット）
+                              --dry-run --expect-updated-at <iso> --no-snapshot
+  templates validate <id>     保存前検証（ローカル不変条件 + 検証ルール）  --data d.json
+  templates thumbnail <id>    サムネイル JPEG を書き出し  --out file.jpg
+  templates versions list <id>              バージョン一覧
+  templates versions snapshot <id>          手動スナップショット
+  templates versions restore <id> <vid>     復元（edit の undo）
   templates export <id>       エクスポート  --out file.json
   templates import <file>     インポート
-  templates delete <id>       削除
+  templates delete <id> --yes 削除（完全削除・取り消し不可のため --yes 必須）
+
+データ・式の診断:
+  evaluate <id> --data d.json 計算ルールを評価（JEXL デバッグ）
+  bindings resolve <id>       DB バインドを解決  --keys keys.json
+  schema list                 スキーマライブラリ一覧
+  schema infer --data s.json  サンプル JSON からスキーマ推論
 
 出力:
   pdf <id>                    単票PDF生成  --data data.json --out file.pdf
@@ -557,10 +809,31 @@ async function main() {
     case 'templates':
       if (sub === 'list') return cmdTemplatesList()
       if (sub === 'get') return cmdTemplateGet(positionals[2])
+      if (sub === 'summary') return cmdTemplateSummary(positionals[2])
+      if (sub === 'outline') return cmdTemplateOutline(positionals[2])
+      if (sub === 'create') return cmdTemplateCreate(positionals[2])
+      if (sub === 'edit') return cmdTemplateEdit(positionals[2])
+      if (sub === 'validate') return cmdTemplateValidate(positionals[2])
+      if (sub === 'thumbnail') return cmdTemplateThumbnail(positionals[2])
+      if (sub === 'versions') {
+        const action = positionals[2]
+        if (action === 'list') return cmdVersionsList(positionals[3])
+        if (action === 'snapshot') return cmdVersionsSnapshot(positionals[3])
+        if (action === 'restore') return cmdVersionsRestore(positionals[3], positionals[4])
+        return die(`不明なサブコマンド: templates versions ${action ?? ''}（list|snapshot|restore）`)
+      }
       if (sub === 'export') return cmdTemplateExport(positionals[2])
       if (sub === 'import') return cmdTemplateImport(positionals[2])
       if (sub === 'delete') return cmdTemplateDelete(positionals[2])
       return die(`不明なサブコマンド: templates ${sub ?? ''}`)
+    case 'evaluate': return cmdEvaluate(sub)
+    case 'bindings':
+      if (sub === 'resolve') return cmdBindingsResolve(positionals[2])
+      return die(`不明なサブコマンド: bindings ${sub ?? ''}`)
+    case 'schema':
+      if (sub === 'list') return cmdSchemaList()
+      if (sub === 'infer') return cmdSchemaInfer()
+      return die(`不明なサブコマンド: schema ${sub ?? ''}`)
     case 'pdf': return cmdPdf(sub)
     case 'batch': return cmdBatch(sub)
     case 'responses':
