@@ -331,7 +331,10 @@ describe('RepeatingBandRenderer — セルスタイル適用 (issue #313)', () =
     const el = makeElement({ fields, style: { color: '#1a1a1a', fontSize: 9 } })
     render(<RepeatingBandRenderer element={el} records={records} />)
     const cell = screen.getByText('商品A')
-    expect(cell).toHaveStyle({ color: 'rgb(26, 26, 26)', fontSize: '9pt' })
+    // jsdom 30 の getComputedStyle は長さ値を px に変換するため、mm/pt の
+    // 指定値そのものは inline style で検証する（toHaveStyle は computed 経由）
+    expect(cell).toHaveStyle({ color: 'rgb(26, 26, 26)' })
+    expect(cell.style.fontSize).toBe('9pt')
   })
 
   it('applies style.color to grouped data cells too', () => {
@@ -356,19 +359,19 @@ describe('RepeatingBandRenderer — ヘッダー行のプレビュー/PDF一致 
     const el = makeElement({ fields, itemHeight: 7, headerHeight: undefined })
     render(<RepeatingBandRenderer element={el} records={records} />)
     const headerRow = screen.getByText('No.').parentElement!
-    expect(headerRow).toHaveStyle({ height: '7mm' })
+    expect(headerRow.style.height).toBe('7mm')
   })
 
   it('headerHeight 指定時はその値が優先される', () => {
     const el = makeElement({ fields, itemHeight: 7, headerHeight: 10 })
     render(<RepeatingBandRenderer element={el} records={records} />)
     const headerRow = screen.getByText('No.').parentElement!
-    expect(headerRow).toHaveStyle({ height: '10mm' })
+    expect(headerRow.style.height).toBe('10mm')
   })
 
   it('headerStyle.fontSize がヘッダーセルに適用される', () => {
     const el = makeElement({ fields, headerStyle: { fontSize: 11 } })
     render(<RepeatingBandRenderer element={el} records={records} />)
-    expect(screen.getByText('No.')).toHaveStyle({ fontSize: '11pt' })
+    expect(screen.getByText('No.').style.fontSize).toBe('11pt')
   })
 })
