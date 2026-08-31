@@ -284,6 +284,10 @@ public final class ApiRoutes {
         config.routes.get("/api/v2/health", ctx -> ctx.status(204));
         config.routes.get("/api/v2/templates", w.templateCtrl::list);
         config.routes.post("/api/v2/templates", w.templateCtrl::create);
+        // MUST precede POST /api/v2/templates/{id}: Javalin matches in registration
+        // order, so registering the literal path later let {id} swallow it and every
+        // import silently became "PUT the template whose id is the string `import`".
+        config.routes.post("/api/v2/templates/import", w.exportCtrl::importTemplate);
         config.routes.get("/api/v2/templates/{id}", w.templateCtrl::get);
         config.routes.put("/api/v2/templates/{id}", w.templateCtrl::put);
         // navigator.sendBeacon (tab-close auto-save, #213) can only issue POST, so the
@@ -316,9 +320,8 @@ public final class ApiRoutes {
         // Cross-template issued-documents view (#190)
         config.routes.get("/api/v2/documents", w.formResponseCtrl::listDocuments);
 
-        // V2 template export/import/thumbnail
+        // V2 template export/thumbnail (import is registered above, ahead of {id})
         config.routes.get("/api/v2/templates/{id}/export", w.exportCtrl::export);
-        config.routes.post("/api/v2/templates/import", w.exportCtrl::importTemplate);
         config.routes.get("/api/v2/templates/{id}/thumbnail", w.thumbnailCtrl::get);
 
         // V2 template PDF generation
