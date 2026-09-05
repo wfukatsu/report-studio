@@ -6,12 +6,18 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip } from '@/components/common/Tooltip'
+import { ToolbarIndicatorDot } from './ToolbarIndicatorDot'
 
 /**
  * Consolidates advanced view/layout tools (grid, snap, trim marks, margin guide,
  * header/footer editing, master header/footer) behind a single dropdown so the
  * default toolbar stays focused on basic operations for the non-technical
  * persona (#111). Toggle state is shown with a checkmark.
+ *
+ * The trigger button is filled (pressed look) only while the menu is open;
+ * "some option is ON" is signalled by a small corner dot instead so the
+ * button does not look permanently pressed (#498 — `showMarginGuide` defaults
+ * to true, so the old `open || anyActive` fill was on from first paint).
  */
 export interface ToolbarViewMenuProps {
   showGrid: boolean
@@ -62,12 +68,13 @@ export function ToolbarViewMenu(props: ToolbarViewMenuProps) {
           aria-expanded={open}
           aria-haspopup="menu"
           className={cn(
-            'flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
-            open || anyActive ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
+            'relative flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
+            open ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
           )}
         >
           <SlidersHorizontal className="w-4 h-4" />
           <ChevronDown className="w-3 h-3 ml-0.5" />
+          {anyActive && !open && <ToolbarIndicatorDot />}
         </button>
       </Tooltip>
       {open && (

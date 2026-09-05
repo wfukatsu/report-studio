@@ -57,4 +57,29 @@ describe('ToolbarViewMenu', () => {
     open()
     expect(screen.getByRole('menuitemcheckbox', { name: 'マスターヘッダーを削除' })).toBeInTheDocument()
   })
+
+  describe('trigger button look (#498)', () => {
+    const trigger = () => screen.getByRole('button', { name: '表示オプション' })
+
+    it('is not filled when closed even if an option is ON — shows a dot instead', () => {
+      setup({ showMarginGuide: true })
+      expect(trigger()).not.toHaveClass('bg-primary')
+      expect(trigger()).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.getByTestId('toolbar-indicator-dot')).toBeInTheDocument()
+    })
+
+    it('shows no dot when every option is OFF', () => {
+      setup()
+      expect(trigger()).not.toHaveClass('bg-primary')
+      expect(screen.queryByTestId('toolbar-indicator-dot')).not.toBeInTheDocument()
+    })
+
+    it('is filled only while the menu is open, and hides the dot meanwhile', () => {
+      setup({ showGrid: true })
+      open()
+      expect(trigger()).toHaveClass('bg-primary')
+      expect(trigger()).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.queryByTestId('toolbar-indicator-dot')).not.toBeInTheDocument()
+    })
+  })
 })
