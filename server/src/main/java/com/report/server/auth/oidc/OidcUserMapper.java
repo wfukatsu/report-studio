@@ -40,6 +40,15 @@ public final class OidcUserMapper {
     }
 
     public MappedUser map(JWTClaimsSet claims) {
+        return map(claims, null);
+    }
+
+    /**
+     * @param claims verified ID token (or Bearer access token) — identity source
+     * @param roleClaims optional second verified token whose role claim is merged in (the access
+     *     token that accompanied the ID token); {@code null} to use {@code claims} only
+     */
+    public MappedUser map(JWTClaimsSet claims, JWTClaimsSet roleClaims) {
         String sub = claims.getSubject();
         String preferred = stringClaim(claims, "preferred_username");
         String userId =
@@ -47,7 +56,11 @@ public final class OidcUserMapper {
         String name = stringClaim(claims, "name");
         String displayName = name != null ? name : (preferred != null ? preferred : sub);
 
-        Set<String> idpRoles = extractRoles(claims.getClaims(), cfg.roleClaim());
+        Set<String> idpRoles =
+                new LinkedHashSet<>(extractRoles(claims.getClaims(), cfg.roleClaim()));
+        if (roleClaims != null) {
+            idpRoles.addAll(extractRoles(roleClaims.getClaims(), cfg.roleClaim()));
+        }
         boolean admin = idpRoles.contains(cfg.adminRole());
         boolean user = admin || !cfg.requiresUserRole() || idpRoles.contains(cfg.userRole());
         Set<String> roles = admin ? Set.of("admin", "user") : (user ? Set.of("user") : Set.of());

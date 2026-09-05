@@ -58,6 +58,9 @@ class OidcControllerTest {
 
     private final AtomicReference<String> lastCodeVerifier = new AtomicReference<>();
 
+    /** Access token returned next to the ID token (null → an opaque placeholder). */
+    private final AtomicReference<String> nextAccessToken = new AtomicReference<>();
+
     @BeforeEach
     void setUp() throws Exception {
         keys = new OidcTestKeys();
@@ -80,7 +83,9 @@ class OidcControllerTest {
                 cfg -> MD,
                 (md, code, verifier) -> {
                     lastCodeVerifier.set(verifier);
-                    return new OidcController.TokenResponse(nextIdToken.get(), "at");
+                    String at = nextAccessToken.getAndSet(null);
+                    return new OidcController.TokenResponse(
+                            nextIdToken.get(), at == null ? "at" : at);
                 },
                 (cfg, md) -> keys.verifier(),
                 now::get);
@@ -182,6 +187,62 @@ class OidcControllerTest {
         assertEquals("alice", p.userId());
         assertEquals(Principal.PROVIDER_OIDC, p.provider());
         assertTrue(p.hasRole("admin"));
+    }
+
+    @Test
+    void callbackTakesRealmRolesFromAccessTokenWhenIdTokenLacksThem() throws Exception {
+        // Keycloak default: realm_access only on the access token
+        OidcController c = controller(Map.of());
+        Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .claim("nonce", q.get("nonce"))
+                                .claim("realm_access", Map.of("roles", List.of()))
+                                .build()));
+        nextAccessToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .audience(List.of("account"))
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .claim(
+                                        "realm_access",
+                                        Map.of("roles", List.of("report-studio-admin")))
+                                .build()));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        c.callback(ctx);
+
+        ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
+        verify(userRepo).save(saved.capture());
+        assertEquals(Set.of("admin", "user"), saved.getValue().roles());
+        assertEquals("/", redirectTarget(ctx));
+    }
+
+    @Test
+    void callbackIgnoresAccessTokenForAnotherSubjectOrBadSignature() throws Exception {
+        OidcController c = controller(Map.of());
+        Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .claim("nonce", q.get("nonce"))
+                                .build()));
+        // forged access token claiming admin — wrong key → ignored, login still succeeds as user
+        nextAccessToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .claim(
+                                        "realm_access",
+                                        Map.of("roles", List.of("report-studio-admin")))
+                                .build(),
+                        keys.rogue));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        c.callback(ctx);
+        ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
+        verify(userRepo).save(saved.capture());
+        assertEquals(Set.of("user"), saved.getValue().roles());
+        assertEquals("/", redirectTarget(ctx));
     }
 
     @Test

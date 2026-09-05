@@ -258,10 +258,12 @@ public final class OidcController {
 
         TokenResponse tokens;
         JWTClaimsSet claims;
+        JWTClaimsSet roleClaims = null;
         try {
             tokens = exchanger.exchange(metadata(), code, flow.codeVerifier());
             if (tokens.idToken() == null) throw new IOException("token response lacks id_token");
             claims = verifier().verifyIdToken(tokens.idToken(), flow.nonce());
+            roleClaims = accessTokenRoleSource(tokens.accessToken(), claims.getSubject());
         } catch (IOException e) {
             log.warn("OIDC code exchange failed: {}", e.getMessage());
             fail(ctx, ERR_UNAVAILABLE);
@@ -272,7 +274,7 @@ public final class OidcController {
             return;
         }
 
-        Provisioned p = provision(mapper.map(claims));
+        Provisioned p = provision(mapper.map(claims, roleClaims));
         if (p.error() != null) {
             fail(ctx, p.error());
             return;
@@ -283,6 +285,26 @@ public final class OidcController {
                 p.principal().userId(),
                 claims.getSubject());
         ctx.redirect(cfg.postLoginRedirect(), HttpStatus.FOUND);
+    }
+
+    /**
+     * Keycloak's default "realm roles" mapper writes {@code realm_access} to the access token only
+     * (not the ID token), so the callback also verifies the access token — same signature keys,
+     * same issuer, {@code azp}/{@code aud} = this client, same {@code sub} — and lets the mapper
+     * read roles from it. Anything short of a fully verified, subject-matching JWT is ignored
+     * (roles then come from the ID token alone); it never fails the login.
+     */
+    private JWTClaimsSet accessTokenRoleSource(String accessToken, String expectedSub)
+            throws IOException {
+        if (!OidcTokenVerifier.looksLikeJwt(accessToken)) return null;
+        try {
+            JWTClaimsSet at = verifier().verifyAccessToken(accessToken);
+            if (expectedSub != null && expectedSub.equals(at.getSubject())) return at;
+            log.warn("OIDC access token subject differs from ID token — ignoring its roles");
+        } catch (OidcTokenVerifier.InvalidTokenException e) {
+            log.debug("OIDC access token not usable as role source: {}", e.getMessage());
+        }
+        return null;
     }
 
     private void fail(Context ctx, String code) {

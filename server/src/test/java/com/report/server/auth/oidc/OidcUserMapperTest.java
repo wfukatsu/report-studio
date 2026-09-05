@@ -34,6 +34,17 @@ class OidcUserMapperTest {
     }
 
     @Test
+    void mergesRolesFromTheAccessTokenRoleSource() {
+        OidcUserMapper m = new OidcUserMapper(OidcTestKeys.config(Map.of()));
+        JWTClaimsSet id = base().build();
+        JWTClaimsSet at =
+                base().claim("realm_access", Map.of("roles", List.of("report-studio-admin")))
+                        .build();
+        assertEquals(Set.of("admin", "user"), m.map(id, at).roles());
+        assertEquals(Set.of("user"), m.map(id, null).roles());
+    }
+
+    @Test
     void everyoneIsUserWhenNoUserRoleConfigured() {
         OidcUserMapper m = new OidcUserMapper(OidcTestKeys.config(Map.of()));
         var out = m.map(base().build());

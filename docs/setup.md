@@ -235,7 +235,7 @@ scalar.db.transaction_manager=jdbc
 
 - **ブラウザ**: ログインモーダルの「Keycloak でログイン」→ `GET /api/v1/auth/oidc/login`（Authorization Code + PKCE、state/nonce を検証）→ `GET /api/v1/auth/oidc/callback` で ID トークンを JWKS で検証し、**通常の Cookie セッション**を発行します。SPA はトークンを扱いません。
 - **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。
-- **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。
+- **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。Keycloak 既定の「realm roles」マッパーは `realm_access` を**アクセストークンにしか**入れないため、コールバックでは ID トークンと一緒に返るアクセストークンも検証してロール元にします（Keycloak 側で ID トークンにロールを追加する設定は不要です）。
 - **衝突**: 同じ `userId` のローカルアカウントが既にある場合、既定ではログインを拒否します（`?oidc_error=user_conflict`）。`OIDC_LINK_LOCAL_USERS=true` にするとそのローカルアカウントに紐付け、パスワードログインも引き続き可能です。
 - **ログアウト**: OIDC セッションのログアウトは Keycloak の `end_session_endpoint` へ遷移し、SSO セッションも終了します（RP-Initiated Logout）。
 - **パスワード**: OIDC で作成されたアカウントはアカウント画面・管理画面ともにパスワード変更が拒否されます（`PASSWORD_MANAGED_EXTERNALLY`）。
