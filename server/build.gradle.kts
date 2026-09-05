@@ -45,6 +45,10 @@ dependencies {
     // Password hashing
     implementation("at.favre.lib:bcrypt:0.10.2")
 
+    // OIDC (#499): JWS/JWT verification + cached remote JWKS for Keycloak ID / access tokens.
+    // Discovery and the code exchange use java.net.http + Jackson (no OAuth SDK needed).
+    implementation("com.nimbusds:nimbus-jose-jwt:10.3")
+
     // RE2J — linear-time regex engine (ReDoS-safe pattern validation)
     implementation("com.google.re2j:re2j:1.8")
 

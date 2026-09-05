@@ -52,6 +52,17 @@ public final class UserRepository {
                         });
     }
 
+    /**
+     * Find a user by IdP identity (#499): the {@code externalId} ({@code sub} claim) recorded at
+     * provisioning or linking time. A full scan — the user table is small (admin-managed).
+     */
+    public Optional<UserRecord> findByExternalId(String provider, String externalId) {
+        if (provider == null || externalId == null || externalId.isBlank()) return Optional.empty();
+        return list().stream()
+                .filter(u -> provider.equals(u.provider()) && externalId.equals(u.externalId()))
+                .findFirst();
+    }
+
     /** List all users (passwords excluded by callers — return full record for internal use). */
     public List<UserRecord> list() {
         List<String> blobs = blob.list();

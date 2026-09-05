@@ -7,6 +7,8 @@ import { isApiError } from '@/api/client'
 export function AccountTab() {
   const { t } = useTranslation('modals')
   const currentUser = useReportStore((s) => s.currentUser)
+  // OIDC-provisioned accounts have no local password (#499); older servers omit the flag → assume yes
+  const canChangePassword = currentUser?.hasPassword !== false
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -69,8 +71,9 @@ export function AccountTab() {
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.displayName')}</label>
+        <label htmlFor="account-display-name" className="text-xs text-muted-foreground block mb-1">{t('accountTab.displayName')}</label>
         <input
+          id="account-display-name"
           type="text"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
           value={displayName}
@@ -80,11 +83,13 @@ export function AccountTab() {
 
       <hr className="border-border" />
 
+      {canChangePassword ? (<>
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.changePassword')}</p>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.currentPassword')}</label>
+        <label htmlFor="account-current-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.currentPassword')}</label>
         <input
+          id="account-current-password"
           type="password"
           autoComplete="current-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -94,8 +99,9 @@ export function AccountTab() {
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.newPassword')}</label>
+        <label htmlFor="account-new-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.newPassword')}</label>
         <input
+          id="account-new-password"
           type="password"
           autoComplete="new-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -104,8 +110,9 @@ export function AccountTab() {
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.confirmPassword')}</label>
+        <label htmlFor="account-confirm-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.confirmPassword')}</label>
         <input
+          id="account-confirm-password"
           type="password"
           autoComplete="new-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -113,6 +120,10 @@ export function AccountTab() {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
       </div>
+
+      </>) : (
+        <p className="text-xs text-muted-foreground">{t('accountTab.passwordManagedExternally')}</p>
+      )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
       {success && <p className="text-xs text-green-600">{t('accountTab.saved')}</p>}

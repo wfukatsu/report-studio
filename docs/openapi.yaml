@@ -21,7 +21,8 @@ info:
 
     ## Authentication
     Two mechanisms, resolved by the `/api/*` before-filter:
-    - **cookieAuth** — browser session cookie issued by `POST /api/v1/auth/login`.
+    - **cookieAuth** — browser session cookie issued by `POST /api/v1/auth/login` or by the
+      Keycloak (OIDC) callback `GET /api/v1/auth/oidc/callback` (#499).
     - **bearerAuth** — Personal Access Token (`rpat_…`) in `Authorization: Bearer`
       (#195), the official path for CLI / CI / external programmatic use.
 
@@ -172,6 +173,13 @@ paths:
     get:
       tags: [auth]
       summary: Current principal (anonymous if not logged in)
+      description: |
+        Besides `userId` / `displayName` / `roles` / `anonymous` the body carries (#499)
+        `provider` (`local` | `oidc` | `none`), `hasPassword` (false for OIDC-provisioned
+        accounts — password change is refused) and an `auth` block
+        `{ localLoginEnabled, oidcEnabled, oidcLoginUrl? }` the login modal uses to decide
+        which sign-in methods to offer. The `auth` block is present on the anonymous
+        response too.
       security: []
       responses: { '200': { description: Principal } }
   /api/v1/auth/login:
@@ -182,12 +190,44 @@ paths:
       responses:
         '200': { description: Logged in }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'LOCAL_LOGIN_DISABLED — password login switched off (LOCAL_LOGIN_ENABLED=false)' }
   /api/v1/auth/logout:
     post:
       tags: [auth]
       summary: Invalidate the current session
+      description: |
+        Returns `{ status: logged_out }`. For a session created through Keycloak the body also
+        carries `logoutUrl` — the provider's RP-Initiated Logout URL the browser should be sent
+        to so the SSO session ends as well (#499).
       security: []
       responses: { '200': { description: Logged out } }
+  /api/v1/auth/oidc/login:
+    get:
+      tags: [auth]
+      summary: Start Keycloak (OIDC) login — Authorization Code + PKCE (#499)
+      description: |
+        Registered only when `OIDC_ISSUER` is configured. Generates state / nonce / PKCE
+        verifier, pins the state in a short-lived `oidc_state` cookie and redirects (302) to
+        the provider's authorization endpoint. Navigate the browser here (`window.location`),
+        do not call it with fetch.
+      security: []
+      responses:
+        '302': { description: Redirect to the identity provider }
+        '503': { description: 'OIDC_UNAVAILABLE — provider discovery failed' }
+  /api/v1/auth/oidc/callback:
+    get:
+      tags: [auth]
+      summary: Keycloak (OIDC) redirect URI (#499)
+      description: |
+        Validates `state` against the cookie and the one-time server-side entry, exchanges
+        `code`, verifies the ID token (signature via JWKS, iss, aud, exp, nonce), maps roles,
+        provisions or links the account and issues the regular session cookie, then redirects
+        to `OIDC_POST_LOGIN_REDIRECT` (default `/`). Failures redirect there with
+        `?oidc_error=` one of `provider_error`, `invalid_state`, `invalid_token`,
+        `user_conflict`, `no_role`, `provider_unavailable`.
+      security: []
+      responses:
+        '302': { description: Redirect to the SPA (with `oidc_error` on failure) }
   /api/v1/auth/change-profile:
     post:
       tags: [auth]

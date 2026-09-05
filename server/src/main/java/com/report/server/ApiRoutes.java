@@ -124,6 +124,10 @@ public final class ApiRoutes {
                         // Fall back to Bearer PAT auth for CLI / CI clients (#195)
                         principal = w.apiTokenCtrl.resolveFromBearer(ctx);
                     }
+                    if (principal.isAnonymous() && w.oidcCtrl != null) {
+                        // Then a Keycloak access token (JWT) when OIDC is configured (#499)
+                        principal = w.oidcCtrl.resolveFromBearer(ctx);
+                    }
                     ctx.attribute("principal", principal);
                     if (principal.isAnonymous()) {
                         throw new io.javalin.http.UnauthorizedResponse("Authentication required");
@@ -235,6 +239,11 @@ public final class ApiRoutes {
         config.routes.post("/api/v1/auth/login", w.authCtrl::login);
         config.routes.post("/api/v1/auth/logout", w.authCtrl::logout);
         config.routes.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
+        // Keycloak / OIDC browser flow (#499) — only when OIDC_ISSUER is configured
+        if (w.oidcCtrl != null) {
+            config.routes.get("/api/v1/auth/oidc/login", w.oidcCtrl::login);
+            config.routes.get("/api/v1/auth/oidc/callback", w.oidcCtrl::callback);
+        }
         // Personal Access Tokens (#195) — session-authenticated management
         config.routes.post("/api/v1/auth/tokens", w.apiTokenCtrl::create);
         config.routes.get("/api/v1/auth/tokens", w.apiTokenCtrl::list);

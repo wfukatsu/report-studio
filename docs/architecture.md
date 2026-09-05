@@ -142,6 +142,26 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
 - **ロール**: `Principal`（userId / displayName / roles）。`admin` ロールが管理系エンドポイントを制御。ユーザーは ScalarDB に永続化（`UserRepository`）し、起動時に既定アカウントを seed。
 - **公開フォームセッション**: ログインとは別系統。`FormSessionManager` がパスワード保護フォームのセッションを管理（TTL 1 時間、32 バイトの `SecureRandom` トークン）。
 
+### Keycloak（OIDC）併用（#499）
+
+`OIDC_ISSUER` を設定すると、上記の自前認証に加えて OpenID Connect ログインが有効になる。`Principal` に `provider`（`local` / `oidc`）が加わり、before-filter の解決順は **Cookie セッション → Bearer PAT → Bearer OIDC アクセストークン（JWT）** となる。
+
+```
+ブラウザ ─ GET /api/v1/auth/oidc/login ──▶ Keycloak authorization endpoint（PKCE S256, state, nonce）
+       ◀─ 302 callback?code&state ─────────┘
+       ─ GET /api/v1/auth/oidc/callback ──▶ state 検証（cookie + サーバ側 one-time）
+                                            code 交換（token endpoint）
+                                            ID トークン検証（JWKS / iss / aud / exp / nonce）
+                                            ユーザー解決（externalId=sub → 自動プロビジョニング or リンク）
+                                            通常の Cookie セッション発行 → 302 /
+API   ─ Authorization: Bearer <JWT> ─────▶ PAT 不一致なら JWKS で検証 → Principal(provider=oidc)
+```
+
+- 実装は `server/.../auth/oidc/`（`OidcConfig` 環境変数、`OidcMetadata` discovery、`OidcTokenVerifier` nimbus-jose-jwt、`OidcUserMapper` ロールマッピング、`OidcController` フロー）
+- OIDC 由来のアカウントは `passwordHash=null` で、パスワード変更 API は `PASSWORD_MANAGED_EXTERNALLY` で拒否する
+- ログアウトは `logoutUrl`（end_session_endpoint）を返し、SPA が遷移して SSO セッションも終了する
+- CSRF: コールバックは GET のため対象外。state Cookie（`SameSite=Lax`, path 限定）と nonce でリプレイ／CSRF を防ぐ
+
 ## 7. データベース設計（ScalarDB）
 
 すべてのアプリテーブルは名前空間 **`report_studio`** に作成されます。ほとんどのエンティティは汎用の `JsonBlobRepository`（`id`（パーティションキー）/ `json_data` / `updated_at` / `group_key`（副次索引））に JSON blob として格納されます。

@@ -17,6 +17,7 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colUserId')}</th>
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colDisplayName')}</th>
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colRole')}</th>
+          <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colProvider')}</th>
           <th />
         </tr>
       </thead>
@@ -29,6 +30,15 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
               <div className="flex gap-1 flex-wrap">
                 {u.roles.map((r) => <RoleBadge key={r} role={r} />)}
               </div>
+            </td>
+            <td className="py-1.5 pr-3">
+              <span
+                className={u.provider === 'oidc'
+                  ? 'inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium'
+                  : 'inline-block px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-medium'}
+              >
+                {u.provider === 'oidc' ? t('admin.userTable.providerOidc') : t('admin.userTable.providerLocal')}
+              </span>
             </td>
             <td className="py-1.5 text-right">
               <button
@@ -44,7 +54,7 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
         ))}
         {users.length === 0 && (
           <tr>
-            <td colSpan={4} className="py-4 text-center text-muted-foreground">
+            <td colSpan={5} className="py-4 text-center text-muted-foreground">
               {t('admin.userTable.empty')}
             </td>
           </tr>

@@ -3,6 +3,30 @@ import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { isApiError } from '@/api/client'
 import { useModalA11y } from '@/hooks/useModalA11y'
+import { navigateTo } from '@/lib/browserNavigation'
+
+/** `?oidc_error=` codes the server's OIDC callback can redirect back with (#499). */
+const OIDC_ERROR_CODES = [
+  'provider_error', 'invalid_state', 'invalid_token', 'user_conflict', 'no_role', 'provider_unavailable',
+] as const
+type OidcErrorCode = (typeof OIDC_ERROR_CODES)[number]
+
+/**
+ * Reads and strips `oidc_error` from the current URL so a reload does not
+ * re-show a stale message. Returns null when absent or unknown.
+ */
+function consumeOidcError(): OidcErrorCode | null {
+  try {
+    const url = new URL(window.location.href)
+    const raw = url.searchParams.get('oidc_error')
+    if (raw === null) return null
+    url.searchParams.delete('oidc_error')
+    window.history.replaceState(window.history.state, '', url.toString())
+    return (OIDC_ERROR_CODES as readonly string[]).includes(raw) ? (raw as OidcErrorCode) : 'provider_error'
+  } catch {
+    return null
+  }
+}
 
 /** The login gate cannot be dismissed — Esc is intentionally a no-op (#428). */
 const NOOP_CLOSE = () => {}
@@ -14,10 +38,17 @@ const NOOP_CLOSE = () => {}
 export function LoginModal() {
   const { t } = useTranslation('modals')
   const loginUser = useReportStore((s) => s.loginUser)
+  // null until /me answered — treat as "password only" so the form is never blank (#499)
+  const authOptions = useReportStore((s) => s.authOptions)
+  const oidcEnabled = authOptions?.oidcEnabled === true && !!authOptions.oidcLoginUrl
+  const localEnabled = authOptions?.localLoginEnabled !== false || !oidcEnabled
 
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    const code = consumeOidcError()
+    return code ? t(`loginModal.oidcError.${code}`) : null
+  })
   const [loading, setLoading] = useState(false)
 
   // #428: focus trap only — the login gate must not be dismissible via Esc
@@ -59,6 +90,32 @@ export function LoginModal() {
           {t('loginModal.title')}
         </h2>
 
+        {oidcEnabled && (
+          <button
+            type="button"
+            onClick={() => navigateTo(authOptions!.oidcLoginUrl!)}
+            disabled={loading}
+            className="w-full py-2 text-sm border border-primary text-primary rounded hover:bg-primary/10 disabled:opacity-50 transition-colors"
+          >
+            {t('loginModal.oidcLogin')}
+          </button>
+        )}
+
+        {oidcEnabled && localEnabled && (
+          <div className="flex items-center gap-2 my-3 text-[10px] text-muted-foreground uppercase tracking-wide">
+            <span className="flex-1 border-t border-border" />
+            {t('loginModal.or')}
+            <span className="flex-1 border-t border-border" />
+          </div>
+        )}
+
+        {error && !localEnabled && (
+          <p className="text-xs text-red-500 text-center mt-3" role="alert">
+            {error}
+          </p>
+        )}
+
+        {localEnabled && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
             <label htmlFor="login-userid" className="text-xs text-muted-foreground block mb-1">
@@ -105,6 +162,7 @@ export function LoginModal() {
             {loading ? t('loginModal.loggingIn') : t('loginModal.login')}
           </button>
         </form>
+        )}
       </div>
     </div>
   )

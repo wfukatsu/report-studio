@@ -5,6 +5,8 @@ import com.report.server.auth.AuthController;
 import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRepository;
+import com.report.server.auth.oidc.OidcConfig;
+import com.report.server.auth.oidc.OidcController;
 import com.report.server.job.BatchPdfOrchestrator;
 import com.report.server.job.BatchPdfProcessor;
 import com.report.server.job.JobController;
@@ -99,6 +101,10 @@ public final class AppWiring {
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
+
+    /** Keycloak / OIDC (#499); {@code null} unless {@code OIDC_ISSUER} is configured. */
+    final OidcController oidcCtrl;
+
     final JsonBlobRepository apiTokenRepo;
     final ApiTokenController apiTokenCtrl;
     final GenericJsonController bindingCtrl;
@@ -173,8 +179,22 @@ public final class AppWiring {
         adminUserCtrl = new AdminUserController(userRepo);
         adminServerCtrl = new AdminServerController(Path.of("scalardb.properties"));
 
-        // Controllers
-        authCtrl = new AuthController(userRepo);
+        // Controllers — password login stays on unless LOCAL_LOGIN_ENABLED=false with OIDC (#499)
+        OidcConfig oidcConfig = OidcConfig.fromEnv();
+        boolean localLogin = OidcConfig.localLoginEnabled(System.getenv(), oidcConfig);
+        authCtrl = new AuthController(userRepo, System::currentTimeMillis, localLogin);
+        if (oidcConfig != null) {
+            oidcCtrl = new OidcController(oidcConfig, userRepo, authCtrl);
+            authCtrl.enableOidc(oidcCtrl::logoutUrl);
+            oidcCtrl.warmUp();
+            log.info(
+                    "OIDC login enabled (issuer={}, client={}, localLogin={})",
+                    oidcConfig.issuer(),
+                    oidcConfig.clientId(),
+                    localLogin);
+        } else {
+            oidcCtrl = null;
+        }
         // API token (PAT) authentication (#195)
         apiTokenRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "api_tokens");
         apiTokenRepo.ensureTable();

@@ -22,6 +22,9 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
 
 import { login, getTenantInfo } from '@/api/reportApi'
 
+vi.mock('@/lib/browserNavigation', () => ({ navigateTo: vi.fn() }))
+import { navigateTo } from '@/lib/browserNavigation'
+
 const ADMIN: Me = { userId: 'admin', displayName: '管理者', roles: ['admin'], anonymous: false }
 
 function fillAndSubmit(userId: string, password: string) {
@@ -148,5 +151,59 @@ describe('LoginModal — 認証失敗の表示', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
     expect(useReportStore.getState().currentUser).toEqual(ADMIN)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Keycloak / OIDC (#499)
+// ---------------------------------------------------------------------------
+
+describe('LoginModal — OIDC (#499)', () => {
+  const BOTH = { localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/api/v1/auth/oidc/login' }
+
+  it('shows only the password form when the server offers no OIDC (or has not answered yet)', () => {
+    useReportStore.setState({ authOptions: null })
+    render(<LoginModal />)
+    expect(screen.queryByRole('button', { name: 'Keycloak でログイン' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+  })
+
+  it('offers a Keycloak button next to the password form and navigates to the login URL', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    render(<LoginModal />)
+    fireEvent.click(screen.getByRole('button', { name: 'Keycloak でログイン' }))
+    expect(navigateTo).toHaveBeenCalledWith('/api/v1/auth/oidc/login')
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+    expect(screen.getByText('または')).toBeInTheDocument()
+  })
+
+  it('hides the password form when local login is disabled', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByRole('button', { name: 'Keycloak でログイン' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('ユーザーID')).not.toBeInTheDocument()
+    expect(screen.queryByText('または')).not.toBeInTheDocument()
+  })
+
+  it('keeps the password form when local login is "disabled" but OIDC is unavailable', () => {
+    useReportStore.setState({ authOptions: { localLoginEnabled: false, oidcEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+  })
+
+  it('explains an ?oidc_error= callback failure and strips it from the URL', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    window.history.replaceState(null, '', '/?oidc_error=user_conflict&keep=1')
+    render(<LoginModal />)
+    expect(screen.getByRole('alert')).toHaveTextContent('同じユーザーIDのローカルアカウントが既に存在する')
+    expect(window.location.search).toBe('?keep=1')
+  })
+
+  it('maps unknown oidc_error codes to the generic provider error', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    window.history.replaceState(null, '', '/?oidc_error=something_new')
+    render(<LoginModal />)
+    expect(screen.getByRole('alert')).toHaveTextContent('ID プロバイダでのログインに失敗しました')
+    expect(window.location.search).toBe('')
   })
 })

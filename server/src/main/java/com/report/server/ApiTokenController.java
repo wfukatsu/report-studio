@@ -319,7 +319,7 @@ public final class ApiTokenController {
 
         touchLastUsed(hash, rec);
         UserRecord user = userOpt.get();
-        return new Principal(user.userId(), user.displayName(), user.roles());
+        return new Principal(user.userId(), user.displayName(), user.roles(), user.provider());
     }
 
     private void touchLastUsed(String hash, JsonNode rec) {

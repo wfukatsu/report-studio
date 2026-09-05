@@ -46,6 +46,7 @@
   "adminUsers": {
     "CANNOT_DELETE_SELF": "自分自身のアカウントは削除できません",
     "PASSWORD_LENGTH_INVALID": "パスワードは8〜128文字で入力してください",
+    "PASSWORD_MANAGED_EXTERNALLY": "このユーザーのパスワードは ID プロバイダ（Keycloak）で管理されています",
     "ROLE_INVALID": "無効なロールが含まれています。使用可能: user, admin",
     "USERID_INVALID_CHARS": "ユーザーIDに使用できるのは英数字、ドット、アンダースコア、ハイフン、@のみです",
     "USERID_PASSWORD_REQUIRED": "ユーザーIDとパスワードは必須です",

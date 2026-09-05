@@ -48,7 +48,9 @@ public final class AdminUserController {
                                         Map.<String, Object>of(
                                                 "userId", u.userId(),
                                                 "displayName", u.displayName(),
-                                                "roles", u.roles()))
+                                                "roles", u.roles(),
+                                                "provider", u.provider(),
+                                                "hasPassword", u.hasPassword()))
                         .collect(Collectors.toList());
 
         ctx.json(Map.of("users", users));
@@ -140,7 +142,9 @@ public final class AdminUserController {
                 Map.of(
                         "userId", user.userId(),
                         "displayName", user.displayName(),
-                        "roles", user.roles()));
+                        "roles", user.roles(),
+                        "provider", user.provider(),
+                        "hasPassword", true));
         log.info("Admin created user: {}", userId);
     }
 
@@ -172,6 +176,16 @@ public final class AdminUserController {
 
         String updatedHash = user.passwordHash();
         if (newPassword != null && !newPassword.isBlank()) {
+            if (!user.hasPassword()) {
+                // OIDC-provisioned account (#499): the identity provider owns the credential
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.FORBIDDEN,
+                        "FORBIDDEN",
+                        "このユーザーのパスワードは外部 ID プロバイダで管理されています",
+                        Map.of("detailCode", "PASSWORD_MANAGED_EXTERNALLY"));
+                return;
+            }
             if (newPassword.length() < 8 || newPassword.length() > 128) {
                 ApiError.respond(
                         ctx,
@@ -200,14 +214,22 @@ public final class AdminUserController {
         }
 
         UserRecord updated =
-                new UserRecord(user.userId(), updatedDisplayName, updatedHash, updatedRoles);
+                new UserRecord(
+                        user.userId(),
+                        updatedDisplayName,
+                        updatedHash,
+                        updatedRoles,
+                        user.provider(),
+                        user.externalId());
         userRepo.save(updated);
 
         ctx.json(
                 Map.of(
                         "userId", updated.userId(),
                         "displayName", updated.displayName(),
-                        "roles", updated.roles()));
+                        "roles", updated.roles(),
+                        "provider", updated.provider(),
+                        "hasPassword", updated.hasPassword()));
         log.info("Admin updated user: {}", targetId);
     }
 

@@ -16,6 +16,9 @@ const UserSummarySchema = z.object({
   userId: z.string(),
   displayName: z.string(),
   roles: z.array(UserRoleSchema.catch('user' as UserRole)),
+  /** `local` | `oidc` (#499). Absent on older servers → treated as local. */
+  provider: z.string().optional(),
+  hasPassword: z.boolean().optional(),
 })
 export type UserSummary = z.infer<typeof UserSummarySchema>
 

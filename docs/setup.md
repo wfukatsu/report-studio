@@ -202,6 +202,19 @@ scalar.db.transaction_manager=jdbc
 |--------|-------|------|
 | `PORT` | `8080` | バックエンドの待受ポート |
 | `ADMIN_PASSWORD` | `changeme` | 初期管理者パスワード（初回起動前に設定） |
+| `OIDC_ISSUER` | （未設定） | Keycloak（OIDC）ログインを有効化する Issuer URL。未設定なら自前認証のみ（[併用手順](#keycloakoidc-ログインの併用)） |
+| `OIDC_INTERNAL_ISSUER` | `OIDC_ISSUER` と同じ | サーバから Keycloak に到達する URL（Docker 内部ホスト名など）。discovery / token / JWKS のみこの URL を使う |
+| `OIDC_CLIENT_ID` | （未設定） | OIDC クライアント ID（必須） |
+| `OIDC_CLIENT_SECRET` | （未設定） | クライアントシークレット（confidential client の場合のみ） |
+| `OIDC_REDIRECT_URI` | `<ALLOWED_ORIGIN or http://localhost:8080>/api/v1/auth/oidc/callback` | Keycloak 側に登録するリダイレクト URI |
+| `OIDC_POST_LOGIN_REDIRECT` | `/` | ログイン成功後にブラウザを戻す先 |
+| `OIDC_POST_LOGOUT_REDIRECT` | リダイレクト URI のオリジン + `/` | RP-Initiated Logout 後の戻り先（Keycloak 側の許可リストに登録が必要） |
+| `OIDC_ADMIN_ROLE` | `report-studio-admin` | `admin` にマッピングする IdP ロール |
+| `OIDC_USER_ROLE` | （未設定） | 設定するとこのロールを持つユーザーだけがログインできる（未設定なら認証済み全員が `user`） |
+| `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
+| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で同じユーザー ID のローカルアカウントに OIDC ID を紐付ける（既定は衝突として拒否） |
+| `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
+| `LOCAL_LOGIN_ENABLED` | `true` | `false` で ID/パスワードログインを無効化（OIDC 未設定時は無視） |
 | `ALLOWED_ORIGIN` | （未設定） | CORS / CSRF Origin チェックで許可する追加オリジン。ブラウザの URL と一致させる |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限（IP / 窓あたり） |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓（ミリ秒、既定 5 分） |
@@ -213,6 +226,50 @@ scalar.db.transaction_manager=jdbc
 | `CORS_DEV_PORT_RANGE` | `5173-5200` | CORS で許可するローカル開発サーバのポート範囲（`lo-hi` 形式） |
 
 ---
+
+## Keycloak（OIDC）ログインの併用
+
+自前認証（ScalarDB 上のユーザー + bcrypt + Cookie セッション + PAT）はそのままに、Keycloak による OpenID Connect ログインを**併用**できます。`OIDC_ISSUER` が未設定の環境は従来どおり動作します。
+
+### 仕組み
+
+- **ブラウザ**: ログインモーダルの「Keycloak でログイン」→ `GET /api/v1/auth/oidc/login`（Authorization Code + PKCE、state/nonce を検証）→ `GET /api/v1/auth/oidc/callback` で ID トークンを JWKS で検証し、**通常の Cookie セッション**を発行します。SPA はトークンを扱いません。
+- **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。
+- **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。
+- **衝突**: 同じ `userId` のローカルアカウントが既にある場合、既定ではログインを拒否します（`?oidc_error=user_conflict`）。`OIDC_LINK_LOCAL_USERS=true` にするとそのローカルアカウントに紐付け、パスワードログインも引き続き可能です。
+- **ログアウト**: OIDC セッションのログアウトは Keycloak の `end_session_endpoint` へ遷移し、SSO セッションも終了します（RP-Initiated Logout）。
+- **パスワード**: OIDC で作成されたアカウントはアカウント画面・管理画面ともにパスワード変更が拒否されます（`PASSWORD_MANAGED_EXTERNALLY`）。
+
+### Docker でローカル再現
+
+```bash
+OIDC_ISSUER=http://localhost:8180/realms/report-studio \
+OIDC_INTERNAL_ISSUER=http://keycloak:8080/realms/report-studio \
+OIDC_CLIENT_ID=report-studio \
+docker compose --profile keycloak up --build
+```
+
+`keycloak` プロファイルは開発モードの Keycloak（http://localhost:8180、管理コンソール admin / admin）を起動し、`docker/keycloak/report-studio-realm.json` を取り込みます（public client `report-studio`、ユーザー `kc-admin` / `kc-user`、パスワード `changeme`）。http://localhost:8080 を開くとログインモーダルに「Keycloak でログイン」が表示され、`kc-admin` でログインすると管理タブが使えます。
+
+### ローカル開発（Vite + gradle）で使う場合
+
+Vite が `/api` を 8080 へプロキシするため、コールバックは Vite のオリジンで受けます:
+
+```bash
+OIDC_ISSUER=http://localhost:8180/realms/report-studio \
+OIDC_CLIENT_ID=report-studio \
+OIDC_REDIRECT_URI=http://localhost:5173/api/v1/auth/oidc/callback \
+npm run dev:backend
+```
+
+（Keycloak だけを `docker compose --profile keycloak up keycloak` で起動しておきます。realm にはこの URI も登録済みです。）
+
+### 本番 Keycloak に接続する場合
+
+1. Keycloak の realm にクライアントを作成（Standard flow、PKCE S256、Valid redirect URIs に `OIDC_REDIRECT_URI`、Valid post logout redirect URIs に `OIDC_POST_LOGOUT_REDIRECT`）
+2. realm ロール（既定 `report-studio-admin`）を作り、管理者に付与
+3. サーバに `OIDC_ISSUER` / `OIDC_CLIENT_ID`（confidential なら `OIDC_CLIENT_SECRET` も）と `ALLOWED_ORIGIN` を設定
+4. Keycloak 専用運用にする場合は `LOCAL_LOGIN_ENABLED=false`（`admin` のローカルアカウントは残るので、緊急時は環境変数を戻せば復旧できます）
 
 ## サンプルデータの投入
 
