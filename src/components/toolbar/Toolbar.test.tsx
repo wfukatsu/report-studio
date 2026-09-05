@@ -541,3 +541,53 @@ describe('Toolbar — スタイルのコピー/貼り付け', () => {
     expect(updated.style.color).toBe('#ff0000')
   })
 })
+
+describe('Toolbar — 押下表示と状態表示の分離 (#498)', () => {
+  it('save button is never filled / aria-pressed, even with unsaved changes', () => {
+    const store = useReportStore.getState()
+    store.addElement(store.definition.pages[0].id, createTextElement())
+    renderToolbar()
+    expect(screen.getByLabelText('未保存の変更があります')).toBeInTheDocument()
+    const save = screen.getByRole('button', { name: '保存' })
+    expect(save).not.toHaveClass('bg-primary')
+    expect(save).not.toHaveAttribute('aria-pressed')
+  })
+
+  it('style-copy button shows a dot (not a fill) once a style is in the clipboard', () => {
+    useReportStore.setState({ styleClipboard: null }) // not reset by newReport()
+    const store = useReportStore.getState()
+    const page = store.definition.pages[0]
+    const el = createTextElement({ style: { fontSize: 20 } })
+    store.addElement(page.id, el)
+    store.selectElement(el.id, false)
+    renderToolbar()
+    const copy = screen.getByRole('button', { name: 'スタイルをコピー' })
+    expect(copy.querySelector('[data-testid="toolbar-indicator-dot"]')).toBeNull()
+    fireEvent.click(copy)
+    expect(copy).not.toHaveClass('bg-primary')
+    expect(copy).not.toHaveAttribute('aria-pressed')
+    expect(copy.querySelector('[data-testid="toolbar-indicator-dot"]')).not.toBeNull()
+  })
+
+  it('validate button keeps the count badge but is not filled when violations exist', async () => {
+    useReportStore.getState().setCurrentTemplateId('tpl-1')
+    mockEvaluateValidate.mockResolvedValue({
+      violations: [{ ruleKey: 'r1', message: 'e1', elementId: 'el-1' }],
+    })
+    renderToolbar()
+    const btn = screen.getByRole('button', { name: 'バリデーション実行' })
+    await userEvent.click(btn)
+    await waitFor(() => expect(btn.textContent).toContain('1'))
+    expect(btn).not.toHaveClass('bg-primary')
+    expect(btn).not.toHaveAttribute('aria-pressed')
+  })
+
+  it('live preview toggle still uses the pressed look with aria-pressed', () => {
+    renderToolbar()
+    const btn = screen.getByRole('button', { name: 'プレビューを表示' })
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(btn)
+    expect(btn).toHaveAttribute('aria-pressed', 'true')
+    expect(btn).toHaveClass('bg-primary')
+  })
+})

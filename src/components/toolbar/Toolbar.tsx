@@ -22,6 +22,7 @@ import { clampZoom, computeFitZoom } from '@/lib/zoomMath'
 import { FitWidthIcon, FitPageIcon } from '@/components/common/zoomUtils'
 import { Tooltip } from '@/components/common/Tooltip'
 import { ToolbarViewMenu } from './ToolbarViewMenu'
+import { ToolbarIndicatorDot } from './ToolbarIndicatorDot'
 
 interface Props {
   canvasRefs: React.RefObject<HTMLDivElement | null>[]
@@ -275,7 +276,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           )}
         </div>
         <div className="relative flex items-center" ref={saveMenuRef}>
-          <ToolbarButton onClick={handleSave} title={t('file.save')} active={hasUnsavedChanges}>
+          <ToolbarButton onClick={handleSave} title={t('file.save')}>
             <Save className="w-4 h-4" />
           </ToolbarButton>
           <button
@@ -351,7 +352,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           onClick={() => activePageId && singleId && copyStyle(activePageId, singleId)}
           disabled={!hasSingleSelection}
           title={t('edit.copyStyle')}
-          active={!!styleClipboard}
+          indicator={!!styleClipboard}
         >
           <Paintbrush className="w-4 h-4" />
         </ToolbarButton>
@@ -586,7 +587,6 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
           onClick={handleValidate}
           disabled={!hasTemplateId || isValidating}
           title={t('validate.run')}
-          active={violationCount > 0}
         >
           {violationCount > 0
             ? <ShieldAlert className="w-4 h-4" />
@@ -756,6 +756,7 @@ function ToolbarButton({
   disabled,
   title,
   active,
+  indicator,
   ariaExpanded,
   ariaHasPopup,
 }: {
@@ -763,7 +764,16 @@ function ToolbarButton({
   onClick?: () => void
   disabled?: boolean
   title?: string
+  /**
+   * Pressed / expanded look (solid primary fill). Use ONLY for "this button is
+   * currently held down": an ON/OFF toggle that is ON, or a dropdown whose
+   * menu is open. Do NOT pass derived state such as "has unsaved changes" or
+   * "clipboard is non-empty" here — that reads as a stuck button (#498); use
+   * `indicator` (or a badge inside `children`) for that instead.
+   */
   active?: boolean
+  /** Show a small corner dot: "state present" notification, not a pressed look. */
+  indicator?: boolean
   ariaExpanded?: boolean
   ariaHasPopup?: 'menu' | 'listbox' | 'dialog' | 'true'
 }) {
@@ -777,12 +787,13 @@ function ToolbarButton({
         aria-expanded={ariaExpanded}
         aria-haspopup={ariaHasPopup}
         className={cn(
-          'flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
+          'relative flex items-center px-1.5 py-1 rounded text-sm transition-colors shrink-0',
           active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
           'disabled:opacity-30 disabled:cursor-not-allowed',
         )}
       >
         {children}
+        {indicator && !active && <ToolbarIndicatorDot />}
       </button>
     </Tooltip>
   )
