@@ -14,8 +14,11 @@ import { jsonBody } from './apiHelpers'
  * including the anonymous one, so the login modal can render before login.
  */
 const AuthOptionsSchema = z.object({
-  /** Server `AUTH_MODE`: `local` | `oidc` | `both` (informational; the flags below drive the UI). */
-  mode: z.enum(['local', 'oidc', 'both']).optional(),
+  /**
+   * Server `AUTH_MODE` (`local` | `oidc` | `both`), informational only — the flags below drive the
+   * UI. Kept a free string so a future mode never makes `/me` unparseable (review finding).
+   */
+  mode: z.string().optional(),
   localLoginEnabled: z.boolean(),
   oidcEnabled: z.boolean(),
   /** Path to navigate the browser to (not fetch) to start a Keycloak login. */
@@ -25,7 +28,7 @@ const AuthOptionsSchema = z.object({
 })
 export type AuthOptions = z.infer<typeof AuthOptionsSchema>
 
-const MeSchema = z.object({
+export const MeSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
   roles: z.array(z.string()),

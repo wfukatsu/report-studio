@@ -6,6 +6,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.report.server.AppConfig;
 import com.report.server.auth.AuthController;
 import com.report.server.auth.Principal;
+import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRecord;
 import com.report.server.auth.UserRepository;
 import io.javalin.http.Context;
@@ -79,18 +80,50 @@ public final class OidcController {
     public static final String ERR_UNAVAILABLE = "provider_unavailable";
     public static final String ERR_LINK_UNAUTHORIZED = "link_unauthorized";
     public static final String ERR_LINK_DISABLED = "link_disabled";
+    public static final String ERR_RATE_LIMITED = "rate_limited";
 
     /** After a failed discovery, callers fail fast for this long instead of retrying (H3). */
     static final long DISCOVERY_BACKOFF_MS = 30_000L;
 
+    /** Upper bound on unfinished login flows kept in memory; the oldest is evicted beyond it. */
+    static final int MAX_PENDING_FLOWS = 10_000;
+
+    /** Verified Bearer tokens are remembered (by hash) until they expire, at most this many. */
+    static final int MAX_BEARER_CACHE = 1_000;
+
     /** Result of the authorization-code exchange. */
     public record TokenResponse(String idToken, String accessToken) {}
+
+    /**
+     * The token endpoint answered but refused the exchange (HTTP 4xx, or a 200 carrying an {@code
+     * error} member) — a flow / configuration problem such as {@code invalid_grant}, distinct from
+     * the provider being unreachable ({@link IOException}).
+     */
+    public static final class TokenExchangeException extends Exception {
+        private static final long serialVersionUID = 1L;
+        private final int status;
+        private final String error;
+
+        public TokenExchangeException(int status, String error) {
+            super("token endpoint rejected the exchange: HTTP " + status + " " + error);
+            this.status = status;
+            this.error = error;
+        }
+
+        public int status() {
+            return status;
+        }
+
+        public String error() {
+            return error;
+        }
+    }
 
     /** Seam for the token-endpoint call (tests inject a fake). */
     @FunctionalInterface
     public interface TokenExchanger {
         TokenResponse exchange(OidcMetadata md, String code, String codeVerifier)
-                throws IOException;
+                throws IOException, TokenExchangeException;
     }
 
     /** Seam for discovery (tests inject a fixed document). */
@@ -110,7 +143,11 @@ public final class OidcController {
      *     local account instead of logging in (see class doc)
      */
     private record PendingFlow(
-            String nonce, String codeVerifier, long expiresAt, String linkUserId) {}
+            String nonce, String codeVerifier, long expiresAt, String linkUserId, long seq) {}
+
+    /** Monotonic insertion order for {@link PendingFlow} eviction (clock ties are common). */
+    private final java.util.concurrent.atomic.AtomicLong flowSeq =
+            new java.util.concurrent.atomic.AtomicLong();
 
     private final OidcConfig cfg;
     private final UserRepository userRepo;
@@ -121,6 +158,14 @@ public final class OidcController {
     private final VerifierFactory verifierFactory;
     private final LongSupplier clock;
     private final ConcurrentHashMap<String, PendingFlow> pending = new ConcurrentHashMap<>();
+
+    /** Per-IP throttle on starting login flows (unauthenticated endpoint, M7). */
+    private volatile RateLimiter loginLimiter = new RateLimiter(30, 60_000L);
+
+    private record CachedBearer(Principal principal, long expiresAt) {}
+
+    /** sha256(token) → principal, valid until the token's {@code exp} (M2). */
+    private final ConcurrentHashMap<String, CachedBearer> bearerCache = new ConcurrentHashMap<>();
 
     private volatile OidcMetadata metadata;
     private volatile OidcTokenVerifier verifier;
@@ -168,6 +213,11 @@ public final class OidcController {
 
     public OidcConfig config() {
         return cfg;
+    }
+
+    /** Package-private for tests. */
+    void setLoginLimiter(RateLimiter limiter) {
+        this.loginLimiter = limiter;
     }
 
     /** Public path the SPA navigates to in order to start a login. */
@@ -256,6 +306,11 @@ public final class OidcController {
      * callback does — this endpoint is a browser navigation target, never a fetch.
      */
     public void login(Context ctx) {
+        String ip = ctx.ip();
+        if (!loginLimiter.isAllowed(ip == null ? "unknown" : ip)) {
+            fail(ctx, ERR_RATE_LIMITED);
+            return;
+        }
         String linkUserId = null;
         if ("1".equals(ctx.queryParam("link")) || "true".equals(ctx.queryParam("link"))) {
             if (!cfg.linkLocalUsers()) {
@@ -283,7 +338,12 @@ public final class OidcController {
         String verifierStr = randomToken(48); // 64 base64url chars — within RFC 7636's 43..128
         pending.put(
                 state,
-                new PendingFlow(nonce, verifierStr, clock.getAsLong() + FLOW_TTL_MS, linkUserId));
+                new PendingFlow(
+                        nonce,
+                        verifierStr,
+                        clock.getAsLong() + FLOW_TTL_MS,
+                        linkUserId,
+                        flowSeq.incrementAndGet()));
 
         Cookie cookie = new Cookie(STATE_COOKIE, state);
         cookie.setMaxAge((int) (FLOW_TTL_MS / 1000));
@@ -335,9 +395,18 @@ public final class OidcController {
         JWTClaimsSet roleClaims = null;
         try {
             tokens = exchanger.exchange(metadata(), code, flow.codeVerifier());
-            if (tokens.idToken() == null) throw new IOException("token response lacks id_token");
+            if (tokens.idToken() == null) {
+                log.warn("OIDC token response lacks id_token (scope 'openid' missing?)");
+                fail(ctx, ERR_PROVIDER);
+                return;
+            }
             claims = verifier().verifyIdToken(tokens.idToken(), flow.nonce());
             roleClaims = accessTokenRoleSource(tokens.accessToken(), claims.getSubject());
+        } catch (TokenExchangeException e) {
+            // 4xx from the token endpoint: code reuse, PKCE / redirect_uri mismatch, bad client
+            log.warn("OIDC code exchange rejected: {}", e.getMessage());
+            fail(ctx, ERR_TOKEN);
+            return;
         } catch (IOException e) {
             log.warn("OIDC code exchange failed: {}", e.getMessage());
             fail(ctx, ERR_UNAVAILABLE);
@@ -346,8 +415,31 @@ public final class OidcController {
             log.warn("OIDC ID token rejected: {}", e.getMessage());
             fail(ctx, ERR_TOKEN);
             return;
+        } catch (RuntimeException e) {
+            // Never surface a JSON 500 to a navigating browser (M4)
+            log.error("OIDC callback failed unexpectedly", e);
+            fail(ctx, ERR_PROVIDER);
+            return;
         }
 
+        try {
+            finishCallback(ctx, flow, tokens, claims, roleClaims);
+        } catch (com.report.server.JsonBlobRepository.RepositoryException e) {
+            log.error("OIDC login could not persist the account: {}", e.getMessage());
+            fail(ctx, ERR_UNAVAILABLE);
+        } catch (RuntimeException e) {
+            log.error("OIDC callback failed unexpectedly", e);
+            fail(ctx, ERR_PROVIDER);
+        }
+    }
+
+    /** Link or sign-in + redirect; store failures propagate to {@link #callback}. */
+    private void finishCallback(
+            Context ctx,
+            PendingFlow flow,
+            TokenResponse tokens,
+            JWTClaimsSet claims,
+            JWTClaimsSet roleClaims) {
         OidcUserMapper.MappedUser mapped = mapper.map(claims, roleClaims);
         if (flow.linkUserId() != null) {
             String error = link(ctx, flow.linkUserId(), mapped);
@@ -394,7 +486,7 @@ public final class OidcController {
         }
         UserRecord local = localOpt.get();
         boolean subTaken =
-                findByExternalId(mapped.externalId())
+                userRepo.findByExternalId(mapped.externalId())
                         .map(u -> !u.userId().equals(userId))
                         .orElse(false);
         boolean alreadyLinkedElsewhere =
@@ -406,7 +498,7 @@ public final class OidcController {
                     mapped.externalId());
             return ERR_USER_CONFLICT;
         }
-        userRepo.save(
+        userRepo.saveOrThrow(
                 new UserRecord(
                         local.userId(),
                         local.displayName(),
@@ -456,6 +548,12 @@ public final class OidcController {
         if (header == null || !header.startsWith("Bearer ")) return Principal.ANONYMOUS;
         String token = header.substring("Bearer ".length()).trim();
         if (!OidcTokenVerifier.looksLikeJwt(token)) return Principal.ANONYMOUS;
+        String cacheKey = sha256(token);
+        CachedBearer cached = bearerCache.get(cacheKey);
+        if (cached != null) {
+            if (clock.getAsLong() < cached.expiresAt()) return cached.principal();
+            bearerCache.remove(cacheKey);
+        }
         JWTClaimsSet claims;
         try {
             claims = verifier().verifyAccessToken(token);
@@ -471,36 +569,29 @@ public final class OidcController {
         try {
             // Existing accounts only (H1): an API token never provisions or links — the user
             // must have signed in through the browser once (or been linked explicitly).
-            return findByExternalId(m.externalId())
-                    .map(
-                            rec ->
-                                    new Principal(
-                                            rec.userId(),
-                                            rec.displayName(),
-                                            m.roles(),
-                                            Principal.PROVIDER_OIDC))
-                    .orElseGet(
-                            () -> {
-                                log.debug(
-                                        "OIDC Bearer token for unknown sub={} (no account yet)",
-                                        m.externalId());
-                                return Principal.ANONYMOUS;
-                            });
+            Principal resolved =
+                    userRepo.findByExternalId(m.externalId())
+                            .map(
+                                    rec ->
+                                            new Principal(
+                                                    rec.userId(),
+                                                    rec.displayName(),
+                                                    m.roles(),
+                                                    Principal.PROVIDER_OIDC))
+                            .orElse(Principal.ANONYMOUS);
+            if (resolved.isAnonymous()) {
+                log.debug("OIDC Bearer token for unknown sub={} (no account yet)", m.externalId());
+            } else if (claims.getExpirationTime() != null) {
+                if (bearerCache.size() >= MAX_BEARER_CACHE) bearerCache.clear();
+                bearerCache.put(
+                        cacheKey, new CachedBearer(resolved, claims.getExpirationTime().getTime()));
+            }
+            return resolved;
         } catch (RuntimeException e) {
             // Never propagate (the before-filter maps ANONYMOUS to 401); DB trouble = 401, not 500
             log.warn("OIDC Bearer resolution failed: {}", e.getMessage());
             return Principal.ANONYMOUS;
         }
-    }
-
-    /**
-     * Account bound to an IdP subject — provisioned ({@code oidc}) or explicitly linked ({@code
-     * local}).
-     */
-    private Optional<UserRecord> findByExternalId(String sub) {
-        Optional<UserRecord> byExt = userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, sub);
-        if (byExt.isEmpty()) byExt = userRepo.findByExternalId(UserRecord.PROVIDER_LOCAL, sub);
-        return byExt;
     }
 
     // ── Provisioning ─────────────────────────────────────────────────────────
@@ -522,22 +613,22 @@ public final class OidcController {
     private Provisioned provision(OidcUserMapper.MappedUser m) {
         if (!m.allowed()) return new Provisioned(null, ERR_NO_ROLE);
 
-        Optional<UserRecord> byExt = findByExternalId(m.externalId());
+        Optional<UserRecord> byExt = userRepo.findByExternalId(m.externalId());
         UserRecord rec;
         if (byExt.isPresent()) {
             rec = byExt.get();
-            if (rec.isOidc()
-                    && (!java.util.Objects.equals(rec.displayName(), m.displayName())
-                            || !rec.roles().equals(m.roles()))) {
+            // The IdP owns the roles of provisioned accounts; the display name stays local so an
+            // edit in the account settings is not silently rolled back at the next login (M6).
+            if (rec.isOidc() && !rec.roles().equals(m.roles())) {
                 rec =
                         new UserRecord(
                                 rec.userId(),
-                                m.displayName(),
+                                rec.displayName(),
                                 null,
                                 m.roles(),
                                 UserRecord.PROVIDER_OIDC,
                                 m.externalId());
-                userRepo.save(rec);
+                userRepo.saveOrThrow(rec);
             }
         } else if (userRepo.findById(m.userId()).isPresent()) {
             log.warn(
@@ -555,7 +646,7 @@ public final class OidcController {
                             m.roles(),
                             UserRecord.PROVIDER_OIDC,
                             m.externalId());
-            userRepo.save(rec);
+            userRepo.saveOrThrow(rec);
             log.info("Provisioned OIDC user '{}' (sub={})", rec.userId(), m.externalId());
         }
         return new Provisioned(
@@ -581,9 +672,32 @@ public final class OidcController {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /** Drops expired flows and, past {@link #MAX_PENDING_FLOWS}, the oldest ones (M7). */
     private void evictExpiredFlows() {
         long now = clock.getAsLong();
         pending.entrySet().removeIf(e -> now > e.getValue().expiresAt());
+        while (pending.size() >= MAX_PENDING_FLOWS) {
+            String oldest = null;
+            long oldestSeq = Long.MAX_VALUE;
+            for (var e : pending.entrySet()) {
+                if (e.getValue().seq() < oldestSeq) {
+                    oldestSeq = e.getValue().seq();
+                    oldest = e.getKey();
+                }
+            }
+            if (oldest == null || pending.remove(oldest) == null) break;
+        }
+    }
+
+    static String sha256(String input) {
+        try {
+            byte[] digest =
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(input.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     static String randomToken(int bytes) {
@@ -655,11 +769,22 @@ public final class OidcController {
                 Thread.currentThread().interrupt();
                 throw new IOException("interrupted during token exchange", e);
             }
-            if (res.statusCode() != 200) {
-                throw new IOException(
-                        "token endpoint returned HTTP " + res.statusCode() + ": " + res.body());
+            int status = res.statusCode();
+            JsonNode body;
+            try {
+                body = MAPPER.readTree(res.body() == null ? "" : res.body());
+            } catch (IOException e) {
+                body = MAPPER.createObjectNode();
             }
-            JsonNode body = MAPPER.readTree(res.body());
+            String error = body.path("error").asText(null);
+            if (status >= 400 && status < 500) {
+                // The provider answered and refused: not an outage (M3)
+                throw new TokenExchangeException(status, error == null ? "http_" + status : error);
+            }
+            if (status != 200) {
+                throw new IOException("token endpoint returned HTTP " + status);
+            }
+            if (error != null) throw new TokenExchangeException(status, error);
             return new TokenResponse(
                     body.path("id_token").asText(null), body.path("access_token").asText(null));
         };

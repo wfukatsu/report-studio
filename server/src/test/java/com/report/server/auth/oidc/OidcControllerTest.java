@@ -67,7 +67,7 @@ class OidcControllerTest {
         keys = new OidcTestKeys();
         userRepo = mock(UserRepository.class);
         when(userRepo.findById(anyString())).thenReturn(Optional.empty());
-        when(userRepo.findByExternalId(anyString(), anyString())).thenReturn(Optional.empty());
+        when(userRepo.findByExternalId(anyString())).thenReturn(Optional.empty());
         authCtrl = new AuthController(userRepo, now::get, AuthMode.BOTH);
     }
 
@@ -167,7 +167,7 @@ class OidcControllerTest {
         assertEquals(OidcController.s256(lastCodeVerifier.get()), q.get("code_challenge"));
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
-        verify(userRepo).save(saved.capture());
+        verify(userRepo).saveOrThrow(saved.capture());
         UserRecord u = saved.getValue();
         assertEquals("alice", u.userId());
         assertEquals("Test alice", u.displayName());
@@ -214,7 +214,7 @@ class OidcControllerTest {
         c.callback(ctx);
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
-        verify(userRepo).save(saved.capture());
+        verify(userRepo).saveOrThrow(saved.capture());
         assertEquals(Set.of("admin", "user"), saved.getValue().roles());
         assertEquals("/", redirectTarget(ctx));
     }
@@ -241,37 +241,51 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
-        verify(userRepo).save(saved.capture());
+        verify(userRepo).saveOrThrow(saved.capture());
         assertEquals(Set.of("user"), saved.getValue().roles());
         assertEquals("/", redirectTarget(ctx));
     }
 
     @Test
-    void callbackRefreshesExistingOidcUserFromIdp() throws Exception {
+    void callbackRefreshesRolesFromIdpButKeepsLocallyEditedDisplayName() throws Exception {
+        // M6: the IdP owns roles; the display name is editable in the account settings
         UserRecord existing =
                 new UserRecord(
                         "alice",
-                        "Old Name",
+                        "Edited Name",
                         null,
                         Set.of("user"),
                         UserRecord.PROVIDER_OIDC,
                         "alice");
-        when(userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, "alice"))
-                .thenReturn(Optional.of(existing));
+        when(userRepo.findByExternalId("alice")).thenReturn(Optional.of(existing));
         OidcController c = controller(Map.of());
         Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
         nextIdToken.set(
                 keys.sign(
                         OidcTestKeys.claims("alice", now.get())
                                 .claim("nonce", q.get("nonce"))
+                                .claim(
+                                        "realm_access",
+                                        Map.of("roles", List.of("report-studio-admin")))
                                 .build()));
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
-        verify(userRepo).save(saved.capture());
-        assertEquals("Test alice", saved.getValue().displayName());
+        verify(userRepo).saveOrThrow(saved.capture());
+        assertEquals("Edited Name", saved.getValue().displayName());
+        assertEquals(Set.of("admin", "user"), saved.getValue().roles());
         assertEquals("/", redirectTarget(ctx));
+
+        // unchanged roles → no write at all
+        Map<String, String> q2 = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .claim("nonce", q2.get("nonce"))
+                                .build()));
+        c.callback(callbackCtx(q2.get("state"), q2.get("state"), "code"));
+        verify(userRepo, org.mockito.Mockito.times(1)).saveOrThrow(any());
     }
 
     @Test
@@ -288,7 +302,7 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
 
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
         assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
         verify(ctx, never()).cookie(any(Cookie.class));
     }
@@ -309,7 +323,7 @@ class OidcControllerTest {
                                 .build()));
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
         assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
         verify(ctx, never()).cookie(any(Cookie.class));
     }
@@ -367,7 +381,7 @@ class OidcControllerTest {
         c.callback(ctx);
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
-        verify(userRepo).save(saved.capture());
+        verify(userRepo).saveOrThrow(saved.capture());
         UserRecord u = saved.getValue();
         assertEquals("hash", u.passwordHash());
         assertEquals(UserRecord.PROVIDER_LOCAL, u.provider());
@@ -378,8 +392,7 @@ class OidcControllerTest {
         verify(ctx, never()).cookie(any(Cookie.class));
 
         // a later plain OIDC login resolves the linked account by sub, keeps the password
-        when(userRepo.findByExternalId(UserRecord.PROVIDER_LOCAL, "sub-alice"))
-                .thenReturn(Optional.of(u));
+        when(userRepo.findByExternalId("sub-alice")).thenReturn(Optional.of(u));
         Map<String, String> q2 = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
         nextIdToken.set(
                 keys.sign(
@@ -418,7 +431,7 @@ class OidcControllerTest {
             throws Exception {
         UserRecord local = new UserRecord("alice", "Local alice", "hash", Set.of("user"));
         when(userRepo.findById("alice")).thenReturn(Optional.of(local));
-        when(userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, "sub-x"))
+        when(userRepo.findByExternalId("sub-x"))
                 .thenReturn(
                         Optional.of(
                                 new UserRecord(
@@ -454,7 +467,7 @@ class OidcControllerTest {
         when(ctx2.cookie("session_id")).thenReturn("stale-session");
         c.callback(ctx2);
         assertEquals("/?oidc_error=" + OidcController.ERR_LINK_UNAUTHORIZED, redirectTarget(ctx2));
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
     }
 
     @Test
@@ -469,7 +482,7 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
         assertEquals("/?oidc_error=" + OidcController.ERR_NO_ROLE, redirectTarget(ctx));
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
     }
 
     // ── callback: state / token failures ─────────────────────────────────────
@@ -515,7 +528,7 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
         assertEquals("/?oidc_error=" + OidcController.ERR_TOKEN, redirectTarget(ctx));
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
     }
 
     @Test
@@ -531,7 +544,7 @@ class OidcControllerTest {
 
     @Test
     void bearerAccessTokenResolvesExistingAccountWithoutTouchingTheStore() throws Exception {
-        when(userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, "carol"))
+        when(userRepo.findByExternalId("carol"))
                 .thenReturn(
                         Optional.of(
                                 new UserRecord(
@@ -557,7 +570,7 @@ class OidcControllerTest {
         assertEquals("carol", p.userId());
         assertEquals(Principal.PROVIDER_OIDC, p.provider());
         assertEquals(Set.of("admin", "user"), p.roles()); // roles follow the current token
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
     }
 
     @Test
@@ -579,13 +592,13 @@ class OidcControllerTest {
             when(ctx.header("Authorization")).thenReturn("Bearer " + at);
             assertTrue(c.resolveFromBearer(ctx).isAnonymous(), sub);
         }
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
     }
 
     @Test
     void bearerSwallowsRepositoryFailures() throws Exception {
         // resolveFromBearer must never throw (the before-filter turns ANONYMOUS into 401)
-        when(userRepo.findByExternalId(anyString(), anyString()))
+        when(userRepo.findByExternalId(anyString()))
                 .thenThrow(
                         new com.report.server.JsonBlobRepository.RepositoryException(
                                 "db down", null));
@@ -619,7 +632,210 @@ class OidcControllerTest {
         Context bad = mock(Context.class);
         when(bad.header("Authorization")).thenReturn("Bearer " + forged);
         assertTrue(c.resolveFromBearer(bad).isAnonymous());
-        verify(userRepo, never()).save(any());
+        verify(userRepo, never()).saveOrThrow(any());
+    }
+
+    // ── token exchange / persistence failures (M3, M4, M9) ─────────────────
+
+    private OidcController controllerWithExchanger(OidcController.TokenExchanger ex) {
+        return new OidcController(
+                OidcTestKeys.config(Map.of()),
+                userRepo,
+                authCtrl,
+                cfg -> MD,
+                ex,
+                (cfg, md) -> keys.verifier(),
+                now::get);
+    }
+
+    @Test
+    void callbackMapsTokenEndpointRejectionToInvalidToken() {
+        OidcController c =
+                controllerWithExchanger(
+                        (md, code, v) -> {
+                            throw new OidcController.TokenExchangeException(400, "invalid_grant");
+                        });
+        Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        c.callback(ctx);
+        assertEquals("/?oidc_error=" + OidcController.ERR_TOKEN, redirectTarget(ctx));
+    }
+
+    @Test
+    void callbackMapsMissingIdTokenAndUnexpectedFailuresToProviderError() {
+        OidcController noId =
+                controllerWithExchanger(
+                        (md, code, v) -> new OidcController.TokenResponse(null, "at"));
+        Map<String, String> q = startLogin(noId, ArgumentCaptor.forClass(Cookie.class));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        noId.callback(ctx);
+        assertEquals("/?oidc_error=" + OidcController.ERR_PROVIDER, redirectTarget(ctx));
+
+        OidcController boom =
+                controllerWithExchanger(
+                        (md, code, v) -> {
+                            throw new IllegalArgumentException("bad token_endpoint URL");
+                        });
+        Map<String, String> q2 = startLogin(boom, ArgumentCaptor.forClass(Cookie.class));
+        Context ctx2 = callbackCtx(q2.get("state"), q2.get("state"), "code");
+        boom.callback(ctx2); // must redirect, never surface a JSON 500 to a navigating browser
+        assertEquals("/?oidc_error=" + OidcController.ERR_PROVIDER, redirectTarget(ctx2));
+    }
+
+    @Test
+    void callbackReportsUnavailableWhenTheAccountCannotBePersisted() throws Exception {
+        org.mockito.Mockito.doThrow(
+                        new com.report.server.JsonBlobRepository.RepositoryException(
+                                "commit conflict", null))
+                .when(userRepo)
+                .saveOrThrow(any());
+        OidcController c = controller(Map.of());
+        Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("alice", now.get())
+                                .claim("nonce", q.get("nonce"))
+                                .build()));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        c.callback(ctx);
+        assertEquals("/?oidc_error=" + OidcController.ERR_UNAVAILABLE, redirectTarget(ctx));
+        verify(ctx, never()).cookie(any(Cookie.class)); // no session for an unsaved account
+    }
+
+    @Test
+    void defaultExchangerClassifiesTokenEndpointResponses() throws Exception {
+        com.sun.net.httpserver.HttpServer server =
+                com.sun.net.httpserver.HttpServer.create(
+                        new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        java.util.concurrent.atomic.AtomicReference<String> mode =
+                new java.util.concurrent.atomic.AtomicReference<>("ok");
+        server.createContext(
+                "/token",
+                ex -> {
+                    String body;
+                    int status;
+                    switch (mode.get()) {
+                        case "reject" -> {
+                            status = 400;
+                            body =
+                                    "{\"error\":\"invalid_grant\",\"error_description\":\"Code not valid\"}";
+                        }
+                        case "error200" -> {
+                            status = 200;
+                            body = "{\"error\":\"server_error\"}";
+                        }
+                        default -> {
+                            status = 200;
+                            body = "{\"id_token\":\"a.b.c\",\"access_token\":\"x.y.z\"}";
+                        }
+                    }
+                    byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    ex.getResponseHeaders().add("Content-Type", "application/json");
+                    ex.sendResponseHeaders(status, bytes.length);
+                    try (var os = ex.getResponseBody()) {
+                        os.write(bytes);
+                    }
+                });
+        server.start();
+        try {
+            OidcMetadata md =
+                    new OidcMetadata(
+                            OidcTestKeys.ISSUER,
+                            MD.authorizationEndpoint(),
+                            "http://127.0.0.1:" + server.getAddress().getPort() + "/token",
+                            MD.jwksUri(),
+                            null);
+            OidcController.TokenExchanger ex =
+                    OidcController.defaultExchanger(OidcTestKeys.config(Map.of()));
+            OidcController.TokenResponse ok = ex.exchange(md, "code", "verifier");
+            assertEquals("a.b.c", ok.idToken());
+            assertEquals("x.y.z", ok.accessToken());
+
+            mode.set("reject");
+            var rejected =
+                    org.junit.jupiter.api.Assertions.assertThrows(
+                            OidcController.TokenExchangeException.class,
+                            () -> ex.exchange(md, "code", "verifier"));
+            assertEquals(400, rejected.status());
+            assertEquals("invalid_grant", rejected.error());
+
+            mode.set("error200");
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    OidcController.TokenExchangeException.class,
+                    () -> ex.exchange(md, "code", "verifier"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    // ── abuse resistance (M7) ────────────────────────────────────────────────
+
+    @Test
+    void pendingFlowsAreBoundedOldestFirst() {
+        OidcController c = controller(Map.of());
+        c.setLoginLimiter(new com.report.server.auth.RateLimiter(Integer.MAX_VALUE, 60_000L));
+        Map<String, String> first = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        for (int i = 0; i < OidcController.MAX_PENDING_FLOWS; i++) {
+            c.login(mock(Context.class));
+        }
+        // the very first state has been evicted to make room
+        Context ctx = callbackCtx(first.get("state"), first.get("state"), "code");
+        c.callback(ctx);
+        assertEquals("/?oidc_error=" + OidcController.ERR_STATE, redirectTarget(ctx));
+    }
+
+    @Test
+    void loginIsRateLimitedPerClientIp() {
+        OidcController c = controller(Map.of());
+        c.setLoginLimiter(new com.report.server.auth.RateLimiter(2, 60_000L));
+        for (int i = 0; i < 2; i++) {
+            Context ctx = mock(Context.class);
+            when(ctx.ip()).thenReturn("10.0.0.9");
+            c.login(ctx);
+            ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
+            verify(ctx).redirect(url.capture(), eq(HttpStatus.FOUND));
+            assertTrue(url.getValue().startsWith(MD.authorizationEndpoint()));
+        }
+        Context third = mock(Context.class);
+        when(third.ip()).thenReturn("10.0.0.9");
+        c.login(third);
+        assertEquals("/?oidc_error=" + OidcController.ERR_RATE_LIMITED, redirectTarget(third));
+        Context other = mock(Context.class);
+        when(other.ip()).thenReturn("10.0.0.10");
+        c.login(other);
+        ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
+        verify(other).redirect(url.capture(), eq(HttpStatus.FOUND));
+        assertTrue(url.getValue().startsWith(MD.authorizationEndpoint()));
+    }
+
+    // ── Bearer result cache (M2) ─────────────────────────────────────────────
+
+    @Test
+    void bearerResolutionIsCachedUntilTheTokenExpires() throws Exception {
+        UserRecord carol =
+                new UserRecord(
+                        "carol", "Carol", null, Set.of("user"), UserRecord.PROVIDER_OIDC, "carol");
+        when(userRepo.findByExternalId("carol")).thenReturn(Optional.of(carol));
+        OidcController c = controller(Map.of());
+        String at =
+                keys.sign(
+                        OidcTestKeys.claims("carol", now.get())
+                                .expirationTime(new java.util.Date(now.get() + 60_000L))
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .build());
+        for (int i = 0; i < 3; i++) {
+            Context ctx = mock(Context.class);
+            when(ctx.header("Authorization")).thenReturn("Bearer " + at);
+            assertEquals("carol", c.resolveFromBearer(ctx).userId());
+        }
+        verify(userRepo, org.mockito.Mockito.times(1)).findByExternalId("carol");
+
+        now.addAndGet(61_000L); // past exp on the controller clock → cache entry discarded …
+        Context late = mock(Context.class);
+        when(late.header("Authorization")).thenReturn("Bearer " + at);
+        c.resolveFromBearer(late);
+        // … so the account is looked up again (nimbus validates exp against the wall clock)
+        verify(userRepo, org.mockito.Mockito.times(2)).findByExternalId("carol");
     }
 
     // ── discovery resilience (H3) ─────────────────────────────────────────────

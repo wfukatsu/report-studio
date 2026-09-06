@@ -55,7 +55,10 @@ public enum AuthMode {
 
     /**
      * Resolves the effective mode from the environment and the (possibly absent) OIDC
-     * configuration. Never returns a mode whose requirements are not met.
+     * configuration.
+     *
+     * @throws IllegalStateException when an explicit {@code oidc} / {@code both} lacks the OIDC
+     *     configuration it needs (fail-closed)
      */
     public static AuthMode resolve(Map<String, String> env, OidcConfig oidc) {
         String raw = env.get(ENV);
@@ -80,11 +83,12 @@ public enum AuthMode {
             }
         }
         if (requested.oidcEnabled() && !oidcConfigured) {
-            log.error(
-                    "{}={} requires OIDC_ISSUER and OIDC_CLIENT_ID — falling back to local login",
-                    ENV,
-                    requested.id());
-            return LOCAL;
+            throw new IllegalStateException(
+                    ENV
+                            + "="
+                            + requested.id()
+                            + " requires OIDC_ISSUER and OIDC_CLIENT_ID; refusing to start rather"
+                            + " than falling back to password login");
         }
         return requested;
     }

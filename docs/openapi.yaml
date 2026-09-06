@@ -241,6 +241,7 @@ paths:
       responses:
         '200': { description: Updated }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'PASSWORD_MANAGED_EXTERNALLY (detailCode) — OIDC-provisioned account, password lives at the IdP (#499)' }
 
   # ── Personal Access Tokens (#195) ──────────────────────────────────────────
   /api/v1/auth/tokens:
@@ -270,6 +271,7 @@ paths:
     get:
       tags: [admin]
       summary: List users
+      description: Each user carries `provider` (`local` | `oidc`) and `hasPassword` (#499).
       responses: { '200': { description: Users } }
     post:
       tags: [admin]
@@ -280,7 +282,13 @@ paths:
     put:
       tags: [admin]
       summary: Update a user
-      responses: { '200': { description: Updated } }
+      description: |
+        OIDC-provisioned accounts (#499) refuse a `password` (403 `PASSWORD_MANAGED_EXTERNALLY`)
+        and a `roles` change (403 `ROLES_MANAGED_EXTERNALLY`, the IdP is authoritative);
+        `displayName` stays editable.
+      responses:
+        '200': { description: Updated }
+        '403': { description: 'PASSWORD_MANAGED_EXTERNALLY / ROLES_MANAGED_EXTERNALLY (detailCode)' }
     delete:
       tags: [admin]
       summary: Delete a user

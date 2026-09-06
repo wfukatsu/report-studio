@@ -241,6 +241,7 @@
       "no_role": "No role for this application has been assigned to you. Contact an administrator",
       "provider_error": "Login at the identity provider failed",
       "provider_unavailable": "The identity provider is unreachable. Please try again later",
+      "rate_limited": "Too many login attempts. Please wait a moment and try again",
       "user_conflict": "A local account with the same user ID already exists. Contact an administrator"
     },
     "oidcLogin": "Log in with Keycloak",

@@ -53,14 +53,13 @@ public final class UserRepository {
     }
 
     /**
-     * Find a user by IdP identity (#499): the {@code externalId} ({@code sub} claim) recorded at
-     * provisioning or linking time. A full scan — the user table is small (admin-managed).
+     * Find the account bound to an IdP identity (#499): the {@code externalId} ({@code sub} claim)
+     * recorded at provisioning or explicit linking time, whatever its provider. One full scan — the
+     * user table is small (admin-managed); callers on hot paths cache the result.
      */
-    public Optional<UserRecord> findByExternalId(String provider, String externalId) {
-        if (provider == null || externalId == null || externalId.isBlank()) return Optional.empty();
-        return list().stream()
-                .filter(u -> provider.equals(u.provider()) && externalId.equals(u.externalId()))
-                .findFirst();
+    public Optional<UserRecord> findByExternalId(String externalId) {
+        if (externalId == null || externalId.isBlank()) return Optional.empty();
+        return list().stream().filter(u -> externalId.equals(u.externalId())).findFirst();
     }
 
     /** List all users (passwords excluded by callers — return full record for internal use). */
@@ -86,12 +85,29 @@ public final class UserRepository {
         }
     }
 
-    /** Save or update a user. */
+    /** Save or update a user (lenient: failures are logged, not thrown — pre-#499 behaviour). */
     public void save(UserRecord user) {
         try {
-            blob.put(user.userId(), MAPPER.writeValueAsString(user));
+            saveOrThrow(user);
         } catch (Exception e) {
             log.error("Failed to save user {}", user.userId(), e);
+        }
+    }
+
+    /**
+     * Save or update a user, propagating store failures. Used where a swallowed failure would be
+     * wrong — e.g. issuing a session for an account that was never persisted (#499 review M9).
+     *
+     * @throws JsonBlobRepository.RepositoryException when the write did not commit
+     */
+    public void saveOrThrow(UserRecord user) {
+        try {
+            blob.put(user.userId(), MAPPER.writeValueAsString(user));
+        } catch (JsonBlobRepository.RepositoryException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new JsonBlobRepository.RepositoryException(
+                    "Failed to serialise user " + user.userId(), e);
         }
     }
 

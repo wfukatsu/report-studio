@@ -212,6 +212,17 @@ public final class AdminUserController {
                     Map.of("detailCode", "ROLE_INVALID"));
             return;
         }
+        if (user.isOidc() && !updatedRoles.equals(user.roles())) {
+            // The IdP is authoritative for OIDC accounts (#499): a local edit would be silently
+            // overwritten at the next login, so refuse it instead of pretending it stuck.
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "このユーザーのロールは外部 ID プロバイダで管理されています",
+                    Map.of("detailCode", "ROLES_MANAGED_EXTERNALLY"));
+            return;
+        }
 
         UserRecord updated =
                 new UserRecord(

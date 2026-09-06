@@ -32,9 +32,16 @@ class AuthModeTest {
     }
 
     @Test
-    void oidcModesFallBackToLocalWithoutOidcConfiguration() {
-        assertEquals(AuthMode.LOCAL, AuthMode.resolve(Map.of("AUTH_MODE", "oidc"), null));
-        assertEquals(AuthMode.LOCAL, AuthMode.resolve(Map.of("AUTH_MODE", "both"), null));
+    void explicitOidcModesFailClosedWithoutOidcConfiguration() {
+        // An operator who asked for Keycloak must not silently get password login instead.
+        var e1 =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        IllegalStateException.class,
+                        () -> AuthMode.resolve(Map.of("AUTH_MODE", "oidc"), null));
+        assertTrue(e1.getMessage().contains("OIDC_ISSUER"));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> AuthMode.resolve(Map.of("AUTH_MODE", "both"), null));
     }
 
     @Test

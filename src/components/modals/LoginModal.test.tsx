@@ -35,7 +35,8 @@ function fillAndSubmit(userId: string, password: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  useReportStore.setState({ currentUser: null, authLoading: false, tenantInfo: null, tenantLoading: false })
+  window.history.replaceState(null, '', '/')
+  useReportStore.setState({ currentUser: null, authLoading: false, authOptions: null, tenantInfo: null, tenantLoading: false })
   vi.mocked(getTenantInfo).mockResolvedValue({} as never)
 })
 
@@ -204,6 +205,29 @@ describe('LoginModal — OIDC (#499)', () => {
     window.history.replaceState(null, '', '/?oidc_error=something_new')
     render(<LoginModal />)
     expect(screen.getByRole('alert')).toHaveTextContent('ID プロバイダでのログインに失敗しました')
+    expect(window.location.search).toBe('')
+  })
+
+  it('gives initial focus to the user-id field even though the Keycloak button comes first', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    render(<LoginModal />)
+    expect(screen.getByLabelText('ユーザーID')).toHaveFocus()
+  })
+
+  it('focuses the Keycloak button when the password form is hidden', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByRole('button', { name: 'Keycloak でログイン' })).toHaveFocus()
+  })
+
+  it('shows a callback error once, above both sign-in methods, in both mode', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    window.history.replaceState(null, '', '/?oidc_error=no_role')
+    render(<LoginModal />)
+    const alerts = screen.getAllByRole('alert')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].compareDocumentPosition(screen.getByRole('button', { name: 'Keycloak でログイン' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-describedby', 'login-error')
     expect(window.location.search).toBe('')
   })
 })

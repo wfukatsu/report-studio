@@ -180,4 +180,34 @@ class AdminUserControllerTest {
 
         verify(ctx).status(HttpStatus.NOT_FOUND);
     }
+
+    // ── #499 (review M6): OIDC accounts take their roles from the IdP ──────────
+
+    @Test
+    void update_refusesRoleChangeForOidcAccountButAllowsDisplayName() throws Exception {
+        UserRecord oidc =
+                new UserRecord(
+                        "alice", "Alice", null, Set.of("user"), UserRecord.PROVIDER_OIDC, "sub-a");
+        when(userRepo.findById("alice")).thenReturn(Optional.of(oidc));
+        when(ctx.pathParam("id")).thenReturn("alice");
+
+        when(ctx.bodyAsClass(Map.class))
+                .thenReturn(Map.of("roles", java.util.List.of("admin", "user")));
+        controller.update(ctx);
+        verify(ctx).status(HttpStatus.FORBIDDEN);
+        ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
+        verify(ctx).json(body.capture());
+        assertEquals("ROLES_MANAGED_EXTERNALLY", ((Map<?, ?>) body.getValue()).get("detailCode"));
+        verify(userRepo, never()).save(any());
+
+        Context ctx2 = mock(Context.class);
+        when(ctx2.pathParam("id")).thenReturn("alice");
+        when(ctx2.bodyAsClass(Map.class)).thenReturn(Map.of("displayName", "Alice B."));
+        controller.update(ctx2);
+        ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
+        verify(userRepo).save(saved.capture());
+        assertEquals("Alice B.", saved.getValue().displayName());
+        assertEquals(Set.of("user"), saved.getValue().roles());
+        assertEquals("sub-a", saved.getValue().externalId());
+    }
 }

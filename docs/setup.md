@@ -202,7 +202,7 @@ scalar.db.transaction_manager=jdbc
 |--------|-------|------|
 | `PORT` | `8080` | バックエンドの待受ポート |
 | `ADMIN_PASSWORD` | `changeme` | 初期管理者パスワード（初回起動前に設定） |
-| `OIDC_ISSUER` | （未設定） | Keycloak（OIDC）ログインを有効化する Issuer URL。未設定なら自前認証のみ（[併用手順](#keycloakoidc-ログインの併用)） |
+| `OIDC_ISSUER` | （未設定） | Keycloak（OIDC）ログインを有効化する Issuer URL。未設定なら自前認証のみ（[併用手順](#keycloakoidcログインの併用)） |
 | `OIDC_INTERNAL_ISSUER` | `OIDC_ISSUER` と同じ | サーバから Keycloak に到達する URL（Docker 内部ホスト名など）。discovery / token / JWKS のみこの URL を使う |
 | `OIDC_CLIENT_ID` | （未設定） | OIDC クライアント ID（必須） |
 | `OIDC_CLIENT_SECRET` | （未設定） | クライアントシークレット（confidential client の場合のみ） |
@@ -214,7 +214,7 @@ scalar.db.transaction_manager=jdbc
 | `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
 | `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak ID を**明示的に**連携できる。ユーザー ID が一致するだけの暗黙リンクは行わない（常に `user_conflict` で拒否） |
 | `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
-| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足時はエラーログを出して `local` にフォールバック |
+| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足していると**起動に失敗**する（設定ミスで黙ってパスワードログインに戻らない） |
 | `ALLOWED_ORIGIN` | （未設定） | CORS / CSRF Origin チェックで許可する追加オリジン。ブラウザの URL と一致させる |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限（IP / 窓あたり） |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓（ミリ秒、既定 5 分） |
@@ -239,7 +239,7 @@ scalar.db.transaction_manager=jdbc
 | `oidc` | 「Keycloak でログイン」のみ | 403 `LOCAL_LOGIN_DISABLED` | 有効 |
 | `both`（`OIDC_ISSUER` 設定時の既定） | 両方 | 可 | 有効 |
 
-`oidc` / `both` には `OIDC_ISSUER` と `OIDC_CLIENT_ID` が必要です。不足している場合はエラーログを出して `local` で起動するため、設定ミスでログイン不能になることはありません。`oidc` にしてもローカルの `admin` アカウントは残るので、Keycloak 障害時は `AUTH_MODE=local`（または `both`）に戻して再起動すれば復旧できます。PAT（`rpat_…`）はどのモードでも使えます。
+`oidc` / `both` には `OIDC_ISSUER` と `OIDC_CLIENT_ID` が必要です。不足している場合は**起動時にエラーで停止**します（`AUTH_MODE=oidc requires OIDC_ISSUER and OIDC_CLIENT_ID`）。Keycloak 専用のつもりの環境が設定ミスで黙ってパスワードログイン可になるより、起動失敗で気付ける方が安全という判断です。未設定（推定モード）や `local` は従来どおり起動します。`oidc` にしてもローカルの `admin` アカウントは残るので、Keycloak 障害時は `AUTH_MODE=local`（または `both`）に戻して再起動すれば復旧できます。PAT（`rpat_…`）はどのモードでも使えます。
 
 ### 仕組み
 
@@ -269,7 +269,7 @@ docker compose --profile keycloak up --build
 
 ### ローカル開発（Vite + gradle）で使う場合
 
-Vite が `/api` を 8080 へプロキシするため、コールバックは Vite のオリジンで受けます:
+Vite が `/api` を 8080 へプロキシするため、コールバックは Vite のオリジンで受けます。`OIDC_*` はバックエンド（gradle）の環境変数です。`.env` は Vite しか読まないので、シェルで export するか下記のようにコマンドに前置してください:
 
 ```bash
 OIDC_ISSUER=http://localhost:8180/realms/report-studio \
