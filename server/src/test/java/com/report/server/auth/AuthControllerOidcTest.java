@@ -137,6 +137,7 @@ class AuthControllerOidcTest {
         Map<String, Object> body = json(me);
         assertEquals(Principal.PROVIDER_OIDC, body.get("provider"));
         assertEquals(false, body.get("hasPassword"));
+        assertEquals(false, body.get("oidcLinked")); // provisioned, not "linked"
 
         Context logout = mock(Context.class);
         when(logout.cookie("session_id")).thenReturn(cookie.getValue().getValue());

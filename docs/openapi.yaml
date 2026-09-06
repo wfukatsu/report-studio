@@ -179,7 +179,7 @@ paths:
         accounts — password change is refused) and an `auth` block
         `{ mode, localLoginEnabled, oidcEnabled, oidcLoginUrl?, oidcLinkEnabled? }` (`mode` =
         `AUTH_MODE`: `local` | `oidc` | `both`) the login modal uses to decide; `oidcLinked`
-        tells a local account it is linked to an IdP identity
+        tells a *local* account it is linked to an IdP identity (false for provisioned OIDC accounts)
         which sign-in methods to offer. The `auth` block is present on the anonymous
         response too.
       security: []

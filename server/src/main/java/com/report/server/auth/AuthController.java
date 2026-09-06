@@ -433,8 +433,9 @@ public final class AuthController {
         body.put("anonymous", principal.isAnonymous());
         body.put("provider", principal.provider());
         body.put("hasPassword", user != null && user.hasPassword());
-        // A local account that has been explicitly linked to an IdP identity (H1 link flow)
-        body.put("oidcLinked", user != null && user.externalId() != null);
+        // A *local* account that has been explicitly linked to an IdP identity (H1 link flow);
+        // provisioned OIDC accounts are bound by nature and report false here
+        body.put("oidcLinked", user != null && !user.isOidc() && user.externalId() != null);
         Map<String, Object> auth = new java.util.LinkedHashMap<>();
         auth.put("mode", authMode.id());
         auth.put("localLoginEnabled", authMode.localLoginEnabled());
