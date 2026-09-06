@@ -238,4 +238,22 @@ describe('authSlice — OIDC (#499)', () => {
     await useReportStore.getState().logoutUser()
     expect(navigateTo).not.toHaveBeenCalled()
   })
+
+  it('takes the sign-in options from a successful password login response', async () => {
+    vi.mocked(login).mockResolvedValue({ ...ADMIN, auth: { localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/x' } })
+    vi.mocked(getTenantInfo).mockResolvedValue(TENANT)
+    await useReportStore.getState().loginUser('admin', 'pw')
+    expect(useReportStore.getState().authOptions).toEqual({ localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/x' })
+  })
+
+  it('resets the editor before leaving for the provider logout', async () => {
+    useReportStore.setState({ currentUser: { ...ADMIN, userId: 'alice', provider: 'oidc' } })
+    const order: string[] = []
+    const reset = useReportStore.getState().resetForUserSwitch
+    useReportStore.setState({ resetForUserSwitch: (prev) => { order.push('reset'); reset(prev) } })
+    vi.mocked(navigateTo).mockImplementation(() => { order.push('navigate') })
+    vi.mocked(logout).mockResolvedValue({ status: 'logged_out', logoutUrl: 'https://kc/logout' })
+    await useReportStore.getState().logoutUser()
+    expect(order).toEqual(['reset', 'navigate'])
+  })
 })

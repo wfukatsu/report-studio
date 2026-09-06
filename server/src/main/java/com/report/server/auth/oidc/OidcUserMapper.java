@@ -12,7 +12,8 @@ import java.util.regex.Pattern;
  * Maps verified token claims to a report-studio identity (#499).
  *
  * <ul>
- *   <li>{@code externalId} = {@code sub} (stable IdP key, stored on the user record)
+ *   <li>{@code externalId} = {@code issuer|sub} (stable IdP key, stored on the user record;
+ *       issuer-qualified so a later switch to another realm / IdP cannot alias a subject)
  *   <li>{@code userId} = {@code preferred_username} when it satisfies the local user-id charset,
  *       otherwise {@code sub}
  *   <li>{@code displayName} = {@code name} → {@code preferred_username} → {@code sub}
@@ -64,7 +65,12 @@ public final class OidcUserMapper {
         boolean admin = idpRoles.contains(cfg.adminRole());
         boolean user = admin || !cfg.requiresUserRole() || idpRoles.contains(cfg.userRole());
         Set<String> roles = admin ? Set.of("admin", "user") : (user ? Set.of("user") : Set.of());
-        return new MappedUser(sub, userId, displayName, roles, user);
+        return new MappedUser(externalId(cfg.issuer(), sub), userId, displayName, roles, user);
+    }
+
+    /** {@code issuer|sub}: the stored identity key (see class doc). */
+    public static String externalId(String issuer, String sub) {
+        return issuer + "|" + sub;
     }
 
     private static String stringClaim(JWTClaimsSet claims, String name) {
@@ -73,15 +79,21 @@ public final class OidcUserMapper {
         return null;
     }
 
-    /** Walks a dot path ({@code realm_access.roles}) into the claims map; missing → empty set. */
+    /**
+     * Walks a dot path ({@code realm_access.roles}) into the claims map; missing → empty set. A
+     * client id containing dots ({@code resource_access.my.app.roles}) cannot be split on dots, so
+     * when the plain walk finds nothing the middle segments are retried as one key.
+     */
     @SuppressWarnings("unchecked")
     static Set<String> extractRoles(Map<String, Object> claims, String path) {
-        Object cur = claims;
-        for (String seg : path.split("\\.")) {
-            if (!(cur instanceof Map<?, ?> m)) return Set.of();
-            cur = ((Map<String, Object>) m).get(seg);
-            if (cur == null) return Set.of();
+        String[] segs = path.split("\\.");
+        Object cur = walk(claims, segs);
+        if (cur == null && segs.length > 2) {
+            String middle =
+                    String.join(".", java.util.Arrays.copyOfRange(segs, 1, segs.length - 1));
+            cur = walk(claims, new String[] {segs[0], middle, segs[segs.length - 1]});
         }
+        if (cur == null) return Set.of();
         Set<String> out = new LinkedHashSet<>();
         if (cur instanceof Collection<?> c) {
             for (Object o : c) if (o != null) out.add(o.toString());
@@ -89,5 +101,16 @@ public final class OidcUserMapper {
             for (String part : List.of(s.split("[\\s,]+"))) if (!part.isBlank()) out.add(part);
         }
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object walk(Map<String, Object> claims, String[] segs) {
+        Object cur = claims;
+        for (String seg : segs) {
+            if (!(cur instanceof Map<?, ?> m)) return null;
+            cur = ((Map<String, Object>) m).get(seg);
+            if (cur == null) return null;
+        }
+        return cur;
     }
 }

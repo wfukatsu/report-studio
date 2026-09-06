@@ -177,7 +177,7 @@ paths:
         Besides `userId` / `displayName` / `roles` / `anonymous` the body carries (#499)
         `provider` (`local` | `oidc` | `none`), `hasPassword` (false for OIDC-provisioned
         accounts — password change is refused) and an `auth` block
-        `{ mode, localLoginEnabled, oidcEnabled, oidcLoginUrl?, oidcLinkEnabled? }` (`mode` =
+        `{ mode, localLoginEnabled, oidcEnabled, oidcLoginUrl?, oidcLinkEnabled?, oidcProviderName? }` (`mode` =
         `AUTH_MODE`: `local` | `oidc` | `both`) the login modal uses to decide; `oidcLinked`
         tells a *local* account it is linked to an IdP identity (false for provisioned OIDC accounts)
         which sign-in methods to offer. The `auth` block is present on the anonymous
@@ -229,8 +229,9 @@ paths:
         provisions or links the account and issues the regular session cookie, then redirects
         to `OIDC_POST_LOGIN_REDIRECT` (default `/`). Failures redirect there with
         `?oidc_error=` one of `provider_error`, `invalid_state`, `invalid_token`,
-        `user_conflict`, `no_role`, `provider_unavailable`, `link_unauthorized`. A local
-        account whose user id collides is never linked implicitly (`user_conflict`).
+        `account_unavailable`, `no_role`, `provider_unavailable`, `link_unauthorized`. A local
+        account whose user id collides is never linked implicitly (`account_unavailable`,
+        deliberately generic so local user ids cannot be probed).
       security: []
       responses:
         '302': { description: Redirect to the SPA (with `oidc_error` on failure) }

@@ -4,6 +4,7 @@ import { useReportStore } from '@/store/reportStore'
 import { isApiError } from '@/api/client'
 import { useModalA11y } from '@/hooks/useModalA11y'
 import { navigateTo } from '@/lib/browserNavigation'
+import { useOidcProviderName } from '@/hooks/useOidcProviderName'
 import { readOidcRedirectParams, stripOidcRedirectParams, type OidcErrorCode } from '@/lib/oidcRedirect'
 
 /** The login gate cannot be dismissed — Esc is intentionally a no-op (#428). */
@@ -18,7 +19,9 @@ export function LoginModal() {
   const loginUser = useReportStore((s) => s.loginUser)
   // null until /me answered — treat as "password only" so the form is never blank (#499)
   const authOptions = useReportStore((s) => s.authOptions)
-  const oidcEnabled = authOptions?.oidcEnabled === true && !!authOptions.oidcLoginUrl
+  const provider = useOidcProviderName()
+  const oidcLoginUrl = authOptions?.oidcEnabled === true ? authOptions.oidcLoginUrl : undefined
+  const oidcEnabled = !!oidcLoginUrl
   const localEnabled = authOptions?.localLoginEnabled !== false || !oidcEnabled
 
   const [userId, setUserId] = useState('')
@@ -40,7 +43,7 @@ export function LoginModal() {
     onClose: NOOP_CLOSE,
     initialFocus: localEnabled ? userIdRef : undefined,
   })
-  const message = error ?? (oidcError ? t(`loginModal.oidcError.${oidcError}`) : null)
+  const message = error ?? (oidcError ? t(`loginModal.oidcError.${oidcError}`, { provider }) : null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -89,11 +92,11 @@ export function LoginModal() {
         {oidcEnabled && (
           <button
             type="button"
-            onClick={() => navigateTo(authOptions!.oidcLoginUrl!)}
+            onClick={() => navigateTo(oidcLoginUrl)}
             disabled={loading}
             className="w-full py-2 text-sm border border-primary text-primary rounded hover:bg-primary/10 disabled:opacity-50 transition-colors"
           >
-            {t('loginModal.oidcLogin')}
+            {t('loginModal.oidcLogin', { provider })}
           </button>
         )}
 

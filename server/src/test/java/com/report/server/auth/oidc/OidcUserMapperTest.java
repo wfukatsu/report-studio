@@ -26,7 +26,7 @@ class OidcUserMapperTest {
                                         Map.of("roles", List.of("report-studio-admin", "x")))
                                 .claim("name", "Alice A.")
                                 .build());
-        assertEquals("uuid-1", out.externalId());
+        assertEquals(OidcTestKeys.ISSUER + "|uuid-1", out.externalId());
         assertEquals("alice", out.userId());
         assertEquals("Alice A.", out.displayName());
         assertEquals(Set.of("admin", "user"), out.roles());
@@ -94,7 +94,26 @@ class OidcUserMapperTest {
     void extractRolesToleratesStringsAndMissingPaths() {
         assertEquals(Set.of(), OidcUserMapper.extractRoles(Map.of(), "realm_access.roles"));
         assertEquals(
-                Set.of("a", "b"),
-                OidcUserMapper.extractRoles(Map.of("roles", "a b,c".replace(",c", "")), "roles"));
+                Set.of("a", "b", "c"),
+                OidcUserMapper.extractRoles(Map.of("roles", "a b,c"), "roles"));
+    }
+
+    @Test
+    void clientRolesWorkForClientIdsContainingDots() {
+        OidcUserMapper m =
+                new OidcUserMapper(
+                        OidcTestKeys.config(
+                                Map.of(
+                                        "OIDC_ROLE_CLAIM",
+                                        "resource_access.my.report.app.roles",
+                                        "OIDC_ADMIN_ROLE",
+                                        "admin")));
+        var out =
+                m.map(
+                        base().claim(
+                                        "resource_access",
+                                        Map.of("my.report.app", Map.of("roles", List.of("admin"))))
+                                .build());
+        assertEquals(Set.of("admin", "user"), out.roles());
     }
 }

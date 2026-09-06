@@ -54,6 +54,13 @@ public final class ApiTokenController {
     /** Upper bound on a token's requested lifetime; 0 days means "never expires" (#209). */
     static final int MAX_EXPIRY_DAYS = 365;
 
+    /**
+     * Tokens of OIDC-provisioned accounts always expire, at most this many days out (#499): an
+     * IdP-side revocation or demotion only reaches this server at the next browser login, so a
+     * never-expiring PAT would outlive it indefinitely.
+     */
+    static final int OIDC_MAX_EXPIRY_DAYS = 7;
+
     private static final long DAY_MS = 86_400_000L;
 
     private final AuthController authCtrl;
@@ -123,6 +130,13 @@ public final class ApiTokenController {
         if (expiresInDays > 0) {
             long days = Math.min(expiresInDays, MAX_EXPIRY_DAYS);
             expiresAt = now + days * DAY_MS;
+        }
+        // OIDC-provisioned accounts (#499): never "never" and at most OIDC_MAX_EXPIRY_DAYS
+        boolean oidcAccount =
+                userRepo.findById(principal.userId()).map(UserRecord::isOidc).orElse(false);
+        if (oidcAccount) {
+            long cap = now + OIDC_MAX_EXPIRY_DAYS * DAY_MS;
+            expiresAt = expiresAt == 0 ? cap : Math.min(expiresAt, cap);
         }
 
         // Per-user cap on active (non-expired) tokens (#209) — bounds storage and blast radius.

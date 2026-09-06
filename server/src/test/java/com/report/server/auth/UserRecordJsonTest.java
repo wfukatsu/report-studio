@@ -36,4 +36,15 @@ class UserRecordJsonTest {
         assertFalse(out.hasPassword());
         assertTrue(out.isOidc());
     }
+
+    @Test
+    void repositoryMapperIgnoresUnknownFieldsForForwardCompatibility() throws Exception {
+        // A record written by a newer server (extra field) must still load (L: rollback safety)
+        UserRecord u =
+                UserRepository.MAPPER.readValue(
+                        "{\"userId\":\"admin\",\"displayName\":\"A\",\"passwordHash\":\"h\","
+                                + "\"roles\":[\"admin\"],\"futureField\":42}",
+                        UserRecord.class);
+        assertEquals("admin", u.userId());
+    }
 }

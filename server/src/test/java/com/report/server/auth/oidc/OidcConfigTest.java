@@ -59,4 +59,44 @@ class OidcConfigTest {
         assertTrue(c.linkLocalUsers());
         assertEquals("http://localhost:8080/api/v1/auth/oidc/callback", c.redirectUri());
     }
+
+    @Test
+    void toStringNeverRevealsTheClientSecret() {
+        OidcConfig c =
+                OidcConfig.fromEnv(
+                        Map.of(
+                                "OIDC_ISSUER", "https://kc.example/realms/r",
+                                "OIDC_CLIENT_ID", "app",
+                                "OIDC_CLIENT_SECRET", "s3cr3t-value"));
+        assertFalse(c.toString().contains("s3cr3t-value"));
+        assertTrue(c.toString().contains("app"));
+    }
+
+    @Test
+    void invalidIssuerUrlDisablesOidcInsteadOfCrashingLater() {
+        assertNull(
+                OidcConfig.fromEnv(
+                        Map.of("OIDC_ISSUER", "keycloak:8080/realms/r", "OIDC_CLIENT_ID", "app")));
+        assertNull(
+                OidcConfig.fromEnv(
+                        Map.of(
+                                "OIDC_ISSUER",
+                                "ftp://kc.example/realms/r",
+                                "OIDC_CLIENT_ID",
+                                "app")));
+        assertNull(
+                OidcConfig.fromEnv(
+                        Map.of(
+                                "OIDC_ISSUER", "http://kc.example/realms/r",
+                                "OIDC_INTERNAL_ISSUER", "not a url",
+                                "OIDC_CLIENT_ID", "app")));
+    }
+
+    @Test
+    void providerNameDefaultsToKeycloak() {
+        assertEquals("Keycloak", OidcTestKeys.config(Map.of()).providerName());
+        assertEquals(
+                "Entra ID",
+                OidcTestKeys.config(Map.of("OIDC_PROVIDER_NAME", " Entra ID ")).providerName());
+    }
 }

@@ -2,19 +2,21 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { changeProfile } from '@/api/reportApi'
-import { isApiError } from '@/api/client'
+import { isApiError, parseApiErrorBody } from '@/api/client'
 import { navigateTo } from '@/lib/browserNavigation'
+import { useOidcProviderName } from '@/hooks/useOidcProviderName'
 
 export function AccountTab() {
   const { t } = useTranslation('modals')
   const currentUser = useReportStore((s) => s.currentUser)
   const authOptions = useReportStore((s) => s.authOptions)
+  const provider = useOidcProviderName()
+  const oidcLoginUrl = authOptions?.oidcEnabled === true && authOptions.oidcLinkEnabled === true
+    ? authOptions.oidcLoginUrl : undefined
   // OIDC-provisioned accounts have no local password (#499); older servers omit the flag → assume yes
   const canChangePassword = currentUser?.hasPassword !== false
   // Explicit IdP linking for password accounts (#499 H1): offered only when the server allows it
-  const canLink =
-    authOptions?.oidcEnabled === true && authOptions.oidcLinkEnabled === true && !!authOptions.oidcLoginUrl
-    && currentUser?.provider === 'local' && canChangePassword
+  const canLink = !!oidcLoginUrl && currentUser?.provider === 'local' && canChangePassword
   const linked = currentUser?.oidcLinked === true
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName ?? '')
@@ -62,6 +64,8 @@ export function AccountTab() {
     } catch (err) {
       if (isApiError(err) && err.status === 401) {
         setError(t('accountTab.currentPasswordWrong'))
+      } else if (isApiError(err) && parseApiErrorBody(err)?.detailCode === 'PASSWORD_MANAGED_EXTERNALLY') {
+        setError(t('accountTab.passwordManagedExternallyError', { provider }))
       } else {
         setError(t('accountTab.saveFailed'))
       }
@@ -129,24 +133,24 @@ export function AccountTab() {
       </div>
 
       </>) : (
-        <p className="text-xs text-muted-foreground">{t('accountTab.passwordManagedExternally')}</p>
+        <p className="text-xs text-muted-foreground">{t('accountTab.passwordManagedExternally', { provider })}</p>
       )}
 
       {(canLink || linked) && (
         <>
           <hr className="border-border" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.oidcLink.title')}</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.oidcLink.title', { provider })}</p>
           {linked ? (
-            <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.linked')}</p>
+            <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.linked', { provider })}</p>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.hint')}</p>
+              <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.hint', { provider })}</p>
               <button
                 type="button"
-                onClick={() => navigateTo(`${authOptions!.oidcLoginUrl!}?link=1`)}
+                onClick={() => navigateTo(`${oidcLoginUrl}?link=1`)}
                 className="px-4 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary/10 w-fit"
               >
-                {t('accountTab.oidcLink.button')}
+                {t('accountTab.oidcLink.button', { provider })}
               </button>
             </>
           )}

@@ -57,6 +57,7 @@
     "saveMenu": "保存メニュー",
     "saveToServer": "サーバーに保存"
   },
+  "logoutFailed": "ログアウトに失敗しました。ネットワークを確認して再試行してください",
   "preview": {
     "close": "プレビューを閉じる",
     "fullPreviewPdf": "フルプレビュー（PDF）",

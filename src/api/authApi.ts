@@ -25,6 +25,8 @@ const AuthOptionsSchema = z.object({
   oidcLoginUrl: z.string().optional(),
   /** Signed-in local users may link their IdP identity via `${oidcLoginUrl}?link=1`. */
   oidcLinkEnabled: z.boolean().optional(),
+  /** Label for the IdP in UI copy (`OIDC_PROVIDER_NAME`, default "Keycloak"). */
+  oidcProviderName: z.string().optional(),
 })
 export type AuthOptions = z.infer<typeof AuthOptionsSchema>
 

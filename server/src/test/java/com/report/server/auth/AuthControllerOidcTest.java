@@ -100,7 +100,7 @@ class AuthControllerOidcTest {
         assertEquals(false, auth.get("oidcEnabled"));
         assertNull(auth.get("oidcLoginUrl"));
 
-        controller.enableOidc(hint -> "https://kc/logout?hint=" + hint, true);
+        controller.enableOidc(hint -> "https://kc/logout?hint=" + hint, true, "Entra ID");
         Context ctx2 = mock(Context.class);
         controller.me(ctx2);
         @SuppressWarnings("unchecked")
@@ -108,6 +108,7 @@ class AuthControllerOidcTest {
         assertEquals(true, auth2.get("oidcEnabled"));
         assertEquals("/api/v1/auth/oidc/login", auth2.get("oidcLoginUrl"));
         assertEquals(true, auth2.get("oidcLinkEnabled"));
+        assertEquals("Entra ID", auth2.get("oidcProviderName"));
         assertEquals(false, json(ctx2).get("oidcLinked"));
     }
 

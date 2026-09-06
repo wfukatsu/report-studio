@@ -194,9 +194,9 @@ describe('LoginModal — OIDC (#499)', () => {
 
   it('explains an ?oidc_error= callback failure and strips it from the URL', () => {
     useReportStore.setState({ authOptions: BOTH })
-    window.history.replaceState(null, '', '/?oidc_error=user_conflict&keep=1')
+    window.history.replaceState(null, '', '/?oidc_error=account_unavailable&keep=1')
     render(<LoginModal />)
-    expect(screen.getByRole('alert')).toHaveTextContent('同じユーザーIDのローカルアカウントが既に存在する')
+    expect(screen.getByRole('alert')).toHaveTextContent('この Keycloak アカウントではログインできません')
     expect(window.location.search).toBe('?keep=1')
   })
 
@@ -204,7 +204,7 @@ describe('LoginModal — OIDC (#499)', () => {
     useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
     window.history.replaceState(null, '', '/?oidc_error=something_new')
     render(<LoginModal />)
-    expect(screen.getByRole('alert')).toHaveTextContent('ID プロバイダでのログインに失敗しました')
+    expect(screen.getByRole('alert')).toHaveTextContent('Keycloak でのログインに失敗しました')
     expect(window.location.search).toBe('')
   })
 

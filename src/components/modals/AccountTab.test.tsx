@@ -38,7 +38,7 @@ describe('AccountTab — パスワード欄の表示', () => {
     useReportStore.setState({ currentUser: OIDC })
     render(<AccountTab />)
     expect(screen.queryByLabelText('現在のパスワード')).not.toBeInTheDocument()
-    expect(screen.getByText(/ID プロバイダ（Keycloak）で管理されています/)).toBeInTheDocument()
+    expect(screen.getByText(/Keycloak で管理されています/)).toBeInTheDocument()
     // display name stays editable
     expect(screen.getByLabelText('表示名')).toHaveValue('Alice')
   })

@@ -36,8 +36,11 @@ services:
       # Keycloak / OIDC (#499) — all optional; unset OIDC_ISSUER = local login only.
       # Issuer as the browser (and the token "iss" claim) sees it …
       OIDC_ISSUER: ${OIDC_ISSUER:-}
-      # … and as this container reaches it (discovery / token / JWKS).
+      # … and as this container reaches it (discovery / token / JWKS). With the keycloak
+      # service's KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true the discovery document already
+      # advertises internal URLs to internal callers, so the rewrite is a no-op there.
       OIDC_INTERNAL_ISSUER: ${OIDC_INTERNAL_ISSUER:-}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Keycloak}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_ADMIN_ROLE: ${OIDC_ADMIN_ROLE:-report-studio-admin}

@@ -19,7 +19,19 @@ import org.slf4j.LoggerFactory;
 public final class UserRepository {
 
     private static final Logger log = LoggerFactory.getLogger(UserRepository.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Lenient on unknown properties so a record written by a newer server version (extra fields)
+     * still loads after a rollback — otherwise every user would fail to parse and the default admin
+     * would be silently re-created. Package-private for tests.
+     */
+    static final ObjectMapper MAPPER =
+            new ObjectMapper()
+                    .configure(
+                            com.fasterxml.jackson.databind.DeserializationFeature
+                                    .FAIL_ON_UNKNOWN_PROPERTIES,
+                            false);
+
     private static final String NAMESPACE = "report_studio";
     private static final String TABLE = "users";
 

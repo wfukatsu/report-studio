@@ -89,8 +89,9 @@
       "delete": "削除",
       "deleteTitle": "{{name}} を削除",
       "empty": "ユーザーがいません",
+      "noPasswordHint": "パスワードなし（{{provider}} でログイン）",
       "providerLocal": "ローカル",
-      "providerOidc": "Keycloak"
+      "providerOidc": "{{provider}}"
     }
   },
   "bindingEditor": {

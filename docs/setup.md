@@ -214,7 +214,8 @@ scalar.db.transaction_manager=jdbc
 | `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
 | `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak ID を**明示的に**連携できる。ユーザー ID が一致するだけの暗黙リンクは行わない（常に `user_conflict` で拒否） |
 | `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
-| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足していると**起動に失敗**する（設定ミスで黙ってパスワードログインに戻らない） |
+| `OIDC_PROVIDER_NAME` | `Keycloak` | UI に表示する IdP 名（「〜 でログイン」ボタン、認証列、連携画面）。Entra ID / Auth0 などでも使う場合に変更 |
+| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足していると**起動に失敗**する（設定ミスで黙ってパスワードログインに戻らない）。`keycloak` は `oidc` の別名。不明な値はエラーログを出して推定値（未設定時と同じ）になる |
 | `ALLOWED_ORIGIN` | （未設定） | CORS / CSRF Origin チェックで許可する追加オリジン。ブラウザの URL と一致させる |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限（IP / 窓あたり） |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓（ミリ秒、既定 5 分） |
@@ -246,9 +247,11 @@ scalar.db.transaction_manager=jdbc
 - **ブラウザ**: ログインモーダルの「Keycloak でログイン」→ `GET /api/v1/auth/oidc/login`（Authorization Code + PKCE、state/nonce を検証）→ `GET /api/v1/auth/oidc/callback` で ID トークンを JWKS で検証し、**通常の Cookie セッション**を発行します。SPA はトークンを扱いません。
 - **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。Bearer で解決できるのは**既にアカウントがあるユーザーだけ**です。アクセストークン単体ではアカウントの自動作成もローカルアカウントへの紐付けも行わないため、先に一度ブラウザで Keycloak ログイン（または下記の明示連携）を済ませてください。ID トークン（`typ: ID`）やリフレッシュトークンは Bearer として受け付けません。
 - **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。Keycloak 既定の「realm roles」マッパーは `realm_access` を**アクセストークンにしか**入れないため、コールバックでは ID トークンと一緒に返るアクセストークンも検証してロール元にします（Keycloak 側で ID トークンにロールを追加する設定は不要です）。
-- **衝突と連携**: 同じ `userId` のローカルアカウントが既にある場合、Keycloak ログインは常に拒否します（`?oidc_error=user_conflict`）。ユーザー名が一致するだけでローカルアカウントを乗っ取れないようにするためです。既存のローカルアカウントで Keycloak も使いたい場合は `OIDC_LINK_LOCAL_USERS=true` にし、**ローカルでログインした状態で**アカウント設定の「Keycloak アカウントと連携」から連携します（`GET /api/v1/auth/oidc/login?link=1`）。連携後はパスワードと Keycloak のどちらでもログインでき、`/auth/me` の `oidcLinked` が `true` になります。
+- **衝突と連携**: 同じ `userId` のローカルアカウントが既にある場合、Keycloak ログインは常に拒否します（`?oidc_error=account_unavailable`。ローカルのユーザー ID の存在を IdP ユーザーに知らせないため、理由はサーバログにのみ出ます）。ユーザー名が一致するだけでローカルアカウントを乗っ取れないようにするためです。既存のローカルアカウントで Keycloak も使いたい場合は `OIDC_LINK_LOCAL_USERS=true` にし、**ローカルでログインした状態で**アカウント設定の「Keycloak アカウントと連携」から連携します（`GET /api/v1/auth/oidc/login?link=1`）。連携後はパスワードと Keycloak のどちらでもログインでき、`/auth/me` の `oidcLinked` が `true` になります。
 - **ログアウト**: OIDC セッションのログアウトは Keycloak の `end_session_endpoint` へ遷移し、SSO セッションも終了します（RP-Initiated Logout）。
-- **パスワード**: OIDC で作成されたアカウントはアカウント画面・管理画面ともにパスワード変更が拒否されます（`PASSWORD_MANAGED_EXTERNALLY`）。
+- **パスワード・ロール**: OIDC で作成されたアカウントはアカウント画面・管理画面ともにパスワード変更が拒否され（`PASSWORD_MANAGED_EXTERNALLY`）、ロールは IdP のクレームがログインのたびに反映されるため管理画面からは変更できません（`ROLES_MANAGED_EXTERNALLY`）。表示名はローカルで編集でき、IdP の値で巻き戻されません。
+- **PAT**: OIDC アカウントが発行する PAT は最長 7 日で必ず失効します（IdP 側の失効・降格はこのサーバには次回ログインまで伝わらないため、無期限トークンを許可しません）。ローカルアカウントの PAT は従来どおりです。
+- **アクセストークンの拒否理由**: Bearer の JWT が 401 になる理由（署名・期限・aud・typ 等）は DEBUG レベルでのみ出力します。調査時は `LOG_LEVEL=DEBUG` で起動してください。
 
 ### 障害時の挙動
 
@@ -265,7 +268,14 @@ OIDC_CLIENT_ID=report-studio \
 docker compose --profile keycloak up --build
 ```
 
-`keycloak` プロファイルは開発モードの Keycloak（http://localhost:8180、管理コンソール admin / admin）を起動し、`docker/keycloak/report-studio-realm.json` を取り込みます（public client `report-studio`、ユーザー `kc-admin` / `kc-user`、パスワード `changeme`）。http://localhost:8080 を開くとログインモーダルに「Keycloak でログイン」が表示され、`kc-admin` でログインすると管理タブが使えます。
+`keycloak` プロファイルは開発モードの Keycloak（http://localhost:8180、管理コンソール admin / admin）を起動し、`docker/keycloak/report-studio-realm.json` を取り込みます（public client `report-studio`、ユーザー `kc-admin` / `kc-user`、パスワード `changeme`）。この dev realm はクライアントの **Direct access grants を有効**にしているので、ブラウザなしでアクセストークンを取って Bearer 経路を試せます（本番クライアントでは無効にしてください）:
+
+```bash
+curl -s -d grant_type=password -d client_id=report-studio -d username=kc-admin -d password=changeme -d scope=openid \
+  http://localhost:8180/realms/report-studio/protocol/openid-connect/token | jq -r .access_token
+```
+
+`APP_PORT` / `KEYCLOAK_PORT` を変える場合は、realm の `redirectUris`（8080 / 5173 固定）と `OIDC_ISSUER` も合わせて変更してください。CI では `e2e-oidc` ジョブが同じ realm を取り込んだ Keycloak コンテナに対して `e2e/oidc.spec.ts` を実行します（`OIDC_ISSUER` 未設定ならスキップ）。http://localhost:8080 を開くとログインモーダルに「Keycloak でログイン」が表示され、`kc-admin` でログインすると管理タブが使えます。
 
 ### ローカル開発（Vite + gradle）で使う場合
 
@@ -282,10 +292,11 @@ npm run dev:backend
 
 ### 本番 Keycloak に接続する場合
 
-1. Keycloak の realm にクライアントを作成（Standard flow、PKCE S256、Valid redirect URIs に `OIDC_REDIRECT_URI`、Valid post logout redirect URIs に `OIDC_POST_LOGOUT_REDIRECT`）
-2. realm ロール（既定 `report-studio-admin`）を作り、管理者に付与
-3. サーバに `OIDC_ISSUER` / `OIDC_CLIENT_ID`（confidential なら `OIDC_CLIENT_SECRET` も）と `ALLOWED_ORIGIN` を設定
-4. Keycloak 専用運用にする場合は `AUTH_MODE=oidc`（`admin` のローカルアカウントは残るので、緊急時は `AUTH_MODE=local` に戻せば復旧できます）
+1. Keycloak の realm にクライアントを作成（Standard flow、PKCE S256、Valid redirect URIs に `OIDC_REDIRECT_URI` を完全一致で、Valid post logout redirect URIs に `OIDC_POST_LOGOUT_REDIRECT`。Direct access grants は無効）
+2. realm ロール（既定 `report-studio-admin`）を作り、管理者に付与。全社共通 realm では `OIDC_USER_ROLE` も設定し、対象ユーザーだけがログインできるようにする
+3. `OIDC_INTERNAL_ISSUER` を使う場合も、JWKS と token endpoint への経路は TLS（https）にする。平文 HTTP は署名検証の信頼をネットワークに委ねることになる
+4. サーバに `OIDC_ISSUER` / `OIDC_CLIENT_ID`（confidential なら `OIDC_CLIENT_SECRET` も）と `ALLOWED_ORIGIN` を設定
+5. Keycloak 専用運用にする場合は `AUTH_MODE=oidc`（`admin` のローカルアカウントは残るので、緊急時は `AUTH_MODE=local` に戻せば復旧できます）
 
 ## サンプルデータの投入
 

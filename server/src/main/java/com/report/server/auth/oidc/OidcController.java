@@ -75,7 +75,14 @@ public final class OidcController {
 
     public static final String ERR_STATE = "invalid_state";
     public static final String ERR_TOKEN = "invalid_token";
-    public static final String ERR_USER_CONFLICT = "user_conflict";
+
+    /**
+     * The IdP identity cannot be used here (user id collides with a local account, or the subject
+     * is already bound elsewhere). Deliberately generic so an IdP user cannot probe which local
+     * user ids exist; the reason is in the server log.
+     */
+    public static final String ERR_ACCOUNT_UNAVAILABLE = "account_unavailable";
+
     public static final String ERR_NO_ROLE = "no_role";
     public static final String ERR_UNAVAILABLE = "provider_unavailable";
     public static final String ERR_LINK_UNAUTHORIZED = "link_unauthorized";
@@ -371,8 +378,8 @@ public final class OidcController {
         if (providerError != null) {
             log.warn(
                     "OIDC provider returned error={} description={}",
-                    providerError,
-                    ctx.queryParam("error_description"));
+                    sanitizeForLog(providerError),
+                    sanitizeForLog(ctx.queryParam("error_description")));
             fail(ctx, ERR_PROVIDER);
             return;
         }
@@ -447,10 +454,7 @@ public final class OidcController {
                 fail(ctx, error);
                 return;
             }
-            String target = cfg.postLoginRedirect();
-            ctx.redirect(
-                    target + (target.contains("?") ? "&" : "?") + "oidc_linked=1",
-                    HttpStatus.FOUND);
+            ctx.redirect(withQuery(cfg.postLoginRedirect(), "oidc_linked=1"), HttpStatus.FOUND);
             return;
         }
 
@@ -496,7 +500,7 @@ public final class OidcController {
                     "OIDC link for '{}' refused: sub={} already bound to another account",
                     userId,
                     mapped.externalId());
-            return ERR_USER_CONFLICT;
+            return ERR_ACCOUNT_UNAVAILABLE;
         }
         userRepo.saveOrThrow(
                 new UserRecord(
@@ -531,9 +535,27 @@ public final class OidcController {
     }
 
     private void fail(Context ctx, String code) {
-        String target = cfg.postLoginRedirect();
-        target += (target.contains("?") ? "&" : "?") + "oidc_error=" + code;
-        ctx.redirect(target, HttpStatus.FOUND);
+        ctx.redirect(withQuery(cfg.postLoginRedirect(), "oidc_error=" + code), HttpStatus.FOUND);
+    }
+
+    /**
+     * Appends {@code key=value} to a URL, keeping any {@code #fragment} at the end (SPA routes).
+     */
+    static String withQuery(String target, String param) {
+        int hash = target.indexOf('#');
+        String base = hash < 0 ? target : target.substring(0, hash);
+        String fragment = hash < 0 ? "" : target.substring(hash);
+        return base + (base.contains("?") ? "&" : "?") + param + fragment;
+    }
+
+    /**
+     * Makes untrusted provider text safe for a single log line: control characters (incl. CR/LF —
+     * log-line forgery) removed, length capped at 200.
+     */
+    static String sanitizeForLog(String s) {
+        if (s == null) return "";
+        String cleaned = s.replaceAll("[\\p{Cntrl}]", "");
+        return cleaned.length() > 200 ? cleaned.substring(0, 200) : cleaned;
     }
 
     // ── Bearer access tokens (API / CLI) ─────────────────────────────────────
@@ -636,7 +658,7 @@ public final class OidcController {
                             + " explicitly from the account settings instead",
                     m.userId(),
                     m.externalId());
-            return new Provisioned(null, ERR_USER_CONFLICT);
+            return new Provisioned(null, ERR_ACCOUNT_UNAVAILABLE);
         } else {
             rec =
                     new UserRecord(
@@ -728,8 +750,12 @@ public final class OidcController {
         return sb.toString();
     }
 
+    /** One client for discovery and the token endpoint (connection reuse, one timeout policy). */
+    private static final HttpClient HTTP =
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+
     private static MetadataSource defaultMetadataSource() {
-        HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        HttpClient http = HTTP;
         return c -> {
             try {
                 return OidcMetadata.discover(http, c);
@@ -746,7 +772,7 @@ public final class OidcController {
 
     /** Authorization-code exchange over {@code java.net.http} (form-encoded POST). */
     static TokenExchanger defaultExchanger(OidcConfig cfg) {
-        HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        HttpClient http = HTTP;
         return (md, code, codeVerifier) -> {
             Map<String, String> form = new LinkedHashMap<>();
             form.put("grant_type", "authorization_code");

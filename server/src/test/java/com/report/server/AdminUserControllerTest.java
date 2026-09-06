@@ -210,4 +210,26 @@ class AdminUserControllerTest {
         assertEquals(Set.of("user"), saved.getValue().roles());
         assertEquals("sub-a", saved.getValue().externalId());
     }
+
+    @Test
+    void update_refusesPasswordForOidcAccount() throws Exception {
+        UserRecord oidc =
+                new UserRecord(
+                        "alice",
+                        "Alice",
+                        null,
+                        Set.of("user"),
+                        UserRecord.PROVIDER_OIDC,
+                        "iss|sub-a");
+        when(userRepo.findById("alice")).thenReturn(Optional.of(oidc));
+        when(ctx.pathParam("id")).thenReturn("alice");
+        when(ctx.bodyAsClass(Map.class)).thenReturn(Map.of("password", "newpassword1"));
+        controller.update(ctx);
+        verify(ctx).status(HttpStatus.FORBIDDEN);
+        ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
+        verify(ctx).json(body.capture());
+        assertEquals(
+                "PASSWORD_MANAGED_EXTERNALLY", ((Map<?, ?>) body.getValue()).get("detailCode"));
+        verify(userRepo, never()).save(any());
+    }
 }

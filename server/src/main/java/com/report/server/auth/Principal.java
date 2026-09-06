@@ -6,10 +6,11 @@ import java.util.Set;
  * Represents an authenticated user. Stored as a request attribute via the auth before-filter. All
  * handlers can access it via {@code ctx.attribute("principal")}.
  *
- * <p>{@code provider} records <em>how this principal was authenticated</em> (#499): {@link
- * #PROVIDER_LOCAL} for password / PAT logins of a locally managed account, {@link #PROVIDER_OIDC}
- * for a Keycloak (OpenID Connect) session or Bearer access token. It is informational — role checks
- * are provider-independent.
+ * <p>{@code provider} records the <em>origin of the account behind this principal</em> (#499):
+ * {@link #PROVIDER_LOCAL} for a locally managed (password) account — whether it signed in with a
+ * password or a PAT — and {@link #PROVIDER_OIDC} for an account provisioned by, or a session /
+ * Bearer token issued by, the OpenID Connect provider. It is informational — role checks are
+ * provider-independent.
  */
 public record Principal(String userId, String displayName, Set<String> roles, String provider) {
     public static final String PROVIDER_LOCAL = "local";

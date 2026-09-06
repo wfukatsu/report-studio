@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
  * local account is refused ({@code user_conflict}) regardless of this flag.</td></tr>
  * <tr><td>{@code OIDC_SCOPES}</td><td>Requested scopes (default {@code openid profile email}).
  * </td></tr>
+ * <tr><td>{@code OIDC_PROVIDER_NAME}</td><td>Label the UI shows for the IdP ("Keycloak でログイン",
+ * badges, messages). Default {@code Keycloak}.</td></tr>
  * </table>
  *
  * <p>Which of local / OIDC login is <em>offered</em> is a separate switch, {@code AUTH_MODE} — see
@@ -56,7 +58,8 @@ public record OidcConfig(
         String userRole,
         String roleClaim,
         boolean linkLocalUsers,
-        String scopes) {
+        String scopes,
+        String providerName) {
 
     private static final Logger log = LoggerFactory.getLogger(OidcConfig.class);
 
@@ -74,6 +77,10 @@ public record OidcConfig(
         String issuer = trimToNull(env.get("OIDC_ISSUER"));
         if (issuer == null) return null;
         issuer = stripTrailingSlash(issuer);
+        if (!isHttpUrl(issuer)) {
+            log.error("OIDC_ISSUER={} is not an http(s) URL — OIDC login disabled", issuer);
+            return null;
+        }
         String clientId = trimToNull(env.get("OIDC_CLIENT_ID"));
         if (clientId == null) {
             log.error("OIDC_ISSUER is set but OIDC_CLIENT_ID is missing — OIDC login disabled");
@@ -81,6 +88,12 @@ public record OidcConfig(
         }
         String internal = trimToNull(env.get("OIDC_INTERNAL_ISSUER"));
         internal = internal == null ? issuer : stripTrailingSlash(internal);
+        if (!isHttpUrl(internal)) {
+            log.error(
+                    "OIDC_INTERNAL_ISSUER={} is not an http(s) URL — OIDC login disabled",
+                    internal);
+            return null;
+        }
 
         String redirectUri = trimToNull(env.get("OIDC_REDIRECT_URI"));
         if (redirectUri == null) {
@@ -97,6 +110,7 @@ public record OidcConfig(
         String userRole = trimToNull(env.get("OIDC_USER_ROLE"));
         String roleClaim = trimToNull(env.get("OIDC_ROLE_CLAIM"));
         String scopes = trimToNull(env.get("OIDC_SCOPES"));
+        String providerName = trimToNull(env.get("OIDC_PROVIDER_NAME"));
 
         return new OidcConfig(
                 issuer,
@@ -110,7 +124,40 @@ public record OidcConfig(
                 userRole,
                 roleClaim == null ? DEFAULT_ROLE_CLAIM : roleClaim,
                 "true".equalsIgnoreCase(trimToNull(env.get("OIDC_LINK_LOCAL_USERS"))),
-                scopes == null ? "openid profile email" : scopes);
+                scopes == null ? "openid profile email" : scopes,
+                providerName == null ? "Keycloak" : providerName);
+    }
+
+    /** Records print every component; keep the client secret out of logs and error messages. */
+    @Override
+    public String toString() {
+        return "OidcConfig[issuer="
+                + issuer
+                + ", internalIssuer="
+                + internalIssuer
+                + ", clientId="
+                + clientId
+                + ", clientSecret="
+                + (clientSecret == null ? "<none>" : "<redacted>")
+                + ", redirectUri="
+                + redirectUri
+                + ", providerName="
+                + providerName
+                + ", linkLocalUsers="
+                + linkLocalUsers
+                + "]";
+    }
+
+    /** {@code http(s)://host…} with a parseable host — anything else would blow up at first use. */
+    static boolean isHttpUrl(String s) {
+        try {
+            java.net.URI u = java.net.URI.create(s);
+            String scheme = u.getScheme();
+            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+                    && u.getHost() != null;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     /** Whether the user-role gate is active (an IdP role is required to get {@code user}). */

@@ -105,19 +105,25 @@ public final class AuthController {
      */
     private volatile boolean oidcLinkEnabled;
 
+    /** Human-readable IdP name for the UI ({@code OIDC_PROVIDER_NAME}, default "Keycloak"). */
+    private volatile String oidcProviderName = "Keycloak";
+
     /** Wire the OIDC provider (#499): advertise it and enable provider logout. */
     public void enableOidc(Function<String, String> logoutUrlBuilder) {
-        enableOidc(logoutUrlBuilder, false);
+        enableOidc(logoutUrlBuilder, false, "Keycloak");
     }
 
     /**
      * @param linkEnabled advertise the explicit account-link flow ({@code /oidc/login?link=1}) to
      *     signed-in local users
+     * @param providerName label the UI shows for the IdP ("Keycloak でログイン" etc.)
      */
-    public void enableOidc(Function<String, String> logoutUrlBuilder, boolean linkEnabled) {
+    public void enableOidc(
+            Function<String, String> logoutUrlBuilder, boolean linkEnabled, String providerName) {
         this.oidcEnabled = true;
         this.oidcLogoutUrlBuilder = logoutUrlBuilder;
         this.oidcLinkEnabled = linkEnabled;
+        this.oidcProviderName = providerName;
     }
 
     public boolean isLocalLoginEnabled() {
@@ -441,8 +447,9 @@ public final class AuthController {
         auth.put("localLoginEnabled", authMode.localLoginEnabled());
         auth.put("oidcEnabled", oidcEnabled);
         if (oidcEnabled) {
-            auth.put("oidcLoginUrl", "/api/v1/auth/oidc/login");
+            auth.put("oidcLoginUrl", com.report.server.auth.oidc.OidcController.loginPath());
             auth.put("oidcLinkEnabled", oidcLinkEnabled);
+            auth.put("oidcProviderName", oidcProviderName);
         }
         body.put("auth", auth);
         return body;

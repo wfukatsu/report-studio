@@ -50,6 +50,12 @@ class OidcControllerTest {
                     OidcTestKeys.ISSUER + "/logout");
 
     private final AtomicLong now = new AtomicLong(System.currentTimeMillis());
+
+    /** Stored externalId = issuer|sub (L: issuer-qualified, survives an IdP switch). */
+    private static String ext(String sub) {
+        return OidcTestKeys.ISSUER + "|" + sub;
+    }
+
     private OidcTestKeys keys;
     private UserRepository userRepo;
     private AuthController authCtrl;
@@ -173,7 +179,7 @@ class OidcControllerTest {
         assertEquals("Test alice", u.displayName());
         assertNull(u.passwordHash());
         assertEquals(UserRecord.PROVIDER_OIDC, u.provider());
-        assertEquals("alice", u.externalId());
+        assertEquals(ext("alice"), u.externalId());
         assertEquals(Set.of("admin", "user"), u.roles());
 
         assertEquals("/", redirectTarget(ctx));
@@ -256,8 +262,8 @@ class OidcControllerTest {
                         null,
                         Set.of("user"),
                         UserRecord.PROVIDER_OIDC,
-                        "alice");
-        when(userRepo.findByExternalId("alice")).thenReturn(Optional.of(existing));
+                        ext("alice"));
+        when(userRepo.findByExternalId(ext("alice"))).thenReturn(Optional.of(existing));
         OidcController c = controller(Map.of());
         Map<String, String> q = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
         nextIdToken.set(
@@ -303,7 +309,7 @@ class OidcControllerTest {
         c.callback(ctx);
 
         verify(userRepo, never()).saveOrThrow(any());
-        assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
+        assertEquals("/?oidc_error=" + OidcController.ERR_ACCOUNT_UNAVAILABLE, redirectTarget(ctx));
         verify(ctx, never()).cookie(any(Cookie.class));
     }
 
@@ -324,7 +330,7 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
         verify(userRepo, never()).saveOrThrow(any());
-        assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
+        assertEquals("/?oidc_error=" + OidcController.ERR_ACCOUNT_UNAVAILABLE, redirectTarget(ctx));
         verify(ctx, never()).cookie(any(Cookie.class));
     }
 
@@ -385,14 +391,14 @@ class OidcControllerTest {
         UserRecord u = saved.getValue();
         assertEquals("hash", u.passwordHash());
         assertEquals(UserRecord.PROVIDER_LOCAL, u.provider());
-        assertEquals("sub-alice", u.externalId());
+        assertEquals(ext("sub-alice"), u.externalId());
         assertEquals(Set.of("admin", "user"), u.roles());
         assertEquals("/?oidc_linked=1", redirectTarget(ctx));
         // the existing local session is kept (no new session cookie)
         verify(ctx, never()).cookie(any(Cookie.class));
 
         // a later plain OIDC login resolves the linked account by sub, keeps the password
-        when(userRepo.findByExternalId("sub-alice")).thenReturn(Optional.of(u));
+        when(userRepo.findByExternalId(ext("sub-alice"))).thenReturn(Optional.of(u));
         Map<String, String> q2 = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
         nextIdToken.set(
                 keys.sign(
@@ -431,7 +437,7 @@ class OidcControllerTest {
             throws Exception {
         UserRecord local = new UserRecord("alice", "Local alice", "hash", Set.of("user"));
         when(userRepo.findById("alice")).thenReturn(Optional.of(local));
-        when(userRepo.findByExternalId("sub-x"))
+        when(userRepo.findByExternalId(ext("sub-x")))
                 .thenReturn(
                         Optional.of(
                                 new UserRecord(
@@ -440,7 +446,7 @@ class OidcControllerTest {
                                         null,
                                         Set.of("user"),
                                         UserRecord.PROVIDER_OIDC,
-                                        "sub-x")));
+                                        ext("sub-x"))));
         OidcController c = controller(Map.of("OIDC_LINK_LOCAL_USERS", "true"));
         String session = localSession("alice", Set.of("user"));
 
@@ -454,7 +460,7 @@ class OidcControllerTest {
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         when(ctx.cookie("session_id")).thenReturn(session);
         c.callback(ctx);
-        assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
+        assertEquals("/?oidc_error=" + OidcController.ERR_ACCOUNT_UNAVAILABLE, redirectTarget(ctx));
 
         // session gone between login and callback → unauthorized, nothing saved
         Map<String, String> q2 = startLink(c, session, ArgumentCaptor.forClass(String.class));
@@ -544,7 +550,7 @@ class OidcControllerTest {
 
     @Test
     void bearerAccessTokenResolvesExistingAccountWithoutTouchingTheStore() throws Exception {
-        when(userRepo.findByExternalId("carol"))
+        when(userRepo.findByExternalId(ext("carol")))
                 .thenReturn(
                         Optional.of(
                                 new UserRecord(
@@ -553,7 +559,7 @@ class OidcControllerTest {
                                         null,
                                         Set.of("user"),
                                         UserRecord.PROVIDER_OIDC,
-                                        "carol")));
+                                        ext("carol"))));
         OidcController c = controller(Map.of());
         String at =
                 keys.sign(
@@ -814,8 +820,13 @@ class OidcControllerTest {
     void bearerResolutionIsCachedUntilTheTokenExpires() throws Exception {
         UserRecord carol =
                 new UserRecord(
-                        "carol", "Carol", null, Set.of("user"), UserRecord.PROVIDER_OIDC, "carol");
-        when(userRepo.findByExternalId("carol")).thenReturn(Optional.of(carol));
+                        "carol",
+                        "Carol",
+                        null,
+                        Set.of("user"),
+                        UserRecord.PROVIDER_OIDC,
+                        ext("carol"));
+        when(userRepo.findByExternalId(ext("carol"))).thenReturn(Optional.of(carol));
         OidcController c = controller(Map.of());
         String at =
                 keys.sign(
@@ -828,14 +839,14 @@ class OidcControllerTest {
             when(ctx.header("Authorization")).thenReturn("Bearer " + at);
             assertEquals("carol", c.resolveFromBearer(ctx).userId());
         }
-        verify(userRepo, org.mockito.Mockito.times(1)).findByExternalId("carol");
+        verify(userRepo, org.mockito.Mockito.times(1)).findByExternalId(ext("carol"));
 
         now.addAndGet(61_000L); // past exp on the controller clock → cache entry discarded …
         Context late = mock(Context.class);
         when(late.header("Authorization")).thenReturn("Bearer " + at);
         c.resolveFromBearer(late);
         // … so the account is looked up again (nimbus validates exp against the wall clock)
-        verify(userRepo, org.mockito.Mockito.times(2)).findByExternalId("carol");
+        verify(userRepo, org.mockito.Mockito.times(2)).findByExternalId(ext("carol"));
     }
 
     // ── discovery resilience (H3) ─────────────────────────────────────────────
@@ -918,6 +929,43 @@ class OidcControllerTest {
             slow.join(5_000);
         }
         assertFalse(slow.isAlive());
+    }
+
+    // ── Low: log hygiene, fragment-safe redirects, dotted client ids ─────────
+
+    @Test
+    void providerErrorDescriptionIsSanitisedBeforeLogging() {
+        assertEquals(
+                "Code not valid INFO fake line",
+                OidcController.sanitizeForLog("Code not valid\r\n INFO fake line\u0007"));
+        String longText = "x".repeat(500);
+        assertEquals(200, OidcController.sanitizeForLog(longText).length());
+        assertEquals("", OidcController.sanitizeForLog(null));
+    }
+
+    @Test
+    void errorRedirectKeepsAFragmentInThePostLoginTarget() {
+        OidcController c = controller(Map.of("OIDC_POST_LOGIN_REDIRECT", "/#/reports"));
+        Context ctx = mock(Context.class);
+        when(ctx.queryParam("error")).thenReturn("access_denied");
+        c.callback(ctx);
+        assertEquals(
+                "/?oidc_error=" + OidcController.ERR_PROVIDER + "#/reports", redirectTarget(ctx));
+    }
+
+    @Test
+    void logoutUrlIsNullWithoutAnEndSessionEndpoint() {
+        OidcController c =
+                controllerWithSource(
+                        cfg ->
+                                new OidcMetadata(
+                                        OidcTestKeys.ISSUER,
+                                        MD.authorizationEndpoint(),
+                                        MD.tokenEndpoint(),
+                                        MD.jwksUri(),
+                                        null));
+        c.warmUp();
+        assertNull(c.logoutUrl("hint"));
     }
 
     // ── logout ───────────────────────────────────────────────────────────────

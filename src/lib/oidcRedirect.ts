@@ -3,7 +3,7 @@
  * Shared by LoginModal (anonymous) and useOidcRedirectResult (signed in).
  */
 export const OIDC_ERROR_CODES = [
-  'provider_error', 'invalid_state', 'invalid_token', 'user_conflict', 'no_role',
+  'provider_error', 'invalid_state', 'invalid_token', 'account_unavailable', 'no_role',
   'provider_unavailable', 'link_unauthorized', 'link_disabled', 'rate_limited',
 ] as const
 export type OidcErrorCode = (typeof OIDC_ERROR_CODES)[number]

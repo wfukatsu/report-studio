@@ -186,7 +186,8 @@ public final class AppWiring {
         authCtrl = new AuthController(userRepo, System::currentTimeMillis, authMode);
         if (authMode.oidcEnabled()) {
             oidcCtrl = new OidcController(oidcConfig, userRepo, authCtrl);
-            authCtrl.enableOidc(oidcCtrl::logoutUrl, oidcConfig.linkLocalUsers());
+            authCtrl.enableOidc(
+                    oidcCtrl::logoutUrl, oidcConfig.linkLocalUsers(), oidcConfig.providerName());
             oidcCtrl.warmUp();
             log.info(
                     "Auth mode {}: OIDC login enabled (issuer={}, client={}), local login {}",

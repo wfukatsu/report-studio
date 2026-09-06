@@ -83,14 +83,15 @@
     "userTable": {
       "cannotDeleteSelf": "You cannot delete yourself",
       "colDisplayName": "Display name",
-      "colProvider": "Auth",
+      "colProvider": "Sign-in",
       "colRole": "Role",
       "colUserId": "User ID",
       "delete": "Delete",
       "deleteTitle": "Delete {{name}}",
       "empty": "No users",
+      "noPasswordHint": "No password ({{provider}} sign-in)",
       "providerLocal": "Local",
-      "providerOidc": "Keycloak"
+      "providerOidc": "{{provider}}"
     }
   },
   "bindingEditor": {
