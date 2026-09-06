@@ -9,6 +9,13 @@
     "displayName": "Display name",
     "newPassword": "New password",
     "noChanges": "No changes",
+    "oidcLink": {
+      "button": "Link Keycloak account",
+      "hint": "Once linked you can also sign in to this account with Keycloak. Password login keeps working",
+      "linked": "This account is linked to a Keycloak account",
+      "success": "Keycloak account linked",
+      "title": "Keycloak link"
+    },
     "passwordManagedExternally": "The password for this account is managed by the identity provider (Keycloak)",
     "passwordMismatch": "The new passwords do not match",
     "save": "Save",
@@ -227,12 +234,14 @@
     "loginFailed": "Login failed ({{status}})",
     "networkError": "A network error occurred",
     "oidcError": {
-      "provider_error": "Login at the identity provider failed",
       "invalid_state": "The login session is invalid. Please try again",
       "invalid_token": "The token from the identity provider could not be verified",
-      "user_conflict": "A local account with the same user ID already exists. Contact an administrator",
+      "link_disabled": "Account linking is disabled on this server",
+      "link_unauthorized": "Linking requires being signed in with a local account. Sign in again and retry",
       "no_role": "No role for this application has been assigned to you. Contact an administrator",
-      "provider_unavailable": "The identity provider is unreachable. Please try again later"
+      "provider_error": "Login at the identity provider failed",
+      "provider_unavailable": "The identity provider is unreachable. Please try again later",
+      "user_conflict": "A local account with the same user ID already exists. Contact an administrator"
     },
     "oidcLogin": "Log in with Keycloak",
     "or": "or",

@@ -212,7 +212,7 @@ scalar.db.transaction_manager=jdbc
 | `OIDC_ADMIN_ROLE` | `report-studio-admin` | `admin` にマッピングする IdP ロール |
 | `OIDC_USER_ROLE` | （未設定） | 設定するとこのロールを持つユーザーだけがログインできる（未設定なら認証済み全員が `user`） |
 | `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
-| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で同じユーザー ID のローカルアカウントに OIDC ID を紐付ける（既定は衝突として拒否） |
+| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak ID を**明示的に**連携できる。ユーザー ID が一致するだけの暗黙リンクは行わない（常に `user_conflict` で拒否） |
 | `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
 | `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足時はエラーログを出して `local` にフォールバック |
 | `ALLOWED_ORIGIN` | （未設定） | CORS / CSRF Origin チェックで許可する追加オリジン。ブラウザの URL と一致させる |
@@ -244,11 +244,17 @@ scalar.db.transaction_manager=jdbc
 ### 仕組み
 
 - **ブラウザ**: ログインモーダルの「Keycloak でログイン」→ `GET /api/v1/auth/oidc/login`（Authorization Code + PKCE、state/nonce を検証）→ `GET /api/v1/auth/oidc/callback` で ID トークンを JWKS で検証し、**通常の Cookie セッション**を発行します。SPA はトークンを扱いません。
-- **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。
+- **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。Bearer で解決できるのは**既にアカウントがあるユーザーだけ**です。アクセストークン単体ではアカウントの自動作成もローカルアカウントへの紐付けも行わないため、先に一度ブラウザで Keycloak ログイン（または下記の明示連携）を済ませてください。ID トークン（`typ: ID`）やリフレッシュトークンは Bearer として受け付けません。
 - **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。Keycloak 既定の「realm roles」マッパーは `realm_access` を**アクセストークンにしか**入れないため、コールバックでは ID トークンと一緒に返るアクセストークンも検証してロール元にします（Keycloak 側で ID トークンにロールを追加する設定は不要です）。
-- **衝突**: 同じ `userId` のローカルアカウントが既にある場合、既定ではログインを拒否します（`?oidc_error=user_conflict`）。`OIDC_LINK_LOCAL_USERS=true` にするとそのローカルアカウントに紐付け、パスワードログインも引き続き可能です。
+- **衝突と連携**: 同じ `userId` のローカルアカウントが既にある場合、Keycloak ログインは常に拒否します（`?oidc_error=user_conflict`）。ユーザー名が一致するだけでローカルアカウントを乗っ取れないようにするためです。既存のローカルアカウントで Keycloak も使いたい場合は `OIDC_LINK_LOCAL_USERS=true` にし、**ローカルでログインした状態で**アカウント設定の「Keycloak アカウントと連携」から連携します（`GET /api/v1/auth/oidc/login?link=1`）。連携後はパスワードと Keycloak のどちらでもログインでき、`/auth/me` の `oidcLinked` が `true` になります。
 - **ログアウト**: OIDC セッションのログアウトは Keycloak の `end_session_endpoint` へ遷移し、SSO セッションも終了します（RP-Initiated Logout）。
 - **パスワード**: OIDC で作成されたアカウントはアカウント画面・管理画面ともにパスワード変更が拒否されます（`PASSWORD_MANAGED_EXTERNALLY`）。
+
+### 障害時の挙動
+
+- Keycloak の discovery（`/.well-known/openid-configuration`）は遅延取得で、失敗すると 30 秒間は再試行せずに即座に失敗します（`?oidc_error=provider_unavailable` / Bearer は 401）。取得中の他のリクエストも待たされません。
+- JWKS（署名鍵）は 5 分キャッシュされ、Keycloak が一時的に落ちてもキャッシュ済みの鍵で既発行トークンの検証は続きます。鍵取得のタイムアウトは 5 秒です。
+- state・nonce・セッションはプロセス内メモリに保持します。複数インスタンスで動かす場合は同一クライアントを同一インスタンスへ固定（sticky session）してください。
 
 ### Docker でローカル再現
 

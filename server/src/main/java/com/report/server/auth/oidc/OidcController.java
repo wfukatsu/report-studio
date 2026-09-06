@@ -3,7 +3,6 @@ package com.report.server.auth.oidc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.report.server.ApiError;
 import com.report.server.AppConfig;
 import com.report.server.auth.AuthController;
 import com.report.server.auth.Principal;
@@ -44,8 +43,15 @@ import org.slf4j.LoggerFactory;
  *       user, provisions or links the account and issues the <b>same cookie session</b> a password
  *       login would. Errors redirect to the SPA with {@code ?oidc_error=<code>} so the login modal
  *       can explain them.
+ *   <li>{@code GET /api/v1/auth/oidc/login?link=1} — <b>explicit account linking</b>: a user who is
+ *       already signed in with a local password starts the same flow, and the callback attaches the
+ *       IdP {@code sub} to <em>that</em> account instead of creating one. Requires {@code
+ *       OIDC_LINK_LOCAL_USERS=true}. A plain OIDC login whose user id collides with a local account
+ *       is always refused ({@code user_conflict}) — username equality alone must never take over an
+ *       account.
  *   <li>{@link #resolveFromBearer} — verifies a Keycloak access token presented as {@code
  *       Authorization: Bearer} (called by the auth before-filter after the PAT lookup misses).
+ *       Resolves <em>existing</em> accounts only: an API token never provisions or links.
  *   <li>{@link #logoutUrl} — RP-Initiated Logout URL used by {@code POST /auth/logout} for OIDC
  *       sessions.
  * </ul>
@@ -71,6 +77,11 @@ public final class OidcController {
     public static final String ERR_USER_CONFLICT = "user_conflict";
     public static final String ERR_NO_ROLE = "no_role";
     public static final String ERR_UNAVAILABLE = "provider_unavailable";
+    public static final String ERR_LINK_UNAUTHORIZED = "link_unauthorized";
+    public static final String ERR_LINK_DISABLED = "link_disabled";
+
+    /** After a failed discovery, callers fail fast for this long instead of retrying (H3). */
+    static final long DISCOVERY_BACKOFF_MS = 30_000L;
 
     /** Result of the authorization-code exchange. */
     public record TokenResponse(String idToken, String accessToken) {}
@@ -94,7 +105,12 @@ public final class OidcController {
         OidcTokenVerifier create(OidcConfig cfg, OidcMetadata md) throws Exception;
     }
 
-    private record PendingFlow(String nonce, String codeVerifier, long expiresAt) {}
+    /**
+     * @param linkUserId when non-null this flow links the IdP identity to that already signed-in
+     *     local account instead of logging in (see class doc)
+     */
+    private record PendingFlow(
+            String nonce, String codeVerifier, long expiresAt, String linkUserId) {}
 
     private final OidcConfig cfg;
     private final UserRepository userRepo;
@@ -108,6 +124,17 @@ public final class OidcController {
 
     private volatile OidcMetadata metadata;
     private volatile OidcTokenVerifier verifier;
+
+    /** Clock time of the last failed discovery; 0 when none / cleared by success (H3). */
+    private volatile long discoveryFailedAt;
+
+    /**
+     * Guards discovery + verifier construction. A plain monitor would make every caller queue
+     * behind an in-flight network call while the provider is down; {@code tryLock} lets them fail
+     * fast instead (H3).
+     */
+    private final java.util.concurrent.locks.ReentrantLock discoveryLock =
+            new java.util.concurrent.locks.ReentrantLock();
 
     public OidcController(OidcConfig cfg, UserRepository userRepo, AuthController authCtrl) {
         this(
@@ -165,19 +192,47 @@ public final class OidcController {
     OidcMetadata metadata() throws IOException {
         OidcMetadata md = metadata;
         if (md != null) return md;
-        synchronized (this) {
-            if (metadata == null) metadata = metadataSource.load(cfg);
-            return metadata;
+        failFastIfBackingOff();
+        if (!discoveryLock.tryLock()) {
+            throw new IOException("OIDC discovery in progress — try again shortly");
+        }
+        try {
+            if (metadata != null) return metadata;
+            failFastIfBackingOff();
+            try {
+                metadata = metadataSource.load(cfg);
+                discoveryFailedAt = 0;
+                return metadata;
+            } catch (IOException e) {
+                discoveryFailedAt = clock.getAsLong();
+                throw e;
+            }
+        } finally {
+            discoveryLock.unlock();
+        }
+    }
+
+    private void failFastIfBackingOff() throws IOException {
+        long failedAt = discoveryFailedAt;
+        if (failedAt != 0 && clock.getAsLong() - failedAt < DISCOVERY_BACKOFF_MS) {
+            throw new IOException(
+                    "OIDC discovery failed recently — retrying after "
+                            + (DISCOVERY_BACKOFF_MS / 1000)
+                            + "s");
         }
     }
 
     private OidcTokenVerifier verifier() throws IOException {
         OidcTokenVerifier v = verifier;
         if (v != null) return v;
-        synchronized (this) {
+        OidcMetadata md = metadata(); // outside the lock: has its own backoff / tryLock
+        if (!discoveryLock.tryLock()) {
+            throw new IOException("OIDC verifier initialisation in progress — try again shortly");
+        }
+        try {
             if (verifier == null) {
                 try {
-                    verifier = verifierFactory.create(cfg, metadata());
+                    verifier = verifierFactory.create(cfg, md);
                 } catch (IOException e) {
                     throw e;
                 } catch (Exception e) {
@@ -186,30 +241,49 @@ public final class OidcController {
                 }
             }
             return verifier;
+        } finally {
+            discoveryLock.unlock();
         }
     }
 
     // ── Browser flow ─────────────────────────────────────────────────────────
 
-    /** GET /api/v1/auth/oidc/login */
+    /**
+     * GET /api/v1/auth/oidc/login[?link=1]
+     *
+     * <p>{@code link=1} turns the flow into an account-link request for the caller's current local
+     * session (see class doc). Failures redirect to the SPA with {@code ?oidc_error=} like the
+     * callback does — this endpoint is a browser navigation target, never a fetch.
+     */
     public void login(Context ctx) {
+        String linkUserId = null;
+        if ("1".equals(ctx.queryParam("link")) || "true".equals(ctx.queryParam("link"))) {
+            if (!cfg.linkLocalUsers()) {
+                fail(ctx, ERR_LINK_DISABLED);
+                return;
+            }
+            Principal current = authCtrl.resolveFromRequest(ctx);
+            if (current.isAnonymous() || !Principal.PROVIDER_LOCAL.equals(current.provider())) {
+                fail(ctx, ERR_LINK_UNAUTHORIZED);
+                return;
+            }
+            linkUserId = current.userId();
+        }
         OidcMetadata md;
         try {
             md = metadata();
         } catch (IOException e) {
             log.warn("OIDC login unavailable: {}", e.getMessage());
-            ApiError.respond(
-                    ctx,
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "OIDC_UNAVAILABLE",
-                    "OIDC provider is not reachable");
+            fail(ctx, ERR_UNAVAILABLE);
             return;
         }
         evictExpiredFlows();
         String state = randomToken(32);
         String nonce = randomToken(32);
         String verifierStr = randomToken(48); // 64 base64url chars — within RFC 7636's 43..128
-        pending.put(state, new PendingFlow(nonce, verifierStr, clock.getAsLong() + FLOW_TTL_MS));
+        pending.put(
+                state,
+                new PendingFlow(nonce, verifierStr, clock.getAsLong() + FLOW_TTL_MS, linkUserId));
 
         Cookie cookie = new Cookie(STATE_COOKIE, state);
         cookie.setMaxAge((int) (FLOW_TTL_MS / 1000));
@@ -274,7 +348,21 @@ public final class OidcController {
             return;
         }
 
-        Provisioned p = provision(mapper.map(claims, roleClaims));
+        OidcUserMapper.MappedUser mapped = mapper.map(claims, roleClaims);
+        if (flow.linkUserId() != null) {
+            String error = link(ctx, flow.linkUserId(), mapped);
+            if (error != null) {
+                fail(ctx, error);
+                return;
+            }
+            String target = cfg.postLoginRedirect();
+            ctx.redirect(
+                    target + (target.contains("?") ? "&" : "?") + "oidc_linked=1",
+                    HttpStatus.FOUND);
+            return;
+        }
+
+        Provisioned p = provision(mapped);
         if (p.error() != null) {
             fail(ctx, p.error());
             return;
@@ -285,6 +373,49 @@ public final class OidcController {
                 p.principal().userId(),
                 claims.getSubject());
         ctx.redirect(cfg.postLoginRedirect(), HttpStatus.FOUND);
+    }
+
+    /**
+     * Attaches {@code mapped.externalId()} to the local account {@code userId}, which must still be
+     * the caller's active local session (proof of ownership, H1). Returns an error code or null on
+     * success. The existing session is left untouched.
+     */
+    private String link(Context ctx, String userId, OidcUserMapper.MappedUser mapped) {
+        Principal current = authCtrl.resolveFromRequest(ctx);
+        if (current.isAnonymous()
+                || !userId.equals(current.userId())
+                || !Principal.PROVIDER_LOCAL.equals(current.provider())) {
+            log.warn("OIDC link for '{}' refused: local session no longer active", userId);
+            return ERR_LINK_UNAUTHORIZED;
+        }
+        Optional<UserRecord> localOpt = userRepo.findById(userId);
+        if (localOpt.isEmpty() || !localOpt.get().hasPassword()) {
+            return ERR_LINK_UNAUTHORIZED;
+        }
+        UserRecord local = localOpt.get();
+        boolean subTaken =
+                findByExternalId(mapped.externalId())
+                        .map(u -> !u.userId().equals(userId))
+                        .orElse(false);
+        boolean alreadyLinkedElsewhere =
+                local.externalId() != null && !local.externalId().equals(mapped.externalId());
+        if (subTaken || alreadyLinkedElsewhere) {
+            log.warn(
+                    "OIDC link for '{}' refused: sub={} already bound to another account",
+                    userId,
+                    mapped.externalId());
+            return ERR_USER_CONFLICT;
+        }
+        userRepo.save(
+                new UserRecord(
+                        local.userId(),
+                        local.displayName(),
+                        local.passwordHash(),
+                        local.roles(),
+                        local.provider(),
+                        mapped.externalId()));
+        log.info("Linked local user '{}' to OIDC sub={}", userId, mapped.externalId());
+        return null;
     }
 
     /**
@@ -335,12 +466,41 @@ public final class OidcController {
             log.debug("OIDC Bearer token rejected: {}", e.getMessage());
             return Principal.ANONYMOUS;
         }
-        Provisioned p = provision(mapper.map(claims));
-        if (p.error() != null) {
-            log.debug("OIDC Bearer token mapped to no usable account: {}", p.error());
+        OidcUserMapper.MappedUser m = mapper.map(claims);
+        if (!m.allowed()) return Principal.ANONYMOUS;
+        try {
+            // Existing accounts only (H1): an API token never provisions or links — the user
+            // must have signed in through the browser once (or been linked explicitly).
+            return findByExternalId(m.externalId())
+                    .map(
+                            rec ->
+                                    new Principal(
+                                            rec.userId(),
+                                            rec.displayName(),
+                                            m.roles(),
+                                            Principal.PROVIDER_OIDC))
+                    .orElseGet(
+                            () -> {
+                                log.debug(
+                                        "OIDC Bearer token for unknown sub={} (no account yet)",
+                                        m.externalId());
+                                return Principal.ANONYMOUS;
+                            });
+        } catch (RuntimeException e) {
+            // Never propagate (the before-filter maps ANONYMOUS to 401); DB trouble = 401, not 500
+            log.warn("OIDC Bearer resolution failed: {}", e.getMessage());
             return Principal.ANONYMOUS;
         }
-        return p.principal();
+    }
+
+    /**
+     * Account bound to an IdP subject — provisioned ({@code oidc}) or explicitly linked ({@code
+     * local}).
+     */
+    private Optional<UserRecord> findByExternalId(String sub) {
+        Optional<UserRecord> byExt = userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, sub);
+        if (byExt.isEmpty()) byExt = userRepo.findByExternalId(UserRecord.PROVIDER_LOCAL, sub);
+        return byExt;
     }
 
     // ── Provisioning ─────────────────────────────────────────────────────────
@@ -348,30 +508,26 @@ public final class OidcController {
     private record Provisioned(Principal principal, String error) {}
 
     /**
-     * Finds or creates the local account for a mapped IdP user.
+     * Finds or creates the account for a mapped IdP user (browser login only).
      *
      * <ol>
      *   <li>Lookup by {@code externalId}: existing OIDC accounts are refreshed with the current
-     *       display name and IdP roles (the IdP is authoritative); linked local accounts keep their
-     *       stored record and only the session takes the IdP roles.
-     *   <li>Otherwise lookup by {@code userId}: an existing local account is linked only when
-     *       {@code OIDC_LINK_LOCAL_USERS=true}, else {@code user_conflict}.
+     *       display name and IdP roles (the IdP is authoritative); explicitly linked local accounts
+     *       keep their stored record and only the session takes the IdP roles.
+     *   <li>Otherwise an existing local account with the same {@code userId} is a conflict — never
+     *       linked implicitly (H1); linking is an explicit, session-bound action ({@link #link}).
      *   <li>Otherwise a new password-less {@code provider=oidc} account is created.
      * </ol>
      */
     private Provisioned provision(OidcUserMapper.MappedUser m) {
         if (!m.allowed()) return new Provisioned(null, ERR_NO_ROLE);
 
-        Optional<UserRecord> byExt =
-                userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, m.externalId());
-        if (byExt.isEmpty()) {
-            byExt = userRepo.findByExternalId(UserRecord.PROVIDER_LOCAL, m.externalId());
-        }
+        Optional<UserRecord> byExt = findByExternalId(m.externalId());
         UserRecord rec;
         if (byExt.isPresent()) {
             rec = byExt.get();
             if (rec.isOidc()
-                    && (!rec.displayName().equals(m.displayName())
+                    && (!java.util.Objects.equals(rec.displayName(), m.displayName())
                             || !rec.roles().equals(m.roles()))) {
                 rec =
                         new UserRecord(
@@ -383,39 +539,24 @@ public final class OidcController {
                                 m.externalId());
                 userRepo.save(rec);
             }
+        } else if (userRepo.findById(m.userId()).isPresent()) {
+            log.warn(
+                    "OIDC login refused: user id '{}' already exists locally (sub={}); link it"
+                            + " explicitly from the account settings instead",
+                    m.userId(),
+                    m.externalId());
+            return new Provisioned(null, ERR_USER_CONFLICT);
         } else {
-            Optional<UserRecord> byId = userRepo.findById(m.userId());
-            if (byId.isPresent()) {
-                UserRecord local = byId.get();
-                if (local.externalId() != null || !cfg.linkLocalUsers()) {
-                    log.warn(
-                            "OIDC login refused: user id '{}' already exists locally (sub={})",
+            rec =
+                    new UserRecord(
                             m.userId(),
+                            m.displayName(),
+                            null,
+                            m.roles(),
+                            UserRecord.PROVIDER_OIDC,
                             m.externalId());
-                    return new Provisioned(null, ERR_USER_CONFLICT);
-                }
-                rec =
-                        new UserRecord(
-                                local.userId(),
-                                local.displayName(),
-                                local.passwordHash(),
-                                local.roles(),
-                                local.provider(),
-                                m.externalId());
-                userRepo.save(rec);
-                log.info("Linked local user '{}' to OIDC sub={}", rec.userId(), m.externalId());
-            } else {
-                rec =
-                        new UserRecord(
-                                m.userId(),
-                                m.displayName(),
-                                null,
-                                m.roles(),
-                                UserRecord.PROVIDER_OIDC,
-                                m.externalId());
-                userRepo.save(rec);
-                log.info("Provisioned OIDC user '{}' (sub={})", rec.userId(), m.externalId());
-            }
+            userRepo.save(rec);
+            log.info("Provisioned OIDC user '{}' (sub={})", rec.userId(), m.externalId());
         }
         return new Provisioned(
                 new Principal(rec.userId(), rec.displayName(), m.roles(), Principal.PROVIDER_OIDC),

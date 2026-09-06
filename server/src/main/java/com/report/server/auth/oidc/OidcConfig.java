@@ -33,9 +33,10 @@ import org.slf4j.LoggerFactory;
  * <tr><td>{@code OIDC_ROLE_CLAIM}</td><td>Dot path of the roles array in the token (default
  * {@code realm_access.roles}; e.g. {@code resource_access.report-studio.roles} for client
  * roles).</td></tr>
- * <tr><td>{@code OIDC_LINK_LOCAL_USERS}</td><td>{@code true} lets an IdP login attach itself to an
- * existing local account with the same user id. Default {@code false}: such a login is refused
- * ({@code user_conflict}).</td></tr>
+ * <tr><td>{@code OIDC_LINK_LOCAL_USERS}</td><td>{@code true} lets a user who is signed in with a
+ * local password link their IdP identity from the account settings ({@code
+ * /oidc/login?link=1}). Linking is never implicit: a plain IdP login whose user id collides with a
+ * local account is refused ({@code user_conflict}) regardless of this flag.</td></tr>
  * <tr><td>{@code OIDC_SCOPES}</td><td>Requested scopes (default {@code openid profile email}).
  * </td></tr>
  * </table>

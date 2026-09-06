@@ -120,6 +120,97 @@ class OidcTokenVerifierTest {
     }
 
     @Test
+    void accessTokenRejectsKeycloakIdAndRefreshTokens() throws Exception {
+        // H2: an ID token (aud = client) must not double as an API credential
+        String idTok =
+                keys.sign(
+                        OidcTestKeys.claims("alice", now)
+                                .claim("typ", "ID")
+                                .claim("nonce", "n")
+                                .build());
+        assertThrows(
+                OidcTokenVerifier.InvalidTokenException.class,
+                () -> verifier.verifyAccessToken(idTok));
+        String refresh =
+                keys.sign(
+                        OidcTestKeys.claims("alice", now)
+                                .claim("typ", "Refresh")
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .build());
+        assertThrows(
+                OidcTokenVerifier.InvalidTokenException.class,
+                () -> verifier.verifyAccessToken(refresh));
+        // Keycloak access tokens carry typ=Bearer; absent typ stays accepted for other IdPs
+        String bearer =
+                keys.sign(
+                        OidcTestKeys.claims("alice", now)
+                                .claim("typ", "Bearer")
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .build());
+        assertEquals("alice", verifier.verifyAccessToken(bearer).getSubject());
+    }
+
+    @Test
+    void idTokenRejectsAccessTokenTyp() throws Exception {
+        String at =
+                keys.sign(
+                        OidcTestKeys.claims("alice", now)
+                                .claim("typ", "Bearer")
+                                .claim("nonce", "n1")
+                                .build());
+        assertThrows(
+                OidcTokenVerifier.InvalidTokenException.class,
+                () -> verifier.verifyIdToken(at, "n1"));
+        String id =
+                keys.sign(
+                        OidcTestKeys.claims("alice", now)
+                                .claim("typ", "ID")
+                                .claim("nonce", "n1")
+                                .build());
+        assertEquals("alice", verifier.verifyIdToken(id, "n1").getSubject());
+    }
+
+    @Test
+    void remoteJwksToleratesASlowEndpoint() throws Exception {
+        // H4: nimbus' 500 ms default retriever timeout fails against a slow Keycloak
+        com.sun.net.httpserver.HttpServer server =
+                com.sun.net.httpserver.HttpServer.create(
+                        new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        byte[] body =
+                new com.nimbusds.jose.jwk.JWKSet(keys.key.toPublicJWK())
+                        .toString()
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        server.createContext(
+                "/certs",
+                ex -> {
+                    try {
+                        Thread.sleep(1_200);
+                    } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    }
+                    ex.getResponseHeaders().add("Content-Type", "application/json");
+                    ex.sendResponseHeaders(200, body.length);
+                    try (var os = ex.getResponseBody()) {
+                        os.write(body);
+                    }
+                });
+        server.start();
+        try {
+            String jwksUri = "http://127.0.0.1:" + server.getAddress().getPort() + "/certs";
+            OidcTokenVerifier remote =
+                    new OidcTokenVerifier(OidcTestKeys.ISSUER, OidcTestKeys.CLIENT, jwksUri);
+            String at =
+                    keys.sign(
+                            OidcTestKeys.claims("alice", now)
+                                    .claim("azp", OidcTestKeys.CLIENT)
+                                    .build());
+            assertEquals("alice", remote.verifyAccessToken(at).getSubject());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void looksLikeJwtRoutesOnlyThreeSegmentTokens() {
         assertTrue(OidcTokenVerifier.looksLikeJwt("aaa.bbb.ccc"));
         assertFalse(OidcTokenVerifier.looksLikeJwt("rpat_abcdef"));

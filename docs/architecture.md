@@ -154,11 +154,13 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
                                             ID トークン検証（JWKS / iss / aud / exp / nonce）
                                             ユーザー解決（externalId=sub → 自動プロビジョニング or リンク）
                                             通常の Cookie セッション発行 → 302 /
-API   ─ Authorization: Bearer <JWT> ─────▶ PAT 不一致なら JWKS で検証 → Principal(provider=oidc)
+API   ─ Authorization: Bearer <JWT> ─────▶ PAT 不一致なら JWKS で検証 → 既存アカウント（externalId）を解決
+                                            （自動作成・リンクはしない）→ Principal(provider=oidc)
 ```
 
 - 実装は `server/.../auth/oidc/`（`OidcConfig` 環境変数、`OidcMetadata` discovery、`OidcTokenVerifier` nimbus-jose-jwt、`OidcUserMapper` ロールマッピング、`OidcController` フロー）
 - OIDC 由来のアカウントは `passwordHash=null` で、パスワード変更 API は `PASSWORD_MANAGED_EXTERNALLY` で拒否する
+- ローカルアカウントとの連携はユーザー名一致では行わず、ローカルでログイン済みのセッションからの明示操作（`/oidc/login?link=1`）でのみ `externalId` を付与する
 - ログアウトは `logoutUrl`（end_session_endpoint）を返し、SPA が遷移して SSO セッションも終了する
 - CSRF: コールバックは GET のため対象外。state Cookie（`SameSite=Lax`, path 限定）と nonce でリプレイ／CSRF を防ぐ
 

@@ -9,6 +9,13 @@
     "displayName": "表示名",
     "newPassword": "新しいパスワード",
     "noChanges": "変更がありません",
+    "oidcLink": {
+      "button": "Keycloak アカウントと連携",
+      "hint": "連携すると、このアカウントに Keycloak でもログインできるようになります。パスワードログインはそのまま使えます",
+      "linked": "このアカウントは Keycloak アカウントと連携済みです",
+      "success": "Keycloak アカウントと連携しました",
+      "title": "Keycloak 連携"
+    },
     "passwordManagedExternally": "このアカウントのパスワードは ID プロバイダ（Keycloak）で管理されています",
     "passwordMismatch": "新しいパスワードが一致しません",
     "save": "保存",
@@ -227,12 +234,14 @@
     "loginFailed": "ログインに失敗しました ({{status}})",
     "networkError": "ネットワークエラーが発生しました",
     "oidcError": {
-      "provider_error": "ID プロバイダでのログインに失敗しました",
       "invalid_state": "ログインセッションが無効です。もう一度お試しください",
       "invalid_token": "ID プロバイダから受け取ったトークンを検証できませんでした",
-      "user_conflict": "同じユーザーIDのローカルアカウントが既に存在するためログインできません。管理者に連絡してください",
+      "link_disabled": "このサーバではアカウント連携が無効になっています",
+      "link_unauthorized": "アカウント連携にはローカルアカウントでのログインが必要です。ログインし直してから再度お試しください",
       "no_role": "このアプリを利用するロールが割り当てられていません。管理者に連絡してください",
-      "provider_unavailable": "ID プロバイダに接続できません。しばらく待ってから再試行してください"
+      "provider_error": "ID プロバイダでのログインに失敗しました",
+      "provider_unavailable": "ID プロバイダに接続できません。しばらく待ってから再試行してください",
+      "user_conflict": "同じユーザーIDのローカルアカウントが既に存在するためログインできません。管理者に連絡してください"
     },
     "oidcLogin": "Keycloak でログイン",
     "or": "または",

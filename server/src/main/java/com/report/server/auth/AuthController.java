@@ -100,10 +100,24 @@ public final class AuthController {
                 TimeUnit.MINUTES);
     }
 
+    /**
+     * Whether signed-in local users may link their IdP identity ({@code OIDC_LINK_LOCAL_USERS}).
+     */
+    private volatile boolean oidcLinkEnabled;
+
     /** Wire the OIDC provider (#499): advertise it and enable provider logout. */
     public void enableOidc(Function<String, String> logoutUrlBuilder) {
+        enableOidc(logoutUrlBuilder, false);
+    }
+
+    /**
+     * @param linkEnabled advertise the explicit account-link flow ({@code /oidc/login?link=1}) to
+     *     signed-in local users
+     */
+    public void enableOidc(Function<String, String> logoutUrlBuilder, boolean linkEnabled) {
         this.oidcEnabled = true;
         this.oidcLogoutUrlBuilder = logoutUrlBuilder;
+        this.oidcLinkEnabled = linkEnabled;
     }
 
     public boolean isLocalLoginEnabled() {
@@ -419,11 +433,16 @@ public final class AuthController {
         body.put("anonymous", principal.isAnonymous());
         body.put("provider", principal.provider());
         body.put("hasPassword", user != null && user.hasPassword());
+        // A local account that has been explicitly linked to an IdP identity (H1 link flow)
+        body.put("oidcLinked", user != null && user.externalId() != null);
         Map<String, Object> auth = new java.util.LinkedHashMap<>();
         auth.put("mode", authMode.id());
         auth.put("localLoginEnabled", authMode.localLoginEnabled());
         auth.put("oidcEnabled", oidcEnabled);
-        if (oidcEnabled) auth.put("oidcLoginUrl", "/api/v1/auth/oidc/login");
+        if (oidcEnabled) {
+            auth.put("oidcLoginUrl", "/api/v1/auth/oidc/login");
+            auth.put("oidcLinkEnabled", oidcLinkEnabled);
+        }
         body.put("auth", auth);
         return body;
     }

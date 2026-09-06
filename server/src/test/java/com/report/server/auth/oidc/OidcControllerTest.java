@@ -294,7 +294,8 @@ class OidcControllerTest {
     }
 
     @Test
-    void callbackLinksLocalUserWhenEnabledAndKeepsPassword() throws Exception {
+    void callbackNeverLinksImplicitlyEvenWhenLinkingIsEnabled() throws Exception {
+        // H1: username equality alone must never attach an IdP identity to a local account
         when(userRepo.findById("alice"))
                 .thenReturn(
                         Optional.of(
@@ -308,22 +309,152 @@ class OidcControllerTest {
                                 .build()));
         Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
         c.callback(ctx);
+        verify(userRepo, never()).save(any());
+        assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
+        verify(ctx, never()).cookie(any(Cookie.class));
+    }
+
+    /** Logs a local user in and returns the session cookie value. */
+    private String localSession(String userId, Set<String> roles) {
+        Context login = mock(Context.class);
+        authCtrl.loginExternal(
+                login,
+                new Principal(userId, "Local " + userId, roles, Principal.PROVIDER_LOCAL),
+                null);
+        ArgumentCaptor<Cookie> cookie = ArgumentCaptor.forClass(Cookie.class);
+        verify(login).cookie(cookie.capture());
+        return cookie.getValue().getValue();
+    }
+
+    /**
+     * GET /oidc/login?link=1 with a session cookie; returns the redirect query (or null on error
+     * redirect).
+     */
+    private Map<String, String> startLink(
+            OidcController c, String sessionId, ArgumentCaptor<String> redirect) {
+        Context ctx = mock(Context.class);
+        when(ctx.queryParam("link")).thenReturn("1");
+        when(ctx.cookie("session_id")).thenReturn(sessionId);
+        c.login(ctx);
+        verify(ctx).redirect(redirect.capture(), eq(HttpStatus.FOUND));
+        String url = redirect.getValue();
+        if (!url.startsWith(MD.authorizationEndpoint() + "?")) return null;
+        Map<String, String> q = new HashMap<>();
+        for (String kv : URI.create(url).getRawQuery().split("&")) {
+            String[] p = kv.split("=", 2);
+            q.put(p[0], java.net.URLDecoder.decode(p[1], java.nio.charset.StandardCharsets.UTF_8));
+        }
+        return q;
+    }
+
+    @Test
+    void explicitLinkAttachesExternalIdToTheLoggedInLocalUser() throws Exception {
+        UserRecord local = new UserRecord("alice", "Local alice", "hash", Set.of("admin", "user"));
+        when(userRepo.findById("alice")).thenReturn(Optional.of(local));
+        OidcController c = controller(Map.of("OIDC_LINK_LOCAL_USERS", "true"));
+        String session = localSession("alice", Set.of("admin", "user"));
+
+        Map<String, String> q = startLink(c, session, ArgumentCaptor.forClass(String.class));
+        assertNotNull(q, "link flow must redirect to the provider");
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("sub-alice", now.get())
+                                .claim("preferred_username", "alice")
+                                .claim("nonce", q.get("nonce"))
+                                .build()));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        when(ctx.cookie("session_id")).thenReturn(session);
+        c.callback(ctx);
 
         ArgumentCaptor<UserRecord> saved = ArgumentCaptor.forClass(UserRecord.class);
         verify(userRepo).save(saved.capture());
         UserRecord u = saved.getValue();
         assertEquals("hash", u.passwordHash());
         assertEquals(UserRecord.PROVIDER_LOCAL, u.provider());
-        assertEquals("alice", u.externalId());
-        assertEquals("Local", u.displayName());
-        assertEquals("/", redirectTarget(ctx));
+        assertEquals("sub-alice", u.externalId());
+        assertEquals(Set.of("admin", "user"), u.roles());
+        assertEquals("/?oidc_linked=1", redirectTarget(ctx));
+        // the existing local session is kept (no new session cookie)
+        verify(ctx, never()).cookie(any(Cookie.class));
 
-        // Session roles come from the IdP (no admin role claim → plain user)
+        // a later plain OIDC login resolves the linked account by sub, keeps the password
+        when(userRepo.findByExternalId(UserRecord.PROVIDER_LOCAL, "sub-alice"))
+                .thenReturn(Optional.of(u));
+        Map<String, String> q2 = startLogin(c, ArgumentCaptor.forClass(Cookie.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("sub-alice", now.get())
+                                .claim("preferred_username", "alice")
+                                .claim("nonce", q2.get("nonce"))
+                                .build()));
+        Context ctx2 = callbackCtx(q2.get("state"), q2.get("state"), "code");
+        c.callback(ctx2);
+        assertEquals("/", redirectTarget(ctx2));
         ArgumentCaptor<Cookie> cookie = ArgumentCaptor.forClass(Cookie.class);
-        verify(ctx).cookie(cookie.capture());
+        verify(ctx2).cookie(cookie.capture());
         Context later = mock(Context.class);
         when(later.cookie("session_id")).thenReturn(cookie.getValue().getValue());
-        assertFalse(authCtrl.resolveFromRequest(later).hasRole("admin"));
+        Principal p = authCtrl.resolveFromRequest(later);
+        assertEquals("alice", p.userId());
+        assertEquals(Principal.PROVIDER_OIDC, p.provider());
+    }
+
+    @Test
+    void explicitLinkRequiresAnActiveLocalSessionAndTheFeatureFlag() {
+        OidcController enabled = controller(Map.of("OIDC_LINK_LOCAL_USERS", "true"));
+        ArgumentCaptor<String> r1 = ArgumentCaptor.forClass(String.class);
+        assertNull(startLink(enabled, null, r1));
+        assertEquals("/?oidc_error=" + OidcController.ERR_LINK_UNAUTHORIZED, r1.getValue());
+
+        OidcController disabled = controller(Map.of());
+        String session = localSession("alice", Set.of("user"));
+        ArgumentCaptor<String> r2 = ArgumentCaptor.forClass(String.class);
+        assertNull(startLink(disabled, session, r2));
+        assertEquals("/?oidc_error=" + OidcController.ERR_LINK_DISABLED, r2.getValue());
+    }
+
+    @Test
+    void explicitLinkRefusesSubjectAlreadyBoundToAnotherAccountAndSessionChanges()
+            throws Exception {
+        UserRecord local = new UserRecord("alice", "Local alice", "hash", Set.of("user"));
+        when(userRepo.findById("alice")).thenReturn(Optional.of(local));
+        when(userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, "sub-x"))
+                .thenReturn(
+                        Optional.of(
+                                new UserRecord(
+                                        "bob",
+                                        "Bob",
+                                        null,
+                                        Set.of("user"),
+                                        UserRecord.PROVIDER_OIDC,
+                                        "sub-x")));
+        OidcController c = controller(Map.of("OIDC_LINK_LOCAL_USERS", "true"));
+        String session = localSession("alice", Set.of("user"));
+
+        // sub already belongs to bob → conflict, nothing saved
+        Map<String, String> q = startLink(c, session, ArgumentCaptor.forClass(String.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("sub-x", now.get())
+                                .claim("nonce", q.get("nonce"))
+                                .build()));
+        Context ctx = callbackCtx(q.get("state"), q.get("state"), "code");
+        when(ctx.cookie("session_id")).thenReturn(session);
+        c.callback(ctx);
+        assertEquals("/?oidc_error=" + OidcController.ERR_USER_CONFLICT, redirectTarget(ctx));
+
+        // session gone between login and callback → unauthorized, nothing saved
+        Map<String, String> q2 = startLink(c, session, ArgumentCaptor.forClass(String.class));
+        nextIdToken.set(
+                keys.sign(
+                        OidcTestKeys.claims("sub-new", now.get())
+                                .claim("nonce", q2.get("nonce"))
+                                .build()));
+        Context ctx2 = callbackCtx(q2.get("state"), q2.get("state"), "code");
+        when(ctx2.cookie("session_id")).thenReturn("stale-session");
+        c.callback(ctx2);
+        assertEquals("/?oidc_error=" + OidcController.ERR_LINK_UNAUTHORIZED, redirectTarget(ctx2));
+        verify(userRepo, never()).save(any());
     }
 
     @Test
@@ -399,21 +530,74 @@ class OidcControllerTest {
     // ── Bearer ───────────────────────────────────────────────────────────────
 
     @Test
-    void bearerAccessTokenResolvesAndProvisionsPrincipal() throws Exception {
+    void bearerAccessTokenResolvesExistingAccountWithoutTouchingTheStore() throws Exception {
+        when(userRepo.findByExternalId(UserRecord.PROVIDER_OIDC, "carol"))
+                .thenReturn(
+                        Optional.of(
+                                new UserRecord(
+                                        "carol",
+                                        "Carol",
+                                        null,
+                                        Set.of("user"),
+                                        UserRecord.PROVIDER_OIDC,
+                                        "carol")));
         OidcController c = controller(Map.of());
         String at =
                 keys.sign(
                         OidcTestKeys.claims("carol", now.get())
                                 .audience(List.of("account"))
                                 .claim("azp", OidcTestKeys.CLIENT)
+                                .claim(
+                                        "realm_access",
+                                        Map.of("roles", List.of("report-studio-admin")))
                                 .build());
         Context ctx = mock(Context.class);
         when(ctx.header("Authorization")).thenReturn("Bearer " + at);
         Principal p = c.resolveFromBearer(ctx);
         assertEquals("carol", p.userId());
         assertEquals(Principal.PROVIDER_OIDC, p.provider());
-        assertEquals(Set.of("user"), p.roles());
-        verify(userRepo).save(any());
+        assertEquals(Set.of("admin", "user"), p.roles()); // roles follow the current token
+        verify(userRepo, never()).save(any());
+    }
+
+    @Test
+    void bearerNeverProvisionsOrLinksAccounts() throws Exception {
+        // H1: an API token alone must not create an account, nor attach itself to a local one
+        when(userRepo.findById("admin"))
+                .thenReturn(
+                        Optional.of(
+                                new UserRecord("admin", "管理者", "hash", Set.of("admin", "user"))));
+        OidcController c = controller(Map.of("OIDC_LINK_LOCAL_USERS", "true"));
+        for (String sub : List.of("carol", "admin")) {
+            String at =
+                    keys.sign(
+                            OidcTestKeys.claims(sub, now.get())
+                                    .audience(List.of("account"))
+                                    .claim("azp", OidcTestKeys.CLIENT)
+                                    .build());
+            Context ctx = mock(Context.class);
+            when(ctx.header("Authorization")).thenReturn("Bearer " + at);
+            assertTrue(c.resolveFromBearer(ctx).isAnonymous(), sub);
+        }
+        verify(userRepo, never()).save(any());
+    }
+
+    @Test
+    void bearerSwallowsRepositoryFailures() throws Exception {
+        // resolveFromBearer must never throw (the before-filter turns ANONYMOUS into 401)
+        when(userRepo.findByExternalId(anyString(), anyString()))
+                .thenThrow(
+                        new com.report.server.JsonBlobRepository.RepositoryException(
+                                "db down", null));
+        OidcController c = controller(Map.of());
+        String at =
+                keys.sign(
+                        OidcTestKeys.claims("carol", now.get())
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .build());
+        Context ctx = mock(Context.class);
+        when(ctx.header("Authorization")).thenReturn("Bearer " + at);
+        assertTrue(c.resolveFromBearer(ctx).isAnonymous());
     }
 
     @Test
@@ -436,6 +620,88 @@ class OidcControllerTest {
         when(bad.header("Authorization")).thenReturn("Bearer " + forged);
         assertTrue(c.resolveFromBearer(bad).isAnonymous());
         verify(userRepo, never()).save(any());
+    }
+
+    // ── discovery resilience (H3) ─────────────────────────────────────────────
+
+    private OidcController controllerWithSource(OidcController.MetadataSource source) {
+        return new OidcController(
+                OidcTestKeys.config(Map.of()),
+                userRepo,
+                authCtrl,
+                source,
+                (md, code, verifier) -> new OidcController.TokenResponse(nextIdToken.get(), "at"),
+                (cfg, md) -> keys.verifier(),
+                now::get);
+    }
+
+    @Test
+    void discoveryFailureIsCachedForTheBackoffWindow() {
+        java.util.concurrent.atomic.AtomicInteger calls =
+                new java.util.concurrent.atomic.AtomicInteger();
+        OidcController c =
+                controllerWithSource(
+                        cfg -> {
+                            calls.incrementAndGet();
+                            throw new java.io.IOException("connection refused");
+                        });
+        for (int i = 0; i < 3; i++) {
+            Context ctx = mock(Context.class);
+            c.login(ctx);
+            assertEquals("/?oidc_error=" + OidcController.ERR_UNAVAILABLE, redirectTarget(ctx));
+        }
+        assertEquals(
+                1, calls.get(), "only the first call within the backoff window hits the network");
+
+        now.addAndGet(OidcController.DISCOVERY_BACKOFF_MS + 1);
+        Context ctx = mock(Context.class);
+        c.login(ctx);
+        assertEquals(2, calls.get(), "after the backoff the discovery is retried");
+    }
+
+    @Test
+    void callersDoNotQueueBehindAnInFlightDiscovery() throws Exception {
+        java.util.concurrent.CountDownLatch entered = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        OidcController c =
+                controllerWithSource(
+                        cfg -> {
+                            entered.countDown();
+                            try {
+                                release.await(); // simulates a hanging provider
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                            return MD;
+                        });
+        Thread slow = new Thread(() -> c.login(mock(Context.class)));
+        slow.start();
+        assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+
+        // While discovery hangs, a Bearer caller must be answered immediately, not serialized
+        String at =
+                keys.sign(
+                        OidcTestKeys.claims("carol", now.get())
+                                .claim("azp", OidcTestKeys.CLIENT)
+                                .build());
+        Context bearer = mock(Context.class);
+        when(bearer.header("Authorization")).thenReturn("Bearer " + at);
+        // Run the Bearer resolution on its own thread so a regression (lock convoy) fails the
+        // test by timeout instead of hanging the whole suite.
+        java.util.concurrent.CompletableFuture<Principal> answer =
+                java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> c.resolveFromBearer(bearer));
+        try {
+            assertTrue(
+                    answer.get(2, java.util.concurrent.TimeUnit.SECONDS).isAnonymous(),
+                    "must answer while discovery hangs");
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new AssertionError("Bearer caller queued behind the in-flight discovery", e);
+        } finally {
+            release.countDown();
+            slow.join(5_000);
+        }
+        assertFalse(slow.isAlive());
     }
 
     // ── logout ───────────────────────────────────────────────────────────────

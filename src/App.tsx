@@ -20,6 +20,7 @@ import { PagePanel } from '@/components/sidebar/PagePanel'
 import { SchemaFieldsTab } from '@/components/sidebar/SchemaFieldsTab'
 import { PageSettingsPanel } from '@/components/sidebar/PageSettingsPanel'
 import { LoginModal } from '@/components/modals/LoginModal'
+import { useOidcRedirectResult } from '@/hooks/useOidcRedirectResult'
 import { TemplateSelectionModal } from '@/components/modals/TemplateSelectionModal'
 import { LayersPanel } from '@/components/sidebar/LayersPanel'
 import { VersionHistoryPanel } from '@/components/sidebar/VersionHistoryPanel'
@@ -193,6 +194,7 @@ export default function App() {
 
   // Authenticate on mount — restores existing session or flags as unauthenticated
   const checkAuth = useReportStore((s) => s.checkAuth)
+  useOidcRedirectResult()
   useEffect(() => {
     checkAuth()
   }, [checkAuth])

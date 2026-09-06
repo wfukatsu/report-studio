@@ -20,6 +20,8 @@ const AuthOptionsSchema = z.object({
   oidcEnabled: z.boolean(),
   /** Path to navigate the browser to (not fetch) to start a Keycloak login. */
   oidcLoginUrl: z.string().optional(),
+  /** Signed-in local users may link their IdP identity via `${oidcLoginUrl}?link=1`. */
+  oidcLinkEnabled: z.boolean().optional(),
 })
 export type AuthOptions = z.infer<typeof AuthOptionsSchema>
 
@@ -32,6 +34,8 @@ const MeSchema = z.object({
   provider: z.string().optional(),
   /** False for OIDC-provisioned accounts — password change is not offered (#499). */
   hasPassword: z.boolean().optional(),
+  /** Local account explicitly linked to an IdP identity (can sign in either way). */
+  oidcLinked: z.boolean().optional(),
   auth: AuthOptionsSchema.optional(),
 })
 

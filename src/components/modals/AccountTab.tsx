@@ -3,12 +3,19 @@ import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { changeProfile } from '@/api/reportApi'
 import { isApiError } from '@/api/client'
+import { navigateTo } from '@/lib/browserNavigation'
 
 export function AccountTab() {
   const { t } = useTranslation('modals')
   const currentUser = useReportStore((s) => s.currentUser)
+  const authOptions = useReportStore((s) => s.authOptions)
   // OIDC-provisioned accounts have no local password (#499); older servers omit the flag → assume yes
   const canChangePassword = currentUser?.hasPassword !== false
+  // Explicit IdP linking for password accounts (#499 H1): offered only when the server allows it
+  const canLink =
+    authOptions?.oidcEnabled === true && authOptions.oidcLinkEnabled === true && !!authOptions.oidcLoginUrl
+    && currentUser?.provider === 'local' && canChangePassword
+  const linked = currentUser?.oidcLinked === true
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -123,6 +130,27 @@ export function AccountTab() {
 
       </>) : (
         <p className="text-xs text-muted-foreground">{t('accountTab.passwordManagedExternally')}</p>
+      )}
+
+      {(canLink || linked) && (
+        <>
+          <hr className="border-border" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.oidcLink.title')}</p>
+          {linked ? (
+            <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.linked')}</p>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.hint')}</p>
+              <button
+                type="button"
+                onClick={() => navigateTo(`${authOptions!.oidcLoginUrl!}?link=1`)}
+                className="px-4 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary/10 w-fit"
+              >
+                {t('accountTab.oidcLink.button')}
+              </button>
+            </>
+          )}
+        </>
       )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
