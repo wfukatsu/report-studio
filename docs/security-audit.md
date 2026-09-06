@@ -42,3 +42,17 @@
 - Webhook シークレットの平文保存 → #73 で対応
 - 認証コア（AuthController / FormSessionManager / RateLimiter）の単体テスト → #75
 - CI への `npm audit` / gitleaks 定期実行の組み込み → #71 の後続改善
+
+### その後の状況（2026-09）
+
+上記「残課題」はいずれも解消済み:
+
+- **Webhook シークレット**（#73）: `SecretCrypto`（AES-256-GCM、鍵は `WEBHOOK_SECRET_KEY`）で暗号化保存。
+- **認証コアの単体テスト**（#75）: `AuthControllerTest` / `FormSessionManagerTest` / `RateLimiterTest` に加え、
+  OIDC 導入（#499）で `AuthModeTest` / `AuthControllerOidcTest` と `auth/oidc/` 配下の
+  `OidcConfigTest` / `OidcControllerTest` / `OidcMetadataTest` / `OidcTokenVerifierTest` / `OidcUserMapperTest` を追加。
+- **CI の `npm audit`**: `ci.yml` の frontend ジョブで `npm audit --omit=dev --audit-level=high` を実行（本番依存の high 以上で失敗）。
+  gitleaks の CI 組み込みは未着手。
+- **OIDC レビューでの堅牢化**（#501、H1–H5 を修正）: 明示的なアカウント連携フロー（`/oidc/login?link=1`、ローカルセッションからのみ）、
+  state Cookie（HttpOnly / SameSite=Lax / path 限定）と保留フロー上限・`/oidc/login` の IP 単位レート制限、
+  JWKS 取得のタイムアウト / リトライ / 障害耐性の明示設定、`AUTH_MODE=oidc`/`both` の fail-closed 起動。

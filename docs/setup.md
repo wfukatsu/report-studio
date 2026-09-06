@@ -4,7 +4,7 @@ Report Studio を動かすための手順をまとめます。用途に応じて
 
 - **とにかく試したい** → [Docker でのクイックスタート](#docker-でのクイックスタート)（Node.js / JDK 不要）
 - **開発・改修したい** → [ローカルセットアップ](#ローカルセットアップ)
-- **本番運用したい** → [本番構成](#本番構成)＋[環境変数](#環境変数)
+- **本番運用したい** → [本番構成](#本番任意の-jdbc-データベース)＋[環境変数](#環境変数)
 
 ---
 
@@ -158,7 +158,7 @@ scalar.db.transaction_manager=jdbc
 
 `scalar.db.contact_points` を対象 DB の JDBC URL に変更し、`scalar.db.username` / `scalar.db.password` を設定します。
 
-本アプリはすべてのデータアクセスを ScalarDB（3.17）経由で行うため、接続先は **ScalarDB が対応するデータベース**に限られます。本アプリは `scalar.db.storage=jdbc`（JDBC ストレージ + JDBC トランザクションマネージャ）で構築・検証しているため、実運用で選べるのは **ScalarDB の JDBC アダプタが対応する関係データベース**です。
+本アプリはすべてのデータアクセスを ScalarDB（3.19）経由で行うため、接続先は **ScalarDB が対応するデータベース**に限られます。本アプリは `scalar.db.storage=jdbc`（JDBC ストレージ + JDBC トランザクションマネージャ）で構築・検証しているため、実運用で選べるのは **ScalarDB の JDBC アダプタが対応する関係データベース**です。
 
 | データベース | 備考 |
 |--------------|------|
@@ -191,7 +191,7 @@ scalar.db.transaction_manager=jdbc
 | `SCALARDB_PASSWORD` | （空） | 接続パスワード |
 | `SCALARDB_TX_MANAGER` | `jdbc` | トランザクションマネージャ |
 | `SCALARDB_POOL_MIN_IDLE` | `1` | JDBC 接続プール min_idle（#274。properties ファイル使用時もファイル値を上書き） |
-| `SCALARDB_POOL_MAX_IDLE` | `5` | JDBC 接続プール max_idle（同上。ScalarDB 3.18 では本プロパティは無視され警告が出ます） |
+| `SCALARDB_POOL_MAX_IDLE` | `5` | JDBC 接続プール max_idle（同上。同梱の ScalarDB 3.19 では本プロパティは無視され警告が出ます） |
 | `SCALARDB_POOL_MAX_TOTAL` | `10` | JDBC 接続プール max_total（同上） |
 
 ---
@@ -212,7 +212,7 @@ scalar.db.transaction_manager=jdbc
 | `OIDC_ADMIN_ROLE` | `report-studio-admin` | `admin` にマッピングする IdP ロール |
 | `OIDC_USER_ROLE` | （未設定） | 設定するとこのロールを持つユーザーだけがログインできる（未設定なら認証済み全員が `user`） |
 | `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
-| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak ID を**明示的に**連携できる。ユーザー ID が一致するだけの暗黙リンクは行わない（常に `user_conflict` で拒否） |
+| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak ID を**明示的に**連携できる。ユーザー ID が一致するだけの暗黙リンクは行わない（常に `account_unavailable` で拒否） |
 | `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
 | `OIDC_PROVIDER_NAME` | `Keycloak` | UI に表示する IdP 名（「〜 でログイン」ボタン、認証列、連携画面）。Entra ID / Auth0 などでも使う場合に変更 |
 | `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足していると**起動に失敗**する（設定ミスで黙ってパスワードログインに戻らない）。`keycloak` は `oidc` の別名。不明な値はエラーログを出して推定値（未設定時と同じ）になる |
@@ -245,7 +245,7 @@ scalar.db.transaction_manager=jdbc
 ### 仕組み
 
 - **ブラウザ**: ログインモーダルの「Keycloak でログイン」→ `GET /api/v1/auth/oidc/login`（Authorization Code + PKCE、state/nonce を検証）→ `GET /api/v1/auth/oidc/callback` で ID トークンを JWKS で検証し、**通常の Cookie セッション**を発行します。SPA はトークンを扱いません。
-- **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（PAT `rpat_…` で見つからない場合に JWT として検証）。Bearer で解決できるのは**既にアカウントがあるユーザーだけ**です。アクセストークン単体ではアカウントの自動作成もローカルアカウントへの紐付けも行わないため、先に一度ブラウザで Keycloak ログイン（または下記の明示連携）を済ませてください。ID トークン（`typ: ID`）やリフレッシュトークンは Bearer として受け付けません。
+- **API / CLI**: Keycloak 発行のアクセストークンを `Authorization: Bearer <JWT>` で送ると認証されます（JWT 形状の Bearer は OIDC 検証のみに回り、PAT ストアは引きません。不透明な `rpat_…` は PAT としてのみ解決します）。Bearer で解決できるのは**既にアカウントがあるユーザーだけ**です。アクセストークン単体ではアカウントの自動作成もローカルアカウントへの紐付けも行わないため、先に一度ブラウザで Keycloak ログイン（または下記の明示連携）を済ませてください。ID トークン（`typ: ID`）やリフレッシュトークンは Bearer として受け付けません。
 - **ユーザー**: 初回ログイン時に `provider=oidc`・パスワードなしのアカウントを自動作成します（`userId` は `preferred_username`、IdP の `sub` を `externalId` として保持）。ロールは `OIDC_ROLE_CLAIM` のロール配列から `OIDC_ADMIN_ROLE` → `admin`、それ以外 → `user` にマッピングし、ログインのたびに IdP の値で更新します。Keycloak 既定の「realm roles」マッパーは `realm_access` を**アクセストークンにしか**入れないため、コールバックでは ID トークンと一緒に返るアクセストークンも検証してロール元にします（Keycloak 側で ID トークンにロールを追加する設定は不要です）。
 - **衝突と連携**: 同じ `userId` のローカルアカウントが既にある場合、Keycloak ログインは常に拒否します（`?oidc_error=account_unavailable`。ローカルのユーザー ID の存在を IdP ユーザーに知らせないため、理由はサーバログにのみ出ます）。ユーザー名が一致するだけでローカルアカウントを乗っ取れないようにするためです。既存のローカルアカウントで Keycloak も使いたい場合は `OIDC_LINK_LOCAL_USERS=true` にし、**ローカルでログインした状態で**アカウント設定の「Keycloak アカウントと連携」から連携します（`GET /api/v1/auth/oidc/login?link=1`）。連携後はパスワードと Keycloak のどちらでもログインでき、`/auth/me` の `oidcLinked` が `true` になります。
 - **ログアウト**: OIDC セッションのログアウトは Keycloak の `end_session_endpoint` へ遷移し、SSO セッションも終了します（RP-Initiated Logout）。
@@ -256,7 +256,7 @@ scalar.db.transaction_manager=jdbc
 ### 障害時の挙動
 
 - Keycloak の discovery（`/.well-known/openid-configuration`）は遅延取得で、失敗すると 30 秒間は再試行せずに即座に失敗します（`?oidc_error=provider_unavailable` / Bearer は 401）。取得中の他のリクエストも待たされません。
-- JWKS（署名鍵）は 5 分キャッシュされ、Keycloak が一時的に落ちてもキャッシュ済みの鍵で既発行トークンの検証は続きます。鍵取得のタイムアウトは 5 秒です。
+- JWKS（署名鍵）は 5 分キャッシュされ（nimbus-jose-jwt の既定値）、Keycloak が一時的に落ちてもキャッシュ済みの鍵で既発行トークンの検証は続きます。鍵取得のタイムアウト 5 秒・リトライ・障害耐性（outage tolerant）は nimbus の既定（500 ms・リトライなし）を `OidcTokenVerifier` で明示的に上書きした設定です。
 - state・nonce・セッションはプロセス内メモリに保持します。複数インスタンスで動かす場合は同一クライアントを同一インスタンスへ固定（sticky session）してください。
 
 ### Docker でローカル再現
@@ -335,7 +335,7 @@ npm run generate:schema
 
 ## CLI
 
-`scripts/cli/report-studio.mjs` は依存ゼロ（Node 18+ のグローバル `fetch` + 標準ライブラリのみ）の CLI です。GUI と同じサーバー API を叩くため、GUI と CLI を混在させたワークフローが可能です。
+`scripts/cli/report-studio.mjs` は依存ゼロ（Node のグローバル `fetch` + 標準ライブラリのみ。前提条件どおり Node 20 以上を推奨、`fetch` 内蔵の 18 でも動作）の CLI です。GUI と同じサーバー API を叩くため、GUI と CLI を混在させたワークフローが可能です。
 
 ```bash
 # 実行形式
@@ -346,27 +346,38 @@ npm run cli -- <command> [options]
 
 - グローバルオプション: `--url <base>`（既定 `$REPORT_STUDIO_URL` または `http://localhost:8080`）、`--json`（機械可読出力）、`--help`。
 - セッション Cookie は `~/.report-studio/cookies` に保存（`$REPORT_STUDIO_HOME` で変更可）。
+- 状態変更コマンドは PAT（`tokens create` → `login --token <t>` または `$REPORT_STUDIO_TOKEN`）で認証してください。CLI は Origin ヘッダを送らないため、Cookie セッションでは `/api/v1/auth/*` 以外の書き込みが CSRF チェックで 403 になります。
 
 ### コマンド一覧
 
 | カテゴリ | コマンド | 説明 |
 |---------|---------|------|
 | 認証 | `login [--user admin] [--password changeme]` | ログインしてセッションを保存 |
+| 認証 | `login --token <t>` | PAT で認証（`$REPORT_STUDIO_TOKEN` でも可。書き込みはこちら） |
 | 認証 | `whoami` | 現在のユーザー / ロールを表示 |
+| 認証 | `tokens list` / `tokens create --label <用途>` / `tokens revoke <id>` | PAT の一覧 / 発行 / 失効（#195） |
 | テンプレート | `templates list` | テンプレート一覧（id, name, visibility, updatedAt） |
-| テンプレート | `templates get <id>` | 定義 JSON を表示 |
+| テンプレート | `templates summary <id>` | 概要（ページ数・要素種別ごとの件数・スキーマ・ルール）— まずこれ |
+| テンプレート | `templates outline <id> [--page N]` | 要素一覧 TSV + 短縮ハンドル（`e1`, `e2`, …） |
+| テンプレート | `templates get <id> [--out <file>] [--force]` | 定義 JSON の全文（40 KB 超は `--force` か `--out` が必要） |
+| テンプレート | `templates create <name> [--from <id>] [--import <file>]` | 新規作成（`--from` で複製、`--import` で `.rds2.json` 読込） |
+| テンプレート | `templates edit <id> --ops <ops.json> [--dry-run] [--expect-updated-at <iso>] [--no-snapshot]` | op ベースの部分編集（既定で編集前にスナップショット） |
+| テンプレート | `templates validate <id> [--data <d.json>]` | 保存前検証（ローカル不変条件 + 検証ルール） |
+| テンプレート | `templates thumbnail <id> [--out <file.jpg>]` | サムネイル JPEG を書き出し |
+| テンプレート | `templates versions list <id>` / `versions snapshot <id>` / `versions restore <id> <vid>` | バージョン一覧 / 手動スナップショット / 復元（`edit` の undo） |
 | テンプレート | `templates export <id> [--out <file>]` | エクスポート（既定 `<id>.rds2.json`） |
 | テンプレート | `templates import <file>` | インポート |
-| テンプレート | `templates delete <id>` | 削除 |
+| テンプレート | `templates delete <id> --yes` | 削除（完全削除・取り消し不可のため `--yes` 必須） |
+| 診断 | `evaluate <id> --data <d.json>` | 計算ルールを評価（JEXL デバッグ） |
+| 診断 | `bindings resolve <id> [--keys <keys.json>]` | ScalarDB バインドを解決（部分成功は HTTP 207） |
+| 診断 | `schema list` / `schema infer --data <sample.json>` | スキーマライブラリ一覧 / サンプル JSON からスキーマ推論 |
 | 出力 | `pdf <id> [--data <data.json>] [--out <file.pdf>]` | 単票 PDF を生成しファイルに保存 |
-| 出力 | `batch <id> --csv <rows.csv> [--out <dir>] [--name <col>]` | CSV 1 行につき 1 PDF を生成（ヘッダはドット記法で入れ子に展開） |
+| 出力 | `batch <id> --csv <rows.csv> [--out <dir>] [--filename-template "{col}_{date}.pdf" \| --name <col>]` | CSV 1 行につき 1 PDF を生成（ヘッダはドット記法で入れ子に展開） |
 | 回答 | `responses list <templateId>` | 回答一覧（id, status, submittedBy, summary） |
 | 回答 | `responses status <templateId> <responseId> <draft\|issued\|sent\|void>` | 単一回答のステータス変更 |
 | 回答 | `responses set-status <templateId> <status> (--ids a,b,c \| --status-from <old>)` | 複数回答の一括ステータス変更 |
-| ジョブ | `jobs list` | ジョブ一覧（jobId, jobType, status, processed/total） |
-| ジョブ | `jobs status <jobId>` | ジョブの詳細 JSON |
-| DB | `db tables` | ScalarDB の名前空間・テーブル一覧 |
-| DB | `db rows <ns.table>` | テーブルをスキャンして行を表示 |
+| ジョブ | `jobs list` / `jobs status <jobId>` / `jobs cancel <jobId>` | ジョブ一覧（全種別）/ 詳細 / キャンセル・削除 |
+| DB | `db tables` / `db rows <ns.table>` | ScalarDB の名前空間・テーブル一覧 / テーブルをスキャンして行を表示 |
 
 詳細な使用例は `scripts/cli/README.md` を参照してください。
 
@@ -376,7 +387,11 @@ npm run cli -- <command> [options]
 
 `.github/workflows/ci.yml`（唯一のワークフロー）。トリガー: `main` への push、および全 PR。
 
-- **frontend ジョブ**: Node 22 → `npm ci` → `npm run lint` → `npm run build`（型チェック + ビルド）→ `npx vitest run --reporter=basic`。
-- **backend ジョブ**: Temurin 21 → `cp server/scalardb.properties.example server/scalardb.properties` → `./gradlew test`（JUnit + ゴールデン PDF 回帰）。失敗時はテストレポートをアーティファクトとしてアップロード。
+4 ジョブ構成（Actions は SHA ピン + `permissions: contents: read`）:
+
+- **frontend ジョブ**: Node 22 → `npm ci` → `npm run lint` → `npm run build`（型チェック + ビルド）→ `npm run typecheck:native`（TS7 native、tsconfig ごと）→ `npm audit --omit=dev --audit-level=high`（本番依存の high 以上で失敗）→ `npx vitest run --coverage --reporter=default`（カバレッジラチェット）→ `npm run build-storybook`。
+- **backend ジョブ**: Temurin 21 → `cp server/scalardb.properties.example server/scalardb.properties` → `./gradlew spotlessCheck`（google-java-format AOSP）→ `./gradlew test jacocoTestCoverageVerification`（JUnit + ゴールデン PDF 回帰 + カバレッジラチェット）。失敗時はテストレポートをアーティファクトとしてアップロード。
+- **e2e ジョブ**: Node 22 + Temurin 21 → Playwright（chromium）→ `npx playwright test`（`playwright.config.ts` がバックエンド :8080 と Vite :5173 を起動し、`admin`/`changeme` でログインするスモーク）。失敗時は Playwright レポートをアップロード。
+- **e2e-oidc ジョブ**: `quay.io/keycloak/keycloak:26.3` を `docker run` で起動（`docker/keycloak` の realm を import）→ `AUTH_MODE=both` + `OIDC_*` を環境に与えて `npx playwright test e2e/oidc.spec.ts`（`OIDC_ISSUER` 未設定時はテスト側でスキップ）。
 
 デプロイ/リリース用のワークフローは現時点で存在しません。

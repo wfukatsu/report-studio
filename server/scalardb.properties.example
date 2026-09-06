@@ -7,6 +7,11 @@
 #   SCALARDB_USERNAME         (default: empty)
 #   SCALARDB_PASSWORD         (default: empty)
 #   SCALARDB_TX_MANAGER       (default: jdbc)
+#   SCALARDB_POOL_MIN_IDLE    (default: 1)   JDBC connection pool min_idle (#274)
+#   SCALARDB_POOL_MAX_IDLE    (default: 5)   JDBC connection pool max_idle (#274)
+#   SCALARDB_POOL_MAX_TOTAL   (default: 10)  JDBC connection pool max_total (#274)
+#   The three pool variables are applied on top of the values in this file too
+#   (they override the scalar.db.jdbc.connection_pool.* lines below when set).
 scalar.db.storage=jdbc
 scalar.db.contact_points=jdbc:sqlite:data/report-studio.db
 scalar.db.username=

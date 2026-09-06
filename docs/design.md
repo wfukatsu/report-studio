@@ -13,14 +13,14 @@
 | ドラッグ&ドロップ | @dnd-kit/core / modifiers / sortable | 6 / 9 / 10 |
 | グラフ | recharts | 3 |
 | 画像/PDF 出力 | html2canvas / jspdf | 1 / 4 |
-| スタイル | tailwindcss + Radix UI + lucide-react | 3.4 |
-| ルーティング | react-router-dom | 7 |
+| スタイル | tailwindcss + Radix UI + lucide-react | 4 |
+| ルーティング | react-router | 8 |
 | 式エンジン（クライアント） | @pawel-up/jexl | 4 |
 | 数式エディタ | CodeMirror 6 | — |
 | バリデーション | zod | 4 |
 | バーコード/QR | react-barcode / qrcode.react | — |
 | ビルド/テスト | Vite 8 / Vitest 4 / TypeScript 7（native tsc。lint 用に TS6 API を alias 併存） | — |
-| コンポーネントカタログ | Storybook 8 | — |
+| コンポーネントカタログ | Storybook 10 | — |
 
 ### 画面構成
 
@@ -62,7 +62,7 @@
 
 ## 2. 状態管理（`src/store/`）
 
-単一の Zustand ストアを 13 スライスで構成（`store/index.ts` で `create<StoreState>()(immer(...))`）。データブラウザは独立ストア。
+単一の Zustand ストアを 14 スライスで構成（`store/index.ts` で `create<StoreState>()(immer(...))`）。データブラウザは独立ストア。
 
 | スライス | 責務 |
 |---------|------|
@@ -79,6 +79,7 @@
 | `tenantSlice` | `tenantInfo`、取得/更新 |
 | `productSlice` | 商品カタログ・カスタムフィールド定義、CRUD、操作ロック |
 | `adminSlice` | 管理者ユーザー一覧・サーバー設定、取得/作成/削除・設定編集/保存 |
+| `orchestrationSlice` | 単一ドメインに属さないスライス横断ワークフロー（ユーザー切替時の `resetForUserSwitch` 等、#437） |
 
 **主なセレクタ**（`selectors.ts`）:
 
@@ -175,6 +176,10 @@ _blocks/
 | POST | `/api/v1/auth/login` | ログイン（`session_id` Cookie 発行） |
 | POST | `/api/v1/auth/logout` | ログアウト |
 | POST | `/api/v1/auth/change-profile` | 表示名/パスワード変更 |
+| GET | `/api/v1/auth/oidc/login` | OIDC ログイン開始（Authorization Code + PKCE。`AUTH_MODE` が `oidc`/`both` に解決されたときのみ登録、#499） |
+| GET | `/api/v1/auth/oidc/callback` | OIDC コールバック（ID トークン検証 → Cookie セッション発行。同上） |
+| POST / GET | `/api/v1/auth/tokens` | PAT（API トークン）の発行 / 一覧（#195） |
+| DELETE | `/api/v1/auth/tokens/{id}` | PAT の失効（#195） |
 
 ### テンプレート（`/api/v2/templates`）
 
@@ -237,8 +242,12 @@ com.report.server                app 起動・ルーティング・エンジン�
                                           package-private collaborators へ分割済み、#276）
   Support: ProjectionMerger, CsvDataSource, SecretCrypto, RequestValidator,
            ReportDefinitionValidator, Metrics, AuditLog, ApiError ...
-  com.report.server.auth   AuthController, FormSessionManager, RateLimiter,
-                           Principal, UserRepository, AdminUserController
+  com.report.server.auth   AuthController, AuthMode, FormSessionManager, RateLimiter,
+                           Principal, UserRecord, UserRepository, AdminUserController
+  com.report.server.auth.oidc  OidcConfig, OidcController, OidcMetadata,
+                           OidcTokenVerifier, OidcUserMapper（Keycloak ログイン、#499）
+  com.report.server.logging    LogFormatAppenderDefiner（logback の <define> で
+                           LOG_FORMAT からアペンダ名を決める、#502）
   com.report.server.job    BatchPdfProcessor, JobController, JobRepository,
                            JobStore, JobConcurrencyLimiter, JobTtlReaper
   com.report.server.pdf    要素/セクションレンダラ（約 40 種）, FontProvider,
@@ -248,7 +257,8 @@ com.report.server                app 起動・ルーティング・エンジン�
 resources/
   fonts/  NotoSansJP-Regular.ttf, NotoSansJP-Bold.ttf, NotoSerifJP-Regular.otf
   schemas/e-tax/  XML スキーマ
-  logback.xml（LOG_LEVEL / LOG_FORMAT=json で挙動切替、#274）
+  logback.xml（LOG_LEVEL / LOG_FORMAT=json で挙動切替、#274。アペンダは <define> +
+              LogFormatAppenderDefiner で JSON / CONSOLE を選択、janino は撤去、#502）
   report-definition-limits.json（ビルド時に ../schemas からコピー）
 ```
 

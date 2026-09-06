@@ -14,6 +14,10 @@ npm test             # Run tests (watch mode)
 npm test -- --run    # Run tests once
 npm run test:coverage  # Coverage report (ratchet thresholds — fails on regression)
 npm run storybook    # Storybook component explorer (http://localhost:6006)
+npm run test:e2e     # Playwright E2E smoke (boots backend :8080 + Vite :5173 itself); test:e2e:ui for the UI runner
+npm run i18n:extract # i18next-parser key extraction; i18n:extract:check fails on drift (CI-style)
+npm run build:samples  # Generate the 6 sample forms (scripts/sample-forms/build.mjs); seed:samples loads them into a running backend
+npm run cli -- <cmd> # Agent/scripting CLI (scripts/cli/report-studio.mjs, see scripts/cli/README.md)
 ```
 
 Run a single test file:
@@ -21,7 +25,7 @@ Run a single test file:
 npx vitest run src/lib/dataBinding.test.ts
 ```
 
-Environment: copy `.env.example` → `.env` if needed (`VITE_API_PORT=8080` is the only variable).
+Environment: copy `.env.example` → `.env` if needed (`VITE_API_PORT=8080` is the only variable Vite reads; the commented `OIDC_*` / `AUTH_MODE` lines in `.env.example` are **backend** env vars for `npm run dev:backend`, not Vite settings).
 
 ### Backend (Java/Javalin)
 ```bash
@@ -44,20 +48,20 @@ cd server && ./gradlew installDist
 
 ### Backend architecture
 - **Framework**: Javalin 7 (Java 21)
-- **DB**: ScalarDB 3.17 + SQLite (dev) / any JDBC (prod)
+- **DB**: ScalarDB 3.19 + SQLite (dev) / any JDBC (prod)
 - **Config**: `server/scalardb.properties` (gitignored; copy from `.example`)
 - **API routes** (authoritative registration: `ApiRoutes.java`): the API was migrated to a `/api/v2` stack; the dead v1 duplicate stack (templates/schemas/versions/responses/export/pdf/thumbnail + designer-projection/export-submission) was **removed** along with its controllers, and the surviving controllers dropped their `V2` class-name prefix (e.g. `TemplateController`, `PdfController`). URL paths keep the `/api/v2` version — the version lives in the URL, not the class name. The split is now **by resource, with no duplicated routes**:
   - **v2**: `templates` and everything under it (`evaluate`, `validate`, `versions`, `responses`(+`/{rid}/status`, `/{rid}/audit`), `export`/`import`, `pdf`, `thumbnail`, `duplicate`/`copy`/`visibility`, `resolve-bindings`), `documents` (cross-template issued-documents list, #190), `schemas`(+`infer`, with `schema-library` redirecting to `schemas`), `excel`, `pdf`/`pdf-jobs`(+`batch`; `GET /pdf-jobs` unified list + `DELETE /pdf-jobs/{id}` cancel span all job types, #191), `scalardb`, `tenant`, `health`
-  - **v1 (not yet migrated — no v2 equivalent)**: `auth`(+`/tokens` PAT management, #195), `admin`, `products`, `jobs`, `webhooks`, `sequences`, `public/forms`, `binding-trees`, plus public `health`
+  - **v1 (not yet migrated — no v2 equivalent)**: `auth`(+`/tokens` PAT management, #195; +`/oidc/login`・`/oidc/callback` — AUTH_MODE が oidc/both のときのみ登録、#499), `admin`, `products`, `jobs`, `webhooks`, `sequences`, `public/forms`, `binding-trees`, plus public `health`
   - Note: the `V2` prefix marks the newer controller generation, not a stable public contract; `v1`/`v2` here is unrelated to the binding-editor "legacy vs current" UI or template version numbers shown in the UI.
 - **Key engines**: `ExpressionEngine` (JEXL sandbox), `CalculationEngine`, `ConditionEvaluator`, `ValidationEngine`
 - **PDF export**: `SectionPdfRenderer`, `FormTablePdfRenderer`, `ImagePdfRenderer`, `BarcodePdfRenderer`, `FontProvider`. `SectionRenderHelper` は facade（#276 で `PagePlanBuilder` / `BandFlowPlanner` / `SectionGeometry` / `FormDataResolver` 等の package-private collaborators へ分割、公開 API 不変）
 - **Error responses**: 全エラーは `{error, code, correlationId}` 統一形（`ApiError.respond`、#267）。`error` は人間可読・`code` は `NOT_FOUND`/`VALIDATION_ERROR`/`VERSION_CONFLICT` 等の UPPER_SNAKE。グローバル例外ハンドラは correlationId をスタックトレースと併記
 - **メッセージ言語方針（#412）**: サーバに i18n 機構はなく、人間可読の `error`/`message`（CSV 行エラー `reason` 等含む）は **ja 固定**。機械可読契約は UPPER_SNAKE のコード — 汎用 `code` に加え、CSV 行エラーは `reasonCode`（`ProductController`）、バリデーション詳細は `detailCode`（`AdminUserController`）、応答サマリの配列件数は `summaryItems`（`{key, text|count}`、`ResponsePayloadSupport`）で構造化。フロントは `serverErrors` 名前空間で code→翻訳し、未知 code は生メッセージ表示にフォールバック（`userFacingErrorMessages.ts` / `ProductCsvImportModal` / `UserManagement` / `summaryFormat.ts` 等）。サーバが**永続化する**デフォルト名（「新しいテンプレート」「 (コピー)」等）も現状 ja 固定（作成時 UI 言語に従うフロント生成分とは別、#411）。CSV/Excel **出力**のヘッダ語は「帳票言語」であり UI 言語とは別軸（現状 ja 固定・実装変更なし）
-- **Logging**: logback（#274）。`LOG_LEVEL` env でレベル、`LOG_FORMAT=json` で JSON 出力。運用パラメータも env 外部化: `SCALARDB_POOL_MIN_IDLE/MAX_IDLE/MAX_TOTAL`・`MAX_REQUEST_SIZE`・`CORS_DEV_PORT_RANGE`
+- **Logging**: logback（#274）。`LOG_LEVEL` env でレベル、`LOG_FORMAT=json` で JSON 出力（#502 で janino の `<if>` を `<define>` + `com.report.server.logging.LogFormatAppenderDefiner` に置換 — logback 1.6 で `<if>` が廃止されたため）。運用パラメータも env 外部化: `SCALARDB_POOL_MIN_IDLE/MAX_IDLE/MAX_TOTAL`・`MAX_REQUEST_SIZE`・`CORS_DEV_PORT_RANGE`
 - **Batch jobs**: `BatchPdfProcessor` via `JobController` / `JobRepository`. The V2 batch endpoint (`BatchPdfController`) accepts either `responseIds` (stored responses) or inline `rows` (DB-row-driven bulk export, #193) plus an optional `filenameTemplate` (`{documentNo}`/`{status}`/`{seq}`/`{date}`/data fields, #194)
 - **Document lifecycle (#163)**: responses carry a `status` (draft/issued/sent/void); `SequenceController.nextAndStamp` assigns a document number at submit **or** on the first draft→issued transition; `StatusAuditRepository` persists every transition (who/when/from→to) in `report_studio.status_audit`
-- **Auth**: `FormSessionManager` + `RateLimiter` (cookie sessions) + `ApiTokenController` (PAT/Bearer, table `report_studio.api_tokens`, #195); wiring in `AppWiring.java`, Bearer resolved as a fallback in the `ApiRoutes` auth before-filter
+- **Auth**: `FormSessionManager` + `RateLimiter` (cookie sessions) + `ApiTokenController` (PAT/Bearer, table `report_studio.api_tokens`, #195) + `AuthMode` (`AUTH_MODE` local/oidc/both, fail-closed: oidc/both without `OIDC_ISSUER`/`OIDC_CLIENT_ID` throws at startup) + `OidcController` (`auth/oidc/`, nimbus-jose-jwt, #499); wiring in `AppWiring.java`. `ApiRoutes.resolvePrincipal` order: cookie session → `Authorization: Bearer` where a JWT-shaped token (3 segments) goes **only** to OIDC verification and an opaque `rpat_…` goes **only** to the PAT store. OIDC accounts' PATs are capped at 7 days (`OIDC_MAX_EXPIRY_DAYS`)
 
 ## Architecture
 

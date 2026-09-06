@@ -4,7 +4,8 @@ Drive the Report Studio backend from the terminal — the same product goals
 (template management, single/batch PDF output, schema/DB operations, job status)
 that the GUI offers, but scriptable (#165).
 
-Dependency-free: uses Node 18+ global `fetch` and the standard library only.
+Dependency-free: uses the global `fetch` and the standard library only — Node 20+ as in
+`docs/setup.md` (Node 18, which already bundles `fetch`, also works).
 
 ## Setup
 

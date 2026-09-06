@@ -14,10 +14,11 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code local} — id / password only. OIDC endpoints are not registered and Keycloak Bearer
  *       tokens are ignored even if {@code OIDC_*} variables are present.
  *   <li>{@code oidc} — Keycloak only. Password login answers 403 {@code LOCAL_LOGIN_DISABLED} and
- *       the login modal hides the id / password form. Requires a complete {@code OIDC_*}
- *       configuration; otherwise the server falls back to {@code local} with an error log so nobody
- *       is locked out.
- *   <li>{@code both} — Keycloak and id / password side by side (same fallback rule).
+ *       the login modal hides the id / password form. Requires {@code OIDC_ISSUER} and {@code
+ *       OIDC_CLIENT_ID}; when either is missing {@link #resolve} throws {@link
+ *       IllegalStateException} and the server refuses to start (fail-closed) rather than silently
+ *       falling back to password login.
+ *   <li>{@code both} — Keycloak and id / password side by side (same fail-closed rule).
  * </ul>
  *
  * <p>When {@code AUTH_MODE} is unset the mode is inferred: {@code both} if {@code OIDC_ISSUER} is

@@ -33,6 +33,7 @@ Log in → pick a template → edit → preview → bind → export → response
 - **Version control** — template version history and restore
 - **Form response collection** — collect responses from public forms, export to Excel/PDF
 - **Calculation & validation** — JEXL-based calculation rules and input validation
+- **Keycloak (OIDC) login** — Keycloak (OpenID Connect) login can be used alongside the built-in authentication (`AUTH_MODE`)
 
 ## Tech Stack
 
@@ -43,7 +44,7 @@ Log in → pick a template → edit → preview → bind → export → response
 | Styling | Tailwind CSS 4 + Radix UI |
 | Drag & drop | @dnd-kit/core |
 | Backend | Java 21 + Javalin 7 |
-| Database | ScalarDB 3.17 + SQLite (development) |
+| Database | ScalarDB 3.19 + SQLite (development) |
 | Testing | Vitest 4 + Playwright (frontend) / JUnit 5 (backend) |
 | Component catalog | Storybook 10 |
 
@@ -138,14 +139,37 @@ npm run test:backend                # backend tests
 cd server && ./gradlew installDist  # distribution build (server/build/install/ — same path as the Docker build)
 ```
 
+### CLI
+
+```bash
+npm run cli -- --help    # official CLI (templates, PDF output, jobs, PAT auth)
+# Agent-oriented commands: templates summary/outline (token-efficient projections),
+#   templates edit --ops (op-based edits with automatic snapshot, --dry-run),
+#   templates versions list/snapshot/restore (undo), templates delete --yes,
+#   templates create/validate/thumbnail, evaluate, bindings resolve, schema list/infer, jobs cancel
+```
+
+See [scripts/cli/README.md](scripts/cli/README.md). A Claude Code team skill for the CLI lives in [.claude/skills/report-studio/](.claude/skills/report-studio/).
+
 ## Environment Variables
+
+Excerpt of the main variables. See [docs/setup.md](docs/setup.md#環境変数) (Japanese) for the full list.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ADMIN_PASSWORD` | `changeme` | Initial admin password |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | Max login attempts (per IP / 5 min) |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | Rate-limit window (ms) |
+| `OIDC_ISSUER` | _(unset)_ | Issuer URL that enables Keycloak (OIDC) login (e.g. `https://kc.example.com/realms/report-studio`). Built-in auth only if unset. See [docs/setup.md](docs/setup.md#keycloakoidcログインの併用) (Japanese) |
+| `OIDC_INTERNAL_ISSUER` | same as `OIDC_ISSUER` | URL the server uses to reach Keycloak (e.g. a Docker-internal hostname); used only for discovery / token / JWKS |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | _(unset)_ | OIDC client ID / secret (no secret needed for a public client + PKCE) |
+| `OIDC_ADMIN_ROLE` | `report-studio-admin` | IdP role mapped to the `admin` role |
+| `OIDC_PROVIDER_NAME` | `Keycloak` | IdP name shown in the UI |
+| `OIDC_LINK_LOCAL_USERS` | `false` | `true` lets a user signed in with a local account explicitly link their Keycloak account from Account Settings |
+| `AUTH_MODE` | `local` (`both` when `OIDC_ISSUER` is set) | Login methods offered: `local` (ID/password only) / `oidc` (Keycloak only) / `both`. `oidc`/`both` fail at startup if `OIDC_*` is incomplete. `keycloak` is an alias of `oidc` |
 | `WEBHOOK_SECRET_KEY` | _(unset)_ | Webhook secret encryption key (32-byte Base64, e.g. `openssl rand -base64 32`). Stored in plaintext with a startup warning if unset |
+| `LOG_LEVEL` | `INFO` | Root log level (`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`) |
+| `LOG_FORMAT` | _(unset)_ | `json` emits one JSON object per line (structured logs); human-readable pattern otherwise |
 
 ## Documentation
 

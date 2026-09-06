@@ -23,6 +23,7 @@ JobTtlReaper                  ← TTL 回収スケジューラ(60 秒周期)
 | V2 単発 PDF (`PdfJobController`) | `V2_PDF` | `/api/v2/pdf-jobs` | `data/jobs/{id}/output.pdf` | 300 秒 | 10 |
 | V2 バッチ (`BatchPdfController`) | `V2_BATCH` | `/api/v2/pdf-jobs/batch` | `data/jobs/{id}/output.zip` | 300 秒 | 10(統合時に新設) |
 
+- V2 バッチの実行は `BatchPdfOrchestrator` が担う: 同時実行上限 `MAX_ACTIVE_JOBS=10`(超過は 429)、バッチ全体のタイムアウト `BATCH_TIMEOUT_SECONDS=300`(5 分)。`responseIds`(保存済み回答)と inline `rows`(#193)の両方を受け、`filenameTemplate`(#194)は `OutputFilenameTemplate` で展開する
 - `/api/v1/jobs` は `jobType` で V1 ジョブのみを返す(V2 ジョブはストアを共有するが V1 API には現れない)。V1 の status/cancel/download も V1 ジョブ以外は 404
 - V2 の submit/status/result は**互換レイヤ**: エンドポイント・レスポンス形状・小文字ステータスは統合前と同一(submit/status/result は `PdfJobController`、バッチ submit/status/result は `BatchPdfController`)
 - **統合リスト/キャンセル(#191)**: `GET /api/v2/pdf-jobs`(`JobController.listUnified`)は**全ジョブタイプ**(V1 CSV バッチ・V2 単発・V2 バッチ)を横断して返す — 所有者スコープ(自分のジョブ + 所有者なしジョブ、admin は全件)、`jobId`/`jobType`/小文字 `status`/`total`/`completed`/`failed` 等の安定 DTO。`DELETE /api/v2/pdf-jobs/{jobId}`(`JobController.cancelUnified`)も**全タイプ横断**でキャンセル/削除する(terminal は成果物ごと削除、稼働中 V1 は協調キャンセル、稼働中 V2 は CANCELLED マーク)
@@ -63,5 +64,6 @@ JobTtlReaper                  ← TTL 回収スケジューラ(60 秒周期)
 ## テスト
 
 `JobStatusTest` / `JobRecordTest`(旧形式 JSON の後方互換)/ `JobConcurrencyLimiterTest` /
-`PdfJobControllerTest` / `V2PdfJobOwnershipTest` / `BatchPdfControllerTest` /
-`BatchPdfProcessorTest`。テストは `testsupport/InMemoryJobStore` を使用。
+`JobControllerTest` / `JobTtlReaperTest` / `PdfJobControllerTest` / `V2PdfJobOwnershipTest` /
+`BatchPdfControllerTest` / `BatchPdfProcessorTest` / `OutputFilenameTemplateTest`。
+テストは `testsupport/InMemoryJobStore` を使用。
