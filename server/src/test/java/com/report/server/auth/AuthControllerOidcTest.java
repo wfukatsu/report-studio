@@ -41,7 +41,7 @@ class AuthControllerOidcTest {
         userRepo = mock(UserRepository.class);
         when(userRepo.findById("admin")).thenReturn(Optional.of(LOCAL));
         when(userRepo.findById("alice")).thenReturn(Optional.of(OIDC_USER));
-        controller = new AuthController(userRepo, System::currentTimeMillis, true);
+        controller = new AuthController(userRepo, System::currentTimeMillis, AuthMode.BOTH);
     }
 
     @AfterEach
@@ -69,7 +69,7 @@ class AuthControllerOidcTest {
     @Test
     void passwordLoginIsRefusedWhenLocalLoginDisabled() {
         controller.shutdown();
-        controller = new AuthController(userRepo, System::currentTimeMillis, false);
+        controller = new AuthController(userRepo, System::currentTimeMillis, AuthMode.OIDC);
         Context ctx = loginCtx("admin", "pw");
         controller.login(ctx);
         verify(ctx).status(HttpStatus.FORBIDDEN);
@@ -95,6 +95,7 @@ class AuthControllerOidcTest {
         assertEquals(false, body.get("hasPassword"));
         @SuppressWarnings("unchecked")
         Map<String, Object> auth = (Map<String, Object>) body.get("auth");
+        assertEquals("both", auth.get("mode"));
         assertEquals(true, auth.get("localLoginEnabled"));
         assertEquals(false, auth.get("oidcEnabled"));
         assertNull(auth.get("oidcLoginUrl"));

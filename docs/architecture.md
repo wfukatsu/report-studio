@@ -144,7 +144,7 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
 
 ### Keycloak（OIDC）併用（#499）
 
-`OIDC_ISSUER` を設定すると、上記の自前認証に加えて OpenID Connect ログインが有効になる。`Principal` に `provider`（`local` / `oidc`）が加わり、before-filter の解決順は **Cookie セッション → Bearer PAT → Bearer OIDC アクセストークン（JWT）** となる。
+提供するログイン方式は `AUTH_MODE`（`local` / `oidc` / `both`、未設定時は `OIDC_ISSUER` の有無で `local` / `both`）で選ぶ。`oidc` または `both` では上記の自前認証に加えて（`oidc` では代わりに）OpenID Connect ログインが有効になる。`Principal` に `provider`（`local` / `oidc`）が加わり、before-filter の解決順は **Cookie セッション → Bearer PAT → Bearer OIDC アクセストークン（JWT）** となる。
 
 ```
 ブラウザ ─ GET /api/v1/auth/oidc/login ──▶ Keycloak authorization endpoint（PKCE S256, state, nonce）

@@ -177,7 +177,8 @@ paths:
         Besides `userId` / `displayName` / `roles` / `anonymous` the body carries (#499)
         `provider` (`local` | `oidc` | `none`), `hasPassword` (false for OIDC-provisioned
         accounts — password change is refused) and an `auth` block
-        `{ localLoginEnabled, oidcEnabled, oidcLoginUrl? }` the login modal uses to decide
+        `{ mode, localLoginEnabled, oidcEnabled, oidcLoginUrl? }` (`mode` = `AUTH_MODE`:
+        `local` | `oidc` | `both`) the login modal uses to decide
         which sign-in methods to offer. The `auth` block is present on the anonymous
         response too.
       security: []
@@ -190,7 +191,7 @@ paths:
       responses:
         '200': { description: Logged in }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { description: 'LOCAL_LOGIN_DISABLED — password login switched off (LOCAL_LOGIN_ENABLED=false)' }
+        '403': { description: 'LOCAL_LOGIN_DISABLED — password login switched off (AUTH_MODE=oidc)' }
   /api/v1/auth/logout:
     post:
       tags: [auth]

@@ -12,6 +12,8 @@
 #   OIDC_CLIENT_ID=report-studio \
 #   docker compose --profile keycloak up --build
 #
+# Add AUTH_MODE=oidc for Keycloak-only, AUTH_MODE=both (default once OIDC_ISSUER
+# is set) to offer both, AUTH_MODE=local to keep passwords only.
 # The "keycloak" profile starts a dev-mode Keycloak on http://localhost:8180
 # (admin console: admin / admin) with the realm from docker/keycloak/ pre-imported:
 # client "report-studio" (public, PKCE) and users kc-admin / kc-user (password
@@ -41,7 +43,8 @@ services:
       OIDC_ADMIN_ROLE: ${OIDC_ADMIN_ROLE:-report-studio-admin}
       OIDC_USER_ROLE: ${OIDC_USER_ROLE:-}
       OIDC_LINK_LOCAL_USERS: ${OIDC_LINK_LOCAL_USERS:-false}
-      LOCAL_LOGIN_ENABLED: ${LOCAL_LOGIN_ENABLED:-true}
+      # local | oidc | both — unset = local, or both once OIDC_ISSUER is set
+      AUTH_MODE: ${AUTH_MODE:-}
     volumes:
       - report-studio-data:/data
     expose:

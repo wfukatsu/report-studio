@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.report.server.auth.AuthController;
+import com.report.server.auth.AuthMode;
 import com.report.server.auth.Principal;
 import com.report.server.auth.UserRecord;
 import com.report.server.auth.UserRepository;
@@ -67,7 +68,7 @@ class OidcControllerTest {
         userRepo = mock(UserRepository.class);
         when(userRepo.findById(anyString())).thenReturn(Optional.empty());
         when(userRepo.findByExternalId(anyString(), anyString())).thenReturn(Optional.empty());
-        authCtrl = new AuthController(userRepo, now::get, true);
+        authCtrl = new AuthController(userRepo, now::get, AuthMode.BOTH);
     }
 
     @AfterEach

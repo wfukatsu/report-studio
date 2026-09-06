@@ -2,6 +2,7 @@ package com.report.server;
 
 import com.report.server.auth.AdminUserController;
 import com.report.server.auth.AuthController;
+import com.report.server.auth.AuthMode;
 import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRepository;
@@ -179,21 +180,23 @@ public final class AppWiring {
         adminUserCtrl = new AdminUserController(userRepo);
         adminServerCtrl = new AdminServerController(Path.of("scalardb.properties"));
 
-        // Controllers — password login stays on unless LOCAL_LOGIN_ENABLED=false with OIDC (#499)
+        // Controllers — AUTH_MODE picks local / oidc / both (#499)
         OidcConfig oidcConfig = OidcConfig.fromEnv();
-        boolean localLogin = OidcConfig.localLoginEnabled(System.getenv(), oidcConfig);
-        authCtrl = new AuthController(userRepo, System::currentTimeMillis, localLogin);
-        if (oidcConfig != null) {
+        AuthMode authMode = AuthMode.resolve(System.getenv(), oidcConfig);
+        authCtrl = new AuthController(userRepo, System::currentTimeMillis, authMode);
+        if (authMode.oidcEnabled()) {
             oidcCtrl = new OidcController(oidcConfig, userRepo, authCtrl);
             authCtrl.enableOidc(oidcCtrl::logoutUrl);
             oidcCtrl.warmUp();
             log.info(
-                    "OIDC login enabled (issuer={}, client={}, localLogin={})",
+                    "Auth mode {}: OIDC login enabled (issuer={}, client={}), local login {}",
+                    authMode.id(),
                     oidcConfig.issuer(),
                     oidcConfig.clientId(),
-                    localLogin);
+                    authMode.localLoginEnabled() ? "enabled" : "disabled");
         } else {
             oidcCtrl = null;
+            log.info("Auth mode {}: local login only", authMode.id());
         }
         // API token (PAT) authentication (#195)
         apiTokenRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "api_tokens");

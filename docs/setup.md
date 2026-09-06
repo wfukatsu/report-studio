@@ -214,7 +214,7 @@ scalar.db.transaction_manager=jdbc
 | `OIDC_ROLE_CLAIM` | `realm_access.roles` | ロール配列を読むクレームのドットパス（クライアントロールなら `resource_access.<client>.roles`） |
 | `OIDC_LINK_LOCAL_USERS` | `false` | `true` で同じユーザー ID のローカルアカウントに OIDC ID を紐付ける（既定は衝突として拒否） |
 | `OIDC_SCOPES` | `openid profile email` | 要求するスコープ |
-| `LOCAL_LOGIN_ENABLED` | `true` | `false` で ID/パスワードログインを無効化（OIDC 未設定時は無視） |
+| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式。`local` = ID/パスワードのみ（`OIDC_*` があっても OIDC は無効）、`oidc` = Keycloak のみ（パスワードログインは 403、モーダルのフォームも非表示）、`both` = 併用。`oidc`/`both` は `OIDC_ISSUER`・`OIDC_CLIENT_ID` が必須で、不足時はエラーログを出して `local` にフォールバック |
 | `ALLOWED_ORIGIN` | （未設定） | CORS / CSRF Origin チェックで許可する追加オリジン。ブラウザの URL と一致させる |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限（IP / 窓あたり） |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓（ミリ秒、既定 5 分） |
@@ -230,6 +230,16 @@ scalar.db.transaction_manager=jdbc
 ## Keycloak（OIDC）ログインの併用
 
 自前認証（ScalarDB 上のユーザー + bcrypt + Cookie セッション + PAT）はそのままに、Keycloak による OpenID Connect ログインを**併用**できます。`OIDC_ISSUER` が未設定の環境は従来どおり動作します。
+
+### 認証方式の選択（`AUTH_MODE`）
+
+| `AUTH_MODE` | ログインモーダル | パスワードログイン API | Keycloak ログイン / Bearer JWT |
+|---|---|---|---|
+| `local`（既定） | ID/パスワードのみ | 可 | 無効（`OIDC_*` があっても登録しない） |
+| `oidc` | 「Keycloak でログイン」のみ | 403 `LOCAL_LOGIN_DISABLED` | 有効 |
+| `both`（`OIDC_ISSUER` 設定時の既定） | 両方 | 可 | 有効 |
+
+`oidc` / `both` には `OIDC_ISSUER` と `OIDC_CLIENT_ID` が必要です。不足している場合はエラーログを出して `local` で起動するため、設定ミスでログイン不能になることはありません。`oidc` にしてもローカルの `admin` アカウントは残るので、Keycloak 障害時は `AUTH_MODE=local`（または `both`）に戻して再起動すれば復旧できます。PAT（`rpat_…`）はどのモードでも使えます。
 
 ### 仕組み
 
@@ -269,7 +279,7 @@ npm run dev:backend
 1. Keycloak の realm にクライアントを作成（Standard flow、PKCE S256、Valid redirect URIs に `OIDC_REDIRECT_URI`、Valid post logout redirect URIs に `OIDC_POST_LOGOUT_REDIRECT`）
 2. realm ロール（既定 `report-studio-admin`）を作り、管理者に付与
 3. サーバに `OIDC_ISSUER` / `OIDC_CLIENT_ID`（confidential なら `OIDC_CLIENT_SECRET` も）と `ALLOWED_ORIGIN` を設定
-4. Keycloak 専用運用にする場合は `LOCAL_LOGIN_ENABLED=false`（`admin` のローカルアカウントは残るので、緊急時は環境変数を戻せば復旧できます）
+4. Keycloak 専用運用にする場合は `AUTH_MODE=oidc`（`admin` のローカルアカウントは残るので、緊急時は `AUTH_MODE=local` に戻せば復旧できます）
 
 ## サンプルデータの投入
 

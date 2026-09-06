@@ -63,8 +63,8 @@ public final class AuthController {
      */
     private record SessionEntry(Principal principal, long expiresAt, String idTokenHint) {}
 
-    /** {@code LOCAL_LOGIN_ENABLED} (#499): when false, {@link #login} answers 403. */
-    private final boolean localLoginEnabled;
+    /** {@code AUTH_MODE} (#499): when local login is off, {@link #login} answers 403. */
+    private final AuthMode authMode;
 
     /** Set when an OIDC provider is configured — advertised to the SPA via {@link #me}. */
     private volatile boolean oidcEnabled;
@@ -73,18 +73,18 @@ public final class AuthController {
     private volatile Function<String, String> oidcLogoutUrlBuilder;
 
     public AuthController(UserRepository userRepo) {
-        this(userRepo, System::currentTimeMillis, true);
+        this(userRepo, System::currentTimeMillis, AuthMode.LOCAL);
     }
 
     /** Package-private for tests — inject a controllable clock. */
     AuthController(UserRepository userRepo, LongSupplier clock) {
-        this(userRepo, clock, true);
+        this(userRepo, clock, AuthMode.LOCAL);
     }
 
-    public AuthController(UserRepository userRepo, LongSupplier clock, boolean localLoginEnabled) {
+    public AuthController(UserRepository userRepo, LongSupplier clock, AuthMode authMode) {
         this.userRepo = userRepo;
         this.clock = clock;
-        this.localLoginEnabled = localLoginEnabled;
+        this.authMode = authMode;
         evictionScheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         r -> {
@@ -107,7 +107,11 @@ public final class AuthController {
     }
 
     public boolean isLocalLoginEnabled() {
-        return localLoginEnabled;
+        return authMode.localLoginEnabled();
+    }
+
+    public AuthMode authMode() {
+        return authMode;
     }
 
     /** Graceful shutdown — call from AppWiring.shutdown(). */
@@ -169,7 +173,7 @@ public final class AuthController {
      * devices simultaneously; the most recent login always wins.
      */
     public void login(Context ctx) {
-        if (!localLoginEnabled) {
+        if (!authMode.localLoginEnabled()) {
             ApiError.respond(
                     ctx,
                     HttpStatus.FORBIDDEN,
@@ -416,7 +420,8 @@ public final class AuthController {
         body.put("provider", principal.provider());
         body.put("hasPassword", user != null && user.hasPassword());
         Map<String, Object> auth = new java.util.LinkedHashMap<>();
-        auth.put("localLoginEnabled", localLoginEnabled);
+        auth.put("mode", authMode.id());
+        auth.put("localLoginEnabled", authMode.localLoginEnabled());
         auth.put("oidcEnabled", oidcEnabled);
         if (oidcEnabled) auth.put("oidcLoginUrl", "/api/v1/auth/oidc/login");
         body.put("auth", auth);

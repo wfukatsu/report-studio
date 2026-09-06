@@ -38,9 +38,10 @@ import org.slf4j.LoggerFactory;
  * ({@code user_conflict}).</td></tr>
  * <tr><td>{@code OIDC_SCOPES}</td><td>Requested scopes (default {@code openid profile email}).
  * </td></tr>
- * <tr><td>{@code LOCAL_LOGIN_ENABLED}</td><td>{@code false} hides / rejects id-password login
- * (Keycloak-only deployments). Ignored — forced on — when OIDC is not configured.</td></tr>
  * </table>
+ *
+ * <p>Which of local / OIDC login is <em>offered</em> is a separate switch, {@code AUTH_MODE} — see
+ * {@link com.report.server.auth.AuthMode}.
  */
 public record OidcConfig(
         String issuer,
@@ -109,20 +110,6 @@ public record OidcConfig(
                 roleClaim == null ? DEFAULT_ROLE_CLAIM : roleClaim,
                 "true".equalsIgnoreCase(trimToNull(env.get("OIDC_LINK_LOCAL_USERS"))),
                 scopes == null ? "openid profile email" : scopes);
-    }
-
-    /**
-     * {@code LOCAL_LOGIN_ENABLED} (default {@code true}). Forced to {@code true} when OIDC is not
-     * configured — otherwise nobody could log in at all.
-     */
-    public static boolean localLoginEnabled(Map<String, String> env, OidcConfig oidc) {
-        String raw = trimToNull(env.get("LOCAL_LOGIN_ENABLED"));
-        boolean enabled = raw == null || !"false".equalsIgnoreCase(raw);
-        if (!enabled && oidc == null) {
-            log.warn("LOCAL_LOGIN_ENABLED=false ignored: OIDC is not configured");
-            return true;
-        }
-        return enabled;
     }
 
     /** Whether the user-role gate is active (an IdP role is required to get {@code user}). */

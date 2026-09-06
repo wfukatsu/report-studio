@@ -59,12 +59,4 @@ class OidcConfigTest {
         assertTrue(c.linkLocalUsers());
         assertEquals("http://localhost:8080/api/v1/auth/oidc/callback", c.redirectUri());
     }
-
-    @Test
-    void localLoginCannotBeDisabledWithoutOidc() {
-        assertTrue(OidcConfig.localLoginEnabled(Map.of("LOCAL_LOGIN_ENABLED", "false"), null));
-        OidcConfig c = OidcTestKeys.config(Map.of());
-        assertFalse(OidcConfig.localLoginEnabled(Map.of("LOCAL_LOGIN_ENABLED", "false"), c));
-        assertTrue(OidcConfig.localLoginEnabled(Map.of(), c));
-    }
 }
