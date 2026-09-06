@@ -21,7 +21,7 @@ Report Studio は、ドラッグ&ドロップで帳票・フォームを設計�
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [運用可視性](./observability.md) | ヘルスチェック・メトリクス・監査ログ |
+| [運用可視性](./observability.md) | ヘルスチェック・メトリクス・構造化ログ |
 | [OpenAPI 仕様](./openapi.yaml) | REST API の機械可読仕様（PAT/Bearer での外部利用・ルート整合は CI で検証） |
 | [ページ分割仕様](./pagination-spec.md) | セクション/繰り返し要素のページネーション |
 | [テンプレートエンベロープ仕様](./template-envelope-spec.md) | テンプレート JSON の格納フォーマット（formatVersion 2） |
@@ -40,7 +40,7 @@ Java / Javalin バックエンド
    ├─ ExpressionEngine（JEXL サンドボックス：計算・条件・検証）
    ├─ PdfRenderer（Apache PDFBox：和文フォント埋め込み・ページ分割）
    ├─ ジョブ基盤（非同期・バッチ PDF、ZIP 出力）
-   └─ ScalarDB 3.17（テンプレート・バージョン・回答・テナント・商品マスター）
+   └─ ScalarDB 3.19（テンプレート・バージョン・回答・テナント・商品マスター）
         └─ SQLite（開発） / 任意の JDBC（本番）
 ```
 

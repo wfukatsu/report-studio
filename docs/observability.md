@@ -86,12 +86,17 @@ Report Studio の運用可視性（ヘルスチェック・メトリクス・ロ
 
 ## 3. 構造化ログ（現状）
 
-- **ロギング実装**（#274）: `logback-classic` 1.5 + `logstash-logback-encoder`（`server/src/main/resources/logback.xml`）。
+- **ロギング実装**（#274）: `logback-classic` 1.6.3 + `logstash-logback-encoder` 9.0（`server/src/main/resources/logback.xml`）。
   出力は標準出力（コンソールアペンダ）。
   - `LOG_LEVEL`（既定 `INFO`）: ルートログレベルを環境変数で変更（`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`）。
+    Bearer JWT（Keycloak アクセストークン）が 401 になる理由（署名・期限・aud・typ 等）は DEBUG でのみ出力されるため、
+    調査時は `LOG_LEVEL=DEBUG` で起動する。
   - `LOG_FORMAT=json`: 1 行 1 JSON の logstash 形式に切替（ログ集約基盤向け）。未設定時は
-    `timestamp level [thread] logger - message` の人間可読パターン。切替は logback.xml の
-    `<if>` 条件（janino を runtimeOnly 依存として追加）で実現。
+    `timestamp level [thread] logger - message` の人間可読パターン。logback 1.6 で janino スクリプトの
+    `<if condition>` が廃止されたため、切替は
+    `<define name="LOG_APPENDER" class="com.report.server.logging.LogFormatAppenderDefiner"/>` +
+    `<appender-ref ref="${LOG_APPENDER}"/>` で `JSON` / `CONSOLE` のアペンダ名を決める方式に置き換えた（#502、janino 依存は撤去）。
+    `LOG_FORMAT` はシステムプロパティ（`-DLOG_FORMAT=json`）でも指定でき、その場合は環境変数より優先される（テスト・アドホック実行向け）。
 - **監査ログ**: `AuditLog.op(...)` が `AUDIT op=... user=... ns=... table=... outcome=... correlationId=...` の
   **key=value（logfmt）形式**で出力。ログ集約基盤でのパースが可能です。
 - **相関 ID**: すべてのエラーレスポンスは統一フォーマット（#267）

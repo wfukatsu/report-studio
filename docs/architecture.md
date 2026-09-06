@@ -11,7 +11,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
 | アプリ形態 | シングルページアプリケーション（SPA）+ REST API バックエンド |
 | フロントエンド | Vite 8 + React 19 + TypeScript 7（native tsc・Zustand で状態管理） |
 | バックエンド | Java 21 + Javalin 7（仮想スレッド活用） |
-| データストア | ScalarDB 3.17.3 → SQLite（開発）/ 任意の JDBC（本番） |
+| データストア | ScalarDB 3.19.0 → SQLite（開発）/ 任意の JDBC（本番） |
 | 帳票エンジン | Apache PDFBox 3.0.8（和文フォント埋め込み・ページ分割） |
 | 式エンジン | Apache Commons JEXL 3.7.0（サンドボックス） |
 | 主な用途 | 見積書・請求書・発注書・納品書・領収書などの帳票、公開フォームによる回答収集 |
@@ -31,7 +31,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
 │  │ デザイン   │ バインド   │ テンプレ   │ 回答       │ データ   │ │
 │  │ (編集)     │ (結線)     │ 管理       │            │ブラウザ  │ │
 │  └───────────┴───────────┴───────────┴───────────┴─────────┘ │
-│  Zustand ストア（13 スライス） / html2canvas + jsPDF（画像出力）│
+│  Zustand ストア（14 スライス） / html2canvas + jsPDF（画像出力）│
 └──────────────────────────┬───────────────────────────────────┘
                            │ REST /api/v2/*, /api/v1/*（Cookie セッション）
                            ▼
@@ -48,7 +48,7 @@ Report Studio は、日本のビジネス帳票に特化したビジュアル帳
                            │ ScalarDB Transaction API
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ ScalarDB 3.17.3                                                │
+│ ScalarDB 3.19.0                                                │
 │  名前空間 report_studio: v2_definitions / template_versions /  │
 │   v2_form_responses / tenant / products / sequences /          │
 │   webhooks / jobs / schemas / users ...                        │
@@ -65,7 +65,7 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
 
 - **ルーティング**（`src/main.tsx`）: `BrowserRouter` で `/`（`AppShell`）と `/data-browser`（コード分割された `DataBrowserPage`）の 2 ルート。
 - **画面シェル**（`src/components/layout/AppShell.tsx`）: 上部タブ（デザイン / バインド / テンプレート管理 / 回答 / データブラウザ / 管理）。デザインタブは React の `<Activity>` でマウントを保持し、タブ切替でも編集状態を失いません。バックエンド健全性を 30 秒間隔でポーリングします。
-- **状態管理**: 単一の Zustand ストアを 13 スライスで構成（immer ミドルウェア）。データブラウザは独立ストア（`dataBrowserStore`）で分離し、編集画面の再描画に影響しません。
+- **状態管理**: 単一の Zustand ストアを 14 スライスで構成（immer ミドルウェア）。データブラウザは独立ストア（`dataBrowserStore`）で分離し、編集画面の再描画に影響しません。
 - **要素システム**: `ReportElement` は `type` を判別子とする直和型（24 種）。各要素は `src/elements/{type}/` に Renderer / PropertiesPanel / `index.tsx`（ElementDef）を持ち、共通部品（`_blocks/`）から合成し、`src/elements/registry.ts` の `ELEMENT_REGISTRY` に登録します（#414）。
 - **クライアント出力**: `html2canvas` + `jsPDF` によるプレビュー用の PNG/PDF 出力。本番品質の PDF はサーバー側で生成します。
 
@@ -79,7 +79,7 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
   3. CSRF Origin チェック（状態変更メソッドに対し、許可オリジン以外を拒否）
   4. 認証フィルタ（`/api/v1/public/*`・`/api/v1/auth/*`・ヘルスチェックは免除、それ以外は 401）
   5. 管理者ロールフィルタ（`/api/v1/admin/*` は `admin` ロール必須、なければ 403）
-- **エンジン群**（詳細は [設計 › バックエンド](./design.md#5-バックエンドの内部設計)）:
+- **エンジン群**（詳細は [設計 › バックエンド](./design.md#7-バックエンドの内部設計)）:
   - `ExpressionEngine` — JEXL サンドボックス。許可リスト方式・式長/ネスト深さ/本数の上限・評価あたり 500ms タイムアウト。
   - `CalculationEngine` — 計算ルールを依存グラフからトポロジカル順（Kahn 法）で評価。循環は 422。丸めは BigDecimal。
   - `ConditionEvaluator` — 要素の条件表示ルールを評価（PDF レンダリング時の表示可否）。
@@ -94,7 +94,7 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
 ```
 デザイナーで編集
   → Zustand ストア（ReportDefinition）
-  → 自動保存（localStorage、1 秒デバウンス、ユーザー別キー）
+  → 自動保存（localStorage、2 秒デバウンス、ユーザー別キー）
   → 「サーバーに保存」で POST/PUT /api/v2/templates
   → ScalarDB v2_definitions に JSON blob として保存
   → 5 分間隔で自動バージョン、明示的にもバージョン作成可能
@@ -144,7 +144,7 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
 
 ### Keycloak（OIDC）併用（#499）
 
-提供するログイン方式は `AUTH_MODE`（`local` / `oidc` / `both`、未設定時は `OIDC_ISSUER` の有無で `local` / `both`）で選ぶ。`oidc` または `both` では上記の自前認証に加えて（`oidc` では代わりに）OpenID Connect ログインが有効になる。`Principal` に `provider`（`local` / `oidc`）が加わり、before-filter の解決順は **Cookie セッション → Bearer PAT → Bearer OIDC アクセストークン（JWT）** となる。
+提供するログイン方式は `AUTH_MODE`（`local` / `oidc` / `both`、未設定時は `OIDC_ISSUER` の有無で `local` / `both`）で選ぶ。`oidc` または `both` では上記の自前認証に加えて（`oidc` では代わりに）OpenID Connect ログインが有効になる。`Principal` に `provider`（`local` / `oidc`）が加わり、before-filter（`ApiRoutes.resolvePrincipal`）の解決順は **Cookie セッション → `Authorization: Bearer`** となる。Bearer 値は形状で振り分け、JWT 形状（3 セグメント）なら **OIDC 検証のみ**（PAT ストアは引かない）、不透明な `rpat_…` なら **PAT ストアのみ**（JWKS 検証はしない）に渡す。
 
 ```
 ブラウザ ─ GET /api/v1/auth/oidc/login ──▶ Keycloak authorization endpoint（PKCE S256, state, nonce）
@@ -154,12 +154,16 @@ Docker 構成では nginx が SPA を配信し `/api` を同一オリジンで�
                                             ID トークン検証（JWKS / iss / aud / exp / nonce）
                                             ユーザー解決（externalId=sub → 自動プロビジョニング or リンク）
                                             通常の Cookie セッション発行 → 302 /
-API   ─ Authorization: Bearer <JWT> ─────▶ PAT 不一致なら JWKS で検証 → 既存アカウント（externalId）を解決
+API   ─ Authorization: Bearer <JWT> ─────▶ JWT 形状 → JWKS で検証（PAT ストアは引かない）
+                                            → 既存アカウント（externalId）を解決
                                             （自動作成・リンクはしない）→ Principal(provider=oidc)
+      ─ Authorization: Bearer rpat_… ───▶ 不透明トークン → PAT ストアのみ（JWT 検証はしない）
 ```
 
 - 実装は `server/.../auth/oidc/`（`OidcConfig` 環境変数、`OidcMetadata` discovery、`OidcTokenVerifier` nimbus-jose-jwt、`OidcUserMapper` ロールマッピング、`OidcController` フロー）
-- OIDC 由来のアカウントは `passwordHash=null` で、パスワード変更 API は `PASSWORD_MANAGED_EXTERNALLY` で拒否する
+- `AUTH_MODE=oidc` ではパスワードログイン（`POST /auth/login`）は 403 `LOCAL_LOGIN_DISABLED` になる
+- `/auth/me` は `provider` / `hasPassword` / `oidcLinked` に加えて `auth` ブロック `{mode, localLoginEnabled, oidcEnabled, oidcLoginUrl, oidcLinkEnabled, oidcProviderName}` を返し、SPA はこれでログインモーダルの構成を決める
+- OIDC 由来のアカウントは `passwordHash=null` で、パスワード変更 API は `PASSWORD_MANAGED_EXTERNALLY` で拒否する。ロールは IdP のクレームからログインのたびに反映され、管理画面からは変更できない（`ROLES_MANAGED_EXTERNALLY`）。発行する PAT は最長 7 日（`OIDC_MAX_EXPIRY_DAYS`）で必ず失効する
 - ローカルアカウントとの連携はユーザー名一致では行わず、ローカルでログイン済みのセッションからの明示操作（`/oidc/login?link=1`）でのみ `externalId` を付与する
 - ログアウトは `logoutUrl`（end_session_endpoint）を返し、SPA が遷移して SSO セッションも終了する
 - CSRF: コールバックは GET のため対象外。state Cookie（`SameSite=Lax`, path 限定）と nonce でリプレイ／CSRF を防ぐ
@@ -226,7 +230,7 @@ scalar.db.transaction_manager=jdbc
 
 | 観点 | 対応 |
 |------|------|
-| セキュリティ | JEXL サンドボックス（許可リスト・上限・500ms タイムアウト）、RE2J による ReDoS 安全な正規表現、bcrypt、CSRF Origin チェック、CSP、SSRF 対策（画像取得は 10s タイムアウト・リダイレクト禁止・10MB 上限）、Webhook シークレット暗号化、CSV/Excel の数式インジェクション無害化 |
+| セキュリティ | JEXL サンドボックス（許可リスト・上限・500ms タイムアウト）、RE2J による ReDoS 安全な正規表現、bcrypt、CSRF Origin チェック、CSP、SSRF 対策（画像取得は 10s タイムアウト・リダイレクト禁止・10MB 上限）、Webhook シークレット暗号化、CSV/Excel の数式インジェクション無害化、OIDC（state Cookie `oidc_state` は HttpOnly・SameSite=Lax・path 限定、PKCE S256、nonce、保留フロー上限 10,000 + `/oidc/login` の IP 単位レート制限 30 回/分、discovery 失敗時 30 秒バックオフ、JWKS 取得 5 秒タイムアウト + リトライ／障害耐性） |
 | 性能・スケール | PDF はページ逐次レンダリングでピークメモリを抑制、バッチは仮想スレッド + セマフォで並列度制御（`clamp(cores, 2..8)`）、ジョブは同時実行数上限（`MAX_ACTIVE_JOBS=20`、超過は 429） |
 | 上限（乱用防止） | 式長 500 / ネスト深さ 16 / テンプレートあたり式 50、投影あたりテンプレート 20 / 物理ページ 2000、バッチ行数 10,000 |
 | 可用性・回復 | 起動時に非終了ジョブを FAILED に整合化（`reconcileOrphans`）、TTL で期限切れジョブを掃除、保存は 3 回リトライ |
@@ -234,7 +238,7 @@ scalar.db.transaction_manager=jdbc
 
 ## 10. 開発・リリース基盤
 
-- **CI**: GitHub Actions（`.github/workflows/ci.yml`）。3 ジョブ構成 — frontend（lint / build / TS7 型検査 / npm audit / vitest カバレッジラチェット / Storybook build）、backend（spotless / JUnit + ゴールデン PDF 回帰 / jacoco カバレッジラチェット）、E2E（Playwright、バックエンド + Vite を自動起動）。Actions は SHA ピン + `permissions: contents: read`。
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）。4 ジョブ構成 — frontend（lint / build / TS7 型検査 / npm audit / vitest カバレッジラチェット / Storybook build）、backend（spotless / JUnit + ゴールデン PDF 回帰 / jacoco カバレッジラチェット）、e2e（Playwright スモーク、バックエンド + Vite を自動起動）、e2e-oidc（Keycloak 26.3 コンテナを起動して `e2e/oidc.spec.ts` を実行。`OIDC_ISSUER` 未設定時はスキップ）。Actions は SHA ピン + `permissions: contents: read`。
 - **テスト**: フロントは Vitest（カバレッジラチェット `test:coverage`）+ Playwright E2E（主要フロー）。バックエンドは JUnit 5 + jacoco ラチェット（instruction 0.64 / branch 0.58、`check` に接続）。
 - **スキーマ整合**: 構造上限は `schemas/report-definition-limits.json` を単一ソースとし、フロント/バック双方が参照。生成 JSON Schema とのドリフトはテストで検出。
 - **コンテナ**: フロント/バックエンドの 2 イメージ + nginx リバースプロキシで単一オリジン配信。

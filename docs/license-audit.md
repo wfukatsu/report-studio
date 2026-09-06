@@ -7,6 +7,8 @@
 
 方法: `npx license-checker --production --summary`
 
+> パッケージ数は実施日時点の集計。Dependabot 等の依存更新後は再集計する（集計値そのものは更新のたびに書き換えていない）。
+
 | ライセンス | パッケージ数 | 互換性 |
 |---|---|---|
 | MIT | 196 | ✅ |
@@ -27,10 +29,10 @@
 
 | 依存 | ライセンス | 互換性 |
 |---|---|---|
-| io.javalin:javalin 7.2.2 | Apache-2.0 | ✅ |
-| com.fasterxml.jackson.core:jackson-databind 2.22.1 | Apache-2.0 | ✅ |
-| com.scalar-labs:scalardb 3.17.3（Community Edition） | Apache-2.0 | ✅ |
-| org.xerial:sqlite-jdbc 3.53.2.0 | Apache-2.0（同梱 SQLite は Public Domain） | ✅ |
+| io.javalin:javalin 7.2.3 | Apache-2.0 | ✅ |
+| com.fasterxml.jackson.core:jackson-databind 2.22.2 | Apache-2.0 | ✅ |
+| com.scalar-labs:scalardb 3.19.0（Community Edition） | Apache-2.0 | ✅ |
+| org.xerial:sqlite-jdbc 3.53.4.0 | Apache-2.0（同梱 SQLite は Public Domain） | ✅ |
 | org.apache.pdfbox:pdfbox 3.0.8 | Apache-2.0 | ✅ |
 | com.google.zxing:core / javase 3.5.4 | Apache-2.0 | ✅ |
 | at.favre.lib:bcrypt 0.10.2 | Apache-2.0 | ✅ |
@@ -40,9 +42,10 @@
 | org.apache.poi:poi-ooxml 5.5.1 | Apache-2.0 | ✅ |
 | ch.qos.logback:logback-classic 1.6.3 | EPL-1.0 / LGPL-2.1（デュアル） | ✅（EPL 選択で利用） |
 | net.logstash.logback:logstash-logback-encoder 9.0 | Apache-2.0 | ✅ |
-| junit-jupiter 6.1.2（test） | EPL-2.0 | ✅（テストのみ、配布物に含まれない） |
+| junit-jupiter 6.1.3（test） | EPL-2.0 | ✅（テストのみ、配布物に含まれない） |
 | mockito-core 5.23.0（test） | MIT | ✅ |
-| javalin-testtools 7.2.2（test） | Apache-2.0 | ✅ |
+| javalin-testtools 7.2.3（test） | Apache-2.0 | ✅ |
+| com.fasterxml.jackson.dataformat:jackson-dataformat-yaml 2.22.2（test） | Apache-2.0 | ✅（テストのみ、配布物に含まれない） |
 
 ## 同梱フォント
 

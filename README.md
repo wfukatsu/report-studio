@@ -29,6 +29,7 @@
 - **バージョン管理** — テンプレートのバージョン履歴と復元
 - **フォーム回答収集** — 公開フォームからの回答収集と Excel/PDF エクスポート
 - **計算・バリデーション** — JEXL 式による計算ルールと入力検証
+- **Keycloak（OIDC）ログイン** — 自前認証に加えて Keycloak（OpenID Connect）ログインを併用可能（`AUTH_MODE`）
 
 ## 技術スタック
 
@@ -39,7 +40,7 @@
 | スタイル | Tailwind CSS 4 + Radix UI |
 | ドラッグ&ドロップ | @dnd-kit/core |
 | バックエンド | Java 21 + Javalin 7 |
-| データベース | ScalarDB 3.17 + SQLite (開発) |
+| データベース | ScalarDB 3.19 + SQLite (開発) |
 | テスト | Vitest 4 + Playwright (フロントエンド) / JUnit 5 (バックエンド) |
 | コンポーネントカタログ | Storybook 10 |
 
@@ -151,13 +152,19 @@ cd server && ./gradlew installDist  # 配布物ビルド（server/build/install/
 
 ```bash
 npm run cli -- --help    # 公式 CLI（テンプレート管理・PDF 出力・ジョブ・PAT 認証対応）
+# エージェント向けコマンド: templates summary/outline（トークン効率の良い射影）、
+#   templates edit --ops（op ベース編集・自動スナップショット・--dry-run）、
+#   templates versions list/snapshot/restore（undo）、templates delete --yes、
+#   templates create/validate/thumbnail、evaluate、bindings resolve、schema list/infer、jobs cancel
 npm run build:samples    # サンプル帳票 6 種（請求書・継続ページ実演等）のテンプレート生成
 npm run seed:samples     # サンプル帳票をサーバへ投入（要バックエンド起動）
 ```
 
-詳細は [scripts/cli/README.md](scripts/cli/README.md) と [docs/setup.md](docs/setup.md) を参照。
+詳細は [scripts/cli/README.md](scripts/cli/README.md) と [docs/setup.md](docs/setup.md) を参照。Claude Code 向けのチームスキル（CLI の使い方・op 編集の鉄則）は [.claude/skills/report-studio/](.claude/skills/report-studio/) にあります。
 
 ## 環境変数
+
+主要なもののみ抜粋です。完全な一覧は [docs/setup.md › 環境変数](docs/setup.md#環境変数) を参照してください。
 
 | 変数名 | デフォルト | 説明 |
 |--------|-----------|------|
@@ -165,11 +172,15 @@ npm run seed:samples     # サンプル帳票をサーバへ投入（要バッ�
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限 (IP/5分) |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓 (ミリ秒) |
 | `OIDC_ISSUER` | （未設定） | Keycloak（OIDC）ログインを有効化する Issuer URL（例: `https://kc.example.com/realms/report-studio`）。未設定なら自前認証のみ。詳細は [docs/setup.md](docs/setup.md#keycloakoidcログインの併用) |
+| `OIDC_INTERNAL_ISSUER` | `OIDC_ISSUER` と同じ | サーバから Keycloak に到達する URL（Docker 内部ホスト名など）。discovery / token / JWKS のみこの URL を使う |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | （未設定） | OIDC クライアント ID / シークレット（public client + PKCE ならシークレット不要） |
 | `OIDC_ADMIN_ROLE` | `report-studio-admin` | `admin` ロールにマッピングする IdP ロール |
 | `OIDC_PROVIDER_NAME` | `Keycloak` | UI に表示する IdP 名 |
-| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式: `local`（ID/パスワードのみ）/ `oidc`（Keycloak のみ）/ `both`（併用）。`oidc`/`both` で `OIDC_*` が不足していると起動失敗 |
+| `OIDC_LINK_LOCAL_USERS` | `false` | `true` で、ローカルアカウントでログイン済みのユーザーがアカウント設定から自分の Keycloak アカウントを明示的に連携できる |
+| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式: `local`（ID/パスワードのみ）/ `oidc`（Keycloak のみ）/ `both`（併用）。`oidc`/`both` で `OIDC_*` が不足していると起動失敗。`keycloak` は `oidc` の別名 |
 | `WEBHOOK_SECRET_KEY` | （未設定） | Webhook シークレット暗号化キー（32 バイトの Base64、例: `openssl rand -base64 32`）。未設定時は平文保存 + 起動時警告 |
+| `LOG_LEVEL` | `INFO` | ルートログレベル（`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`） |
+| `LOG_FORMAT` | （未設定） | `json` で 1 行 1 JSON の構造化ログ出力。未設定時は人間可読パターン |
 
 ## ドキュメント
 
@@ -196,7 +207,10 @@ report-studio/
 │   └── lib/                # ユーティリティ (エクスポート・データバインディング等)
 ├── server/                 # バックエンド (Java/Javalin)
 │   └── src/main/java/com/report/server/
-│       ├── auth/           # 認証・セッション管理
+│       ├── auth/           # 認証・セッション管理（oidc/ に Keycloak 連携）
+│       ├── job/            # 非同期ジョブ・バッチ PDF
+│       ├── logging/        # ログ設定（LOG_FORMAT=json 等）
+│       ├── pdf/            # PDF レンダラ・フォント
 │       └── *.java          # コントローラ・リポジトリ・エンジン
 ├── docs/                   # ドキュメント
 └── CLAUDE.md               # Claude Code 向け開発ガイド
