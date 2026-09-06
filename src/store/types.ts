@@ -23,7 +23,7 @@ import type {
   TenantInfo,
 } from '@/types'
 import type { FormResponseSummary } from '@/lib/schemas/formResponse'
-import type { Me, UserSummary, UserRole, ServerConfig, SchemaListItem } from '@/api/reportApi'
+import type { Me, AuthOptions, UserSummary, UserRole, ServerConfig, SchemaListItem } from '@/api/reportApi'
 
 /**
  * Omit that distributes over union members. Plain `Omit<MaskingRule, 'id'>`
@@ -117,6 +117,8 @@ export interface ValidationViolation {
 export interface AuthSliceTypes {
   currentUser: Me | null
   authLoading: boolean
+  /** Sign-in methods advertised by the server (#499); null until the first /me round-trip. */
+  authOptions: AuthOptions | null
   checkAuth: () => Promise<void>
   loginUser: (userId: string, password: string) => Promise<void>
   logoutUser: () => Promise<void>

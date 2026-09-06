@@ -2,9 +2,12 @@ package com.report.server;
 
 import com.report.server.auth.AdminUserController;
 import com.report.server.auth.AuthController;
+import com.report.server.auth.AuthMode;
 import com.report.server.auth.FormSessionManager;
 import com.report.server.auth.RateLimiter;
 import com.report.server.auth.UserRepository;
+import com.report.server.auth.oidc.OidcConfig;
+import com.report.server.auth.oidc.OidcController;
 import com.report.server.job.BatchPdfOrchestrator;
 import com.report.server.job.BatchPdfProcessor;
 import com.report.server.job.JobController;
@@ -99,6 +102,10 @@ public final class AppWiring {
 
     // ── Controllers ───────────────────────────────────────────────────────────
     final AuthController authCtrl;
+
+    /** Keycloak / OIDC (#499); {@code null} unless {@code OIDC_ISSUER} is configured. */
+    final OidcController oidcCtrl;
+
     final JsonBlobRepository apiTokenRepo;
     final ApiTokenController apiTokenCtrl;
     final GenericJsonController bindingCtrl;
@@ -173,8 +180,25 @@ public final class AppWiring {
         adminUserCtrl = new AdminUserController(userRepo);
         adminServerCtrl = new AdminServerController(Path.of("scalardb.properties"));
 
-        // Controllers
-        authCtrl = new AuthController(userRepo);
+        // Controllers — AUTH_MODE picks local / oidc / both (#499)
+        OidcConfig oidcConfig = OidcConfig.fromEnv();
+        AuthMode authMode = AuthMode.resolve(System.getenv(), oidcConfig);
+        authCtrl = new AuthController(userRepo, System::currentTimeMillis, authMode);
+        if (authMode.oidcEnabled()) {
+            oidcCtrl = new OidcController(oidcConfig, userRepo, authCtrl);
+            authCtrl.enableOidc(
+                    oidcCtrl::logoutUrl, oidcConfig.linkLocalUsers(), oidcConfig.providerName());
+            oidcCtrl.warmUp();
+            log.info(
+                    "Auth mode {}: OIDC login enabled (issuer={}, client={}), local login {}",
+                    authMode.id(),
+                    oidcConfig.issuer(),
+                    oidcConfig.clientId(),
+                    authMode.localLoginEnabled() ? "enabled" : "disabled");
+        } else {
+            oidcCtrl = null;
+            log.info("Auth mode {}: local login only", authMode.id());
+        }
         // API token (PAT) authentication (#195)
         apiTokenRepo = new JsonBlobRepository(factory, txManager, NAMESPACE, "api_tokens");
         apiTokenRepo.ensureTable();

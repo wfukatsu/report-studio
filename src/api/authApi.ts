@@ -9,11 +9,39 @@ import { jsonBody } from './apiHelpers'
 // Auth
 // ---------------------------------------------------------------------------
 
-const MeSchema = z.object({
+/**
+ * Sign-in methods the server offers (#499). Present on every `/auth/me` response,
+ * including the anonymous one, so the login modal can render before login.
+ */
+const AuthOptionsSchema = z.object({
+  /**
+   * Server `AUTH_MODE` (`local` | `oidc` | `both`), informational only — the flags below drive the
+   * UI. Kept a free string so a future mode never makes `/me` unparseable (review finding).
+   */
+  mode: z.string().optional(),
+  localLoginEnabled: z.boolean(),
+  oidcEnabled: z.boolean(),
+  /** Path to navigate the browser to (not fetch) to start a Keycloak login. */
+  oidcLoginUrl: z.string().optional(),
+  /** Signed-in local users may link their IdP identity via `${oidcLoginUrl}?link=1`. */
+  oidcLinkEnabled: z.boolean().optional(),
+  /** Label for the IdP in UI copy (`OIDC_PROVIDER_NAME`, default "Keycloak"). */
+  oidcProviderName: z.string().optional(),
+})
+export type AuthOptions = z.infer<typeof AuthOptionsSchema>
+
+export const MeSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
   roles: z.array(z.string()),
   anonymous: z.boolean(),
+  /** How this session authenticated: `local` | `oidc` | `none` (#499). Absent on older servers. */
+  provider: z.string().optional(),
+  /** False for OIDC-provisioned accounts — password change is not offered (#499). */
+  hasPassword: z.boolean().optional(),
+  /** Local account explicitly linked to an IdP identity (can sign in either way). */
+  oidcLinked: z.boolean().optional(),
+  auth: AuthOptionsSchema.optional(),
 })
 
 export type Me = z.infer<typeof MeSchema>
@@ -27,8 +55,15 @@ export async function login(userId: string, password: string): Promise<Me> {
   return apiFetch('/api/v1/auth/login', MeSchema, jsonBody({ userId, password }))
 }
 
-export async function logout(): Promise<void> {
-  return apiFetch('/api/v1/auth/logout', z.undefined(), { method: 'POST' })
+const LogoutSchema = z.object({
+  status: z.string().optional(),
+  /** Keycloak RP-Initiated Logout URL — navigate there to end the SSO session too (#499). */
+  logoutUrl: z.string().optional(),
+}).optional()
+export type LogoutResult = z.infer<typeof LogoutSchema>
+
+export async function logout(): Promise<LogoutResult> {
+  return apiFetch('/api/v1/auth/logout', LogoutSchema, { method: 'POST' })
 }
 
 export async function changeProfile(patch: {

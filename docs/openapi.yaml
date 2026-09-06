@@ -21,7 +21,8 @@ info:
 
     ## Authentication
     Two mechanisms, resolved by the `/api/*` before-filter:
-    - **cookieAuth** — browser session cookie issued by `POST /api/v1/auth/login`.
+    - **cookieAuth** — browser session cookie issued by `POST /api/v1/auth/login` or by the
+      Keycloak (OIDC) callback `GET /api/v1/auth/oidc/callback` (#499).
     - **bearerAuth** — Personal Access Token (`rpat_…`) in `Authorization: Bearer`
       (#195), the official path for CLI / CI / external programmatic use.
 
@@ -172,6 +173,15 @@ paths:
     get:
       tags: [auth]
       summary: Current principal (anonymous if not logged in)
+      description: |
+        Besides `userId` / `displayName` / `roles` / `anonymous` the body carries (#499)
+        `provider` (`local` | `oidc` | `none`), `hasPassword` (false for OIDC-provisioned
+        accounts — password change is refused) and an `auth` block
+        `{ mode, localLoginEnabled, oidcEnabled, oidcLoginUrl?, oidcLinkEnabled?, oidcProviderName? }` (`mode` =
+        `AUTH_MODE`: `local` | `oidc` | `both`) the login modal uses to decide; `oidcLinked`
+        tells a *local* account it is linked to an IdP identity (false for provisioned OIDC accounts)
+        which sign-in methods to offer. The `auth` block is present on the anonymous
+        response too.
       security: []
       responses: { '200': { description: Principal } }
   /api/v1/auth/login:
@@ -182,12 +192,49 @@ paths:
       responses:
         '200': { description: Logged in }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'LOCAL_LOGIN_DISABLED — password login switched off (AUTH_MODE=oidc)' }
   /api/v1/auth/logout:
     post:
       tags: [auth]
       summary: Invalidate the current session
+      description: |
+        Returns `{ status: logged_out }`. For a session created through Keycloak the body also
+        carries `logoutUrl` — the provider's RP-Initiated Logout URL the browser should be sent
+        to so the SSO session ends as well (#499).
       security: []
       responses: { '200': { description: Logged out } }
+  /api/v1/auth/oidc/login:
+    get:
+      tags: [auth]
+      summary: Start Keycloak (OIDC) login — Authorization Code + PKCE (#499)
+      description: |
+        Registered when `AUTH_MODE` resolves to `oidc` or `both`. Generates state / nonce / PKCE
+        verifier, pins the state in a short-lived `oidc_state` cookie and redirects (302) to
+        the provider's authorization endpoint. Navigate the browser here (`window.location`),
+        do not call it with fetch. With `?link=1` and an active *local* session the flow links
+        the IdP identity to that account instead of signing in (requires
+        `OIDC_LINK_LOCAL_USERS=true`); on success the callback redirects with `?oidc_linked=1`.
+        Failures (provider unreachable, link not allowed) redirect to the SPA with
+        `?oidc_error=provider_unavailable|link_disabled|link_unauthorized`.
+      security: []
+      responses:
+        '302': { description: Redirect to the identity provider, or to the SPA with `oidc_error` }
+  /api/v1/auth/oidc/callback:
+    get:
+      tags: [auth]
+      summary: Keycloak (OIDC) redirect URI (#499)
+      description: |
+        Validates `state` against the cookie and the one-time server-side entry, exchanges
+        `code`, verifies the ID token (signature via JWKS, iss, aud, exp, nonce), maps roles,
+        provisions or links the account and issues the regular session cookie, then redirects
+        to `OIDC_POST_LOGIN_REDIRECT` (default `/`). Failures redirect there with
+        `?oidc_error=` one of `provider_error`, `invalid_state`, `invalid_token`,
+        `account_unavailable`, `no_role`, `provider_unavailable`, `link_unauthorized`. A local
+        account whose user id collides is never linked implicitly (`account_unavailable`,
+        deliberately generic so local user ids cannot be probed).
+      security: []
+      responses:
+        '302': { description: Redirect to the SPA (with `oidc_error` on failure) }
   /api/v1/auth/change-profile:
     post:
       tags: [auth]
@@ -195,6 +242,7 @@ paths:
       responses:
         '200': { description: Updated }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'PASSWORD_MANAGED_EXTERNALLY (detailCode) — OIDC-provisioned account, password lives at the IdP (#499)' }
 
   # ── Personal Access Tokens (#195) ──────────────────────────────────────────
   /api/v1/auth/tokens:
@@ -224,6 +272,7 @@ paths:
     get:
       tags: [admin]
       summary: List users
+      description: Each user carries `provider` (`local` | `oidc`) and `hasPassword` (#499).
       responses: { '200': { description: Users } }
     post:
       tags: [admin]
@@ -234,7 +283,13 @@ paths:
     put:
       tags: [admin]
       summary: Update a user
-      responses: { '200': { description: Updated } }
+      description: |
+        OIDC-provisioned accounts (#499) refuse a `password` (403 `PASSWORD_MANAGED_EXTERNALLY`)
+        and a `roles` change (403 `ROLES_MANAGED_EXTERNALLY`, the IdP is authoritative);
+        `displayName` stays editable.
+      responses:
+        '200': { description: Updated }
+        '403': { description: 'PASSWORD_MANAGED_EXTERNALLY / ROLES_MANAGED_EXTERNALLY (detailCode)' }
     delete:
       tags: [admin]
       summary: Delete a user

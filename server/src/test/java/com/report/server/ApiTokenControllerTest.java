@@ -298,4 +298,49 @@ class ApiTokenControllerTest {
         limited.create(second);
         verify(second).status(HttpStatus.TOO_MANY_REQUESTS);
     }
+
+    // ── #499 (review L): IdP revocation cannot reach a never-expiring PAT ─────
+
+    @Test
+    void create_capsLifetimeForOidcAccounts() throws Exception {
+        Context ctx = ctx();
+        when(authCtrl.resolveFromRequest(ctx))
+                .thenReturn(
+                        new Principal("alice", "Alice", Set.of("user"), Principal.PROVIDER_OIDC));
+        when(userRepo.findById("alice"))
+                .thenReturn(
+                        Optional.of(
+                                new UserRecord(
+                                        "alice",
+                                        "Alice",
+                                        null,
+                                        Set.of("user"),
+                                        UserRecord.PROVIDER_OIDC,
+                                        "iss|s")));
+        when(ctx.body())
+                .thenReturn("{\"label\":\"cli\"}"); // no expiry requested → would be "never"
+
+        long before = System.currentTimeMillis();
+        controller.create(ctx);
+
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(tokenRepo).put(anyString(), json.capture(), eq("alice"));
+        long expiresAt = MAPPER.readTree(json.getValue()).path("expiresAt").asLong();
+        long maxMs = ApiTokenController.OIDC_MAX_EXPIRY_DAYS * 86_400_000L;
+        assertTrue(expiresAt > before, "OIDC account tokens must expire");
+        assertTrue(expiresAt <= before + maxMs + 5_000, "capped at OIDC_MAX_EXPIRY_DAYS");
+
+        // An explicit longer request is clamped too
+        Context ctx2 = ctx();
+        when(authCtrl.resolveFromRequest(ctx2))
+                .thenReturn(
+                        new Principal("alice", "Alice", Set.of("user"), Principal.PROVIDER_OIDC));
+        when(ctx2.body()).thenReturn("{\"label\":\"cli\",\"expiresInDays\":365}");
+        controller.create(ctx2);
+        ArgumentCaptor<String> json2 = ArgumentCaptor.forClass(String.class);
+        verify(tokenRepo, org.mockito.Mockito.times(2))
+                .put(anyString(), json2.capture(), eq("alice"));
+        long expiresAt2 = MAPPER.readTree(json2.getAllValues().get(1)).path("expiresAt").asLong();
+        assertTrue(expiresAt2 <= before + maxMs + 5_000);
+    }
 }

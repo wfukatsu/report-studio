@@ -57,6 +57,7 @@
     "saveMenu": "Save menu",
     "saveToServer": "Save to server"
   },
+  "logoutFailed": "Logout failed. Check the network and try again",
   "preview": {
     "close": "Close preview",
     "fullPreviewPdf": "Full preview (PDF)",

@@ -22,6 +22,9 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
 
 import { getMe, login, logout, getTenantInfo } from '@/api/reportApi'
 
+vi.mock('@/lib/browserNavigation', () => ({ navigateTo: vi.fn() }))
+import { navigateTo } from '@/lib/browserNavigation'
+
 const ADMIN: Me = { userId: 'admin', displayName: '管理者', roles: ['admin'], anonymous: false }
 
 const TENANT = {
@@ -193,5 +196,64 @@ describe('authSlice — logoutUser', () => {
 
     // No logged-in → logged-out transition: template stays untouched
     expect(useReportStore.getState().currentTemplateId).toBe('tpl-1')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Keycloak / OIDC (#499)
+// ---------------------------------------------------------------------------
+
+describe('authSlice — OIDC (#499)', () => {
+  it('records the sign-in methods advertised by /me, even when anonymous', async () => {
+    vi.mocked(getMe).mockResolvedValue({
+      userId: 'anonymous', displayName: 'Anonymous User', roles: [], anonymous: true,
+      provider: 'none', hasPassword: false,
+      auth: { localLoginEnabled: false, oidcEnabled: true, oidcLoginUrl: '/api/v1/auth/oidc/login' },
+    })
+    await useReportStore.getState().checkAuth()
+    expect(useReportStore.getState().currentUser).toBeNull()
+    expect(useReportStore.getState().authOptions).toEqual({
+      localLoginEnabled: false, oidcEnabled: true, oidcLoginUrl: '/api/v1/auth/oidc/login',
+    })
+  })
+
+  it('assumes password-only login for a server that omits the auth block', async () => {
+    vi.mocked(getMe).mockResolvedValue(ADMIN)
+    vi.mocked(getTenantInfo).mockResolvedValue(TENANT)
+    await useReportStore.getState().checkAuth()
+    expect(useReportStore.getState().authOptions).toEqual({ localLoginEnabled: true, oidcEnabled: false })
+  })
+
+  it('sends the browser to the provider logout URL after an OIDC logout', async () => {
+    useReportStore.setState({ currentUser: { ...ADMIN, userId: 'alice', provider: 'oidc' } })
+    vi.mocked(logout).mockResolvedValue({ status: 'logged_out', logoutUrl: 'https://kc/logout?x=1' })
+    await useReportStore.getState().logoutUser()
+    expect(useReportStore.getState().currentUser).toBeNull()
+    expect(navigateTo).toHaveBeenCalledWith('https://kc/logout?x=1')
+  })
+
+  it('does not navigate after a local logout', async () => {
+    useReportStore.setState({ currentUser: ADMIN })
+    vi.mocked(logout).mockResolvedValue({ status: 'logged_out' })
+    await useReportStore.getState().logoutUser()
+    expect(navigateTo).not.toHaveBeenCalled()
+  })
+
+  it('takes the sign-in options from a successful password login response', async () => {
+    vi.mocked(login).mockResolvedValue({ ...ADMIN, auth: { localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/x' } })
+    vi.mocked(getTenantInfo).mockResolvedValue(TENANT)
+    await useReportStore.getState().loginUser('admin', 'pw')
+    expect(useReportStore.getState().authOptions).toEqual({ localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/x' })
+  })
+
+  it('resets the editor before leaving for the provider logout', async () => {
+    useReportStore.setState({ currentUser: { ...ADMIN, userId: 'alice', provider: 'oidc' } })
+    const order: string[] = []
+    const reset = useReportStore.getState().resetForUserSwitch
+    useReportStore.setState({ resetForUserSwitch: (prev) => { order.push('reset'); reset(prev) } })
+    vi.mocked(navigateTo).mockImplementation(() => { order.push('navigate') })
+    vi.mocked(logout).mockResolvedValue({ status: 'logged_out', logoutUrl: 'https://kc/logout' })
+    await useReportStore.getState().logoutUser()
+    expect(order).toEqual(['reset', 'navigate'])
   })
 })

@@ -22,6 +22,9 @@ vi.mock('@/api/reportApi', async (importOriginal) => {
 
 import { login, getTenantInfo } from '@/api/reportApi'
 
+vi.mock('@/lib/browserNavigation', () => ({ navigateTo: vi.fn() }))
+import { navigateTo } from '@/lib/browserNavigation'
+
 const ADMIN: Me = { userId: 'admin', displayName: '管理者', roles: ['admin'], anonymous: false }
 
 function fillAndSubmit(userId: string, password: string) {
@@ -32,7 +35,8 @@ function fillAndSubmit(userId: string, password: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  useReportStore.setState({ currentUser: null, authLoading: false, tenantInfo: null, tenantLoading: false })
+  window.history.replaceState(null, '', '/')
+  useReportStore.setState({ currentUser: null, authLoading: false, authOptions: null, tenantInfo: null, tenantLoading: false })
   vi.mocked(getTenantInfo).mockResolvedValue({} as never)
 })
 
@@ -148,5 +152,82 @@ describe('LoginModal — 認証失敗の表示', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
     expect(useReportStore.getState().currentUser).toEqual(ADMIN)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Keycloak / OIDC (#499)
+// ---------------------------------------------------------------------------
+
+describe('LoginModal — OIDC (#499)', () => {
+  const BOTH = { localLoginEnabled: true, oidcEnabled: true, oidcLoginUrl: '/api/v1/auth/oidc/login' }
+
+  it('shows only the password form when the server offers no OIDC (or has not answered yet)', () => {
+    useReportStore.setState({ authOptions: null })
+    render(<LoginModal />)
+    expect(screen.queryByRole('button', { name: 'Keycloak でログイン' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+  })
+
+  it('offers a Keycloak button next to the password form and navigates to the login URL', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    render(<LoginModal />)
+    fireEvent.click(screen.getByRole('button', { name: 'Keycloak でログイン' }))
+    expect(navigateTo).toHaveBeenCalledWith('/api/v1/auth/oidc/login')
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+    expect(screen.getByText('または')).toBeInTheDocument()
+  })
+
+  it('hides the password form when local login is disabled', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByRole('button', { name: 'Keycloak でログイン' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('ユーザーID')).not.toBeInTheDocument()
+    expect(screen.queryByText('または')).not.toBeInTheDocument()
+  })
+
+  it('keeps the password form when local login is "disabled" but OIDC is unavailable', () => {
+    useReportStore.setState({ authOptions: { localLoginEnabled: false, oidcEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByLabelText('ユーザーID')).toBeInTheDocument()
+  })
+
+  it('explains an ?oidc_error= callback failure and strips it from the URL', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    window.history.replaceState(null, '', '/?oidc_error=account_unavailable&keep=1')
+    render(<LoginModal />)
+    expect(screen.getByRole('alert')).toHaveTextContent('この Keycloak アカウントではログインできません')
+    expect(window.location.search).toBe('?keep=1')
+  })
+
+  it('maps unknown oidc_error codes to the generic provider error', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    window.history.replaceState(null, '', '/?oidc_error=something_new')
+    render(<LoginModal />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Keycloak でのログインに失敗しました')
+    expect(window.location.search).toBe('')
+  })
+
+  it('gives initial focus to the user-id field even though the Keycloak button comes first', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    render(<LoginModal />)
+    expect(screen.getByLabelText('ユーザーID')).toHaveFocus()
+  })
+
+  it('focuses the Keycloak button when the password form is hidden', () => {
+    useReportStore.setState({ authOptions: { ...BOTH, localLoginEnabled: false } })
+    render(<LoginModal />)
+    expect(screen.getByRole('button', { name: 'Keycloak でログイン' })).toHaveFocus()
+  })
+
+  it('shows a callback error once, above both sign-in methods, in both mode', () => {
+    useReportStore.setState({ authOptions: BOTH })
+    window.history.replaceState(null, '', '/?oidc_error=no_role')
+    render(<LoginModal />)
+    const alerts = screen.getAllByRole('alert')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].compareDocumentPosition(screen.getByRole('button', { name: 'Keycloak でログイン' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-describedby', 'login-error')
+    expect(window.location.search).toBe('')
   })
 })

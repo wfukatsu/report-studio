@@ -44,4 +44,14 @@ describe('UserTable', () => {
     render(<UserTable users={[]} currentUserId={undefined} onDeleteRequest={vi.fn()} />)
     expect(screen.getByText('ユーザーがいません')).toBeInTheDocument()
   })
+
+  it('shows the auth provider per user, defaulting to local (#499)', () => {
+    const users: UserSummary[] = [
+      ...USERS,
+      { userId: 'alice', displayName: 'Alice', roles: ['user'], provider: 'oidc', hasPassword: false },
+    ]
+    render(<UserTable users={users} currentUserId="admin" onDeleteRequest={vi.fn()} />)
+    expect(within(screen.getByText('admin').closest('tr')!).getByText('ローカル')).toBeInTheDocument()
+    expect(within(screen.getByText('alice').closest('tr')!).getByText('Keycloak')).toBeInTheDocument()
+  })
 })

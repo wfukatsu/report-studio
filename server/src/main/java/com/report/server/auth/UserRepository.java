@@ -19,7 +19,19 @@ import org.slf4j.LoggerFactory;
 public final class UserRepository {
 
     private static final Logger log = LoggerFactory.getLogger(UserRepository.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Lenient on unknown properties so a record written by a newer server version (extra fields)
+     * still loads after a rollback — otherwise every user would fail to parse and the default admin
+     * would be silently re-created. Package-private for tests.
+     */
+    static final ObjectMapper MAPPER =
+            new ObjectMapper()
+                    .configure(
+                            com.fasterxml.jackson.databind.DeserializationFeature
+                                    .FAIL_ON_UNKNOWN_PROPERTIES,
+                            false);
+
     private static final String NAMESPACE = "report_studio";
     private static final String TABLE = "users";
 
@@ -52,6 +64,16 @@ public final class UserRepository {
                         });
     }
 
+    /**
+     * Find the account bound to an IdP identity (#499): the {@code externalId} ({@code sub} claim)
+     * recorded at provisioning or explicit linking time, whatever its provider. One full scan — the
+     * user table is small (admin-managed); callers on hot paths cache the result.
+     */
+    public Optional<UserRecord> findByExternalId(String externalId) {
+        if (externalId == null || externalId.isBlank()) return Optional.empty();
+        return list().stream().filter(u -> externalId.equals(u.externalId())).findFirst();
+    }
+
     /** List all users (passwords excluded by callers — return full record for internal use). */
     public List<UserRecord> list() {
         List<String> blobs = blob.list();
@@ -75,12 +97,29 @@ public final class UserRepository {
         }
     }
 
-    /** Save or update a user. */
+    /** Save or update a user (lenient: failures are logged, not thrown — pre-#499 behaviour). */
     public void save(UserRecord user) {
         try {
-            blob.put(user.userId(), MAPPER.writeValueAsString(user));
+            saveOrThrow(user);
         } catch (Exception e) {
             log.error("Failed to save user {}", user.userId(), e);
+        }
+    }
+
+    /**
+     * Save or update a user, propagating store failures. Used where a swallowed failure would be
+     * wrong — e.g. issuing a session for an account that was never persisted (#499 review M9).
+     *
+     * @throws JsonBlobRepository.RepositoryException when the write did not commit
+     */
+    public void saveOrThrow(UserRecord user) {
+        try {
+            blob.put(user.userId(), MAPPER.writeValueAsString(user));
+        } catch (JsonBlobRepository.RepositoryException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new JsonBlobRepository.RepositoryException(
+                    "Failed to serialise user " + user.userId(), e);
         }
     }
 

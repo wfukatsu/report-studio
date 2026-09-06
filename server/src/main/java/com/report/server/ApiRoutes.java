@@ -119,11 +119,7 @@ public final class ApiRoutes {
                         ctx.attribute("principal", com.report.server.auth.Principal.ANONYMOUS);
                         return;
                     }
-                    var principal = w.authCtrl.resolveFromRequest(ctx);
-                    if (principal.isAnonymous()) {
-                        // Fall back to Bearer PAT auth for CLI / CI clients (#195)
-                        principal = w.apiTokenCtrl.resolveFromBearer(ctx);
-                    }
+                    var principal = resolvePrincipal(ctx, w.authCtrl, w.apiTokenCtrl, w.oidcCtrl);
                     ctx.attribute("principal", principal);
                     if (principal.isAnonymous()) {
                         throw new io.javalin.http.UnauthorizedResponse("Authentication required");
@@ -133,6 +129,29 @@ public final class ApiRoutes {
         // Admin role enforcement: all /api/v1/admin/* endpoints require admin role
         // Runs after auth filter so principal is already resolved
         registerAdminRoleFilter(config);
+    }
+
+    /**
+     * Principal resolution order of the auth before-filter (package-private for
+     * ApiRoutesPrincipalChainTest): cookie session → {@code Authorization: Bearer}. A Bearer value
+     * shaped like a JWT (three segments) is only ever a Keycloak access token (#499), so it skips
+     * the PAT store lookup; an opaque {@code rpat_…} value is only ever a PAT (#195). {@code
+     * oidcCtrl} is null when OIDC is not configured.
+     */
+    static com.report.server.auth.Principal resolvePrincipal(
+            io.javalin.http.Context ctx,
+            com.report.server.auth.AuthController authCtrl,
+            ApiTokenController apiTokenCtrl,
+            com.report.server.auth.oidc.OidcController oidcCtrl) {
+        var principal = authCtrl.resolveFromRequest(ctx);
+        if (!principal.isAnonymous()) return principal;
+        String header = ctx.header("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) return principal;
+        String token = header.substring("Bearer ".length()).trim();
+        if (com.report.server.auth.oidc.OidcTokenVerifier.looksLikeJwt(token)) {
+            return oidcCtrl != null ? oidcCtrl.resolveFromBearer(ctx) : principal;
+        }
+        return apiTokenCtrl.resolveFromBearer(ctx);
     }
 
     /**
@@ -235,6 +254,11 @@ public final class ApiRoutes {
         config.routes.post("/api/v1/auth/login", w.authCtrl::login);
         config.routes.post("/api/v1/auth/logout", w.authCtrl::logout);
         config.routes.post("/api/v1/auth/change-profile", w.authCtrl::changeProfile);
+        // Keycloak / OIDC browser flow (#499) — only when OIDC_ISSUER is configured
+        if (w.oidcCtrl != null) {
+            config.routes.get("/api/v1/auth/oidc/login", w.oidcCtrl::login);
+            config.routes.get("/api/v1/auth/oidc/callback", w.oidcCtrl::callback);
+        }
         // Personal Access Tokens (#195) — session-authenticated management
         config.routes.post("/api/v1/auth/tokens", w.apiTokenCtrl::create);
         config.routes.get("/api/v1/auth/tokens", w.apiTokenCtrl::list);

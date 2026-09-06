@@ -2,11 +2,22 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReportStore } from '@/store/reportStore'
 import { changeProfile } from '@/api/reportApi'
-import { isApiError } from '@/api/client'
+import { isApiError, parseApiErrorBody } from '@/api/client'
+import { navigateTo } from '@/lib/browserNavigation'
+import { useOidcProviderName } from '@/hooks/useOidcProviderName'
 
 export function AccountTab() {
   const { t } = useTranslation('modals')
   const currentUser = useReportStore((s) => s.currentUser)
+  const authOptions = useReportStore((s) => s.authOptions)
+  const provider = useOidcProviderName()
+  const oidcLoginUrl = authOptions?.oidcEnabled === true && authOptions.oidcLinkEnabled === true
+    ? authOptions.oidcLoginUrl : undefined
+  // OIDC-provisioned accounts have no local password (#499); older servers omit the flag → assume yes
+  const canChangePassword = currentUser?.hasPassword !== false
+  // Explicit IdP linking for password accounts (#499 H1): offered only when the server allows it
+  const canLink = !!oidcLoginUrl && currentUser?.provider === 'local' && canChangePassword
+  const linked = currentUser?.oidcLinked === true
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -53,6 +64,8 @@ export function AccountTab() {
     } catch (err) {
       if (isApiError(err) && err.status === 401) {
         setError(t('accountTab.currentPasswordWrong'))
+      } else if (isApiError(err) && parseApiErrorBody(err)?.detailCode === 'PASSWORD_MANAGED_EXTERNALLY') {
+        setError(t('accountTab.passwordManagedExternallyError', { provider }))
       } else {
         setError(t('accountTab.saveFailed'))
       }
@@ -69,8 +82,9 @@ export function AccountTab() {
       </div>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.displayName')}</label>
+        <label htmlFor="account-display-name" className="text-xs text-muted-foreground block mb-1">{t('accountTab.displayName')}</label>
         <input
+          id="account-display-name"
           type="text"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
           value={displayName}
@@ -80,11 +94,13 @@ export function AccountTab() {
 
       <hr className="border-border" />
 
+      {canChangePassword ? (<>
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.changePassword')}</p>
 
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.currentPassword')}</label>
+        <label htmlFor="account-current-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.currentPassword')}</label>
         <input
+          id="account-current-password"
           type="password"
           autoComplete="current-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -94,8 +110,9 @@ export function AccountTab() {
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.newPassword')}</label>
+        <label htmlFor="account-new-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.newPassword')}</label>
         <input
+          id="account-new-password"
           type="password"
           autoComplete="new-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -104,8 +121,9 @@ export function AccountTab() {
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">{t('accountTab.confirmPassword')}</label>
+        <label htmlFor="account-confirm-password" className="text-xs text-muted-foreground block mb-1">{t('accountTab.confirmPassword')}</label>
         <input
+          id="account-confirm-password"
           type="password"
           autoComplete="new-password"
           className="border rounded px-3 py-1.5 text-sm w-full bg-background"
@@ -113,6 +131,31 @@ export function AccountTab() {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
       </div>
+
+      </>) : (
+        <p className="text-xs text-muted-foreground">{t('accountTab.passwordManagedExternally', { provider })}</p>
+      )}
+
+      {(canLink || linked) && (
+        <>
+          <hr className="border-border" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('accountTab.oidcLink.title', { provider })}</p>
+          {linked ? (
+            <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.linked', { provider })}</p>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">{t('accountTab.oidcLink.hint', { provider })}</p>
+              <button
+                type="button"
+                onClick={() => navigateTo(`${oidcLoginUrl}?link=1`)}
+                className="px-4 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary/10 w-fit"
+              >
+                {t('accountTab.oidcLink.button', { provider })}
+              </button>
+            </>
+          )}
+        </>
+      )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
       {success && <p className="text-xs text-green-600">{t('accountTab.saved')}</p>}

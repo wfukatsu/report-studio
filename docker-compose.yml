@@ -4,6 +4,21 @@
 #
 # Then open http://localhost:8080 and log in as admin / changeme.
 # (Set ADMIN_PASSWORD below before the first run to avoid the default password.)
+#
+# Keycloak (OIDC) login alongside the local one (#499):
+#
+#   OIDC_ISSUER=http://localhost:8180/realms/report-studio \
+#   OIDC_INTERNAL_ISSUER=http://keycloak:8080/realms/report-studio \
+#   OIDC_CLIENT_ID=report-studio \
+#   docker compose --profile keycloak up --build
+#
+# Add AUTH_MODE=oidc for Keycloak-only, AUTH_MODE=both (default once OIDC_ISSUER
+# is set) to offer both, AUTH_MODE=local to keep passwords only.
+# The "keycloak" profile starts a dev-mode Keycloak on http://localhost:8180
+# (admin console: admin / admin) with the realm from docker/keycloak/ pre-imported:
+# client "report-studio" (public, PKCE) and users kc-admin / kc-user (password
+# "changeme", realm roles report-studio-admin / report-studio-user). The login
+# modal then shows "Keycloak でログイン" next to the id/password form.
 
 services:
   backend:
@@ -18,6 +33,21 @@ services:
       # Initial admin password. Change this before the first start for anything
       # beyond local experimentation. Cookies stay non-Secure on plain-HTTP localhost.
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      # Keycloak / OIDC (#499) — all optional; unset OIDC_ISSUER = local login only.
+      # Issuer as the browser (and the token "iss" claim) sees it …
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      # … and as this container reaches it (discovery / token / JWKS). With the keycloak
+      # service's KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true the discovery document already
+      # advertises internal URLs to internal callers, so the rewrite is a no-op there.
+      OIDC_INTERNAL_ISSUER: ${OIDC_INTERNAL_ISSUER:-}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Keycloak}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_ADMIN_ROLE: ${OIDC_ADMIN_ROLE:-report-studio-admin}
+      OIDC_USER_ROLE: ${OIDC_USER_ROLE:-}
+      OIDC_LINK_LOCAL_USERS: ${OIDC_LINK_LOCAL_USERS:-false}
+      # local | oidc | both — unset = local, or both once OIDC_ISSUER is set
+      AUTH_MODE: ${AUTH_MODE:-}
     volumes:
       - report-studio-data:/data
     expose:
@@ -42,6 +72,26 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped
+
+  # Dev-only identity provider (#499). Opt in with `--profile keycloak`.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    profiles: ["keycloak"]
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Fix the public hostname so the issuer in tokens is the browser-facing URL
+      # (http://localhost:8180/realms/report-studio) even though the backend
+      # talks to http://keycloak:8080 (OIDC_INTERNAL_ISSUER).
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
     restart: unless-stopped
 
 volumes:

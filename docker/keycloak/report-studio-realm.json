@@ -1,0 +1,58 @@
+{
+  "realm": "report-studio",
+  "enabled": true,
+  "displayName": "Report Design Studio (dev)",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "report-studio-admin", "description": "Mapped to the report-studio admin role (OIDC_ADMIN_ROLE)" },
+      { "name": "report-studio-user", "description": "Optional user gate (OIDC_USER_ROLE)" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "report-studio",
+      "name": "Report Design Studio",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:8080",
+      "baseUrl": "/",
+      "redirectUris": ["http://localhost:8080/*", "http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:8080", "http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8080/*##http://localhost:5173/*"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    }
+  ],
+  "users": [
+    {
+      "username": "kc-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Keycloak",
+      "lastName": "Admin",
+      "email": "kc-admin@example.com",
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["report-studio-admin", "report-studio-user"]
+    },
+    {
+      "username": "kc-user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Keycloak",
+      "lastName": "User",
+      "email": "kc-user@example.com",
+      "credentials": [{ "type": "password", "value": "changeme", "temporary": false }],
+      "realmRoles": ["report-studio-user"]
+    }
+  ]
+}

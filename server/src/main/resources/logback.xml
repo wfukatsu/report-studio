@@ -10,8 +10,11 @@
                 (one JSON object per line, for log aggregation pipelines).
                 Any other value (or unset) keeps the human-readable pattern.
 
-  The LOG_FORMAT switch uses Joran's <if> conditional, which requires janino
-  on the runtime classpath (declared in build.gradle.kts).
+  The LOG_FORMAT switch is a <define>d property (LogFormatAppenderDefiner → "JSON"
+  or "CONSOLE") substituted into <appender-ref>. logback 1.6 dropped the
+  janino-scripted <if condition="…"> and its <condition class="…"> replacement
+  cannot wrap or nest a <root>, which silently left the root logger without any
+  appender (#502) — so no conditional is used at all.
 
   AuditLog emits key=value (logfmt) message bodies; under the text pattern the
   line stays grep-able as before, under JSON mode the logfmt string becomes the
@@ -29,18 +32,10 @@
     <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
   </appender>
 
-  <!-- <if> must wrap the <root> element (not nest inside it): logback.qos.ch/codes.html#nested_if_element -->
-  <if condition='"json".equalsIgnoreCase(property("LOG_FORMAT"))'>
-    <then>
-      <root level="${LOG_LEVEL:-INFO}">
-        <appender-ref ref="JSON"/>
-      </root>
-    </then>
-    <else>
-      <root level="${LOG_LEVEL:-INFO}">
-        <appender-ref ref="CONSOLE"/>
-      </root>
-    </else>
-  </if>
+  <define name="LOG_APPENDER" class="com.report.server.logging.LogFormatAppenderDefiner"/>
+
+  <root level="${LOG_LEVEL:-INFO}">
+    <appender-ref ref="${LOG_APPENDER}"/>
+  </root>
 
 </configuration>

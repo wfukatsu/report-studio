@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { useToolbarModals } from './useToolbarModals'
 import { useToolbarExport } from './useToolbarExport'
 import { useToolbarFile } from './useToolbarFile'
@@ -677,7 +678,7 @@ export function Toolbar({ canvasRefs, containerRef, onRequestTemplateModal }: Pr
                     {t('user.settings')}
                   </button>
                   <button className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-red-600"
-                    onClick={() => { void logoutUser(); setShowUserMenu(false) }}>
+                    onClick={() => { logoutUser().catch(() => toast.error(t('logoutFailed'))); setShowUserMenu(false) }}>
                     {t('user.logout')}
                   </button>
                 </div>

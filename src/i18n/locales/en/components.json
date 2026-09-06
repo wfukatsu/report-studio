@@ -83,11 +83,15 @@
     "userTable": {
       "cannotDeleteSelf": "You cannot delete yourself",
       "colDisplayName": "Display name",
+      "colProvider": "Sign-in",
       "colRole": "Role",
       "colUserId": "User ID",
       "delete": "Delete",
       "deleteTitle": "Delete {{name}}",
-      "empty": "No users"
+      "empty": "No users",
+      "noPasswordHint": "No password ({{provider}} sign-in)",
+      "providerLocal": "Local",
+      "providerOidc": "{{provider}}"
     }
   },
   "bindingEditor": {

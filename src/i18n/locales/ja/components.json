@@ -83,11 +83,15 @@
     "userTable": {
       "cannotDeleteSelf": "自分自身は削除できません",
       "colDisplayName": "表示名",
+      "colProvider": "認証",
       "colRole": "ロール",
       "colUserId": "ユーザーID",
       "delete": "削除",
       "deleteTitle": "{{name}} を削除",
-      "empty": "ユーザーがいません"
+      "empty": "ユーザーがいません",
+      "noPasswordHint": "パスワードなし（{{provider}} でログイン）",
+      "providerLocal": "ローカル",
+      "providerOidc": "{{provider}}"
     }
   },
   "bindingEditor": {

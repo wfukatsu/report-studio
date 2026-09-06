@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,16 +57,34 @@ public final class AuthController {
     private final ScheduledExecutorService evictionScheduler;
     private final LongSupplier clock;
 
-    private record SessionEntry(Principal principal, long expiresAt) {}
+    /**
+     * @param idTokenHint the OIDC ID token of a Keycloak-initiated session (used for RP-Initiated
+     *     Logout, #499); {@code null} for password logins
+     */
+    private record SessionEntry(Principal principal, long expiresAt, String idTokenHint) {}
+
+    /** {@code AUTH_MODE} (#499): when local login is off, {@link #login} answers 403. */
+    private final AuthMode authMode;
+
+    /** Set when an OIDC provider is configured — advertised to the SPA via {@link #me}. */
+    private volatile boolean oidcEnabled;
+
+    /** Builds the provider logout URL for an OIDC session (null → no provider logout). */
+    private volatile Function<String, String> oidcLogoutUrlBuilder;
 
     public AuthController(UserRepository userRepo) {
-        this(userRepo, System::currentTimeMillis);
+        this(userRepo, System::currentTimeMillis, AuthMode.LOCAL);
     }
 
     /** Package-private for tests — inject a controllable clock. */
     AuthController(UserRepository userRepo, LongSupplier clock) {
+        this(userRepo, clock, AuthMode.LOCAL);
+    }
+
+    public AuthController(UserRepository userRepo, LongSupplier clock, AuthMode authMode) {
         this.userRepo = userRepo;
         this.clock = clock;
+        this.authMode = authMode;
         evictionScheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         r -> {
@@ -79,6 +98,40 @@ public final class AuthController {
                 EVICTION_INTERVAL_MINUTES,
                 EVICTION_INTERVAL_MINUTES,
                 TimeUnit.MINUTES);
+    }
+
+    /**
+     * Whether signed-in local users may link their IdP identity ({@code OIDC_LINK_LOCAL_USERS}).
+     */
+    private volatile boolean oidcLinkEnabled;
+
+    /** Human-readable IdP name for the UI ({@code OIDC_PROVIDER_NAME}, default "Keycloak"). */
+    private volatile String oidcProviderName = "Keycloak";
+
+    /** Wire the OIDC provider (#499): advertise it and enable provider logout. */
+    public void enableOidc(Function<String, String> logoutUrlBuilder) {
+        enableOidc(logoutUrlBuilder, false, "Keycloak");
+    }
+
+    /**
+     * @param linkEnabled advertise the explicit account-link flow ({@code /oidc/login?link=1}) to
+     *     signed-in local users
+     * @param providerName label the UI shows for the IdP ("Keycloak でログイン" etc.)
+     */
+    public void enableOidc(
+            Function<String, String> logoutUrlBuilder, boolean linkEnabled, String providerName) {
+        this.oidcEnabled = true;
+        this.oidcLogoutUrlBuilder = logoutUrlBuilder;
+        this.oidcLinkEnabled = linkEnabled;
+        this.oidcProviderName = providerName;
+    }
+
+    public boolean isLocalLoginEnabled() {
+        return authMode.localLoginEnabled();
+    }
+
+    public AuthMode authMode() {
+        return authMode;
     }
 
     /** Graceful shutdown — call from AppWiring.shutdown(). */
@@ -140,6 +193,14 @@ public final class AuthController {
      * devices simultaneously; the most recent login always wins.
      */
     public void login(Context ctx) {
+        if (!authMode.localLoginEnabled()) {
+            ApiError.respond(
+                    ctx,
+                    HttpStatus.FORBIDDEN,
+                    "LOCAL_LOGIN_DISABLED",
+                    "Password login is disabled; sign in with the identity provider");
+            return;
+        }
         // Rate limit by IP
         String clientIp = ctx.ip();
         if (!loginRateLimiter.isAllowed(clientIp)) {
@@ -172,6 +233,12 @@ public final class AuthController {
         }
 
         UserRecord user = userOpt.get();
+        // OIDC-provisioned accounts have no password (#499) — indistinguishable from a wrong one.
+        if (!user.hasPassword()) {
+            BCrypt.verifyer().verify(password.toCharArray(), DUMMY_HASH);
+            ApiError.respond(ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid credentials");
+            return;
+        }
         if (!BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash()).verified) {
             ApiError.respond(ctx, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Invalid credentials");
             return;
@@ -185,16 +252,22 @@ public final class AuthController {
         // (intentional — see method Javadoc; most recent login wins).
         invalidateSessionsFor(userId);
 
-        Principal principal = new Principal(user.userId(), user.displayName(), user.roles());
-        issueSession(ctx, principal);
-        ctx.json(
-                Map.of(
-                        "userId", principal.userId(),
-                        "displayName", principal.displayName(),
-                        "roles", principal.roles(),
-                        "anonymous", false));
+        Principal principal =
+                new Principal(
+                        user.userId(), user.displayName(), user.roles(), Principal.PROVIDER_LOCAL);
+        issueSession(ctx, principal, null);
+        ctx.json(meBody(principal, user));
 
         log.info("User logged in: {}", userId);
+    }
+
+    /**
+     * Establish a cookie session for a principal authenticated by an external provider (#499).
+     * Applies the same single-session policy as {@link #login}.
+     */
+    public void loginExternal(Context ctx, Principal principal, String idTokenHint) {
+        invalidateSessionsFor(principal.userId());
+        issueSession(ctx, principal, idTokenHint);
     }
 
     /** Remove every active session belonging to the given user. */
@@ -203,9 +276,11 @@ public final class AuthController {
     }
 
     /** Create a fresh session for {@code principal} and set the session cookie on the response. */
-    private void issueSession(Context ctx, Principal principal) {
+    private void issueSession(Context ctx, Principal principal, String idTokenHint) {
         String sessionId = UUID.randomUUID().toString();
-        sessions.put(sessionId, new SessionEntry(principal, clock.getAsLong() + SESSION_TTL_MS));
+        sessions.put(
+                sessionId,
+                new SessionEntry(principal, clock.getAsLong() + SESSION_TTL_MS, idTokenHint));
 
         Cookie cookie = new Cookie(SESSION_COOKIE, sessionId);
         cookie.setMaxAge(86400);
@@ -216,14 +291,27 @@ public final class AuthController {
         ctx.cookie(cookie);
     }
 
-    /** POST /api/v1/auth/logout — clear session */
+    /**
+     * POST /api/v1/auth/logout — clear session.
+     *
+     * <p>For a session created via OIDC the response also carries {@code logoutUrl}: the provider's
+     * RP-Initiated Logout URL the SPA should navigate to so the Keycloak SSO session ends as well
+     * (#499). Password sessions get {@code {status: logged_out}} only, as before.
+     */
     public void logout(Context ctx) {
         String sessionId = ctx.cookie(SESSION_COOKIE);
-        if (sessionId != null) {
-            sessions.remove(sessionId);
-        }
+        SessionEntry entry = sessionId != null ? sessions.remove(sessionId) : null;
         ctx.removeCookie(SESSION_COOKIE, "/api/");
-        ctx.json(Map.of("status", "logged_out"));
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("status", "logged_out");
+        Function<String, String> builder = oidcLogoutUrlBuilder;
+        if (entry != null
+                && Principal.PROVIDER_OIDC.equals(entry.principal().provider())
+                && builder != null) {
+            String url = builder.apply(entry.idTokenHint());
+            if (url != null) body.put("logoutUrl", url);
+        }
+        ctx.json(body);
     }
 
     /**
@@ -260,6 +348,16 @@ public final class AuthController {
         String updatedHash = user.passwordHash();
         boolean passwordChanged = false;
         if (newPassword != null && !newPassword.isBlank()) {
+            if (!user.hasPassword()) {
+                // Account is managed by the identity provider (#499)
+                ApiError.respond(
+                        ctx,
+                        HttpStatus.FORBIDDEN,
+                        "FORBIDDEN",
+                        "Password is managed by the identity provider",
+                        Map.of("detailCode", "PASSWORD_MANAGED_EXTERNALLY"));
+                return;
+            }
             if (currentPassword == null || currentPassword.isBlank()) {
                 ApiError.respond(
                         ctx,
@@ -283,24 +381,30 @@ public final class AuthController {
         }
 
         UserRecord updated =
-                new UserRecord(user.userId(), updatedDisplayName, updatedHash, user.roles());
+                new UserRecord(
+                        user.userId(),
+                        updatedDisplayName,
+                        updatedHash,
+                        user.roles(),
+                        user.provider(),
+                        user.externalId());
         userRepo.save(updated);
 
+        Principal refreshed =
+                new Principal(
+                        updated.userId(),
+                        updated.displayName(),
+                        updated.roles(),
+                        principal.provider());
         if (passwordChanged) {
             // A password change must revoke every existing session for this user so a stolen or
             // older cookie can no longer be used (#202); then re-issue a fresh session for this
             // caller so they stay logged in. (PATs are separate — revoke them via the token API.)
             invalidateSessionsFor(updated.userId());
-            issueSession(
-                    ctx, new Principal(updated.userId(), updated.displayName(), updated.roles()));
+            issueSession(ctx, refreshed, null);
         }
 
-        ctx.json(
-                Map.of(
-                        "userId", updated.userId(),
-                        "displayName", updated.displayName(),
-                        "roles", updated.roles(),
-                        "anonymous", false));
+        ctx.json(meBody(refreshed, updated));
         log.info(
                 "User {} updated profile{}",
                 principal.userId(),
@@ -316,11 +420,38 @@ public final class AuthController {
     public void me(Context ctx) {
         // Resolve from session cookie directly (not from middleware-set attribute)
         Principal principal = resolveFromRequest(ctx);
-        ctx.json(
-                Map.of(
-                        "userId", principal.userId(),
-                        "displayName", principal.displayName(),
-                        "roles", principal.roles(),
-                        "anonymous", principal.isAnonymous()));
+        UserRecord user =
+                principal.isAnonymous() ? null : userRepo.findById(principal.userId()).orElse(null);
+        ctx.json(meBody(principal, user));
+    }
+
+    /**
+     * Response shape shared by login / change-profile / me (#499): the pre-existing fields plus
+     * {@code provider} (how this session authenticated), {@code hasPassword} (whether the account
+     * can change a password) and the {@code auth} block the login modal uses to decide which
+     * sign-in methods to offer — also present for the anonymous response.
+     */
+    Map<String, Object> meBody(Principal principal, UserRecord user) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("userId", principal.userId());
+        body.put("displayName", principal.displayName());
+        body.put("roles", principal.roles());
+        body.put("anonymous", principal.isAnonymous());
+        body.put("provider", principal.provider());
+        body.put("hasPassword", user != null && user.hasPassword());
+        // A *local* account that has been explicitly linked to an IdP identity (H1 link flow);
+        // provisioned OIDC accounts are bound by nature and report false here
+        body.put("oidcLinked", user != null && !user.isOidc() && user.externalId() != null);
+        Map<String, Object> auth = new java.util.LinkedHashMap<>();
+        auth.put("mode", authMode.id());
+        auth.put("localLoginEnabled", authMode.localLoginEnabled());
+        auth.put("oidcEnabled", oidcEnabled);
+        if (oidcEnabled) {
+            auth.put("oidcLoginUrl", com.report.server.auth.oidc.OidcController.loginPath());
+            auth.put("oidcLinkEnabled", oidcLinkEnabled);
+            auth.put("oidcProviderName", oidcProviderName);
+        }
+        body.put("auth", auth);
+        return body;
     }
 }

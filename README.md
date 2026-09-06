@@ -164,6 +164,11 @@ npm run seed:samples     # サンプル帳票をサーバへ投入（要バッ�
 | `ADMIN_PASSWORD` | `changeme` | 初期管理者パスワード |
 | `LOGIN_RATE_LIMIT_MAX` | `5` | ログイン試行上限 (IP/5分) |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | `300000` | レートリミット窓 (ミリ秒) |
+| `OIDC_ISSUER` | （未設定） | Keycloak（OIDC）ログインを有効化する Issuer URL（例: `https://kc.example.com/realms/report-studio`）。未設定なら自前認証のみ。詳細は [docs/setup.md](docs/setup.md#keycloakoidcログインの併用) |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | （未設定） | OIDC クライアント ID / シークレット（public client + PKCE ならシークレット不要） |
+| `OIDC_ADMIN_ROLE` | `report-studio-admin` | `admin` ロールにマッピングする IdP ロール |
+| `OIDC_PROVIDER_NAME` | `Keycloak` | UI に表示する IdP 名 |
+| `AUTH_MODE` | `local`（`OIDC_ISSUER` 設定時は `both`） | 提供するログイン方式: `local`（ID/パスワードのみ）/ `oidc`（Keycloak のみ）/ `both`（併用）。`oidc`/`both` で `OIDC_*` が不足していると起動失敗 |
 | `WEBHOOK_SECRET_KEY` | （未設定） | Webhook シークレット暗号化キー（32 バイトの Base64、例: `openssl rand -base64 32`）。未設定時は平文保存 + 起動時警告 |
 
 ## ドキュメント

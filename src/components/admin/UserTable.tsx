@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { UserSummary } from '@/api/reportApi'
 import { RoleBadge } from '@/components/common/RoleBadge'
+import { useOidcProviderName } from '@/hooks/useOidcProviderName'
 
 interface UserTableProps {
   readonly users: UserSummary[]
@@ -10,6 +11,7 @@ interface UserTableProps {
 
 export function UserTable({ users, currentUserId, onDeleteRequest }: UserTableProps) {
   const { t } = useTranslation('components')
+  const provider = useOidcProviderName()
   return (
     <table className="w-full text-xs border-collapse">
       <thead>
@@ -17,6 +19,7 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colUserId')}</th>
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colDisplayName')}</th>
           <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colRole')}</th>
+          <th className="text-left py-1.5 pr-3 font-medium">{t('admin.userTable.colProvider')}</th>
           <th />
         </tr>
       </thead>
@@ -29,6 +32,16 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
               <div className="flex gap-1 flex-wrap">
                 {u.roles.map((r) => <RoleBadge key={r} role={r} />)}
               </div>
+            </td>
+            <td className="py-1.5 pr-3">
+              <span
+                className={u.provider === 'oidc'
+                  ? 'inline-block px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-medium'
+                  : 'inline-block px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-600 text-[10px] font-medium'}
+                title={u.provider === 'oidc' && !u.hasPassword ? t('admin.userTable.noPasswordHint', { provider }) : undefined}
+              >
+                {u.provider === 'oidc' ? provider : t('admin.userTable.providerLocal')}
+              </span>
             </td>
             <td className="py-1.5 text-right">
               <button
@@ -44,7 +57,7 @@ export function UserTable({ users, currentUserId, onDeleteRequest }: UserTablePr
         ))}
         {users.length === 0 && (
           <tr>
-            <td colSpan={4} className="py-4 text-center text-muted-foreground">
+            <td colSpan={5} className="py-4 text-center text-muted-foreground">
               {t('admin.userTable.empty')}
             </td>
           </tr>
