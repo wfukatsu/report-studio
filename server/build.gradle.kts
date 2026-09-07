@@ -30,7 +30,7 @@ dependencies {
     // mattered under the catalog-listing workload of ScalarDbCatalogController is
     // included in all 3.15+ releases).
     // See docs/plans/2026-04-10-feat-scalardb-schema-binding-phase1-plan.md (Risks table).
-    implementation("com.scalar-labs:scalardb:3.19.0")
+    implementation("com.scalar-labs:scalardb:3.19.1")
 
     // SQLite JDBC (ScalarDB storage backend)
     implementation("org.xerial:sqlite-jdbc:3.53.4.0")
@@ -47,7 +47,7 @@ dependencies {
 
     // OIDC (#499): JWS/JWT verification + cached remote JWKS for Keycloak ID / access tokens.
     // Discovery and the code exchange use java.net.http + Jackson (no OAuth SDK needed).
-    implementation("com.nimbusds:nimbus-jose-jwt:10.3")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
 
     // RE2J — linear-time regex engine (ReDoS-safe pattern validation)
     implementation("com.google.re2j:re2j:1.8")
