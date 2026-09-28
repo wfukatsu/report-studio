@@ -23,7 +23,7 @@ dependencies {
     implementation("io.javalin:javalin:7.2.3")
 
     // JSON
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
 
     // ScalarDB
     // 3.17.3 — supersedes the 3.14.4 pin (the JDBC storage connection leak fix that
@@ -47,7 +47,7 @@ dependencies {
 
     // OIDC (#499): JWS/JWT verification + cached remote JWKS for Keycloak ID / access tokens.
     // Discovery and the code exchange use java.net.http + Jackson (no OAuth SDK needed).
-    implementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.10")
 
     // RE2J — linear-time regex engine (ReDoS-safe pattern validation)
     implementation("com.google.re2j:re2j:1.8")
@@ -61,13 +61,13 @@ dependencies {
     // Logging (#274): logback with pattern console output by default; LOG_FORMAT=json
     // switches to logstash JSON encoding via a <define>d appender name
     // (LogFormatAppenderDefiner) — logback 1.6 broke the janino <if>, see #502.
-    implementation("ch.qos.logback:logback-classic:1.6.3")
+    implementation("ch.qos.logback:logback-classic:1.6.4")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Test
-    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.2")
+    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.3")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-    testImplementation("org.mockito:mockito-core:5.23.0")
+    testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("io.javalin:javalin-testtools:7.2.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
