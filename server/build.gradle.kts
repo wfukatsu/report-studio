@@ -2,7 +2,7 @@ plugins {
     java
     application
     jacoco
-    id("com.diffplug.spotless") version "8.10.3"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 group = "com.report"
@@ -23,7 +23,7 @@ dependencies {
     implementation("io.javalin:javalin:7.2.3")
 
     // JSON
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")
 
     // ScalarDB
     // 3.17.3 — supersedes the 3.14.4 pin (the JDBC storage connection leak fix that
@@ -53,7 +53,7 @@ dependencies {
     implementation("com.google.re2j:re2j:1.8")
 
     // Apache Commons JEXL 3.x — sandboxed expression engine for CalculationRule / ValidationRule conditions
-    implementation("org.apache.commons:commons-jexl3:3.7.0")
+    implementation("org.apache.commons:commons-jexl3:3.7.1")
 
     // Apache POI — Excel export (SXSSF streaming workbook)
     implementation("org.apache.poi:poi-ooxml:5.5.1")
@@ -65,7 +65,7 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Test
-    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.3")
+    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.4")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("io.javalin:javalin-testtools:7.2.3")
